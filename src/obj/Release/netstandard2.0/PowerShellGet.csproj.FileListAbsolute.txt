@@ -1,0 +1,8 @@
+C:\code\PowerShellGet\v3\PowerShellGet\bin\Release\netstandard2.0\PowerShellGet.deps.json
+C:\code\PowerShellGet\v3\PowerShellGet\bin\Release\netstandard2.0\PowerShellGet.dll
+C:\code\PowerShellGet\v3\PowerShellGet\bin\Release\netstandard2.0\PowerShellGet.pdb
+C:\code\PowerShellGet\v3\PowerShellGet\obj\Release\netstandard2.0\PowerShellGet.csprojAssemblyReference.cache
+C:\code\PowerShellGet\v3\PowerShellGet\obj\Release\netstandard2.0\PowerShellGet.AssemblyInfoInputs.cache
+C:\code\PowerShellGet\v3\PowerShellGet\obj\Release\netstandard2.0\PowerShellGet.AssemblyInfo.cs
+C:\code\PowerShellGet\v3\PowerShellGet\obj\Release\netstandard2.0\PowerShellGet.dll
+C:\code\PowerShellGet\v3\PowerShellGet\obj\Release\netstandard2.0\PowerShellGet.pdb
