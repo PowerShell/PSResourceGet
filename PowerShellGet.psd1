@@ -1,6 +1,6 @@
 @{
     RootModule        = 'PSModule.psm1'
-    ModuleVersion     = '3.0.0'
+    ModuleVersion     = '3.0.0-preview.0'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'
     CompanyName       = 'Microsoft Corporation'
@@ -9,53 +9,37 @@
     PowerShellVersion = '3.0'
     FormatsToProcess  = 'PSGet.Format.ps1xml'
     FunctionsToExport = @(
-        'Find-Command',
-        'Find-DSCResource',
-        'Find-Module',
-        'Find-RoleCapability',
-        'Find-Script',
-        'Get-CredsFromCredentialProvider',
-        'Get-InstalledModule',
-        'Get-InstalledScript',
-        'Get-PSRepository',
-        'Install-Module',
-        'Install-Script',
-        'New-ScriptFileInfo',
-        'Publish-Module',
-        'Publish-Script',
-        'Register-PSRepository',
-        'Save-Module',
-        'Save-Script',
-        'Set-PSRepository',
-        'Test-ScriptFileInfo',
-        'Uninstall-Module',
-        'Uninstall-Script',
-        'Unregister-PSRepository',
-        'Update-Module',
-        'Update-ModuleManifest',
-        'Update-Script',
-        'Update-ScriptFileInfo',
-	'Register-PSResoure)
+        'Find-PSResource',
+        'Get-PSResourceRepository',
+        'Get-PSResource',
+        'Install-PSResource',
+        'Register-PSResourceRepository',
+        'Save-PSResource',
+        'Set-PSResourceRepository',
+        'Uninstall-PSResource',
+        'Unregister-PSResourceRepository',
+        'Update-PSResource')
 
     VariablesToExport = 'PSGetPath'
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
-    FileList          = @('PSModule.psm1',
-        'PSGet.Format.ps1xml',
-        'PSGet.Resource.psd1')
-    RequiredModules   = @(@{ModuleName = 'PackageManagement'; ModuleVersion = '1.4.4' })
+    #FileList          = @(
+    #    'PSGet.Format.ps1xml',
+    #    'PSGet.Resource.psd1')
     PrivateData       = @{
-        "PackageManagementProviders"           = 'PSModule.psm1'
-        "SupportedPowerShellGetFormatVersions" = @('1.x', '2.x')
+    #    "SupportedPowerShellGetFormatVersions" = @('1.x', '2.x')
         PSData                                 = @{
-            Tags         = @('Packagemanagement',
-                'Provider',
+            Tags         = @('Package Management',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
                 'Linux',
-                'Mac')
+                'Mac',
+                'Windows')
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+### 3.0.0-preview.1
+BREAKING CHANGE
+
 ### 2.2.1
 Bug Fix
 
