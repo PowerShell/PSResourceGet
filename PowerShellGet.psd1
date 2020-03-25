@@ -1,13 +1,12 @@
 @{
     RootModule        = 'PSModule.psm1'
-    ModuleVersion     = '3.0.0-preview.0'
+    ModuleVersion     = '3.0.0'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'
     CompanyName       = 'Microsoft Corporation'
     Copyright         = '(c) Microsoft Corporation. All rights reserved.'
     Description       = 'PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, DSC Resources, Role Capabilities and Scripts.'
     PowerShellVersion = '3.0'
-    FormatsToProcess  = 'PSGet.Format.ps1xml'
     FunctionsToExport = @(
         'Find-PSResource',
         'Get-PSResourceRepository',
@@ -22,12 +21,9 @@
 
     VariablesToExport = 'PSGetPath'
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
-    #FileList          = @(
-    #    'PSGet.Format.ps1xml',
-    #    'PSGet.Resource.psd1')
     PrivateData       = @{
-    #    "SupportedPowerShellGetFormatVersions" = @('1.x', '2.x')
         PSData                                 = @{
+            Prerelease = 'beta1'
             Tags         = @('Package Management',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -37,7 +33,7 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
-### 3.0.0-preview.1
+### 3.0.0-beta1
 BREAKING CHANGE
 
 ### 2.2.1
