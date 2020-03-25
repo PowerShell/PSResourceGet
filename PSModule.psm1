@@ -8,12 +8,13 @@ Set-StrictMode -Version Latest
 # Set up some helper variables to make it easier to work with the module
 $script:PSModule = $ExecutionContext.SessionState.Module
 $script:PSModuleRoot = $script:PSModule.ModuleBase
-
+$script:Framework = 'netstandard2.0'
 $script:PSGet = 'PowerShellGet.dll'
 
 
 # Try to import the PowerShellGet assemblies
-$PSGetModulePath = Join-Path -Path $script:PSModuleRoot -ChildPath $script:PSGet
+$PSGetFrameworkPath = Join-Path -Path $script:PSModuleRoot -ChildPath $script:Framework
+$PSGetModulePath = Join-Path -Path $PSGetFrameworkPath -ChildPath $script:PSGet
 
 
 if(-not (Test-Path -Path $PSGetModulePath))
