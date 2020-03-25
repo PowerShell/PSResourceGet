@@ -6,6 +6,7 @@
   <job platform="AnyCPU" configuration="Release" dest="__OUTPATHROOT__\signed" jobname="PowerShellGet" approvers="vigarg;gstolt">
     <file src="__INPATHROOT__\PowerShellGet\PowerShellGet.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.psd1" />
     <file src="__INPATHROOT__\PowerShellGet\PSModule.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PSModule.psm1" />
+    <file src="__INPATHROOT__\PowerShellGet\PowerShellGet.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\netstandard2.0\PowerShellGet.dll" />
 
     <file src="__INPATHROOT__\PowerShellGet\Microsoft.Extensions.Logging.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll" />
     <file src="__INPATHROOT__\PowerShellGet\MoreLinq.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\MoreLinq.dll" />
