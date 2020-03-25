@@ -23,8 +23,8 @@
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData       = @{
         PSData                                 = @{
-            Prerelease = 'beta1'
-            Tags         = @('Package Management',
+            Prerelease = 'beta0'
+            Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
                 'Linux',
