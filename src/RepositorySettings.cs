@@ -283,7 +283,13 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
                 }
             }
 
-            return foundRepos;
+
+            // Sort by priority, then by repo name
+            // foundRepos.Sort((x, y) => ( Int32.Parse((x.Members.Where(m => m.Name.Equals("Priority"))).FirstOrDefault().Value.ToString()).CompareTo( Int32.Parse((y.Members.Where(m2 => m2.Name.Equals("Priority"))).FirstOrDefault().Value.ToString()) ) ));
+            var reposToReturn = foundRepos.OrderBy(x => (Int32.Parse((x.Members.Where(m => m.Name.Equals("Priority"))).FirstOrDefault().Value.ToString())))
+                .ThenBy(x => (x.Members.Where(m => m.Name.Equals("Name"))).FirstOrDefault().Value.ToString());
+
+            return reposToReturn.ToList();
         }
     }
 }
