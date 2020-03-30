@@ -51,6 +51,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string[] _name; // = new string[0];
 
+        /*
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
@@ -65,8 +66,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { _inputObject = value; }
         }
         private PSCustomObject[] _inputObject; // = new string[0];
+        */
 
-
+        /*
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
@@ -81,6 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { _destinationPath = value; }
         }
         private string _destinationPath;
+        */
 
         /// <summary>
         /// Specifies the version or version range of the package to be installed
@@ -156,7 +159,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _scope;
 
-
+        /*
         /// <summary>
         /// Overrides warning messages about installation conflicts about existing commands on a computer.
         /// Overwrites existing commands that have the same name as commands being installed by a module. AllowClobber and Force can be used together in an Install-Module command.
@@ -170,8 +173,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _noClobber = value; }
         }
         private SwitchParameter _noClobber;
+        */
 
-
+            /*
         /// <summary>
         /// Suppresses being prompted if the publisher of the resource is different from the currently installed version.
         /// </summary>
@@ -183,8 +187,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _ignoreDifferentPublisher = value; }
         }
         private SwitchParameter _ignoreDifferentPublisher;
+        */
 
-
+            /*
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
@@ -196,7 +201,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _trustRepository = value; }
         }
         private SwitchParameter _trustRepository;
+        */
 
+        /*
         /// <summary>
         /// Overrides warning messages about resource installation conflicts.
         /// If a resource with the same name already exists on the computer, Force allows for multiple versions to be installed.
@@ -210,8 +217,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _force = value; }
         }
         private SwitchParameter _force;
+        */
 
-
+    
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
@@ -223,8 +231,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _reinstall = value; }
         }
         private SwitchParameter _reinstall;
-
-
+        
+        /*
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
@@ -236,8 +244,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _quiet = value; }
         }
         private SwitchParameter _quiet;
+        */
 
-
+        /*
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
@@ -249,8 +258,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _acceptLicense = value; }
         }
         private SwitchParameter _acceptLicense;
+        */
 
-
+        /*
         /// <summary>
         /// Returns the resource as an object to the console.
         /// </summary>
@@ -262,18 +272,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _passThru = value; }
         }
         private SwitchParameter _passThru;
-
+        */
 
         // This will be a list of all the repository caches
         public static readonly List<string> RepoCacheFileName = new List<string>();
         public static readonly string RepositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
 
-
-
         private string programFilesPath;
         private string myDocumentsPath;
-
 
         private string psPath;
         private string psModulesPath;
@@ -364,8 +371,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var listOfRepositories = r.Read(_repository);
 
 
-            if (string.Equals(listOfRepositories[0].Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
-            {
+            //if (string.Equals(listOfRepositories[0].Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
+            //{
                 // throw error saying repository is not trusted
                 // throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "This repository is not trusted"));  /// we should prompt for user input to accept 
 
@@ -376,7 +383,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  * [Y]  Yes  [A]  Yes to ALl   [N]  No  [L]  No to all  [s]  suspendd [?] Help  (default is "N"):
                  */
 
-            }
+            //}
 
 
 
