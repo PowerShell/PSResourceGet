@@ -135,6 +135,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _path;
 
+        /*
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
@@ -146,15 +147,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _acceptLicense = value; }
         }
         private SwitchParameter _acceptLicense;
-
+        */
 
 
         // This will be a list of all the repository caches
         public static readonly List<string> RepoCacheFileName = new List<string>();
         public static readonly string RepositoryCacheDir = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-
-
 
         private List<string> pkgsLeftToInstall;
         // Define the cancellation token.
@@ -612,20 +611,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         pkgsLeftToInstall.Remove(n);
                     }
                 }
-
-
             }
-            ////////////////////////////////////////
-
-
-
-
-
-
-
 
             return pkgsLeftToInstall;
-
         }
 
 
@@ -669,7 +657,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
 
-
                     // if no version/version range is specified the we just return the latest version
 
                     IPackageSearchMetadata depPkgToReturn = (versionRange == null ?
@@ -677,16 +664,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         dependencies.Where(v => versionRange.Satisfies(v.Identity.Version)).FirstOrDefault());
 
 
-                   
                     foundDependencies.Add(depPkgToReturn);
                    
-
                     // 3) search for any dependencies the pkg has
                     foundDependencies.AddRange(FindDependenciesFromSource(depPkgToReturn, pkgMetadataResource, srcContext));
                 }
             }
-
-
 
 
             // flatten after returning
