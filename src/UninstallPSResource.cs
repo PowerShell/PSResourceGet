@@ -58,6 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _version;
 
+      
         /// <summary>
         /// Specifies to allow ONLY prerelease versions to be uninstalled
         /// </summary>
@@ -71,6 +72,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { _prereleaseOnly = value; }
         }
         private SwitchParameter _prereleaseOnly;
+       
 
         /// <summary>
         /// Overrides warning messages about resource installation conflicts.
@@ -139,7 +141,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Paths
             //if (!Platform.IsCoreCLR)
-            if (OsPlatform.ToLower().Contains("windows"))
+            var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
+            if (isWindowsPS)
             {
                 programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
                 // TODO: Come back to this

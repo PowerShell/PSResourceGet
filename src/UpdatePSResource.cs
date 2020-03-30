@@ -1,4 +1,4 @@
-﻿
+
 using System;
 using System.Collections;
 using System.Management.Automation;
@@ -28,15 +28,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It returns nothing.
     /// </summary>
 
-    [Cmdlet(VerbsLifecycle.Install, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
+    [Cmdlet(VerbsData.Update, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
     HelpUri = "<add>", RemotingCapability = RemotingCapability.None)]
     public sealed
-    class InstallPSResource : PSCmdlet
+    class UpdatePSResource : PSCmdlet
     {
         //  private string PSGalleryRepoName = "PSGallery";
 
         /// <summary>
-        /// Specifies the exact names of resources to install from a repository.
+        /// Specifies the exact names of resources to update.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
@@ -65,28 +65,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set
             { _inputObject = value; }
         }
-        private PSCustomObject[] _inputObject; // = new string[0];
-        */
-
-        /*
-        /// <summary>
-        /// The destination where the resource is to be installed. Works for all resource types.
-        /// </summary>
-        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
-        [ValidateNotNullOrEmpty]
-        public string DestinationPath
-        {
-            get
-            { return _destinationPath; }
-
-            set
-            { _destinationPath = value; }
-        }
-        private string _destinationPath;
+        private PSCustomObject[] _inputObject; 
         */
 
         /// <summary>
-        /// Specifies the version or version range of the package to be installed
+        /// Specifies the version or version range of the package to be updated
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
         [ValidateNotNullOrEmpty]
@@ -99,6 +82,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { _version = value; }
         }
         private string _version;
+
+
+        /// /// <summary>
+        /// Allows updating to latest path version, minor version, or major version (cannot use this parameter with the MaximumVersion or RequiredVersion parameters).
+        /// </summary>
+        //[Parameter(ValueFromPipelineByPropertyName = true)]
+        [ValidateSet(new string[] { "PatchVersion", "MinorVersion", "MajorVersion" })]
+        public string UpdateTo
+        {
+            get
+            { return _updateTo; }
+
+            set
+            { _updateTo = value; }
+        }
+        private string _updateTo;
+
 
         /// <summary>
         /// Specifies to allow installation of prerelease versions
@@ -145,67 +145,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private PSCredential _credential;
 
+
         /// <summary>
-        /// Specifies to return any dependency packages.
-        /// Currently only used when name param is specified.
-        /// </summary>
-        [Parameter()]
-        [ValidateSet("CurrentUser", "AllUsers")]
-        public string Scope
-        {
-            get { return _scope; }
-
-            set { _scope = value; }
-        }
-        private string _scope;
-
-        /*
-        /// <summary>
-        /// Overrides warning messages about installation conflicts about existing commands on a computer.
-        /// Overwrites existing commands that have the same name as commands being installed by a module. AllowClobber and Force can be used together in an Install-Module command.
-        /// Prevents installing modules that have the same cmdlets as a differently named module already
-        /// </summary>
-        [Parameter()]
-        public SwitchParameter NoClobber
-        {
-            get { return _noClobber; }
-
-            set { _noClobber = value; }
-        }
-        private SwitchParameter _noClobber;
-        */
-
-            /*
-        /// <summary>
-        /// Suppresses being prompted if the publisher of the resource is different from the currently installed version.
-        /// </summary>
-        [Parameter()]
-        public SwitchParameter IgnoreDifferentPublisher
-        {
-            get { return _ignoreDifferentPublisher; }
-
-            set { _ignoreDifferentPublisher = value; }
-        }
-        private SwitchParameter _ignoreDifferentPublisher;
-        */
-
-            /*
-        /// <summary>
-        /// Suppresses being prompted for untrusted sources.
-        /// </summary>
-        [Parameter()]
-        public SwitchParameter TrustRepository
-        {
-            get { return _trustRepository; }
-
-            set { _trustRepository = value; }
-        }
-        private SwitchParameter _trustRepository;
-        */
-
-        /*
-        /// <summary>
-        /// Overrides warning messages about resource installation conflicts.
+        /// Overrides warning messages about resource conflicts.
         /// If a resource with the same name already exists on the computer, Force allows for multiple versions to be installed.
         /// If there is an existing resource with the same name and version, Force does NOT overwrite that version.
         /// </summary>
@@ -217,21 +159,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _force = value; }
         }
         private SwitchParameter _force;
-        */
 
-    
-        /// <summary>
-        /// Overwrites a previously installed resource with the same name and version.
-        /// </summary>
-        [Parameter()]
-        public SwitchParameter Reinstall
-        {
-            get { return _reinstall; }
 
-            set { _reinstall = value; }
-        }
-        private SwitchParameter _reinstall;
-        
         /*
         /// <summary>
         /// Suppresses progress information.
@@ -371,8 +300,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var listOfRepositories = r.Read(_repository);
 
 
-            //if (string.Equals(listOfRepositories[0].Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
-            //{
+            if (string.Equals(listOfRepositories[0].Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
+            {
                 // throw error saying repository is not trusted
                 // throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "This repository is not trusted"));  /// we should prompt for user input to accept 
 
@@ -383,7 +312,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  * [Y]  Yes  [A]  Yes to ALl   [N]  No  [L]  No to all  [s]  suspendd [?] Help  (default is "N"):
                  */
 
-            //}
+            }
 
 
 
