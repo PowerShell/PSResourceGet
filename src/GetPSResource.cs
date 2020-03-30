@@ -341,7 +341,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             if ((isPrelease == true) && _prerelease) // find a stable version of the pkg {}
                         }
                         */
-                       
+
                         versionInfo = deserializedObj.Properties.Match("Version");
                         repositoryInfo = deserializedObj.Properties.Match("Repository");
                         descriptionversionInfo = deserializedObj.Properties.Match("Description");
