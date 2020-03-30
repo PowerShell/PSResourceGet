@@ -23,7 +23,7 @@
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData       = @{
         PSData                                 = @{
-            Prerelease = 'beta00000'
+            Prerelease = 'beta1'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -35,6 +35,7 @@
             ReleaseNotes = @'
 ### 3.0.0-beta1
 BREAKING CHANGE
+* Preview version of PowerShellGet. Many features are not fully implemented yet. Please see https://devblogs.microsoft.com/powershell/powershellget-3-0-preview1 for more details.
 
 ### 2.2.1
 Bug Fix
