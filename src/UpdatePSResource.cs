@@ -83,7 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _version;
 
-
+        /*
         /// /// <summary>
         /// Allows updating to latest path version, minor version, or major version (cannot use this parameter with the MaximumVersion or RequiredVersion parameters).
         /// </summary>
@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { _updateTo = value; }
         }
         private string _updateTo;
-
+        */
 
         /// <summary>
         /// Specifies to allow installation of prerelease versions
@@ -255,44 +255,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
 
-
-
-
-            // if Scope is AllUsers and there is no console elevation
-            if (!string.IsNullOrEmpty(_scope) && _scope.Equals("AllUsers") && !consoleIsElevated)
-            {
-                // throw an error when Install-PSResource is used as a non-admin user and '-Scope AllUsers'
-                throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Install-PSResource requires admin privilege for AllUsers scope."));
-            }
-
-            // if no scope is specified (whether or not the console is elevated) default installation will be to CurrentUser
-            // If running under admin on Windows with PowerShell less than PS6, default will be AllUsers
-            if (string.IsNullOrEmpty(_scope))
-            {
-                _scope = "CurrentUser";
-
-                //If Windows and elevated default scope will be all users 
-                // If non-Windows or non-elevated default scope will be current user
-               
-
-                // * TODO:  TEST Come back here! Add is Elevated
-               // if (!Platform.IsCoreCLR && consoleIsElevated)  
-               if (isWindowsPS)
-                {
-                    _scope = "AllUsers";
-                }
-            }
-            // if scope is Current user & (no elevation or elevation)
-            // install to current user path
-
-
-
-
-            psPath = string.Equals(_scope, "AllUsers") ? programFilesPath : myDocumentsPath;
-            psModulesPath = Path.Combine(psPath, "Modules");
-            psScriptsPath = Path.Combine(psPath, "Scripts");
-            
-            
             psModulesPathAllDirs = (Directory.GetDirectories(psModulesPath)).ToList();
             psScriptsPathAllDirs = (Directory.GetDirectories(psScriptsPath)).ToList();
 
@@ -300,8 +262,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var listOfRepositories = r.Read(_repository);
 
 
-            if (string.Equals(listOfRepositories[0].Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
-            {
+            //if (string.Equals(listOfRepositories[0].Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
+            //{
                 // throw error saying repository is not trusted
                 // throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "This repository is not trusted"));  /// we should prompt for user input to accept 
 
@@ -312,7 +274,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  * [Y]  Yes  [A]  Yes to ALl   [N]  No  [L]  No to all  [s]  suspendd [?] Help  (default is "N"):
                  */
 
-            }
+            //}
 
 
 
@@ -544,7 +506,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var pkgsAlreadyInstalled = pkgVersion.FindAll(p => versionRange.Satisfies(NuGetVersion.Parse(p)));
 
 
-                            if (pkgsAlreadyInstalled.Any() && !_reinstall)
+                            if (pkgsAlreadyInstalled.Any())
                             {
                                 // remove the pkg from the list of pkgs that need to be installed
                                 var pkgsToRemove = pkgsToInstall.Find(p => string.Equals(p.Identity.Id, name, StringComparison.CurrentCultureIgnoreCase));
@@ -573,7 +535,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             // then check to see if the package exists in the path
 
-                            if (Directory.Exists(dirName) || Directory.Exists(dirNameScript) && !_reinstall)
+                            if (Directory.Exists(dirName) || Directory.Exists(dirNameScript))
                             {
                                 // remove the pkg from the list of pkgs that need to be installed
                                 //case sensitivity here 
@@ -895,7 +857,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // these are all the packages already installed
                             var pkgsAlreadyInstalled = pkgVersion.FindAll(p => versionRange.Satisfies(NuGetVersion.Parse(p)));  // dont think ive tested this path
 
-                            if (pkgsAlreadyInstalled.Any() && !_reinstall)
+                            if (pkgsAlreadyInstalled.Any())
                             {
                                 // don't add the pkg to the list of pkgs that need to be installed
                                 dependencyAlreadyInstalled = true;
