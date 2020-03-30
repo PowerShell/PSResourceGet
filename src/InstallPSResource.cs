@@ -18,10 +18,6 @@ using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System.Globalization;
 using System.Security.Principal;
 using static System.Environment;
-using System.Security.AccessControl;
-using System.Reflection;
-using System.Runtime.Versioning;
-using System.Security.Claims;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -270,9 +266,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         // This will be a list of all the repository caches
         public static readonly List<string> RepoCacheFileName = new List<string>();
-        // Temporarily store cache in this path for testing purposes
         public static readonly string RepositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
-        //public static readonly string RepositoryCacheDir = @"%APPDATA%/PowerShellGet/repositorycache"; //"c:/code/temp/repositorycache"; //@"%APPDTA%\NuGet";
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
 
 
@@ -304,10 +298,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var consoleIsElevated = (id.Owner != id.User);
 
 
-           
-           // TODO:  Test this!           
+
+            // TODO:  Test this!           
             // if not core CLR
-            if (OsPlatform.ToLower().Contains("windows"))
+            var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
+
+            if (isWindowsPS)
             {
                 programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
                 /// TODO:  Come back to this
@@ -343,9 +339,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // If non-Windows or non-elevated default scope will be current user
                
 
-                // TODO:  TEST Come back here!!!!!
-               // if (!Platform.IsCoreCLR && consoleIsElevated)
-               if (OsPlatform.ToLower().Contains("windows"))
+                // * TODO:  TEST Come back here! Add is Elevated
+               // if (!Platform.IsCoreCLR && consoleIsElevated)  
+               if (isWindowsPS)
                 {
                     _scope = "AllUsers";
                 }
@@ -468,7 +464,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var provider2 = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
 
             SourceRepository repository2 = new SourceRepository(source2, provider2);
-            PackageMetadataResource resourceMetadata2 = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
+            // TODO:  proper error handling here
+            PackageMetadataResource resourceMetadata2 = null;
+            try
+            {
+                resourceMetadata2 = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
+            }
+            catch
+            { }
 
             SearchFilter filter2 = new SearchFilter(_prerelease);
             SourceCacheContext context2 = new SourceCacheContext();
@@ -491,9 +494,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (_version == null)
                 {
                     // ensure that the latst version is returned first (the ordering of versions differ
-                    filteredFoundPkgs = (resourceMetadata2.GetMetadataAsync(n, _prerelease, false, context2, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                        .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
-                        .FirstOrDefault());
+                    // TODO: proper error handling
+                    try
+                    {
+                        filteredFoundPkgs = (resourceMetadata2.GetMetadataAsync(n, _prerelease, false, context2, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
+                            .FirstOrDefault());
+                    }
+                    catch { }
                 }
                 else
                 {
@@ -780,53 +788,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
 
-                        var hash = new Hashtable()
-                            {
-                                {"Name", p.Identity.Id },
-                                {"Version", p.Identity.Version },
-                                {"Type",  module != null ? module : (script != null? script : null) },
-                                {"Description", p.Description },
-                                {"Author", p.Authors},
-                                {"CompanyName", p.Owners },
-                                {"PublishedDate", p.Published },
-                                {"InstalledDate", System.DateTime.Now },
-                                {"LicenseUri", p.LicenseUrl },
-                                {"ProjectUri", p.ProjectUrl },
-                                {"IconUri", p.IconUrl },
-                                {"Tags", filteredTags },
-                                {"Includes", includes.ToList() },                       ////  NOT GETTING DESERIALIZED PROPERLY
-                                {"PowerShellGetFormatVersion", "3" },
-                                {"ReleaseNotes", ""},                                   // TODO:  add release notes
-                                {"Dependencies", dependencies.ToList() },
-                                {"RepositorySourceLocation", repositoryUrl },
-                                {"Repository", repositoryUrl },                         // TODO:  potentially change to repository name later, don't think this is necessary though
-                                {"InstalledLocation", "" }                              // TODO:  add installation location
-                            };
+                        var psGetModuleInfoObj = new PSObject();
+                        // TODO:  Add release notes
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("Name", p.Identity.Id));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("Version", p.Identity.Version));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("Type", module != null ? module : (script != null ? script : null)));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("Description", p.Description));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("Author", p.Authors));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("CompanyName", p.Owners));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("PublishedDate", p.Published));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledDate", System.DateTime.Now));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("LicenseUri", p.LicenseUrl));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("ProjectUri", p.ProjectUrl));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("IconUri", p.IconUrl));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("Includes", includes.ToList()));    // TODO: check if getting deserialized properly
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("PowerShellGetFormatVersion", "3"));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("Dependencies", dependencies.ToList()));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("RepositorySourceLocation", repositoryUrl));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("Repository", repositoryUrl));
+                        psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledLocation", null));         // TODO:  add installation location
 
 
-
-                        var psGetModuleInfoObj = new PSObject(hash);
 
                         psGetModuleInfoObj.TypeNames.Add("Microsoft.PowerShell.Commands.PSRepositoryItemInfo");
 
 
                         var serializedObj = PSSerializer.Serialize(psGetModuleInfoObj);
-                        //PSObject deserializedObj = (PSObject) PSSerializer.Deserialize(serializedObj);
-
-
-
 
 
                         sw.Write(serializedObj);
 
-                            // set the xml attribute to hidden
-                            //System.IO.File.SetAttributes("c:\\code\\temp\\installtestpath\\PSGetModuleInfo.xml", FileAttributes.Hidden);
-
-
-
-
-
-
+                        // set the xml attribute to hidden
+                        //System.IO.File.SetAttributes("c:\\code\\temp\\installtestpath\\PSGetModuleInfo.xml", FileAttributes.Hidden);
                     }
                     
 
