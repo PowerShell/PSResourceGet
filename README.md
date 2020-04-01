@@ -22,8 +22,9 @@ PowerShellGet module is also integrated with the PackageManagement module as a p
 Documentation
 =============
 
-[Click here](https://msdn.microsoft.com/en-us/powershell/gallery/psget/overview)
-
+Documentation for PowerShellGet 3.0 has not yet been published, please
+[Click here](https://docs.microsoft.com/powershell/module/PowerShellGet/?view=powershell-7)
+to reference the documentation for previous versions of PowerShellGet.
 
 Requirements
 ============
