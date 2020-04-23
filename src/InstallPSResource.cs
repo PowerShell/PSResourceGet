@@ -68,23 +68,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private PSCustomObject[] _inputObject; // = new string[0];
         */
 
-        /*
-        /// <summary>
-        /// The destination where the resource is to be installed. Works for all resource types.
-        /// </summary>
-        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
-        [ValidateNotNullOrEmpty]
-        public string DestinationPath
-        {
-            get
-            { return _destinationPath; }
-
-            set
-            { _destinationPath = value; }
-        }
-        private string _destinationPath;
-        */
-
         /// <summary>
         /// Specifies the version or version range of the package to be installed
         /// </summary>
@@ -189,7 +172,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _ignoreDifferentPublisher;
         */
 
-            /*
+         
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
@@ -201,9 +184,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _trustRepository = value; }
         }
         private SwitchParameter _trustRepository;
-        */
+       
 
-        /*
+      
         /// <summary>
         /// Overrides warning messages about resource installation conflicts.
         /// If a resource with the same name already exists on the computer, Force allows for multiple versions to be installed.
@@ -217,7 +200,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _force = value; }
         }
         private SwitchParameter _force;
-        */
+       
 
     
         /// <summary>
@@ -246,7 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _quiet;
         */
 
-        /*
+       
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
@@ -258,7 +241,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _acceptLicense = value; }
         }
         private SwitchParameter _acceptLicense;
-        */
+       
 
         /*
         /// <summary>
@@ -370,40 +353,55 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var r = new RespositorySettings();
             var listOfRepositories = r.Read(_repository);
 
-
-            //if (string.Equals(listOfRepositories[0].Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
-            //{
-                // throw error saying repository is not trusted
-                // throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "This repository is not trusted"));  /// we should prompt for user input to accept 
-
-                /*
-                 * Untrusted repository
-                 * You are installing the modules from an untrusted repository.  If you trust this repository, change its InstallationPolicy value by running the Set-PSResourceRepository cmdlet.
-                 * Are you sure you want to install the modules from '<repo name >'?
-                 * [Y]  Yes  [A]  Yes to ALl   [N]  No  [L]  No to all  [s]  suspendd [?] Help  (default is "N"):
-                 */
-
-            //}
-
-
-
+            
             pkgsLeftToInstall = _name.ToList();
+
+            var yesToAll = false;
+            var noToAll = false;
+
+
+            /*
+             * Untrusted repository
+             * You are installing the modules from an untrusted repository.  If you trust this repository, change its InstallationPolicy value by running the Set-PSResourceRepository cmdlet.
+             * Are you sure you want to install the modules from '<repo name >'?
+             * [Y]  Yes  [A]  Yes to ALl   [N]  No  [L]  No to all  [s]  suspendd [?] Help  (default is "N"):
+             */
+            var repositoryIsNotTrusted = "Untrusted repository";
+            var queryInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
+
+            
             foreach (var repoName in listOfRepositories)
             {
-                // if it can't find the pkg in one repository, it'll look in the next one in the list 
-                // returns any pkgs that weren't found
-                var returnedPkgsNotInstalled = InstallHelper(repoName.Properties["Url"].Value.ToString(), pkgsLeftToInstall, cancellationToken);
-                if (!pkgsLeftToInstall.Any())
+                var sourceTrusted = false;
+
+                if (string.Equals(repoName.Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
                 {
-                    return;
+
+                    if (!(yesToAll || noToAll))
+                    {
+                        var message = string.Format(CultureInfo.InvariantCulture, queryInstallUntrustedPackage, repoName.Properties["Name"].Value.ToString());
+                        sourceTrusted = this.ShouldContinue(message, repositoryIsNotTrusted, true, ref yesToAll, ref noToAll);
+                    }
                 }
-                pkgsLeftToInstall = returnedPkgsNotInstalled;
+                else
+                {
+                    sourceTrusted = true;
+                }
+
+                if (sourceTrusted || yesToAll)
+                {
+                    // Try to install
+                    // if it can't find the pkg in one repository, it'll look in the next one in the list 
+                    // returns any pkgs that weren't found
+                    var returnedPkgsNotInstalled = InstallHelper(repoName.Properties["Url"].Value.ToString(), pkgsLeftToInstall, cancellationToken);
+                    if (!pkgsLeftToInstall.Any())
+                    {
+                        return;
+                    }
+                    pkgsLeftToInstall = returnedPkgsNotInstalled;
+                }
+              
             }
-
-
-
-
-
         }
 
 
@@ -577,7 +575,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-                /*** NEED TO CHECK IF PKGS ARE ALREADY INSTALLED ***/
+               
                 // - we have a list of everything that needs to be installed (dirsToDelete)
                 // - we check the system to see if that particular package AND package version is there (PSModulesPath)
                 // - if it is, we remove it from the list of pkgs to install
@@ -644,7 +642,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             // then check to see if the package exists in the path
 
-                            if (Directory.Exists(dirName) || Directory.Exists(dirNameScript) && !_reinstall)
+                            if ((Directory.Exists(dirName) || Directory.Exists(dirNameScript)) && !_reinstall)
                             {
                                 // remove the pkg from the list of pkgs that need to be installed
                                 //case sensitivity here 
@@ -659,6 +657,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
                 }
+
+
+                /// start progress bar
+                /// 
+                // Write-Progress -Activity "Search in Progress" -Status "$i% Complete:" -PercentComplete $i
+                System.Diagnostics.Debug.WriteLine("Debug statement");
+                //System.Diagnostics
+                this.WriteVerbose("Verbose statement");
+                this.WriteDebug("Another Debug statement");
+                //this.WriteError(new ErrorRecord("An Error statement"));
+
+                //int activityId = 0;
+                //string activity = "Installing...";
+                //string statusDescription = 
+                //var progressRecord = new ProgressRecord();
+                //this.WriteProgress(progressRecord);
 
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
@@ -695,6 +709,76 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // need to close the .nupkg
                     result.Dispose();
+
+
+
+
+                    // ACCEPT LICENSE
+                    //Prompt if module requires license Acceptance
+                    var requireLicenseAcceptance = p.RequireLicenseAcceptance;
+
+                    if (requireLicenseAcceptance)
+                    {
+                        // if module requires license acceptance and -AcceptLicense is not passed in, prompt
+                        if (!_acceptLicense)
+                        {
+
+                            var PkgTempInstallPath = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
+                            var LicenseFilePath = Path.Combine(PkgTempInstallPath, "License.txt");
+
+                            if (!File.Exists(LicenseFilePath))
+                            {
+                                var exMessage = "License.txt not Found. License.txt must be provided when user license acceptance is required.";
+                                var ex = new ArgumentException(exMessage);  // System.ArgumentException vs PSArgumentException
+
+                                var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
+
+                                this.ThrowTerminatingError(acceptLicenseError);
+                            }
+
+                            // otherwise read LicenseFile 
+                            string licenseText = System.IO.File.ReadAllText(LicenseFilePath);
+                            var acceptanceLicenseQuery = $"Do you accept the license terms for module '{p.Identity.Id}'.";
+                            var message = licenseText + "`r`n" + acceptanceLicenseQuery;
+
+                            var title = "License Acceptance";
+                            var yesToAll = false;
+                            var noToAll = false;
+                            var shouldContinueResult = ShouldContinue(message, title, true, ref yesToAll, ref noToAll);
+
+                            if (yesToAll)
+                            {
+                                _acceptLicense = true;
+                            }
+                        }
+
+                        // Check if user agreed to license terms, if they didn't, throw error
+                        // if they did, continue to install
+                        if (!_acceptLicense)
+                        {
+                            var message = $"License Acceptance is required for module '{p.Identity.Id}'. Please specify '-AcceptLicense' to perform this operation.";
+                            var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
+                           
+                            var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
+
+                            this.ThrowTerminatingError(acceptLicenseError);
+                        }
+                    }
+
+
+
+
+                    //  Will this help with repository signing??
+                    // signaature  if (result.SignatureVerified)
+
+                    //  Microsoft.PowerShell.Security\Get-AuthenticodeSignature 
+
+
+                    /// end the signature check
+                    /// 
+
+                    Microsoft.PowerShell.SecurityUtils.
+
 
 
                     // create a download count to see if everything was installed properly
