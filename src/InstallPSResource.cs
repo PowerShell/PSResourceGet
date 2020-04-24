@@ -18,6 +18,7 @@ using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System.Globalization;
 using System.Security.Principal;
 using static System.Environment;
+using System.Collections.ObjectModel;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -142,7 +143,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _scope;
 
-        /*
         /// <summary>
         /// Overrides warning messages about installation conflicts about existing commands on a computer.
         /// Overwrites existing commands that have the same name as commands being installed by a module. AllowClobber and Force can be used together in an Install-Module command.
@@ -156,7 +156,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _noClobber = value; }
         }
         private SwitchParameter _noClobber;
-        */
 
             /*
         /// <summary>
@@ -172,7 +171,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _ignoreDifferentPublisher;
         */
 
-         
+
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
@@ -184,9 +183,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _trustRepository = value; }
         }
         private SwitchParameter _trustRepository;
-       
-
       
+
+
         /// <summary>
         /// Overrides warning messages about resource installation conflicts.
         /// If a resource with the same name already exists on the computer, Force allows for multiple versions to be installed.
@@ -200,9 +199,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _force = value; }
         }
         private SwitchParameter _force;
-       
 
-    
+
+
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
@@ -229,7 +228,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _quiet;
         */
 
-       
+
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
@@ -241,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _acceptLicense = value; }
         }
         private SwitchParameter _acceptLicense;
-       
+
 
         /*
         /// <summary>
@@ -575,7 +574,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-               
+
                 // - we have a list of everything that needs to be installed (dirsToDelete)
                 // - we check the system to see if that particular package AND package version is there (PSModulesPath)
                 // - if it is, we remove it from the list of pkgs to install
@@ -658,21 +657,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
 
+                //remove any null pkgs
+                pkgsToInstall.Remove(null);
 
-                /// start progress bar
-                /// 
-                // Write-Progress -Activity "Search in Progress" -Status "$i% Complete:" -PercentComplete $i
-                System.Diagnostics.Debug.WriteLine("Debug statement");
-                //System.Diagnostics
-                this.WriteVerbose("Verbose statement");
-                this.WriteDebug("Another Debug statement");
-                //this.WriteError(new ErrorRecord("An Error statement"));
 
-                //int activityId = 0;
-                //string activity = "Installing...";
-                //string statusDescription = 
-                //var progressRecord = new ProgressRecord();
-                //this.WriteProgress(progressRecord);
 
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
@@ -681,12 +669,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // with a mask (bitwise complement of desired attributes combination).
                 dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
 
-                //remove any null pkgs
-                pkgsToInstall.Remove(null);
 
                 // install everything to a temp path
                 foreach (var p in pkgsToInstall)
                 {
+                    int i = 1;
+                    int j = 1;
+                    /****************************
+                    * START PACKAGE INSTALLATION -- start progress bar 
+                    *****************************/
+                    /// start progress bar
+                    /// 
+                    //Write - Progress - Activity "Search in Progress" - Status "$i% Complete:" - PercentComplete $i
+
+                    int activityId = 0;
+                    string activity = "";
+                    string statusDescription = "";
+
+
+                    if (_name.ToList().Contains(p.Identity.Id))
+                    {
+                        // if the pkg exists in one of the names passed in, then we wont include it as a dependent package
+
+                        //System.Diagnostics.Debug.WriteLine("Debug statement");
+                        this.WriteVerbose("Verbose statement");
+                        this.WriteDebug("Another Debug statement");
+                        //this.WriteError(new ErrorRecord("An Error statement"));
+
+                        activityId = 0;
+                        activity = string.Format("Installing {0}...", p);
+                        statusDescription = string.Format("{0}% Complete:", i++);
+
+                        j = 1;
+                    }
+                    else
+                    {
+                    
+                        // child process
+                        // installing dependent package
+
+                        activityId = 1;
+                        activity = string.Format("Installing dependent package {0}...", p);
+                        statusDescription = string.Format("{0}% Complete:", j);
+                    }
+
+                    var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
+
+                    this.WriteProgress(progressRecord);
+
+
+
+
                     var pkgIdentity = new PackageIdentity(p.Identity.Id, p.Identity.Version);
 
 
@@ -777,7 +810,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     /// end the signature check
                     /// 
 
-                    Microsoft.PowerShell.SecurityUtils.
 
 
 
@@ -862,6 +894,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 filteredTags.Add(tag);
                             }
                         }
+
+                        // If NoClobber is specified, ensure command clobbering does not happen
+                        if (_noClobber)
+                        {
+                            // gather list of all cmds from module
+                            // includesCommand;
+                            // gather list of all commands on system.
+
+
+                            /// This is a primitive implementation
+                            /// TODO:                             
+                                // 1) get all paths possible
+                                // 2) search all modules and compare
+                            /// Cannot uninstall a module if another module is dependent on it 
+
+                            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                            {
+                                // Get all modules
+                                var results = pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke();
+
+                                // Structure of LINQ call:
+                                // Results is a collection of PSModuleInfo objects that contain a property listing module commands, "ExportedCommands".
+                                // ExportedCommands is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the command we're trying to install
+                                // If anything from the final call gets returned, there is a command clobber with this pkg.
+
+                                List<IEnumerable<PSObject>> pkgsWithCommandClobber = new List<IEnumerable<PSObject>>();
+                                foreach (string command in includesCommand)
+                                {
+                                    pkgsWithCommandClobber.Add(results.Where(pkg => ((ReadOnlyCollection<PSModuleInfo>)pkg.Properties["ExportedCommands"].Value).Where(ec => ec.Name.Equals(command, StringComparison.InvariantCultureIgnoreCase)).Any()));
+                                }
+                                if (pkgsWithCommandClobber.Any())
+                                {
+                                    var uniqueCommandNames = (pkgsWithCommandClobber.Select(cmd => cmd.ToString()).Distinct()).ToArray();
+
+                                    string strUniqueCommandNames = string.Join(",", uniqueCommandNames);
+
+                                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Command(s) with name(s) '{0}' is already available on this system. Installing '{1}' may override the existing command. If you still want to install '{1}', remove the -NoClobber parameter.", strUniqueCommandNames, p.Identity.Id));
+
+                                }
+                            }
+                        }
+
+
 
                         Dictionary<string, List<string>> includes = new Dictionary<string, List<string>>() {
                             { "DscResource", includesDscResource },
