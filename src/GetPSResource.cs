@@ -53,6 +53,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _version;
 
+        /// <summary>
+        /// Specifies the path to look in. 
+        /// </summary>
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [ValidateNotNullOrEmpty()]
+        public string Path
+        {
+            get
+            { return _path; }
+
+            set
+            { _path = value; }
+        }
+        private string _path;
+        
+
         /*
         /// <summary>
         /// Specifies to include prerelease versions
@@ -78,77 +94,95 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         protected override void ProcessRecord()
         {
-            // list all installation locations:
-            // TODO: update paths
-            string psModulePath = "";
-
-            var isWindows = OsPlatform.ToLower().Contains("windows");
-
-            // if not core
-            var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
-            
-            if (isWindowsPS)
-            {
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-                /// TODO:  Come back to this
-                var userENVpath = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
-
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-            }
-            else
-            {
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-            }
-
-
-
-
-            // 1) Create a list of either
-            // Of all names
 
             var dirsToSearch = new List<string>();
-            try
-            {
-                
-                dirsToSearch.AddRange(Directory.GetDirectories(psModulePath).ToList());
-            }
-            catch { }
-         
-            var pfModulesPath = Path.Combine(programFilesPath, "Modules");
-            if (Directory.Exists(pfModulesPath))
-            {
-                dirsToSearch.AddRange(Directory.GetDirectories(pfModulesPath).ToList());
-            }
 
-            var pfScriptsPath = Path.Combine(programFilesPath, "Scripts");
-            if (Directory.Exists(pfScriptsPath))
+            if (_path != null)
             {
-                dirsToSearch.AddRange(Directory.GetDirectories(pfScriptsPath).ToList());
+                dirsToSearch.AddRange(Directory.GetDirectories(_path).ToList());
             }
-            
-           
-            var mdModulesPath = Path.Combine(myDocumentsPath, "Modules");  // change programfiles to mydocuments
-            if (Directory.Exists(mdModulesPath))
-            {
-                dirsToSearch.AddRange(Directory.GetDirectories(mdModulesPath).ToList());
-            }
+            else
+            { 
+                var isWindows = OsPlatform.ToLower().Contains("windows");
 
-            var mdScriptsPath = Path.Combine(myDocumentsPath, "Scripts"); // change programFiles to myDocuments
-            if (Directory.Exists(mdScriptsPath))
-            {
-                dirsToSearch.AddRange(Directory.GetDirectories(mdScriptsPath).ToList());
-            }
-       
 
+                // should just check the psmodules path????
+                // PSModules path
+                var psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
+                var modulePaths = psModulePath.Split(';');
+
+
+                // if not core
+                var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
+
+                if (isWindowsPS)
+                {
+                    programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
+                    /// TODO:  Come back to this
+                    var userENVpath = System.IO.Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
+
+
+                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
+                }
+                else
+                {
+                    programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+                }
+
+
+                /*** Will search first in PSModulePath, then will search in default paths ***/
+
+                // 1) Create a list of either
+                // Of all names
+
+                try
+                {
+
+                    foreach (var path in modulePaths)
+                    {
+                        dirsToSearch.AddRange(Directory.GetDirectories(path).ToList());
+                    }
+                }
+                catch { }
+
+                var pfModulesPath = System.IO.Path.Combine(programFilesPath, "Modules");
+                if (Directory.Exists(pfModulesPath))
+                {
+                    dirsToSearch.AddRange(Directory.GetDirectories(pfModulesPath).ToList());
+                }
+
+                var pfScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts");
+                if (Directory.Exists(pfScriptsPath))
+                {
+                    dirsToSearch.AddRange(Directory.GetDirectories(pfScriptsPath).ToList());
+                }
+
+
+                var mdModulesPath = System.IO.Path.Combine(myDocumentsPath, "Modules");  // change programfiles to mydocuments
+                if (Directory.Exists(mdModulesPath))
+                {
+                    dirsToSearch.AddRange(Directory.GetDirectories(mdModulesPath).ToList());
+                }
+
+                var mdScriptsPath = System.IO.Path.Combine(myDocumentsPath, "Scripts"); // change programFiles to myDocuments
+                if (Directory.Exists(mdScriptsPath))
+                {
+                    dirsToSearch.AddRange(Directory.GetDirectories(mdScriptsPath).ToList());
+                }
+
+
+
+                // uniqueify 
+                dirsToSearch = dirsToSearch.Distinct().ToList();
+            }
 
             // Or a list of the passed in names
             if (_name != null && !_name[0].Equals("*"))
             {
                 var nameLowerCased = new List<string>();
                 Array.ForEach(_name, n => nameLowerCased.Add(n.ToLower()));
-                dirsToSearch = dirsToSearch.FindAll(p => nameLowerCased.Contains(new DirectoryInfo(p).Name.ToLower()));   //// test this out tomorrow 
+                dirsToSearch = dirsToSearch.FindAll(p => nameLowerCased.Contains(new DirectoryInfo(p).Name.ToLower()));   
             }
 
 
@@ -216,7 +250,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     // Just add the xmls of the names specified
                                     foreach (var name in _name)
                                     {
-                                        var scriptXMLPath = Path.Combine(pkgPath, name, "_InstalledScriptInfo");
+                                        var scriptXMLPath = System.IO.Path.Combine(pkgPath, name, "_InstalledScriptInfo");
 
                                         if (File.Exists(scriptXMLPath))
                                         {
@@ -236,7 +270,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     Array.Sort(versionsDirs, StringComparer.OrdinalIgnoreCase);
                                     Array.Reverse(versionsDirs);
 
-                                    var pkgXmlFilePath = Path.Combine(versionsDirs.First(), "PSGetModuleInfo.xml");
+                                    var pkgXmlFilePath = System.IO.Path.Combine(versionsDirs.First(), "PSGetModuleInfo.xml");
 
                                     // TODO:  check if this xml file exists, if it doesn't check if it exists in a previous version
 
@@ -272,7 +306,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // Just add the xmls of the names specified
                             foreach (var name in _name)
                             {
-                                var scriptXMLPath = Path.Combine(pkgPath, name, "_InstalledScriptInfo");
+                                var scriptXMLPath = System.IO.Path.Combine(pkgPath, name, "_InstalledScriptInfo");
 
                                 if (File.Exists(scriptXMLPath))
                                 {
@@ -294,7 +328,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             Array.Sort(versionsDirs, StringComparer.OrdinalIgnoreCase);
                             Array.Reverse(versionsDirs);
 
-                            var pkgXmlFilePath = Path.Combine(versionsDirs.First(), "PSGetModuleInfo.xml");
+                            var pkgXmlFilePath = System.IO.Path.Combine(versionsDirs.First(), "PSGetModuleInfo.xml");
 
                             // TODO:  check if this xml file exists, if it doesn't check if it exists in a previous version
 
