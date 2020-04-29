@@ -151,7 +151,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             }
             catch
             {
-                throw new ArgumentException("Was not able to successfully find xml-- try registering a repository first");
+                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
             }
 
             // Open file
@@ -161,7 +161,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repoName, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
             if (node == null)
             {
-                throw new ArgumentException("Cannot find the repository because it does not exist. try registering the repository");
+                throw new ArgumentException("Cannot find the repository because it does not exist. Try registering the repository using 'Register-PSResourceRepository'");
             }
 
             // Else, keep going
@@ -207,7 +207,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 
             if (!FindRepositoryXML())
             {
-                throw new ArgumentException("Was not able to successfully find xml");
+                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
             }
 
             // Open file
@@ -240,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             // Call FindRepositoryXML()  [Create will make a new xml if one doesn't already exist]
             if (!FindRepositoryXML())
             {
-                throw new ArgumentException("Was not able to successfully find xml");
+                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
             }
 
             // Open file

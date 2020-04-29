@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 r.Remove(_name);
             }
             catch (Exception e){
-                throw new Exception(e.Message);
+                throw new Exception(string.Format("Unable to successfully unregister repository: {0}", e.Message));
             }
         }
 

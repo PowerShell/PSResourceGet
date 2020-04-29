@@ -165,20 +165,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // if attempting to set -url with PSGallery, throw an error
                     if (_url != null)
                     {
-                        throw new System.ArgumentException("The PSGallery repository has a pre-defined URL.  The -URL parmeter is not allowed, try again after removing -URL.");
+                        throw new System.ArgumentException("The PSGallery repository has a pre-defined URL.  The -URL parmeter is not allowed, try running 'Register-PSResourceRepository -PSGallery'.");
                     }
 
                     Uri galleryURL = new Uri("https://www.powershellgallery.com/api/v2");
 
                     // name is the only thing that won't get updated
                     r.Update("PSGallery", galleryURL, _priority, _trustedNullable);
-                    
-                    //.Update("PSGallery", galleryURL, _priority, _trusted, isSet);
+                   
                 }
 
                 if (String.IsNullOrEmpty(_name))
                 {
-                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository name cannot be null"));
+                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository name cannot be null."));
                 }
 
                 // https://docs.microsoft.com/en-us/dotnet/api/system.uri.trycreate?view=netframework-4.8#System_Uri_TryCreate_System_Uri_System_Uri_System_Uri__
@@ -189,9 +188,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Invalid Url"));
                 }
 
-                // Name is the only thing that won't get updated
                 r.Update(_name, _url, _priority, _trustedNullable);
-                //r.Update(_name, _url, _priority, _trusted, isSet);
             }
             else if (ParameterSetName.Equals("RepositoriesParameterSet"))
             {
@@ -213,10 +210,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         Uri galleryURL = new Uri("https://www.powershellgallery.com");
 
-                        // name is the only thing that won't get updated
-
                         r.Update(_psGalleryRepoName, _psGalleryRepoURL, _psGalleryRepoPriority, _psGalleryRepoTrusted);
-                        //r.Update(_psGalleryRepoName, _psGalleryRepoURL, _psGalleryRepoPriority, _psGalleryRepoTrusted, isSet);
 
                         continue;
                     }
@@ -224,11 +218,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // check if key exists
                     if (!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
                     {
-                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository name cannot be null"));
+                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository name cannot be null."));
                     }
                     if (!repo.ContainsKey("Url") || String.IsNullOrEmpty(repo["Url"].ToString()))
                     {
-                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository url cannot be null"));
+                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository url cannot be null."));
                     }
 
                     // https://docs.microsoft.com/en-us/dotnet/api/system.uri.trycreate?view=netframework-4.8#System_Uri_TryCreate_System_Uri_System_Uri_System_Uri__
@@ -247,19 +241,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         _repoPriority = Convert.ToInt32(repo["Priority"].ToString());
                     }
 
-
                     bool? _repoTrusted = repo.ContainsKey("Trusted") ? (bool?)repo["Trusted"] : null;
 
-                    /*
-                    if (repo.ContainsKey("Trusted"))
-                    {
-                        _repoTrusted = Convert.ToBoolean(repo["Trusted"].ToString());
-                        //isSet = true;
-                    }
-                    */
-
                     r.Update(repo["Name"].ToString(), _repoURL, _repoPriority, _repoTrusted);
-                    //r.Update(repo["Name"].ToString(), _repoURL, _repoPriority, _repoTrusted, isSet);
                 }
             }
         }
@@ -269,7 +253,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         protected override void EndProcessing()
         {
-            /// Currently no processing for end
+
         }
     }
 }
