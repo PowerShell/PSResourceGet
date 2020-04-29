@@ -19,6 +19,7 @@ using System.Globalization;
 using System.Security.Principal;
 using static System.Environment;
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -214,7 +215,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private SwitchParameter _reinstall;
         
-        /*
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
@@ -226,8 +226,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _quiet = value; }
         }
         private SwitchParameter _quiet;
-        */
-
+        
 
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
@@ -286,8 +285,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var id = WindowsIdentity.GetCurrent();
             var consoleIsElevated = (id.Owner != id.User);
 
-
-
             // TODO:  Test this!           
             // if not core CLR
             var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
@@ -307,6 +304,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
             }
 
+            this.WriteVerbose(string.Format("Current user scope installation path: {0}", myDocumentsPath));
+            this.WriteVerbose(string.Format("All users scope installation path: {0}", programFilesPath));
 
 
 
@@ -330,13 +329,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // * TODO:  TEST Come back here! Add is Elevated
                // if (!Platform.IsCoreCLR && consoleIsElevated)  
-               if (isWindowsPS)
+               if (isWindowsPS && consoleIsElevated)
                 {
                     _scope = "AllUsers";
                 }
             }
             // if scope is Current user & (no elevation or elevation)
             // install to current user path
+            this.WriteVerbose(string.Format("Scope is: {0}", _scope));
 
 
 
@@ -375,7 +375,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (string.Equals(repoName.Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
                 {
-
+                    this.WriteDebug("Checking if untrusted repository should be used");
                     if (!(yesToAll || noToAll))
                     {
                         var message = string.Format(CultureInfo.InvariantCulture, queryInstallUntrustedPackage, repoName.Properties["Name"].Value.ToString());
@@ -389,6 +389,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (sourceTrusted || yesToAll)
                 {
+                    this.WriteDebug("Untrusted repository accepted as trusted source");
                     // Try to install
                     // if it can't find the pkg in one repository, it'll look in the next one in the list 
                     // returns any pkgs that weren't found
@@ -441,19 +442,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceRepository repository = new SourceRepository(source, provider);
 
             SearchFilter filter = new SearchFilter(_prerelease);
-            //SourceCacheContext context = new SourceCacheContext();
 
 
-
-
-            // I think we'll likely need to make a call to find first so that we can ensure we have the right version (if no version is specified)
-            // Call Find
-
-            // things we know:  at least one name,  we don't know versions though
-
-            // returnedPkgs
-
-            // IDEA:  use find to find all dependencies...
 
 
 
@@ -475,7 +465,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 resourceMetadata2 = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
             }
             catch
-            { }
+            {
+                this.WriteVerbose("Error retreiving repository resource");
+            }
 
             SearchFilter filter2 = new SearchFilter(_prerelease);
             SourceCacheContext context2 = new SourceCacheContext();
@@ -484,14 +476,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (var n in _name)
             {
-                // returnedPkgs.AddRange(FindPackagesFromSourceHelper(repositoryUrl, n, resourceSearch, resourceMetadata, filter, context));
-
-                //functionality here
-                //////////////////    packages from source helper
 
                 IPackageSearchMetadata filteredFoundPkgs = null;
-
-                // Check version first to narrow down the number of pkgs before potential searching through tags
 
 
                 VersionRange versionRange = null;
@@ -505,17 +491,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
                             .FirstOrDefault());
                     }
-                    catch { }
+                    catch {
+                        this.WriteVerbose(string.Format("Could not find package {0}", n));    
+                    }
                 }
                 else
                 {
                     // check if exact version
                     NuGetVersion nugetVersion;
 
-                    //VersionRange versionRange = VersionRange.Parse(version);
                     NuGetVersion.TryParse(_version, out nugetVersion);
-                    // throw
-
+                    
                     if (nugetVersion != null)
                     {
                         // exact version
@@ -526,7 +512,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // check if version range
                         versionRange = VersionRange.Parse(_version);
                     }
-
+                    this.WriteVerbose(string.Format("Version is: {0}", versionRange.ToString()));
 
 
                     // Search for packages within a version range
@@ -548,24 +534,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (filteredFoundPkgs != null)
                 {
 
-
-                    // need to parse the depenency and version and such
-
                     // need to improve this later
                     // this function recursively finds all dependencies
                     // might need to do add instead of AddRange
                     foundDependencies.AddRange(FindDependenciesFromSource(filteredFoundPkgs, resourceMetadata2, context2));
 
 
-                }  /// end dep conditional
+                } 
 
 
 
                 // check which pkgs you actually need to install
-
-
-
-
                 List<IPackageSearchMetadata> pkgsToInstall = new List<IPackageSearchMetadata>();
                 // install pkg, then install any dependencies to a temp directory
 
@@ -673,51 +652,54 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // install everything to a temp path
                 foreach (var p in pkgsToInstall)
                 {
-                    int i = 1;
-                    int j = 1;
-                    /****************************
-                    * START PACKAGE INSTALLATION -- start progress bar 
-                    *****************************/
-                    /// start progress bar
-                    /// 
-                    //Write - Progress - Activity "Search in Progress" - Status "$i% Complete:" - PercentComplete $i
 
-                    int activityId = 0;
-                    string activity = "";
-                    string statusDescription = "";
-
-
-                    if (_name.ToList().Contains(p.Identity.Id))
+                    if (!_quiet)
                     {
-                        // if the pkg exists in one of the names passed in, then we wont include it as a dependent package
+                        int i = 1;
+                        int j = 1;
+                        /****************************
+                        * START PACKAGE INSTALLATION -- start progress bar 
+                        *****************************/
+                        /// start progress bar
+                        /// 
+                        //Write - Progress - Activity "Search in Progress" - Status "$i% Complete:" - PercentComplete $i
 
-                        //System.Diagnostics.Debug.WriteLine("Debug statement");
-                        this.WriteVerbose("Verbose statement");
-                        this.WriteDebug("Another Debug statement");
-                        //this.WriteError(new ErrorRecord("An Error statement"));
+                        int activityId = 0;
+                        string activity = "";
+                        string statusDescription = "";
 
-                        activityId = 0;
-                        activity = string.Format("Installing {0}...", p);
-                        statusDescription = string.Format("{0}% Complete:", i++);
 
-                        j = 1;
+                        if (_name.ToList().Contains(p.Identity.Id))
+                        {
+                            // if the pkg exists in one of the names passed in, then we wont include it as a dependent package
+
+                            //System.Diagnostics.Debug.WriteLine("Debug statement");
+                            this.WriteVerbose("Verbose statement");
+                            this.WriteDebug("Another Debug statement");
+                            //this.WriteError(new ErrorRecord("An Error statement"));
+
+                            activityId = 0;
+                            activity = string.Format("Installing {0}...", p);
+                            statusDescription = string.Format("{0}% Complete:", i++);
+
+                            j = 1;
+                        }
+                        else
+                        {
+
+                            // child process
+                            // installing dependent package
+
+                            activityId = 1;
+                            activity = string.Format("Installing dependent package {0}...", p);
+                            statusDescription = string.Format("{0}% Complete:", j);
+                        }
+
+                        var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
+
+                        this.WriteProgress(progressRecord);
+
                     }
-                    else
-                    {
-                    
-                        // child process
-                        // installing dependent package
-
-                        activityId = 1;
-                        activity = string.Format("Installing dependent package {0}...", p);
-                        statusDescription = string.Format("{0}% Complete:", j);
-                    }
-
-                    var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
-
-                    this.WriteProgress(progressRecord);
-
-
 
 
                     var pkgIdentity = new PackageIdentity(p.Identity.Id, p.Identity.Version);
@@ -748,7 +730,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // ACCEPT LICENSE
                     //Prompt if module requires license Acceptance
-                    var requireLicenseAcceptance = p.RequireLicenseAcceptance;
+                    //var requireLicenseAcceptance = p.RequireLicenseAcceptance;
+                    // need to read from .psd1 
+                    var modulePath = Path.Combine(tempInstallPath, pkgIdentity.Id, pkgIdentity.Version.ToNormalizedString());
+                    var moduleManifest = Path.Combine(modulePath, pkgIdentity.Id + ".psd1");
+
+                    var requireLicenseAcceptance = false;
+
+                    using (StreamReader sr = new StreamReader(moduleManifest))
+                    {
+                        var text = sr.ReadToEnd();
+
+                        var pattern = "RequireLicenseAcceptance\\s*=\\s*\\$true";
+                        var patternToSkip1 = "#\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
+                        var patternToSkip2 = "\\*\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
+
+                        Regex rgx = new Regex(pattern);
+
+                        if (rgx.IsMatch(pattern) && !rgx.IsMatch(patternToSkip1) && !rgx.IsMatch(patternToSkip2))
+                        {
+                            requireLicenseAcceptance = true;
+                        }
+
+                    }
 
                     if (requireLicenseAcceptance)
                     {
@@ -797,19 +801,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this.ThrowTerminatingError(acceptLicenseError);
                         }
                     }
-
-
-
-
-                    //  Will this help with repository signing??
-                    // signaature  if (result.SignatureVerified)
-
-                    //  Microsoft.PowerShell.Security\Get-AuthenticodeSignature 
-
-
-                    /// end the signature check
-                    /// 
-
 
 
 
@@ -898,11 +889,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // If NoClobber is specified, ensure command clobbering does not happen
                         if (_noClobber)
                         {
-                            // gather list of all cmds from module
-                            // includesCommand;
-                            // gather list of all commands on system.
-
-
                             /// This is a primitive implementation
                             /// TODO:                             
                                 // 1) get all paths possible
@@ -1020,8 +1006,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         else
                         {
-                            // If the module directory path already exists, Directory.Move throws an exception, so we'll just move the version directory over instead 
                             tempModuleVersionDir = Path.Combine(tempModuleVersionDir, p.Identity.Version.ToNormalizedString());
+                            var newVersionPath = Path.Combine(newPath, p.Identity.Version.ToNormalizedString());
+
+                            if (Directory.Exists(newVersionPath))
+                            {
+                                // Delete the directory path before replacing it with the new module
+                                Directory.Delete(newVersionPath, true);
+                            }
                             Directory.Move(tempModuleVersionDir, Path.Combine(newPath, p.Identity.Version.ToNormalizedString()));
                         }
                     }
@@ -1037,13 +1029,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             }
-            ////////////////////////////////////////
-
-
-
-
-
-
 
 
             return pkgsLeftToInstall;
@@ -1067,9 +1052,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // a dependency group are all the dependencies for a particular framework
             foreach (var dependencyGroup in pkg.DependencySets)
             {
-
-                //dependencyGroup.TargetFramework
-                //dependencyGroup.
 
                 foreach (var pkgDependency in dependencyGroup.Packages)
                 {
@@ -1123,7 +1105,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
                             // these are all the packages already installed
-                            var pkgsAlreadyInstalled = pkgVersion.FindAll(p => versionRange.Satisfies(NuGetVersion.Parse(p)));  // dont think ive tested this path
+                            NuGetVersion ver;
+
+                            // findall
+                            var pkgsAlreadyInstalled = pkgVersion.FindAll(p => NuGetVersion.TryParse(p, out ver) && versionRange.Satisfies(ver)); 
 
                             if (pkgsAlreadyInstalled.Any() && !_reinstall)
                             {
