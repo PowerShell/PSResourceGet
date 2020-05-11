@@ -20,6 +20,8 @@ using System.Security.Principal;
 using static System.Environment;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
+using System.Security;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -89,6 +91,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies to allow installation of prerelease versions
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public SwitchParameter Prerelease
         {
             get
@@ -103,6 +106,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         [ValidateNotNullOrEmpty]
         public string[] Repository
         {
@@ -120,6 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public PSCredential Credential
         {
             get
@@ -134,8 +139,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies to return any dependency packages.
         /// Currently only used when name param is specified.
         /// </summary>
-        [Parameter()]
         [ValidateSet("CurrentUser", "AllUsers")]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public string Scope
         {
             get { return _scope; }
@@ -149,7 +155,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Overwrites existing commands that have the same name as commands being installed by a module. AllowClobber and Force can be used together in an Install-Module command.
         /// Prevents installing modules that have the same cmdlets as a differently named module already
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public SwitchParameter NoClobber
         {
             get { return _noClobber; }
@@ -162,7 +169,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Suppresses being prompted if the publisher of the resource is different from the currently installed version.
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public SwitchParameter IgnoreDifferentPublisher
         {
             get { return _ignoreDifferentPublisher; }
@@ -176,7 +184,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public SwitchParameter TrustRepository
         {
             get { return _trustRepository; }
@@ -184,7 +193,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _trustRepository = value; }
         }
         private SwitchParameter _trustRepository;
-      
+
 
 
         /// <summary>
@@ -192,7 +201,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// If a resource with the same name already exists on the computer, Force allows for multiple versions to be installed.
         /// If there is an existing resource with the same name and version, Force does NOT overwrite that version.
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public SwitchParameter Force
         {
             get { return _force; }
@@ -206,7 +216,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public SwitchParameter Reinstall
         {
             get { return _reinstall; }
@@ -214,11 +225,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _reinstall = value; }
         }
         private SwitchParameter _reinstall;
-        
+
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public SwitchParameter Quiet
         {
             get { return _quiet; }
@@ -231,7 +243,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
         public SwitchParameter AcceptLicense
         {
             get { return _acceptLicense; }
@@ -239,6 +252,45 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _acceptLicense = value; }
         }
         private SwitchParameter _acceptLicense;
+
+        /// <summary>
+        /// For 
+        /// </summary>
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
+        public String RequiredResourceFile
+        {
+            get { return _requiredResourceFile; }
+
+            set { _requiredResourceFile = value; }
+        }
+        private String _requiredResourceFile;
+
+        /// <summary>
+        /// For 
+        /// </summary>
+        [Parameter(ParameterSetName = "RequiredResourceParameterSet")]
+        public Object RequiredResource  // takes either string (json) or hashtable
+        {
+            get { return _requiredResourceHash != null ? (Object)_requiredResourceHash : (Object)_requiredResourceJson; }
+
+            set {
+                if (value.GetType().Equals("String"))
+                {
+                    _requiredResourceJson = (String) value;
+                }
+                else if (value.GetType().Equals("Hashtable"))
+                {
+                    _requiredResourceHash = (Hashtable) value;
+                }
+                else
+                {
+                    throw new ParameterBindingException("Object is not a JSON or Hashtable");
+                }
+
+            }
+        }
+        private string _requiredResourceJson;
+        private Hashtable _requiredResourceHash;
 
 
         /*
@@ -281,7 +333,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             source = new CancellationTokenSource();
             cancellationToken = source.Token;
 
-   
+
             var id = WindowsIdentity.GetCurrent();
             var consoleIsElevated = (id.Owner != id.User);
 
@@ -325,11 +377,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 //If Windows and elevated default scope will be all users 
                 // If non-Windows or non-elevated default scope will be current user
-               
 
-                // * TODO:  TEST Come back here! Add is Elevated
-               // if (!Platform.IsCoreCLR && consoleIsElevated)  
-               if (isWindowsPS && consoleIsElevated)
+
+                // * TODO:  Test
+                // if (!Platform.IsCoreCLR && consoleIsElevated)  
+                if (isWindowsPS && consoleIsElevated)
                 {
                     _scope = "AllUsers";
                 }
@@ -344,16 +396,214 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             psPath = string.Equals(_scope, "AllUsers") ? programFilesPath : myDocumentsPath;
             psModulesPath = Path.Combine(psPath, "Modules");
             psScriptsPath = Path.Combine(psPath, "Scripts");
-            
-            
-            psModulesPathAllDirs = (Directory.GetDirectories(psModulesPath)).ToList();
-            psScriptsPathAllDirs = (Directory.GetDirectories(psScriptsPath)).ToList();
 
+
+            JObject json = null;
+
+            if (_requiredResourceFile != null)
+            {
+                // TODO: resolve path
+                if (!File.Exists(_requiredResourceFile))
+                {
+                    throw new Exception("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json or .psd1 file");
+                }
+
+                if (_requiredResourceFile.EndsWith(".psd1"))
+                {
+                    // TODO:  implement after implementing publish
+                    throw new Exception("This feature is not yet implemented");
+                    return;
+                }
+                else if (_requiredResourceFile.EndsWith(".json"))
+                {
+                    // if json file
+                    string jsonString = "";
+                    using (StreamReader sr = new StreamReader(_requiredResourceFile))
+                    {
+                        jsonString = sr.ReadToEnd();
+                    }
+
+                    // throw exception
+
+                    json = JObject.Parse(jsonString);
+                }
+                else
+                {
+                    throw new Exception("The RequiredResourceFile does not have the proper file extension.  Please try specifying a path to a valid .json or .psd1 file");
+                }
+            }
+
+
+
+
+
+            if (_requiredResourceHash != null)
+            {
+                try
+                {
+                    _requiredResourceJson = _requiredResourceHash.ToJson();
+                }
+                catch (Exception e)
+                {
+                    throw new ArgumentException("Argument for parameter -RequiredResource is not in proper format.  Make sure argument is either a hashtable or a json object.");
+                }
+            }
+            
+
+            if (_requiredResourceJson != null)
+            {
+                try
+                {
+                    string jsonString = _requiredResourceHash.ToJson();
+                    json = JObject.Parse(jsonString);
+
+                }
+                catch (Exception e)
+                {
+                    throw new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                }
+            }
+
+            // We now have the raw data,
+            // parse it into parameters
+            var properties = json.Properties();
+
+            var listOfPkgs = properties.ToList();
+
+            foreach (var pkg in listOfPkgs)
+            {
+                var pkgName = pkg.Name;
+                var parameters = pkg.Value;
+
+                string[] packageName = new string[0];
+                string version = null;
+                bool prerelease = false;
+                string[] repository = new string[0];
+                string scope = "CurrentUser";
+                bool acceptLicense = false;
+                bool quiet = false;
+                bool reinstall = false;
+                bool force = false;
+                bool trustRepository = false;
+                bool noClobber = false;
+                string credentialUsername = "";
+                SecureString credentialPassword = null;
+                PSCredential credential = null;
+
+
+
+                // is parameter value just a version
+                // parameter == 0 means that no parameter name was passed in
+                if (parameters.Count() == 0)
+                {
+                    NuGetVersion nugetversion;
+                    NuGetVersion.TryParse(parameters.ToString(), out nugetversion);
+
+                    version = parameters.ToString();
+                }
+                else
+                {
+                    // or is value a list of parameters?
+                    // parse each parameter
+                    foreach (Newtonsoft.Json.Linq.JProperty param in parameters)
+                    {
+                        var str = param.ToString();
+
+                        var name = param.Name;  // is already of type string
+                        var val = param.Value.ToString();
+
+
+                        if (name.Equals("version", StringComparison.OrdinalIgnoreCase))
+                        {
+                            NuGetVersion nugetVersion;
+                            NuGetVersion.TryParse(val, out nugetVersion);
+
+                            if (version == null && val != null)
+                            {
+                                throw new ArgumentException("Version parameter in -RequiredResource is not in the correct format");
+                            }
+
+                            version = val;
+                        }
+                        else if (name.Equals("repository", StringComparison.OrdinalIgnoreCase))
+                        {
+                            repository[0] = val;
+                        }
+                        else if (name.Equals("credentialUsername", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // first half of credential object
+                            credentialUsername = val;
+                        }
+                        else if (name.Equals("credentialPassword", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // second half of credential object
+                            credentialPassword = new NetworkCredential("", val).SecurePassword;
+
+                            if (string.IsNullOrEmpty(credentialUsername))
+                            {
+                                WriteVerbose("Credential username is empty.  Provide the username for the credential.");
+                            }
+                            credential = new PSCredential(credentialUsername, credentialPassword);
+                        }
+                        else if (name.Equals("AcceptLicense", StringComparison.OrdinalIgnoreCase))
+                        {
+                            acceptLicense = Convert.ToBoolean(val);
+                        }
+                        else if (name.Equals("Quiet", StringComparison.OrdinalIgnoreCase))
+                        {
+                            quiet = Convert.ToBoolean(val);
+                        }
+                        else if (name.Equals("Reinstall", StringComparison.OrdinalIgnoreCase))
+                        {
+                            reinstall = Convert.ToBoolean(val);
+                        }
+                        else if (name.Equals("Force", StringComparison.OrdinalIgnoreCase))
+                        {
+                            force = Convert.ToBoolean(val);
+                        }
+                        else if (name.Equals("TrustRepository", StringComparison.OrdinalIgnoreCase))
+                        {
+                            trustRepository = Convert.ToBoolean(val);
+                        }
+                        else if (name.Equals("NoClobber", StringComparison.OrdinalIgnoreCase))
+                        {
+                            noClobber = Convert.ToBoolean(val);
+                        }
+                        else if (name.Equals("Scope", StringComparison.OrdinalIgnoreCase))
+                        {
+                            scope = val;
+                        }
+                        else if (name.Equals("Prerelease", StringComparison.OrdinalIgnoreCase))
+                        {
+                            prerelease = Convert.ToBoolean(val);
+                        }
+                        else if (name.Equals("Name", StringComparison.OrdinalIgnoreCase))
+                        {
+                            packageName[0] = val;
+                        }
+                     
+                    }
+                }
+
+
+
+                InstallBeginning(packageName, version, prerelease, repository, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, cancellationToken);
+
+            }
+
+        }
+
+
+
+
+
+        public void InstallBeginning(string[] packageNames, string version, bool prerelease, string[] repository, string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, CancellationToken cancellationToken)
+        {
             var r = new RespositorySettings();
-            var listOfRepositories = r.Read(_repository);
+            var listOfRepositories = r.Read(repository);
 
-            
-            pkgsLeftToInstall = _name.ToList();
+
+            pkgsLeftToInstall = packageNames.ToList();
 
             var yesToAll = false;
             var noToAll = false;
@@ -368,12 +618,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var repositoryIsNotTrusted = "Untrusted repository";
             var queryInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
 
-            
+
             foreach (var repoName in listOfRepositories)
             {
                 var sourceTrusted = false;
 
-                if (string.Equals(repoName.Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
+                if (string.Equals(repoName.Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !trustRepository && !force)
                 {
                     this.WriteDebug("Checking if untrusted repository should be used");
                     if (!(yesToAll || noToAll))
@@ -393,25 +643,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Try to install
                     // if it can't find the pkg in one repository, it'll look in the next one in the list 
                     // returns any pkgs that weren't found
-                    var returnedPkgsNotInstalled = InstallHelper(repoName.Properties["Url"].Value.ToString(), pkgsLeftToInstall, cancellationToken);
+                    var returnedPkgsNotInstalled = InstallHelper(repoName.Properties["Url"].Value.ToString(), pkgsLeftToInstall, packageNames, version, prerelease, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, cancellationToken);
                     if (!pkgsLeftToInstall.Any())
                     {
                         return;
                     }
                     pkgsLeftToInstall = returnedPkgsNotInstalled;
                 }
-              
+
             }
         }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -423,7 +664,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // Installing
 
 
-        public List<string> InstallHelper(string repositoryUrl, List<string> pkgsLeftToInstall, CancellationToken cancellationToken)
+        public List<string> InstallHelper(string repositoryUrl, List<string> pkgsLeftToInstall, string[] packageNames, string version, bool prerelease,string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, CancellationToken cancellationToken)
         {
 
 
@@ -441,7 +682,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             SourceRepository repository = new SourceRepository(source, provider);
 
-            SearchFilter filter = new SearchFilter(_prerelease);
+            SearchFilter filter = new SearchFilter(prerelease);
 
 
 
@@ -469,25 +710,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 this.WriteVerbose("Error retreiving repository resource");
             }
 
-            SearchFilter filter2 = new SearchFilter(_prerelease);
+            SearchFilter filter2 = new SearchFilter(prerelease);
             SourceCacheContext context2 = new SourceCacheContext();
 
 
 
-            foreach (var n in _name)
+            foreach (var n in packageNames)
             {
 
                 IPackageSearchMetadata filteredFoundPkgs = null;
 
 
                 VersionRange versionRange = null;
-                if (_version == null)
+                if (version == null)
                 {
                     // ensure that the latst version is returned first (the ordering of versions differ
                     // TODO: proper error handling
                     try
                     {
-                        filteredFoundPkgs = (resourceMetadata2.GetMetadataAsync(n, _prerelease, false, context2, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        filteredFoundPkgs = (resourceMetadata2.GetMetadataAsync(n, prerelease, false, context2, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
                             .FirstOrDefault());
                     }
@@ -500,7 +741,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // check if exact version
                     NuGetVersion nugetVersion;
 
-                    NuGetVersion.TryParse(_version, out nugetVersion);
+                    NuGetVersion.TryParse(version, out nugetVersion);
                     
                     if (nugetVersion != null)
                     {
@@ -510,14 +751,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         // check if version range
-                        versionRange = VersionRange.Parse(_version);
+                        versionRange = VersionRange.Parse(version);
                     }
                     this.WriteVerbose(string.Format("Version is: {0}", versionRange.ToString()));
 
 
                     // Search for packages within a version range
                     // ensure that the latst version is returned first (the ordering of versions differ
-                    filteredFoundPkgs = (resourceMetadata2.GetMetadataAsync(n, _prerelease, false, context2, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                    filteredFoundPkgs = (resourceMetadata2.GetMetadataAsync(n, prerelease, false, context2, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                         .Where(p => versionRange.Satisfies(p.Identity.Version))
                         .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
                         .FirstOrDefault());
@@ -537,7 +778,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // need to improve this later
                     // this function recursively finds all dependencies
                     // might need to do add instead of AddRange
-                    foundDependencies.AddRange(FindDependenciesFromSource(filteredFoundPkgs, resourceMetadata2, context2));
+                    foundDependencies.AddRange(FindDependenciesFromSource(filteredFoundPkgs, resourceMetadata2, context2, prerelease, reinstall));
 
 
                 } 
@@ -561,7 +802,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (versionRange != null)
                 {
                     // for each package name passed in
-                    foreach (var name in _name)
+                    foreach (var name in packageNames)
                     {
                         var pkgDirName = Path.Combine(psModulesPath, name);
                         var pkgDirNameScript = Path.Combine(psScriptsPath, name);
@@ -591,7 +832,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var pkgsAlreadyInstalled = pkgVersion.FindAll(p => versionRange.Satisfies(NuGetVersion.Parse(p)));
 
 
-                            if (pkgsAlreadyInstalled.Any() && !_reinstall)
+                            if (pkgsAlreadyInstalled.Any() && !reinstall)
                             {
                                 // remove the pkg from the list of pkgs that need to be installed
                                 var pkgsToRemove = pkgsToInstall.Find(p => string.Equals(p.Identity.Id, name, StringComparison.CurrentCultureIgnoreCase));
@@ -606,7 +847,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else // if (versionRange != null)
                 {
                     // for each package name passed in
-                    foreach (var name in _name)
+                    foreach (var name in packageNames)
                     {
                         // case sensitivity issues here!
 
@@ -620,7 +861,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             // then check to see if the package exists in the path
 
-                            if ((Directory.Exists(dirName) || Directory.Exists(dirNameScript)) && !_reinstall)
+                            if ((Directory.Exists(dirName) || Directory.Exists(dirNameScript)) && !reinstall)
                             {
                                 // remove the pkg from the list of pkgs that need to be installed
                                 //case sensitivity here 
@@ -653,7 +894,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (var p in pkgsToInstall)
                 {
 
-                    if (!_quiet)
+                    if (!quiet)
                     {
                         int i = 1;
                         int j = 1;
@@ -669,7 +910,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         string statusDescription = "";
 
 
-                        if (_name.ToList().Contains(p.Identity.Id))
+                        if (packageNames.ToList().Contains(p.Identity.Id))
                         {
                             // if the pkg exists in one of the names passed in, then we wont include it as a dependent package
 
@@ -757,7 +998,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (requireLicenseAcceptance)
                     {
                         // if module requires license acceptance and -AcceptLicense is not passed in, prompt
-                        if (!_acceptLicense)
+                        if (!acceptLicense)
                         {
 
                             var PkgTempInstallPath = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
@@ -785,13 +1026,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             if (yesToAll)
                             {
-                                _acceptLicense = true;
+                                acceptLicense = true;
                             }
                         }
 
                         // Check if user agreed to license terms, if they didn't, throw error
                         // if they did, continue to install
-                        if (!_acceptLicense)
+                        if (!acceptLicense)
                         {
                             var message = $"License Acceptance is required for module '{p.Identity.Id}'. Please specify '-AcceptLicense' to perform this operation.";
                             var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
@@ -830,8 +1071,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     //Create PSGetModuleInfo.xml
                     //Set attribute as hidden [System.IO.File]::SetAttributes($psgetItemInfopath, [System.IO.FileAttributes]::Hidden)
 
-                    
-                    
                     var fullinstallPath = isScript ? Path.Combine(dirNameVersion, (p.Identity.Id + "_InstalledScriptInfo.xml"))
                         : Path.Combine(dirNameVersion, "PSGetModuleInfo.xml");
 
@@ -887,7 +1126,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         // If NoClobber is specified, ensure command clobbering does not happen
-                        if (_noClobber)
+                        if (noClobber)
                         {
                             /// This is a primitive implementation
                             /// TODO:                             
@@ -975,7 +1214,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     
 
-
                     // 4) copy to proper path
 
                     // TODO: test installing a script when it already exists
@@ -1037,7 +1275,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-        private List<IPackageSearchMetadata> FindDependenciesFromSource(IPackageSearchMetadata pkg, PackageMetadataResource pkgMetadataResource, SourceCacheContext srcContext)
+        private List<IPackageSearchMetadata> FindDependenciesFromSource(IPackageSearchMetadata pkg, PackageMetadataResource pkgMetadataResource, SourceCacheContext srcContext, bool prerelease, bool reinstall)
         {
             /// dependency resolver
             ///
@@ -1058,7 +1296,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // 2.1) check that the appropriate pkg dependencies exist
                     // returns all versions from a single package id.
-                    var dependencies = pkgMetadataResource.GetMetadataAsync(pkgDependency.Id, _prerelease, true, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                    var dependencies = pkgMetadataResource.GetMetadataAsync(pkgDependency.Id, prerelease, true, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
 
                     // then 2.2) check if the appropriate verion range exists  (if version exists, then add it to the list to return)
 
@@ -1110,7 +1348,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // findall
                             var pkgsAlreadyInstalled = pkgVersion.FindAll(p => NuGetVersion.TryParse(p, out ver) && versionRange.Satisfies(ver)); 
 
-                            if (pkgsAlreadyInstalled.Any() && !_reinstall)
+                            if (pkgsAlreadyInstalled.Any() && !reinstall)
                             {
                                 // don't add the pkg to the list of pkgs that need to be installed
                                 dependencyAlreadyInstalled = true;
@@ -1125,7 +1363,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     // 3) search for any dependencies the pkg has
-                    foundDependencies.AddRange(FindDependenciesFromSource(depPkgToReturn, pkgMetadataResource, srcContext));
+                    foundDependencies.AddRange(FindDependenciesFromSource(depPkgToReturn, pkgMetadataResource, srcContext, prerelease, reinstall));
                 }
             }
 
