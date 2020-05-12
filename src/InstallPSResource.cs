@@ -22,6 +22,7 @@ using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using System.Security;
+using Newtonsoft.Json.Serialization;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -274,11 +275,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             get { return _requiredResourceHash != null ? (Object)_requiredResourceHash : (Object)_requiredResourceJson; }
 
             set {
-                if (value.GetType().Equals("String"))
+                if (value.GetType().Name.Equals("String"))
                 {
                     _requiredResourceJson = (String) value;
                 }
-                else if (value.GetType().Equals("Hashtable"))
+                else if (value.GetType().Name.Equals("Hashtable"))
                 {
                     _requiredResourceHash = (Hashtable) value;
                 }
@@ -398,6 +399,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             psScriptsPath = Path.Combine(psPath, "Scripts");
 
 
+            psModulesPathAllDirs = (Directory.GetDirectories(psModulesPath)).ToList();
+            psScriptsPathAllDirs = (Directory.GetDirectories(psScriptsPath)).ToList();
+
+
+
             JObject json = null;
 
             if (_requiredResourceFile != null)
@@ -454,9 +460,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 try
                 {
-                    string jsonString = _requiredResourceHash.ToJson();
-                    json = JObject.Parse(jsonString);
-
+                    json = JObject.Parse(_requiredResourceJson);
                 }
                 catch (Exception e)
                 {
@@ -468,14 +472,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // parse it into parameters
             var properties = json.Properties();
 
-            var listOfPkgs = properties.ToList();
+            List<JProperty> listOfPkgs = properties.ToList();
+            if (!listOfPkgs.Children().First().Children().Any())
+            {
+                // Creating JProperty so that we can have the proper formatting when
+                // matching package parameters
+                JToken objContent = JToken.FromObject(json);
+                JProperty objTypeValuePairing = new JProperty("tempName", objContent);
+
+                listOfPkgs = new List<JProperty> { objTypeValuePairing };
+            }
 
             foreach (var pkg in listOfPkgs)
             {
-                var pkgName = pkg.Name;
                 var parameters = pkg.Value;
 
-                string[] packageName = new string[0];
+                // parameter for begin installation expects a string array
+                string[] pkgName = new string[] { pkg.Name };
                 string version = null;
                 bool prerelease = false;
                 string[] repository = new string[0];
@@ -496,10 +509,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // parameter == 0 means that no parameter name was passed in
                 if (parameters.Count() == 0)
                 {
-                    NuGetVersion nugetversion;
-                    NuGetVersion.TryParse(parameters.ToString(), out nugetversion);
+                    var paramValue = parameters.ToString();
 
-                    version = parameters.ToString();
+                    NuGetVersion nugetVersion;
+                    NuGetVersion.TryParse(paramValue, out nugetVersion);
+
+                    VersionRange versionRange = VersionRange.Parse(paramValue);
+
+     
+
+                    if (nugetVersion == null && versionRange == null && paramValue != null)
+                    {
+                        throw new ArgumentException("Version parameter in -RequiredResource is not in the correct format");
+                    }
+
+                    version = paramValue;
+
                 }
                 else
                 {
@@ -515,10 +540,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         if (name.Equals("version", StringComparison.OrdinalIgnoreCase))
                         {
+                            // version and version ranges allowed
                             NuGetVersion nugetVersion;
                             NuGetVersion.TryParse(val, out nugetVersion);
 
-                            if (version == null && val != null)
+                            VersionRange versionRange = VersionRange.Parse(val);
+
+                            if (version == null && versionRange == null && val != null)
                             {
                                 throw new ArgumentException("Version parameter in -RequiredResource is not in the correct format");
                             }
@@ -527,7 +555,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         else if (name.Equals("repository", StringComparison.OrdinalIgnoreCase))
                         {
-                            repository[0] = val;
+                            if (val.GetType().Name.Equals("String"))
+                            {
+                                repository = new string[] { val };
+                            }
+                            else {
+                                repository[0] = val;
+                            }
                         }
                         else if (name.Equals("credentialUsername", StringComparison.OrdinalIgnoreCase))
                         {
@@ -543,7 +577,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             {
                                 WriteVerbose("Credential username is empty.  Provide the username for the credential.");
                             }
-                            credential = new PSCredential(credentialUsername, credentialPassword);
+                            else 
+                            {
+                                credential = new PSCredential(credentialUsername, credentialPassword);
+                            }
                         }
                         else if (name.Equals("AcceptLicense", StringComparison.OrdinalIgnoreCase))
                         {
@@ -579,7 +616,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         else if (name.Equals("Name", StringComparison.OrdinalIgnoreCase))
                         {
-                            packageName[0] = val;
+                            pkgName[0] = val;
                         }
                      
                     }
@@ -587,7 +624,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-                InstallBeginning(packageName, version, prerelease, repository, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, cancellationToken);
+                InstallBeginning(pkgName, version, prerelease, repository, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, cancellationToken);
 
             }
 
