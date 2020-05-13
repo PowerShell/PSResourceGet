@@ -439,10 +439,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-
-
-
-
             if (_requiredResourceHash != null)
             {
                 try
