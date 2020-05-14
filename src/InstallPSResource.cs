@@ -1,27 +1,27 @@
 ﻿
 using System;
 using System.Collections;
-using System.Management.Automation;
 using System.Collections.Generic;
-using NuGet.Configuration;
+using System.Collections.ObjectModel;
+using static System.Environment;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Management.Automation;
+using System.Net;
+using System.Security;
+using System.Security.Principal;
+using System.Text.RegularExpressions;
+using System.Threading;
+using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
+using MoreLinq.Extensions;
+using Newtonsoft.Json.Linq;
 using NuGet.Common;
+using NuGet.Configuration;
+using NuGet.Packaging.Core;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
-using System.Threading;
-using NuGet.Packaging.Core;
 using NuGet.Versioning;
-using System.Net;
-using System.Linq;
-using MoreLinq.Extensions;
-using System.IO;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
-using System.Globalization;
-using System.Security.Principal;
-using static System.Environment;
-using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json.Linq;
-using System.Security;
 using Newtonsoft.Json.Serialization;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -408,23 +408,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (_requiredResourceFile != null)
             {
-                // TODO: resolve path
-                if (!File.Exists(_requiredResourceFile))
+                var resolvedReqResourceFile = SessionState.Path.GetResolvedPSPathFromPSPath(_requiredResourceFile).FirstOrDefault().Path;
+                WriteDebug("Resolved required resource file path is: " + resolvedReqResourceFile);
+               
+                if (!File.Exists(resolvedReqResourceFile))
                 {
                     throw new Exception("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json or .psd1 file");
                 }
 
-                if (_requiredResourceFile.EndsWith(".psd1"))
+                if (resolvedReqResourceFile.EndsWith(".psd1"))
                 {
                     // TODO:  implement after implementing publish
                     throw new Exception("This feature is not yet implemented");
                     return;
                 }
-                else if (_requiredResourceFile.EndsWith(".json"))
+                else if (resolvedReqResourceFile.EndsWith(".json"))
                 {
                     // if json file
                     string jsonString = "";
-                    using (StreamReader sr = new StreamReader(_requiredResourceFile))
+                    using (StreamReader sr = new StreamReader(resolvedReqResourceFile))
                     {
                         jsonString = sr.ReadToEnd();
                     }
@@ -1102,7 +1104,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // if it's not a script, do the following:
                     var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1").ToLower());
-                    var isScript = File.Exists(scriptPath) ? true : false;
+                    var resolvedScriptPath = SessionState.Path.GetResolvedPSPathFromPSPath(scriptPath).FirstOrDefault().Path;
+                    var isScript = File.Exists(resolvedScriptPath) ? true : false;
+
+                    WriteDebug("Resolved script file path is: " + resolvedScriptPath);
 
                     // 3) create xml
                     //Create PSGetModuleInfo.xml
@@ -1262,7 +1267,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var newPath = isScript ? installPath
                         : Path.Combine(installPath, p.Identity.Id.ToString());
                     // when we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
-                    
+
+                    var resolvedNewPath = SessionState.Path.GetResolvedPSPathFromPSPath(newPath).FirstOrDefault().Path;
+                    WriteDebug("Resolved new module or script installation path is: " + resolvedNewPath);
+
                     // if script, just move the files over, if module, move the version directory overp
                     var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
                         : Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
@@ -1271,25 +1279,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         var scriptXML = p.Identity.Id + "_InstalledScriptInfo.xml";
                         File.Move(Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
-                        File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1"));
+                        File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(resolvedNewPath, p.Identity.Id + ".ps1"));
                     }
                     else
                     {
-                        if (!Directory.Exists(newPath))
+                        if (!Directory.Exists(resolvedNewPath))
                         {                                   
-                            Directory.Move(tempModuleVersionDir, newPath);
+                            Directory.Move(tempModuleVersionDir, resolvedNewPath);
                         }
                         else
                         {
                             tempModuleVersionDir = Path.Combine(tempModuleVersionDir, p.Identity.Version.ToNormalizedString());
-                            var newVersionPath = Path.Combine(newPath, p.Identity.Version.ToNormalizedString());
+                            var newVersionPath = Path.Combine(resolvedNewPath, p.Identity.Version.ToNormalizedString());
 
                             if (Directory.Exists(newVersionPath))
                             {
                                 // Delete the directory path before replacing it with the new module
                                 Directory.Delete(newVersionPath, true);
                             }
-                            Directory.Move(tempModuleVersionDir, Path.Combine(newPath, p.Identity.Version.ToNormalizedString()));
+                            Directory.Move(tempModuleVersionDir, Path.Combine(resolvedNewPath, p.Identity.Version.ToNormalizedString()));
                         }
                     }
 
