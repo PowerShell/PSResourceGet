@@ -1086,7 +1086,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // may need to modify due to capitalization
                     var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
-                    var nupkgMetadataToDelete = Path.Combine(dirNameVersion, ".nupkg.metadata");
+                    var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + p.Identity.Version.ToNormalizedString() + ".nupkg").ToLower());
                     var nupkgToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgSHAToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
                     var nuspecToDelete = Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
