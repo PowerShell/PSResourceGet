@@ -4,7 +4,7 @@
 New Features
 * -RequiredResource parameter for Install-PSResource 
 * -RequiredResourceFile parameter for Install-PSResource
-* -AsNupkg parameter in Save-PSResource
+* -IncludeXML parameter in Save-PSResource
 
 Bug Fixes
 * Resolved paths in Install-PSRsource and Save-PSResource 
