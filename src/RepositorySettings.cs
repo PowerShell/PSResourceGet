@@ -247,7 +247,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
 
             var foundRepos = new List<PSObject>();
-            if (repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*"))
+            if (repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
             {
                 // array is null and we will list all repositories
                 // iterate through the doc

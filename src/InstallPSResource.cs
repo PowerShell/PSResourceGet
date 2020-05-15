@@ -23,6 +23,7 @@ using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -405,6 +406,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             JObject json = null;
+            Dictionary<string, PkgParams> pkgsinJson = new Dictionary<string, PkgParams>();
+            Dictionary<string, string> jsonPkgsNameVersion = new Dictionary<string, string>();
 
             if (_requiredResourceFile != null)
             {
@@ -428,12 +431,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string jsonString = "";
                     using (StreamReader sr = new StreamReader(resolvedReqResourceFile))
                     {
-                        jsonString = sr.ReadToEnd();
+                        _requiredResourceJson = sr.ReadToEnd();
                     }
 
-                    // throw exception
-
-                    json = JObject.Parse(jsonString);
+                    try
+                    {
+                        pkgsinJson = JsonConvert.DeserializeObject<Dictionary<string, PkgParams>>(_requiredResourceJson, new JsonSerializerSettings() { MaxDepth = 6 });
+                    }
+                    catch (Exception e)
+                    {
+                        throw new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                    }
                 }
                 else
                 {
@@ -443,196 +451,74 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (_requiredResourceHash != null)
             {
+                string jsonString;
                 try
                 {
-                    _requiredResourceJson = _requiredResourceHash.ToJson();
+                   jsonString = _requiredResourceHash.ToJson();
                 }
                 catch (Exception e)
                 {
                     throw new ArgumentException("Argument for parameter -RequiredResource is not in proper format.  Make sure argument is either a hashtable or a json object.");
                 }
-            }
-            
 
-            if (_requiredResourceJson != null)
-            {
+                PkgParams pkg = null;
                 try
                 {
-                    json = JObject.Parse(_requiredResourceJson);
+                    pkg = JsonConvert.DeserializeObject<PkgParams>(jsonString, new JsonSerializerSettings() { MaxDepth = 6 });
                 }
                 catch (Exception e)
                 {
                     throw new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
                 }
+
+                InstallBeginning(new string[] { pkg.Name }, pkg.Version, pkg.Prerelease, new string[] { pkg.Repository }, pkg.Scope, pkg.AcceptLicense, pkg.Quiet, pkg.Reinstall, pkg.Force, pkg.TrustRepository, pkg.NoClobber, pkg.Credential, cancellationToken);
+                return;
+
             }
 
-            // We now have the raw data,
-            // parse it into parameters
-            var properties = json.Properties();
-
-            List<JProperty> listOfPkgs = properties.ToList();
-            if (!listOfPkgs.Children().First().Children().Any())
+            if (_requiredResourceJson != null)
             {
-                // Creating JProperty so that we can have the proper formatting when
-                // matching package parameters
-                JToken objContent = JToken.FromObject(json);
-                JProperty objTypeValuePairing = new JProperty("tempName", objContent);
-
-                listOfPkgs = new List<JProperty> { objTypeValuePairing };
-            }
-
-            foreach (var pkg in listOfPkgs)
-            {
-                var parameters = pkg.Value;
-
-                // parameter for begin installation expects a string array
-                string[] pkgName = new string[] { pkg.Name };
-                string version = null;
-                bool prerelease = false;
-                string[] repository = new string[0];
-                string scope = "CurrentUser";
-                bool acceptLicense = false;
-                bool quiet = false;
-                bool reinstall = false;
-                bool force = false;
-                bool trustRepository = false;
-                bool noClobber = false;
-                string credentialUsername = "";
-                SecureString credentialPassword = null;
-                PSCredential credential = null;
-
-
-
-                // is parameter value just a version
-                // parameter == 0 means that no parameter name was passed in
-                if (parameters.Count() == 0)
+                if (!pkgsinJson.Any())
                 {
-                    var paramValue = parameters.ToString();
-
-                    NuGetVersion nugetVersion;
-                    NuGetVersion.TryParse(paramValue, out nugetVersion);
-
-                    VersionRange versionRange = VersionRange.Parse(paramValue);
-
-     
-
-                    if (nugetVersion == null && versionRange == null && paramValue != null)
+                    try
                     {
-                        throw new ArgumentException("Version parameter in -RequiredResource is not in the correct format");
+                        pkgsinJson = JsonConvert.DeserializeObject<Dictionary<string, PkgParams>>(_requiredResourceJson, new JsonSerializerSettings() { MaxDepth = 6 });
                     }
-
-                    version = paramValue;
-
-                }
-                else
-                {
-                    // or is value a list of parameters?
-                    // parse each parameter
-                    foreach (Newtonsoft.Json.Linq.JProperty param in parameters)
+                    catch (Exception e)
                     {
-                        var str = param.ToString();
-
-                        var name = param.Name;  // is already of type string
-                        var val = param.Value.ToString();
-
-
-                        if (name.Equals("version", StringComparison.OrdinalIgnoreCase))
+                        try
                         {
-                            // version and version ranges allowed
-                            NuGetVersion nugetVersion;
-                            NuGetVersion.TryParse(val, out nugetVersion);
-
-                            VersionRange versionRange = VersionRange.Parse(val);
-
-                            if (version == null && versionRange == null && val != null)
-                            {
-                                throw new ArgumentException("Version parameter in -RequiredResource is not in the correct format");
-                            }
-
-                            version = val;
+                            jsonPkgsNameVersion = JsonConvert.DeserializeObject<Dictionary<string, string>>(_requiredResourceJson, new JsonSerializerSettings() { MaxDepth = 6 });
                         }
-                        else if (name.Equals("repository", StringComparison.OrdinalIgnoreCase))
+                        catch (Exception ex)
                         {
-                            if (val.GetType().Name.Equals("String"))
-                            {
-                                repository = new string[] { val };
-                            }
-                            else {
-                                repository[0] = val;
-                            }
+                            throw new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
                         }
-                        else if (name.Equals("credentialUsername", StringComparison.OrdinalIgnoreCase))
-                        {
-                            // first half of credential object
-                            credentialUsername = val;
-                        }
-                        else if (name.Equals("credentialPassword", StringComparison.OrdinalIgnoreCase))
-                        {
-                            // second half of credential object
-                            credentialPassword = new NetworkCredential("", val).SecurePassword;
-
-                            if (string.IsNullOrEmpty(credentialUsername))
-                            {
-                                WriteVerbose("Credential username is empty.  Provide the username for the credential.");
-                            }
-                            else 
-                            {
-                                credential = new PSCredential(credentialUsername, credentialPassword);
-                            }
-                        }
-                        else if (name.Equals("AcceptLicense", StringComparison.OrdinalIgnoreCase))
-                        {
-                            acceptLicense = Convert.ToBoolean(val);
-                        }
-                        else if (name.Equals("Quiet", StringComparison.OrdinalIgnoreCase))
-                        {
-                            quiet = Convert.ToBoolean(val);
-                        }
-                        else if (name.Equals("Reinstall", StringComparison.OrdinalIgnoreCase))
-                        {
-                            reinstall = Convert.ToBoolean(val);
-                        }
-                        else if (name.Equals("Force", StringComparison.OrdinalIgnoreCase))
-                        {
-                            force = Convert.ToBoolean(val);
-                        }
-                        else if (name.Equals("TrustRepository", StringComparison.OrdinalIgnoreCase))
-                        {
-                            trustRepository = Convert.ToBoolean(val);
-                        }
-                        else if (name.Equals("NoClobber", StringComparison.OrdinalIgnoreCase))
-                        {
-                            noClobber = Convert.ToBoolean(val);
-                        }
-                        else if (name.Equals("Scope", StringComparison.OrdinalIgnoreCase))
-                        {
-                            scope = val;
-                        }
-                        else if (name.Equals("Prerelease", StringComparison.OrdinalIgnoreCase))
-                        {
-                            prerelease = Convert.ToBoolean(val);
-                        }
-                        else if (name.Equals("Name", StringComparison.OrdinalIgnoreCase))
-                        {
-                            pkgName[0] = val;
-                        }
-                     
                     }
                 }
 
+                foreach (var pkg in jsonPkgsNameVersion)
+                {
+                    InstallBeginning(new string[] { pkg.Key }, pkg.Value, false, null, null, false, false, false, false, false, false, null, cancellationToken);
+                }
 
 
-                InstallBeginning(pkgName, version, prerelease, repository, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, cancellationToken);
+                foreach (var pkg in pkgsinJson)
+                {
+                    InstallBeginning(new string[] { pkg.Key }, pkg.Value.Version, pkg.Value.Prerelease, new string[] { pkg.Value.Repository }, pkg.Value.Scope, pkg.Value.AcceptLicense, pkg.Value.Quiet, pkg.Value.Reinstall, pkg.Value.Force, pkg.Value.TrustRepository, pkg.Value.NoClobber, pkg.Value.Credential, cancellationToken);
+                }
+                return;
 
             }
 
+            InstallBeginning(_name, _version, _prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force, _trustRepository, _noClobber, _credential, cancellationToken);
         }
 
 
 
 
 
-        public void InstallBeginning(string[] packageNames, string version, bool prerelease, string[] repository, string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, CancellationToken cancellationToken)
+        public void InstallBeginning(string[] packageNames, string version, bool prerelease, string[] repository, string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, PSCredential credential, CancellationToken cancellationToken)
         {
             var r = new RespositorySettings();
             var listOfRepositories = r.Read(repository);
@@ -678,7 +564,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Try to install
                     // if it can't find the pkg in one repository, it'll look in the next one in the list 
                     // returns any pkgs that weren't found
-                    var returnedPkgsNotInstalled = InstallHelper(repoName.Properties["Url"].Value.ToString(), pkgsLeftToInstall, packageNames, version, prerelease, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, cancellationToken);
+                    var returnedPkgsNotInstalled = InstallHelper(repoName.Properties["Url"].Value.ToString(), pkgsLeftToInstall, packageNames, version, prerelease, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, credential, cancellationToken);
                     if (!pkgsLeftToInstall.Any())
                     {
                         return;
@@ -699,7 +585,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // Installing
 
 
-        public List<string> InstallHelper(string repositoryUrl, List<string> pkgsLeftToInstall, string[] packageNames, string version, bool prerelease,string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, CancellationToken cancellationToken)
+        public List<string> InstallHelper(string repositoryUrl, List<string> pkgsLeftToInstall, string[] packageNames, string version, bool prerelease,string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, PSCredential credential, CancellationToken cancellationToken)
         {
 
 
@@ -707,10 +593,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             PackageSource source = new PackageSource(repositoryUrl);
 
-            if (_credential != null)
+            if (credential != null)
             {
-                string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, _credential.UserName, password, true, null);
+                string password = new NetworkCredential(string.Empty, credential.Password).Password;
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, credential.UserName, password, true, null);
             }
 
             var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
@@ -726,10 +612,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             //////////////////////  packages from source
             ///
             PackageSource source2 = new PackageSource(repositoryUrl);
-            if (_credential != null)
+            if (credential != null)
             {
-                string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                source2.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, _credential.UserName, password, true, null);
+                string password = new NetworkCredential(string.Empty, credential.Password).Password;
+                source2.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, credential.UserName, password, true, null);
             }
             var provider2 = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
 
@@ -1100,10 +986,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // if it's not a script, do the following:
                     var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1").ToLower());
-                    var resolvedScriptPath = SessionState.Path.GetResolvedPSPathFromPSPath(scriptPath).FirstOrDefault().Path;
-                    var isScript = File.Exists(resolvedScriptPath) ? true : false;
+                    var isScript = File.Exists(scriptPath) ? true : false;
 
-                    WriteDebug("Resolved script file path is: " + resolvedScriptPath);
+                    WriteDebug("Script file path is: " + scriptPath);
 
                     // 3) create xml
                     //Create PSGetModuleInfo.xml
@@ -1264,8 +1149,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         : Path.Combine(installPath, p.Identity.Id.ToString());
                     // when we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
 
-                    var resolvedNewPath = SessionState.Path.GetResolvedPSPathFromPSPath(newPath).FirstOrDefault().Path;
-                    WriteDebug("Resolved new module or script installation path is: " + resolvedNewPath);
+                    WriteDebug("New module or script installation path is: " + newPath);
 
                     // if script, just move the files over, if module, move the version directory overp
                     var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
@@ -1275,25 +1159,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         var scriptXML = p.Identity.Id + "_InstalledScriptInfo.xml";
                         File.Move(Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
-                        File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(resolvedNewPath, p.Identity.Id + ".ps1"));
+                        File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1"));
                     }
                     else
                     {
-                        if (!Directory.Exists(resolvedNewPath))
+                        if (!Directory.Exists(newPath))
                         {                                   
-                            Directory.Move(tempModuleVersionDir, resolvedNewPath);
+                            Directory.Move(tempModuleVersionDir, newPath);
                         }
                         else
                         {
                             tempModuleVersionDir = Path.Combine(tempModuleVersionDir, p.Identity.Version.ToNormalizedString());
-                            var newVersionPath = Path.Combine(resolvedNewPath, p.Identity.Version.ToNormalizedString());
+                            var newVersionPath = Path.Combine(newPath, p.Identity.Version.ToNormalizedString());
 
                             if (Directory.Exists(newVersionPath))
                             {
                                 // Delete the directory path before replacing it with the new module
                                 Directory.Delete(newVersionPath, true);
                             }
-                            Directory.Move(tempModuleVersionDir, Path.Combine(resolvedNewPath, p.Identity.Version.ToNormalizedString()));
+                            Directory.Move(tempModuleVersionDir, Path.Combine(newPath, p.Identity.Version.ToNormalizedString()));
                         }
                     }
 
