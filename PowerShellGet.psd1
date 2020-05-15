@@ -23,7 +23,7 @@
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData       = @{
         PSData                                 = @{
-            Prerelease = 'beta2'
+            Prerelease = 'beta3'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -33,6 +33,16 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+### 3.0.0-beta3
+New Features
+* -RequiredResource parameter for Install-PSResource 
+* -RequiredResourceFile parameter for Install-PSResource
+* -AsNupkg parameter in Save-PSResource
+
+Bug Fixes
+* Resolved paths in Install-PSRsource and Save-PSResource 
+* Resolved issues with capitalization (for unix systems) in Install-PSResource and Save-PSResource
+
 ### 3.0.0-beta2
 New Features
 * Progress bar and -Quiet parameter for Install-PSResource
