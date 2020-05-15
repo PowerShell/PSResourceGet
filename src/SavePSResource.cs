@@ -121,6 +121,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _asNupkg;
 
         /// <summary>
+        /// Saves the metadata XML file with the resource
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter IncludeXML
+        {
+            get { return _includeXML; }
+
+            set { _includeXML = value; }
+        }
+        private SwitchParameter _includeXML;
+
+        /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
         [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
@@ -374,14 +386,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // check for failures
                         // var newPath = Directory.CreateDirectory(Path.Combine(psModulesPath, p.Identity.Id, p.Identity.Version.ToNormalizedString()));
 
-                        var installPath = _path;
+                        var installPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
                         // when we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
                         // if script, just move the files over, if module, move the version directory overp
 
                         var tempPkgIdPath = System.IO.Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToString());
                         var tempPkgVersionPath = System.IO.Path.Combine(tempPkgIdPath, p.Identity.Id.ToLower() + "." +  p.Identity.Version + ".nupkg");
 
-                        var newPath = System.IO.Path.Combine(_path, p.Identity.Id + "." + p.Identity.Version + ".nupkg");
+                        var newPath = System.IO.Path.Combine(installPath, p.Identity.Id + "." + p.Identity.Version + ".nupkg");
 
                         File.Move(tempPkgVersionPath, newPath);
 
@@ -439,7 +451,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         // may need to modify due to capitalization
                         var dirNameVersion = System.IO.Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
-                        var nupkgMetadataToDelete = System.IO.Path.Combine(dirNameVersion, ".nupkg.metadata");
+                        var nupkgMetadataToDelete = System.IO.Path.Combine(dirNameVersion, ".nupkg.metadata").ToLower();
                         var nupkgToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                         var nupkgSHAToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
                         var nuspecToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
@@ -464,107 +476,108 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var fullinstallPath = isScript ? System.IO.Path.Combine(dirNameVersion, (p.Identity.Id + "_InstalledScriptInfo.xml"))
                             : System.IO.Path.Combine(dirNameVersion, "PSGetModuleInfo.xml");
 
-
-                        // Create XMLs
-                        using (StreamWriter sw = new StreamWriter(fullinstallPath))
+                        if (_includeXML)
                         {
-                            var psModule = "PSModule";
-
-                            var tags = p.Tags.Split(' ');
-
-
-                            var module = tags.Contains("PSModule") ? "Module" : null;
-                            var script = tags.Contains("PSScript") ? "Script" : null;
-
-
-                            List<string> includesDscResource = new List<string>();
-                            List<string> includesCommand = new List<string>();
-                            List<string> includesFunction = new List<string>();
-                            List<string> includesRoleCapability = new List<string>();
-                            List<string> filteredTags = new List<string>();
-
-                            var psDscResource = "PSDscResource_";
-                            var psCommand = "PSCommand_";
-                            var psFunction = "PSFunction_";
-                            var psRoleCapability = "PSRoleCapability_";
-
-
-
-                            foreach (var tag in tags)
+                            // Create XMLs
+                            using (StreamWriter sw = new StreamWriter(fullinstallPath))
                             {
-                                if (tag.StartsWith(psDscResource))
+                                var psModule = "PSModule";
+
+                                var tags = p.Tags.Split(' ');
+
+
+                                var module = tags.Contains("PSModule") ? "Module" : null;
+                                var script = tags.Contains("PSScript") ? "Script" : null;
+
+
+                                List<string> includesDscResource = new List<string>();
+                                List<string> includesCommand = new List<string>();
+                                List<string> includesFunction = new List<string>();
+                                List<string> includesRoleCapability = new List<string>();
+                                List<string> filteredTags = new List<string>();
+
+                                var psDscResource = "PSDscResource_";
+                                var psCommand = "PSCommand_";
+                                var psFunction = "PSFunction_";
+                                var psRoleCapability = "PSRoleCapability_";
+
+
+
+                                foreach (var tag in tags)
                                 {
-                                    includesDscResource.Add(tag.Remove(0, psDscResource.Length));
+                                    if (tag.StartsWith(psDscResource))
+                                    {
+                                        includesDscResource.Add(tag.Remove(0, psDscResource.Length));
+                                    }
+                                    else if (tag.StartsWith(psCommand))
+                                    {
+                                        includesCommand.Add(tag.Remove(0, psCommand.Length));
+                                    }
+                                    else if (tag.StartsWith(psFunction))
+                                    {
+                                        includesFunction.Add(tag.Remove(0, psFunction.Length));
+                                    }
+                                    else if (tag.StartsWith(psRoleCapability))
+                                    {
+                                        includesRoleCapability.Add(tag.Remove(0, psRoleCapability.Length));
+                                    }
+                                    else if (!tag.StartsWith("PSWorkflow_") && !tag.StartsWith("PSCmdlet_") && !tag.StartsWith("PSIncludes_")
+                                        && !tag.Equals("PSModule") && !tag.Equals("PSScript"))
+                                    {
+                                        filteredTags.Add(tag);
+                                    }
                                 }
-                                else if (tag.StartsWith(psCommand))
+
+                                Dictionary<string, List<string>> includes = new Dictionary<string, List<string>>() {
+                                { "DscResource", includesDscResource },
+                                { "Command", includesCommand },
+                                { "Function", includesFunction },
+                                { "RoleCapability", includesRoleCapability }
+                            };
+
+
+                                Dictionary<string, VersionRange> dependencies = new Dictionary<string, VersionRange>();
+                                foreach (var depGroup in p.DependencySets)
                                 {
-                                    includesCommand.Add(tag.Remove(0, psCommand.Length));
+                                    PackageDependency depPkg = depGroup.Packages.FirstOrDefault();
+                                    dependencies.Add(depPkg.Id, depPkg.VersionRange);
                                 }
-                                else if (tag.StartsWith(psFunction))
-                                {
-                                    includesFunction.Add(tag.Remove(0, psFunction.Length));
-                                }
-                                else if (tag.StartsWith(psRoleCapability))
-                                {
-                                    includesRoleCapability.Add(tag.Remove(0, psRoleCapability.Length));
-                                }
-                                else if (!tag.StartsWith("PSWorkflow_") && !tag.StartsWith("PSCmdlet_") && !tag.StartsWith("PSIncludes_")
-                                    && !tag.Equals("PSModule") && !tag.Equals("PSScript"))
-                                {
-                                    filteredTags.Add(tag);
-                                }
+
+
+                                var psGetModuleInfoObj = new PSObject();
+                                // TODO:  Add release notes
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Name", p.Identity.Id));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Version", p.Identity.Version));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Type", module != null ? module : (script != null ? script : null)));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Description", p.Description));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Author", p.Authors));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("CompanyName", p.Owners));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("PublishedDate", p.Published));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledDate", System.DateTime.Now));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("LicenseUri", p.LicenseUrl));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("ProjectUri", p.ProjectUrl));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("IconUri", p.IconUrl));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Includes", includes.ToList()));    // TODO: check if getting deserialized properly
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("PowerShellGetFormatVersion", "3"));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Dependencies", dependencies.ToList()));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("RepositorySourceLocation", repositoryUrl));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Repository", repositoryUrl));
+                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledLocation", null));         // TODO:  add installation location
+
+
+
+                                psGetModuleInfoObj.TypeNames.Add("Microsoft.PowerShell.Commands.PSRepositoryItemInfo");
+
+
+                                var serializedObj = PSSerializer.Serialize(psGetModuleInfoObj);
+
+
+                                sw.Write(serializedObj);
+
+                                // set the xml attribute to hidden
+                                //System.IO.File.SetAttributes("c:\\code\\temp\\installtestpath\\PSGetModuleInfo.xml", FileAttributes.Hidden);
                             }
-
-                            Dictionary<string, List<string>> includes = new Dictionary<string, List<string>>() {
-                            { "DscResource", includesDscResource },
-                            { "Command", includesCommand },
-                            { "Function", includesFunction },
-                            { "RoleCapability", includesRoleCapability }
-                        };
-
-
-                            Dictionary<string, VersionRange> dependencies = new Dictionary<string, VersionRange>();
-                            foreach (var depGroup in p.DependencySets)
-                            {
-                                PackageDependency depPkg = depGroup.Packages.FirstOrDefault();
-                                dependencies.Add(depPkg.Id, depPkg.VersionRange);
-                            }
-
-
-                            var psGetModuleInfoObj = new PSObject();
-                            // TODO:  Add release notes
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("Name", p.Identity.Id));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("Version", p.Identity.Version));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("Type", module != null ? module : (script != null ? script : null)));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("Description", p.Description));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("Author", p.Authors));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("CompanyName", p.Owners));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("PublishedDate", p.Published));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledDate", System.DateTime.Now));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("LicenseUri", p.LicenseUrl));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("ProjectUri", p.ProjectUrl));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("IconUri", p.IconUrl));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("Includes", includes.ToList()));    // TODO: check if getting deserialized properly
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("PowerShellGetFormatVersion", "3"));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("Dependencies", dependencies.ToList()));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("RepositorySourceLocation", repositoryUrl));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("Repository", repositoryUrl));
-                            psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledLocation", null));         // TODO:  add installation location
-
-
-
-                            psGetModuleInfoObj.TypeNames.Add("Microsoft.PowerShell.Commands.PSRepositoryItemInfo");
-
-
-                            var serializedObj = PSSerializer.Serialize(psGetModuleInfoObj);
-
-
-                            sw.Write(serializedObj);
-
-                            // set the xml attribute to hidden
-                            //System.IO.File.SetAttributes("c:\\code\\temp\\installtestpath\\PSGetModuleInfo.xml", FileAttributes.Hidden);
                         }
-
 
 
                         // 4) copy to proper path
@@ -574,7 +587,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // check for failures
                         // var newPath = Directory.CreateDirectory(Path.Combine(psModulesPath, p.Identity.Id, p.Identity.Version.ToNormalizedString()));
 
-                        var installPath = _path;
+                        var installPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
                         var newPath = isScript ? installPath
                             : System.IO.Path.Combine(installPath, p.Identity.Id.ToString());
                         // when we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
@@ -586,7 +599,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (isScript)
                         {
                             var scriptXML = p.Identity.Id + "_InstalledScriptInfo.xml";
-                            File.Move(System.IO.Path.Combine(tempModuleVersionDir, scriptXML), System.IO.Path.Combine(_path, "InstalledScriptInfos", scriptXML));
+                            File.Move(System.IO.Path.Combine(tempModuleVersionDir, scriptXML), System.IO.Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
                             File.Move(System.IO.Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), System.IO.Path.Combine(newPath, p.Identity.Id + ".ps1"));
                         }
                         else
