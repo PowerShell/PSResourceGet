@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // if it can't find the pkg in one repository, it'll look in the next one in the list
                 // returns any pkgs found, and any pkgs that weren't found
-                returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Url"].Value.ToString(), cancellationToken));
+                    returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Url"].Value.ToString(), cancellationToken));
 
 
                 // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
@@ -428,7 +428,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
                 }
                 catch (Exception e){
-                    WriteDebug("DEBUG >> Error retrieving resource from repository: " + e.Message);
+                    WriteDebug("Error retrieving resource from repository: " + e.Message);
                     return returnedPkgs;
                 }
 
