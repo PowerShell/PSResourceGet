@@ -23,7 +23,7 @@
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData       = @{
         PSData                                 = @{
-            Prerelease = 'beta3'
+            Prerelease = 'beta4'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -33,6 +33,13 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+### 3.0.0-beta4
+New Feature
+* Implement -Repository '*' in Find-PSResource to search through all repositories instead of prioritized repository 
+
+Bug Fix
+* Fix poor error handling for when repository is not accessible in Find-PSResource
+
 ### 3.0.0-beta3
 New Features
 * -RequiredResource parameter for Install-PSResource 
