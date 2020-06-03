@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // if it can't find the pkg in one repository, it'll look in the next one in the list
                 // returns any pkgs found, and any pkgs that weren't found
-                returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Url"].Value.ToString(), cancellationToken));
+                    returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Url"].Value.ToString(), cancellationToken));
 
 
                 // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
@@ -245,7 +245,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
 
+                // reset found packages
+                returnedPkgsFound.Clear();
 
+                // if we need to search all repositories, we'll continue, otherwise we'll just return
                 if (!pkgsLeftToFind.Any())
                 {
                     break;
@@ -417,8 +420,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 SourceRepository repository = new SourceRepository(source, provider);
 
 
-                PackageSearchResource resourceSearch = repository.GetResourceAsync<PackageSearchResource>().GetAwaiter().GetResult();
-                PackageMetadataResource resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
+                PackageSearchResource resourceSearch = null;
+                PackageMetadataResource resourceMetadata = null;
+                try
+                {
+                    resourceSearch = repository.GetResourceAsync<PackageSearchResource>().GetAwaiter().GetResult();
+                    resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
+                }
+                catch (Exception e){
+                    WriteDebug("Error retrieving resource from repository: " + e.Message);
+                    return returnedPkgs;
+                }
 
                 SearchFilter filter = new SearchFilter(_prerelease);
                 SourceCacheContext context = new SourceCacheContext();
@@ -436,7 +448,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (foundPkgs.Any() && foundPkgs.FirstOrDefault() != null)
                         {
                             returnedPkgs.AddRange(foundPkgs);
-                            pkgsLeftToFind.Remove(n);
+
+
+                            // if the repository is not specified or the repository is specified (but it's not '*'), then we can stop continuing to search for the package
+                            if (_repository == null ||  !_repository[0].Equals("*"))
+                            {
+                                pkgsLeftToFind.Remove(n);
+                            }
                         }
                     }
                 }
