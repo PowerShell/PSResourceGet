@@ -36,7 +36,7 @@ Requirements
 Get PowerShellGet Module
 ========================
 
-Please refer to our [documentation](https://aka.ms/installing-psget) for the up-to-date version on how to get the PowerShellGet Module.
+Please refer to our [documentation](https://www.powershellgallery.com/packages/PowerShellGet/) for the up-to-date version on how to get the PowerShellGet Module.
 
 
 Get PowerShellGet Source
