@@ -4,20 +4,20 @@
 <SignConfigXML>
   <!-- AnyCPU Release sign job -->
   <job platform="AnyCPU" configuration="Release" dest="__OUTPATHROOT__\signed" jobname="PowerShellGet" approvers="vigarg;gstolt">
-    <file src="__INPATHROOT__\PowerShellGet\PowerShellGet.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.psd1" />
-    <file src="__INPATHROOT__\PowerShellGet\PSModule.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PSModule.psm1" />
-    <file src="__INPATHROOT__\PowerShellGet\PowerShellGet.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\netstandard2.0\PowerShellGet.dll" />
+    <file src="__INPATHROOT__\PowerShellGet.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.psd1" />
+    <file src="__INPATHROOT__\PSModule.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PSModule.psm1" />
+    <file src="__INPATHROOT__\PowerShellGet.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.dll" />
 
-    <file src="__INPATHROOT__\PowerShellGet\Microsoft.Extensions.Logging.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\MoreLinq.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\MoreLinq.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Common.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Common.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Configuration.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Configuration.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Frameworks.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Frameworks.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Packaging.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Packaging.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Protocol.Catalog.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Protocol.Catalog.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Protocol.Core.Types.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Protocol.Core.Types.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Protocol.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Protocol.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Repositories.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Repositories.dll" />
-    <file src="__INPATHROOT__\PowerShellGet\NuGet.Versioning.dll" signType="ThirdParty" dest="__OUTPATHROOT__\netstandard2.0\NuGet.Versioning.dll" />
+    <file src="__INPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" />
+    <file src="__INPATHROOT__\MoreLinq.dll" signType="ThirdParty" dest="__OUTPATHROOT__\MoreLinq.dll" />
+    <file src="__INPATHROOT__\NuGet.Common.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Common.dll" />
+    <file src="__INPATHROOT__\NuGet.Configuration.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Configuration.dll" />
+    <file src="__INPATHROOT__\NuGet.Frameworks.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Frameworks.dll" />
+    <file src="__INPATHROOT__\NuGet.Packaging.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Packaging.dll" />
+    <file src="__INPATHROOT__\NuGet.Protocol.Catalog.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Protocol.Catalog.dll" />
+    <file src="__INPATHROOT__\NuGet.Protocol.Core.Types.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Protocol.Core.Types.dll" />
+    <file src="__INPATHROOT__\NuGet.Protocol.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Protocol.dll" />
+    <file src="__INPATHROOT__\NuGet.Repositories.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Repositories.dll" />
+    <file src="__INPATHROOT__\NuGet.Versioning.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Versioning.dll" />
   </job>
 </SignConfigXML>
