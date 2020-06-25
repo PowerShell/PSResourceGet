@@ -28,22 +28,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     class PublishPSResource : PSCmdlet
     {
         /// <summary>
-        /// Specifies the name of the resource to be published.
-        /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
-        [ValidateNotNullOrEmpty]
-        public string Name
-        {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
-        private string _name;
-
-
-        /// <summary>
         /// Specifies the API key that you want to use to publish a module to the online gallery.
         /// </summary>
         [Parameter()]
@@ -113,7 +97,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks.
         /// Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "PathLiteralParameterSet")]
+        [Parameter(Mandatory = true, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "PathLiteralParameterSet")]
         [ValidateNotNullOrEmpty]
         public string LiteralPath
         {
@@ -278,38 +262,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         Hashtable dependencies = new Hashtable();
         NuGetVersion pkgVersion = null;
+        bool isScript;
 
         /// <summary>
         /// </summary>
         protected override void ProcessRecord()
         {
             string resolvedPath = "";
-            // come back here
-            if (!string.IsNullOrEmpty(_name))
+          
+            if (!string.IsNullOrEmpty(_literalPath))
             {
-                // Name param set - returns path to the module or script
-                resolvedPath = publishNameParamSet();
+                resolvedPath = _literalPath;
             }
-            else {
-                // LiteralPath or Path parameter set - returns path to the module or script
-                if (!string.IsNullOrEmpty(_literalPath))
-                {
-                    resolvedPath = _literalPath;
-                }
-                else if (!string.IsNullOrEmpty(_path))
-                { 
-                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
-                }
-
-                if (string.IsNullOrEmpty(resolvedPath))
-                {
-                    var message = String.Format("The path {0} could not be resolved. Please provide a valid path.", resolvedPath);
-                    var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
-                    var PathNotFound = new ErrorRecord(ex, "PathNotFound", ErrorCategory.ResourceUnavailable, null);
-
-                    this.ThrowTerminatingError(PathNotFound);
-                }
+            else if (!string.IsNullOrEmpty(_path))
+            { 
+                resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
             }
+
+            if (string.IsNullOrEmpty(resolvedPath))
+            {
+                var message = String.Format("The path {0} could not be resolved. Please provide a valid path.", resolvedPath);
+                var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
+                var PathNotFound = new ErrorRecord(ex, "PathNotFound", ErrorCategory.ResourceUnavailable, null);
+
+                this.ThrowTerminatingError(PathNotFound);
+            }
+
 
             // Get the .psd1 file or .ps1 file
             string dirName = new DirectoryInfo(resolvedPath).Name;
@@ -324,6 +302,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // Pkg to publish is a script
                 moduleFile = resolvedPath;
+                isScript = true;
             }
             else {
                 var message = String.Format("A .psd1 file or .ps1 file does not exist in the path '{0}'.", resolvedPath);
@@ -415,14 +394,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
+            var pkgName = dirName.EndsWith(".ps1") ? dirName.Remove(dirName.Length - 4) : dirName;
+            if (isScript)
+            {
+                File.Copy(resolvedPath, System.IO.Path.Combine(outputDir, pkgName + ".ps1" ), true);
+            }
+            else 
+            {
+                // copy the directory into the temp folder
+                foreach (string newPath in Directory.GetFiles(resolvedPath, "*.*", SearchOption.AllDirectories))
+                {
+                    File.Copy(newPath, newPath.Replace(resolvedPath, outputDir), true);
+                }
+            }
 
+            var outputDirectory = System.IO.Path.Combine(outputDir, "nupkg");
             // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
                 var runner = new PackCommandRunner(
                     new PackArgs
                     {
-                        CurrentDirectory = resolvedPath,
-                        OutputDirectory = outputDir, 
+                        CurrentDirectory = outputDir,
+                        OutputDirectory = outputDirectory, 
                         Path = _nuspec,
                         Exclude = _exclude,
                         Symbols = false,
@@ -433,15 +426,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             runner.BuildPackage();
 
-
+            
             // Push the nupkg to the appropriate repository 
-            var pkgName = dirName.EndsWith(".ps1") ? dirName.Remove(dirName.Length - 4) : dirName;
+
             // to get the pkg version we need to open the .ps1 file or .psd1 file and parse out the version 
             // if .ps1 file, version gets parsed already
             // if .psd1 file and we create nuspec, version gets parsed already,
 
-            var fullNupkgPath = System.IO.Path.Combine(outputDir, pkgName + pkgVersion + ".nupkg" );
+            var fullNupkgPath = System.IO.Path.Combine(outputDirectory, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg" );
 
+            var repoURL = repositoryUrl.FirstOrDefault().Properties["Url"].Value.ToString();
+            var publishLocation = repoURL.EndsWith("/v2") ? repoURL + "/package" : repoURL;
 
             var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
             ILogger log = new TestLogger();
@@ -449,7 +444,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Settings.LoadDefaultSettings(null, null, null),
                     new PackageSourceProvider(settings), 
                     fullNupkgPath,
-                    repositoryUrl.FirstOrDefault().Properties["Url"].Value.ToString(), 
+                    publishLocation, 
                     _APIKey, // api key
                     null, // symbols source
                     null, // symbols api key
@@ -459,47 +454,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     false, // no skip duplicate
                     false, // enable server endpoint
                     log).GetAwaiter().GetResult();
-        }
-
-
-        private string publishNameParamSet()
-        {
-            var modulePath = "";
-            // 1) run get-module to find the right package version
-            // _name, _requiredVersion, _prerelease
-
-
-            NuGetVersion nugetVersion;
-            /*
-            // parse version,
-            // throw if version is in incorrect format
-            if (!string.IsNullOrEmpty(_requiredVersion))
-            {
-                // check if exact version
-
-                //VersionRange versionRange = VersionRange.Parse(version);
-                NuGetVersion.TryParse(_requiredVersion, out nugetVersion);
-
-                // if the version didn't parse correctly, throw error 
-                if (string.IsNullOrEmpty(nugetVersion.ToNormalizedString()))
-                {
-                    var message = $"-RequiredVersion is not in a proper package version.  Please specify a version number, for example: '2.0.0'";
-                    var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
-
-                    var requiredVersionError = new ErrorRecord(ex, "RequiredVersionError", ErrorCategory.InvalidArgument, null);
-
-                    this.ThrowTerminatingError(requiredVersionError);
-                }
-            }
-
-            if (_prerelease)
-            { 
-                // add prerelease flag    
-            }
-            */
-
-            // return the full path 
-            return modulePath;
         }
 
 
@@ -615,55 +569,72 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // Read until the beginning of the next metadata section
                     // Note there may only be one metadata section
-                    do
+                    try
                     {
-                        str = sr.ReadLine().Trim();
+                        do
+                        {
+                            str = sr.ReadLine().Trim();
+                        }
+                        while (str != "<#");
                     }
-                    while (str != "<#");
+                    catch 
+                    {
+                        WriteDebug("Error parsing metadata for script.");
+                    }
 
                     // Then start reading metadata again.
                     str = String.Empty;
                     key = String.Empty;
 
-                    do
-                    {
-                        str = sr.ReadLine().Trim();
-                        value = String.Empty;
 
-                        if (str.StartsWith("."))
+                    try
+                    {
+                        do
                         {
 
-                            // create new key
-                            if (str.IndexOf(" ") > 0)
+
+                            str = sr.ReadLine().Trim();
+                            value = String.Empty;
+
+                            if (str.StartsWith("."))
                             {
-                                key = str.Substring(1, str.IndexOf(" ") - 1).ToLower();
-                                var startIndex = str.IndexOf(" ") + 1;
-                                value = str.Substring(startIndex, str.Length - startIndex);
+
+                                // create new key
+                                if (str.IndexOf(" ") > 0)
+                                {
+                                    key = str.Substring(1, str.IndexOf(" ") - 1).ToLower();
+                                    var startIndex = str.IndexOf(" ") + 1;
+                                    value = str.Substring(startIndex, str.Length - startIndex);
+                                }
+                                else
+                                {
+                                    key = str.Substring(1, str.Length - 1).ToLower();
+                                }
+
+                                try
+                                {
+                                    parsedMetadataHash.Add(key, value);
+                                }
+                                catch (Exception e)
+                                {
+                                    WriteDebug(String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value));
+                                }
                             }
                             else
                             {
-                                key = str.Substring(1, str.Length - 1).ToLower();
-                            }
-
-                            try
-                            {
-                                parsedMetadataHash.Add(key, value);
-                            }
-                            catch (Exception e)
-                            {
-                                WriteDebug(String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value));
+                                // append to existing key/value
+                                if (!String.IsNullOrEmpty(key))
+                                {
+                                    parsedMetadataHash[key] = parsedMetadataHash[key] + " " + str;
+                                }
                             }
                         }
-                        else
-                        {
-                            // append to existing key/value
-                            if (!String.IsNullOrEmpty(key))
-                            {
-                                parsedMetadataHash[key] = parsedMetadataHash[key] + " " + str;
-                            }
-                        }
+                        while (str != endOfMetadata);
                     }
-                    while (str != endOfMetadata);                    
+                    catch
+                    {
+                        WriteDebug("Error parsing metadata for script.");
+                    }
                 }
             }
             else {
@@ -692,12 +663,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (parsedMetadataHash.ContainsKey("moduleversion"))
             {
                 version = parsedMetadataHash["moduleversion"].ToString();
-                NuGetVersion.TryParse(version, out pkgVersion);
             }
             else if (parsedMetadataHash.ContainsKey("version"))
             {
                 version = parsedMetadataHash["version"].ToString();
-                NuGetVersion.TryParse(version, out pkgVersion);
             }
             else 
             {
@@ -708,15 +677,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 this.ThrowTerminatingError(NoVersionFound);
             }
-            NuGetVersion nugetVersion;
-            NuGetVersion.TryParse(version, out nugetVersion);
+            NuGetVersion.TryParse(version, out pkgVersion);
 
-            metadataElementsDictionary.Add("version", nugetVersion.ToFullString());
+            metadataElementsDictionary.Add("version", pkgVersion.ToNormalizedString());
 
 
             if (parsedMetadataHash.ContainsKey("author"))
             {
-                metadataElementsDictionary.Add("author", parsedMetadataHash["author"].ToString().Trim());
+                metadataElementsDictionary.Add("authors", parsedMetadataHash["author"].ToString().Trim());
             }
 
             if (parsedMetadataHash.ContainsKey("companyname"))
@@ -748,7 +716,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string tags = string.Empty;
             if (parsedMetadataHash.ContainsKey("tags") || _tags != null)
             {
-                tags = _tags == null ? (parsedMetadataHash["tags"].ToString().Trim() + " ") : (_tags.ToString().Trim() + " ");   ///////////    ??????????
+                tags = _tags == null ? (parsedMetadataHash["tags"].ToString().Trim() + " ") : (_tags.ToString().Trim() + " ");
             }
             tags += moduleFile.EndsWith(".psd1") ? "PSModule" : "PSScript";
             metadataElementsDictionary.Add("tags", tags);
