@@ -10,11 +10,13 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Xml;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging;
+using NuGet.Test.Utility;
 using NuGet.Versioning;
 
 
@@ -422,7 +424,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var publishLocation = repoURL.EndsWith("/v2", StringComparison.OrdinalIgnoreCase) ? repoURL + "/package" : repoURL;
 
             var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
-            ILogger log = new TestLogger();
+            NuGet.Common.ILogger log = new NuGetLogger();
             PushRunner.Run(
                     Settings.LoadDefaultSettings(null, null, null),
                     new PackageSourceProvider(settings), 
