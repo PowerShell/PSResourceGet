@@ -95,17 +95,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // Get the .psd1 file or .ps1 file
-                string dirName = new DirectoryInfo(resolvedPath).Name;
-                string moduleFile = "";
+                dirName = new DirectoryInfo(resolvedPath).Name;
                 if (File.Exists(System.IO.Path.Combine(resolvedPath, dirName + ".psd1")))
                 {
                     // Pkg to publish is a module
-                    moduleFile = System.IO.Path.Combine(resolvedPath, dirName + ".psd1");
+                    moduleFileInfo = new FileInfo(System.IO.Path.Combine(resolvedPath, dirName + ".psd1"));
                 }
                 else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
                 {
                     // Pkg to publish is a script
-                    moduleFile = resolvedPath;
+                    moduleFileInfo = new FileInfo(resolvedPath);
                     isScript = true;
                 }
                 _path = resolvedPath;
@@ -129,17 +128,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set
             {
                 // Get the .psd1 file or .ps1 file
-                string dirName = new DirectoryInfo(value).Name;
-                string moduleFile = "";
+                dirName = new DirectoryInfo(value).Name;
                 if (File.Exists(System.IO.Path.Combine(value, dirName + ".psd1")))
                 {
                     // Pkg to publish is a module
-                    moduleFile = System.IO.Path.Combine(value, dirName + ".psd1");
+                    moduleFileInfo = new FileInfo(System.IO.Path.Combine(value, dirName + ".psd1"));
                 }
                 else if (File.Exists(value) && value.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
                 {
                     // Pkg to publish is a script
-                    moduleFile = value;
+                    moduleFileInfo = new FileInfo(value);
                     isScript = true;
                 }
                 _literalPath = value;
@@ -301,11 +299,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         Hashtable dependencies = new Hashtable();
         NuGetVersion pkgVersion = null;
         bool isScript;
+        FileInfo moduleFileInfo;
+        string dirName;
 
         /// <summary>
         /// </summary>
         protected override void ProcessRecord()
         {
+            var resolvedPath = !string.IsNullOrEmpty(_path) ? _path : _literalPath;
+
             string outputDir = "";
             // if there's no specified destination path to publish the nupkg, we'll just create a temp folder and delete it later
             if (!string.IsNullOrEmpty(_destinationPath))
@@ -322,7 +324,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // if user does not specify that they want to use a nuspec they've created, we'll create a nuspec
             if (string.IsNullOrEmpty(_nuspec))
             {
-                _nuspec = createNuspec(outputDir, moduleFile, dirName);
+                _nuspec = createNuspec(outputDir, moduleFileInfo, dirName);
             }
             else
             {
@@ -450,21 +452,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
 
-        private string createNuspec(string outputDir, string moduleFile, string pkgName)
+        private string createNuspec(string outputDir, FileInfo moduleFileInfo, string pkgName)
         {
             WriteVerbose("Creating new nuspec file.");
 
             Hashtable parsedMetadataHash = new Hashtable();
-
-            if (moduleFile.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
+            
+            if (moduleFileInfo.Extension.Equals(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 System.Management.Automation.Language.Token[] tokens;
                 ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFile, out tokens, out errors);
+                var ast = Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
 
                 if (errors.Length > 0)
                 {
-                    WriteDebug("Could not parse '" + moduleFile + "' as a powershell data file.");
+                    WriteDebug("Could not parse '" + moduleFileInfo.FullName + "' as a powershell data file.");
                 }
                 else
                 {
@@ -475,16 +477,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        WriteDebug("Could not parse as PowerShell data file-- no hashtable root for file '" + moduleFile + "'");
+                        WriteDebug("Could not parse as PowerShell data file-- no hashtable root for file '" + moduleFileInfo.FullName + "'");
                     }
                 }
             }
-            else if (moduleFile.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            else if (moduleFileInfo.Extension.Equals(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 // parse script metadata
                 pkgName = pkgName.Remove(pkgName.Length - 4);
 
-                ParseScriptMetadata(parsedMetadataHash, pkgName, moduleFile);
+                ParseScriptMetadata(parsedMetadataHash, pkgName, moduleFileInfo);
             }
             else {
                 WriteDebug("File to be parsed does not have a .psd1 or .ps1 extension.");
@@ -567,7 +569,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 tags = _tags == null ? (parsedMetadataHash["tags"].ToString().Trim() + " ") : (_tags.ToString().Trim() + " ");
             }
-            tags += moduleFile.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase) ? "PSModule" : "PSScript";
+            tags += moduleFileInfo.Extension.Equals(".psd1", StringComparison.OrdinalIgnoreCase) ? "PSModule" : "PSScript";
             metadataElementsDictionary.Add("tags", tags);
 
             if (parsedMetadataHash.ContainsKey("licenseurl") || !String.IsNullOrEmpty(_licenseUrl))
@@ -636,7 +638,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
 
-        private void ParseScriptMetadata(Hashtable parsedMetadataHash, string pkgName, string moduleFile)
+        private void ParseScriptMetadata(Hashtable parsedMetadataHash, string pkgName, FileInfo moduleFileInfo)
         {
             // parse .ps1 - example .ps1 metadata:
             /* <#PSScriptInfo
@@ -659,7 +661,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 #>
             */
 
-            using (StreamReader sr = File.OpenText(moduleFile))
+            using (StreamReader sr = File.OpenText(moduleFileInfo.FullName))
             {
                 string endOfMetadata = "#>";
 
