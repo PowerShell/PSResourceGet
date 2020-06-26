@@ -298,7 +298,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Pkg to publish is a module
                 moduleFile = System.IO.Path.Combine(resolvedPath, dirName + ".psd1");
             }
-            else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(".ps1"))
+            else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 // Pkg to publish is a script
                 moduleFile = resolvedPath;
@@ -341,14 +341,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // read until the beginning of the dependency metadata is hit
                     while ((str = sr.ReadLine()) != null)
                     {
-                        if (str.Trim().StartsWith("<version>"))
+                        if (str.Trim().StartsWith("<version>", StringComparison.OrdinalIgnoreCase))
                         {
                             // ex: <version>2.2.1</version>
                             var splitStr = str.Split('<','>');
 
                             NuGetVersion.TryParse(splitStr[2], out pkgVersion);
                         }
-                        if (str.Trim().StartsWith("<dependency "))
+                        if (str.Trim().StartsWith("<dependency ", StringComparison.OrdinalIgnoreCase))
                         {
                             // ex: <dependency id="Carbon" version="2.9.2" /> 
                             var splitStr = str.Split('"');
@@ -394,10 +394,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            var pkgName = dirName.EndsWith(".ps1") ? dirName.Remove(dirName.Length - 4) : dirName;
+            var pkgName = dirName.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase) ? dirName.Remove(dirName.Length - 4) : dirName;
             if (isScript)
             {
-                File.Copy(resolvedPath, System.IO.Path.Combine(outputDir, pkgName + ".ps1" ), true);
+                File.Copy(resolvedPath, System.IO.Path.Combine(outputDir, pkgName + ".ps1"), true);
             }
             else 
             {
@@ -411,7 +411,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var outputDirectory = System.IO.Path.Combine(outputDir, "nupkg");
             // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
-                var runner = new PackCommandRunner(
+            var runner = new PackCommandRunner(
                     new PackArgs
                     {
                         CurrentDirectory = outputDir,
@@ -436,7 +436,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var fullNupkgPath = System.IO.Path.Combine(outputDirectory, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg" );
 
             var repoURL = repositoryUrl.FirstOrDefault().Properties["Url"].Value.ToString();
-            var publishLocation = repoURL.EndsWith("/v2") ? repoURL + "/package" : repoURL;
+            var publishLocation = repoURL.EndsWith("/v2", StringComparison.OrdinalIgnoreCase) ? repoURL + "/package" : repoURL;
 
             var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
             ILogger log = new TestLogger();
@@ -463,7 +463,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             Hashtable parsedMetadataHash = new Hashtable();
 
-            if (moduleFile.EndsWith(".psd1"))
+            if (moduleFile.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 System.Management.Automation.Language.Token[] tokens;
                 ParseError[] errors;
@@ -486,7 +486,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
             }
-            else if (moduleFile.EndsWith(".ps1"))
+            else if (moduleFile.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 // parse .ps1 - example .ps1 metadata:
                 /* <#PSScriptInfo
@@ -533,7 +533,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         str = sr.ReadLine().Trim();
                         value = String.Empty;
 
-                        if (str.StartsWith("."))
+                        if (str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
                         {
                             // Create new key
                             if (str.IndexOf(" ") > 0)
@@ -596,7 +596,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             str = sr.ReadLine().Trim();
                             value = String.Empty;
 
-                            if (str.StartsWith("."))
+                            if (str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
                             {
 
                                 // create new key
@@ -718,7 +718,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 tags = _tags == null ? (parsedMetadataHash["tags"].ToString().Trim() + " ") : (_tags.ToString().Trim() + " ");
             }
-            tags += moduleFile.EndsWith(".psd1") ? "PSModule" : "PSScript";
+            tags += moduleFile.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase) ? "PSModule" : "PSScript";
             metadataElementsDictionary.Add("tags", tags);
 
             if (parsedMetadataHash.ContainsKey("licenseurl") || !String.IsNullOrEmpty(_licenseUrl))
