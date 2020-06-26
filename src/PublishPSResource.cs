@@ -16,7 +16,6 @@ using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging;
-using NuGet.Test.Utility;
 using NuGet.Versioning;
 
 
@@ -321,7 +320,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // create temp directory 
                 outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-                var dir = Directory.CreateDirectory(outputDir);
             }
 
             // if user does not specify that they want to use a nuspec they've created, we'll create a nuspec
@@ -474,9 +472,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else if (moduleFileInfo.Extension.Equals(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 // parse script metadata
-                pkgName = pkgName.Remove(pkgName.Length - 4);
-
-                ParseScriptMetadata(parsedMetadataHash, pkgName, moduleFileInfo);
+                ParseScriptMetadata(parsedMetadataHash, moduleFileInfo);
             }
             else {
                 WriteDebug("File to be parsed does not have a .psd1 or .ps1 extension.");
@@ -512,7 +508,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else 
             {
                 // no version is specified for the nuspec
-                var message = String.Format("There is no package version specified. Please specify a verison before publishing.");
+                var message = "There is no package version specified. Please specify a verison before publishing.";
                 var ex = new ArgumentException(message);  
                 var NoVersionFound = new ErrorRecord(ex, "NoVersionFound", ErrorCategory.InvalidArgument, null);
 
@@ -628,7 +624,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
 
-        private void ParseScriptMetadata(Hashtable parsedMetadataHash, string pkgName, FileInfo moduleFileInfo)
+        private void ParseScriptMetadata(Hashtable parsedMetadataHash, FileInfo moduleFileInfo)
         {
             // parse .ps1 - example .ps1 metadata:
             /* <#PSScriptInfo

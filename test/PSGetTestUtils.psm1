@@ -137,6 +137,7 @@ function RemoveItem
 
 function Create-PSScriptMetadata
 {
+    [OutputType([String])]
     [CmdletBinding(PositionalBinding=$false,
     SupportsShouldProcess=$true)]
 
