@@ -523,7 +523,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         str = sr.ReadLine().Trim();
                     }
-                    while (str != "<#PSScriptInfo");
+                    while (!string.Equals(str, "<#PSScriptInfo", StringComparison.OrdinalIgnoreCase));
 
                     string key = String.Empty;
                     string value;
