@@ -87,7 +87,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { return _path; }
 
             set
-            { _path = value; }
+            {
+                string resolvedPath = "";
+                if (!string.IsNullOrEmpty(_path))
+                {
+                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
+                }
+
+                // Get the .psd1 file or .ps1 file
+                string dirName = new DirectoryInfo(resolvedPath).Name;
+                string moduleFile = "";
+                if (File.Exists(System.IO.Path.Combine(resolvedPath, dirName + ".psd1")))
+                {
+                    // Pkg to publish is a module
+                    moduleFile = System.IO.Path.Combine(resolvedPath, dirName + ".psd1");
+                }
+                else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Pkg to publish is a script
+                    moduleFile = resolvedPath;
+                    isScript = true;
+                }
+                _path = resolvedPath;
+            }
         }
         private string _path;
         
@@ -101,11 +123,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public string LiteralPath
         {
-         get
-         { return _literalPath; }
+            get
+            { return _literalPath; }
 
-         set
-         { _literalPath = value; }
+            set
+            {
+                // Get the .psd1 file or .ps1 file
+                string dirName = new DirectoryInfo(value).Name;
+                string moduleFile = "";
+                if (File.Exists(System.IO.Path.Combine(value, dirName + ".psd1")))
+                {
+                    // Pkg to publish is a module
+                    moduleFile = System.IO.Path.Combine(value, dirName + ".psd1");
+                }
+                else if (File.Exists(value) && value.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Pkg to publish is a script
+                    moduleFile = value;
+                    isScript = true;
+                }
+                _literalPath = value;
+            }
         }
         private string _literalPath;
 
@@ -268,51 +306,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         protected override void ProcessRecord()
         {
-            string resolvedPath = "";
-          
-            if (!string.IsNullOrEmpty(_literalPath))
-            {
-                resolvedPath = _literalPath;
-            }
-            else if (!string.IsNullOrEmpty(_path))
-            { 
-                resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
-            }
-
-            if (string.IsNullOrEmpty(resolvedPath))
-            {
-                var message = String.Format("The path {0} could not be resolved. Please provide a valid path.", resolvedPath);
-                var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
-                var PathNotFound = new ErrorRecord(ex, "PathNotFound", ErrorCategory.ResourceUnavailable, null);
-
-                this.ThrowTerminatingError(PathNotFound);
-            }
-
-
-            // Get the .psd1 file or .ps1 file
-            string dirName = new DirectoryInfo(resolvedPath).Name;
-
-            string moduleFile = "";
-            if (File.Exists(System.IO.Path.Combine(resolvedPath, dirName + ".psd1")))
-            {
-                // Pkg to publish is a module
-                moduleFile = System.IO.Path.Combine(resolvedPath, dirName + ".psd1");
-            }
-            else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
-            {
-                // Pkg to publish is a script
-                moduleFile = resolvedPath;
-                isScript = true;
-            }
-            else {
-                var message = String.Format("A .psd1 file or .ps1 file does not exist in the path '{0}'.", resolvedPath);
-                var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
-                var PathNotFound = new ErrorRecord(ex, "PathNotFound", ErrorCategory.ResourceUnavailable, null);
-
-                this.ThrowTerminatingError(PathNotFound);
-            }
-
-
             string outputDir = "";
             // if there's no specified destination path to publish the nupkg, we'll just create a temp folder and delete it later
             if (!string.IsNullOrEmpty(_destinationPath))
