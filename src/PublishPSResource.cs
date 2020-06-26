@@ -488,154 +488,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else if (moduleFile.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                // parse .ps1 - example .ps1 metadata:
-                /* <#PSScriptInfo
-                    .VERSION 1.6
-                    .GUID abf490023 - 9128 - 4323 - sdf9a - jf209888ajkl
-                    .AUTHOR Jane Doe
-                    .COMPANYNAME Microsoft
-                    .COPYRIGHT
-                    .TAGS Windows MacOS 
-                    #>
-
-                    <#
-                    .SYNOPSIS
-                     Synopsis description here
-                    .DESCRIPTION
-                     Description here
-                    .PARAMETER Name
-                    .EXAMPLE
-                     Example cmdlet here
-                    #>
-                */
-
+                // parse script metadata
                 pkgName = pkgName.Remove(pkgName.Length - 4);
 
-                using (StreamReader sr = File.OpenText(moduleFile))
-                {
-                    string endOfMetadata = "#>";
-
-                    // metadata for scripts are divided into two parts
-                    string str = String.Empty;
-
-                    // read until the beginning of the metadata is hit "<#PSScriptInfo"
-                    do
-                    {
-                        str = sr.ReadLine().Trim();
-                    }
-                    while (!string.Equals(str, "<#PSScriptInfo", StringComparison.OrdinalIgnoreCase));
-
-                    string key = String.Empty;
-                    string value;
-                    // Then start reading metadata
-                    do
-                    {
-                        str = sr.ReadLine().Trim();
-                        value = String.Empty;
-
-                        if (str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
-                        {
-                            // Create new key
-                            if (str.IndexOf(" ") > 0)
-                            {
-                                key = str.Substring(1, str.IndexOf(" ")-1).ToLower();
-                                var startIndex = str.IndexOf(" ") + 1;
-                                value = str.Substring(startIndex, str.Length - startIndex);
-                            }
-                            else { 
-                                key = str.Substring(1, str.Length-1).ToLower();
-                            }
-                            
-
-                            try
-                            {
-                                parsedMetadataHash.Add(key, value);
-                            }
-                            catch (Exception e)
-                            {
-                                WriteDebug(String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value));
-                            }
-                        }
-                        else 
-                        {
-                            if (!String.IsNullOrEmpty(key))
-                            {
-                                // Append to existing key/value
-                                parsedMetadataHash[key] = parsedMetadataHash[key] + " " + str;
-                            }
-                        }
-                    }
-                    while (str != endOfMetadata);
-
-                    // Read until the beginning of the next metadata section
-                    // Note there may only be one metadata section
-                    try
-                    {
-                        do
-                        {
-                            str = sr.ReadLine().Trim();
-                        }
-                        while (str != "<#");
-                    }
-                    catch 
-                    {
-                        WriteDebug("Error parsing metadata for script.");
-                    }
-
-                    // Then start reading metadata again.
-                    str = String.Empty;
-                    key = String.Empty;
-
-
-                    try
-                    {
-                        do
-                        {
-
-
-                            str = sr.ReadLine().Trim();
-                            value = String.Empty;
-
-                            if (str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
-                            {
-
-                                // create new key
-                                if (str.IndexOf(" ") > 0)
-                                {
-                                    key = str.Substring(1, str.IndexOf(" ") - 1).ToLower();
-                                    var startIndex = str.IndexOf(" ") + 1;
-                                    value = str.Substring(startIndex, str.Length - startIndex);
-                                }
-                                else
-                                {
-                                    key = str.Substring(1, str.Length - 1).ToLower();
-                                }
-
-                                try
-                                {
-                                    parsedMetadataHash.Add(key, value);
-                                }
-                                catch (Exception e)
-                                {
-                                    WriteDebug(String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value));
-                                }
-                            }
-                            else
-                            {
-                                // append to existing key/value
-                                if (!String.IsNullOrEmpty(key))
-                                {
-                                    parsedMetadataHash[key] = parsedMetadataHash[key] + " " + str;
-                                }
-                            }
-                        }
-                        while (str != endOfMetadata);
-                    }
-                    catch
-                    {
-                        WriteDebug("Error parsing metadata for script.");
-                    }
-                }
+                ParseScriptMetadata(parsedMetadataHash, pkgName, moduleFile);
             }
             else {
                 WriteDebug("File to be parsed does not have a .psd1 or .ps1 extension.");
@@ -776,9 +632,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             
             packageElement.AppendChild(metadataElement);
-            
             doc.AppendChild(packageElement);
-
 
             var nuspecFullName = System.IO.Path.Combine(outputDir, pkgName + ".nuspec");
             doc.Save(nuspecFullName);
@@ -786,6 +640,153 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             this.WriteVerbose("The newly created nuspec is: " + nuspecFullName);
 
             return nuspecFullName;
+        }
+
+
+        private void ParseScriptMetadata(Hashtable parsedMetadataHash, string pkgName, string moduleFile)
+        {
+            // parse .ps1 - example .ps1 metadata:
+            /* <#PSScriptInfo
+                .VERSION 1.6
+                .GUID abf490023 - 9128 - 4323 - sdf9a - jf209888ajkl
+                .AUTHOR Jane Doe
+                .COMPANYNAME Microsoft
+                .COPYRIGHT
+                .TAGS Windows MacOS 
+                #>
+
+                <#
+                .SYNOPSIS
+                 Synopsis description here
+                .DESCRIPTION
+                 Description here
+                .PARAMETER Name
+                .EXAMPLE
+                 Example cmdlet here
+                #>
+            */
+
+            using (StreamReader sr = File.OpenText(moduleFile))
+            {
+                string endOfMetadata = "#>";
+
+                // metadata for scripts are divided into two parts
+                string str = String.Empty;
+
+                // read until the beginning of the metadata is hit "<#PSScriptInfo"
+                do
+                {
+                    str = sr.ReadLine().Trim();
+                }
+                while (!string.Equals(str, "<#PSScriptInfo", StringComparison.OrdinalIgnoreCase));
+
+                string key = String.Empty;
+                string value;
+                // Then start reading metadata
+                do
+                {
+                    str = sr.ReadLine().Trim();
+                    value = String.Empty;
+
+                    if (str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Create new key
+                        if (str.IndexOf(" ") > 0)
+                        {
+                            key = str.Substring(1, str.IndexOf(" ") - 1).ToLower();
+                            var startIndex = str.IndexOf(" ") + 1;
+                            value = str.Substring(startIndex, str.Length - startIndex);
+                        }
+                        else
+                        {
+                            key = str.Substring(1, str.Length - 1).ToLower();
+                        }
+
+                        try
+                        {
+                            parsedMetadataHash.Add(key, value);
+                        }
+                        catch (Exception e)
+                        {
+                            WriteDebug(String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value));
+                        }
+                    }
+                    else
+                    {
+                        if (!String.IsNullOrEmpty(key))
+                        {
+                            // Append to existing key/value
+                            parsedMetadataHash[key] = parsedMetadataHash[key] + " " + str;
+                        }
+                    }
+                }
+                while (str != endOfMetadata);
+
+                // Read until the beginning of the next metadata section
+                // Note there may only be one metadata section
+                try
+                {
+                    do
+                    {
+                        str = sr.ReadLine().Trim();
+                    }
+                    while (str != "<#");
+                }
+                catch
+                {
+                    WriteDebug("Error parsing metadata for script.");
+                }
+
+                // Then start reading metadata again.
+                str = String.Empty;
+                key = String.Empty;
+
+                try
+                {
+                    do
+                    {
+                        str = sr.ReadLine().Trim();
+                        value = String.Empty;
+
+                        if (str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // create new key
+                            if (str.IndexOf(" ") > 0)
+                            {
+                                key = str.Substring(1, str.IndexOf(" ") - 1).ToLower();
+                                var startIndex = str.IndexOf(" ") + 1;
+                                value = str.Substring(startIndex, str.Length - startIndex);
+                            }
+                            else
+                            {
+                                key = str.Substring(1, str.Length - 1).ToLower();
+                            }
+
+                            try
+                            {
+                                parsedMetadataHash.Add(key, value);
+                            }
+                            catch (Exception e)
+                            {
+                                WriteDebug(String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value));
+                            }
+                        }
+                        else
+                        {
+                            // append to existing key/value
+                            if (!String.IsNullOrEmpty(key))
+                            {
+                                parsedMetadataHash[key] = parsedMetadataHash[key] + " " + str;
+                            }
+                        }
+                    }
+                    while (str != endOfMetadata);
+                }
+                catch
+                {
+                    WriteDebug("Error parsing metadata for script.");
+                }
+            }
         }
     }
 }
