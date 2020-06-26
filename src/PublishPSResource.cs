@@ -9,6 +9,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Xml;
+using System.Xml.Linq;
 using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using NuGet.Commands;
 using NuGet.Common;
@@ -329,31 +330,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else
             {
                 // Read the nuspec passed in to pull out the dependency information
-                using (StreamReader sr = File.OpenText(_nuspec))
-                {
-                    string str = String.Empty;
+                XDocument doc = XDocument.Load(_nuspec);
 
-                    // read until the beginning of the dependency metadata is hit
-                    while ((str = sr.ReadLine()) != null)
-                    {
-                        if (str.Trim().StartsWith("<version>", StringComparison.OrdinalIgnoreCase))
-                        {
-                            // ex: <version>2.2.1</version>
-                            var splitStr = str.Split('<','>');
+                // ex: <version>2.2.1</version>
+                var versionNode = doc.Descendants("version");
+                NuGetVersion version;
+                NuGetVersion.TryParse(versionNode.FirstOrDefault().Value, out version);
 
-                            NuGetVersion.TryParse(splitStr[2], out pkgVersion);
-                        }
-                        if (str.Trim().StartsWith("<dependency ", StringComparison.OrdinalIgnoreCase))
-                        {
-                            // ex: <dependency id="Carbon" version="2.9.2" /> 
-                            var splitStr = str.Split('"');
-
-                            var moduleName = splitStr[1];
-                            var moduleVersion = splitStr[3];
-
-                            dependencies.Add(moduleName, moduleVersion);
-                        }
-                    }
+                // ex: <dependency id="Carbon" version="2.9.2" /> 
+                var dependencyNode = doc.Descendants("dependency");
+                foreach (var dep in dependencyNode)
+                { 
+                    dependencies.Add(dep.Attribute("id"), dep.Attribute("version"));
                 }
             }
 
