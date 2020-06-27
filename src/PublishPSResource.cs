@@ -334,8 +334,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // ex: <version>2.2.1</version>
                 var versionNode = doc.Descendants("version");
-                NuGetVersion version;
-                NuGetVersion.TryParse(versionNode.FirstOrDefault().Value, out version);
+                NuGetVersion.TryParse(versionNode.FirstOrDefault().Value, out NuGetVersion version);
 
                 // ex: <dependency id="Carbon" version="2.9.2" /> 
                 var dependencyNode = doc.Descendants("dependency");
