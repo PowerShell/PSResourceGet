@@ -307,15 +307,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Get the .psd1 file or .ps1 file
             // Returns the name of the file or the name of the directory, depending on path
-            var pkgFileOrDir = new DirectoryInfo(_path).Name;
+            var pkgFileOrDir = new DirectoryInfo(_path);
             string moduleManifestOrScriptPath;
             if (isScript)
             {
-                moduleManifestOrScriptPath = pkgFileOrDir;
-                pkgName = pkgName.Remove(pkgName.Length - 4);
+                moduleManifestOrScriptPath = pkgFileOrDir.FullName;
+                pkgName = pkgFileOrDir.Name.Remove(pkgFileOrDir.Name.Length - 4);
             }
             else { 
-                moduleManifestOrScriptPath = System.IO.Path.Combine(_path, pkgFileOrDir + ".psd1");
+                moduleManifestOrScriptPath = System.IO.Path.Combine(_path, pkgFileOrDir.Name + ".psd1");
                 // Validate that there's a module manifest 
                 if (!File.Exists(moduleManifestOrScriptPath))
                 {
@@ -325,12 +325,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     this.ThrowTerminatingError(moduleManifestNotFound);
                 }
-                pkgName = pkgFileOrDir;
+                pkgName = pkgFileOrDir.Name;
             }
 
             moduleFileInfo = new FileInfo(moduleManifestOrScriptPath);
             // if there's no specified destination path to publish the nupkg, we'll just create a temp folder and delete it later
             string outputDir = !string.IsNullOrEmpty(_destinationPath) ? _destinationPath : System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+            if (!Directory.Exists(outputDir))
+            {
+                Directory.CreateDirectory(outputDir);
+            }
 
             // if user does not specify that they want to use a nuspec they've created, we'll create a nuspec
             if (string.IsNullOrEmpty(_nuspec))
@@ -672,19 +676,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // read until the beginning of the metadata is hit "<#PSScriptInfo"
                 do
                 {
-                    str = sr.ReadLine().Trim();
+                    str = sr.ReadLine();
                 }
-                while (!string.Equals(str, "<#PSScriptInfo", StringComparison.OrdinalIgnoreCase));
+                while (str != null && !string.Equals(str.Trim(), "<#PSScriptInfo", StringComparison.OrdinalIgnoreCase));
 
                 string key = String.Empty;
                 string value;
                 // Then start reading metadata
                 do
                 {
-                    str = sr.ReadLine().Trim();
+                    str = sr.ReadLine();
                     value = String.Empty;
 
-                    if (str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+                    if (str != null && str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
                     {
                         // Create new key
                         if (str.IndexOf(" ") > 0)
@@ -720,7 +724,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
                 }
-                while (str != endOfMetadata);
+                while (str != null && str.Trim() != endOfMetadata);
 
                 // Read until the beginning of the next metadata section
                 // Note there may only be one metadata section
@@ -728,9 +732,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     do
                     {
-                        str = sr.ReadLine().Trim();
+                        str = sr.ReadLine();
                     }
-                    while (str != "<#");
+                    while (str != null && str.Trim() != "<#");
                 }
                 catch
                 {
@@ -749,10 +753,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     do
                     {
-                        str = sr.ReadLine().Trim();
+                        str = sr.ReadLine();
                         value = String.Empty;
 
-                        if (str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+                        if (str != null && str.StartsWith(".", StringComparison.OrdinalIgnoreCase))
                         {
                             // create new key
                             if (str.IndexOf(" ") > 0)
@@ -788,7 +792,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
                         }
                     }
-                    while (str != endOfMetadata);
+                    while (str != null && str.Trim() != endOfMetadata);
                 }
                 catch
                 {
