@@ -298,7 +298,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Hashtable dependencies = new Hashtable();
         private NuGetVersion pkgVersion = null;
         private bool isScript;
-        private FileInfo moduleFileInfo;
         private string pkgName;
 
         protected override void ProcessRecord()
@@ -328,6 +327,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pkgName = pkgFileOrDir.Name;
             }
 
+            FileInfo moduleFileInfo;
             moduleFileInfo = new FileInfo(moduleManifestOrScriptPath);
             // if there's no specified destination path to publish the nupkg, we'll just create a temp folder and delete it later
             string outputDir = !string.IsNullOrEmpty(_destinationPath) ? _destinationPath : System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -352,7 +352,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (version == null)
                 {
-                    var message = String.Format("Version is not specified in the .nuspec provided. Please provide a valid version in the .nuspec.");
+                    var message = "Version is not specified in the .nuspec provided. Please provide a valid version in the .nuspec.";
                     var ex = new ArgumentException(message);
                     var versionNotFound = new ErrorRecord(ex, "versionNotFound", ErrorCategory.NotSpecified, null);
 
@@ -738,7 +738,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch
                 {
-                    var message = String.Format("Error parsing metadata for script.");
+                    var message = "Error parsing metadata for script.";
                     var ex = new ArgumentException(message);
                     var errorParsingScriptMetadata = new ErrorRecord(ex, "errorParsingScriptMetadata", ErrorCategory.ParserError, null);
 
@@ -796,7 +796,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch
                 {
-                    var message = String.Format("Error parsing metadata for script");
+                    var message = "Error parsing metadata for script";
                     var ex = new ArgumentException(message);
                     var errorParsingScriptMetadata = new ErrorRecord(ex, "errorParsingScriptMetadata", ErrorCategory.ParserError, null);
 
