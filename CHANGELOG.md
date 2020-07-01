@@ -1,4 +1,8 @@
 # Changelog
+### 3.0.0-beta5
+New Feature 
+* Implement functionality for Publish-PSResource
+
 ### 3.0.0-beta4
 New Feature
 * Implement -Repository '*' in Find-PSResource to search through all repositories instead of prioritized repository 
