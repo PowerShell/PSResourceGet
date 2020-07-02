@@ -1,7 +1,10 @@
 # Changelog
-### 3.0.0-beta5
+### 3.0.0-beta6
 New Feature 
 * Implement functionality for Publish-PSResource
+
+### 3.0.0-beta5
+* Note: 3.0.0-beta5 was skipped due to a packaging error
 
 ### 3.0.0-beta4
 New Feature

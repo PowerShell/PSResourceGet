@@ -24,7 +24,7 @@
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData       = @{
         PSData                                 = @{
-            Prerelease = 'beta5'
+            Prerelease = 'beta6'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -34,9 +34,12 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
-### 3.0.0-beta5
+### 3.0.0-beta6
 New Feature 
 * Implement functionality for Publish-PSResource
+
+### 3.0.0-beta5
+* Note: 3.0.0-beta5 was skipped due to a packaging error
 
 ### 3.0.0-beta4
 New Feature
