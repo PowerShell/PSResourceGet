@@ -404,10 +404,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else 
             {
-                // copy the directory into the temp folder
-                foreach (string newPath in Directory.GetFiles(_path, "*.*", SearchOption.AllDirectories))
+                // Create subdirectory structure in temp folder
+                foreach (string dir in System.IO.Directory.GetDirectories(_path, "*", System.IO.SearchOption.AllDirectories))
                 {
-                    File.Copy(newPath, newPath.Replace(_path, outputDir), true);
+                    System.IO.Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dir.Substring(_path.Length + 1)));
+                }
+                // Copy files over to temp folder
+                foreach (string file_name in System.IO.Directory.GetFiles(_path, "*", System.IO.SearchOption.AllDirectories))
+                {
+                    System.IO.File.Copy(file_name, System.IO.Path.Combine(outputDir, file_name.Substring(_path.Length + 1)));
                 }
             }
 
@@ -449,8 +454,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     null, // symbols api key
                     0, // timeout
                     false, // disable buffering
-                    false, // no symbols,
-                    false, // no skip duplicate
+                    false, // no symbols
+                           // Skip duplicate: if a package and version already exists, skip it and continue with the next package in the push, if any.
+                    false, // no skip duplicate  
                     false, // enable server endpoint
                     log).GetAwaiter().GetResult();
         }
