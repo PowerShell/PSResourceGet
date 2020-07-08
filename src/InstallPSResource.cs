@@ -335,29 +335,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             source = new CancellationTokenSource();
             cancellationToken = source.Token;
 
-
+            var consoleIsElevated = false;
+            var isWindowsPS = false;
+#if NET472
+            isWindowsPS = true;
             var id = WindowsIdentity.GetCurrent();
-            var consoleIsElevated = (id.Owner != id.User);
-
-            // TODO:  Test this!           
+            consoleIsElevated = (id.Owner != id.User);
             // if not core CLR
-            var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
-
-            if (isWindowsPS)
-            {
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
+            //var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
+            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
                 /// TODO:  Come back to this
-                var userENVpath = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
+            var userENVpath = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
 
 
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-            }
-            else
-            {
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-            }
-
+            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
+#else
+            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+#endif
             this.WriteVerbose(string.Format("Current user scope installation path: {0}", myDocumentsPath));
             this.WriteVerbose(string.Format("All users scope installation path: {0}", programFilesPath));
 
