@@ -129,8 +129,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string[] _repository;
 
+        /// <summary>
+        /// Specifies to return any dependency packages.
+        /// Currently only used when name param is specified.
+        /// </summary>
+        [ValidateSet("CurrentUser", "AllUsers")]
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
+        public string Scope
+        {
+            get { return _scope; }
 
-     
+            set { _scope = value; }
+        }
+        private string _scope;
+
+
+        /// <summary>
+        /// Suppresses being prompted for untrusted sources.
+        /// </summary>
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
+        public SwitchParameter TrustRepository
+        {
+            get { return _trustRepository; }
+
+            set { _trustRepository = value; }
+        }
+        private SwitchParameter _trustRepository;
+
+
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
@@ -161,7 +189,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _force;
 
 
-        /*
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
@@ -173,9 +200,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _quiet = value; }
         }
         private SwitchParameter _quiet;
-        */
 
-        /*
+
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
@@ -187,7 +213,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set { _acceptLicense = value; }
         }
         private SwitchParameter _acceptLicense;
-        */
+
+        /// <summary>
+        /// Overrides warning messages about installation conflicts about existing commands on a computer.
+        /// Overwrites existing commands that have the same name as commands being installed by a module. AllowClobber and Force can be used together in an Install-Module command.
+        /// Prevents installing modules that have the same cmdlets as a differently named module already
+        /// </summary>
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        public SwitchParameter NoClobber
+        {
+            get { return _noClobber; }
+
+            set { _noClobber = value; }
+        }
+        private SwitchParameter _noClobber;
 
         /*
         /// <summary>
@@ -229,70 +268,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             source = new CancellationTokenSource();
             cancellationToken = source.Token;
 
-   
-            var id = WindowsIdentity.GetCurrent();
-            var consoleIsElevated = (id.Owner != id.User);
-
-
-
-            // TODO:  Test this!           
-            // if not core CLR
-            var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
-
-            if (isWindowsPS)
-            {
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-                /// TODO:  Come back to this
-                var userENVpath = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
-
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-            }
-            else
-            {
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-            }
-
-
-            psModulesPathAllDirs = (Directory.GetDirectories(psModulesPath)).ToList();
-            psScriptsPathAllDirs = (Directory.GetDirectories(psScriptsPath)).ToList();
-
-            var r = new RespositorySettings();
-            var listOfRepositories = r.Read(_repository);
-
-
-            //if (string.Equals(listOfRepositories[0].Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !_trustRepository && !_force)
-            //{
-                // throw error saying repository is not trusted
-                // throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "This repository is not trusted"));  /// we should prompt for user input to accept 
-
-                /*
-                 * Untrusted repository
-                 * You are installing the modules from an untrusted repository.  If you trust this repository, change its InstallationPolicy value by running the Set-PSResourceRepository cmdlet.
-                 * Are you sure you want to install the modules from '<repo name >'?
-                 * [Y]  Yes  [A]  Yes to ALl   [N]  No  [L]  No to all  [s]  suspendd [?] Help  (default is "N"):
-                 */
-
-            //}
-
-
-
-            pkgsLeftToInstall = _name.ToList();
-            foreach (var repoName in listOfRepositories)
-            {
-                // if it can't find the pkg in one repository, it'll look in the next one in the list 
-                // returns any pkgs that weren't found
-                var returnedPkgsNotInstalled = InstallHelper(repoName.Properties["Url"].Value.ToString(), pkgsLeftToInstall, cancellationToken);
-                if (!pkgsLeftToInstall.Any())
-                {
-                    return;
-                }
-                pkgsLeftToInstall = returnedPkgsNotInstalled;
-            }
-
-
-
+            ////// start here
+            ///
+            ///
+            ///
+            var installHelper = new InstallHelper();
+            installHelper.BeginInstallHelper(_name, _version, _prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall:false, _force, _trustRepository, _noClobber, _credential, cancellationToken, _requiredResourceFile: null, _requiredResourceJson: null, _requiredResourceHash: null);
 
 
         }
@@ -301,6 +282,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
+        /// 
+        ///
+        ///
+        ///
+        ///
+        ///
 
 
 
@@ -308,12 +295,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-
-        // Installing a package will have a transactional behavior:
-        // Package and its dependencies will be saved into a tmp folder
-        // and will only be properly installed if all dependencies are found successfully
-        // Once package is installed, we want to resolve and install all dependencies
-        // Installing
 
 
         public List<string> InstallHelper(string repositoryUrl, List<string> pkgsLeftToInstall, CancellationToken cancellationToken)
@@ -781,6 +762,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return pkgsLeftToInstall;
 
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
