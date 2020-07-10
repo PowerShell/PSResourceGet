@@ -34,15 +34,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     class InstallHelper : PSCmdlet
     {
         private CancellationToken cancellationToken;
-        private bool update;
-        private PSCmdlet cmdletPassedIn;
+        private readonly bool update;
+        private readonly PSCmdlet cmdletPassedIn;
 
         // This will be a list of all the repository caches
         public static readonly List<string> RepoCacheFileName = new List<string>();
         public static readonly string RepositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
         private string programFilesPath;
         private string myDocumentsPath;
-        private string userENVpath;
         private string psPath;
         private string psModulesPath;
         private string psScriptsPath;
@@ -109,7 +108,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Get the script metadata XML files from the 'InstalledScriptInfos' directory
             psScriptsPathAllDirs = (Directory.GetFiles(psInstalledScriptsInfoPath)).ToList();
 
-            JObject json = null;
             Dictionary<string, PkgParams> pkgsinJson = new Dictionary<string, PkgParams>();
             Dictionary<string, string> jsonPkgsNameVersion = new Dictionary<string, string>();
 
@@ -132,7 +130,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else if (resolvedReqResourceFile.EndsWith(".json"))
                 {
                     // If json file
-                    string jsonString = "";
                     using (StreamReader sr = new StreamReader(resolvedReqResourceFile))
                     {
                         _requiredResourceJson = sr.ReadToEnd();
@@ -186,13 +183,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     try
                     {
-                        pkgsinJson = JsonConvert.DeserializeObject<Dictionary<string, PkgParams>>(_requiredResourceJson, new JsonSerializerSettings() { MaxDepth = 6 });
+                        pkgsinJson = JsonConvert.DeserializeObject<Dictionary<string, PkgParams>>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
                     }
                     catch (Exception e)
                     {
                         try
                         {
-                            jsonPkgsNameVersion = JsonConvert.DeserializeObject<Dictionary<string, string>>(_requiredResourceJson, new JsonSerializerSettings() { MaxDepth = 6 });
+                            jsonPkgsNameVersion = JsonConvert.DeserializeObject<Dictionary<string, string>>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
                         }
                         catch (Exception ex)
                         {
@@ -445,7 +442,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
-                                                                       //dir.SetAccessControl(new DirectorySecurity(dir.FullName, AccessControlSections.Owner));
                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
                                                                        // with a mask (bitwise complement of desired attributes combination).
                 dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
@@ -491,7 +487,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var pkgIdentity = new PackageIdentity(p.Identity.Id, p.Identity.Version);
 
                     var resource = new DownloadResourceV2FeedProvider();
-                    var resource2 = resource.TryCreate(repository, cancellationToken);
                     var cacheContext = new SourceCacheContext();
                     var downloadResource = repository.GetResourceAsync<DownloadResource>().GetAwaiter().GetResult();
 
@@ -673,7 +668,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
                         }
 
-                        Dictionary<string, List<string>> includes = new Dictionary<string, List<string>>() {
+                        Dictionary<string, List<string>> includes = new Dictionary<string, List<string>> {
                             { "DscResource", includesDscResource },
                             { "Command", includesCommand },
                             { "Function", includesFunction },
