@@ -118,7 +118,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!File.Exists(resolvedReqResourceFile))
                 {
-                    throw new Exception("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json or .psd1 file");
+                    var exMessage = String.Format("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json or .psd1 file");
+                    var ex = new ArgumentException(exMessage);
+                    var RequiredResourceFileDoesNotExist = new ErrorRecord(ex, "RequiredResourceFileDoesNotExist", ErrorCategory.ObjectNotFound, null);
+
+                    cmdletPassedIn.ThrowTerminatingError(RequiredResourceFileDoesNotExist);
                 }
 
                 if (resolvedReqResourceFile.EndsWith(".psd1"))
@@ -137,39 +141,56 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     try
                     {
-                        pkgsinJson = JsonConvert.DeserializeObject<Dictionary<string, PkgParams>>(_requiredResourceJson, new JsonSerializerSettings() { MaxDepth = 6 });
+                        pkgsinJson = JsonConvert.DeserializeObject<Dictionary<string, PkgParams>>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
                     }
                     catch (Exception e)
                     {
-                        throw new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                        var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                        var ex = new ArgumentException(exMessage);
+                        var RequiredResourceNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceNotInProperJsonFormat", ErrorCategory.ObjectNotFound, null);
+
+                        cmdletPassedIn.ThrowTerminatingError(RequiredResourceNotInProperJsonFormat);
                     }
                 }
                 else
                 {
-                    throw new Exception("The RequiredResourceFile does not have the proper file extension.  Please try specifying a path to a valid .json or .psd1 file");
+                   // throw new Exception("The RequiredResourceFile does not have the proper file extension.  Please try specifying a path to a valid .json or .psd1 file");
+                    var exMessage = String.Format("The RequiredResourceFile does not have the proper file extension.  Please try specifying a path to a valid .json or .psd1 file");
+                    var ex = new ArgumentException(exMessage);
+                    var RequiredResourceFileExtensionError = new ErrorRecord(ex, "RequiredResourceFileExtensionError", ErrorCategory.ObjectNotFound, null);
+
+                    cmdletPassedIn.ThrowTerminatingError(RequiredResourceFileExtensionError);
                 }
             }
 
             if (_requiredResourceHash != null)
             {
-                string jsonString;
+                string jsonString = "";
                 try
                 {
                     jsonString = _requiredResourceHash.ToJson();
                 }
                 catch (Exception e)
                 {
-                    throw new ArgumentException("Argument for parameter -RequiredResource is not in proper format.  Make sure argument is either a hashtable or a json object.");
+                    var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                    var ex = new ArgumentException(exMessage);
+                    var RequiredResourceNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceNotInProperJsonFormat", ErrorCategory.ObjectNotFound, null);
+
+                    cmdletPassedIn.ThrowTerminatingError(RequiredResourceNotInProperJsonFormat);
                 }
 
                 PkgParams pkg = null;
                 try
                 {
-                    pkg = JsonConvert.DeserializeObject<PkgParams>(jsonString, new JsonSerializerSettings() { MaxDepth = 6 });
+                    pkg = JsonConvert.DeserializeObject<PkgParams>(jsonString, new JsonSerializerSettings { MaxDepth = 6 });
                 }
                 catch (Exception e)
                 {
-                    throw new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                    var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                    var ex = new ArgumentException(exMessage);
+                    var RequiredResourceNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceNotInProperJsonFormat", ErrorCategory.ObjectNotFound, null);
+
+                    cmdletPassedIn.ThrowTerminatingError(RequiredResourceNotInProperJsonFormat);
                 }
 
                 ProcessRepositories(new string[] { pkg.Name }, pkg.Version, pkg.Prerelease, new string[] { pkg.Repository }, pkg.Scope, pkg.AcceptLicense, pkg.Quiet, pkg.Reinstall, pkg.Force, pkg.TrustRepository, pkg.NoClobber, pkg.Credential);
@@ -191,9 +212,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             jsonPkgsNameVersion = JsonConvert.DeserializeObject<Dictionary<string, string>>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
                         }
-                        catch (Exception ex)
+                        catch (Exception e2)
                         {
-                            throw new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                            var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                            var ex = new ArgumentException(exMessage);
+                            var RequiredResourceNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceNotInProperJsonFormat", ErrorCategory.ObjectNotFound, null);
+
+                            cmdletPassedIn.ThrowTerminatingError(RequiredResourceNotInProperJsonFormat);
                         }
                     }
                 }
@@ -287,7 +312,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch
             {
-                cmdletPassedIn.WriteVerbose("Error retreiving repository resource");
+                var exMessage = String.Format("Error retreiving repository resource");
+                var ex = new ArgumentException(exMessage);
+                var ErrorCreatingRepositoryResource = new ErrorRecord(ex, "ErrorCreatingRepositoryResource", ErrorCategory.ObjectNotFound, null);
+
+                cmdletPassedIn.ThrowTerminatingError(ErrorCreatingRepositoryResource);
             }
 
             foreach (var n in packageNames)
@@ -307,7 +336,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     catch
                     {
-                        //cmdletPassedIn.WriteVerbose(string.Format("Could not find package {0}", n));
+                        var exMessage = String.Format("Could not find package {0}", n);
+                        var ex = new ArgumentException(exMessage);
+                        var ErrorCreatingRepositoryResource = new ErrorRecord(ex, "ErrorCreatingRepositoryResource", ErrorCategory.ObjectNotFound, null);
+
+                        cmdletPassedIn.ThrowTerminatingError(ErrorCreatingRepositoryResource);
                     }
                 }
                 else
@@ -391,7 +424,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // Not installed throw terminating error
                             var exMessage = String.Format("Module '{0}' was not updated because no valid module was found in the module directory.Verify that the module is located in the folder specified by $env: PSModulePath.", name);
                             var ex = new ArgumentException(exMessage);  // System.ArgumentException vs PSArgumentException
-
                             var moduleNotInstalledError = new ErrorRecord(ex, "ModuleNotInstalled", ErrorCategory.ObjectNotFound, null);
 
                             cmdletPassedIn.ThrowTerminatingError(moduleNotInstalledError);
@@ -429,7 +461,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // Throw module or script not installed terminating error 
                             var exMessage = String.Format("Module '{0}' was not updated because no valid module was found in the module directory.Verify that the module is located in the folder specified by $env: PSModulePath.", name);
                             var ex = new ArgumentException(exMessage);
-
                             var moduleNotInstalledError = new ErrorRecord(ex, "ModuleNotInstalled", ErrorCategory.ObjectNotFound, null);
 
                             cmdletPassedIn.ThrowTerminatingError(moduleNotInstalledError);
@@ -538,8 +569,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 {
                                     var exMessage = "License.txt not Found. License.txt must be provided when user license acceptance is required.";
                                     var ex = new ArgumentException(exMessage);  // System.ArgumentException vs PSArgumentException
-
                                     var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
+
                                     cmdletPassedIn.ThrowTerminatingError(acceptLicenseError);
                                 }
 
@@ -564,7 +595,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             {
                                 var message = $"License Acceptance is required for module '{p.Identity.Id}'. Please specify '-AcceptLicense' to perform this operation.";
                                 var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
-
                                 var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
 
                                 cmdletPassedIn.ThrowTerminatingError(acceptLicenseError);
@@ -790,6 +820,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     catch
                     {
                         Console.WriteLine("Error parsing version range");
+
+                        var exMessage = String.Format("Error parsing version range");
+                        var ex = new ArgumentException(exMessage);
+                        var ErrorCreatingRepositoryResource = new ErrorRecord(ex, "ErrorCreatingRepositoryResource", ErrorCategory.ObjectNotFound, null);
+
+                        cmdletPassedIn.ThrowTerminatingError(ErrorCreatingRepositoryResource);
                     }
 
                     // If no version/version range is specified the we just return the latest version
