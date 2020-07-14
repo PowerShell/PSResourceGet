@@ -162,7 +162,24 @@ function Convert-VersionsToNugetVersion
         return "[${MinimumVersion},${MaximumVersion}]"
 
     }
+}
 
+# we attempt to convert the location to a uri
+# that way the user can do Register-PSRepository /tmp
+function Convert-ToUri ( [string]$location ) {
+    $locationAsUri = $location -as [System.Uri]
+    if ( $locationAsUri.Scheme ) {
+        return $locationAsUri
+    }
+    # now determine if the path exists and is a directory
+    # if it exists, return it as a file uri
+    if ( Test-Path -PathType Container -LiteralPath $location ) {
+        $locationAsUri = "file://${location}" -as [System.Uri]
+        if( $locationAsUri.Scheme ) {
+            return $locationAsUri
+        }
+    }
+    throw "Cannot convert '$location' to System.Uri"
 }
 
 
@@ -233,6 +250,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Find-Command' is deprecated, please use 'Find-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -355,6 +373,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Find-DscResource' is deprecated, please use 'Find-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -499,6 +518,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Find-Module' is deprecated, please use 'Find-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -754,6 +774,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Find-Script' is deprecated, please use 'Find-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -852,6 +873,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Get-InstalledModule' is deprecated, please use 'Get-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -932,6 +954,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Get-InstalledScript' is deprecated, please use 'Get-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -995,6 +1018,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Get-PSRepository' is deprecated, please use 'Get-PSResourceRepository'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -1111,6 +1135,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Install-Module' is deprecated, please use 'Install-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -1252,6 +1277,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Install-Script' is deprecated, please use 'Install-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -1389,6 +1415,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Publish-Module' is deprecated, please use 'Publish-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -1477,6 +1504,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Publish-Script' is deprecated, please use 'Publish-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -1586,6 +1614,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Register-PSRepository' is deprecated, please use 'Register-PSResourceRepository'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -1601,7 +1630,7 @@ begin
             $PSBoundParameters['Trusted'] = $true
         }
     }
-    if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Url'] = $SourceLocation }
+    if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Url'] = Convert-ToUri -location $SourceLocation }
     if ( $PSBoundParameters['Default'] )                   { $null = $PSBoundParameters.Remove('Default'); $PSBoundParameters['PSGallery'] = $Default }
     
     # Parameter Deletions (unsupported in v3)
@@ -1727,6 +1756,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Save-Module' is deprecated, please use 'Save-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -1874,6 +1904,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Save-Script' is deprecated, please use 'Save-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -1992,6 +2023,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Set-PSRepository' is deprecated, please use 'Set-PSResourceRepository'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -2011,7 +2043,7 @@ begin
             $PSBoundParameters['Trusted'] = $false
         }
     }
-    if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Url'] = $SourceLocation }
+    if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Url'] = Convert-ToUri -location $SourceLocation }
     if ( $PSBoundParameters['Default'] )                   { $null = $PSBoundParameters.Remove('Default'); $PSBoundParameters['PSGallery'] = $Default }
     
     # Parameter Deletions (unsupported in v3)
@@ -2101,6 +2133,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Uninstall-Module' is deprecated, please use 'Uninstall-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -2197,6 +2230,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Uninstall-Script' is deprecated, please use 'Uninstall-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -2265,6 +2299,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Unregister-PSRepository' is deprecated, please use 'Unregister-PSResourceRepository'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -2363,6 +2398,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Update-Module' is deprecated, please use 'Update-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
@@ -2473,6 +2509,7 @@ param(
 
 begin
 {
+    Write-Warning -Message "The cmdlet 'Update-Script' is deprecated, please use 'Update-PSResource'."
     try {
         $outBuffer = $null
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
