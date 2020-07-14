@@ -10,6 +10,7 @@
 
     <file src="__INPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" />
     <file src="__INPATHROOT__\MoreLinq.dll" signType="ThirdParty" dest="__OUTPATHROOT__\MoreLinq.dll" />
+    <file src="__INPATHROOT__\NuGet.Commands.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Commands.dll" />
     <file src="__INPATHROOT__\NuGet.Common.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Common.dll" />
     <file src="__INPATHROOT__\NuGet.Configuration.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Configuration.dll" />
     <file src="__INPATHROOT__\NuGet.Frameworks.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Frameworks.dll" />
