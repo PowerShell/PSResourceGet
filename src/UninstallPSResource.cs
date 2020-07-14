@@ -123,6 +123,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 VersionRange.TryParse(_version, out versionRange); 
             }
 
+#if NET472
             var windowsIdentity = WindowsIdentity.GetCurrent();
             // identity name and authentication type.
             string authenticationType = windowsIdentity.AuthenticationType;
@@ -130,33 +131,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             GenericIdentity authenticatedGenericIdentity =
                 new GenericIdentity(userName, authenticationType);
 
-
-
             var id = WindowsIdentity.GetCurrent();
             var consoleIsElevated = (id.Owner != id.User);
 
-
-
-
-
             // Paths
             //if (!Platform.IsCoreCLR)
-            var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
-            if (isWindowsPS)
-            {
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-                // TODO: Come back to this
-                //var userENVpath = Path.Join(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
+           var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
+            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
+            // TODO: Come back to this
+            //var userENVpath = Path.Join(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
 
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-            }
-            else
-            {
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-            }
-
+            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
+#else
+            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+#endif
 
 
             // TODO: uninstall scope???  
