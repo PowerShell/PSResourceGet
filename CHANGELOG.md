@@ -1,4 +1,14 @@
 # Changelog
+### 3.0.0-beta7
+New Feature 
+* Completed functionality for Update-PSResource
+* Input-Object parameter for Install-PSResource
+
+Bug Fixes
+* Improved experience when loading module for diffent frameworks
+* Bug fix for assembly loading error in Publish-PSResource
+* Improved error handling for Install-PSResource and Update-PSResource
+
 ### 3.0.0-beta6
 New Feature 
 * Implement functionality for Publish-PSResource
