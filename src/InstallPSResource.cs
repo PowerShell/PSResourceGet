@@ -1,4 +1,5 @@
 ﻿
+using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -25,7 +26,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to install from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
         [ValidateNotNullOrEmpty]
         public string[] Name
         {
@@ -37,13 +38,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string[] _name; // = new string[0];
 
-        /*
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "InputObjectSet")]
         [ValidateNotNullOrEmpty]
-        public PSCustomObject[] InputObject
+        public object[] InputObject
         {
             get
             { return _inputObject; }
@@ -51,8 +51,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set
             { _inputObject = value; }
         }
-        private PSCustomObject[] _inputObject; // = new string[0];
-        */
+        private object[] _inputObject;
 
         /// <summary>
         /// Specifies the version or version range of the package to be installed
@@ -241,6 +240,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Define the cancellation token.
             CancellationTokenSource source = new CancellationTokenSource();
             CancellationToken cancellationToken = source.Token;
+
+            // If PSModuleInfo object 
+            if (_inputObject[0] != null && _inputObject[0].GetType().Name.Equals("PSModuleInfo"))
+            {
+                foreach (PSModuleInfo pkg in _inputObject)
+                {
+                    var installHelp = new InstallHelper(update: false, cancellationToken, this);
+                    var prerelease = false;
+
+                    if (pkg.PrivateData != null)
+                    {
+                        Hashtable privateData = (Hashtable)pkg.PrivateData;
+                        if (privateData.ContainsKey("PSData"))
+                        {
+                            Hashtable psData = (Hashtable)privateData["PSData"];
+
+                            if (psData.ContainsKey("Prerelease") && !string.IsNullOrEmpty((string)psData["Prerelease"]))
+                            {
+                                prerelease = true;
+                            }
+                        }
+                    }
+
+                    installHelp.ProcessInstallParams(new[] { pkg.Name }, pkg.Version.ToString(), prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash);
+                }
+            }
+            else if (_inputObject[0].GetType().Name.Equals("PSObject"))
+            {
+                // If PSObject 
+                foreach (PSObject pkg in _inputObject)
+                {
+                    var installHelp = new InstallHelper(update: false, cancellationToken, this);
+
+                    if (pkg != null)
+                    {
+                        var name = (string) pkg.Properties["Name"].Value;
+                        var version = (NuGetVersion) pkg.Properties["Version"].Value;
+                        var prerelease = version.IsPrerelease;
+
+                        installHelp.ProcessInstallParams(new[] { name }, version.ToString(), prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash);
+                    }
+                }
+            }
 
             var installHelper = new InstallHelper(update: false, cancellationToken, this);
             installHelper.ProcessInstallParams(_name, _version, _prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force:false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash);
