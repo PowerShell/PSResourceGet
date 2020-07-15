@@ -7,6 +7,7 @@ New Feature
 Bug Fixes
 * Improved experience when loading module for diffent frameworks
 * Bug fix for assembly loading error in Publish-PSResource
+* Allow for relative paths when registering psrepository
 * Improved error handling for Install-PSResource and Update-PSResource
 
 ### 3.0.0-beta6
