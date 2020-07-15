@@ -8,6 +8,8 @@ using System.Management.Automation;
 using System.Globalization;
 using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -52,7 +54,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { return _url; }
 
             set
-            { _url = value; }
+            {
+                Uri url;
+                Uri.TryCreate(value, string.Empty, out url);
+
+                if (url == null)
+                {
+                    var resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value.ToString()).FirstOrDefault().Path;
+                    Uri.TryCreate(value, resolvedPath, out url);
+                }
+
+                _url = url;
+            }
         }
         private Uri _url;
 
@@ -190,14 +203,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (String.IsNullOrEmpty(_url.ToString()))
                 {
                     throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository url cannot be null"));
-                }
-
-                // https://docs.microsoft.com/en-us/dotnet/api/system.uri.trycreate?view=netframework-4.8#System_Uri_TryCreate_System_Uri_System_Uri_System_Uri__
-                // check to see if the url is formatted correctly
-                if (!(Uri.TryCreate(_url, String.Empty, out _url)
-                     && (_url.Scheme == Uri.UriSchemeHttp || _url.Scheme == Uri.UriSchemeHttps || _url.Scheme == Uri.UriSchemeFtp || _url.Scheme == Uri.UriSchemeFile)))
-                {
-                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Invalid Url"));
                 }
 
                 try
