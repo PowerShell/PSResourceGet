@@ -324,7 +324,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 IPackageSearchMetadata filteredFoundPkgs = null;
 
                 VersionRange versionRange = null;
-                if (version == null)
+                if (version == null)  
                 {
                     // ensure that the latst version is returned first (the ordering of versions differ
                     // TODO: proper error handling
@@ -333,6 +333,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(n, prerelease, false, context, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
                             .FirstOrDefault());
+
+                            // Check if exact version
+                            NuGetVersion nugetVersion;
+                            NuGetVersion.TryParse(filteredFoundPkgs.Identity.Version.ToString(), out nugetVersion);
+
+                            if (nugetVersion != null)
+                            {
+                                versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
+                            }
                     }
                     catch
                     {
@@ -407,6 +416,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 pkgVersion.Add(Path.GetFileName(path));
                             }
 
+                            // Remove any pkg versions that are not formatted correctly, eg:  2.2.4.1x
+                            String[] pkgVersions = pkgVersion.ToArray();
+
+                            foreach (var installedPkgVer in pkgVersions)
+                            {
+                                if (!NuGetVersion.TryParse(installedPkgVer, out NuGetVersion pkgVer))
+                                {
+                                    pkgVersion.Remove(installedPkgVer);
+                                }
+                            }
+
                             // These are all the packages already installed
                             var pkgsAlreadyInstalled = pkgVersion.FindAll(p => versionRange.Satisfies(NuGetVersion.Parse(p)));
 
@@ -430,7 +450,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
                 }
-                else // exact version installation
+                else
                 {
                     foreach (var name in packageNames)
                     {
@@ -535,7 +555,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // ACCEPT LICENSE
                     // Prompt if module requires license acceptance
                     // Need to read from .psd1 
-                    var modulePath = Path.Combine(tempInstallPath, pkgIdentity.Id, pkgIdentity.Version.ToNormalizedString());
+                    var newVersion = p.Identity.Version.ToString().Substring(0, p.Identity.Version.ToString().IndexOf('-'));
+
+                    var modulePath = Path.Combine(tempInstallPath, pkgIdentity.Id, newVersion);
                     var moduleManifest = Path.Combine(modulePath, pkgIdentity.Id + ".psd1");
                     var requireLicenseAcceptance = false;
 
@@ -562,7 +584,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // If module requires license acceptance and -AcceptLicense is not passed in, display prompt
                             if (!acceptLicense)
                             {
-                                var PkgTempInstallPath = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
+                                var PkgTempInstallPath = Path.Combine(tempInstallPath, p.Identity.Id, newVersion);
                                 var LicenseFilePath = Path.Combine(PkgTempInstallPath, "License.txt");
 
                                 if (!File.Exists(LicenseFilePath))
@@ -602,8 +624,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
-                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
-                    var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + p.Identity.Version.ToNormalizedString() + ".nupkg").ToLower());
+                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToString());
+                    var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgSHAToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
                     var nuspecToDelete = Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
@@ -746,7 +768,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // When we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
 
                     // If script, just move the files over, if module, move the version directory over
-                    var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
+                    var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToString())
                         : Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
 
                     if (isScript)
@@ -771,15 +793,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         else
                         {
-                            tempModuleVersionDir = Path.Combine(tempModuleVersionDir, p.Identity.Version.ToNormalizedString());
-                            var newVersionPath = Path.Combine(newPath, p.Identity.Version.ToNormalizedString());
+                            tempModuleVersionDir = Path.Combine(tempModuleVersionDir, p.Identity.Version.ToString());
+
+                            var newVersionPath = Path.Combine(newPath, newVersion);
 
                             if (Directory.Exists(newVersionPath))
                             {
                                 // Delete the directory path before replacing it with the new module
                                 Directory.Delete(newVersionPath, true);
                             }
-                            Directory.Move(tempModuleVersionDir, Path.Combine(newPath, p.Identity.Version.ToNormalizedString()));
+                            Directory.Move(tempModuleVersionDir, Path.Combine(newPath, newVersion));
                         }
                     }
                     
