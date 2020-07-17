@@ -242,7 +242,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             CancellationToken cancellationToken = source.Token;
 
             // If PSModuleInfo object 
-            if (_inputObject[0] != null && _inputObject[0].GetType().Name.Equals("PSModuleInfo"))
+            if (_inputObject != null && _inputObject[0].GetType().Name.Equals("PSModuleInfo"))
             {
                 foreach (PSModuleInfo pkg in _inputObject)
                 {
@@ -266,7 +266,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     installHelp.ProcessInstallParams(new[] { pkg.Name }, pkg.Version.ToString(), prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash);
                 }
             }
-            else if (_inputObject[0].GetType().Name.Equals("PSObject"))
+            else if (_inputObject != null && _inputObject[0].GetType().Name.Equals("PSObject"))
             {
                 // If PSObject 
                 foreach (PSObject pkg in _inputObject)

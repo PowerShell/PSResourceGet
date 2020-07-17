@@ -1,4 +1,17 @@
 # Changelog
+### 3.0.0-beta7
+New Feature 
+* Completed functionality for Update-PSResource
+* Input-Object parameter for Install-PSResource
+
+Bug Fixes
+* Improved experience when loading module for diffent frameworks
+* Bug fix for assembly loading error in Publish-PSResource
+* Allow for relative paths when registering psrepository
+* Improved error handling for Install-PSResource and Update-PSResource
+* Remove prerelease tag from module version directory
+* Fix error getting thrown from paths with incorrectly formatted module versions
+
 ### 3.0.0-beta6
 New Feature 
 * Implement functionality for Publish-PSResource
