@@ -23,7 +23,7 @@ $script:PSGet = 'PowerShellGet.dll'
 
 # Remove framework binaries that are not needed
 $FrameworkToRemovePath = Join-Path -Path $script:PSModuleRoot -ChildPath $script:FrameworkToRemove
-Remove-Item $FrameworkToRemovePath -Force
+Remove-Item $FrameworkToRemovePath -Force -Recurse
 
 $ImportedPSGetModule = Import-Module -Name $script:PSModuleRoot -PassThru
 
