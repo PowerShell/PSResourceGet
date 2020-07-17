@@ -21,11 +21,15 @@ $script:PSModule = $ExecutionContext.SessionState.Module
 $script:PSModuleRoot = $script:PSModule.ModuleBase
 $script:PSGet = 'PowerShellGet.dll'
 
-# Remove framework binaries that are not needed
-#$FrameworkToRemovePath = Join-Path -Path $script:PSModuleRoot -ChildPath $script:FrameworkToRemove
-#Remove-Item $FrameworkToRemovePath -Force -Recurse
+# CONSTRUCT A PATH TO THE CORRECT ASSEMBLY
+$pathToAssembly = [io.path]::combine($PSScriptRoot, $framework, $PSGet)
 
-$ImportedPSGetModule = Import-Module -Name $script:PSModuleRoot -PassThru
+# Remove framework binaries that are not needed
+$FrameworkToRemovePath = Join-Path -Path $script:PSModuleRoot -ChildPath $script:FrameworkToRemove
+Remove-Item $FrameworkToRemovePath -Force -Recurse
+
+# NOW LOAD THE APPROPRIATE ASSEMBLY
+$ImportedPSGetModule = Import-Module -Name $pathToAssembly -PassThru
 
 if($ImportedPSGetModule)
 {
