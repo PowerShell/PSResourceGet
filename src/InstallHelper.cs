@@ -10,15 +10,12 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
-using System.Security;
-using System.Security.Principal;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using MoreLinq.Extensions;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging.Core;
@@ -40,6 +37,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // This will be a list of all the repository caches
         public static readonly List<string> RepoCacheFileName = new List<string>();
         public static readonly string RepositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
+        public static readonly string osPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         private string programFilesPath;
         private string myDocumentsPath;
         private string psPath;
@@ -67,12 +65,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             consoleIsElevated = (id.Owner != id.User);
             isWindowsPS = true;
 
-            //userENVpath = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
             myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
             programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
 #else
-            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+            // If Windows OS
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+            }
+            else
+            {
+                // Paths are the same for both Linux and MacOS
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
+                programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
+            }
 #endif
             cmdletPassedIn.WriteVerbose(string.Format("Current user scope installation path: {0}", myDocumentsPath));
             cmdletPassedIn.WriteVerbose(string.Format("All users scope installation path: {0}", programFilesPath));
@@ -555,7 +562,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // ACCEPT LICENSE
                     // Prompt if module requires license acceptance
                     // Need to read from .psd1 
-                    var newVersion = p.Identity.Version.ToString().Substring(0, p.Identity.Version.ToString().IndexOf('-'));
+                    var newVersion = p.Identity.Version.ToString();
+                    if (p.Identity.Version.IsPrerelease)
+                    {
+                        newVersion = p.Identity.Version.ToString().Substring(0, p.Identity.Version.ToString().IndexOf('-'));
+                    }
 
                     var modulePath = Path.Combine(tempInstallPath, pkgIdentity.Id, newVersion);
                     var moduleManifest = Path.Combine(modulePath, pkgIdentity.Id + ".psd1");
