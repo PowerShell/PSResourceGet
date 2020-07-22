@@ -14,6 +14,7 @@
     <PackageReference Include="NuGet.Common" Version="5.7.0-rtm.6702" />
     <PackageReference Include="NuGet.Configuration" Version="5.7.0-rtm.6702" />
     <PackageReference Include="NuGet.Packaging" Version="5.7.0-rtm.6702" />
+    <PackageReference Include="NuGet.ProjectModel" Version="5.7.0-rtm.6702" />
     <PackageReference Include="NuGet.Protocol" Version="5.7.0-rtm.6702" />
     <PackageReference Include="NuGet.Protocol.Catalog" Version="4.2.0-jver-mergemeta-3092366" />
     <PackageReference Include="NuGet.Protocol.Core.Types" Version="4.3.0-beta2-2463" />
