@@ -61,7 +61,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var consoleIsElevated = false;
             var isWindowsPS = false;
 #if NET472
-            var id = WindowsIdentity.GetCurrent();
+            var id = System.Security.Principal.WindowsIdentity.GetCurrent();
             consoleIsElevated = (id.Owner != id.User);
             isWindowsPS = true;
 

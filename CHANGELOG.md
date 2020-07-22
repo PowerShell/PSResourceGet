@@ -11,6 +11,7 @@ Bug Fixes
 * Improved error handling for Install-PSResource and Update-PSResource
 * Remove prerelease tag from module version directory
 * Fix error getting thrown from paths with incorrectly formatted module versions
+* Fix module installation paths on Linux and MacOS
 
 ### 3.0.0-beta6
 New Feature 
