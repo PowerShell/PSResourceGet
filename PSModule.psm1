@@ -26,7 +26,10 @@ $pathToAssembly = [io.path]::combine($PSScriptRoot, $framework, $PSGet)
 
 # Remove framework binaries that are not needed
 $FrameworkToRemovePath = Join-Path -Path $script:PSModuleRoot -ChildPath $script:FrameworkToRemove
-Remove-Item $FrameworkToRemovePath -Force -Recurse
+if (Test-Path $FrameworkToRemovePath)
+{
+    Remove-Item $FrameworkToRemovePath -Force -Recurse
+}
 
 # NOW LOAD THE APPROPRIATE ASSEMBLY
 $ImportedPSGetModule = Import-Module -Name $pathToAssembly -PassThru
