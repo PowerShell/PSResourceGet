@@ -24,7 +24,7 @@
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData       = @{
         PSData                                 = @{
-            Prerelease = 'beta7'
+            Prerelease = 'beta8'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -34,8 +34,19 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+### 3.0.0-beta8
+New Features 
+* Add Type parameter to Install-PSResource
+* Add 'sudo' check for admin privileges in Unix in Install-PSResource
+
+Bug Fixes
+* Fix bug with retrieving installed scripts in Get-PSResource
+* Fix bug with AllUsers scope in Windows in Install-PSResource
+* Fix bug with Uninstall-PSResource sometimes not fully uninstalling
+* Change installed file paths to contain original version number instead of normalized version
+
 ### 3.0.0-beta7
-New Feature 
+New Features 
 * Completed functionality for Update-PSResource
 * Input-Object parameter for Install-PSResource
 
