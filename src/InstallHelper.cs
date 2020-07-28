@@ -60,7 +60,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             var consoleIsElevated = false;
             var isWindowsPS = false;
+            cmdletPassedIn.WriteDebug("Entering InstallHelper::ProcessInstallParams");
 #if NET472
+            // If WindowsPS
             var id = System.Security.Principal.WindowsIdentity.GetCurrent();
             consoleIsElevated = (id.Owner != id.User);
             isWindowsPS = true;
@@ -68,9 +70,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
             programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
 #else
-            // If Windows OS
+            // If PS6+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+                consoleIsElevated = (id.Owner != id.User);
+             
                 myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
                 programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
             }
@@ -79,6 +84,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Paths are the same for both Linux and MacOS
                 myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
                 programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
+
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                {
+                    var results = pwsh.AddCommand("id").AddParameter("u").Invoke();
+                }
             }
 #endif
             cmdletPassedIn.WriteVerbose(string.Format("Current user scope installation path: {0}", myDocumentsPath));
@@ -86,7 +96,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             // If Scope is AllUsers and there is no console elevation
-            if (!string.IsNullOrEmpty(_scope) && _scope.Equals("AllUsers") && !consoleIsElevated)
+            if (!string.IsNullOrEmpty(_scope) && _scope.Equals("AllUsers", StringComparison.OrdinalIgnoreCase) && !consoleIsElevated)
             {
                 // Throw an error when Install-PSResource is used as a non-admin user and '-Scope AllUsers'
                 throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Install-PSResource requires admin privilege for AllUsers scope."));
@@ -415,8 +425,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             || psScriptsPathAllDirs.Contains(pkgDirNameScript, StringComparer.OrdinalIgnoreCase))
                         {
                             // Then check to see if the package version exists in the Modules path
-                            var pkgDirVersion = (Directory.GetDirectories(pkgDirName)).ToList();
-                        
+                            var pkgDirVersion = new List<string>();
+                            try
+                            {
+                                pkgDirVersion = (Directory.GetDirectories(pkgDirName)).ToList();
+                            }
+                            catch { }
+
                             List<string> pkgVersion = new List<string>();
                             foreach (var path in pkgDirVersion)
                             {
@@ -635,7 +650,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
-                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToString());
+                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
                     var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgSHAToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
@@ -779,7 +794,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // When we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
 
                     // If script, just move the files over, if module, move the version directory over
-                    var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToString())
+                    var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
                         : Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
 
                     if (isScript)

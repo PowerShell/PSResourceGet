@@ -152,23 +152,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     dirsToSearch.AddRange(Directory.GetDirectories(pfModulesPath).ToList());
                 }
 
-                var pfScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts");
-                if (Directory.Exists(pfScriptsPath))
-                {
-                    dirsToSearch.AddRange(Directory.GetDirectories(pfScriptsPath).ToList());
-                }
-
-
                 var mdModulesPath = System.IO.Path.Combine(myDocumentsPath, "Modules");  // change programfiles to mydocuments
                 if (Directory.Exists(mdModulesPath))
                 {
                     dirsToSearch.AddRange(Directory.GetDirectories(mdModulesPath).ToList());
                 }
 
+
+                var pfScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts");
+                if (Directory.Exists(pfScriptsPath))
+                {
+                    dirsToSearch.AddRange(Directory.GetFiles(pfScriptsPath).ToList());
+                }
+
                 var mdScriptsPath = System.IO.Path.Combine(myDocumentsPath, "Scripts"); // change programFiles to myDocuments
                 if (Directory.Exists(mdScriptsPath))
                 {
-                    dirsToSearch.AddRange(Directory.GetDirectories(mdScriptsPath).ToList());
+                    dirsToSearch.AddRange(Directory.GetFiles(mdScriptsPath).ToList());
                 }
 
 
@@ -176,15 +176,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // uniqueify 
                 dirsToSearch = dirsToSearch.Distinct().ToList();
             }
-
+           
             // Or a list of the passed in names
             if (_name != null && !_name[0].Equals("*"))
             {
                 var nameLowerCased = new List<string>();
                 Array.ForEach(_name, n => nameLowerCased.Add(n.ToLower()));
-                dirsToSearch = dirsToSearch.FindAll(p => nameLowerCased.Contains(new DirectoryInfo(p).Name.ToLower()));   
+                dirsToSearch = dirsToSearch.FindAll(p => (nameLowerCased.Contains(new DirectoryInfo(p).Name.ToLower())
+                    || nameLowerCased.Contains(System.IO.Path.GetFileNameWithoutExtension(p).ToLower())));
             }
-
 
             // try to parse into a specific NuGet version
             VersionRange versionRange = null;
@@ -238,26 +238,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // just search scripts paths
                             if (pkgPath.ToLower().Contains("scripts"))
                             {
-                                // TODO check if scripts are installed
-                                var scriptXmls = Directory.GetFiles(pkgPath);
-                                if (_name == null || _name[0].Equals("*"))
+                                // Just add the xmls of the names specified
+                                foreach (var name in _name)
                                 {
-                                    // Add all the script xmls
-                                    installedPkgsToReturn.AddRange(scriptXmls);
-                                }
-                                else
-                                {
-                                    // Just add the xmls of the names specified
-                                    foreach (var name in _name)
-                                    {
-                                        var scriptXMLPath = System.IO.Path.Combine(pkgPath, name, "_InstalledScriptInfo");
+                                    var scriptXMLPath = System.IO.Path.Combine(new FileInfo(pkgPath).Directory.ToString(), name + "_InstalledScriptInfo");
 
-                                        if (File.Exists(scriptXMLPath))
-                                        {
-                                            installedPkgsToReturn.Add(scriptXMLPath);
-                                        }
+                                    if (File.Exists(scriptXMLPath))
+                                    {
+                                        installedPkgsToReturn.Add(scriptXMLPath);
                                     }
-                                }
+                                }      
                             }
                             else
                             {
@@ -294,24 +284,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // just search scripts paths
                     if (pkgPath.ToLower().Contains("scripts"))
                     {
-                        // TODO check if scripts are installed
-                        var scriptXmls = Directory.GetFiles(pkgPath);
-                        if (_name == null || _name[0].Equals("*"))
+                        // Just add the xmls of the names specified
+                        foreach (var name in _name)
                         {
-                            // Add all the script xmls
-                            installedPkgsToReturn.AddRange(scriptXmls);
-                        }
-                        else
-                        {
-                            // Just add the xmls of the names specified
-                            foreach (var name in _name)
-                            {
-                                var scriptXMLPath = System.IO.Path.Combine(pkgPath, name, "_InstalledScriptInfo");
+                            var scriptXMLDir = System.IO.Path.Combine(new FileInfo(pkgPath).Directory.ToString(), "InstalledScriptInfos");
+                            var scriptXMLPath = System.IO.Path.Combine(scriptXMLDir, name + "_InstalledScriptInfo.xml");
 
-                                if (File.Exists(scriptXMLPath))
-                                {
-                                    installedPkgsToReturn.Add(scriptXMLPath);
-                                }
+
+                            if (File.Exists(scriptXMLPath))
+                            {
+                                installedPkgsToReturn.Add(scriptXMLPath);
                             }
                         }
                     }
