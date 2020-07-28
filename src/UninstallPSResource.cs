@@ -10,6 +10,7 @@ using System.Globalization;
 using System.Collections.ObjectModel;
 using static System.Environment;
 using System.Security.Principal;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -123,34 +124,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 VersionRange.TryParse(_version, out versionRange); 
             }
 
+            var consoleIsElevated = false;
+            var isWindowsPS = true;
+
 #if NET472
-            var windowsIdentity = WindowsIdentity.GetCurrent();
-            // identity name and authentication type.
-            string authenticationType = windowsIdentity.AuthenticationType;
-            string userName = windowsIdentity.Name;
-            GenericIdentity authenticatedGenericIdentity =
-                new GenericIdentity(userName, authenticationType);
-
-            var id = WindowsIdentity.GetCurrent();
-            var consoleIsElevated = (id.Owner != id.User);
-
-            // Paths
-            //if (!Platform.IsCoreCLR)
-           var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
-            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-            // TODO: Come back to this
-            //var userENVpath = Path.Join(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
+            // WindowsPS
+            var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+            consoleIsElevated = (id.Owner != id.User);
+            isWindowsPS = true;
 
             myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
+            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
 #else
-            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+            // If Windows OS (PS6+)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+                consoleIsElevated = (id.Owner != id.User);
+
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+            }
+            else
+            {
+                // Paths are the same for both Linux and MacOS
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
+                programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
+
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                {
+                    var results = pwsh.AddCommand("id").AddParameter("u").Invoke();
+                }
+            }
 #endif
-
-
-            // TODO: uninstall scope???  
-
-
 
 
             foreach (var pkgName in _name)
@@ -165,33 +171,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Console.WriteLine("Did not successfully uninstall {0}", pkgName);
                 }
             }
-
         }
 
 
 
         /// just uninstall module, not dependencies
-
-
         private bool UninstallPkgHelper(string pkgName, CancellationToken cancellationToken)
         {
-            // consider scope
-
-            // update later, this is just for testing purposes 
-            // var psModulesPath = "C:\\code\\temp\\installtestpath";
-
             var successfullyUninstalled = false;
 
-            /*
-            if (pkg == null)
-            {
-                throw new ArgumentNullException(paramName: "pkg");
-            }
-            */
-
-
             dirsToDelete = new List<string>();
-
 
             if (String.IsNullOrWhiteSpace(pkgName))
             {
@@ -389,7 +378,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // we know it's installed because it has an xml
                     if (Directory.Exists(dirNameVersion))
                     {
-                        Directory.Delete(dirNameVersion.ToString(), true);
+                        var dir = new DirectoryInfo(dirNameVersion.ToString());
+                        dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+                        // Delete recursively
+                        dir.Delete(true);
                         successfullyUninstalledPkg = true;
                     }
                 }
