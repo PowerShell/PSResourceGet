@@ -9,7 +9,6 @@
     <file src="__INPATHROOT__\PowerShellGet.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.dll" />
     <file src="__INPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" />
     <file src="__INPATHROOT__\MoreLinq.dll" signType="ThirdParty" dest="__OUTPATHROOT__\MoreLinq.dll" />
-    <file src="__INPATHROOT__\Newtonsoft.Json.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Newtonsoft.Json.dll" />
     <file src="__INPATHROOT__\NuGet.Commands.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Commands.dll" />
     <file src="__INPATHROOT__\NuGet.Common.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Common.dll" />
     <file src="__INPATHROOT__\NuGet.Configuration.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Configuration.dll" />
@@ -22,5 +21,51 @@
     <file src="__INPATHROOT__\NuGet.Repositories.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Repositories.dll" />
     <file src="__INPATHROOT__\NuGet.Versioning.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Versioning.dll" />
     <file src="__INPATHROOT__\System.Security.Principal.Windows.dll" signType="ThirdParty" dest="__OUTPATHROOT__\System.Security.Principal.Windows.dll" />
+    
+    <file src="__INPATHROOT__\LinqKit.Core.dll" signType="ThirdParty" dest="__OUTPATHROOT__\LinqKit.Core.dll" />
+    <file src="__INPATHROOT__\Microsoft.Bcl.AsyncInterfaces.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Bcl.AsyncInterfaces.dll" />
+    <file src="__INPATHROOT__\Microsoft.Extensions.DependencyInjection.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.DependencyInjection.Abstractions.dll" />
+    <file src="__INPATHROOT__\Microsoft.Extensions.DependencyInjection.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.DependencyInjection.dll" />
+    <file src="__INPATHROOT__\Microsoft.Extensions.Logging.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Logging.dll" />
+    <file src="__INPATHROOT__\Microsoft.Extensions.Options.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Options.dll" />
+    <file src="__INPATHROOT__\Microsoft.Extensions.Primitives.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Primitives.dll" />
+    <file src="__INPATHROOT__\Microsoft.Win32.Registry.AccessControl.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Win32.Registry.AccessControl.dll" />
+    <file src="__INPATHROOT__\Microsoft.Win32.Registry.dll" signType="ThirdParty" dest="__OUTPATHROOT__\ Microsoft.Win32.Registry.dll" />
+    <file src="__INPATHROOT__\Microsoft.Win32.SystemEvents.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Win32.SystemEvents.dll" />
+    <file src="__INPATHROOT__\Newtonsoft.Json.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Newtonsoft.Json.dll" />
+    <file src="__INPATHROOT__\NuGet.Credentials.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Credentials.dll" />
+    <file src="__INPATHROOT__\NuGet.DependencyResolver.Core.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.DependencyResolver.Core.dll" />
+    <file src="__INPATHROOT__\NuGet.LibraryModel.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.LibraryModel.dll" />
+    <file src="__INPATHROOT__\System.Buffers.dll" signType="ThirdParty" dest="__OUTPATHROOT__\System.Buffers.dll" />
+    <file src="__INPATHROOT__\System.CodeDom.dll" signType="ThirdParty" dest="__OUTPATHROOT__\System.CodeDom.dll" />
+    <file src="__INPATHROOT__\System.Configuration.ConfigurationManager.dll" signType="ThirdParty" dest="__OUTPATHROOT__\System.Configuration.ConfigurationManager.dll" />
+
+    <file src="__INPATHROOT__\System.Data.Odbc.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Data.Odbc.dll" />
+    <file src="__INPATHROOT__\System.Data.OleDb.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Data.OleDb.dll" />
+    <file src="__INPATHROOT__\System.Data.SqlClient.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Data.SqlClient.dll" />
+    <file src="__INPATHROOT__\System.Diagnostics.DiagnosticSource.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Diagnostics.DiagnosticSource.dll" />
+    <file src="__INPATHROOT__\System.Diagnostics.EventLog.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Diagnostics.EventLog.dll" />
+    <file src="__INPATHROOT__\System.Diagnostics.PerformanceCounter.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Diagnostics.PerformanceCounter.dll" />
+    <file src="__INPATHROOT__\System.IO.FileSystem.AccessControl.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.IO.FileSystem.AccessControl.dll" />
+    <file src="__INPATHROOT__\System.IO.Pipes.AccessControl.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.IO.Pipes.AccessControl.dll" />
+    <file src="__INPATHROOT__\System.Management.Automation.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Management.Automation.dll" />
+    <file src="__INPATHROOT__\System.Runtime.CompilerServices.Unsafe.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Runtime.CompilerServices.Unsafe.dll" />
+    <file src="__INPATHROOT__\System.Security.AccessControl.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Security.AccessControl.dll" />
+    <file src="__INPATHROOT__\System.Security.Cryptography.Cng.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Security.Cryptography.Cng.dll" />
+    <file src="__INPATHROOT__\System.Security.Cryptography.Pkcs.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Security.Cryptography.Pkcs.dll" />
+    <file src="__INPATHROOT__\System.Security.Cryptography.ProtectedData.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Security.Cryptography.ProtectedData.dll" />
+    <file src="__INPATHROOT__\System.Security.Cryptography.Xml.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Security.Cryptography.Xml.dll" />
+    <file src="__INPATHROOT__\System.Security.Permissions.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Security.Permissions.dll" />
+    <file src="__INPATHROOT__\System.ServiceModel.Duplex.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.ServiceModel.Duplex.dll" />
+    <file src="__INPATHROOT__\System.ServiceModel.Http.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.ServiceModel.Http.dll" />
+    <file src="__INPATHROOT__\System.ServiceModel.NetTcp.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.ServiceModel.NetTcp.dll" />
+    <file src="__INPATHROOT__\System.ServiceModel.Primitives.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.ServiceModel.Primitives.dll" />
+    <file src="__INPATHROOT__\System.ServiceModel.Security.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.ServiceModel.Security.dll" />
+    <file src="__INPATHROOT__\System.ServiceModel.Syndication.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.ServiceModel.Syndication.dll" />
+    <file src="__INPATHROOT__\System.ServiceProcess.ServiceController.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.ServiceProcess.ServiceController.dll" />
+    <file src="__INPATHROOT__\System.Text.Encoding.CodePages.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Text.Encoding.CodePages.dll" />
+    <file src="__INPATHROOT__\System.Threading.AccessControl.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Threading.AccessControl.dll" />
+    <file src="__INPATHROOT__\System.Threading.Tasks.Extensions.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\System.Threading.Tasks.Extensions.dll" />
+
   </job>
 </SignConfigXML>
