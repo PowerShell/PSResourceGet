@@ -70,12 +70,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
             programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
 #else
-            // If PS6+
+            // If PS6+ on Windows
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 var id = System.Security.Principal.WindowsIdentity.GetCurrent();
                 consoleIsElevated = (id.Owner != id.User);
-             
+
                 myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
                 programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
             }
@@ -87,7 +87,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    var results = pwsh.AddCommand("id").AddParameter("u").Invoke();
+                    var uID = pwsh.AddCommand("id").AddParameter("u").Invoke();
+                    consoleIsElevated = (String.Equals(uID.ToString(), "0"));
                 }
             }
 #endif
