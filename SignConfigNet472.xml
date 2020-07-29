@@ -20,6 +20,6 @@
     <file src="__INPATHROOT__\NuGet.Protocol.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Protocol.dll" />
     <file src="__INPATHROOT__\NuGet.Repositories.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Repositories.dll" />
     <file src="__INPATHROOT__\NuGet.Versioning.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Versioning.dll" />
-    <file src="__INPATHROOT__\System.Security.Principal.Windows.dll" signType="ThirdParty" dest="__OUTPATHROOT__\System.Security.Principal.Windows.dll" />
+   <!--  <file src="__INPATHROOT__\System.Security.Principal.Windows.dll" signType="ThirdParty" dest="__OUTPATHROOT__\System.Security.Principal.Windows.dll" /> -->
   </job>
 </SignConfigXML>
