@@ -22,7 +22,9 @@ $script:PSModuleRoot = $script:PSModule.ModuleBase
 $script:PSGet = 'PowerShellGet.dll'
 
 # CONSTRUCT A PATH TO THE CORRECT ASSEMBLY
-$pathToAssembly = [io.path]::combine($PSScriptRoot, $framework, $PSGet)
+#$pathToAssembly = [io.path]::combine($PSScriptRoot,  $script:Framework, $script:PSGet)
+$pathToFramework = Join-Path -Path $script:PSModuleRoot -ChildPath $script:Framework
+$pathToAssembly = Join-Path -Path $pathToFramework -ChildPath $script:PSGet
 
 # Remove framework binaries that are not needed
 #$FrameworkToRemovePath = Join-Path -Path $script:PSModuleRoot -ChildPath $script:FrameworkToRemove
