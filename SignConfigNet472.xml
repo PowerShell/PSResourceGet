@@ -9,6 +9,7 @@
     <file src="__INPATHROOT__\PowerShellGet.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.dll" />
     <file src="__INPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" />
     <file src="__INPATHROOT__\MoreLinq.dll" signType="ThirdParty" dest="__OUTPATHROOT__\MoreLinq.dll" />
+    <file src="__INPATHROOT__\Newtonsoft.Json.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Newtonsoft.Json.dll" />
     <file src="__INPATHROOT__\NuGet.Commands.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Commands.dll" />
     <file src="__INPATHROOT__\NuGet.Common.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Common.dll" />
     <file src="__INPATHROOT__\NuGet.Configuration.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Configuration.dll" />
