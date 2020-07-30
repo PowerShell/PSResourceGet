@@ -62,9 +62,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var isWindowsPS = false;
             cmdletPassedIn.WriteDebug("Entering InstallHelper::ProcessInstallParams");
 #if NET472
-            // If WindowsPS
-            var id = System.Security.Principal.WindowsIdentity.GetCurrent();
-            consoleIsElevated = (id.Owner != id.User);
             isWindowsPS = true;
 
             myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
@@ -92,6 +89,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 #endif
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+                consoleIsElevated = (id.Owner != id.User);
+
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+
+               // if (isWindowsPS)
+               // {           // If WindowsPS
+               //     var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+               //     consoleIsElevated = (id.Owner != id.User);
+               // }
+            }
+
+
+
+
             cmdletPassedIn.WriteVerbose(string.Format("Current user scope installation path: {0}", myDocumentsPath));
             cmdletPassedIn.WriteVerbose(string.Format("All users scope installation path: {0}", programFilesPath));
 
