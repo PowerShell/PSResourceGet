@@ -24,7 +24,7 @@
     <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Security.Principal.Windows" Version="4.4.0" Condition="'$(TargetFramework)' == 'net472'" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="4.0.0" Condition="'$(TargetFramework)' == 'net472'" />
   </ItemGroup>
 
 
@@ -32,6 +32,14 @@
     <ItemGroup>
       <ReferencePath Condition="'%(FileName)' == 'NuGet.Protocol.Core.Types'">
         <Aliases>CoreTypes</Aliases>
+      </ReferencePath>
+    </ItemGroup>
+  </Target>
+
+    <Target Name="WindowsIdentity" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
+    <ItemGroup>
+      <ReferencePath Condition="'%(FileName)' == 'System.Security.Principal.Windows'">
+        <Aliases>WindowsIdentity</Aliases>
       </ReferencePath>
     </ItemGroup>
   </Target>
