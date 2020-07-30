@@ -33,9 +33,6 @@
       <ReferencePath Condition="'%(FileName)' == 'NuGet.Protocol.Core.Types'">
         <Aliases>CoreTypes</Aliases>
       </ReferencePath>
-      <ReferencePath Condition="'%(FileName)' == 'System.Security.Principal.Windows'">
-        <Aliases>WindowsIdentity</Aliases>
-      </ReferencePath>
     </ItemGroup>
   </Target>
 
