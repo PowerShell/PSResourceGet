@@ -15,7 +15,6 @@
     <file src="__INPATHROOT__\NuGet.Frameworks.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Frameworks.dll" />
     <file src="__INPATHROOT__\NuGet.Packaging.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Packaging.dll" />
     <file src="__INPATHROOT__\NuGet.ProjectModel.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.ProjectModel.dll" />
-    <file src="__INPATHROOT__\NuGet.Protocol.Catalog.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Protocol.Catalog.dll" />
     <file src="__INPATHROOT__\NuGet.Protocol.Core.Types.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Protocol.Core.Types.dll" />
     <file src="__INPATHROOT__\NuGet.Protocol.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Protocol.dll" />
     <file src="__INPATHROOT__\NuGet.Repositories.dll" signType="ThirdParty" dest="__OUTPATHROOT__\NuGet.Repositories.dll" />
