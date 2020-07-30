@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net472;</TargetFrameworks>
     <AssemblyName>PowerShellGet</AssemblyName>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,15 +34,12 @@
       <ReferencePath Condition="'%(FileName)' == 'NuGet.Protocol.Core.Types'">
         <Aliases>CoreTypes</Aliases>
       </ReferencePath>
-    </ItemGroup>
-  </Target>
-
-    <Target Name="WindowsIdentity" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
-    <ItemGroup>
       <ReferencePath Condition="'%(FileName)' == 'System.Security.Principal.Windows'">
         <Aliases>WindowsIdentity</Aliases>
       </ReferencePath>
     </ItemGroup>
+  </Target>
+
   </Target>
 
 </Project>
