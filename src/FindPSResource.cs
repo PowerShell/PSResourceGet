@@ -18,7 +18,6 @@ using System.Linq;
 using System.Net;
 using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System.Net.Http;
-using NuGet.Protocol.Catalog;
 using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -211,9 +210,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") && 
                     (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
                 {
+                    this.WriteWarning("This functionality is not yet implemented");
                     // right now you can use wildcards with an array of names, ie -name "Az*", "PS*", "*Get", will take a hit performance wise, though.
                     // TODO:  add wildcard condition here
-                    ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString());
+                    //ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString());
                 }
 
 
@@ -262,7 +262,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-
+/***
         public void ProcessCatalogReader(string repoName, string sourceUrl)
         {
 
@@ -373,7 +373,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
         }
-
+*/
         //
         public List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSource(string repositoryUrl, CancellationToken cancellationToken)
         {
@@ -1360,7 +1360,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-
+/***
         private static async Task<Uri> GetCatalogIndexUrlAsync(string sourceUrl)
         {
             // This code uses the NuGet client SDK, which are the libraries used internally by the official
@@ -1373,7 +1373,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return catalogIndexUrl;
         }
-
+*/
 
 
         ///  Modified this
@@ -1402,7 +1402,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
            // }
         }
 
-
+/***
         private static void ProcessCatalogLeaf(CatalogLeafItem leaf)
         {
             // Here, you can do whatever you want with each catalog item. If you want the full metadata about
@@ -1419,7 +1419,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var cursorString = JsonConvert.SerializeObject(new Cursor { Value = value });
             File.WriteAllText(CursorFileName, cursorString);
         }
-
+*/
 
 
 

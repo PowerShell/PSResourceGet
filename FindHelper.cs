@@ -93,7 +93,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // right now you can use wildcards with an array of names, ie -name "Az*", "PS*", "*Get", will take a hit performance wise, though.
                     // TODO:  add wildcard condition here
-                    ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString());
+                    /*** ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString()); */
                 }
 
 
@@ -140,7 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return returnedPSObjects;
         }
 
-
+/***
         public void ProcessCatalogReader(string repoName, string sourceUrl)
         {
             // test initalizing a cursor see: https://docs.microsoft.com/en-us/nuget/guides/api/query-for-all-published-packages
@@ -241,7 +241,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
         }
-
+*/
 
         public List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSource(string repositoryUrl, CancellationToken cancellationToken)
         {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿/***
+using System;
 using System.Threading.Tasks;
 //using Microsoft.Extensions.Logging;
 using NuGet.Protocol.Catalog;
@@ -18,7 +19,7 @@ public class LoggerCatalogLeafProcessor : ICatalogLeafProcessor
         _commitCount = 0;
     }
     */
-
+/*** 
     public Task<bool> ProcessPackageDeleteAsync(PackageDeleteCatalogLeaf leaf)
     {
         Console.WriteLine(
@@ -52,9 +53,11 @@ public class LoggerCatalogLeafProcessor : ICatalogLeafProcessor
                 return Task.FromResult(false);
             }
             */
+/***
         }
 
         _lastCommitTimestamp = leaf.CommitTimestamp;
         return Task.FromResult(true);
     }
 }
+*/
