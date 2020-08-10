@@ -8,7 +8,7 @@ schema: 2.0.0
 # Get-PSResourceRepository
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Gets PowerShell repositories.
 
 ## SYNTAX
 
@@ -17,21 +17,48 @@ Get-PSResourceRepository [[-Name] <String[]>] [-WhatIf] [-Confirm] [<CommonParam
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+The **Get-PSResourceRepository** cmdlet gets PowerShell module repositories that are registered for the current user.
 
 ## EXAMPLES
 
-### Example 1
-```powershell
-PS C:\> {{ Add example code here }}
+### Example 1: Get all module repositories
+
+```
+PS C:\> Get-PSResourceRepository
+Name               Url                                     InstallationPolicy                           Priority
+----               ---                                     ------------------                           --------
+PSGallery          http://go.micro...                      Untrusted                                    50
+myNuGetSource      https://myget.c...                      Trusted                                      49
 ```
 
-{{ Add example description here }}
+This command gets all module repositories registered for the current user.
+
+### Example 2: Get module repositories by name
+
+```
+PS C:\> Get-PSResourceRepository -Name "*NuGet*"
+```
+
+This command gets all module repositories that include NuGet in their names.
+
+### Example 3: Get a module repository and format the output
+
+```
+PS C:\> Get-PSResourceRepository -Name "PSGallery" | Format-List * -Force
+
+Name     : PSGallery
+Url      : https://www.powershellgallery.com/api/v2
+Trusted  : false
+Priority : 49
+```
+
+This command gets the repository named PSGallery and uses the pipeline operator to pass that object to the Format-List cmdlet.
 
 ## PARAMETERS
 
 ### -Name
-{{ Fill Name Description }}
+
+Specifies the names of the repositories to get.
 
 ```yaml
 Type: System.String[]
@@ -91,5 +118,9 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[<add>](<add>)
+[Register-PSResourceRepository](Register-PSResourceRepository.md)
+
+[Set-PSResourceRepository](Set-PSResourceRepository.md)
+
+[Unregister-PSResourceRepository](Unregister-PSResourceRepository.md)
 
