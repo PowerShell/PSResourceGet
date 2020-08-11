@@ -8,17 +8,17 @@
     <file src="__INPATHROOT__\PSModule.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PSModule.psm1" />
     <file src="__INPATHROOT__\PowerShellGet.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.dll" />
 
-    <file src="__INPATHROOT__\PowerShellGet\DSCResources\MSFT_PSModule\MSFT_PSModule.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSModule\MSFT_PSModule.psm1" />
-    <file src="__INPATHROOT__\PowerShellGet\DSCResources\MSFT_PSModule\MSFT_PSModule.schema.mof" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSModule\MSFT_PSModule.schema.mof" />
-    <file src="__INPATHROOT__\PowerShellGet\DSCResources\MSFT_PSModule\en-US\MSFT_PSModule.strings.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSModule\en-US\MSFT_PSModule.strings.psd1" />
+    <file src="__INPATHROOT__\DSCResources\MSFT_PSModule\MSFT_PSModule.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSModule\MSFT_PSModule.psm1" />
+    <file src="__INPATHROOT__\DSCResources\MSFT_PSModule\MSFT_PSModule.schema.mof" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSModule\MSFT_PSModule.schema.mof" />
+    <file src="__INPATHROOT__\DSCResources\MSFT_PSModule\en-US\MSFT_PSModule.strings.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSModule\en-US\MSFT_PSModule.strings.psd1" />
 
-    <file src="__INPATHROOT__\PowerShellGet\DSCResources\MSFT_PSRepository\MSFT_PSRepository.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSRepository\MSFT_PSRepository.psm1" />
-    <file src="__INPATHROOT__\PowerShellGet\DSCResources\MSFT_PSRepository\MSFT_PSRepository.schema.mof" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSRepository\MSFT_PSRepository.schema.mof" />
-    <file src="__INPATHROOT__\PowerShellGet\DSCResources\MSFT_PSRepository\en-US\MSFT_PSRepository.strings.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSRepository\en-US\MSFT_PSRepository.strings.psd1" />
+    <file src="__INPATHROOT__\DSCResources\MSFT_PSRepository\MSFT_PSRepository.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSRepository\MSFT_PSRepository.psm1" />
+    <file src="__INPATHROOT__\DSCResources\MSFT_PSRepository\MSFT_PSRepository.schema.mof" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSRepository\MSFT_PSRepository.schema.mof" />
+    <file src="__INPATHROOT__\DSCResources\MSFT_PSRepository\en-US\MSFT_PSRepository.strings.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\DscResources\MSFT_PSRepository\en-US\MSFT_PSRepository.strings.psd1" />
 
-    <file src="__INPATHROOT__\PowerShellGet\Modules\PowerShellGet.ResourceHelper\en-US\PowerShellGet.ResourceHelper.strings.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\Modules\PowerShellGet.ResourceHelper\en-US\PowerShellGet.ResourceHelper.strings.psd1" />
-    <file src="__INPATHROOT__\PowerShellGet\Modules\PowerShellGet.ResourceHelper\PowerShellGet.ResourceHelper.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\Modules\PowerShellGet.ResourceHelper\PowerShellGet.ResourceHelper.psm1" />
-    <file src="__INPATHROOT__\PowerShellGet\Modules\PowerShellGet.LocalizationHelper\PowerShellGet.LocalizationHelper.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\Modules\PowerShellGet.LocalizationHelper\PowerShellGet.LocalizationHelper.psm1" />
+    <file src="__INPATHROOT__\Modules\PowerShellGet.ResourceHelper\en-US\PowerShellGet.ResourceHelper.strings.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\Modules\PowerShellGet.ResourceHelper\en-US\PowerShellGet.ResourceHelper.strings.psd1" />
+    <file src="__INPATHROOT__\Modules\PowerShellGet.ResourceHelper\PowerShellGet.ResourceHelper.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\Modules\PowerShellGet.ResourceHelper\PowerShellGet.ResourceHelper.psm1" />
+    <file src="__INPATHROOT__\Modules\PowerShellGet.LocalizationHelper\PowerShellGet.LocalizationHelper.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\Modules\PowerShellGet.LocalizationHelper\PowerShellGet.LocalizationHelper.psm1" />
 
     <file src="__INPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" />
     <file src="__INPATHROOT__\MoreLinq.dll" signType="ThirdParty" dest="__OUTPATHROOT__\MoreLinq.dll" />
