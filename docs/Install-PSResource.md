@@ -8,7 +8,8 @@ schema: 2.0.0
 # Install-PSResource
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+
+Downloads one or more PowerShell resources from a repository, and installs them on the local computer.
 
 ## SYNTAX
 
@@ -37,21 +38,77 @@ Install-PSResource [-RequiredResource <Object>] [-WhatIf] [-Confirm] [<CommonPar
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+
+The `Install-PSResource` cmdlet gets one or more PSResources that meet specified criteria from a PowerShell
+repository. The cmdlet verifies that search results are valid resources and copies the resource folders
+to the installation location. Installed resources are not automatically imported after installation.
+You can filter which resource is installed based on the specifed version.
+
+If the resource being installed has the same name or version, or contains commands in an existing
+module, warning messages are displayed. 
+Dependent upon your
+repository settings, you might need to answer a prompt for the module installation to continue.
+
+These examples use the [PowerShell Gallery](https://www.powershellgallery.com/) as the only
+registered repository. `Get-PSResourceRepository` displays the registered repositories. If you have multiple
+registered repositories, use the `-Repository` parameter to specify the repository's name.
 
 ## EXAMPLES
 
-### Example 1
+### Example 1: Find and install a module
+
+This example finds a module in the repository and installs the module.
+
 ```powershell
-PS C:\> {{ Add example code here }}
+Find-PSResource -Name PowerShellGet | Install-PSResource
 ```
 
-{{ Add example description here }}
+The `Find-PSResource` uses the **Name** parameter to specify the **PowerShellGet** module. By default,
+the newest version of the module is downloaded from the repository. The object is sent down the
+pipeline to the `Install-PSResource` cmdlet. `Install-PSResource` installs the module for all users in
+`$env:ProgramFiles\PowerShell\Modules`.
+
+### Example 2: Install a PSResource by name
+
+In this example, the newest version of the **PowerShellGet** module is installed.
+
+```powershell
+Install-PSResource -Name PowerShellGet
+```
+
+The `Install-Module` uses the **Name** parameter to specify the **PowerShellGet** module. By
+default, the newest version of the module is downloaded from the repository and installed.
+
+### Example 3: Install a specific version of a PSResource
+
+In this example, a specific version of the **PowerShellGet** module is installed.
+
+```powershell
+Install-PSResource -Name PowerShellGet -Version "2.0.0"
+```
+
+The `Install-PSResource` uses the **Name** parameter to specify the **PowerShellGet** module. The
+**Version** parameter specifies that version **2.0.0** is downloaded and installed for all
+users.
+
+### Example 5: Install a PSResource only for the current user
+
+This example downloads and installs the newest version of a module, only for the current user.
+
+```powershell
+Install-PSResource -Name PowerShellGet -Scope CurrentUser
+```
+
+The `Install-PSResource` uses the **Name** parameter to specify the **PowerShellGet** module.
+`Install-PSResource` downloads and installs the newest version of **PowerShellGet** into the current
+user's directory, `$home\Documents\PowerShell\Modules`.
 
 ## PARAMETERS
 
 ### -AcceptLicense
-{{ Fill AcceptLicense Description }}
+
+For modules that require a license, **AcceptLicense** automatically accepts the license agreement
+during installation. For more information, see [Modules Requiring License Acceptance](/powershell/scripting/gallery/concepts/module-license-acceptance).
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -66,7 +123,9 @@ Accept wildcard characters: False
 ```
 
 ### -Credential
-{{ Fill Credential Description }}
+
+Specifies a user account that has rights to install a PSResource for a specified package provider or
+source.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -93,7 +152,8 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-{{ Fill InputObject Description }}
+
+Used for pipeline input.
 
 ```yaml
 Type: System.Object[]
@@ -108,7 +168,10 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-{{ Fill Name Description }}
+
+Specifies the exact names of resources to install from the online gallery. A comma-separated list of
+resource names is accepted. The resource name must match the resource name in the repository. Use
+`Find-PSResource` to get a list of resource names.
 
 ```yaml
 Type: System.String[]
@@ -123,7 +186,7 @@ Accept wildcard characters: False
 ```
 
 ### -NoClobber
-{{ Fill NoClobber Description }}
+Does not allow installation if existing commands that have the same name as commands being installed by a resource.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -138,7 +201,8 @@ Accept wildcard characters: False
 ```
 
 ### -Prerelease
-{{ Fill Prerelease Description }}
+
+Allows you to install a module marked as a pre-release.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -168,7 +232,8 @@ Accept wildcard characters: False
 ```
 
 ### -Reinstall
-{{ Fill Reinstall Description }}
+
+Installs a resource even if that resource is already installed.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -183,7 +248,9 @@ Accept wildcard characters: False
 ```
 
 ### -Repository
-{{ Fill Repository Description }}
+
+Use the **Repository** parameter to specify which repository is used to download and install a
+resource.
 
 ```yaml
 Type: System.String[]
@@ -228,7 +295,9 @@ Accept wildcard characters: False
 ```
 
 ### -Scope
-{{ Fill Scope Description }}
+
+Specifies the installation scope of the module. The acceptable values for this parameter are
+**AllUsers** and **CurrentUser**.
 
 ```yaml
 Type: System.String
@@ -338,5 +407,20 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[<add>](<add>)
+
+[Find-PSResource](Find-PSResource.md)
+
+[Get-PSResourceRepository](Get-PSResourceRepository.md)
+
+[Import-Module](../Microsoft.PowerShell.Core/Import-Module.md)
+
+[Publish-PSResource](Publish-PSResource.md)
+
+[Register-PSResourceRepository](Register-PSResourceRepository.md)
+
+[Uninstall-PSResource](Uninstall-PSResource.md)
+
+[Update-PSResource](Update-PSResource.md)
+
+[about_Module](../Microsoft.PowerShell.Core/About/about_Modules.md)
 
