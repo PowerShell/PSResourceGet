@@ -75,7 +75,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 var id = System.Security.Principal.WindowsIdentity.GetCurrent();
                 consoleIsElevated = (id.Owner != id.User);
-
+                
                 myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
                 programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
             }
@@ -122,6 +122,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             psModulesPath = Path.Combine(psPath, "Modules");
             psScriptsPath = Path.Combine(psPath, "Scripts");
             psInstalledScriptsInfoPath = Path.Combine(psScriptsPath, "InstalledScriptInfos");
+
+            // Create PowerShell modules and scripts paths if they don't already exist
+            if (!Directory.Exists(psModulesPath))
+            {
+                Directory.CreateDirectory(psModulesPath);
+            }
+            if (!Directory.Exists(psInstalledScriptsInfoPath))
+            {
+                Directory.CreateDirectory(psModulesPath);
+            }
+
+
             psModulesPathAllDirs = (Directory.GetDirectories(psModulesPath)).ToList();
             // Get the script metadata XML files from the 'InstalledScriptInfos' directory
             psScriptsPathAllDirs = (Directory.GetFiles(psInstalledScriptsInfoPath)).ToList();
