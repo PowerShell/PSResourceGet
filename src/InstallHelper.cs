@@ -130,7 +130,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             if (!Directory.Exists(psInstalledScriptsInfoPath))
             {
-                Directory.CreateDirectory(psModulesPath);
+                Directory.CreateDirectory(psInstalledScriptsInfoPath);
             }
 
 
