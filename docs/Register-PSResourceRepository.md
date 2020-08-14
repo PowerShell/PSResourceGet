@@ -8,7 +8,8 @@ schema: 2.0.0
 # Register-PSResourceRepository
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+
+Registers a PowerShell repository.
 
 ## SYNTAX
 
@@ -31,21 +32,32 @@ Register-PSResourceRepository -Repositories <System.Collections.Generic.List`1[S
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+
+The `Register-PSResourceRepository` cmdlet registers a repository for PowerShell modules. After a
+repository is registered, you can reference it from the `Find-PSResource`, `Install-PSResource`, and
+`Publish-PSResource` cmdlets. 
+
+Registered repositories are user-specific. They are not registered in a system-wide context.
 
 ## EXAMPLES
 
-### Example 1
-```powershell
-PS C:\> {{ Add example code here }}
-```
+### Example 1: Register a repository
 
-{{ Add example description here }}
+```powershell
+$parameters = @{
+  Name = "myNuGetSource"
+  uri = "https://www.myget.org/F/powershellgetdemo/api/v2"
+  Priority = 10
+  InstallationPolicy = 'Trusted'
+}
+Register-PSResourceRepository @parameters
+```
 
 ## PARAMETERS
 
 ### -Credential
-{{ Fill Credential Description }}
+
+Specifies credentials of an account that has rights to register a repository.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -60,7 +72,9 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-{{ Fill Name Description }}
+
+Specifies the name of the repository to register. You can use this name to specify the repository in
+cmdlets such as `Find-PSResource` and `Install-PSResource`.
 
 ```yaml
 Type: System.String
@@ -75,7 +89,8 @@ Accept wildcard characters: False
 ```
 
 ### -Priority
-{{ Fill Priority Description }}
+
+Specifies the search order of repositories with a lower value indicating a higher priority. If not specified, the default value is 50. The PSGallery, which is registered by default, has an editable value of 50. If two PSRepositories have the same priority the “Trusted” one will be chosen, if they also have the same level of trust the first one alphabetically will be selected.
 
 ```yaml
 Type: System.Int32
@@ -90,7 +105,9 @@ Accept wildcard characters: False
 ```
 
 ### -Proxy
-{{ Fill Proxy Description }}
+
+Specifies a proxy server for the request, rather than connecting directly to the Internet resource.
+
 
 ```yaml
 Type: System.Uri
@@ -105,7 +122,9 @@ Accept wildcard characters: False
 ```
 
 ### -ProxyCredential
-{{ Fill ProxyCredential Description }}
+
+Specifies a user account that has permission to use the proxy server that is specified by the
+**Proxy** parameter.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -120,7 +139,8 @@ Accept wildcard characters: False
 ```
 
 ### -PSGallery
-{{ Fill PSGallery Description }}
+
+Registers the PSGallery with default settings.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -135,7 +155,8 @@ Accept wildcard characters: False
 ```
 
 ### -Repositories
-{{ Fill Repositories Description }}
+
+Specifies a hashtable of repositries to register.
 
 ```yaml
 Type: System.Collections.Generic.List`1[System.Collections.Hashtable]
@@ -150,7 +171,9 @@ Accept wildcard characters: False
 ```
 
 ### -Trusted
-{{ Fill Trusted Description }}
+
+Specifies the installation policy as trusted. When installing modules from an UnTrusted repository, the user is prompted for
+confirmation.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -165,7 +188,9 @@ Accept wildcard characters: False
 ```
 
 ### -URL
-{{ Fill URL Description }}
+
+Specifies the URI for discovering, installing, and publishing recources from this repository. A URI can be a NuGet
+server feed (most common situation), HTTP, HTTPS, FTP or file location.
 
 ```yaml
 Type: System.Uri
@@ -227,5 +252,9 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[<add>](<add>)
+[Get-PSResourceRepository](Get-PSResourceRepository.md)
+
+[Set-PSResourceRepository](Set-PSResourceRepository.md)
+
+[Unregister-PSResourceRepository](Unregister-PSResourceRepository.md)
 
