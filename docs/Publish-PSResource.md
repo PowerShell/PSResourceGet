@@ -8,7 +8,7 @@ schema: 2.0.0
 # Publish-PSResource
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Publishes a specified PowerShell resource from the local computer to an online gallery.
 
 ## SYNTAX
 
@@ -51,21 +51,61 @@ Publish-PSResource [-APIKey <String>] [-Repository <String>] [-DestinationPath <
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+
+The `Publish-PSResource` cmdlet publishes a PowerShell resource to an online NuGet-based gallery by using an API key,
+stored as part of a user's profile in the gallery. You can specify the resource to publish either by
+the resource's name, or by the path to the folder containing the resource.
+
+When you specify a resource by name, `Publish-PSResource` publishes the first resource that would be found
+by running `Get-Module -ListAvailable <Name>`. If you specify a minimum version of a module to
+publish, `Publish-Module` publishes the first module with a version that is greater than or equal to
+the minimum version that you have specified.
+
+Publishing a module requires metadata that is displayed on the gallery page for the module. Required
+metadata includes the module name, version, description, and author. Although most metadata is taken
+from the module manifest, some metadata must be specified in `Publish-Module` parameters, such as
+**Tag**, **ReleaseNote**, **IconUri**, **ProjectUri**, and **LicenseUri**, because these parameters
+match fields in a NuGet-based gallery.
 
 ## EXAMPLES
 
-### Example 1
+### Example 1: Publish a module
+
+In this example, MyDscModule is published to the online gallery by using the API key to indicate the
+module owner's online gallery account. If MyDscModule is not a valid manifest module that specifies
+a name, version, description, and author, an error occurs.
+
 ```powershell
-PS C:\> {{ Add example code here }}
+Publish-PSResource -Name "MyDscModule" -NuGetApiKey "11e4b435-6cb4-4bf7-8611-5162ed75eb73"
 ```
 
-{{ Add example description here }}
+### Example 2: Publish a module with gallery metadata
+
+In this example, MyDscModule is published to the online gallery by using the API key to indicate the
+module owner's gallery account. The additional metadata provided is displayed on the webpage for the
+module in the gallery. The owner adds two search tags for the module, relating it to Active
+Directory; a brief release note is added. If MyDscModule is not a valid manifest module that
+specifies a name, version, description, and author, an error occurs.
+
+```powershell
+Publish-PSResource -Name "MyDscModule" -NuGetApiKey "11e4b435-6cb4-4bf7-8611-5162ed75eb73" -LicenseUri "http://contoso.com/license" -Tag "Active Directory","DSC" -ReleaseNote "Updated the ActiveDirectory DSC Resources to support adding users."
+```
+
+### Example 3: Publish a script
+
+This publishes a script called `Demo-Script.ps1` to a local repository. 
+
+```powershell
+Publish-Script -Path D:\ScriptSharingDemo\Demo-Script.ps1 -Repository LocalRepo1
+```
 
 ## PARAMETERS
 
 ### -APIKey
-{{ Fill APIKey Description }}
+
+Specifies the API key that you want to use to publish a module to the online gallery. The API key is
+part of your profile in the online gallery, and can be found on your user account page in the
+gallery.
 
 ```yaml
 Type: System.String
@@ -80,7 +120,9 @@ Accept wildcard characters: False
 ```
 
 ### -Credential
-{{ Fill Credential Description }}
+
+Specifies a user account that has rights to publish a module for a specified package provider or
+source.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -95,7 +137,9 @@ Accept wildcard characters: False
 ```
 
 ### -DestinationPath
-{{ Fill DestinationPath Description }}
+
+Specifies the path to the module that you want to publish. This parameter accepts the path to the
+folder that contains the module.
 
 ```yaml
 Type: System.String
@@ -110,7 +154,8 @@ Accept wildcard characters: False
 ```
 
 ### -Exclude
-{{ Fill Exclude Description }}
+
+Defines files to exclude from the published module.
 
 ```yaml
 Type: System.String[]
@@ -125,7 +170,9 @@ Accept wildcard characters: False
 ```
 
 ### -IconUrl
-{{ Fill IconUrl Description }}
+
+Specifies the URL of an icon for the module. The specified icon is displayed on the gallery webpage
+for the module.
 
 ```yaml
 Type: System.String
@@ -140,7 +187,8 @@ Accept wildcard characters: False
 ```
 
 ### -LicenseUrl
-{{ Fill LicenseUrl Description }}
+
+Specifies the URL of licensing terms for the module you want to publish.
 
 ```yaml
 Type: System.String
@@ -155,7 +203,9 @@ Accept wildcard characters: False
 ```
 
 ### -LiteralPath
-{{ Fill LiteralPath Description }}
+
+Specifies the path to the module that you want to publish. This parameter accepts the path to the
+folder that contains the module.
 
 ```yaml
 Type: System.String
@@ -185,7 +235,9 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-{{ Fill Path Description }}
+
+Specifies the path to the module that you want to publish. This parameter accepts the path to the
+folder that contains the module.
 
 ```yaml
 Type: System.String
@@ -200,7 +252,8 @@ Accept wildcard characters: False
 ```
 
 ### -ProjectUrl
-{{ Fill ProjectUrl Description }}
+
+Specifies the URL of a webpage about this project.
 
 ```yaml
 Type: System.String
@@ -215,7 +268,10 @@ Accept wildcard characters: False
 ```
 
 ### -ReleaseNotes
-{{ Fill ReleaseNotes Description }}
+
+Specifies a string containing release notes or comments that you want to be available to users of
+this version of the module.
+
 
 ```yaml
 Type: System.String
@@ -230,7 +286,10 @@ Accept wildcard characters: False
 ```
 
 ### -Repository
-{{ Fill Repository Description }}
+
+Specifies the friendly name of a repository that has been registered by running
+`Register-PSResourceRepository`. The repository must have a **PublishLocation**, which is a valid NuGet URI.
+The **PublishLocation** can be set by running `Set-PSRepository`.
 
 ```yaml
 Type: System.String
@@ -260,7 +319,9 @@ Accept wildcard characters: False
 ```
 
 ### -Tags
-{{ Fill Tags Description }}
+
+Adds one or more tags to the module that you are publishing. Example tags include
+DesiredStateConfiguration, DSC, DSCResourceKit, or PSModule. Separate multiple tags with commas.
 
 ```yaml
 Type: System.String[]
@@ -320,5 +381,15 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[<add>](<add>)
+[Find-PSResource](Find-PSResource.md)
+
+[Install-PSResource](Install-PSResource.md)
+
+[Register-PSResourceRepository](Register-PSResourceRepository.md)
+
+[Set-PSResourceRepository](Set-PSResourceRepository.md)
+
+[Uninstall-PSResource](Uninstall-PSResource.md)
+
+[Update-PSResource](Update-PSResource.md)
 
