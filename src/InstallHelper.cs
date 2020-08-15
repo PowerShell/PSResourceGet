@@ -58,6 +58,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public void ProcessInstallParams(string[] _name, string _version, bool _prerelease, string[] _repository, string _scope, bool _acceptLicense, bool _quiet, bool _reinstall, bool _force, bool _trustRepository, bool _noClobber, PSCredential _credential, string _requiredResourceFile, string _requiredResourceJson, Hashtable _requiredResourceHash)
         {
+            cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >> Name: '{0}'; Version: '{1}'; Prerelease: {2}; Repository: {3}; Scope: {4}; AcceptLicense: {5}; Quiet: {6}; Reinstall{7}; TrustRepository: {8}; NoClobber: {9};", string.Join(",", _name), _version, _prerelease.ToString(), _repository, _scope, _acceptLicense.ToString(), _quiet.ToString(), _reinstall.ToString(), _trustRepository.ToString(), _noClobber.ToString()));
+
             var consoleIsElevated = false;
             var isWindowsPS = false;
             cmdletPassedIn.WriteDebug("Entering InstallHelper::ProcessInstallParams");
@@ -83,18 +85,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // Paths are the same for both Linux and MacOS
                 myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
+                programFilesPath = Path.Combine("/usr", "local", "share", "Powershell");
 
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
                     var uID = pwsh.AddCommand("id").AddParameter("u").Invoke();
+                    cmdletPassedIn.WriteVerbose(string.Format("UID is: '{0}'", uID));
                     consoleIsElevated = (String.Equals(uID.ToString(), "0"));
+                    cmdletPassedIn.WriteVerbose(string.Format("Console is elevated: '{0}'", consoleIsElevated));
                 }
             }
 #endif
-            cmdletPassedIn.WriteVerbose(string.Format("Current user scope installation path: {0}", myDocumentsPath));
-            cmdletPassedIn.WriteVerbose(string.Format("All users scope installation path: {0}", programFilesPath));
-
+            cmdletPassedIn.WriteVerbose(string.Format("Is elevated console: '{0}'", consoleIsElevated));
+            cmdletPassedIn.WriteVerbose(string.Format("Is Windows PowerShell: '{0}'", isWindowsPS));
+            cmdletPassedIn.WriteVerbose(string.Format("Current user scope installation path: '{0}'", myDocumentsPath));
+            cmdletPassedIn.WriteVerbose(string.Format("All users scope installation path: '{0}'", programFilesPath));
 
             // If Scope is AllUsers and there is no console elevation
             if (!string.IsNullOrEmpty(_scope) && _scope.Equals("AllUsers", StringComparison.OrdinalIgnoreCase) && !consoleIsElevated)
