@@ -120,35 +120,35 @@ InModuleScope $script:helperModuleName {
             }
         }
 
-        Context 'When passing a correct uri as ''Value'' and type is ''PackageSource''' {
-            It 'Should not throw an error' {
-                {
-                    Test-ParameterValue `
-                        -Value 'https://mocked.uri' `
-                        -Type 'PackageSource' `
-                        -ProviderName $mockProviderName
-                } | Should -Not -Throw
-            }
-        }
+        #Context 'When passing a correct uri as ''Value'' and type is ''PackageSource''' {
+        #    It 'Should not throw an error' {
+        #        {
+        #            Test-ParameterValue `
+        #                -Value 'https://mocked.uri' 
+                        #-Type 'PackageSource' `
+                        #-ProviderName $mockProviderName
+        #        } | Should -Not -Throw
+        #    }
+        # }
 
-        Context 'When passing an correct package source as ''Value'' and type is ''PackageSource''' {
-            BeforeAll {
-                $mockParameterName = 'PSGallery'
+        #Context 'When passing an correct package source as ''Value'' and type is ''PackageSource''' {
+        #    BeforeAll {
+        #        $mockParameterName = 'PSGallery'
 
-                Mock -CommandName Get-PackageSource -MockWith {
-                    return New-Object -TypeName Object |
-                    Add-Member -Name 'Name' -MemberType NoteProperty -Value $mockParameterName -PassThru
-                }
-            }
-        }
+        #        Mock -CommandName Get-PackageSource -MockWith {
+        #            return New-Object -TypeName Object |
+        #            Add-Member -Name 'Name' -MemberType NoteProperty -Value $mockParameterName -PassThru
+        #        }
+        #    }
+        #}
 
-        Context 'When passing type is ''PackageSource'' and passing a package source that does not exist' {
-            BeforeAll {
-                $mockParameterName = 'PSGallery'
+       # Context 'When passing type is ''PackageSource'' and passing a package source that does not exist' {
+       #     BeforeAll {
+       #         $mockParameterName = 'PSGallery'
 
-                Mock -CommandName Get-PackageSource
-            }
-        }
+       #         Mock -CommandName Get-PackageSource
+       #     }
+       # }
 
         Context 'When passing invalid type in parameter ''Type''' {
             BeforeAll {

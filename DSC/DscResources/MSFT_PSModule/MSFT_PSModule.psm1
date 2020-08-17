@@ -85,6 +85,7 @@ function Get-TargetResource {
         Ensure             = 'Absent'
         Name               = $Name
         Repository         = $Repository
+        Priority           = $null
         Description        = $null
         Guid               = $null
         ModuleBase         = $null
@@ -99,6 +100,11 @@ function Get-TargetResource {
     }
 
     Write-Verbose -Message ($localizedData.GetTargetResourceMessage -f $Name)
+    Write-Verbose("Name:")
+
+    Write-Verbose("Name: $Name")
+    Write-Verbose("Repository: $Repository")
+    Write-Verbose("Version: $Version")
 
     $extractedArguments = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
     -ArgumentNames ('Name', 'Repository', 'Version')
@@ -135,6 +141,7 @@ function Get-TargetResource {
             ##$Trusted = $false
         ##}
 
+        Write-Verbose("returning value")
         $returnValue.Ensure = 'Present'
         $returnValue.Repository = $repositoryName
         $returnValue.Description = $latestModule.Description
@@ -333,7 +340,7 @@ function Set-TargetResource {
 
     # Validate the repository argument
     if ($PSBoundParameters.ContainsKey('Repository')) {
-        Test-ParameterValue -Value $Repository -Type 'PackageSource' -ProviderName 'PowerShellGet' -Verbose
+        #Test-ParameterValue -Value $Repository -Type 'PackageSource' -Verbose
     }
 
     if ($Ensure -ieq 'Present') {
@@ -343,31 +350,38 @@ function Set-TargetResource {
 
        # $null = Test-VersionParameter @extractedArguments
 
+       $trusted = $null
+       $moduleFound = $null
+
         try {
             $extractedArguments = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
             -ArgumentNames ('Name', 'Repository', 'Version')
 
             Write-Verbose -Message ($localizedData.StartFindModule -f $Name)
-
+            Write-verbose ("Name is: $name")
+            Write-verbose ("Repository is: $repository")
+            Write-verbose ("Version is: $Version")
+            
             $modules = Find-PSResource @extractedArguments -ErrorVariable ev -ErrorAction SilentlyContinue
+
+            Write-verbose ("modules is: $modules")
+            $moduleFound = $modules[0]
         }
         catch {
             $errorMessage = $script:localizedData.ModuleNotFoundInRepository -f $Name
             New-InvalidOperationException -Message $errorMessage -ErrorRecord $_
         }
 
-        $trusted = $null
-        $moduleFound = $null
 
         foreach ($m in $modules) {
             # Check for the installation policy.
-            $trusted = Get-InstallationPolicy -RepositoryName $m.Repository -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+            #$trusted = Get-InstallationPolicy -RepositoryName $m.Repository -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
 
             # Stop the loop if found a trusted repository.
-            if ($trusted) {
-                $moduleFound = $m
-                break;
-            }
+            #if ($trusted) {
+               # $moduleFound = $m
+               # break;
+            #}
         }
 
         try {

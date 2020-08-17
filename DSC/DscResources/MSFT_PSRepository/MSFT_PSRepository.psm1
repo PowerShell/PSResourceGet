@@ -39,19 +39,16 @@ function Get-TargetResource {
     $returnValue = @{
         Ensure                    = 'Absent'
         Name                      = $Name
-        SourceLocation            = $null
-        ScriptSourceLocation      = $null
-        PublishLocation           = $null
-        ScriptPublishLocation     = $null
-        InstallationPolicy        = $null
-        PackageManagementProvider = $null
-        Trusted                   = $false
+        URL                       = $null
+        Priority                  = $null
+        #InstallationPolicy        = $null
+        #Trusted                   = $false
         Registered                = $false
     }
 
     Write-Verbose -Message ($localizedData.GetTargetResourceMessage -f $Name)
 
-    $repository = Get-PSRepository -Name $Name -ErrorAction 'SilentlyContinue'
+    $repository = Get-PSResourceRepository -Name $Name -ErrorAction 'SilentlyContinue'
 
     if ($repository) {
         $returnValue.Ensure = 'Present'
@@ -128,28 +125,16 @@ function Test-TargetResource {
 
         [Parameter()]
         [System.String]
-        $SourceLocation,
+        $URL,
 
         [Parameter()]
         [System.String]
-        $ScriptSourceLocation,
-
-        [Parameter()]
-        [System.String]
-        $PublishLocation,
-
-        [Parameter()]
-        [System.String]
-        $ScriptPublishLocation,
+        $Priority,
 
         [Parameter()]
         [ValidateSet('Trusted', 'Untrusted')]
         [System.String]
-        $InstallationPolicy = 'Untrusted',
-
-        [Parameter()]
-        [System.String]
-        $PackageManagementProvider = 'NuGet'
+        $InstallationPolicy = 'Untrusted'
     )
 
     Write-Verbose -Message ($localizedData.TestTargetResourceMessage -f $Name)
@@ -164,12 +149,9 @@ function Test-TargetResource {
                 -CurrentValues $getTargetResourceResult `
                 -DesiredValues $PSBoundParameters `
                 -ValuesToCheck @(
-                'SourceLocation'
-                'ScriptSourceLocation'
-                'PublishLocation'
-                'ScriptPublishLocation'
-                'InstallationPolicy'
-                'PackageManagementProvider'
+                'URL'
+                'Priority'
+                #'InstallationPolicy'
             )
         }
         else {
@@ -243,44 +225,26 @@ function Set-TargetResource {
 
         [Parameter()]
         [System.String]
-        $SourceLocation,
-
-        [Parameter()]
-        [System.String]
-        $ScriptSourceLocation,
-
-        [Parameter()]
-        [System.String]
-        $PublishLocation,
-
-        [Parameter()]
-        [System.String]
-        $ScriptPublishLocation,
+        $URL,
 
         [Parameter()]
         [ValidateSet('Trusted', 'Untrusted')]
         [System.String]
-        $InstallationPolicy = 'Untrusted',
-
-        [Parameter()]
-        [System.String]
-        $PackageManagementProvider = 'NuGet'
+        $InstallationPolicy = 'Untrusted'
     )
 
     $getTargetResourceResult = Get-TargetResource -Name $Name
 
+    Write-Verbose("Name: $Name")
+    Write-Verbose("URL: $URL")
     # Determine if the repository should be present or absent.
     if ($Ensure -eq 'Present') {
         $repositoryParameters = New-SplatParameterHashTable `
             -FunctionBoundParameters $PSBoundParameters `
             -ArgumentNames @(
             'Name'
-            'SourceLocation'
-            'ScriptSourceLocation'
-            'PublishLocation'
-            'ScriptPublishLocation'
-            'InstallationPolicy'
-            'PackageManagementProvider'
+            'URL'
+            #'InstallationPolicy'
         )
 
         # Determine if the repository is already present.
@@ -288,13 +252,13 @@ function Set-TargetResource {
             Write-Verbose -Message ($localizedData.RepositoryExist -f $Name)
 
             # Repository exist, update the properties.
-            Set-PSRepository @repositoryParameters -ErrorAction 'Stop'
+            Set-PSResourceRepository @repositoryParameters -ErrorAction 'Stop'
         }
         else {
             Write-Verbose -Message ($localizedData.RepositoryDoesNotExist -f $Name)
 
             # Repository did not exist, create the repository.
-            Register-PSRepository @repositoryParameters -ErrorAction 'Stop'
+            Register-PSResourceRepository @repositoryParameters -ErrorAction 'Stop'
         }
     }
     else {
@@ -302,7 +266,7 @@ function Set-TargetResource {
             Write-Verbose -Message ($localizedData.RemoveExistingRepository -f $Name)
 
             # Repository did exist, remove the repository.
-            Unregister-PSRepository -Name $Name -ErrorAction 'Stop'
+            Unregister-PSResourceRepository -Name $Name -ErrorAction 'Stop'
         }
     }
 }
