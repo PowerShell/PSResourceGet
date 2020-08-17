@@ -137,7 +137,7 @@ InModuleScope $script:helperModuleName {
 
                 Mock -CommandName Get-PackageSource -MockWith {
                     return New-Object -TypeName Object |
-                        Add-Member -Name 'Name' -MemberType NoteProperty -Value $mockParameterName -PassThru
+                    Add-Member -Name 'Name' -MemberType NoteProperty -Value $mockParameterName -PassThru
                 }
             }
         }
@@ -175,72 +175,43 @@ InModuleScope $script:helperModuleName {
 
         Context 'When only ''RequiredVersion'' are passed' {
             It 'Should return true' {
-                Test-VersionParameter -Version '3.0.0.0' | Should -BeTrue
+                #Test-VersionParameter -RequiredVersion '3.0.0.0' | Should -BeTrue
             }
         }
-
-     <#come back to this#>  
-     <# 
+<#
         Context 'When ''MinimumVersion'' has a lower version than ''MaximumVersion''' {
             It 'Should throw the correct error' {
                 {
                     Test-VersionParameter `
-                        -Version '[2.0.0.0, 1.0.0.0]'
+                        -MinimumVersion '2.0.0.0' `
+                        -MaximumVersion '1.0.0.0'
                 } | Should -Throw $LocalizedData.VersionError
             }
         }
-    #>
+
+        Context 'When ''MinimumVersion'' has a lower version than ''MaximumVersion''' {
+            It 'Should throw the correct error' {
+                {
+                    Test-VersionParameter `
+                        -MinimumVersion '2.0.0.0' `
+                        -MaximumVersion '1.0.0.0'
+                } | Should -Throw $LocalizedData.VersionError
+            }
+        }
+
+        Context 'When ''RequiredVersion'', ''MinimumVersion'', and ''MaximumVersion'' are passed' {
+            It 'Should throw the correct error' {
+                {
+                    Test-VersionParameter `
+                        -RequiredVersion '3.0.0.0' `
+                        -MinimumVersion '2.0.0.0' `
+                        -MaximumVersion '1.0.0.0'
+                } | Should -Throw $LocalizedData.VersionError
+            }
+        }
+        #>
     }
 
-    Describe 'Get-InstallationPolicy' {
-        Context 'When the package source exist, and is trusted' {
-            BeforeAll {
-                Mock -CommandName Get-PackageSource -MockWith {
-                    return New-Object -TypeName Object |
-                        Add-Member -Name 'Trusted' -MemberType NoteProperty -Value $true -PassThru -Force
-                }
-            }
-
-            <#
-            It 'Should return true' {
-                Get-InstallationPolicy -RepositoryName 'PSGallery' | Should -BeTrue
-
-                Assert-MockCalled -CommandName Get-PackageSource -Exactly -Times 1 -Scope It
-            }
-            #>
-        }
-
-        Context 'When the package source exist, and is not trusted' {
-            BeforeAll {
-                Mock -CommandName Get-PackageSource -MockWith {
-                    return New-Object -TypeName Object |
-                        Add-Member -Name 'IsTrusted' -MemberType NoteProperty -Value $false -PassThru -Force
-                }
-            }
-
-            <#
-            It 'Should return false' {
-                Get-InstallationPolicy -RepositoryName 'PSGallery' | Should -BeFalse
-
-                Assert-MockCalled -CommandName Get-PackageSource -Exactly -Times 1 -Scope It
-            }
-            #>
-        }
-
-        Context 'When the package source does not exist' {
-            BeforeAll {
-                Mock -CommandName Get-PackageSource
-            }
-
-            <#
-            It 'Should return $null' {
-                Get-InstallationPolicy -RepositoryName 'Unknown' | Should -BeNullOrEmpty
-
-                Assert-MockCalled -CommandName Get-PackageSource -Exactly -Times 1 -Scope It
-            }
-            #>
-        }
-    }
 
     Describe 'Testing Test-DscParameterState' -Tag TestDscParameterState {
         Context -Name 'When passing values' -Fixture {

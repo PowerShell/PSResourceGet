@@ -104,7 +104,6 @@ try {
                         BeforeEach {
                             Mock -CommandName Get-RightModule -MockWith $mockGetRightModule_SingleModule
                             Mock -CommandName Get-ModuleRepositoryName -MockWith $mockGetModuleRepositoryName
-                            Mock -CommandName Get-InstallationPolicy -MockWith $mockGetInstallationPolicy_Trusted
                         }
 
                         It 'Should return the same values as passed as parameters' {
@@ -113,7 +112,6 @@ try {
 
                             Assert-MockCalled -CommandName Get-RightModule -Exactly -Times 1 -Scope It
                             Assert-MockCalled -CommandName Get-ModuleRepositoryName -Exactly -Times 1 -Scope It
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
                         }
 
                         It 'Should return the correct values for the other properties' {
@@ -127,11 +125,9 @@ try {
                             $getTargetResourceResult.ModuleType | Should -Be $mockModule_v1.ModuleType
                             $getTargetResourceResult.Author | Should -Be $mockModule_v1.Author
                             $getTargetResourceResult.InstalledVersion | Should -Be $mockModule_v1.Version
-                            $getTargetResourceResult.Trusted | Should -Be $true
 
                             Assert-MockCalled -CommandName Get-RightModule -Exactly -Times 1 -Scope It
                             Assert-MockCalled -CommandName Get-ModuleRepositoryName -Exactly -Times 1 -Scope It
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
                         }
                     }
 
@@ -139,7 +135,6 @@ try {
                         BeforeEach {
                             Mock -CommandName Get-RightModule -MockWith $mockGetRightModule_SingleModule
                             Mock -CommandName Get-ModuleRepositoryName -MockWith $mockGetModuleRepositoryName
-                            Mock -CommandName Get-InstallationPolicy -MockWith $mockGetInstallationPolicy_NotTrusted
                         }
 
                         It 'Should return the same values as passed as parameters' {
@@ -148,8 +143,7 @@ try {
 
                             Assert-MockCalled -CommandName Get-RightModule -Exactly -Times 1 -Scope It
                             Assert-MockCalled -CommandName Get-ModuleRepositoryName -Exactly -Times 1 -Scope It
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
-                        }
+                       }
 
                         It 'Should return the correct values for the other properties' {
                             $getTargetResourceResult = Get-TargetResource -Name $mockModuleName
@@ -162,11 +156,9 @@ try {
                             $getTargetResourceResult.ModuleType | Should -Be $mockModule_v1.ModuleType
                             $getTargetResourceResult.Author | Should -Be $mockModule_v1.Author
                             $getTargetResourceResult.InstalledVersion | Should -Be $mockModule_v1.Version
-                            $getTargetResourceResult.Trusted | Should -Be $false
 
                             Assert-MockCalled -CommandName Get-RightModule -Exactly -Times 1 -Scope It
                             Assert-MockCalled -CommandName Get-ModuleRepositoryName -Exactly -Times 1 -Scope It
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
                         }
                     }
 
@@ -174,7 +166,6 @@ try {
                         BeforeEach {
                             Mock -CommandName Get-RightModule -MockWith $mockGetRightModule_MultipleModules
                             Mock -CommandName Get-ModuleRepositoryName -MockWith $mockGetModuleRepositoryName
-                            Mock -CommandName Get-InstallationPolicy -MockWith $mockGetInstallationPolicy_Trusted
                         }
 
                         It 'Should return the same values as passed as parameters' {
@@ -183,7 +174,6 @@ try {
 
                             Assert-MockCalled -CommandName Get-RightModule -Exactly -Times 1 -Scope It
                             Assert-MockCalled -CommandName Get-ModuleRepositoryName -Exactly -Times 1 -Scope It
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
                         }
 
                         It 'Should return the correct module version' {
@@ -202,11 +192,9 @@ try {
                             $getTargetResourceResult.ModuleBase | Should -Be $mockModule_v2.ModuleBase
                             $getTargetResourceResult.ModuleType | Should -Be $mockModule_v2.ModuleType
                             $getTargetResourceResult.Author | Should -Be $mockModule_v2.Author
-                            $getTargetResourceResult.Trusted | Should -Be $true
 
                             Assert-MockCalled -CommandName Get-RightModule -Exactly -Times 1 -Scope It
                             Assert-MockCalled -CommandName Get-ModuleRepositoryName -Exactly -Times 1 -Scope It
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
                         }
                     }
                 }
@@ -215,7 +203,6 @@ try {
                     BeforeEach {
                         Mock -CommandName Get-RightModule
                         Mock -CommandName Get-ModuleRepositoryName
-                        Mock -CommandName Get-InstallationPolicy
                     }
 
                     It 'Should return the same values as passed as parameters' {
@@ -225,7 +212,6 @@ try {
 
                         Assert-MockCalled -CommandName Get-RightModule -Exactly -Times 1 -Scope It
                         Assert-MockCalled -CommandName Get-ModuleRepositoryName -Exactly -Times 0 -Scope It
-                        Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 0 -Scope It
                     }
 
                     It 'Should return the correct values for the other properties' {
@@ -237,17 +223,14 @@ try {
                         $getTargetResourceResult.ModuleBase | Should -BeNullOrEmpty
                         $getTargetResourceResult.ModuleType | Should -BeNullOrEmpty
                         $getTargetResourceResult.Author | Should -BeNullOrEmpty
-                        $getTargetResourceResult.InstalledVersion | Should -BeNullOrEmpty
-                        $getTargetResourceResult.Trusted | Should -BeNullOrEmpty
-                        $getTargetResourceResult.RequiredVersion | Should -BeNullOrEmpty
-                        $getTargetResourceResult.MinimumVersion | Should -BeNullOrEmpty
-                        $getTargetResourceResult.MaximumVersion | Should -BeNullOrEmpty
-    #               $getTargetResourceResult.NoClobber | Should -Be $true
+                        #$getTargetResourceResult.InstalledVersion | Should -BeNullOrEmpty
+                        #$getTargetResourceResult.Trusted | Should -BeNullOrEmpty
+                        $getTargetResourceResult.Version | Should -BeNullOrEmpty
+                        $getTargetResourceResult.NoClobber | Should -Be $false
                         $getTargetResourceResult.SkipPublisherCheck | Should -Be $false
 
                         Assert-MockCalled -CommandName Get-RightModule -Exactly -Times 1 -Scope It
                         Assert-MockCalled -CommandName Get-ModuleRepositoryName -Exactly -Times 0 -Scope It
-                        Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 0 -Scope It
                     }
                 }
             }
@@ -262,9 +245,6 @@ try {
                     }
 
                     Context 'When the repository is ''Trusted''' {
-                        BeforeAll {
-                            Mock -CommandName Get-InstallationPolicy -MockWith $mockGetInstallationPolicy_Trusted
-                        }
 
                         ##### return here
                         $mockModuleName = 'ContosoServer'
@@ -277,18 +257,10 @@ try {
                             { Set-TargetResource -Name $mockModuleName -Trusted 'Trusted' -Repository $repository} | Should -Not -Throw
 
                             Assert-MockCalled -CommandName Find-PSResource -Exactly -Times 1 -Scope It
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
-                           
-                            ###Assert-MockCalled -CommandName Install-PSResource -ParameterFilter {
-                            ####    $InputObject.Name -eq $mockModuleName
-                            ###} -Exactly -Times 1 -Scope It
                         }
                     }
 
                     Context 'When the InstallationPolicy is ''Trusted''' {
-                        BeforeAll {
-                            Mock -CommandName Get-InstallationPolicy -MockWith $mockGetInstallationPolicy_NotTrusted
-                        }
 
                         It 'Should call the Install-Module with the correct parameters' {
                             { 
@@ -298,10 +270,6 @@ try {
                                 Set-TargetResource -Name $mockModuleName -repository $repository -Trusted $true } | Should -Not -Throw
 
                             Assert-MockCalled -CommandName Find-PSResource -Exactly -Times 1 -Scope It
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
-                            #Assert-MockCalled -CommandName Install-PSResource -ParameterFilter {
-                            #    $InputObject.Name -eq $mockModuleName
-                            #} -Exactly -Times 1 -Scope It
                         }
                     }
 
@@ -314,27 +282,16 @@ try {
                         It 'Should call the Install-Module with the correct parameters' {
                             { Set-TargetResource -Name $mockModuleName -Repository 'PSGallery' -Version '1.0.0.0' -Trusted } | Should -Not -Throw
 
-                            Assert-MockCalled -CommandName Get-InstallationPolicy -Exactly -Times 1 -Scope It
                             Assert-MockCalled -CommandName Find-PSResource -ParameterFilter {
                                 $Name -eq $mockModuleName -and $Repository -eq 'PSGallery'
                             } -Exactly -Times 1 -Scope It
 
-                            #Assert-MockCalled -CommandName Install-PSResource -ParameterFilter {
-                            #    $InputObject.Name -eq $mockModuleName -and $InputObject.Repository -eq 'PSGallery'
-                            #} -Exactly -Times 1 -Scope It
+                            Assert-MockCalled -CommandName Install-Module -ParameterFilter {
+                                $InputObject.Name -eq $mockModuleName -and $InputObject.Repository -eq 'PSGallery'
+                            } -Exactly -Times 1 -Scope It
                         }
                     }
 
-                    Context 'When the InstallationPolicy is ''Untrusted'' and the repository is ''Untrusted''' {
-                        BeforeAll {
-                            Mock -CommandName Get-InstallationPolicy -MockWith $mockGetInstallationPolicy_NotTrusted
-                        }
-
-                        It 'Should throw the correct error' {
-                            { Set-TargetResource -Name $mockModuleName } |
-                                Should -Throw ($localizedData.InstallationPolicyFailed -f 'Untrusted', 'Untrusted')
-                        }
-                    }
 
                     Context 'When the module name cannot be found' {
                         BeforeAll {
@@ -410,7 +367,7 @@ try {
                                 ModuleType         = $mockModule_v1.ModuleType
                                 Author             = $mockModule_v1.Author
                                 InstalledVersion   = $mockModule_v1.Version
-                                Trusted            = $false
+                                #InstallationPolicy = 'Untrusted'
                             }
                         }
                     }
@@ -436,7 +393,7 @@ try {
                                 ModuleType         = $null
                                 Author             = $null
                                 InstalledVersion   = $null
-                                Trusted            = $false
+                                #InstallationPolicy = $null
                             }
                         }
                     }
@@ -464,7 +421,7 @@ try {
                                 ModuleType         = $mockModule_v1.ModuleType
                                 Author             = $mockModule_v1.Author
                                 InstalledVersion   = $mockModule_v1.Version
-                                Trusted            = $false
+                                #InstallationPolicy = 'Untrusted'
                             }
                         }
                     }
@@ -490,7 +447,7 @@ try {
                                 ModuleType         = $null
                                 Author             = $null
                                 InstalledVersion   = $null
-                                Trusted            = $false
+                                # = $null
                             }
                         }
                     }
@@ -628,19 +585,6 @@ try {
                     Mock -CommandName Get-Module -MockWith $mockGetModule_SingleModule
                 }
 
-                ### come back here
-                <#
-                It 'Should return the correct module information' {
-                    ###$getRightModuleResult = Get-RightModule -Name $mockModuleName -MaximumVersion '1.0.0.0' -Verbose
-                    $getRightModuleResult = Get-RightModule -Name $mockModuleName -Version "[,1.0.0.0]" -Verbose
-                    $getRightModuleResult.Name  | Should -Be $mockModuleName
-
-                    Assert-MockCalled -CommandName 'Get-ModuleRepositoryName' -Exactly -Times 0 -Scope It
-                    Assert-MockCalled -CommandName 'Get-Module' -ParameterFilter {
-                        $Name -eq $mockModuleName
-                    } -Exactly -Times 1 -Scope It
-                }
-                #>
             }
 
             Context 'When the module is required to have a minimum version, and a suitable module is installed' {
@@ -648,17 +592,6 @@ try {
                     Mock -CommandName Get-Module -MockWith $mockGetModule_SingleModule
                 }
 
-                <#
-                It 'Should return the correct module information' {
-                    $getRightModuleResult = Get-RightModule -Name $mockModuleName -MinimumVersion '1.0.0.0' -Verbose
-                    $getRightModuleResult.Name  | Should -Be $mockModuleName
-
-                    Assert-MockCalled -CommandName 'Get-ModuleRepositoryName' -Exactly -Times 0 -Scope It
-                    Assert-MockCalled -CommandName 'Get-Module' -ParameterFilter {
-                        $Name -eq $mockModuleName
-                    } -Exactly -Times 1 -Scope It
-                }
-                #>
             }
 
             Context 'When the module is required to have a maximum version, and the suitable module is not installed' {
@@ -666,18 +599,6 @@ try {
                     Mock -CommandName Get-Module -MockWith $mockGetModule_SingleModule
                 }
 
-                <#
-                It 'Should return $null' {
-                
-                    $getRightModuleResult = Get-RightModule -Name $mockModuleName -MaximumVersion '0.9.0.0' -Verbose
-                    $getRightModuleResult.Name | Should -BeNullOrEmpty
-
-                    Assert-MockCalled -CommandName 'Get-ModuleRepositoryName' -Exactly -Times 0 -Scope It
-                    Assert-MockCalled -CommandName 'Get-Module' -ParameterFilter {
-                        $Name -eq $mockModuleName
-                    } -Exactly -Times 1 -Scope It
-                }
-                #>
             }
 
             Context 'When the module is required to have a minimum version, and the suitable module is not installed' {
@@ -685,17 +606,6 @@ try {
                     Mock -CommandName Get-Module -MockWith $mockGetModule_SingleModule
                 }
 
-                <#
-                It 'Should return $null' {
-                    $getRightModuleResult = Get-RightModule -Name $mockModuleName -MinimumVersion '2.0.0.0' -Verbose
-                    $getRightModuleResult.Name | Should -BeNullOrEmpty
-
-                    Assert-MockCalled -CommandName 'Get-ModuleRepositoryName' -Exactly -Times 0 -Scope It
-                    Assert-MockCalled -CommandName 'Get-Module' -ParameterFilter {
-                        $Name -eq $mockModuleName
-                    } -Exactly -Times 1 -Scope It
-                }
-                #>
             }
 
             Context 'When the module is required to have a minimum and maximum version' {
@@ -704,17 +614,6 @@ try {
                         Mock -CommandName Get-Module -MockWith $mockGetModule_SingleModule
                     }
 
-                    <#
-                    It 'Should return the correct module information' {
-                        $getRightModuleResult = Get-RightModule -Name $mockModuleName -MinimumVersion '0.9.0.0' -MaximumVersion '2.0.0.0' -Verbose
-                        $getRightModuleResult.Name  | Should -Be $mockModuleName
-
-                        Assert-MockCalled -CommandName 'Get-ModuleRepositoryName' -Exactly -Times 0 -Scope It
-                        Assert-MockCalled -CommandName 'Get-Module' -ParameterFilter {
-                            $Name -eq $mockModuleName
-                        } -Exactly -Times 1 -Scope It
-                    }
-                    #>
                 }
 
                 Context 'When there two suitable modules installed' {
@@ -722,19 +621,6 @@ try {
                         Mock -CommandName Get-Module -MockWith $mockGetModule_MultipleModules
                     }
 
-                    <#
-                    It 'Should return the correct module information' {
-                        $getRightModuleResult = Get-RightModule -Name $mockModuleName -MinimumVersion '0.9.0.0' -MaximumVersion '2.0.0.0' -Verbose
-                        $getRightModuleResult | Should -HaveCount 2
-                        $getRightModuleResult[0].Version.Major | Should -Be 1
-                        $getRightModuleResult[1].Version.Major | Should -Be 2
-
-                        Assert-MockCalled -CommandName 'Get-ModuleRepositoryName' -Exactly -Times 0 -Scope It
-                        Assert-MockCalled -CommandName 'Get-Module' -ParameterFilter {
-                            $Name -eq $mockModuleName
-                        } -Exactly -Times 1 -Scope It
-                    }
-                    #>
                 }
 
 
@@ -742,19 +628,6 @@ try {
                     BeforeEach {
                         Mock -CommandName Get-Module -MockWith $mockGetModule_MultipleModules
                     }
-
-                    <#
-                    It 'Should return the correct module information' {
-                        $getRightModuleResult = Get-RightModule -Name $mockModuleName -MinimumVersion '1.1.0.0' -MaximumVersion '2.0.0.0' -Verbose
-                        $getRightModuleResult | Should -HaveCount 1
-                        $getRightModuleResult[0].Version.Major | Should -Be 2
-
-                        Assert-MockCalled -CommandName 'Get-ModuleRepositoryName' -Exactly -Times 0 -Scope It
-                        Assert-MockCalled -CommandName 'Get-Module' -ParameterFilter {
-                            $Name -eq $mockModuleName
-                        } -Exactly -Times 1 -Scope It
-                    }
-                    #>
                 }
             }
         }

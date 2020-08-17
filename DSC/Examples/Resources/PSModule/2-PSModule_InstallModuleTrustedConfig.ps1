@@ -70,7 +70,7 @@ configuration PSModule_InstallModuleTrustedConfig
         PSModule 'InstallModuleAsTrusted'
         {
             Name               = $ModuleName
-            Trusted = $true
+            InstallationPolicy = 'Trusted'
         }
     }
 }

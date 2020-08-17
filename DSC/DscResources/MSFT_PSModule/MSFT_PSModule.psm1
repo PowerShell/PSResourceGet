@@ -94,13 +94,14 @@ function Get-TargetResource {
         Version            = $Version
         NoClobber          = $NoClobber
         SkipPublisherCheck = $SkipPublisherCheck
+        InstallationPolicy = $null
         Trusted            = $false
     }
 
     Write-Verbose -Message ($localizedData.GetTargetResourceMessage -f $Name)
 
     $extractedArguments = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
-        -ArgumentNames ('Name', 'Repository', 'Version')
+    -ArgumentNames ('Name', 'Repository', 'Version')
 
     # Get the module with the right version and repository properties.
     $modules = Get-RightModule @extractedArguments -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
@@ -121,9 +122,18 @@ function Get-TargetResource {
         # Check if the repository matches.
         $repositoryName = Get-ModuleRepositoryName -Module $latestModule -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
 
-        if ($repositoryName) {
-            $trusted = Get-InstallationPolicy -RepositoryName $repositoryName -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
-        }
+        ##if ($repositoryName) {
+          ## $installationPolicy = Get-InstallationPolicy -RepositoryName $repositoryName -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+        ##}
+
+        ##if ($installationPolicy) {
+        ##    $installationPolicyReturnValue = 'Trusted'
+        ##    $Trusted = $true
+        ##}
+        ##else {
+            ##$installationPolicyReturnValue = 'Untrusted'
+            ##$Trusted = $false
+        ##}
 
         $returnValue.Ensure = 'Present'
         $returnValue.Repository = $repositoryName
@@ -133,6 +143,7 @@ function Get-TargetResource {
         $returnValue.ModuleType = $latestModule.ModuleType
         $returnValue.Author = $latestModule.Author
         $returnValue.InstalledVersion = $latestModule.Version
+        $returnValue.InstallationPolicy = $installationPolicyReturnValue
         $returnValue.Trusted = $trusted
     }
     else {
@@ -157,6 +168,9 @@ function Get-TargetResource {
 
     .PARAMETER Repository
         Specifies the name of the module source repository where the module can be found.
+
+    .PARAMETER InstallationPolicy
+        Determines whether you trust the source repository where the module resides.
 
     .PARAMETER Trusted
         Determines whether you trust the source repository where the module resides.
@@ -197,6 +211,11 @@ function Test-TargetResource {
         $Repository = 'PSGallery',
 
         [Parameter()]
+        [ValidateSet('Trusted', 'Untrusted')]
+        [System.String]
+        $InstallationPolicy = 'Untrusted',
+
+        [Parameter()]
         [System.Boolean]
         $Trusted = $false,
 
@@ -216,7 +235,7 @@ function Test-TargetResource {
     Write-Verbose -Message ($localizedData.TestTargetResourceMessage -f $Name)
 
     $extractedArguments = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
-        -ArgumentNames ('Name', 'Repository', 'Version')
+    -ArgumentNames ('Name', 'Repository', 'Version')
 
     $status = Get-TargetResource @extractedArguments
 
@@ -246,6 +265,9 @@ function Test-TargetResource {
 
     .PARAMETER Repository
         Specifies the name of the module source repository where the module can be found.
+
+    .PARAMETER InstallationPolicy
+        Determines whether you trust the source repository where the module resides.
 
     .PARAMETER Trusted
         Determines whether you trust the source repository where the module resides.
@@ -288,6 +310,11 @@ function Set-TargetResource {
         $Repository = 'PSGallery',
 
         [Parameter()]
+        [ValidateSet('Trusted', 'Untrusted')]
+        [System.String]
+        $InstallationPolicy = 'Untrusted',
+
+        [Parameter()]
         [System.Boolean]
         $Trusted = $false,
 
@@ -312,12 +339,13 @@ function Set-TargetResource {
     if ($Ensure -ieq 'Present') {
         # Version check
         $extractedArguments = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
-            -ArgumentNames ('Version')
+        -ArgumentNames ('Version')
 
-        #$null = Test-VersionParameter @extractedArguments
+       # $null = Test-VersionParameter @extractedArguments
+
         try {
             $extractedArguments = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
-                -ArgumentNames ('Name', 'Repository', 'Version')
+            -ArgumentNames ('Name', 'Repository', 'Version')
 
             Write-Verbose -Message ($localizedData.StartFindModule -f $Name)
 
@@ -344,32 +372,31 @@ function Set-TargetResource {
 
         try {
             # The repository is trusted, so we install it.
-            if ($trusted) {
-                Write-Verbose -Message ($localizedData.StartInstallModule -f $Name, $moduleFound.Version.toString(), $moduleFound.Repository)
+            #if ($trusted) {
+            #    Write-Verbose -Message ($localizedData.StartInstallModule -f $Name, $moduleFound.Version.toString(), $moduleFound.Repository)
 
                 # Extract the installation options.
-               # $extractedSwitches = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters -ArgumentNames ('SkipPublisherCheck')
-                #$extractedSwitches = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
-                #-ArgumentNames ('Name', 'Repository', 'Version', 'SkipPublisherCheck')
-                #$moduleFound | Install-PSResource -name $name -Repository $Repository -TrustRepository:$TrustRepository -NoClobber:$NoClobber #$SkipPublisherCheck,
-                Install-PSResource -name $moduleFound.Name -Repository $moduleFound.Repository -version $moduleFound.Version -TrustRepository:$TrustRepository -NoClobber:$NoClobber #$SkipPublisherCheck,
-            }
+                ## $extractedSwitches = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters -ArgumentNames ('Force', 'AllowClobber', 'SkipPublisherCheck')
+
+                ## $moduleFound | Install-Module @extractedSwitches 2>&1 | out-string | Write-Verbose
+            Install-PSResource -name $moduleFound.Name -Repository $moduleFound.Repository -version $moduleFound.Version -TrustRepository:$true -NoClobber:$NoClobber -Verbose #$SkipPublisherCheck,
+
+            ##}
             # The repository is untrusted but user's installation policy is trusted, so we install it with a warning.
-            else { #if ($trusted) {
-                Write-Warning -Message ($localizedData.InstallationPolicyWarning -f $Name, $modules[0].Repository, $InstallationPolicy)
+            ##elseif ($InstallationPolicy -ieq $true) {
+            ##    Write-Warning -Message ($localizedData.InstallationPolicyWarning -f $Name, $modules[0].Repository, $InstallationPolicy)
+
                 # Extract installation options (Force implied by InstallationPolicy).
-                #$extractedSwitches = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters -ArgumentNames ('SkipPublisherCheck')
-               
+                ## $extractedSwitches = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters -ArgumentNames ('AllowClobber', 'SkipPublisherCheck')
+
                 # If all the repositories are untrusted, we choose the first one.
-                #$modules[0] | Install-PSResource @extractedSwitches -Force 2>&1 | out-string | Write-Verbose
-               # Install-PSResource -name $Name -Repository $Repository -TrustRepository:$TrustRepository -NoClobber:$NoClobber #$SkipPublisherCheck,
-                Install-PSResource -name $Name -Repository $Repository -TrustRepository:$true -NoClobber:$NoClobber #$SkipPublisherCheck,
-            }
+                ## $modules[0] | Install-Module @extractedSwitches -Force 2>&1 | out-string | Write-Verbose
+           ## }
             # Both user and repository is untrusted
-            #else {
-            #    $errorMessage = $script:localizedData.InstallationPolicyFailed -f $InstallationPolicy, 'Untrusted'
-            #    New-InvalidOperationException -Message $errorMessage
-           # }
+            ##else {
+            ##    $errorMessage = $script:localizedData.InstallationPolicyFailed -f $InstallationPolicy, 'Untrusted'
+            ##    New-InvalidOperationException -Message $errorMessage
+            ##}
 
             Write-Verbose -Message ($localizedData.InstalledSuccess -f $Name)
         }
@@ -382,7 +409,7 @@ function Set-TargetResource {
     else {
 
         $extractedArguments = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
-            -ArgumentNames ('Name', 'Repository', 'Version')
+        -ArgumentNames ('Name', 'Repository', 'Version')
 
         # Get the module with the right version and repository properties.
         $modules = Get-RightModule @extractedArguments
@@ -469,14 +496,13 @@ function Get-RightModule {
     #>
 
     $extractedArguments = New-SplatParameterHashTable -FunctionBoundParameters $PSBoundParameters `
-        -ArgumentNames ('Version')
+    -ArgumentNames ('Version')
     $returnVal = @()
 
     foreach ($m in $modules) {
         $versionMatch = $false
         $installedVersion = $m.Version
 
-        
         # Case 1 - a user provides none of RequiredVersion, MinimumVersion, MaximumVersion
         if ($extractedArguments.Count -eq 0) {
             $versionMatch = $true

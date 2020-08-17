@@ -131,7 +131,7 @@ Describe "$script:helperModuleName Unit Tests" {
                     $exception = { New-InvalidResultException -Message $mockErrorMessage -ErrorRecord $mockErrorRecord -ErrorAction SilentlyContinue}
                     $exception | Should -Throw -PassThru $_ | Should -Match ('System.Exception: {0}' -f $mockErrorMessage) 
                     $exception | Should -Throw -PassThru $_ | Should -Match ('System.Exception: {0}' -f $mockExceptionErrorMessage)
-                }
+                       }
             }
 
             Assert-VerifiableMock
@@ -153,11 +153,11 @@ Describe "$script:helperModuleName Unit Tests" {
 
                     $mockException = New-Object -TypeName System.Exception -ArgumentList $mockExceptionErrorMessage
                     $mockErrorRecord = New-Object -TypeName System.Management.Automation.ErrorRecord -ArgumentList $mockException, $null, 'InvalidResult', $null
-              
+
                     $exception = { New-ObjectNotFoundException -Message $mockErrorMessage -ErrorRecord $mockErrorRecord }
                     $exception | Should -Throw -PassThru $_ | Should -Match ('System.Exception: {0}' -f $mockErrorMessage) 
                     $exception | Should -Throw -PassThru $_ | Should -Match ('System.Exception: {0}' -f $mockExceptionErrorMessage)
-                }
+                     }
             }
 
             Assert-VerifiableMock

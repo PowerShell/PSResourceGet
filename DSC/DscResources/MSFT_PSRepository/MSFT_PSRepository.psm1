@@ -7,10 +7,10 @@ Import-Module -Name $dscResourcesFolderFilePath
 
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_PSRepository' -ScriptRoot $PSScriptRoot
 
-# Import resource helper functions
+# Import resource helper functions.
 $helperName = 'PowerShellGet.ResourceHelper'
 $dscResourcesFolderFilePath = Join-Path -Path $resourceModuleRoot -ChildPath "Modules\$helperName\$helperName.psm1"
-Import-Module -Name $dscResourcesFolderFilePath -force
+Import-Module -Name $dscResourcesFolderFilePath
 
 <#
     .SYNOPSIS
@@ -39,20 +39,28 @@ function Get-TargetResource {
     $returnValue = @{
         Ensure                    = 'Absent'
         Name                      = $Name
-        URL                       = $null
-        Priority                  = $null
+        SourceLocation            = $null
+        ScriptSourceLocation      = $null
+        PublishLocation           = $null
+        ScriptPublishLocation     = $null
+        InstallationPolicy        = $null
+        PackageManagementProvider = $null
         Trusted                   = $false
         Registered                = $false
     }
 
     Write-Verbose -Message ($localizedData.GetTargetResourceMessage -f $Name)
 
-    $repository = Get-PSResourceRepository -Name $Name -ErrorAction 'SilentlyContinue'
+    $repository = Get-PSRepository -Name $Name -ErrorAction 'SilentlyContinue'
 
     if ($repository) {
         $returnValue.Ensure = 'Present'
-        $returnValue.URL = $repository.URL
-        $returnValue.Priority = $repository.Priority
+        $returnValue.SourceLocation = $repository.SourceLocation
+        $returnValue.ScriptSourceLocation = $repository.ScriptSourceLocation
+        $returnValue.PublishLocation = $repository.PublishLocation
+        $returnValue.ScriptPublishLocation = $repository.ScriptPublishLocation
+        $returnValue.InstallationPolicy = $repository.InstallationPolicy
+        $returnValue.PackageManagementProvider = $repository.PackageManagementProvider
         $returnValue.Trusted = $repository.Trusted
         $returnValue.Registered = $repository.Registered
     }
@@ -74,14 +82,28 @@ function Get-TargetResource {
     .PARAMETER Name
         Specifies the name of the repository to manage.
 
-    .PARAMETER URL
+    .PARAMETER SourceLocation
         Specifies the URI for discovering and installing modules from
         this repository. A URI can be a NuGet server feed, HTTP, HTTPS,
         FTP or file location.
 
-    .PARAMETER Trusted
+    .PARAMETER ScriptSourceLocation
+        Specifies the URI for the script source location.
+
+    .PARAMETER PublishLocation
+        Specifies the URI of the publish location. For example, for
+        NuGet-based repositories, the publish location is similar
+        to http://someNuGetUrl.com/api/v2/Packages.
+
+    .PARAMETER ScriptPublishLocation
+        Specifies the URI for the script publish location.
+
+    .PARAMETER InstallationPolicy
         Specifies the installation policy. Valid values are  'Trusted'
         or 'Untrusted'. The default value is 'Untrusted'.
+
+    .PARAMETER PackageManagementProvider
+        Specifies a OneGet package provider. Default value is 'NuGet'.
 #>
 function Test-TargetResource {
     <#
@@ -106,15 +128,28 @@ function Test-TargetResource {
 
         [Parameter()]
         [System.String]
-        $URL,
+        $SourceLocation,
 
         [Parameter()]
-        [System.Int32]
-        $Priority,
+        [System.String]
+        $ScriptSourceLocation,
 
         [Parameter()]
-        [System.Boolean]
-        $Trusted = $false
+        [System.String]
+        $PublishLocation,
+
+        [Parameter()]
+        [System.String]
+        $ScriptPublishLocation,
+
+        [Parameter()]
+        [ValidateSet('Trusted', 'Untrusted')]
+        [System.String]
+        $InstallationPolicy = 'Untrusted',
+
+        [Parameter()]
+        [System.String]
+        $PackageManagementProvider = 'NuGet'
     )
 
     Write-Verbose -Message ($localizedData.TestTargetResourceMessage -f $Name)
@@ -129,9 +164,12 @@ function Test-TargetResource {
                 -CurrentValues $getTargetResourceResult `
                 -DesiredValues $PSBoundParameters `
                 -ValuesToCheck @(
-                'URL'
-                'Priority'
-                'Trusted'
+                'SourceLocation'
+                'ScriptSourceLocation'
+                'PublishLocation'
+                'ScriptPublishLocation'
+                'InstallationPolicy'
+                'PackageManagementProvider'
             )
         }
         else {
@@ -160,17 +198,28 @@ function Test-TargetResource {
     .PARAMETER Name
         Specifies the name of the repository to manage.
 
-    .PARAMETER URL
+    .PARAMETER SourceLocation
         Specifies the URI for discovering and installing modules from
         this repository. A URI can be a NuGet server feed, HTTP, HTTPS,
         FTP or file location.
 
-    .PARAMETER Priority
-        Specifies the priority for the URI for the script source location.
+    .PARAMETER ScriptSourceLocation
+        Specifies the URI for the script source location.
 
-    .PARAMETER Trusted
+    .PARAMETER PublishLocation
+        Specifies the URI of the publish location. For example, for
+        NuGet-based repositories, the publish location is similar
+        to http://someNuGetUrl.com/api/v2/Packages.
+
+    .PARAMETER ScriptPublishLocation
+        Specifies the URI for the script publish location.
+
+    .PARAMETER InstallationPolicy
         Specifies the installation policy. Valid values are  'Trusted'
         or 'Untrusted'. The default value is 'Untrusted'.
+
+    .PARAMETER PackageManagementProvider
+        Specifies a OneGet package provider. Default value is 'NuGet'.
 #>
 function Set-TargetResource {
     <#
@@ -194,15 +243,28 @@ function Set-TargetResource {
 
         [Parameter()]
         [System.String]
-        $URL,
+        $SourceLocation,
 
         [Parameter()]
         [System.String]
-        $Priority = '50',
+        $ScriptSourceLocation,
 
         [Parameter()]
-        [System.Boolean]
-        $TrustRepository = $false
+        [System.String]
+        $PublishLocation,
+
+        [Parameter()]
+        [System.String]
+        $ScriptPublishLocation,
+
+        [Parameter()]
+        [ValidateSet('Trusted', 'Untrusted')]
+        [System.String]
+        $InstallationPolicy = 'Untrusted',
+
+        [Parameter()]
+        [System.String]
+        $PackageManagementProvider = 'NuGet'
     )
 
     $getTargetResourceResult = Get-TargetResource -Name $Name
@@ -213,9 +275,12 @@ function Set-TargetResource {
             -FunctionBoundParameters $PSBoundParameters `
             -ArgumentNames @(
             'Name'
-            'URL'
-            'Priority'
-            'TrustRepository'
+            'SourceLocation'
+            'ScriptSourceLocation'
+            'PublishLocation'
+            'ScriptPublishLocation'
+            'InstallationPolicy'
+            'PackageManagementProvider'
         )
 
         # Determine if the repository is already present.
@@ -223,13 +288,13 @@ function Set-TargetResource {
             Write-Verbose -Message ($localizedData.RepositoryExist -f $Name)
 
             # Repository exist, update the properties.
-            Set-PSResourceRepository @repositoryParameters -ErrorAction 'Stop'
+            Set-PSRepository @repositoryParameters -ErrorAction 'Stop'
         }
         else {
             Write-Verbose -Message ($localizedData.RepositoryDoesNotExist -f $Name)
 
             # Repository did not exist, create the repository.
-            Register-PSResourceRepository @repositoryParameters -ErrorAction 'Stop'
+            Register-PSRepository @repositoryParameters -ErrorAction 'Stop'
         }
     }
     else {
@@ -237,7 +302,7 @@ function Set-TargetResource {
             Write-Verbose -Message ($localizedData.RemoveExistingRepository -f $Name)
 
             # Repository did exist, remove the repository.
-            Unregister-PSResourceRepository -Name $Name -ErrorAction 'Stop'
+            Unregister-PSRepository -Name $Name -ErrorAction 'Stop'
         }
     }
 }

@@ -107,9 +107,8 @@ function Test-ParameterValue {
 
             $newUri = $Value -as [System.URI]
             $returnValue = ($newUri -and $newUri.AbsoluteURI -and ($scheme -icontains $newUri.Scheme))
-            Write-Host("A-1")
+
             if ($returnValue -eq $false) {
-                Write-Host("A-2")
                 $errorMessage = $script:localizedData.InValidUri -f $Value
                 New-InvalidArgumentException -ArgumentName $Type -Message $errorMessage
             }
@@ -118,36 +117,32 @@ function Test-ParameterValue {
         'DestinationPath' {
             $returnValue = Test-Path -Path $Value
 
-            Write-Host("A-3")
             if ($returnValue -eq $false) {
                 $errorMessage = $script:localizedData.PathDoesNotExist -f $Value
                 New-InvalidArgumentException -ArgumentName $Type -Message $errorMessage
             }
         }
 
+        <#
         'PackageSource' {
             # Value can be either the package source Name or source Uri.
-            Write-Host("A-4")
             # Check if the source is a Uri.
             $uri = $Value -as [System.URI]
 
             if ($uri -and $uri.AbsoluteURI) {
                 # Check if it's a valid Uri.
-                Write-Host("A-5")
                 Test-ParameterValue -Value $Value -Type 'SourceUri' -ProviderName $ProviderName
-                Write-Host("A-6")
             }
             else {
                 # Check if it's a registered package source name.
-                Write-Host("A-7")
+               # $source = PackageManagement\Get-PackageSource -Name $Value -ProviderName $ProviderName -ErrorVariable ev
 
                 if ((-not $source) -or $ev) {
-                    Write-Host("A-8")
                     # We do not need to throw error here as Get-PackageSource does already.
                     Write-Verbose -Message ($script:localizedData.SourceNotFound -f $source)
                 }
             }
-        }
+        } #>
 
         default {
             $errorMessage = $script:localizedData.UnexpectedArgument -f $Type
@@ -160,14 +155,8 @@ function Test-ParameterValue {
     .SYNOPSIS
         This is a helper function that does the version validation.
 
-    .PARAMETER RequiredVersion
-        Provides the required version.
-
-    .PARAMETER MaximumVersion
-        Provides the maximum version.
-
-    .PARAMETER MinimumVersion
-        Provides the minimum version.
+    .PARAMETER Version
+        Provides the version.
 #>
 function Test-VersionParameter {
     [CmdletBinding()]
@@ -187,14 +176,13 @@ function Test-VersionParameter {
         return $true
     }
 
-    ########## COME BACK HERE
+        ########## COME BACK HERE
     # Case 2: #If no RequiredVersion is provided.
-    if (-not $PSBoundParameters.ContainsKey('Version')) {
+    #if (-not $PSBoundParameters.ContainsKey('Version')) {
         # If no RequiredVersion, both MinimumVersion and MaximumVersion are provided. Otherwise fall into the Case #1.
-      #  $isValid = $PSBoundParameters['MinimumVersion'] -le $PSBoundParameters['MaximumVersion']
-      $isValid = $true
-    }
-
+        #$isValid = $PSBoundParameters['MinimumVersion'] -le $PSBoundParameters['MaximumVersion']
+    #}
+    $isValid = $true
     # Case 3: RequiredVersion is provided.
     #        In this case  MinimumVersion and/or MaximumVersion also are provided. Otherwise fall in to Case #1.
     #        This is an invalid case. When RequiredVersion is provided, others are not allowed. so $isValid is false, which is already set in the init.
@@ -225,11 +213,10 @@ function Get-InstallationPolicy {
 
     Write-Verbose -Message ($LocalizedData.CallingFunction -f $($MyInvocation.MyCommand))
 
-    ###$repositoryObject = PackageManagement\Get-PackageSource -Name $RepositoryName -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
     $repositoryObject = Get-PSResourceRepository -Name $RepositoryName -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
 
     if ($repositoryObject) {
-        return $repositoryObject.Trusted
+        return $repositoryObject.IsTrusted
     }
 }
 

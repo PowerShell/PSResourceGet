@@ -47,7 +47,6 @@ Configuration MSFT_PSModule_SetPackageSourceAsNotTrusted_Config
         PSRepository 'Integration_Test'
         {
             Name               = 'PSGallery'
-            InstallationPolicy = $false
         }
     }
 }
@@ -68,7 +67,6 @@ Configuration MSFT_PSModule_InstallWithTrusted_Config
         PSModule 'Integration_Test'
         {
             Name               = $Node.Module1_Name
-            Trusted            = $true
         }
     }
 }
@@ -109,7 +107,6 @@ Configuration MSFT_PSModule_SetPackageSourceAsTrusted_Config
         PSRepository 'Integration_Test'
         {
             Name               = 'PSGallery'
-            InstallationPolicy            = 'True'
         }
     }
 }
@@ -187,7 +184,7 @@ Configuration MSFT_PSModule_RequiredVersion_Config
             Name            = $Node.Module2_Name
             Version         = $Node.Module2_RequiredVersion
             NoClobber       = $false
-        }
+       }
     }
 }
 

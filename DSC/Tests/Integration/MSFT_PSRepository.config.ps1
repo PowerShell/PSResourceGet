@@ -22,8 +22,9 @@ else
                 Name                      = 'PSTestGallery'
 
                 URL                       = 'https://www.poshtestgallery.com/api/v2'
-               
-               
+
+  
+
                 TestModuleName            = 'ContosoServer'
             }
         )

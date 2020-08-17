@@ -87,7 +87,6 @@ configuration PSModule_InstallModuleWithinVersionRangeConfig
         {
             Name           = $ModuleName
             Version        = "[$MinimumVersion, $MaximumVersion]"
-
         }
     }
 }

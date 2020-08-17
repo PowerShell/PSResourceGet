@@ -5,6 +5,7 @@ class MSFT_PSModule : OMI_BaseResource
   [Key] String Name;
   [Write,ValueMap{"Present", "Absent"},Values{"Present", "Absent"}] String Ensure;
   [Write] String Repository;
+  [Write,ValueMap{"Trusted", "Untrusted"},Values{"Trusted", "Untrusted"}] String InstallationPolicy;
   [Write] Boolean Trusted;
   [Write] String Version;
   [Write] Boolean NoClobber;

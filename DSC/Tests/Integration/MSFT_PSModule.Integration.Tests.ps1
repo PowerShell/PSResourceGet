@@ -13,8 +13,6 @@
 $script:dscResourceFriendlyName = 'PSModule'
 $script:dcsResourceName = "MSFT_$($script:dscResourceFriendlyName)"
 
-write-Host ($script:dcsResourceName)
-
 #region Integration Tests
 $configurationFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:dcsResourceName).config.ps1"
 . $configurationFile
@@ -85,7 +83,6 @@ Describe "$($script:dcsResourceName)_Integration" {
 
             $resourceCurrentState.Ensure | Should -Be 'Present'
             $resourceCurrentState.Name | Should -Be $ConfigurationData.AllNodes.Module1_Name
-            $resourceCurrentState.Trusted | Should -Be $false
         }
 
         It 'Should return $true when Test-DscConfiguration is run' {
