@@ -135,6 +135,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             psInstalledScriptsInfoPath = Path.Combine(psScriptsPath, "InstalledScriptInfos");
             var psInstalledScriptsInfoPath2 = Path.Combine(psScriptsPath2, "InstalledScriptInfos");
 
+            cmdletPassedIn.WriteVerbose("Checking to see if paths exist");
+            cmdletPassedIn.WriteVerbose(string.Format("Path : '{0}'  >>> exists? '{1}", psModulesPath, Directory.Exists(psModulesPath)));
+            cmdletPassedIn.WriteVerbose(string.Format("Path : '{0}'  >>> exists? '{1}", psModulesPath2, Directory.Exists(psModulesPath2)));
+            cmdletPassedIn.WriteVerbose(string.Format("Path : '{0}'  >>> exists? '{1}", psScriptsPath, Directory.Exists(psScriptsPath)));
+            cmdletPassedIn.WriteVerbose(string.Format("Path : '{0}'  >>> exists? '{1}", psScriptsPath2, Directory.Exists(psScriptsPath2)));
+            cmdletPassedIn.WriteVerbose(string.Format("Path : '{0}'  >>> exists? '{1}", psInstalledScriptsInfoPath, Directory.Exists(psInstalledScriptsInfoPath)));
+            cmdletPassedIn.WriteVerbose(string.Format("Path : '{0}'  >>> exists? '{1}", psInstalledScriptsInfoPath2, Directory.Exists(psInstalledScriptsInfoPath2)));
+
 
             // Create PowerShell modules and scripts paths if they don't already exist
             if (!Directory.Exists(psModulesPath))
