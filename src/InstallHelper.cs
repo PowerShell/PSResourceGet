@@ -128,20 +128,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             cmdletPassedIn.WriteVerbose(string.Format("Scope is: {0}", _scope));
 
             psPath = string.Equals(_scope, "AllUsers") ? programFilesPath : myDocumentsPath;
-            psModulesPath = Path.Combine(psPath, "Modules");
-            psScriptsPath = Path.Combine(psPath, "Scripts");
+            psModulesPath = Path.Combine(psPath, "modules");
+            psScriptsPath = Path.Combine(psPath, "scripts");
+            var psModulesPath2 = Path.Combine(psPath, "Modules");
+            var psScriptsPath2 = Path.Combine(psPath, "Scripts");
             psInstalledScriptsInfoPath = Path.Combine(psScriptsPath, "InstalledScriptInfos");
+            var psInstalledScriptsInfoPath2 = Path.Combine(psScriptsPath2, "InstalledScriptInfos");
+
 
             // Create PowerShell modules and scripts paths if they don't already exist
             if (!Directory.Exists(psModulesPath))
             {
+                cmdletPassedIn.WriteVerbose(string.Format("psModulesPath is: {0}", psModulesPath));
                 Directory.CreateDirectory(psModulesPath);
+            }
+            if (!Directory.Exists(psModulesPath2))
+            {
+                cmdletPassedIn.WriteVerbose(string.Format("psModulesPath2 is: {0}", psModulesPath2));
+                Directory.CreateDirectory(psModulesPath2);
+            }
+            if (!Directory.Exists(psScriptsPath))
+            {
+                cmdletPassedIn.WriteVerbose(string.Format("psScriptsPath is: {0}", psScriptsPath));
+            }
+            if (!Directory.Exists(psScriptsPath2))
+            {
+                cmdletPassedIn.WriteVerbose(string.Format("psScriptsPath2 is: {0}", psScriptsPath2));
             }
             if (!Directory.Exists(psInstalledScriptsInfoPath))
             {
+                cmdletPassedIn.WriteVerbose(string.Format("psInstalledScriptsInfoPath is: {0}", psInstalledScriptsInfoPath));
                 Directory.CreateDirectory(psInstalledScriptsInfoPath);
             }
-
+            if (!Directory.Exists(psInstalledScriptsInfoPath2))
+            {
+                cmdletPassedIn.WriteVerbose(string.Format("psInstalledScriptsInfoPath2 is: {0}", psInstalledScriptsInfoPath2));
+                Directory.CreateDirectory(psInstalledScriptsInfoPath2);
+            }
 
             psModulesPathAllDirs = (Directory.GetDirectories(psModulesPath)).ToList();
             // Get the script metadata XML files from the 'InstalledScriptInfos' directory
