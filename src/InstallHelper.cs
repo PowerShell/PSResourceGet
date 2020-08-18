@@ -575,6 +575,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Install everything to a temp path
                 foreach (var p in pkgsToInstall)
                 {
+                    cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}", p.Identity.Id));
+
                     if (!quiet)
                     {
                         int i = 1;
@@ -622,6 +624,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         tempInstallPath,
                         logger: NullLogger.Instance,
                         CancellationToken.None).GetAwaiter().GetResult();
+
+                    cmdletPassedIn.WriteVerbose("Successfully able to download package from source");
 
                     // Need to close the .nupkg
                     result.Dispose();
@@ -704,14 +708,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
-                    var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
+                    //var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgSHAToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
                     var nuspecToDelete = Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
 
-                    File.Delete(nupkgMetadataToDelete);
+                    //File.Delete(nupkgMetadataToDelete);
+                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgSHAToDelete));
                     File.Delete(nupkgSHAToDelete);
+                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nuspecToDelete));
                     File.Delete(nuspecToDelete);
+                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgToDelete));
                     File.Delete(nupkgToDelete);
 
                     // if it's not a script, do the following:
