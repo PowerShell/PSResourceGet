@@ -85,7 +85,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // Paths are the same for both Linux and MacOS
                 myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = Path.Combine("/usr", "local", "share", "Powershell");
+                programFilesPath = Path.Combine("/usr", "local", "share", "powershell");
 
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
