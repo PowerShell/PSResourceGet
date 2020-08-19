@@ -625,7 +625,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         logger: NullLogger.Instance,
                         CancellationToken.None).GetAwaiter().GetResult();
 
-                    cmdletPassedIn.WriteVerbose("Successfully able to download package from source");
+                    cmdletPassedIn.WriteDebug(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
 
                     // Need to close the .nupkg
                     result.Dispose();
@@ -706,6 +706,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
                         }
                     }
+
+
+                    cmdletPassedIn.WriteDebug(string.Format("Directory structure of installed package: '{0}'", Directory.GetDirectories(tempInstallPath)));
 
                     var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
                     //var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
