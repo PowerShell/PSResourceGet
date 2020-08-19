@@ -728,6 +728,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1").ToLower());
                     var isScript = File.Exists(scriptPath) ? true : false;
 
+                    if (!Directory.Exists(dirNameVersion))
+                    {
+                        cmdletPassedIn.WriteDebug(string.Format("Directory does not exist, creating directory: '{0}'", dirNameVersion));
+                        Directory.CreateDirectory(dirNameVersion);
+                    }
+
                     // Create PSGetModuleInfo.xml
                     var fullinstallPath = isScript ? Path.Combine(dirNameVersion, (p.Identity.Id + "_InstalledScriptInfo.xml"))
                         : Path.Combine(dirNameVersion, "PSGetModuleInfo.xml");
@@ -855,7 +861,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     cmdletPassedIn.WriteDebug(string.Format("Installation path is: '{0}'", installPath));
 
                     var newPath = isScript ? installPath
-                        : Path.Combine(installPath, p.Identity.Id.ToString());
+                        : Path.Combine(installPath, p.Identity.Id.ToString());  /// to lower?
                     cmdletPassedIn.WriteDebug(string.Format("installation path is: '{0}'", newPath));
 
                     // When we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
@@ -863,7 +869,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // If script, just move the files over, if module, move the version directory over
                     var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
                         : Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
-                    cmdletPassedIn.WriteVerbose(string.Format("Full installation path is: '{0}'", tempModuleVersionDir));
+                     cmdletPassedIn.WriteVerbose(string.Format("Full installation path is: '{0}'", tempModuleVersionDir));
 
                     if (isScript)
                     {
