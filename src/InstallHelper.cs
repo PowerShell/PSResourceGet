@@ -852,13 +852,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // Copy to proper path
                     var installPath = isScript ? psScriptsPath : psModulesPath;
+                    cmdletPassedIn.WriteDebug(string.Format("Installation path is: '{0}'", installPath));
+
                     var newPath = isScript ? installPath
                         : Path.Combine(installPath, p.Identity.Id.ToString());
+                    cmdletPassedIn.WriteDebug(string.Format("installation path is: '{0}'", newPath));
+
                     // When we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
 
                     // If script, just move the files over, if module, move the version directory over
                     var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
                         : Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
+                    cmdletPassedIn.WriteVerbose(string.Format("Full installation path is: '{0}'", tempModuleVersionDir));
 
                     if (isScript)
                     {
@@ -878,24 +883,64 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         if (!Directory.Exists(newPath))
                         {
-                            Directory.Move(tempModuleVersionDir, newPath);
+                            try
+                            {
+                                cmdletPassedIn.WriteVerbose(string.Format("1 Attempting to move '{0}' to '{1}", tempModuleVersionDir, newPath));
+                                Directory.Move(tempModuleVersionDir, newPath);
+                            }
+                            catch (Exception e)
+                            {
+                                throw new Exception(e.Message);
+                            }
                         }
                         else
                         {
                             tempModuleVersionDir = Path.Combine(tempModuleVersionDir, p.Identity.Version.ToString());
+                            cmdletPassedIn.WriteVerbose(string.Format("tempModuleVersionDir '{0}'", tempModuleVersionDir));
 
                             var newVersionPath = Path.Combine(newPath, newVersion);
+                            cmdletPassedIn.WriteVerbose(string.Format("newVersionPath '{0}'", newVersionPath));
+
 
                             if (Directory.Exists(newVersionPath))
                             {
                                 // Delete the directory path before replacing it with the new module
-                                Directory.Delete(newVersionPath, true);
+                                try
+                                {
+                                    cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", newVersionPath));
+
+                                    Directory.Delete(newVersionPath, true);
+                                }
+                                catch (Exception e)
+                                {
+                                    throw new Exception(e.Message);
+                                }
                             }
-                            Directory.Move(tempModuleVersionDir, Path.Combine(newPath, newVersion));
+
+                            try
+                            {
+                                cmdletPassedIn.WriteVerbose(string.Format("2 Attempting to move '{0}' to '{1}", newPath, newVersion));
+
+                                Directory.Move(tempModuleVersionDir, Path.Combine(newPath, newVersion));
+                            }
+                            catch (Exception e)
+                            {
+                                throw new Exception(e.Message);
+                            }
                         }
                     }
-                    
-                    Directory.Delete(tempInstallPath, true);
+
+                    try
+                    {
+                        cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", tempInstallPath));
+
+                        Directory.Delete(tempInstallPath, true);
+
+                    }
+                    catch (Exception e)
+                    {
+                        throw new Exception(e.Message);
+                    }
 
                     pkgsLeftToInstall.Remove(n);
                 }
