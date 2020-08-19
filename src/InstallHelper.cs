@@ -691,7 +691,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     cmdletPassedIn.WriteDebug(string.Format("Directory structure of installed package: '{0}'", Directory.GetDirectories(tempInstallPath)));
 
-                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
+                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString().ToLower()); //
                     //var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
                     var nupkgSHAToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
