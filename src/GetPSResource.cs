@@ -105,8 +105,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { 
                 var isWindows = OsPlatform.ToLower().Contains("windows");
 
-
-                // should just check the psmodules path????
                 // PSModules path
                 var psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
                 var modulePaths = psModulePath.Split(';');
@@ -115,27 +113,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // if not core
                 var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
 
-                if (isWindowsPS)
-                {
+#if NET472
                     programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-                    /// TODO:  Come back to this
-                    var userENVpath = System.IO.Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), "Documents");
-
-
                     myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-                }
-                else
-                {
-                    programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-                }
-
+#else
+                    programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "powerShell");
+                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "powerShell");
+#endif
 
                 /*** Will search first in PSModulePath, then will search in default paths ***/
-
-                // 1) Create a list of either
-                // Of all names
-
                 try
                 {
 
@@ -170,7 +156,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     dirsToSearch.AddRange(Directory.GetFiles(mdScriptsPath).ToList());
                 }
-
 
 
                 // uniqueify 
