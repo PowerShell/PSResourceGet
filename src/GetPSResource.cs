@@ -9,6 +9,7 @@ using System.Linq;
 using System.Management.Automation;
 using static System.Environment;
 using MoreLinq;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -113,16 +114,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
                 // if not core
-                var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
+               // var isWindowsPS = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory().ToLower().Contains("windows") ? true : false;
 
 #if NET472
-                    programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
+                programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
 #else
-                    programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "powerShell");
-                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "powerShell");
+                // programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "powershell");
+                // myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "powershell");
+
+                // If PS6+ on Windows
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+                    programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+                }
+                else
+                {
+                    // Paths are the same for both Linux and MacOS
+                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
+                    programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
+                }
 #endif
-                WriteDebug(string.Format("Is Windows PowerShell: '{0}'", isWindowsPS));
                 WriteVerbose(string.Format("Current user scope path: '{0}'", myDocumentsPath));
                 WriteVerbose(string.Format("All users scope path: '{0}'", programFilesPath));
 
