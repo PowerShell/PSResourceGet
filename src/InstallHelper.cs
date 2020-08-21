@@ -92,9 +92,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var uID = pwsh.AddScript("id -u").Invoke();
                     foreach (var item in uID)
                     {
-                        cmdletPassedIn.WriteVerbose(string.Format("UID is: '{0}'", item));
+                        cmdletPassedIn.WriteDebug(string.Format("UID is: '{0}'", item));
                         consoleIsElevated = (String.Equals(item.ToString(), "0"));
-                        cmdletPassedIn.WriteVerbose(string.Format("Console is elevated: '{0}'", consoleIsElevated));
+                        cmdletPassedIn.WriteDebug(string.Format("Console is elevated: '{0}'", consoleIsElevated));
                     }
                    
                 }
