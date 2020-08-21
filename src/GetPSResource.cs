@@ -276,7 +276,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                WriteVerbose(string.Format("Directories to : '{0}'", pkgPath));
+                //WriteVerbose(string.Format("Directories to : '{0}'", dirsToSearch.ToString()));
 
                 // if no version is specified, just get the latest version
                 foreach (var pkgPath in dirsToSearch)
