@@ -706,7 +706,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     File.Delete(nupkgToDelete);
 
                     // if it's not a script, do the following:
-                    var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1"));
+                    var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString().ToLower() + ".ps1"));
                     var isScript = File.Exists(scriptPath) ? true : false;
 
                     if (!Directory.Exists(dirNameVersion))
