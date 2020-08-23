@@ -708,6 +708,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // if it's not a script, do the following:
                     var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString().ToLower() + ".ps1"));
                     var isScript = File.Exists(scriptPath) ? true : false;
+                    cmdletPassedIn.WriteDebug(string.Format("If Package is a script, script path is: '{0}'", scriptPath));
 
                     if (!Directory.Exists(dirNameVersion))
                     {
@@ -848,7 +849,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // When we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
 
                     // If script, just move the files over, if module, move the version directory over
-                    var tempModuleVersionDir = isScript ? Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
+                    var tempModuleVersionDir = isScript ? scriptPath //Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString())
                         : Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
                      cmdletPassedIn.WriteVerbose(string.Format("Full installation path is: '{0}'", tempModuleVersionDir));
 
@@ -908,7 +909,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 {
                                     cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", newVersionPath));
 
-                                    Directory.Delete(newVersionPath, true);
+                                    // Directory.Delete(newVersionPath, true);
                                 }
                                 catch (Exception e)
                                 {
