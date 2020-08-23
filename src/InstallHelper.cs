@@ -854,16 +854,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (isScript)
                     {
+
                         var scriptXML = p.Identity.Id + "_InstalledScriptInfo.xml";
+                        cmdletPassedIn.WriteDebug(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML))));
                         if (File.Exists(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)))
                         {
+                            cmdletPassedIn.WriteDebug(string.Format("Deleting script XML"));
                             File.Delete(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
                         }
+
+                        cmdletPassedIn.WriteDebug(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(newPath, p.Identity.Id + ".ps1"))));
                         if (File.Exists(Path.Combine(newPath, p.Identity.Id + ".ps1")))
                         {
+                            cmdletPassedIn.WriteDebug(string.Format("Deleting script file"));
                             File.Delete(Path.Combine(newPath, p.Identity.Id + ".ps1"));
                         }
+
+                        cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)));
+
                         File.Move(Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
+
+                        cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1")));
+
                         File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1"));
                     }
                     else
@@ -921,7 +933,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", tempInstallPath));
 
-                        Directory.Delete(tempInstallPath, true);
+                        ///// Directory.Delete(tempInstallPath, true);
 
                     }
                     catch (Exception e)
