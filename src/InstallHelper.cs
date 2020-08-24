@@ -691,19 +691,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     cmdletPassedIn.WriteDebug(string.Format("Directory structure of installed package: '{0}'", Directory.GetDirectories(tempInstallPath)));
 
-                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString().ToLower()); //
-                    //var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
-                    var nupkgToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
+                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString().ToLower()); 
                     var nupkgSHAToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
                     var nuspecToDelete = Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
+                    var nupkgToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
 
-                    //File.Delete(nupkgMetadataToDelete);
-                    ////cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgSHAToDelete));
-                    ////File.Delete(nupkgSHAToDelete);
-                    ////cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nuspecToDelete));
-                    ////File.Delete(nuspecToDelete);
-                    ////cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgToDelete));
-                    ////File.Delete(nupkgToDelete);
+                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgSHAToDelete));
+                    File.Delete(nupkgSHAToDelete);
+                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nuspecToDelete));
+                    File.Delete(nuspecToDelete);
+                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgToDelete));
+                    File.Delete(nupkgToDelete);
 
                     // if it's not a script, do the following:
                     var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1"));
@@ -869,23 +867,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (File.Exists(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)))
                         {
                             cmdletPassedIn.WriteDebug(string.Format("Deleting script XML"));
-                           //// File.Delete(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
+                            File.Delete(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
                         }
 
                         cmdletPassedIn.WriteDebug(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(newPath, p.Identity.Id + ".ps1"))));
                         if (File.Exists(Path.Combine(newPath, p.Identity.Id + ".ps1")))
                         {
                             cmdletPassedIn.WriteDebug(string.Format("Deleting script file"));
-                            //// File.Delete(Path.Combine(newPath, p.Identity.Id + ".ps1"));
+                            File.Delete(Path.Combine(newPath, p.Identity.Id + ".ps1"));
                         }
 
                         cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)));
 
-                        ////File.Move(Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
+                        File.Move(Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
 
                         cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1")));
 
-                        ////File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1"));
+                        File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1"));
                     }
                     else
                     {
@@ -894,7 +892,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             try
                             {
                                 cmdletPassedIn.WriteVerbose(string.Format("1 Attempting to move '{0}' to '{1}", tempModuleVersionDir, newPath));
-                                ////Directory.Move(tempModuleVersionDir, newPath);
+                                Directory.Move(tempModuleVersionDir, newPath);
                             }
                             catch (Exception e)
                             {
@@ -917,7 +915,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 {
                                     cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", newVersionPath));
 
-                                    // Directory.Delete(newVersionPath, true);
+                                    Directory.Delete(newVersionPath, true);
                                 }
                                 catch (Exception e)
                                 {
@@ -929,7 +927,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             {
                                 cmdletPassedIn.WriteVerbose(string.Format("2 Attempting to move '{0}' to '{1}", newPath, newVersion));
 
-                                ////Directory.Move(tempModuleVersionDir, Path.Combine(newPath, newVersion));
+                                Directory.Move(tempModuleVersionDir, Path.Combine(newPath, newVersion));
                             }
                             catch (Exception e)
                             {
@@ -942,7 +940,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", tempInstallPath));
 
-                        ///// Directory.Delete(tempInstallPath, true);
+                        Directory.Delete(tempInstallPath, true);
 
                     }
                     catch (Exception e)
