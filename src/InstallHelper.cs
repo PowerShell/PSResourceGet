@@ -855,7 +855,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // When we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
 
                     // If script, just move the files over, if module, move the version directory over
-                    var tempModuleVersionDir = isScript ? scriptPath //Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString())
+                    var tempModuleVersionDir = isScript ? dirNameVersion //Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString())
                         : Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
                      cmdletPassedIn.WriteVerbose(string.Format("Full installation path is: '{0}'", tempModuleVersionDir));
 
@@ -877,13 +877,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             File.Delete(Path.Combine(newPath, p.Identity.Id + ".ps1"));
                         }
 
-                        cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)));
+             
+                        cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)));
 
-                        File.Move(Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
+                        File.Move(Path.Combine(dirNameVersion, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
 
-                        cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1")));
+                        cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(newPath, p.Identity.Id + ".ps1")));
 
-                        File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1"));
+                        File.Move(scriptPath, Path.Combine(newPath, p.Identity.Id + ".ps1"));
                     }
                     else
                     {
