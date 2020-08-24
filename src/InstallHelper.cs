@@ -698,17 +698,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var nuspecToDelete = Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
 
                     //File.Delete(nupkgMetadataToDelete);
-                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgSHAToDelete));
-                    File.Delete(nupkgSHAToDelete);
-                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nuspecToDelete));
-                    File.Delete(nuspecToDelete);
-                    cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgToDelete));
-                    File.Delete(nupkgToDelete);
+                    ////cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgSHAToDelete));
+                    ////File.Delete(nupkgSHAToDelete);
+                    ////cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nuspecToDelete));
+                    ////File.Delete(nuspecToDelete);
+                    ////cmdletPassedIn.WriteDebug(string.Format("Deleting '{0}'", nupkgToDelete));
+                    ////File.Delete(nupkgToDelete);
 
                     // if it's not a script, do the following:
                     var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString().ToLower() + ".ps1"));
                     var isScript = File.Exists(scriptPath) ? true : false;
                     cmdletPassedIn.WriteDebug(string.Format("If Package is a script, script path is: '{0}'", scriptPath));
+                    cmdletPassedIn.WriteDebug(string.Format("Package is a script (lowercase): '{0}'", isScript));
+
+
+                    var scriptPath2 = Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1"));
+                    var isScript2 = File.Exists(scriptPath2) ? true : false;
+
+                    cmdletPassedIn.WriteDebug(string.Format("Package is a script (regular casing): '{0}'", isScript2));
+
 
                     if (!Directory.Exists(dirNameVersion))
                     {
@@ -861,23 +869,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (File.Exists(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)))
                         {
                             cmdletPassedIn.WriteDebug(string.Format("Deleting script XML"));
-                            File.Delete(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
+                           //// File.Delete(Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
                         }
 
                         cmdletPassedIn.WriteDebug(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(newPath, p.Identity.Id + ".ps1"))));
                         if (File.Exists(Path.Combine(newPath, p.Identity.Id + ".ps1")))
                         {
                             cmdletPassedIn.WriteDebug(string.Format("Deleting script file"));
-                            File.Delete(Path.Combine(newPath, p.Identity.Id + ".ps1"));
+                            //// File.Delete(Path.Combine(newPath, p.Identity.Id + ".ps1"));
                         }
 
                         cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)));
 
-                        File.Move(Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
+                        ////File.Move(Path.Combine(tempModuleVersionDir, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
 
                         cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1")));
 
-                        File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1"));
+                        ////File.Move(Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), Path.Combine(newPath, p.Identity.Id + ".ps1"));
                     }
                     else
                     {
@@ -886,7 +894,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             try
                             {
                                 cmdletPassedIn.WriteVerbose(string.Format("1 Attempting to move '{0}' to '{1}", tempModuleVersionDir, newPath));
-                                Directory.Move(tempModuleVersionDir, newPath);
+                                ////Directory.Move(tempModuleVersionDir, newPath);
                             }
                             catch (Exception e)
                             {
@@ -921,7 +929,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             {
                                 cmdletPassedIn.WriteVerbose(string.Format("2 Attempting to move '{0}' to '{1}", newPath, newVersion));
 
-                                Directory.Move(tempModuleVersionDir, Path.Combine(newPath, newVersion));
+                                ////Directory.Move(tempModuleVersionDir, Path.Combine(newPath, newVersion));
                             }
                             catch (Exception e)
                             {
