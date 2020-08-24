@@ -706,13 +706,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ////File.Delete(nupkgToDelete);
 
                     // if it's not a script, do the following:
-                    var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString().ToLower() + ".ps1"));
+                    var scriptPath = Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1"));
                     var isScript = File.Exists(scriptPath) ? true : false;
                     cmdletPassedIn.WriteDebug(string.Format("If Package is a script, script path is: '{0}'", scriptPath));
                     cmdletPassedIn.WriteDebug(string.Format("Package is a script (lowercase): '{0}'", isScript));
 
 
-                    var scriptPath2 = Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1"));
+                    var scriptPath2 = Path.Combine(dirNameVersion, (p.Identity.Id.ToString().ToLower() + ".ps1"));
                     var isScript2 = File.Exists(scriptPath2) ? true : false;
 
                     cmdletPassedIn.WriteDebug(string.Format("Package is a script (regular casing): '{0}'", isScript2));
