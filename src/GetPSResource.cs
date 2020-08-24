@@ -163,13 +163,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
 
-                var pfScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts");
+                var pfScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts", "InstalledScriptInfos");
                 if (Directory.Exists(pfScriptsPath))
                 {
                     dirsToSearch.AddRange(Directory.GetFiles(pfScriptsPath).ToList());
                 }
 
-                var mdScriptsPath = System.IO.Path.Combine(myDocumentsPath, "Scripts"); // change programFiles to myDocuments
+                var mdScriptsPath = System.IO.Path.Combine(myDocumentsPath, "Scripts", "InstalledScriptInfos");
                 if (Directory.Exists(mdScriptsPath))
                 {
                     dirsToSearch.AddRange(Directory.GetFiles(mdScriptsPath).ToList());
@@ -180,15 +180,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 dirsToSearch = dirsToSearch.Distinct().ToList();
             }
 
-            WriteVerbose(string.Format("All directories to search: '{0}'", dirsToSearch));
+            foreach (var dir in dirsToSearch)
+            {
+                WriteVerbose(string.Format("All directories to search: '{0}'", dir));
+            }
 
             // Or a list of the passed in names
             if (_name != null && !_name[0].Equals("*"))
             {
                 var nameLowerCased = new List<string>();
+                var scriptXMLnames = new List<string>();
                 Array.ForEach(_name, n => nameLowerCased.Add(n.ToLower()));
+                Array.ForEach(_name, n => scriptXMLnames.Add((n + "_InstalledScriptInfo.xml").ToLower()));
+
+                foreach (var name in nameLowerCased)
+                {
+                    WriteDebug(string.Format("Name in nameLowerCased: '{0}'", name));
+                }
+
+               
+                foreach (var dir in dirsToSearch)
+                {
+                    WriteVerbose((System.IO.Path.GetFileNameWithoutExtension(dir)).ToLower());
+                }
+                
                 dirsToSearch = dirsToSearch.FindAll(p => (nameLowerCased.Contains(new DirectoryInfo(p).Name.ToLower())
-                    || nameLowerCased.Contains(System.IO.Path.GetFileNameWithoutExtension(p).ToLower())));
+                    || scriptXMLnames.Contains((System.IO.Path.GetFileName(p)).ToLower())));
+                    
+                WriteDebug(dirsToSearch.Any().ToString());
             }
 
             // try to parse into a specific NuGet version
@@ -249,15 +268,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             if (pkgPath.ToLower().Contains("Scripts"))
                             {
                                 // Just add the xmls of the names specified
-                                foreach (var name in _name)
-                                {
-                                    var scriptXMLPath = System.IO.Path.Combine(new FileInfo(pkgPath).Directory.ToString(), name + "_InstalledScriptInfo");
+                               // foreach (var name in _name)
+                                //{
+                                //    var scriptXMLPath = System.IO.Path.Combine(new FileInfo(pkgPath).Directory.ToString(), name + "_InstalledScriptInfo");
 
-                                    if (File.Exists(scriptXMLPath))
+                                    if (File.Exists(pkgPath))
                                     {
-                                        installedPkgsToReturn.Add(scriptXMLPath);
+                                        installedPkgsToReturn.Add(pkgPath);
                                     }
-                                }      
+                                //}      
                             }
                             else
                             {
@@ -290,27 +309,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else
             {
                 //WriteVerbose(string.Format("Directories to : '{0}'", dirsToSearch.ToString()));
+                WriteDebug(string.Format("No version provided-- check each path for the requested package"));
 
                 // if no version is specified, just get the latest version
                 foreach (var pkgPath in dirsToSearch)
                 {
-                    WriteVerbose(string.Format("Searching through package path: '{0}'", pkgPath));
+                    WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
 
                     // just search scripts paths
-                    if (pkgPath.ToLower().Contains("Scripts"))
+                    if (pkgPath.ToLower().Contains("scripts"))
                     {
                         // Just add the xmls of the names specified
-                        foreach (var name in _name)
-                        {
-                            var scriptXMLDir = System.IO.Path.Combine(new FileInfo(pkgPath).Directory.ToString(), "InstalledScriptInfos");
-                            var scriptXMLPath = System.IO.Path.Combine(scriptXMLDir, name + "_InstalledScriptInfo.xml");
+                        //foreach (var name in _name)
+                        //{
+                        //    var scriptXMLDir = System.IO.Path.Combine(new FileInfo(pkgPath).Directory.ToString(), "InstalledScriptInfos");
+                        //    var scriptXMLPath = System.IO.Path.Combine(scriptXMLDir, name + "_InstalledScriptInfo.xml");
 
-                            WriteVerbose(string.Format("Searching for script XML: '{0}'", scriptXMLPath));
-                            if (File.Exists(scriptXMLPath))
+                        //    WriteVerbose(string.Format("Searching for script XML: '{0}'", scriptXMLPath));
+                            if (File.Exists(pkgPath))   //check to make sure properly formatted
                             {
-                                installedPkgsToReturn.Add(scriptXMLPath);
+                                installedPkgsToReturn.Add(pkgPath);
                             }
-                        }
+                       // }
                     }
                     else
                     {
