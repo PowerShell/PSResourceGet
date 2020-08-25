@@ -3,10 +3,10 @@
 # Copyright (c) Microsoft Corporation, 2020
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
+# Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
 
-#Import-Module "C:\Users\annavied\Documents\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
+Import-Module "C:\Users\annavied\Documents\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
 
 $PSGalleryName = 'PSGallery'
@@ -246,11 +246,35 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Note: Outputs a Errer parsing version range error, but unsure how to include Min and Max version. Todo: fix!
     # also todo: uncomment below code when .Dependencies property is added back
     It "Find resource with IncludeDependencies parameter" {
-        $res = Find-PSResource ModuleWithDependencies1 -IncludeDependencies
+        Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
+        $res = Find-PSResource ModuleWithDependencies1 -IncludeDependencies -Version "[1.0,2.0]"
         # $dependencyModuleNames = $res.Dependencies.Name #is currently 0 bc .Dependecies property dne
         # $dependencyModuleNames | ForEach-Object{ res.Name | Should -Contain $_}
         # $dependencyModuleNames.Count | Should -Not -Be 0
         # $res.Count | Should -BeGreaterOrEqual ($dependencyModuleNames.Count + 1)
         $res.Count | Should -BeGreaterThan 1
+        $res.Count | Should -Be 11
     }
+
+
+    ########
+    # For scripts
+    ########
+    It "find a specific script resource by name" {
+        $res = Find-PSResource -Name "Fabrikam-ServerScript"
+        $res.Name | Should -Be "Fabrikam-ServerScript"
+    }
+
+    # todo: fix range wildcards
+    # It "find a script resource by name with range wildcards" {
+    #     $res = Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?pt"
+    #     $res.Name | Should -Be "Fabrikam-ServerScript"
+    # }
+
+    It "not find a non-available script resource with range wildcards" {
+        $res = Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?ptW"
+        $res | Should -BeNullOrEmpty
+    }
+
+
 }

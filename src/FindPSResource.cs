@@ -1204,13 +1204,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // then 2.2) check if the appropriate verion range exists  (if version exists, then add it to the list to return)
 
                     VersionRange versionRange = null;
-                    try
-                    {
-                        versionRange = VersionRange.Parse(pkgDependency.VersionRange.OriginalString);
-                    }
-                    catch
-                    {
-                        Console.WriteLine("Error parsing version range");
+
+                    // to ensure a null OriginalString isn't being parsed which will result in an error being thrown and caught
+                    // if OriginalString is null, versionRange will remain null and default version will be installed.
+                    if(pkgDependency.VersionRange.OriginalString != null){
+                        try
+                        {
+                            versionRange = VersionRange.Parse(pkgDependency.VersionRange.OriginalString);
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Error parsing version range");
+                        }
                     }
 
 
