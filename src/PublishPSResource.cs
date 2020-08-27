@@ -465,7 +465,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             System.Management.Automation.Language.Token[] tokens;
             ParseError[] errors;
-            var ast = Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
+            var ast = Parser.ParseFile(moduleFilePath, out tokens, out errors);
             if (errors.Length == 0)
             {
                 var data = ast.Find(a => a is HashtableAst, false);
