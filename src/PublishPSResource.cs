@@ -294,8 +294,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _nuspec;
 
-
-        private Hashtable dependencies = new Hashtable();
         private NuGetVersion pkgVersion = null;
         private bool isScript;
         private string pkgName;
@@ -337,6 +335,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // if user does not specify that they want to use a nuspec they've created, we'll create a nuspec
+            var dependencies = new Hashtable();
             if (string.IsNullOrEmpty(_nuspec))
             {
                 _nuspec = createNuspec(outputDir, moduleFileInfo);
@@ -613,28 +612,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 metadataElement.AppendChild(element);
             }
 
-            if (parsedMetadataHash.ContainsKey("requiredmodules"))
+            var requiredModules = ParseRequiredModules(parsedMetadataHash);
+            if (requiredModules != null)
             {
-                dependencies = (Hashtable)parsedMetadataHash["requiredmodules"];
+                XmlElement dependenciesElement = doc.CreateElement("dependencies", nameSpaceUri);
 
-                if (dependencies != null)
+                foreach (Hashtable dependency in requiredModules)
                 {
-                    XmlElement dependenciesElement = doc.CreateElement("dependencies", nameSpaceUri);
+                    XmlElement element = doc.CreateElement("dependency", nameSpaceUri);
 
-                    foreach (Hashtable dependency in dependencies)
+                    element.SetAttribute("id", dependency["ModuleName"].ToString());
+                    if (!string.IsNullOrEmpty(dependency["ModuleVersion"].ToString()))
                     {
-                        XmlElement element = doc.CreateElement("dependency", nameSpaceUri);
-
-                        element.SetAttribute("id", dependency["ModuleName"].ToString());
-                        if (!string.IsNullOrEmpty(dependency["ModuleVersion"].ToString()))
-                        {
-                            element.SetAttribute("version", dependency["ModuleVersion"].ToString());
-                        }
-
-                        dependenciesElement.AppendChild(element);
+                        element.SetAttribute("version", dependency["ModuleVersion"].ToString());
                     }
-                    metadataElement.AppendChild(dependenciesElement);
+
+                    dependenciesElement.AppendChild(element);
                 }
+                metadataElement.AppendChild(dependenciesElement);
             }
             
             packageElement.AppendChild(metadataElement);
@@ -646,6 +641,59 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             this.WriteVerbose("The newly created nuspec is: " + nuspecFullName);
 
             return nuspecFullName;
+        }
+
+        private Hashtable[] ParseRequiredModules(Hashtable parsedMetadataHash)
+        {
+            if (!parsedMetadataHash.ContainsKey("requiredmodules"))
+            {
+                return null;
+            }
+
+            var requiredModules = parsedMetadataHash["requiredmodules"];
+        
+            // Required modules can be:
+            //  a. A single string module name
+            //  b. A string array of module names
+            //  c. A single hash table of module name and version
+            //  d. An array of hash tables of module name and version
+
+            if (LanguagePrimitives.TryConvertTo<string>(requiredModules, out moduleName))
+            {
+                return new Hashtable[] {
+                    new Hashtable() {
+                        { "ModuleName", moduleName },
+                        { "ModuleVersion", string.Empty }
+                    }
+                };
+            }
+
+            if (LanguagePrimitives.TryConvertTo<string[]>(requiredModules, out moduleNames))
+            {
+                var listHashtable = new List<Hashtable>();
+                foreach (var moduleName in moduleNames)
+                {
+                    listHashtable.Add(
+                        new Hashtable() {
+                            { "ModuleName", moduleName },
+                            { "ModuleVersion", string.Empty }
+                        });
+                }
+
+                return listHashtable.ToArray();
+            }
+
+            if (LanguagePrimitives.TryConvertTo<Hashtable>(requiredModules, out module))
+            {
+                return module;
+            }
+
+            if (LanguagePrimitives.TryConvertTo<Hashtable[]>(requiredModules, out moduleList))
+            {
+                return moduleList;
+            }
+
+            return null;
         }
 
 
