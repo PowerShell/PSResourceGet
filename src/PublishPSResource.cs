@@ -371,6 +371,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var r = new RespositorySettings();
             var repositoryUrl = r.Read(new[] { _repository });
 
+            if (!repositoryUrl.Any())
+            {
+                var message = String.Format("The resource repository '{0}' is not a registered. Please run 'Register-PSResourceRepository' in order to publish to this repository.", _repository);
+                var ex = new ArgumentException(message);
+                var repositoryNotFound = new ErrorRecord(ex, "repositoryNotFound", ErrorCategory.ObjectNotFound, null);
+
+                this.ThrowTerminatingError(repositoryNotFound);
+            }
+
             if (!_skipDependenciesCheck)
             {
                 // Check to see that all dependencies are in the repository 
@@ -615,7 +624,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (parsedMetadataHash.ContainsKey("requiredmodules"))
             {
-                dependencies = (Hashtable)parsedMetadataHash["requiredmodules"];
+                try
+                {
+                    dependencies = (Hashtable)parsedMetadataHash["requiredmodules"];
+                }
+                catch
+                {
+                    try
+                    {
+                        var resultArray = (object[])parsedMetadataHash["requiredmodules"];
+
+                        if (resultArray.Count() > 0)
+                        {
+                            parsedMetadataHash = (Hashtable)resultArray[0];
+                        }
+
+                    }
+                    catch
+                    {
+                        var message = String.Format("Could not parse required modules for file '{0}'", moduleFileInfo.FullName);
+                        var ex = new ArgumentException(message);
+                        var psdataParseRequiredModulesError = new ErrorRecord(ex, "psdataParseRequiredModulesError", ErrorCategory.ParserError, null);
+
+                        this.ThrowTerminatingError(psdataParseRequiredModulesError);
+                    }
+                }
 
                 if (dependencies != null)
                 {
