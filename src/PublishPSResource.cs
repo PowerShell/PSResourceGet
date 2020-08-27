@@ -653,19 +653,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var requiredModules = parsedMetadataHash["requiredmodules"];
         
             // Required modules can be:
-            //  a. A single string module name
-            //  b. A string array of module names
-            //  c. A single hash table of module name and version
-            //  d. An array of hash tables of module name and version
+            //  a. An array of hash tables of module name and version
+            //  b. A single hash table of module name and version
+            //  c. A string array of module names
+            //  d. A single string module name
 
-            if (LanguagePrimitives.TryConvertTo<string>(requiredModules, out string moduleName))
+            if (LanguagePrimitives.TryConvertTo<Hashtable[]>(requiredModules, out Hashtable[] moduleList))
             {
-                return new Hashtable[] {
-                    new Hashtable() {
-                        { "ModuleName", moduleName },
-                        { "ModuleVersion", string.Empty }
-                    }
-                };
+                return moduleList;
             }
 
             if (LanguagePrimitives.TryConvertTo<string[]>(requiredModules, out string[] moduleNames))
@@ -683,21 +678,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return listHashtable.ToArray();
             }
 
-            if (LanguagePrimitives.TryConvertTo<Hashtable>(requiredModules, out Hashtable module))
-            {
-                return new Hashtable[] {
-                    module
-                };
-            }
-
-            if (LanguagePrimitives.TryConvertTo<Hashtable[]>(requiredModules, out Hashtable[] moduleList))
-            {
-                return moduleList;
-            }
-
             return null;
         }
-
 
         private void ParseScriptMetadata(Hashtable parsedMetadataHash, FileInfo moduleFileInfo)
         {
