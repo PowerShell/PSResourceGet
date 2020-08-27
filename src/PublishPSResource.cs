@@ -461,19 +461,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     log).GetAwaiter().GetResult();
         }
 
+        private static Hashtable ParseManifestFile(string moduleFilePath)
+        {
+            System.Management.Automation.Language.Token[] tokens;
+            ParseError[] errors;
+            var ast = Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
+            if (errors.Length == 0)
+            {
+                var data = ast.Find(a => a is HashtableAst, false);
+
+                if (data is Hashtable parsedMetadataHash)
+                {
+                    return parsedMetadataHash;
+                }
+
+                if ((data is object[] resultArray) && 
+                    (resultArray.Count == 1) &&
+                    (resultArray[0] is Hashtable parsedMetadataHash))
+                {
+                    return parsedMetadataHash;
+                }
+            }
+
+            return null;
+        }
 
         private string createNuspec(string outputDir, FileInfo moduleFileInfo)
         {
             WriteVerbose("Creating new nuspec file.");
-            Hashtable parsedMetadataHash = new Hashtable();
-            
+
+            // Parse module file.
+            Hashtable parsedMetadataHash;
             if (moduleFileInfo.Extension.Equals(".psd1", StringComparison.OrdinalIgnoreCase))
             {
-                System.Management.Automation.Language.Token[] tokens;
-                ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
-
-                if (errors.Length > 0)
+                parsedMetadataHash = ParseManifestFile(moduleFileInfo.FullName);
+                if (parsedMetadataHash == null)
                 {
                     var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo.FullName);
                     var ex = new ArgumentException(message);
@@ -481,25 +503,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     this.ThrowTerminatingError(psdataParseError);
                 }
-                else
-                {
-                    var data = ast.Find(a => a is HashtableAst, false);
-                    if (data != null)
-                    {
-                        parsedMetadataHash = (Hashtable) data.SafeGetValue();
-                    }
-                    else
-                    {
-                        var message = String.Format("Could not parse as PowerShell data file-- no hashtable root for file '{0}'", moduleFileInfo.FullName);
-                        var ex = new ArgumentException(message);
-                        var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-
-                        this.ThrowTerminatingError(psdataParseError);
-                    }
-                }
             }
             else if (moduleFileInfo.Extension.Equals(".ps1", StringComparison.OrdinalIgnoreCase))
             {
+                parsedMetadataHash = new Hashtable();
                 ParseScriptMetadata(parsedMetadataHash, moduleFileInfo);
             }
 
