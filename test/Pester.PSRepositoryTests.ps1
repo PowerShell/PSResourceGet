@@ -5,7 +5,6 @@
 # Import-Module "$PSScriptRoot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue
 import-module "C:\code\PowerShellGet\v3\PowerShellGet\bin\Debug\netcoreapp2.2\PowerShellGet.dll"
 
-
 $PSGalleryName = 'PSGallery'
 $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 
