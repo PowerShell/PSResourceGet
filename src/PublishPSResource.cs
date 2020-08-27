@@ -658,7 +658,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             //  c. A single hash table of module name and version
             //  d. An array of hash tables of module name and version
 
-            if (LanguagePrimitives.TryConvertTo<string>(requiredModules, out moduleName))
+            if (LanguagePrimitives.TryConvertTo<string>(requiredModules, out string moduleName))
             {
                 return new Hashtable[] {
                     new Hashtable() {
@@ -668,14 +668,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 };
             }
 
-            if (LanguagePrimitives.TryConvertTo<string[]>(requiredModules, out moduleNames))
+            if (LanguagePrimitives.TryConvertTo<string[]>(requiredModules, out string[] moduleNames))
             {
                 var listHashtable = new List<Hashtable>();
-                foreach (var moduleName in moduleNames)
+                foreach (var modName in moduleNames)
                 {
                     listHashtable.Add(
                         new Hashtable() {
-                            { "ModuleName", moduleName },
+                            { "ModuleName", modName },
                             { "ModuleVersion", string.Empty }
                         });
                 }
@@ -683,12 +683,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return listHashtable.ToArray();
             }
 
-            if (LanguagePrimitives.TryConvertTo<Hashtable>(requiredModules, out module))
+            if (LanguagePrimitives.TryConvertTo<Hashtable>(requiredModules, out Hashtable module))
             {
-                return module;
+                return new Hashtable[] {
+                    module
+                };
             }
 
-            if (LanguagePrimitives.TryConvertTo<Hashtable[]>(requiredModules, out moduleList))
+            if (LanguagePrimitives.TryConvertTo<Hashtable[]>(requiredModules, out Hashtable[] moduleList))
             {
                 return moduleList;
             }
