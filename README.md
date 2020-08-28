@@ -51,11 +51,21 @@ Get PowerShellGet Source
     ```
 * Navigate to the source directory
 ```powershell
-cd path/to/PowerShellGet
+cd path/to/PowerShellGet/src
+```
+
+* Build the project
+```
+dotnet publish --framework netstandard2.0
+dotnet publish --framework net472
 ```
 
 * Import the module
 ```powershell
-Import-Module src/PowerShellGet
+# If running PowerShell 6+
+Import-Module .\bin\Debug\netstandard2.0\publish\PowerShellGet.dll
+
+# if running Windows PowerShell
+Import-Module .\bin\Debug\netstandard2.0\publish\PowerShellGet.dll
 ```
 
