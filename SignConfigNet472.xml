@@ -7,6 +7,7 @@
     <file src="__INPATHROOT__\PowerShellGet.psd1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.psd1" />
     <file src="__INPATHROOT__\PSModule.psm1" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PSModule.psm1" />
     <file src="__INPATHROOT__\PowerShellGet.dll" signType="AuthenticodeFormer" dest="__OUTPATHROOT__\PowerShellGet.dll" />
+
     <file src="__INPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Microsoft.Extensions.Logging.Abstractions.dll" />
     <file src="__INPATHROOT__\MoreLinq.dll" signType="ThirdParty" dest="__OUTPATHROOT__\MoreLinq.dll" />
     <file src="__INPATHROOT__\Newtonsoft.Json.dll" signType="ThirdParty" dest="__OUTPATHROOT__\Newtonsoft.Json.dll" />
