@@ -36,71 +36,71 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Get-PSResourceRepository PSGallery
     #
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
-    It 'Find the Default Registered PSGallery' {
+    #It 'Find the Default Registered PSGallery' {
 
-        $repo = Get-PSResourceRepository $PSGalleryName
-        $repo | Should -Not -BeNullOrEmpty
-        $repo.URL | Should be $PSGalleryLocation
-        $repo.Trusted | Should be false
-        $repo.Priority | Should be 50
-    }
+    #    $repo = Get-PSResourceRepository $PSGalleryName
+    #    $repo | Should -Not -BeNullOrEmpty
+    #    $repo.URL | Should be $PSGalleryLocation
+    #    $repo.Trusted | Should be false
+    #    $repo.Priority | Should be 50
+    #}
 
     # Purpose: to register PoshTestGallery resource repo and check it registered successfully
     #
     # Action: Register-PSResourceRepository PoshTestGallery -URL https://www.poshtestgallery.com/api/v2 -Trusted
     #
     # Expected Result: PoshTestGallery resource repo has registered successfully
-    It 'Register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
-        Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
+    #It 'Register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
+    #    Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
-        $repo = Get-PSResourceRepository $PoshTestGalleryName
-        $repo.Name | should be $PoshTestGalleryName
-        $repo.URL | should be $PostTestGalleryLocation
-        $repo.Trusted | should be true
-    }
+    #    $repo = Get-PSResourceRepository $PoshTestGalleryName
+    #    $repo.Name | should be $PoshTestGalleryName
+    #    $repo.URL | should be $PostTestGalleryLocation
+    #   $repo.Trusted | should be true
+    #}
 
     # Purpose: to find all resources when no parameters are specified
     #
     # Action: Find-PSResource
     #
     # Expected-Result: finds all (more than 1) resources in PSGallery
-    It "Find Resources Without Any Parameter Values" {
-        $psGetItemInfo = Find-PSResource
-        $psGetItemInfo.Count | Should -BeGreaterThan 1
-    }
+    # It "Find Resources Without Any Parameter Values" {
+    #     $psGetItemInfo = Find-PSResource
+    #     $psGetItemInfo.Count | Should -BeGreaterThan 1
+    # }
 
     # Purpose: to find a specific resource by name
     #
     # Action: Find-PSResource -Name "ContosoServer"
     #
     # Expected Result: Should find ContosoServer resource
-    It "Find Specific Resource by Name" {
-        # install ContosoServer module from PoshTestGallery first, todo: change that to be a connection to the link
-        $specItem = Find-PSResource -Name ContosoServer
-        $specItem.Name | Should -Be "ContosoServer"
-    }
+    # It "Find Specific Resource by Name" {
+    #     # install ContosoServer module from PoshTestGallery first, todo: change that to be a connection to the link
+    #     $specItem = Find-PSResource -Name ContosoServer
+    #     $specItem.Name | Should -Be "ContosoServer"
+    # }
 
     # Purpose: to find a resource(s) with regex in name parameter
     #
     # Action: Find-PSResource -Name Contoso*
     #
     # Expected Result: should find multiple resources,namely atleast ContosoServer, ContosoClient, Contoso
-    It "Find multiple Resource(s) with Wildcards for Name Param" {
-        $res = Find-PSResource -Name Contoso*
-        $res.Count | Should -BeGreaterOrEqual 1
-        # $res[0] | Should -Contain '\@{Name=ContosoServer; Version=2.5; Repository=PoshTestGallery; Description=ContosoServer module}'
-        # todo: figure out
-    }
+    # It "Find multiple Resource(s) with Wildcards for Name Param" {
+    #     $res = Find-PSResource -Name Contoso*
+    #     $res.Count | Should -BeGreaterOrEqual 1
+    #     # $res[0] | Should -Contain '\@{Name=ContosoServer; Version=2.5; Repository=PoshTestGallery; Description=ContosoServer module}'
+    #     # todo: figure out
+    # }
 
     # Purpose: to find a specific resource with wildcard in name
     #
     # Action: Find-PSResource *ontosoServe*
     # 
     # Expected Result: should find the ContosoServer resource
-    It "Find Specific Resource with Wildcards for Name Param" {
-        $res = Find-PSResource *ontosoServe*
-        $res.Name | Should -be "ContosoServer"
-    }
+    # It "Find Specific Resource with Wildcards for Name Param" {
+    #     $res = Find-PSResource *ontosoServe*
+    #     $res.Name | Should -be "ContosoServer"
+    # }
 
     # todo: implement range wildcards
     # Purpose: to find a resource with range wildcards in name parameter
@@ -108,6 +108,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource -Name "Co[nN]t?soS[a-z]r?er"
     #
     # Expected Result: should find ContosoServer resource
+    # todo: FIX!!
     # It "Find specific resource with range wildcard" {
     #     $res = Find-PSResource -Name "Co[nN]t?soS[a-z]r?er"
     #     $res.Name | Should -Be "ContosoServer"
@@ -118,9 +119,85 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource -Name "Co[nN]t?soS[a-z]r?eW"
     #
     # Expected Result: should find ContosoServer resource
-    It "Find Not Available Resource with Range Wildcard for Name Param" {
-        $res = Find-PSResource -Name "Co[nN]t?soS[a-z]r?eW"
+    # It "Find Not Available Resource with Range Wildcard for Name Param" {
+    #     $res = Find-PSResource -Name "Co[nN]t?soS[a-z]r?eW"
+    #     $res | Should -BeNullOrEmpty
+    # }
+
+    # Purpose: find resource by Type parameter
+    #
+    # Action: Find-PSResource -Type Module -Repository PoshTestGallery
+    #
+    # Expected Result: Should return all resources of type Module
+    #It "Find Resource with Type param of value Module" {
+    #    $res = Find-PSResource -Type Module -Repository PoshTestGallery
+    #    $res.Count | Should -Be 1639
+    #}
+
+    # Purpose: find resource by Type parameter
+    #
+    # Action: Find-PSResource -Type Script -Repository PoshTestGallery
+    #
+    # Expected Result: Should return all resources of type Module
+    #It "Find Resource with Type param of value Script" {
+    #    $res = Find-PSResource -Type Script -Repository PoshTestGallery
+    #    $res.Count | Should -Be 320
+    #}
+ 
+    #############################################################################################################
+    # criteria # ModuleName or Name # Version # Script # Module #   expected                # result
+    #############################################################################################################
+    # 1        #  ModuleName        # null          # script          #   prints nice error msg   # Y
+    # 2        #  ModuleName        # null          # module          #   works, return rsrc      # Y
+    # 3        #  Name              # null          # script          #   works, return rsrc      # Y
+    # 4        #  Name              # null          # module          #   works, return rsrc      # Y
+    # 5        #  ModuleName        # "[2.0]"       # script          #   prints nice error msg   # Y
+    # 6        #  ModuleName        # "[2.0]"       # module          #   works, return rsrc      # Y
+    # 7        #  Name              # "[2.0]"       # script          #   works, return rsrc      # Y
+    # 8        #  Name              # "[2.0]"       # module          #   works, return rsrc      # Y
+    # 9        #  ModuleName        # "[2.0, 2.5]"  # script          #   prints nice error msg   #
+    # 10       #  ModuleName        # "[2.0, 2.5]"  # module          #   works, return rsrc(s)?  #
+    # 11       #  Name              # "[2.0, 2.5]"  # script          #   works, return rsrc(s)?  #
+    # 12       #  Name              # "[2.0, 2.5]"  # module          #   works, return rsrc(s)?  #
+    #############################################################################################################
+    It "1: find resource when given ModuleName, Version param null, and Name is of a script resource" {
+        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery
         $res | Should -BeNullOrEmpty
+    }
+
+    It "2: find resource when given ModuleName, Version param null, and Name is of a module resource" {
+        $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery
+        $res.Name | Should -Be "ContosoServer"
+    }
+
+    It "3: find resource when given Name, Version param null, and name is of a script resource" {
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery
+        $res.Name | Should -Be "Fabrikam-ServerScript"
+    }
+
+    It "4: find resource when given Name, Version param null, and name is of a module resource" {
+        $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery
+        $res.Name | Should -Be "ContosoServer"
+    }
+
+    It "5: find resource when given ModuleName, Version not null --> [2.0], and name is of a script resource" {
+        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0]"
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "6: find resource when given ModuleName, Version not null --> [2.0], name is of a module resource" {
+        $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery -Version "[2.0]"
+        $res.Name | Should -Be "ContosoServer"
+    }
+
+    It "7: find resource when given ModuleName, Version not null --> [2.0], name is of a script resource" {
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0]"
+        $res.Name | Should -Be "Fabrikam-ServerScript"
+    }
+
+    It "8: find resource when given Name, Version not null --> [2.0], name is of a module resource" {
+        $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery -Version "[2.0]"
+        $res.Name | Should -Be "ContosoServer"
     }
 
     # todo: add test for "find by type module", and like get a list of all resources
@@ -132,12 +209,12 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource -Name ContosoServer -Version 2.5
     #
     # Expected Result: Should return resource with specified version
-    It "Find Resource with Specified Version Param" {
-        $res = Find-PSResource -Name ContosoServer -Version 2.5
-        $res.Version | Should -Be "2.5"
-        $resDiffVersion = Find-PSResource -Name ContosoServer -Version 2.0
-        $resDiffVersion.Version | Should -Be "2.0"
-    }
+    # It "Find Resource with Specified Version Param" {
+    #     $res = Find-PSResource -Name ContosoServer -Version 2.5
+    #     $res.Version | Should -Be "2.5"
+    #     $resDiffVersion = Find-PSResource -Name ContosoServer -Version 2.0
+    #     $resDiffVersion.Version | Should -Be "2.0"
+    # }
 
     # Purpose: to find a prerelease resource with the prerelease param
     #
@@ -145,16 +222,16 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     #
     # Expected Result: without prerelease param null should be returned,
     # with it the module should be returned and valid
-    It "Find Resource with Prerelease param" {
-        # this resource only has a prerelease version, can't be found without the prerelease param
-        $res = Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139"
-        $res | should -BeNullOrEmpty
+    # It "Find Resource with Prerelease param" {
+    #     # this resource only has a prerelease version, can't be found without the prerelease param
+    #     $res = Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139"
+    #     $res | should -BeNullOrEmpty
 
-        # add prerelease param to cmdlet query
-        $resWPrelease = Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139" -Prerelease
-        $resWPrelease | should -not -BeNullOrEmpty
-        $resWPrelease.Name | should -be "PSGTEST-PublishPrereleaseModule-3139"
-    }
+    #     # add prerelease param to cmdlet query
+    #     $resWPrelease = Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139" -Prerelease
+    #     $resWPrelease | should -not -BeNullOrEmpty
+    #     $resWPrelease.Name | should -be "PSGTEST-PublishPrereleaseModule-3139"
+    # }
 
     # todo: does the prerelease param say "only get me a prerelease version or get any including prerelease?"
     # basically, if I include -prerelease param on module without prerelease version should/would it break? perhaps add test
@@ -164,11 +241,11 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource -ModuleName ContosoServer
     #
     # Expected Result: finds the module resource with the given ModuleName
-    It "Find Resource ModuleName param" {
-        $res = Find-PSResource -ModuleName ContosoServer
-        $res | should -not -BeNullOrEmpty
-        $res.Name | Should -be "ContosoServer"
-    }
+    # It "Find Resource ModuleName param" {
+    #     $res = Find-PSResource -ModuleName ContosoServer
+    #     $res | should -not -BeNullOrEmpty
+    #     $res.Name | Should -be "ContosoServer"
+    # }
 
     # Purpose: should not find a resource when given a ModuleName that is a name of a script
     #
@@ -187,11 +264,11 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource -Tags CommandsAndResource | Where-Object { $_.Name -eq "DscTestModule" }
     #
     # Expected Result: should return all resources with that tag, and then filer by name
-    It "Find a resource given Tags parameter with one value" {
-        $res = Find-PSResource -Tags CommandsAndResource | Where-Object { $_.Name -eq "DscTestModule" }
-        $res | Should -not -BeNullOrEmpty
-        $res.Name | Should -Be "DscTestModule"
-    }
+    # It "Find a resource given Tags parameter with one value" {
+    #     $res = Find-PSResource -Tags CommandsAndResource | Where-Object { $_.Name -eq "DscTestModule" }
+    #     $res | Should -not -BeNullOrEmpty
+    #     $res.Name | Should -Be "DscTestModule"
+    # }
 
     # Purpose: find resource(s) given multiple tags for the Tags parameter.
     # Note: if given multiple tags the cmdlet will find all resources that have either of those tags
@@ -201,28 +278,28 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource -Tags CommandsAndResource,DSC,Tag1
     #
     # Expected Result: Should return more resources than if just queried with -Tags CommandsAndResources
-    It "Find a resource given tags parameter with multiple values" {
-        $resSingleTag = Find-PSResource -Tags CommandsAndResource
-        $res = Find-PSResource -Tags CommandsAndResource,DSC,Tag1
-        $res | Should -not -BeNullOrEmpty
-        $res.Count | Should -BeGreaterOrEqual $resSingleTag.Count
-    }
+    # It "Find a resource given tags parameter with multiple values" {
+    #     $resSingleTag = Find-PSResource -Tags CommandsAndResource
+    #     $res = Find-PSResource -Tags CommandsAndResource,DSC,Tag1
+    #     $res | Should -not -BeNullOrEmpty
+    #     $res.Count | Should -BeGreaterOrEqual $resSingleTag.Count
+    # }
 
     # Purpose: find a resource in a specific repository, given Repository parameter
     #
     # Action: Find-PSResource ContosoServer -Repository $PoshTestGalleryName
     #
     # Expected Result: Should find the resource from the specified repository
-    It "Find resource given repository parameter" {
-        # ContosoServer resource doesn't exist in the PSGallery repository
-        $res = Find-PSResource ContosoServer -Repository $PSGalleryName
-        $res | Should -BeNullOrEmpty
+    # It "Find resource given repository parameter" {
+    #     # ContosoServer resource doesn't exist in the PSGallery repository
+    #     $res = Find-PSResource ContosoServer -Repository $PSGalleryName
+    #     $res | Should -BeNullOrEmpty
 
-        # ContosoServer resource exists in the PostTestGalleryRepository
-        $resCorrectRepo = Find-PSResource ContosoServer -Repository $PoshTestGalleryName
-        $resCorrectRepo | Should -Not -BeNullOrEmpty
-        $resCorrectRepo.Repository | Should -Be "PoshTestGallery"
-    }
+    #     # ContosoServer resource exists in the PostTestGalleryRepository
+    #     $resCorrectRepo = Find-PSResource ContosoServer -Repository $PoshTestGalleryName
+    #     $resCorrectRepo | Should -Not -BeNullOrEmpty
+    #     $resCorrectRepo.Repository | Should -Be "PoshTestGallery"
+    # }
 
     # Purpose: find resource given Repository param, when resource of same name exists in multiple repos
     # I guess I'm testing that the cmdlet does't just find it in first available repo and return that, may be a redundant test tho
@@ -230,13 +307,13 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource xActiveDirectory -Repository "PSGallery"
     #
     # Expected Result: Returns resource from specified repository
-    It "Find Resource given repository parameter, where resource exists in multiple repos" {
-        $res = Find-PSResource xActiveDirectory
-        $res.Repository | Should -Be "PoshTestGallery" # first availability found in PostTestGallery
-        # check that it can be returned from non-first-availability/non-default repo
-        $resNonDefault = Find-PSResource xActiveDirectory -Repository "PSGallery"
-        $resNonDefault.Repository | Should -Be "PSGallery"
-    }
+    # It "Find Resource given repository parameter, where resource exists in multiple repos" {
+    #     $res = Find-PSResource xActiveDirectory
+    #     $res.Repository | Should -Be "PoshTestGallery" # first availability found in PostTestGallery
+    #     # check that it can be returned from non-first-availability/non-default repo
+    #     $resNonDefault = Find-PSResource xActiveDirectory -Repository "PSGallery"
+    #     $resNonDefault.Repository | Should -Be "PSGallery"
+    # }
 
     # Purpose: find a resource and associated dependecies given IncludeDependencies parameter
     #
@@ -245,25 +322,25 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Expected Result: should return resource specified and all associated dependecy resources
     # Note: Outputs a Errer parsing version range error, but unsure how to include Min and Max version. Todo: fix!
     # also todo: uncomment below code when .Dependencies property is added back
-    It "Find resource with IncludeDependencies parameter" {
-        Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
-        $res = Find-PSResource ModuleWithDependencies1 -IncludeDependencies -Version "[1.0,2.0]"
-        # $dependencyModuleNames = $res.Dependencies.Name #is currently 0 bc .Dependecies property dne
-        # $dependencyModuleNames | ForEach-Object{ res.Name | Should -Contain $_}
-        # $dependencyModuleNames.Count | Should -Not -Be 0
-        # $res.Count | Should -BeGreaterOrEqual ($dependencyModuleNames.Count + 1)
-        $res.Count | Should -BeGreaterThan 1
-        $res.Count | Should -Be 11
-    }
+    # It "Find resource with IncludeDependencies parameter" {
+    #     Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
+    #     $res = Find-PSResource ModuleWithDependencies1 -IncludeDependencies -Version "[1.0,2.0]"
+    #     # $dependencyModuleNames = $res.Dependencies.Name #is currently 0 bc .Dependecies property dne
+    #     # $dependencyModuleNames | ForEach-Object{ res.Name | Should -Contain $_}
+    #     # $dependencyModuleNames.Count | Should -Not -Be 0
+    #     # $res.Count | Should -BeGreaterOrEqual ($dependencyModuleNames.Count + 1)
+    #     $res.Count | Should -BeGreaterThan 1
+    #     $res.Count | Should -Be 11
+    # }
 
 
     ########
     # For scripts
     ########
-    It "find a specific script resource by name" {
-        $res = Find-PSResource -Name "Fabrikam-ServerScript"
-        $res.Name | Should -Be "Fabrikam-ServerScript"
-    }
+    # It "find a specific script resource by name" {
+    #     $res = Find-PSResource -Name "Fabrikam-ServerScript"
+    #     $res.Name | Should -Be "Fabrikam-ServerScript"
+    # }
 
     # todo: fix range wildcards
     # It "find a script resource by name with range wildcards" {
@@ -271,10 +348,10 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     #     $res.Name | Should -Be "Fabrikam-ServerScript"
     # }
 
-    It "not find a non-available script resource with range wildcards" {
-        $res = Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?ptW"
-        $res | Should -BeNullOrEmpty
-    }
+    # It "not find a non-available script resource with range wildcards" {
+    #     $res = Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?ptW"
+    #     $res | Should -BeNullOrEmpty
+    # }
 
 
 }

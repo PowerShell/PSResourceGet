@@ -840,11 +840,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ExpressionStarter<DataRow> starter2 = PredicateBuilder.New<DataRow>(true);
             if (_moduleName != null)
             {
+                Console.WriteLine("builds predicate for ModuleNAme"); //Anam
                 predicate = predicate.And(pkg => pkg.Field<string>("Name").Equals(_moduleName));
+                // predicate = predicate.And(pkg => pkg.Field<string>("Type").Equals("Module")); //Anam
             }
 
             if ((_type == null) || ((_type.Length == 0) || !(_type.Contains("Module", StringComparer.OrdinalIgnoreCase) || _type.Contains("Script", StringComparer.OrdinalIgnoreCase))))
             {
+                Console.WriteLine("Builds predicate for non-script or non-mod"); //Anam
                 var typeNamePredicate = PredicateBuilder.New<DataRow>(true);
                 foreach (string name in _name)
                 {
@@ -878,8 +881,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             return predicate;
         }
-
-
 
 
 
@@ -1025,6 +1026,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     foundPackages.RemoveAll(p => true);
                     VersionRange versionRange = null;
 
+                    //todo: fix! when the Version is inputted as "[2.0]" it doesnt get parsed by TryParse() returns null
                     if (specificVersion != null)
                     {
                         // exact version
@@ -1038,12 +1040,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     }
 
-
+                    //Anam added
+                    if(name == null && _moduleName == null){
+                        Console.WriteLine("Warning! The foundPackages SQL query type thing will liekly fail bc of id");
+                    }
+                    var nameVal = name == null ? _moduleName : name;
 
                     // Search for packages within a version range
                     // ensure that the latst version is returned first (the ordering of versions differ
                     // test wth  Find-PSResource 'Carbon' -Version '[,2.4.0)'
-                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                         .Where(p => versionRange.Satisfies(p.Identity.Version))
                         .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
@@ -1053,8 +1059,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     //var singlePkg = (System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), toRemove));
                     var pkgList = foundPackages.FirstOrDefault();
                     var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
+                    
+                    //ANAM added
+                    if(singlePkg == null){
+                        Console.WriteLine("Warning: this will throw an error eventually");
+                    }
+                    if(_moduleName != null){
+                        //Anam added
+                        char[] delimit = new char[] { ' ', ',' };
+                        var tags = singlePkg.First().Tags.Split(delimit, StringSplitOptions.RemoveEmptyEntries);
+                        if(tags.Contains("PSModule")){
+                            filteredFoundPkgs.Add(singlePkg);
+                        }
+                        else{
+                            Console.WriteLine("Error AN: can't get specific version for a script when given module name");
+                        }
+                    }
+                    else if(_name != null){
+                        filteredFoundPkgs.Add(singlePkg);
+                    }
 
-                    filteredFoundPkgs.Add(singlePkg);
+
+                    //filteredFoundPkgs.Add(singlePkg); ANAM commented out
                 }
             }
             else // version is null
@@ -1069,12 +1095,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // var bleh = foundPackages.FirstOrDefault().(System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), 20));
                     var pkgList = foundPackages.FirstOrDefault();
                     var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
+                    Console.WriteLine(singlePkg.First().Tags);
+                    // if(singlePkg.First().Tags.ToDelimitedString);
 
+                    //if it was a ModuleName then check if the Tag is PSModule and only add then ANAM
+                    char[] delimit = new char[] { ' ', ',' };
+                    var tags = singlePkg.First().Tags.Split(delimit, StringSplitOptions.RemoveEmptyEntries);
+                    if(_moduleName != null){
+                        if(tags.Contains("PSModule")){
+                            filteredFoundPkgs.Add(singlePkg);
+                        }
+                        else{
+                            Console.WriteLine("Error AN: Trying to use ModuleName param for nonModule resource");
+                        }
+                    }
+                    else { ///if(_name != null){
+                        filteredFoundPkgs.Add(singlePkg);
+                    }
+                    // ANAM ends
 
-                    filteredFoundPkgs.Add(singlePkg);
+                    // filteredFoundPkgs.Add(singlePkg); ANAM commented out
                 }
                 else 
-                {
+                { //if name not null,but name contains * and version is null
                     filteredFoundPkgs = foundPackages;
                 }
             }
