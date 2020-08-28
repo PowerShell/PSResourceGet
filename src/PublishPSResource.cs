@@ -370,6 +370,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var r = new RespositorySettings();
             var repositoryUrl = r.Read(new[] { _repository });
 
+            if (!repositoryUrl.Any())
+            {
+                var message = String.Format("The resource repository '{0}' is not a registered. Please run 'Register-PSResourceRepository' in order to publish to this repository.", _repository);
+                var ex = new ArgumentException(message);
+                var repositoryNotFound = new ErrorRecord(ex, "repositoryNotFound", ErrorCategory.ObjectNotFound, null);
+
+                this.ThrowTerminatingError(repositoryNotFound);
+            }
+
             if (!_skipDependenciesCheck)
             {
                 // Check to see that all dependencies are in the repository 

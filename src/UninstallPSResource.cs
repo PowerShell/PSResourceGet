@@ -214,13 +214,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var scriptPathProgramFiles = Path.Combine(psScriptsPathProgramFiles, pkgName + ".ps1");
 
 
+            var psModulesPathAllDirs = new List<string>();
+            if (Directory.Exists(psModulesPathMyDocuments))
+            {
+                psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathMyDocuments).ToList());
+            }
+            if (Directory.Exists(psModulesPathProgramFiles))
+            {
+                psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathProgramFiles).ToList());
+            }
 
-            psModulesPathAllDirs = (Directory.GetDirectories(psModulesPathMyDocuments)).ToList();  // should have a check if directory doesnt exist
-            psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathProgramFiles).ToList());
-
-            psScriptsPathAllFiles = (Directory.GetFiles(psScriptPathMyDocuments)).ToList();  /// may need to change this to get files
-            psScriptsPathAllFiles.AddRange(Directory.GetFiles(psModulesPathMyDocuments).ToList());
-
+            var psScriptsPathAllFiles = new List<string>();
+            if (Directory.Exists(psScriptPathMyDocuments))
+            {
+                psScriptsPathAllFiles.AddRange(Directory.GetFiles(psScriptPathMyDocuments).ToList());  /// may need to change this to get files
+            }
+            if (Directory.Exists(psModulesPathMyDocuments))
+            {
+                psScriptsPathAllFiles.AddRange(Directory.GetFiles(psModulesPathMyDocuments).ToList());
+            }
 
 
             var foundInMyDocuments = (Directory.Exists(dirNameMyDocuments) && (versionDirsMyDocuments.Any() || parentDirFilesMyDocuments.Any())) || File.Exists(scriptPathMyDocuments); // check for scripts
