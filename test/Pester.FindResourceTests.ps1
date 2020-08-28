@@ -145,60 +145,114 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     #}
  
     #############################################################################################################
-    # criteria # ModuleName or Name # Version # Script # Module #   expected                # result
+    # criteria # ModuleName/Name    # Version       # Script/Module   #   expected                # result
     #############################################################################################################
-    # 1        #  ModuleName        # null          # script          #   prints nice error msg   # Y
-    # 2        #  ModuleName        # null          # module          #   works, return rsrc      # Y
-    # 3        #  Name              # null          # script          #   works, return rsrc      # Y
-    # 4        #  Name              # null          # module          #   works, return rsrc      # Y
-    # 5        #  ModuleName        # "[2.0]"       # script          #   prints nice error msg   # Y
-    # 6        #  ModuleName        # "[2.0]"       # module          #   works, return rsrc      # Y
-    # 7        #  Name              # "[2.0]"       # script          #   works, return rsrc      # Y
-    # 8        #  Name              # "[2.0]"       # module          #   works, return rsrc      # Y
-    # 9        #  ModuleName        # "[2.0, 2.5]"  # script          #   prints nice error msg   #
-    # 10       #  ModuleName        # "[2.0, 2.5]"  # module          #   works, return rsrc(s)?  #
-    # 11       #  Name              # "[2.0, 2.5]"  # script          #   works, return rsrc(s)?  #
-    # 12       #  Name              # "[2.0, 2.5]"  # module          #   works, return rsrc(s)?  #
+    # 1        #  ModuleName        # null          # script          #   prints nice error msg           # Y
+    # 2        #  ModuleName        # null          # module          #   works, return rsrc              # Y
+    # 3        #  Name              # null          # script          #   works, return rsrc              # Y
+    # 4        #  Name              # null          # module          #   works, return rsrc              # Y
+    # 5        #  ModuleName        # "[2.0]"       # script          #   prints nice error msg           # Y
+    # 6        #  ModuleName        # "[2.0]"       # module          #   works, return rsrc              # Y
+    # 7        #  Name              # "[2.0]"       # script          #   works, return rsrc              # Y
+    # 8        #  Name              # "[2.0]"       # module          #   works, return rsrc              # Y
+    # 9        #  ModuleName        # "[2.0, 2.5]"  # script          #   prints nice error msg           # Y
+    # 10       #  ModuleName        # "[2.0, 2.5]"  # module          #   works, return rsrc w/ latest v  # Y
+    # 11       #  Name              # "[2.0, 2.5]"  # script          #   works, return rsrc w/ latest v  # Y
+    # 12       #  Name              # "[2.0, 2.5]"  # module          #   works, return rsrc w/ latest v  # Y
+    # 13       #  ModuleName        # "*"           # script          #   prints nice error msg           #
+    # 14       #  ModuleName        # "*"           # module          #   works, returns 4 rsrcs          #
+    # 15       #  Name              # "*"           # script          #   works, returns 5 rsrcs          #
+    # 16       #  Name              # "*"           # module          #   works, returns 4 rsrcs          #
     #############################################################################################################
-    It "1: find resource when given ModuleName, Version param null, and Name is of a script resource" {
-        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery
+    # It "1: find resource when given ModuleName, Version param null, and Name is of a script resource" {
+    #     $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery
+    #     $res | Should -BeNullOrEmpty
+    # }
+
+    # It "2: find resource when given ModuleName, Version param null, and Name is of a module resource" {
+    #     $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery
+    #     $res.Name | Should -Be "ContosoServer"
+    # }
+
+    # It "3: find resource when given Name, Version param null, and name is of a script resource" {
+    #     $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery
+    #     $res.Name | Should -Be "Fabrikam-ServerScript"
+    # }
+
+    # It "4: find resource when given Name, Version param null, and name is of a module resource" {
+    #     $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery
+    #     $res.Name | Should -Be "ContosoServer"
+    # }
+
+    # It "5: find resource when given ModuleName, Version not null --> [2.0], and name is of a script resource" {
+    #     $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0]"
+    #     $res | Should -BeNullOrEmpty
+    # }
+
+    # It "6: find resource when given ModuleName, Version not null --> [2.0], name is of a module resource" {
+    #     $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery -Version "[2.0]"
+    #     $res.Name | Should -Be "ContosoServer"
+    #     $res.Version | Should -Be "2.0"
+    # }
+
+    # It "7: find resource when given ModuleName, Version not null --> [2.0], name is of a script resource" {
+    #     $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0]"
+    #     $res.Name | Should -Be "Fabrikam-ServerScript"
+    #     $res.Version | Should -Be "2.0"
+    # }
+
+    # It "8: find resource when given Name, Version not null --> [2.0], name is of a module resource" {
+    #     $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery -Version "[2.0]"
+    #     $res.Name | Should -Be "ContosoServer"
+    #     $res.Version | Should -Be "2.0"
+    # }
+
+    # It "9: find resource when given ModuleName, Version not null --> [1.0, 2.5], name is of a script resource"{
+    #     $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery -Version "[1.0, 2.5]"
+    #     $res | Should -BeNullOrEmpty
+    # }
+
+    # It "10: find resource when given ModuleName, Version not null --> [1.0, 2.5], name is of a module resource" {
+    #     $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery -Version "[1.0, 2.5]"
+    #     $res.Name | Should -Be "ContosoServer"
+    #     $res.Version | Should -Be "2.5"
+    # }
+
+    # It "11: find resource when given Name, Version not null --> [1.0, 2.5], name is of a script resource" {
+    #     $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[1.0, 2.5]"
+    #     $res.Name | Should -Be "Fabrikam-ServerScript"
+    #     $res.Version | Should -Be "2.5"
+    # }
+
+    # It "12: find resources when given Name, Version not null --> [1.0, 2.5], name is of module resource" {
+    #     $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery -Version "[1.0, 2.5]"
+    #     $res.Name | Should -Be "ContosoServer"
+    #     $res.Version | Should -Be "2.5"
+    # }
+
+    It "13: find resources when given ModuleName, Version not null --> '*', name is of a script resource" {
+        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Version "*" -Repository PoshTestGallery
         $res | Should -BeNullOrEmpty
     }
 
-    It "2: find resource when given ModuleName, Version param null, and Name is of a module resource" {
-        $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery
-        $res.Name | Should -Be "ContosoServer"
+    It "14: find resources when given ModuleName, Version not null --> '*', name is of a module resource" {
+        $res = Find-PSResource -ModuleName ContosoServer -Version "*" -Repository PoshTestGallery
+        # $res.Name | Should -Be "ContosoServer"
+        $res.Count | Should -Be  4
     }
 
-    It "3: find resource when given Name, Version param null, and name is of a script resource" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery
-        $res.Name | Should -Be "Fabrikam-ServerScript"
-    }
+    # It "15: find resources when given Name, Version not null --> '*', name is of a script resource" {
+    #     $res = Find-PSResource -Name Fabrikam-ServerScript -Version "*" -Repository PoshTestGallery
+    #     # $res.Name | Should -Be "Fabrikam-ServerScript"
+    #     $res.Count | Should -Be 5
+    # }
 
-    It "4: find resource when given Name, Version param null, and name is of a module resource" {
-        $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery
-        $res.Name | Should -Be "ContosoServer"
-    }
+    # It "16: find resources when given Name, Version not null --> '*', name is of a module resource" {
+    #     $res = Find-PSResource -Name ContosoServer -Version "*" -Repository PoshTestGallery
+    #     # $res.Name | Should -Be "ContosoServer"
+    #     $res.Count | Should -Be  4
+    # }
 
-    It "5: find resource when given ModuleName, Version not null --> [2.0], and name is of a script resource" {
-        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0]"
-        $res | Should -BeNullOrEmpty
-    }
-
-    It "6: find resource when given ModuleName, Version not null --> [2.0], name is of a module resource" {
-        $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery -Version "[2.0]"
-        $res.Name | Should -Be "ContosoServer"
-    }
-
-    It "7: find resource when given ModuleName, Version not null --> [2.0], name is of a script resource" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0]"
-        $res.Name | Should -Be "Fabrikam-ServerScript"
-    }
-
-    It "8: find resource when given Name, Version not null --> [2.0], name is of a module resource" {
-        $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery -Version "[2.0]"
-        $res.Name | Should -Be "ContosoServer"
-    }
 
     # todo: add test for "find by type module", and like get a list of all resources
     # that are a module and iterate thru them to make sure none of their types are something beside module
