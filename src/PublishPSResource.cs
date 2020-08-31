@@ -298,6 +298,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool isScript;
         private string pkgName;
 
+        private static char[] PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+
         protected override void ProcessRecord()
         {
             _path = string.IsNullOrEmpty(_path) ? _literalPath : _path;
@@ -415,12 +417,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Create subdirectory structure in temp folder
                 foreach (string dir in System.IO.Directory.GetDirectories(_path, "*", System.IO.SearchOption.AllDirectories))
                 {
-                    System.IO.Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dir.Substring(_path.Length)));
+                    var dirName = dir.Substring(_path.Length).Trim(PathSeparators);
+                    System.IO.Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirName));
                 }
                 // Copy files over to temp folder
-                foreach (string file_name in System.IO.Directory.GetFiles(_path, "*", System.IO.SearchOption.AllDirectories))
+                foreach (string fileNamePath in System.IO.Directory.GetFiles(_path, "*", System.IO.SearchOption.AllDirectories))
                 {
-                    System.IO.File.Copy(file_name, System.IO.Path.Combine(outputDir, file_name.Substring(_path.Length)));
+                    var fileName = fileNamePath.Substring(_path.Length).Trim(PathSeparators);
+                    System.IO.File.Copy(fileNamePath, System.IO.Path.Combine(outputDir, fileName));
                 }
             }
 
