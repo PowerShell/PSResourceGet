@@ -69,6 +69,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private Uri _url;
 
+        /*
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
@@ -82,6 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { _credential = value; }
         }
         private PSCredential _credential;
+        */
 
         /// <summary>
         /// Registers the PowerShell Gallery.
