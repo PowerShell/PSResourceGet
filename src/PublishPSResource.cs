@@ -298,7 +298,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool isScript;
         private string pkgName;
 
-        private static char[] PathSeparators = new char[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+        private static char[] PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
 
         protected override void ProcessRecord()
         {
