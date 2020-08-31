@@ -895,6 +895,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             //IEnumerable<IPackageSearchMetadata> foundPackages;
             List<IEnumerable<IPackageSearchMetadata>> filteredFoundPkgs = new List<IEnumerable<IPackageSearchMetadata>>();
 
+            List<IEnumerable<IPackageSearchMetadata>> scriptPkgsNotNeeded = new List<IEnumerable<IPackageSearchMetadata>>();
+
             // If module name is specified, use that as the name for the pkg to search for
             if (_moduleName != null)
             {
@@ -1050,10 +1052,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .Where(p => p.Tags.Split(delim, StringSplitOptions.RemoveEmptyEntries).Contains("PSModule"))
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
-                    }
-                    else if(_moduleName != null && filteredFoundPkgs.Count == ct){
-                        //nothing was added because criteria of PSModule not met
-                        Console.WriteLine("Error AN: can't get versions for a script when given module name");
+
+                        scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                            .Where(p => p.Tags.Split(delim, StringSplitOptions.RemoveEmptyEntries).Contains("PSScript"))
+                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+
+                        if(scriptPkgsNotNeeded.FirstOrDefault().Count() != 0){
+                            Console.WriteLine("Error AN: asking for versions of a script resource with ModuleName, use Name parameter instead");
+                        }  
+                        scriptPkgsNotNeeded.RemoveAll(p => true);  
                     }
                     else if(name != null) {
                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
@@ -1061,6 +1068,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else {
                         Console.WriteLine("Name and ModuleName are null but Version isnt, specify a name or module name! ");
                     }
+                    
+
 
                     // var tagArray = p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
                     // foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
