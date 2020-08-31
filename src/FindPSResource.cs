@@ -1020,47 +1020,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                      }
                      */
                     // ensure that the latst version is returned first (the ordering of versions differ
-                    // filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
-                    
-                    // if(_moduleName != null){
-                    //     char[] delimm = new char[] { ' ', ',' };
-                    //     foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                    //         .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
-                    //     var pkgList = foundPackages.FirstOrDefault();
-                    //     for(int i=1; i <= pkgList.Count(); i++){
-                    //         var singlePkg = Enumerable.Repeat(foundPackages.FirstOrDefault(), i);
-                    //         var temp = singlePkg.Tags.Split(delimm, StringSplitOptions.RemoveEmptyEntries);
-
-                    //     }
-                    //     foreach(var pkg in pkgList){
-                    //         var temp = pkg.Tags.Split(delimm, StringSplitOptions.RemoveEmptyEntries);
-                    //         if(temp.Contains("PSModule")){
-                    //             filteredFoundPkgs.Add(pkg);
-                    //         }
-                    //     }
-
-                    // }
-
-
-
-
 
                     char[] delim = new char[] { ' ', ',' };
-                    var ct = filteredFoundPkgs.Count;
                     if(_moduleName != null) {
+                        bool scriptModuleNameIssue = false;
+                        var pkgList = foundPackages.FirstOrDefault();
+                        foreach(IPackageSearchMetadata pkg in pkgList){
+                            var t = pkg.Tags.Split(delim, StringSplitOptions.RemoveEmptyEntries);
+                            if(t.Contains("PSModule")){
+                                filteredFoundPkgs.Add(pkgList);
+                                // because each pkg in the pkgList is the same package just a different version. 
+                                // Test if it works with Find-PSResource -ModuleName Con* -Version *
+                                break;
+                            }
+                            else if (t.Contains("PSScript"))
+                            {
+                                scriptModuleNameIssue = true;
+                            }
+                        }
+                        if(scriptModuleNameIssue){
+                            Console.WriteLine("Error, asking for script module using ModuleName param, use Name param instead");
+                        }
+
+                        //add line of code to order by descending
+                        //currently is in descending order but probably would be good to do anyways
+                        //filteredFoundPkgs.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease);
+
+                        //Note: Alternative way of doing it, possibly slower performance!
                         // perform checks for PSModule before adding to filteredFoundPackages
-                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                            .Where(p => p.Tags.Split(delim, StringSplitOptions.RemoveEmptyEntries).Contains("PSModule"))
-                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
-                        scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                            .Where(p => p.Tags.Split(delim, StringSplitOptions.RemoveEmptyEntries).Contains("PSScript"))
-                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+                        // filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        //     .Where(p => p.Tags.Split(delim, StringSplitOptions.RemoveEmptyEntries).Contains("PSModule"))
+                        //     .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
-                        if(scriptPkgsNotNeeded.FirstOrDefault().Count() != 0){
-                            Console.WriteLine("Error AN: asking for versions of a script resource with ModuleName, use Name parameter instead");
-                        }  
-                        scriptPkgsNotNeeded.RemoveAll(p => true);  
+                        // scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        //     .Where(p => p.Tags.Split(delim, StringSplitOptions.RemoveEmptyEntries).Contains("PSScript"))
+                        //     .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+
+                        // if(scriptPkgsNotNeeded.FirstOrDefault().Count() != 0){
+                        //     Console.WriteLine("Error: asking for versions of a script resource with ModuleName, use Name parameter instead");
+                        // }  
+                        // scriptPkgsNotNeeded.RemoveAll(p => true);  
                     }
                     else if(name != null) {
                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
@@ -1119,11 +1119,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var pkgList = foundPackages.FirstOrDefault();
                     var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
                     
-                   //Anam added, unlikely it'll reach
+
                     if(singlePkg == null){
                         Console.WriteLine("Warning: this will cause an error with id later");
                     }
-                    //Anam added
+
                     if(_moduleName != null){
                         char[] delimit = new char[] { ' ', ',' };
                         var tags = singlePkg.First().Tags.Split(delimit, StringSplitOptions.RemoveEmptyEntries);
@@ -1154,7 +1154,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // var bleh = foundPackages.FirstOrDefault().(System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), 20));
                     var pkgList = foundPackages.FirstOrDefault();
                     var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
-                    Console.WriteLine(singlePkg.First().Tags);
                     // if(singlePkg.First().Tags.ToDelimitedString);
 
                     //if it was a ModuleName then check if the Tag is PSModule and only add then ANAM
