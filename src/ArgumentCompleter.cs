@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 
-internal class NameCompleter : IArgumentCompleter
+internal class RepositoryNameCompleter : IArgumentCompleter
 {
     public IEnumerable<CompletionResult> CompleteArgument(
         string commandName,  // For cmdlets Get-PSResource, Set-PSResource, and Unregister-PSResource
@@ -20,16 +20,17 @@ internal class NameCompleter : IArgumentCompleter
 
     private IEnumerable<CompletionResult> CompleteRepositoryName(string wordToComplete)
     {
-        var res = new List<CompletionResult>();
+        List<CompletionResult> res = new List<CompletionResult>();
 
-        var r = new RespositorySettings();
-        var listOfRepositories = r.Read(new string[]{ });
+        RespositorySettings repositorySettings = new RespositorySettings();
+        IReadOnlyList<PSObject> listOfRepositories = repositorySettings.Read(null);
 
-        foreach (var repo in listOfRepositories)
+        foreach (PSObject repo in listOfRepositories)
          {
-            if ((repo.Properties["Name"].Value.ToString()).StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
+            string repoName = repo.Properties["Name"].Value.ToString();
+            if (repoName.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
             {
-                res.Add(new CompletionResult(repo.Properties["Name"].Value.ToString()));
+                res.Add(new CompletionResult(repoName));
             }
         }
 
