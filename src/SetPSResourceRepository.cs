@@ -30,6 +30,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true,
             ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [ArgumentCompleter(typeof(NameCompleter))]
         [ValidateNotNullOrEmpty]
         public string Name
         {

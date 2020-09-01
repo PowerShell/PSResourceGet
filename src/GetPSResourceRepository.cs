@@ -23,7 +23,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, ValueFromPipeline = true,
             ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
-       [ValidateNotNullOrEmpty]
+        [ArgumentCompleter(typeof(NameCompleter))]
+        [ValidateNotNullOrEmpty]
         public string[] Name
         {
             get
