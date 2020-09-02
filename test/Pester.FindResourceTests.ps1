@@ -36,14 +36,14 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Get-PSResourceRepository PSGallery
     #
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
-    # It 'Find the Default Registered PSGallery' {
+    It 'Find the Default Registered PSGallery' {
 
-    #    $repo = Get-PSResourceRepository $PSGalleryName
-    #    $repo | Should -Not -BeNullOrEmpty
-    #    $repo.URL | Should be $PSGalleryLocation
-    #    $repo.Trusted | Should be false
-    #    $repo.Priority | Should be 50
-    # }
+        $repo = Get-PSResourceRepository $PSGalleryName
+        $repo | Should -Not -BeNullOrEmpty
+        $repo.URL | Should be $PSGalleryLocation
+        $repo.Trusted | Should be false
+        $repo.Priority | Should be 50
+    }
 
     # Purpose: to register PoshTestGallery resource repo and check it registered successfully
     #
@@ -51,12 +51,12 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     #
     # Expected Result: PoshTestGallery resource repo has registered successfully
     It 'Register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
-       Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
+        Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
-       $repo = Get-PSResourceRepository $PoshTestGalleryName
-       $repo.Name | should be $PoshTestGalleryName
-       $repo.URL | should be $PostTestGalleryLocation
-       $repo.Trusted | should be true
+        $repo = Get-PSResourceRepository $PoshTestGalleryName
+        $repo.Name | should be $PoshTestGalleryName
+        $repo.URL | should be $PostTestGalleryLocation
+        $repo.Trusted | should be true
     }
 
     # Purpose: to find all resources when no parameters are specified
@@ -119,7 +119,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource -Name "Co[nN]t?soS[a-z]r?eW"
     #
     # Expected Result: should find ContosoServer resource
-    It "1: Find Not Available Resource with Range Wildcard for Name Param" {
+    It "Find Not Available Resource with Range Wildcard for Name Param" {
         $res = Find-PSResource -Name "Co[nN]t?soS[a-z]r?eW"
         $res | Should -BeNullOrEmpty
     }

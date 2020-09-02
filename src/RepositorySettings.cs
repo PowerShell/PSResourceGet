@@ -106,7 +106,8 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
 
             // Check if what's being added already exists, if it does throw an error
-            var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Url").ToString(), repoURL.AbsoluteUri, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+            var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repoName, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+
             if (node != null)
             {
                 throw new ArgumentException(String.Format("The PSResource Repository '{0}' already exists.", repoName));

@@ -1,4 +1,16 @@
+### 3.0.0-beta9
 # Changelog
+New Features
+* Add DSCResources
+
+Bug Fixes
+* Fix bug related to finding dependencies that do not have a specified version in Find-PSResource
+* Fix bug related to parsing 'RequiredModules' in .psd1 in Publish-PSResource
+* Improve error handling for when repository in Publish-PSResource does not exist
+* Fix for unix paths in Get-PSResource, Install-PSResource, and Uninstall-PSResource
+* Add debugging statements for Get-PSResource and Install-PSResource
+* Fix bug related to paths in Uninstall-PSResource
+
 ### 3.0.0-beta8
 New Features 
 * Add Type parameter to Install-PSResource
