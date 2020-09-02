@@ -51,7 +51,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     #
     # Expected Result: PoshTestGallery resource repo has registered successfully
     It 'Register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
-        Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
+        # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
         $repo = Get-PSResourceRepository $PoshTestGalleryName
         $repo.Name | should be $PoshTestGalleryName
@@ -414,7 +414,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Note: Outputs a Errer parsing version range error, but unsure how to include Min and Max version. Todo: fix!
     # also todo: uncomment below code when .Dependencies property is added back
     It "Find resource with IncludeDependencies parameter" {
-        Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
+        # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
         $res = Find-PSResource ModuleWithDependencies1 -IncludeDependencies -Version "[1.0,2.0]"
         # $dependencyModuleNames = $res.Dependencies.Name #is currently 0 bc .Dependecies property dne
         # $dependencyModuleNames | ForEach-Object{ res.Name | Should -Contain $_}

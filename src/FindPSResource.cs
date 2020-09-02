@@ -841,14 +841,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ExpressionStarter<DataRow> starter2 = PredicateBuilder.New<DataRow>(true);
             if (_moduleName != null)
             {
-                Console.WriteLine("builds predicate for ModuleNAme"); //Anam
                 predicate = predicate.And(pkg => pkg.Field<string>("Name").Equals(_moduleName));
                 // predicate = predicate.And(pkg => pkg.Field<string>("Type").Equals("Module")); //Anam
             }
 
             if ((_type == null) || ((_type.Length == 0) || !(_type.Contains("Module", StringComparer.OrdinalIgnoreCase) || _type.Contains("Script", StringComparer.OrdinalIgnoreCase))))
             {
-                Console.WriteLine("Builds predicate for non-script or non-mod"); //Anam
                 var typeNamePredicate = PredicateBuilder.New<DataRow>(true);
                 foreach (string name in _name)
                 {
@@ -1010,6 +1008,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if(_moduleName != null) 
                     {
+                        bool errorScriptRsrcWithModuleName = false;
                         // perform checks for PSModule before adding to filteredFoundPackages
                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSModule"))
@@ -1021,17 +1020,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
                         if(scriptPkgsNotNeeded.FirstOrDefault().Count() != 0){
-                            Console.WriteLine("Error: asking for versions of a script resource with ModuleName, use Name parameter instead");
+                            errorScriptRsrcWithModuleName = true;
                         }  
                         scriptPkgsNotNeeded.RemoveAll(p => true);  
                     }
                     else if(name != null) 
                     {
                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
-                    }
-                    else 
-                    {
-                        Console.WriteLine("Name and ModuleName are null but Version isnt, specify a name or module name ");
                     }
                 }
                 else
@@ -1057,42 +1052,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     }
 
-                    if(name == null && _moduleName == null){
-                        Console.WriteLine("Warning! The foundPackages SQL query type thing will liekly fail bc of id");
-                    }
+                    if(nameVal != null){
+                        // Search for packages within a version range
+                        // ensure that the latst version is returned first (the ordering of versions differ
+                        // test wth  Find-PSResource 'Carbon' -Version '[,2.4.0)'
+                        foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                            .Where(p => versionRange.Satisfies(p.Identity.Version))
+                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
-                    // Search for packages within a version range
-                    // ensure that the latst version is returned first (the ordering of versions differ
-                    // test wth  Find-PSResource 'Carbon' -Version '[,2.4.0)'
-                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                        .Where(p => versionRange.Satisfies(p.Identity.Version))
-                        .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+                        // TODO:  TEST AFTER CHANGES
+                        // choose the most recent version -- it's not doing this right now
+                        //int toRemove = foundPackages.First().Count() - 1;
+                        //var singlePkg = (System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), toRemove));
+                        var pkgList = foundPackages.FirstOrDefault();
+                        var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
+                        
 
-                    // TODO:  TEST AFTER CHANGES
-                    // choose the most recent version -- it's not doing this right now
-                    //int toRemove = foundPackages.First().Count() - 1;
-                    //var singlePkg = (System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), toRemove));
-                    var pkgList = foundPackages.FirstOrDefault();
-                    var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
-                    
-
-                    if(singlePkg != null)
-                    {
-                        if(_moduleName != null)
+                        if(singlePkg != null)
                         {
-                            var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
-                            if(tags.Contains("PSModule"))
+                            if(_moduleName != null)
+                            {
+                                bool moduleNameWithScriptValue = false;
+                                var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                                if(tags.Contains("PSModule"))
+                                {
+                                    filteredFoundPkgs.Add(singlePkg);
+                                }
+                                else
+                                {
+                                    moduleNameWithScriptValue = true;
+                                }
+                            }
+                            else if(_name != null)
                             {
                                 filteredFoundPkgs.Add(singlePkg);
                             }
-                            else
-                            {
-                                Console.WriteLine("Error: can't get specific version for a script resouce when given ModuleName");
-                            }
-                        }
-                        else if(_name != null)
-                        {
-                            filteredFoundPkgs.Add(singlePkg);
                         }
                     }
                 }
@@ -1102,6 +1096,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // if version is null, but there we want to return multiple packages (muliple names), skip over this step of removing all but the lastest package/version:
                 if ((name != null && !name.Contains("*")) || _moduleName != null)
                 {
+                    bool moduleNameWithScriptValue = false;
                     // choose the most recent version -- it's not doing this right now
                     int toRemove = foundPackages.First().Count() - 1;
 
@@ -1118,7 +1113,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 filteredFoundPkgs.Add(singlePkg);
                             }
                             else{
-                                Console.WriteLine("Error: Trying to use ModuleName param for nonModule resource");
+                                moduleNameWithScriptValue = true;
                             }
                         }
                         else 
@@ -1273,7 +1268,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-                    // choose the most recent version
+                    // choose the most recent version 
                     int toRemove = dependencies.Count() - 1;
 
                     // if no version/version range is specified the we just return the latest version
