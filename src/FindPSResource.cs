@@ -1016,11 +1016,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSScript"))
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
-
-
-                        // if(scriptPkgsNotNeeded.FirstOrDefault().Count() != 0){
-                        //     Console.WriteLine("Error: using ModuleName parameter with script resource as its value");
-                        // }  
+ 
                         scriptPkgsNotNeeded.RemoveAll(p => true);  
                     }
                     else if(name != null) 
@@ -1076,10 +1072,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 {
                                     filteredFoundPkgs.Add(singlePkg);
                                 }
-                                else
-                                {
-                                    // Console.WriteLine("Error: using ModuleName parameter with script resource as its value");
-                                }
                             }
                             else if(_name != null)
                             {
@@ -1094,7 +1086,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // if version is null, but there we want to return multiple packages (muliple names), skip over this step of removing all but the lastest package/version:
                 if ((name != null && !name.Contains("*")) || _moduleName != null)
                 {
-                    bool moduleNameWithScriptValue = false;
                     // choose the most recent version -- it's not doing this right now
                     int toRemove = foundPackages.First().Count() - 1;
 
@@ -1109,9 +1100,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if(_moduleName != null){
                             if(tags.Contains("PSModule")){
                                 filteredFoundPkgs.Add(singlePkg);
-                            }
-                            else{
-                                moduleNameWithScriptValue = true;
                             }
                         }
                         else 
