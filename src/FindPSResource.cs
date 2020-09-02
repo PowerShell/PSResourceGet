@@ -1008,7 +1008,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if(_moduleName != null) 
                     {
-                        bool errorScriptRsrcWithModuleName = false;
                         // perform checks for PSModule before adding to filteredFoundPackages
                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSModule"))
@@ -1019,9 +1018,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
 
-                        if(scriptPkgsNotNeeded.FirstOrDefault().Count() != 0){
-                            errorScriptRsrcWithModuleName = true;
-                        }  
+                        // if(scriptPkgsNotNeeded.FirstOrDefault().Count() != 0){
+                        //     Console.WriteLine("Error: using ModuleName parameter with script resource as its value");
+                        // }  
                         scriptPkgsNotNeeded.RemoveAll(p => true);  
                     }
                     else if(name != null) 
@@ -1072,7 +1071,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             if(_moduleName != null)
                             {
-                                bool moduleNameWithScriptValue = false;
                                 var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
                                 if(tags.Contains("PSModule"))
                                 {
@@ -1080,7 +1078,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 }
                                 else
                                 {
-                                    moduleNameWithScriptValue = true;
+                                    // Console.WriteLine("Error: using ModuleName parameter with script resource as its value");
                                 }
                             }
                             else if(_name != null)
