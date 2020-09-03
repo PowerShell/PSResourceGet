@@ -58,7 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public void ProcessInstallParams(string[] _name, string _version, bool _prerelease, string[] _repository, string _scope, bool _acceptLicense, bool _quiet, bool _reinstall, bool _force, bool _trustRepository, bool _noClobber, PSCredential _credential, string _requiredResourceFile, string _requiredResourceJson, Hashtable _requiredResourceHash)
         {
-            cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; Scope: '{4}'; AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7'}; TrustRepository: '{8}'; NoClobber: '{9}';", string.Join(",", _name), _version, _prerelease.ToString(),  string.Join(",", _repository), _scope, _acceptLicense.ToString(), _quiet.ToString(), _reinstall.ToString(), _trustRepository.ToString(), _noClobber.ToString()));
+            cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; Scope: '{4}'; AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7}'; TrustRepository: '{8}'; NoClobber: '{9}';", string.Join(",", _name), _version != null ? _version:string.Empty, _prerelease.ToString(), _repository != null ? string.Join(",", _repository):string.Empty, _scope != null ? _scope:string.Empty, _acceptLicense.ToString(), _quiet.ToString(), _reinstall.ToString(), _trustRepository.ToString(), _noClobber.ToString()));
 
             var consoleIsElevated = false;
             var isWindowsPS = false;
@@ -759,22 +759,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // If NoClobber is specified, ensure command clobbering does not happen
                         if (noClobber)
                         {
+
+                            
                             // This is a primitive implementation  
                             // 1) get all possible paths
                             // 2) search all modules and compare
                             /// Cannot uninstall a module if another module is dependent on it 
 
-                            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
-                            {
+                            //using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                           // {
                                 // Get all modules
-                                var results = pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke();
+                                //var results = pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke();
 
                                 // Structure of LINQ call:
                                 // Results is a collection of PSModuleInfo objects that contain a property listing module commands, "ExportedCommands".
                                 // ExportedCommands is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the command we're trying to install
                                 // If anything from the final call gets returned, there is a command clobber with this pkg.
 
-                                List<IEnumerable<PSObject>> pkgsWithCommandClobber = new List<IEnumerable<PSObject>>();
+                               // List<IEnumerable<PSObject>> pkgsWithCommandClobber = new List<IEnumerable<PSObject>>();
+                               /*
                                 foreach (string command in includesCommand)
                                 {
                                     pkgsWithCommandClobber.Add(results.Where(pkg => ((ReadOnlyCollection<PSModuleInfo>)pkg.Properties["ExportedCommands"].Value).Where(ec => ec.Name.Equals(command, StringComparison.InvariantCultureIgnoreCase)).Any()));
@@ -786,7 +789,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                                     throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Command(s) with name(s) '{0}' is already available on this system. Installing '{1}' may override the existing command. If you still want to install '{1}', remove the -NoClobber parameter.", strUniqueCommandNames, p.Identity.Id));
                                 }
+                                */
+                            //}
+                            
+                            GetHelper getHelper = new GetHelper(cancellationToken, this);
+                            List<PSObject> results = getHelper.ProcessGetParams(name:null, version:"", prerelease:false, path:"");
+
+                            List<IEnumerable<PSObject>> pkgsWithCommandClobber = new List<IEnumerable<PSObject>>();
+
+                            foreach (string command in includesCommand)
+                            {
+                                pkgsWithCommandClobber.Add(results.Where(pkg => ((ReadOnlyCollection<PSModuleInfo>)pkg.Properties["ExportedCommands"].Value).Where(ec => ec.Name.Equals(command, StringComparison.InvariantCultureIgnoreCase)).Any()));
                             }
+
                         }
 
                         Dictionary<string, List<string>> includes = new Dictionary<string, List<string>> {
@@ -916,6 +931,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
+                    cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package {0}", p.Identity.Id));
+                   
                     try
                     {
                         cmdletPassedIn.WriteDebug(string.Format("Attempting to delete '{0}'", tempInstallPath));
