@@ -842,7 +842,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (_moduleName != null)
             {
                 predicate = predicate.And(pkg => pkg.Field<string>("Name").Equals(_moduleName));
-                // predicate = predicate.And(pkg => pkg.Field<string>("Type").Equals("Module")); //Anam
             }
 
             if ((_type == null) || ((_type.Length == 0) || !(_type.Contains("Module", StringComparer.OrdinalIgnoreCase) || _type.Contains("Script", StringComparer.OrdinalIgnoreCase))))
@@ -994,13 +993,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
 
-
-
+            //use either ModuleName or Name (whichever not null) to prevent id error
+            var nameVal = name == null ? _moduleName : name;
             // Check version first to narrow down the number of pkgs before potentially searching through tags
-            if (_version != null)
+            if (_version != null && nameVal != null)
             {
-                //use either ModuleName or Name (whichever not null) to prevent id error
-                var nameVal = name == null ? _moduleName : name;
 
                 if (_version.Equals("*"))
                 {
@@ -1019,8 +1016,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
  
                         scriptPkgsNotNeeded.RemoveAll(p => true);  
                     }
-                    else if(name != null) 
-                    {
+                    else
+                    { //name != null
                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
                     }
                 }
@@ -1046,37 +1043,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         versionRange = VersionRange.Parse(_version);
 
                     }
+                    // Search for packages within a version range
+                    // ensure that the latst version is returned first (the ordering of versions differ
+                    // test wth  Find-PSResource 'Carbon' -Version '[,2.4.0)'
+                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        .Where(p => versionRange.Satisfies(p.Identity.Version))
+                        .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
-                    if(nameVal != null){
-                        // Search for packages within a version range
-                        // ensure that the latst version is returned first (the ordering of versions differ
-                        // test wth  Find-PSResource 'Carbon' -Version '[,2.4.0)'
-                        foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                            .Where(p => versionRange.Satisfies(p.Identity.Version))
-                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+                    // TODO:  TEST AFTER CHANGES
+                    // choose the most recent version -- it's not doing this right now
+                    //int toRemove = foundPackages.First().Count() - 1;
+                    //var singlePkg = (System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), toRemove));
+                    var pkgList = foundPackages.FirstOrDefault();
+                    var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
+                    
 
-                        // TODO:  TEST AFTER CHANGES
-                        // choose the most recent version -- it's not doing this right now
-                        //int toRemove = foundPackages.First().Count() - 1;
-                        //var singlePkg = (System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), toRemove));
-                        var pkgList = foundPackages.FirstOrDefault();
-                        var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
-                        
-
-                        if(singlePkg != null)
+                    if(singlePkg != null)
+                    {
+                        if(_moduleName != null)
                         {
-                            if(_moduleName != null)
-                            {
-                                var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
-                                if(tags.Contains("PSModule"))
-                                {
-                                    filteredFoundPkgs.Add(singlePkg);
-                                }
-                            }
-                            else if(_name != null)
+                            var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                            if(tags.Contains("PSModule"))
                             {
                                 filteredFoundPkgs.Add(singlePkg);
                             }
+                        }
+                        else if(_name != null)
+                        {
+                            filteredFoundPkgs.Add(singlePkg);
                         }
                     }
                 }
