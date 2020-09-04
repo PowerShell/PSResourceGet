@@ -3,6 +3,7 @@
 
 
 using System;
+using System.Diagnostics;
 using System.Management.Automation;
 using System.Collections.Generic;
 using NuGet.Configuration;
@@ -236,7 +237,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         PSObject pkgAsPSObject = new PSObject();
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Name", pkg.Identity.Id));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version));
+                        // Version.Version ensures type is System.Version instead of type NuGetVersion
+                        pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version.Version));
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repoName.Properties["Name"].Value.ToString()));
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Description", pkg.Description));
 
@@ -885,14 +887,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-
-
         private List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSourceHelper(string repositoryUrl, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext)
         {
 
             List<IEnumerable<IPackageSearchMetadata>> foundPackages = new List<IEnumerable<IPackageSearchMetadata>>();
-            //IEnumerable<IPackageSearchMetadata> foundPackages;
             List<IEnumerable<IPackageSearchMetadata>> filteredFoundPkgs = new List<IEnumerable<IPackageSearchMetadata>>();
+            List<IEnumerable<IPackageSearchMetadata>> scriptPkgsNotNeeded = new List<IEnumerable<IPackageSearchMetadata>>();
+
+            char[] delimiter = new char[] { ' ', ',' };
 
             // If module name is specified, use that as the name for the pkg to search for
             if (_moduleName != null)
@@ -904,7 +906,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else if (name != null)
             {
                 // If a resource name is specified, search for that particular pkg name
-                // search for specific pkg name
                 if (!name.Contains("*"))
                 {
                     foundPackages.Add(pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
@@ -993,28 +994,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
 
-
-
-            // Check version first to narrow down the number of pkgs before potential searching through tags
-            if (_version != null)
+            //use either ModuleName or Name (whichever not null) to prevent id error
+            var nameVal = name == null ? _moduleName : name;
+            // Check version first to narrow down the number of pkgs before potentially searching through tags
+            if (_version != null && nameVal != null)
             {
 
                 if (_version.Equals("*"))
                 {
-                    // this is all that's needed if version == "*" (I think)
-                    /*
-                     if (repositoryUrl.Contains("api.nuget.org") || repositoryUrl.StartsWith("file:///"))
-                     {
-                         // need to reverse the order of the informaiton returned when using nuget.org v3 protocol
-                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().Reverse());
-                     }
-                     else
-                     {
-                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
-                     }
-                     */
-                    // ensure that the latst version is returned first (the ordering of versions differ
-                    filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+                    // ensure that the latst version is returned first (the ordering of versions differ)
+
+                    if(_moduleName != null) 
+                    {
+                        // perform checks for PSModule before adding to filteredFoundPackages
+                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                            .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSModule"))
+                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+
+                        scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                            .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSScript"))
+                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+ 
+                        scriptPkgsNotNeeded.RemoveAll(p => true);  
+                    }
+                    else
+                    { //name != null
+                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+                    }
                 }
                 else
                 {
@@ -1025,6 +1031,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     foundPackages.RemoveAll(p => true);
                     VersionRange versionRange = null;
 
+                    //todo: fix! when the Version is inputted as "[2.0]" it doesnt get parsed by TryParse() returns null
                     if (specificVersion != null)
                     {
                         // exact version
@@ -1037,13 +1044,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         versionRange = VersionRange.Parse(_version);
 
                     }
-
-
-
                     // Search for packages within a version range
                     // ensure that the latst version is returned first (the ordering of versions differ
                     // test wth  Find-PSResource 'Carbon' -Version '[,2.4.0)'
-                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                         .Where(p => versionRange.Satisfies(p.Identity.Version))
                         .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
@@ -1053,8 +1057,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     //var singlePkg = (System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), toRemove));
                     var pkgList = foundPackages.FirstOrDefault();
                     var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
+                    
 
-                    filteredFoundPkgs.Add(singlePkg);
+                    if(singlePkg != null)
+                    {
+                        if(_moduleName != null)
+                        {
+                            var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                            if(tags.Contains("PSModule"))
+                            {
+                                filteredFoundPkgs.Add(singlePkg);
+                            }
+                        }
+                        else if(_name != null)
+                        {
+                            filteredFoundPkgs.Add(singlePkg);
+                        }
+                    }
                 }
             }
             else // version is null
@@ -1065,16 +1084,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // choose the most recent version -- it's not doing this right now
                     int toRemove = foundPackages.First().Count() - 1;
 
-                    // var result = ((IEnumerable)firstPkg).Cast<IPackageSearchMetadata>();
-                    // var bleh = foundPackages.FirstOrDefault().(System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), 20));
-                    var pkgList = foundPackages.FirstOrDefault();
-                    var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
+                    //to prevent NullException
+                    if(toRemove >= 0) 
+                    {
+                        var pkgList = foundPackages.FirstOrDefault();
+                        var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
 
-
-                    filteredFoundPkgs.Add(singlePkg);
+                        //if it was a ModuleName then check if the Tag is PSModule and only add then
+                        var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                        if(_moduleName != null){
+                            if(tags.Contains("PSModule")){
+                                filteredFoundPkgs.Add(singlePkg);
+                            }
+                        }
+                        else 
+                        { // _name != null
+                            filteredFoundPkgs.Add(singlePkg);
+                        }
+                    }
                 }
                 else 
-                {
+                { //if name not null,but name contains * and version is null
                     filteredFoundPkgs = foundPackages;
                 }
             }
@@ -1084,7 +1114,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // TAGS
             /// should move this to the last thing that gets filtered
-            char[] delimiter = new char[] { ' ', ',' };
             var flattenedPkgs = filteredFoundPkgs.Flatten().ToList();
             if (_tags != null)
             {
@@ -1220,7 +1249,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-                    // choose the most recent version
+                    // choose the most recent version 
                     int toRemove = dependencies.Count() - 1;
 
                     // if no version/version range is specified the we just return the latest version

@@ -58,7 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public void ProcessInstallParams(string[] _name, string _version, bool _prerelease, string[] _repository, string _scope, bool _acceptLicense, bool _quiet, bool _reinstall, bool _force, bool _trustRepository, bool _noClobber, PSCredential _credential, string _requiredResourceFile, string _requiredResourceJson, Hashtable _requiredResourceHash)
         {
-            cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; Scope: '{4}'; AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7'}; TrustRepository: '{8}'; NoClobber: '{9}';", string.Join(",", _name), _version, _prerelease.ToString(),  string.Join(",", _repository), _scope, _acceptLicense.ToString(), _quiet.ToString(), _reinstall.ToString(), _trustRepository.ToString(), _noClobber.ToString()));
+            cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; Scope: '{4}'; AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7}'; TrustRepository: '{8}'; NoClobber: '{9}';", string.Join(",", _name), _version != null ? _version:string.Empty, _prerelease.ToString(), _repository != null ? string.Join(",", _repository):string.Empty, _scope != null ? _scope:string.Empty, _acceptLicense.ToString(), _quiet.ToString(), _reinstall.ToString(), _trustRepository.ToString(), _noClobber.ToString()));
 
             var consoleIsElevated = false;
             var isWindowsPS = false;
@@ -300,18 +300,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var repositoryIsNotTrusted = "Untrusted repository";
             var queryInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
 
-            foreach (var repoName in listOfRepositories)
+            foreach (var repo in listOfRepositories)
             {
                 var sourceTrusted = false;
 
-                if (string.Equals(repoName.Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !trustRepository && !force)
+                string repoName = repo.Properties["Name"].Value.ToString();
+
+                cmdletPassedIn.WriteDebug(string.Format("Attempting to search for packages in '{0}'", repoName));
+                if (string.Equals(repo.Properties["Trusted"].Value.ToString(), "false", StringComparison.InvariantCultureIgnoreCase) && !trustRepository && !force)
                 {
                     cmdletPassedIn.WriteDebug("Checking if untrusted repository should be used");
 
                     if (!(yesToAll || noToAll))
                     {
                         // Prompt for installation of package from untrusted repository
-                        var message = string.Format(CultureInfo.InvariantCulture, queryInstallUntrustedPackage, repoName.Properties["Name"].Value.ToString());
+                        var message = string.Format(CultureInfo.InvariantCulture, queryInstallUntrustedPackage, repoName);
                         sourceTrusted = cmdletPassedIn.ShouldContinue(message, repositoryIsNotTrusted, true, ref yesToAll, ref noToAll);
                     }
                 }
@@ -325,7 +328,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     cmdletPassedIn.WriteDebug("Untrusted repository accepted as trusted source.");
                     // Try to install-- returns any pkgs that weren't found
                     // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
-                    var returnedPkgsNotInstalled = InstallPkgs(repoName.Properties["Url"].Value.ToString(), pkgsLeftToInstall, packageNames, version, prerelease, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, credential);
+                    var returnedPkgsNotInstalled = InstallPkgs(repoName, repo.Properties["Url"].Value.ToString(), pkgsLeftToInstall, packageNames, version, prerelease, scope, acceptLicense, quiet, reinstall, force, trustRepository, noClobber, credential);
                     if (!pkgsLeftToInstall.Any())
                     {
                         return;
@@ -339,7 +342,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // Package and its dependencies will be saved into a tmp folder
         // and will only be properly installed if all dependencies are found successfully.
         // Once package is installed, we want to resolve and install all dependencies.
-        public List<string> InstallPkgs(string repositoryUrl, List<string> pkgsLeftToInstall, string[] packageNames, string version, bool prerelease, string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, PSCredential credential)
+        public List<string> InstallPkgs(string repositoryName, string repositoryUrl, List<string> pkgsLeftToInstall, string[] packageNames, string version, bool prerelease, string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, PSCredential credential)
         {
             PackageSource source = new PackageSource(repositoryUrl);
 
@@ -362,14 +365,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch
             {
-                var exMessage = String.Format("Error retreiving repository resource");
-                var ex = new ArgumentException(exMessage);
-                var ErrorCreatingRepositoryResource = new ErrorRecord(ex, "ErrorCreatingRepositoryResource", ErrorCategory.ObjectNotFound, null);
+            }
+            if (resourceMetadata == null)
+            {
+              cmdletPassedIn.WriteVerbose(string.Format("Error retreiving resource repository from '{0}'. Try running command again with -Credential", repositoryName));
 
-                cmdletPassedIn.ThrowTerminatingError(ErrorCreatingRepositoryResource);
+                return pkgsLeftToInstall;
             }
 
-            foreach (var n in packageNames)
+            foreach (var pkgName in packageNames)
             {
                 IPackageSearchMetadata filteredFoundPkgs = null;
 
@@ -380,7 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // TODO: proper error handling
                     try
                     {
-                        filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(n, prerelease, false, context, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(pkgName, prerelease, false, context, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
                             .FirstOrDefault());
 
@@ -395,11 +399,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     catch
                     {
-                        var exMessage = String.Format("Could not find package {0}", n);
-                        var ex = new ArgumentException(exMessage);
-                        var ErrorCreatingRepositoryResource = new ErrorRecord(ex, "ErrorCreatingRepositoryResource", ErrorCategory.ObjectNotFound, null);
+                    }
 
-                        cmdletPassedIn.ThrowTerminatingError(ErrorCreatingRepositoryResource);
+                    if (filteredFoundPkgs == null)
+                    {
+                        cmdletPassedIn.WriteVerbose(String.Format("Could not find package '{0}' in repository '{1}'", pkgName, repositoryName));
+
+                        return pkgsLeftToInstall;
                     }
                 }
                 else
@@ -422,7 +428,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // Search for packages within a version range
                     // ensure that the latest version is returned first (the ordering of versions differ
-                    filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(n, prerelease, false, context, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                    filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(pkgName, prerelease, false, context, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                         .Where(p => versionRange.Satisfies(p.Identity.Version))
                         .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
                         .FirstOrDefault());
@@ -860,7 +866,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             File.Delete(Path.Combine(newPath, p.Identity.Id + ".ps1"));
                         }
 
-             
+
                         cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML)));
                         File.Move(Path.Combine(dirNameVersion, scriptXML), Path.Combine(psScriptsPath, "InstalledScriptInfos", scriptXML));
 
@@ -916,6 +922,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
+                    cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package {0}", p.Identity.Id));
+                   
                     try
                     {
                         cmdletPassedIn.WriteDebug(string.Format("Attempting to delete '{0}'", tempInstallPath));
@@ -926,7 +934,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         throw new Exception(e.Message);
                     }
 
-                    pkgsLeftToInstall.Remove(n);
+                    pkgsLeftToInstall.Remove(pkgName);
                 }
             }
 
@@ -1015,4 +1023,3 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
     }
 }
-

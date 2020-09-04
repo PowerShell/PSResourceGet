@@ -54,21 +54,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private object[] _inputObject;
 
         /// <summary>
-        /// Specifies to allow installation of prerelease versions
-        /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
-        [Parameter(ParameterSetName = "RequiredResourceFileParameterSet")]
-        public string[] Type
-        {
-            get
-            { return _type; }
-
-            set
-            { _type = value; }
-        }
-        private string[] _type;
-
-        /// <summary>
         /// Specifies the version or version range of the package to be installed
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
