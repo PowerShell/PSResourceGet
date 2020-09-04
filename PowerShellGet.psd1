@@ -24,7 +24,7 @@
     AliasesToExport   = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData       = @{
         PSData                                 = @{
-            Prerelease = 'beta9'
+            Prerelease = 'beta10'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -34,6 +34,18 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+### 3.0.0-beta10
+# Changelog
+Bug Fixes
+* Bug fix for -ModuleName (used with -Version) in Find-PSResource returning incorrect resource type
+* Make repositories unique by name
+* Add tab completion for -Name parameter in Get-PSResource, Set-PSResource, and Unregister-PSResource
+* Remove credential argument from Register-PSResourceRepository
+* Change returned version type from 'NuGet.Version' to 'System.Version'
+* Have Install output verbose message on successful installation (error for unsuccessful installation)
+* Ensure that not passing credentials does not throw an error if searching through multiple repositories
+* Remove attempt to remove loaded assemblies in psm1
+
 ### 3.0.0-beta9
 New Features
 * Add DSCResources
