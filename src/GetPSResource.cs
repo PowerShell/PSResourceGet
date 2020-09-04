@@ -108,8 +108,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (PSObject psObject in flattenedPkgs)
             {
-                WriteObject(psObject);
+                // Temporary PSObject for output purposes
+                PSObject temp = new PSObject();
 
+                temp.Members.Add(new PSNoteProperty("Name", psObject.Properties["Name"].ToString()));
+                temp.Members.Add(new PSNoteProperty("Version", psObject.Properties["Version"].ToString()));
+                temp.Members.Add(new PSNoteProperty("Repository", psObject.Properties["Repository"].ToString()));
+                temp.Members.Add(new PSNoteProperty("Description", psObject.Properties["Description"].ToString()));
+                WriteObject(temp);
             }
         }
     }
