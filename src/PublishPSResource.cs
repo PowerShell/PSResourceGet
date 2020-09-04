@@ -294,6 +294,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _nuspec;
 
+
+        /// <summary>
+        /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
+        /// </summary>
+        [Parameter(ValueFromPipelineByPropertyName = true)]
+        [ValidateNotNullOrEmpty]
+        public Uri Proxy
+        {
+            get
+            { return _proxy; }
+
+            set
+            { _proxy = value; }
+        }
+        private Uri _proxy;
+
+        /// <summary>
+        /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
+        /// </summary>
+        [Parameter(ValueFromPipelineByPropertyName = true)]
+        public PSCredential ProxyCredential
+        {
+            get
+            { return _proxyCredential; }
+
+            set
+            { _proxyCredential = value; }
+        }
+        private PSCredential _proxyCredential;
+
         private NuGetVersion pkgVersion = null;
         private bool isScript;
         private string pkgName;

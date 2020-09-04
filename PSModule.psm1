@@ -35,10 +35,3 @@ if (Test-Path $FrameworkToRemovePath)
 
 # NOW LOAD THE APPROPRIATE ASSEMBLY
 $ImportedPSGetModule = Import-Module -Name $pathToAssembly -PassThru
-
-if($ImportedPSGetModule)
-{
-    $script:PSModule.OnRemove = {
-        Remove-Module -ModuleInfo $ImportedPSGetModule
-    }
-}

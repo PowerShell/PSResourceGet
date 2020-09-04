@@ -237,7 +237,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         PSObject pkgAsPSObject = new PSObject();
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Name", pkg.Identity.Id));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version));
+                        // Version.Version ensures type is System.Version instead of type NuGetVersion
+                        pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version.Version));
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repoName.Properties["Name"].Value.ToString()));
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Description", pkg.Description));
 
