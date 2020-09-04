@@ -96,8 +96,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            WriteDebug("Entering GetPSResource");
+            // Define the cancellation token.
+            CancellationTokenSource source = new CancellationTokenSource();
+            CancellationToken cancellationToken = source.Token;
 
+            WriteDebug("Entering GetPSResource");
 
             // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
             GetHelper getHelper = new GetHelper(cancellationToken, this);

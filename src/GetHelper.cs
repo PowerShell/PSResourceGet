@@ -84,15 +84,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 cmdletPassedIn.WriteDebug(string.Format("All users scope path: '{0}'", programFilesPath));
 
                 /*** Will search first in PSModulePath, then will search in default paths ***/
-                try
+
+                foreach (var modulePath in modulePaths)
                 {
-                    foreach (var modulePath in modulePaths)
-                    {
-                        dirsToSearch.AddRange(Directory.GetDirectories(modulePath).ToList());
-                    }
-                    cmdletPassedIn.WriteDebug(string.Format("PSModulePath directories: '{0}'", dirsToSearch.ToString()));
+                    dirsToSearch.AddRange(Directory.GetDirectories(modulePath).ToList());
                 }
-                catch { }
+
 
                 var pfModulesPath = System.IO.Path.Combine(programFilesPath, "Modules");
                 if (Directory.Exists(pfModulesPath))
@@ -137,19 +134,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 Array.ForEach(name, n => nameLowerCased.Add(n.ToLower()));
                 Array.ForEach(name, n => scriptXMLnames.Add((n + "_InstalledScriptInfo.xml").ToLower()));
 
-                /* 
-                foreach (var name in nameLowerCased)
-                {
-                    cmdletPassedIn.WriteDebug(string.Format("Name in nameLowerCased: '{0}'", name));
-                }
-                
-
-
-                foreach (var dir in dirsToSearch)
-                {
-                    cmdletPassedIn.WriteDebug((System.IO.Path.GetFileNameWithoutExtension(dir)).ToLower());
-                }
-                */
                 dirsToSearch = dirsToSearch.FindAll(p => (nameLowerCased.Contains(new DirectoryInfo(p).Name.ToLower())
                     || scriptXMLnames.Contains((System.IO.Path.GetFileName(p)).ToLower())));
 
@@ -182,8 +166,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> installedPkgsToReturn = new List<string>();
 
             IEnumerable<string> returnPkgs = null;
-            var versionDirs = new List<string>();
-
 
             //2) use above list to check 
             // if the version specificed is a version range
@@ -240,7 +222,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                cmdletPassedIn.WriteDebug(string.Format("No version provided-- check each path for the requested package"));
+                cmdletPassedIn.WriteDebug("No version provided-- check each path for the requested package");
                 // if no version is specified, just get the latest version
                 foreach (var pkgPath in dirsToSearch)
                 {
@@ -279,18 +261,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
-            // update this
             var flattenedPkgs = installedPkgsToReturn.Flatten();
-
-            //  return flattenedPkgs;
-
-
-
 
 
 
             List<PSObject> foundInstalledPkgs = new List<PSObject>();
-
 
             foreach (string xmlFilePath in flattenedPkgs)
             {
@@ -323,7 +298,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ReadOnlyPSMemberInfoCollection<PSPropertyInfo> installedLocationInfo;
 
 
-                    var isPrelease = false;
+                    //var isPrelease = false;
                     using (StreamReader sr = new StreamReader(xmlFilePath))
                     {
 
@@ -345,42 +320,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         iconUriInfo = deserializedObj.Properties.Match("IconUri");
                         tagsInfo = deserializedObj.Properties.Match("Tags");
                         includesInfo = deserializedObj.Properties.Match("Includes");
-
-                       // var types = includesInfo.FirstOrDefault().Value;
-                        foreach (var type in includesInfo) 
-                        {
-                            Console.WriteLine(type + "\n");
-
-                            PSObject psObj = (PSObject)type.Value;
-
-                            //var dscResource = psObj.Properties.Match("DscResource");
-
-                            ArrayList baseObj = (ArrayList)psObj.ImmediateBaseObject;
-
-
-
-                            foreach (PSObject item in baseObj)
-                            {
-                                Console.WriteLine("YES1");
-
-                            }
-
-
-                            var deserializedObj2 = PSSerializer.DeserializeAsList(text);
-                            foreach (PSObject item2 in deserializedObj2)
-                            {
-                                Console.WriteLine("YES1");
-
-                            }
-
-
-
-                            if (type.Name.Equals("DSCResources"))
-                            {
-                                Console.WriteLine("YES");
-                            }
-                        }
-
                         powerShellGetFormatVersionInfo = deserializedObj.Properties.Match("PowerShellGetFormatVersion");
                         releaseNotesInfo = deserializedObj.Properties.Match("ReleaseNotes");
                         dependenciesInfo = deserializedObj.Properties.Match("Dependencies");
