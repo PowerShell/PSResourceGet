@@ -205,7 +205,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             pkgsLeftToFind = _name.ToList();
             foreach (var repoName in listOfRepositories)
             {
-
+                WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
                 // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
                 // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
                 if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") && 
@@ -221,7 +221,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // if it can't find the pkg in one repository, it'll look in the next one in the list
                 // returns any pkgs found, and any pkgs that weren't found
-                    returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Url"].Value.ToString(), cancellationToken));
+                    returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
 
 
                 // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
@@ -377,7 +377,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 */
         //
-        public List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSource(string repositoryUrl, CancellationToken cancellationToken)
+        public List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSource(string repoName, string repositoryUrl, CancellationToken cancellationToken)
         {
             List<IEnumerable<IPackageSearchMetadata>> returnedPkgs = new List<IEnumerable<IPackageSearchMetadata>>();
 
@@ -395,12 +395,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if ((_name == null) || (_name.Length == 0))
                 {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
+                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
                 }
 
                 foreach (var n in _name)
                 {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repositoryUrl, n, resourceSearch, resourceMetadata, filter, context));
+                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context));
                 }
             }
             else
@@ -439,15 +439,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if ((_name == null) || (_name.Length == 0))
                 {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
+                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
                 }
 
                 foreach (var n in _name)
                 {
                     if (pkgsLeftToFind.Any())
                     {
-                        var foundPkgs = FindPackagesFromSourceHelper(repositoryUrl, n, resourceSearch, resourceMetadata, filter, context);
-                        if (foundPkgs.Any() && foundPkgs.FirstOrDefault() != null)
+                        var foundPkgs = FindPackagesFromSourceHelper(repoName, repositoryUrl, n, resourceSearch, resourceMetadata, filter, context);
+                        if (foundPkgs.Any() && foundPkgs.First().Count() != 0)
                         {
                             returnedPkgs.AddRange(foundPkgs);
 
@@ -887,7 +887,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-        private List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSourceHelper(string repositoryUrl, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext)
+        private List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSourceHelper(string repoName, string repositoryUrl, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext)
         {
 
             List<IEnumerable<IPackageSearchMetadata>> foundPackages = new List<IEnumerable<IPackageSearchMetadata>>();
@@ -908,15 +908,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // If a resource name is specified, search for that particular pkg name
                 if (!name.Contains("*"))
                 {
-                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
-                    //foundPackages = pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                    IEnumerable<IPackageSearchMetadata> retrievedPkgs = null;
+                    try
+                    {
+                        retrievedPkgs = pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                    }
+                    catch { }
+                    if (retrievedPkgs == null || retrievedPkgs.Count() == 0)
+                    {
+                        this.WriteVerbose(string.Format("'{0}' could not be found in repository '{1}'", name, repoName));
+                        return foundPackages;
+                    }
+                    else 
+                    {
+                        foundPackages.Add(retrievedPkgs);
+                    }
                 }
                 // search for range of pkg names
                 else
                 {
                     // TODO:  follow up on this
                     //foundPackages.Add(pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
-                   
+
                     name = name.Equals("*") ? "" : name;   // can't use * in v3 protocol
                     var wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
 
@@ -977,7 +990,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
                         }
                     }
-                    else 
+                    else
                     {
                         foundPackages.Add(wildcardPkgs);
                         pkgsLeftToFind.Remove("*");
