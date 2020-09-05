@@ -442,7 +442,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
                 }
 
-                foreach (var n in _name)
+                foreach (string n in _name)
                 {
                     if (pkgsLeftToFind.Any())
                     {

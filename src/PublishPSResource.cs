@@ -575,12 +575,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else 
             {
                 // no version is specified for the nuspec
-                var message = "There is no package version specified. Please specify a verison before publishing.";
+                var message = "There is no package version specified. Please specify a version before publishing.";
                 var ex = new ArgumentException(message);  
                 var NoVersionFound = new ErrorRecord(ex, "NoVersionFound", ErrorCategory.InvalidArgument, null);
 
                 this.ThrowTerminatingError(NoVersionFound);
             }
+
+            // Look for Prerelease tag
+            if (parsedMetadataHash.ContainsKey("PrivateData"))
+            {
+                if (parsedMetadataHash["PrivateData"] is Hashtable privateData &&
+                    privateData.ContainsKey("PSData"))
+                {
+                    if (privateData["PSData"] is Hashtable psData &&
+                        psData.ContainsKey("Prerelease"))
+                    {
+                        if (psData["Prerelease"] is string preReleaseVersion)
+                        {
+                            version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                        }
+                    }
+                }
+            }
+
             NuGetVersion.TryParse(version, out pkgVersion);
 
             metadataElementsDictionary.Add("version", pkgVersion.ToNormalizedString());
