@@ -202,7 +202,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     It "find resource when given ModuleName, Version not null --> [2.0], name is of a module resource" {
         $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery -Version "[2.0]"
         $res.Name | Should -Be "ContosoServer"
-        $res.Version | Should -Be "2.0"
+        $res.Version | Should -BeLike "2.0.0.0"
     }
 
     # Purpose: find resource when given ModuleName, Version not null --> [2.0], name is of a script resource
@@ -213,7 +213,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     It "find resource when given ModuleName, Version not null --> [2.0], name is of a script resource" {
         $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0]"
         $res.Name | Should -Be "Fabrikam-ServerScript"
-        $res.Version | Should -Be "2.0"
+        $res.Version | Should -BeLike "2.0.0.0"
     }
 
     # Purpose: find resource when given Name, Version not null --> [2.0], name is of a module resource
@@ -224,7 +224,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     It "find resource when given Name, Version not null --> [2.0], name is of a module resource" {
         $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery -Version "[2.0]"
         $res.Name | Should -Be "ContosoServer"
-        $res.Version | Should -Be "2.0"
+        $res.Version | Should -BeLike "2.0.0.0"
     }
 
     # Purpose: find resource when given ModuleName, Version not null --> [1.0, 2.5], name is of a script resource
@@ -245,7 +245,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     It "find resource when given ModuleName, Version not null --> [1.0, 2.5], name is of a module resource" {
         $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery -Version "[1.0, 2.5]"
         $res.Name | Should -Be "ContosoServer"
-        $res.Version | Should -Be "2.5"
+        $res.Version | Should -BeLike "2.5.0.0"
     }
 
     # Purpose: find resource when given Name, Version not null --> [1.0, 2.5], name is of a script resource
@@ -256,7 +256,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     It "find resource when given Name, Version not null --> [1.0, 2.5], name is of a script resource" {
         $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[1.0, 2.5]"
         $res.Name | Should -Be "Fabrikam-ServerScript"
-        $res.Version | Should -Be "2.5"
+        $res.Version | Should -BeLike "2.5.0.0"
     }
 
     # Purpose: find resources when given Name, Version not null --> [1.0, 2.5], name is of module resource
@@ -267,7 +267,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     It "find resources when given Name, Version not null --> [1.0, 2.5], name is of module resource" {
         $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery -Version "[1.0, 2.5]"
         $res.Name | Should -Be "ContosoServer"
-        $res.Version | Should -Be "2.5"
+        $res.Version | Should -BeLike "2.5.0.0"
     }
 
     # Purpose: find resources when given ModuleName, Version not null --> '*', name is of a script resource
