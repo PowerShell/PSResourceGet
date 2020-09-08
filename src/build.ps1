@@ -89,11 +89,13 @@ $destinationDir = "$solutionDir/out/PowerShellGet"
 $destinationDirBinaries = "$destinationDir/$currentFramework"
 
 try {
+    Push-Location $solutionPath
     dotnet restore
     dotnet build --configuration $Configuration
     dotnet publish --framework $framework --configuration $Configuration
 }
 finally {
+    Pop-Location
 }
 
 CopyToDestinationDir $itemsToCopyCommon $destinationDir
