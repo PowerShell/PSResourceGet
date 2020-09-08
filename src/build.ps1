@@ -81,7 +81,8 @@ $assemblyNames = @(
 $itemsToCopyBinaries = $assemblyNames | % { "$solutionDir\$_\bin\$Configuration\$currentFramework\$_.dll" }
 $itemsToCopyPdbs = $assemblyNames | % { "$solutionDir\$_\bin\$Configuration\$currentFramework\$_.pdb" }
 
-$itemsToCopyCommon = @("$solutionDir\PowerShellGet.psd1")
+$projectPath = Split-Path $solutionDir -Parent
+$itemsToCopyCommon = @("$projectPath/PowerShellGet.psd1","$projectPath/PSModule.psm1")
 
 $destinationDir = "$solutionDir/out/PowerShellGet"
 
@@ -95,16 +96,13 @@ try {
 finally {
 }
 
-
 CopyToDestinationDir $itemsToCopyCommon $destinationDir
-
 
 if (-not (CopyBinariesToDestinationDir $assemblyNames $destinationDirBinaries $currentFramework $Configuration '.dll' $solutionDir)) {
     throw 'Build failed'
 }
 
 CopyBinariesToDestinationDir $assemblyNames $destinationDirBinaries $currentFramework $Configuration '.pdb' $solutionDir
-
 
 #Packing
 $sourcePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($destinationDir)
