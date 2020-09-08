@@ -214,10 +214,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-
-
-
-
         public List<string> InstallHelper(string repositoryUrl, List<string> pkgsLeftToInstall, CancellationToken cancellationToken)
         {
             PackageSource source = new PackageSource(repositoryUrl);
@@ -229,407 +225,417 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
-
             SourceRepository repository = new SourceRepository(source, provider);
-
             SearchFilter filter = new SearchFilter(_prerelease);
 
-
-
-            //////////////////////  packages from source
-            ///
-            PackageSource source2 = new PackageSource(repositoryUrl);
-            if (_credential != null)
+            var resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
+            using (SourceCacheContext cacheContext = new SourceCacheContext())
             {
-                string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                source2.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, _credential.UserName, password, true, null);
-            }
-            var provider2 = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
-
-            SourceRepository repository2 = new SourceRepository(source2, provider2);
-            // TODO:  proper error handling here
-            PackageMetadataResource resourceMetadata2 = null;
-            try
-            {
-                resourceMetadata2 = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
-            }
-            catch
-            { }
-
-            SearchFilter filter2 = new SearchFilter(_prerelease);
-            SourceCacheContext context2 = new SourceCacheContext();
-
-
-
-            foreach (var n in _name)
-            {
-              
-
-                IPackageSearchMetadata filteredFoundPkgs = null;
-
-                // Check version first to narrow down the number of pkgs before potential searching through tags
-                VersionRange versionRange = null;
-                if (_version == null)
+                foreach (var n in _name)
                 {
-                    // ensure that the latst version is returned first (the ordering of versions differ
-                    // TODO: proper error handling
-                    try
-                    {
-                        filteredFoundPkgs = (resourceMetadata2.GetMetadataAsync(n, _prerelease, false, context2, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
-                            .FirstOrDefault());
-                    }
-                    catch { }
-                }
-                else
-                {
-                    // check if exact version
-                    NuGetVersion nugetVersion;
+                    IPackageSearchMetadata filteredFoundPkgs = null;
 
-                    //VersionRange versionRange = VersionRange.Parse(version);
-                    NuGetVersion.TryParse(_version, out nugetVersion);
-                    // throw
-
-                    if (nugetVersion != null)
+                    // Check version first to narrow down the number of pkgs before potential searching through tags
+                    VersionRange versionRange = null;
+                    if (_version == null)
                     {
-                        // exact version
-                        versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
+                        // ensure that the latest version is returned first (the ordering of versions differ
+                        // TODO: proper error handling
+                        try
+                        {
+                            filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(n, _prerelease, false, cacheContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                                .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
+                                .FirstOrDefault());
+                        }
+                        catch { }
                     }
                     else
                     {
-                        // check if version range
-                        versionRange = VersionRange.Parse(_version);
-                    }
+                        // check if exact version
+                        NuGetVersion nugetVersion;
 
+                        //VersionRange versionRange = VersionRange.Parse(version);
+                        NuGetVersion.TryParse(_version, out nugetVersion);
+                        // throw
 
-                    // Search for packages within a version range
-                    // ensure that the latst version is returned first (the ordering of versions differ
-                    filteredFoundPkgs = (resourceMetadata2.GetMetadataAsync(n, _prerelease, false, context2, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                        .Where(p => versionRange.Satisfies(p.Identity.Version))
-                        .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
-                        .FirstOrDefault());
-
-                }
-
-
-                List<IPackageSearchMetadata> foundDependencies = new List<IPackageSearchMetadata>();
-
-
-                // found a package to install and looking for dependencies
-                // Search for dependencies
-                if (filteredFoundPkgs != null)
-                {
-                    // need to parse the depenency and version and such
-
-                    // need to improve this later
-                    // this function recursively finds all dependencies
-                    // might need to do add instead of AddRange
-                    foundDependencies.AddRange(FindDependenciesFromSource(filteredFoundPkgs, resourceMetadata2, context2));
-
-
-                }  /// end dep conditional
-
-
-                // check which pkgs you actually need to install
-
-                List<IPackageSearchMetadata> pkgsToInstall = new List<IPackageSearchMetadata>();
-                // install pkg, then install any dependencies to a temp directory
-
-                pkgsToInstall.Add(filteredFoundPkgs);
-                pkgsToInstall.AddRange(foundDependencies);
-
-
-
-
-                if (_asNupkg)
-                {
-                    // CreateFolderFeedV3Async(_path, PackageSaveMode.Nupkg | PackageSaveMode.Nuspec, packages).
-                    var tempInstallPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-                    var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
-                    //dir.SetAccessControl(new DirectorySecurity(dir.FullName, AccessControlSections.Owner));
-                    // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                    // with a mask (bitwise complement of desired attributes combination).
-                    dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
-
-                    //remove any null pkgs
-                    pkgsToInstall.Remove(null);
-
-                    // install everything to a temp path
-                    foreach (var p in pkgsToInstall)
-                    {
-                        var pkgIdentity = new PackageIdentity(p.Identity.Id, p.Identity.Version);
-
-
-                        var resource = new DownloadResourceV2FeedProvider();
-                        var resource2 = resource.TryCreate(repository, cancellationToken);
-
-
-                        var cacheContext = new SourceCacheContext();
-
-
-                        var downloadResource = repository.GetResourceAsync<DownloadResource>().GetAwaiter().GetResult();
-
-
-                        var result = downloadResource.GetDownloadResourceResultAsync(
-                            pkgIdentity,
-                            new PackageDownloadContext(cacheContext),
-                            tempInstallPath,
-                            logger: NullLogger.Instance,
-                            CancellationToken.None).GetAwaiter().GetResult();
-
-                        // need to close the .nupkg
-                        result.Dispose();
-
-                        // 4) copy to proper path
-                        // TODO: test installing a script when it already exists
-                        // or move to script path
-                        // check for failures
-                        // var newPath = Directory.CreateDirectory(Path.Combine(psModulesPath, p.Identity.Id, p.Identity.Version.ToNormalizedString()));
-
-                        var installPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
-                        // when we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
-                        // if script, just move the files over, if module, move the version directory overp
-
-                        var tempPkgIdPath = System.IO.Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToString());
-                        var tempPkgVersionPath = System.IO.Path.Combine(tempPkgIdPath, p.Identity.Id.ToLower() + "." +  p.Identity.Version + ".nupkg");
-
-                        var newPath = System.IO.Path.Combine(installPath, p.Identity.Id + "." + p.Identity.Version + ".nupkg");
-
-                        File.Move(tempPkgVersionPath, newPath);
-
-                        // 2) TODO: Verify that all the proper modules installed correctly 
-                        // remove temp directory recursively
-                        Directory.Delete(tempInstallPath, true);
-
-                        pkgsLeftToInstall.Remove(n);
-
-                    }
-
-                }
-                else
-                {
-                    var tempInstallPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-                    var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
-                    //dir.SetAccessControl(new DirectorySecurity(dir.FullName, AccessControlSections.Owner));
-                    // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                    // with a mask (bitwise complement of desired attributes combination).
-                    dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
-
-                    //remove any null pkgs
-                    pkgsToInstall.Remove(null);
-
-                    // install everything to a temp path
-                    foreach (var p in pkgsToInstall)
-                    {
-                        var pkgIdentity = new PackageIdentity(p.Identity.Id, p.Identity.Version);
-
-
-                        var resource = new DownloadResourceV2FeedProvider();
-                        var resource2 = resource.TryCreate(repository, cancellationToken);
-
-
-                        var cacheContext = new SourceCacheContext();
-
-
-                        var downloadResource = repository.GetResourceAsync<DownloadResource>().GetAwaiter().GetResult();
-
-
-                        var result = downloadResource.GetDownloadResourceResultAsync(
-                            pkgIdentity,
-                            new PackageDownloadContext(cacheContext),
-                            tempInstallPath,
-                            logger: NullLogger.Instance,
-                            CancellationToken.None).GetAwaiter().GetResult();
-
-                        // need to close the .nupkg
-                        result.Dispose();
-
-
-                        // create a download count to see if everything was installed properly
-
-                        // 1) remove the *.nupkg file
-
-                        // may need to modify due to capitalization
-                        var dirNameVersion = System.IO.Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
-                        var nupkgMetadataToDelete = System.IO.Path.Combine(dirNameVersion, ".nupkg.metadata").ToLower();
-                        var nupkgToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
-                        var nupkgSHAToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
-                        var nuspecToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
-
-
-                        File.Delete(nupkgMetadataToDelete);
-                        File.Delete(nupkgSHAToDelete);
-                        File.Delete(nuspecToDelete);
-                        File.Delete(nupkgToDelete);
-
-
-                        // if it's not a script, do the following:
-                        var scriptPath = System.IO.Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1").ToLower());
-                        var isScript = File.Exists(scriptPath) ? true : false;
-
-                        // 3) create xml
-                        //Create PSGetModuleInfo.xml
-                        //Set attribute as hidden [System.IO.File]::SetAttributes($psgetItemInfopath, [System.IO.FileAttributes]::Hidden)
-
-
-
-                        var fullinstallPath = isScript ? System.IO.Path.Combine(dirNameVersion, (p.Identity.Id + "_InstalledScriptInfo.xml"))
-                            : System.IO.Path.Combine(dirNameVersion, "PSGetModuleInfo.xml");
-
-                        if (_includeXML)
+                        if (nugetVersion != null)
                         {
-                            // Create XMLs
-                            using (StreamWriter sw = new StreamWriter(fullinstallPath))
-                            {
-                                var psModule = "PSModule";
-
-                                var tags = p.Tags.Split(' ');
-
-
-                                var module = tags.Contains("PSModule") ? "Module" : null;
-                                var script = tags.Contains("PSScript") ? "Script" : null;
-
-
-                                List<string> includesDscResource = new List<string>();
-                                List<string> includesCommand = new List<string>();
-                                List<string> includesFunction = new List<string>();
-                                List<string> includesRoleCapability = new List<string>();
-                                List<string> filteredTags = new List<string>();
-
-                                var psDscResource = "PSDscResource_";
-                                var psCommand = "PSCommand_";
-                                var psFunction = "PSFunction_";
-                                var psRoleCapability = "PSRoleCapability_";
-
-
-
-                                foreach (var tag in tags)
-                                {
-                                    if (tag.StartsWith(psDscResource))
-                                    {
-                                        includesDscResource.Add(tag.Remove(0, psDscResource.Length));
-                                    }
-                                    else if (tag.StartsWith(psCommand))
-                                    {
-                                        includesCommand.Add(tag.Remove(0, psCommand.Length));
-                                    }
-                                    else if (tag.StartsWith(psFunction))
-                                    {
-                                        includesFunction.Add(tag.Remove(0, psFunction.Length));
-                                    }
-                                    else if (tag.StartsWith(psRoleCapability))
-                                    {
-                                        includesRoleCapability.Add(tag.Remove(0, psRoleCapability.Length));
-                                    }
-                                    else if (!tag.StartsWith("PSWorkflow_") && !tag.StartsWith("PSCmdlet_") && !tag.StartsWith("PSIncludes_")
-                                        && !tag.Equals("PSModule") && !tag.Equals("PSScript"))
-                                    {
-                                        filteredTags.Add(tag);
-                                    }
-                                }
-
-                                Dictionary<string, List<string>> includes = new Dictionary<string, List<string>>() {
-                                { "DscResource", includesDscResource },
-                                { "Command", includesCommand },
-                                { "Function", includesFunction },
-                                { "RoleCapability", includesRoleCapability }
-                            };
-
-
-                                Dictionary<string, VersionRange> dependencies = new Dictionary<string, VersionRange>();
-                                foreach (var depGroup in p.DependencySets)
-                                {
-                                    PackageDependency depPkg = depGroup.Packages.FirstOrDefault();
-                                    dependencies.Add(depPkg.Id, depPkg.VersionRange);
-                                }
-
-
-                                var psGetModuleInfoObj = new PSObject();
-                                // TODO:  Add release notes
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Name", p.Identity.Id));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Version", p.Identity.Version));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Type", module != null ? module : (script != null ? script : null)));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Description", p.Description));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Author", p.Authors));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("CompanyName", p.Owners));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("PublishedDate", p.Published));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledDate", System.DateTime.Now));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("LicenseUri", p.LicenseUrl));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("ProjectUri", p.ProjectUrl));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("IconUri", p.IconUrl));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Includes", includes.ToList()));    // TODO: check if getting deserialized properly
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("PowerShellGetFormatVersion", "3"));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Dependencies", dependencies.ToList()));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("RepositorySourceLocation", repositoryUrl));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("Repository", repositoryUrl));
-                                psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledLocation", null));         // TODO:  add installation location
-
-
-
-                                psGetModuleInfoObj.TypeNames.Add("Microsoft.PowerShell.Commands.PSRepositoryItemInfo");
-
-
-                                var serializedObj = PSSerializer.Serialize(psGetModuleInfoObj);
-
-
-                                sw.Write(serializedObj);
-
-                                // set the xml attribute to hidden
-                                //System.IO.File.SetAttributes("c:\\code\\temp\\installtestpath\\PSGetModuleInfo.xml", FileAttributes.Hidden);
-                            }
-                        }
-
-
-                        // 4) copy to proper path
-
-                        // TODO: test installing a script when it already exists
-                        // or move to script path
-                        // check for failures
-                        // var newPath = Directory.CreateDirectory(Path.Combine(psModulesPath, p.Identity.Id, p.Identity.Version.ToNormalizedString()));
-
-                        var installPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
-                        var newPath = isScript ? installPath
-                            : System.IO.Path.Combine(installPath, p.Identity.Id.ToString());
-                        // when we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
-
-                        // if script, just move the files over, if module, move the version directory overp
-                        var tempModuleVersionDir = isScript ? System.IO.Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
-                            : System.IO.Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
-
-                        if (isScript)
-                        {
-                            var scriptXML = p.Identity.Id + "_InstalledScriptInfo.xml";
-                            File.Move(System.IO.Path.Combine(tempModuleVersionDir, scriptXML), System.IO.Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
-                            File.Move(System.IO.Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), System.IO.Path.Combine(newPath, p.Identity.Id + ".ps1"));
+                            // exact version
+                            versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
                         }
                         else
                         {
-                            if (!Directory.Exists(newPath))
-                            {
-                                Directory.Move(tempModuleVersionDir, newPath);
-                            }
-                            else
-                            {
-                                // If the module directory path already exists, Directory.Move throws an exception, so we'll just move the version directory over instead 
-                                tempModuleVersionDir = System.IO.Path.Combine(tempModuleVersionDir, p.Identity.Version.ToNormalizedString());
-                                Directory.Move(tempModuleVersionDir, System.IO.Path.Combine(newPath, p.Identity.Version.ToNormalizedString()));
-                            }
+                            // check if version range
+                            versionRange = VersionRange.Parse(_version);
                         }
 
+                        // Search for packages within a version range
+                        // ensure that the latst version is returned first (the ordering of versions differ
+                        filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(n, _prerelease, false, cacheContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                            .Where(p => versionRange.Satisfies(p.Identity.Version))
+                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
+                            .FirstOrDefault());
 
-                        // 2) TODO: Verify that all the proper modules installed correctly 
-                        // remove temp directory recursively
-                        Directory.Delete(tempInstallPath, true);
-
-                        pkgsLeftToInstall.Remove(n);
                     }
-                }
-            }
+
+                    List<IPackageSearchMetadata> foundDependencies = new List<IPackageSearchMetadata>();
+
+                    // found a package to install and looking for dependencies
+                    // Search for dependencies
+                    if (filteredFoundPkgs != null)
+                    {
+                        // need to parse the depenency and version and such
+
+                        // need to improve this later
+                        // this function recursively finds all dependencies
+                        // might need to do add instead of AddRange
+                        foundDependencies.AddRange(FindDependenciesFromSource(filteredFoundPkgs, resourceMetadata, cacheContext));
+                    }  /// end dep conditional
+
+
+                    if (filteredFoundPkgs == null)
+                    {
+                        var ex = new PSInvalidOperationException(
+                            string.Format(CultureInfo.InvariantCulture,
+                                @"Unable to find package: {0}",
+                                n));
+
+                        WriteError(
+                            new ErrorRecord(
+                                ex,
+                                "SavePSResourceCannotFindPackage",
+                                ErrorCategory.InvalidOperation,
+                                null));
+                    }
+
+                    List<IPackageSearchMetadata> pkgsToInstall = new List<IPackageSearchMetadata>();
+                    pkgsToInstall.Add(filteredFoundPkgs);
+                    if (foundDependencies.Count > 0)
+                    {
+                        pkgsToInstall.AddRange(foundDependencies);
+                    }
+
+                    if (_asNupkg)
+                    {
+                        // CreateFolderFeedV3Async(_path, PackageSaveMode.Nupkg | PackageSaveMode.Nuspec, packages).
+                        var tempInstallPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+                        var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
+                        //dir.SetAccessControl(new DirectorySecurity(dir.FullName, AccessControlSections.Owner));
+                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                        // with a mask (bitwise complement of desired attributes combination).
+                        dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+
+                        //remove any null pkgs
+                        pkgsToInstall.Remove(null);
+
+                        // install everything to a temp path
+                        foreach (var p in pkgsToInstall)
+                        {
+                            var pkgIdentity = new PackageIdentity(p.Identity.Id, p.Identity.Version);
+                            using (var downloadCacheContext = new SourceCacheContext())
+                            {
+                                var downloadResource = repository.GetResourceAsync<DownloadResource>().GetAwaiter().GetResult();
+                                var result = downloadResource.GetDownloadResourceResultAsync(
+                                    pkgIdentity,
+                                    new PackageDownloadContext(downloadCacheContext),
+                                    tempInstallPath,
+                                    logger: NullLogger.Instance,
+                                    CancellationToken.None).GetAwaiter().GetResult();
+
+                                // need to close the .nupkg
+                                result.Dispose();
+                            }
+
+                            // 4) copy to proper path
+                            // TODO: test installing a script when it already exists
+                            // or move to script path
+                            // check for failures
+                            // var newPath = Directory.CreateDirectory(Path.Combine(psModulesPath, p.Identity.Id, p.Identity.Version.ToNormalizedString()));
+
+                            var installPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
+                            // when we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
+                            // if script, just move the files over, if module, move the version directory overp
+
+                            var tempPkgIdPath = System.IO.Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToString());
+                            var tempPkgVersionPath = System.IO.Path.Combine(tempPkgIdPath, p.Identity.Id.ToLower() + "." +  p.Identity.Version + ".nupkg");
+
+                            var newPath = System.IO.Path.Combine(installPath, p.Identity.Id + "." + p.Identity.Version + ".nupkg");
+
+                            File.Move(tempPkgVersionPath, newPath);
+
+                            // 2) TODO: Verify that all the proper modules installed correctly 
+                            // remove temp directory recursively
+                            Directory.Delete(tempInstallPath, true);
+
+                            pkgsLeftToInstall.Remove(n);
+                        }
+                    }
+                    else
+                    {
+                        var tempInstallPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+                        var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
+                        //dir.SetAccessControl(new DirectorySecurity(dir.FullName, AccessControlSections.Owner));
+                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                        // with a mask (bitwise complement of desired attributes combination).
+                        dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+
+                        //remove any null pkgs
+                        pkgsToInstall.Remove(null);
+
+                        // install everything to a temp path
+                        foreach (var p in pkgsToInstall)
+                        {
+                            var pkgIdentity = new PackageIdentity(p.Identity.Id, p.Identity.Version);
+
+                            using (var dlPackageCache = new SourceCacheContext())
+                            {
+                                var downloadResource = repository.GetResourceAsync<DownloadResource>().GetAwaiter().GetResult();
+                                var result = downloadResource.GetDownloadResourceResultAsync(
+                                    pkgIdentity,
+                                    new PackageDownloadContext(dlPackageCache),
+                                    tempInstallPath,
+                                    logger: NullLogger.Instance,
+                                    CancellationToken.None).GetAwaiter().GetResult();
+
+                                // need to close the .nupkg
+                                result.Dispose();
+                            }
+
+                            // Expected download path.
+                            var dirNameVersion = System.IO.Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString());
+                            if (!Directory.Exists(dirNameVersion))
+                            {
+                                var ex = new PSInvalidOperationException(
+                                    string.Format(CultureInfo.InvariantCulture, 
+                                    @"Resource download path not found: {0}",
+                                    dirNameVersion));
+
+                                WriteError(
+                                    new ErrorRecord(
+                                        ex,
+                                        "SavePSResourcePackageDownloadFailed",
+                                        ErrorCategory.InvalidOperation,
+                                        null));
+                            }
+
+                            // Delete unneeded files.
+                            var nupkgMetadataToDelete = System.IO.Path.Combine(dirNameVersion, ".nupkg.metadata").ToLower();
+                            var nupkgToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
+                            var nupkgSHAToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
+                            var nuspecToDelete = System.IO.Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
+
+                            if (File.Exists(nupkgMetadataToDelete))
+                            {
+                                File.Delete(nupkgMetadataToDelete);
+                            }
+
+                            if (File.Exists(nupkgSHAToDelete))
+                            {
+                                File.Delete(nupkgSHAToDelete);
+                            }
+
+                            if (File.Exists(nuspecToDelete))
+                            {
+                                File.Delete(nuspecToDelete);
+                            }
+
+                            if (File.Exists(nupkgToDelete))
+                            {
+                                File.Delete(nupkgToDelete);
+                            }
+
+                            // if it's not a script, do the following:
+                            var scriptPath = System.IO.Path.Combine(dirNameVersion, (p.Identity.Id.ToString() + ".ps1").ToLower());
+                            var isScript = File.Exists(scriptPath) ? true : false;
+
+                            // TODO: ???
+                            // 3) create xml
+                            //Create PSGetModuleInfo.xml
+                            //Set attribute as hidden [System.IO.File]::SetAttributes($psgetItemInfopath, [System.IO.FileAttributes]::Hidden)
+
+                            if (_includeXML)
+                            {
+                                var fullinstallPath = isScript ? System.IO.Path.Combine(dirNameVersion, (p.Identity.Id + "_InstalledScriptInfo.xml"))
+                                    : System.IO.Path.Combine(dirNameVersion, "PSGetModuleInfo.xml");
+
+                                // Create XMLs
+                                using (StreamWriter sw = new StreamWriter(fullinstallPath))
+                                {
+                                    var psModule = "PSModule";
+
+                                    var tags = p.Tags.Split(' ');
+
+                                    var module = tags.Contains("PSModule") ? "Module" : null;
+                                    var script = tags.Contains("PSScript") ? "Script" : null;
+
+                                    List<string> includesDscResource = new List<string>();
+                                    List<string> includesCommand = new List<string>();
+                                    List<string> includesFunction = new List<string>();
+                                    List<string> includesRoleCapability = new List<string>();
+                                    List<string> filteredTags = new List<string>();
+
+                                    var psDscResource = "PSDscResource_";
+                                    var psCommand = "PSCommand_";
+                                    var psFunction = "PSFunction_";
+                                    var psRoleCapability = "PSRoleCapability_";
+
+                                    foreach (var tag in tags)
+                                    {
+                                        if (tag.StartsWith(psDscResource))
+                                        {
+                                            includesDscResource.Add(tag.Remove(0, psDscResource.Length));
+                                        }
+                                        else if (tag.StartsWith(psCommand))
+                                        {
+                                            includesCommand.Add(tag.Remove(0, psCommand.Length));
+                                        }
+                                        else if (tag.StartsWith(psFunction))
+                                        {
+                                            includesFunction.Add(tag.Remove(0, psFunction.Length));
+                                        }
+                                        else if (tag.StartsWith(psRoleCapability))
+                                        {
+                                            includesRoleCapability.Add(tag.Remove(0, psRoleCapability.Length));
+                                        }
+                                        else if (!tag.StartsWith("PSWorkflow_") && !tag.StartsWith("PSCmdlet_") && !tag.StartsWith("PSIncludes_")
+                                            && !tag.Equals("PSModule") && !tag.Equals("PSScript"))
+                                        {
+                                            filteredTags.Add(tag);
+                                        }
+                                    }
+
+                                    Dictionary<string, List<string>> includes = new Dictionary<string, List<string>>() {
+                                    { "DscResource", includesDscResource },
+                                    { "Command", includesCommand },
+                                    { "Function", includesFunction },
+                                    { "RoleCapability", includesRoleCapability }
+                                    };
+
+
+                                    Dictionary<string, VersionRange> dependencies = new Dictionary<string, VersionRange>();
+                                    foreach (var depGroup in p.DependencySets)
+                                    {
+                                        PackageDependency depPkg = depGroup.Packages.FirstOrDefault();
+                                        dependencies.Add(depPkg.Id, depPkg.VersionRange);
+                                    }
+
+                                    var psGetModuleInfoObj = new PSObject();
+                                    // TODO:  Add release notes
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("Name", p.Identity.Id));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("Version", p.Identity.Version));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("Type", module != null ? module : (script != null ? script : null)));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("Description", p.Description));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("Author", p.Authors));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("CompanyName", p.Owners));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("PublishedDate", p.Published));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledDate", System.DateTime.Now));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("LicenseUri", p.LicenseUrl));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("ProjectUri", p.ProjectUrl));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("IconUri", p.IconUrl));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("Includes", includes.ToList()));    // TODO: check if getting deserialized properly
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("PowerShellGetFormatVersion", "3"));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("Dependencies", dependencies.ToList()));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("RepositorySourceLocation", repositoryUrl));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("Repository", repositoryUrl));
+                                    psGetModuleInfoObj.Members.Add(new PSNoteProperty("InstalledLocation", null));         // TODO:  add installation location
+
+                                    psGetModuleInfoObj.TypeNames.Add("Microsoft.PowerShell.Commands.PSRepositoryItemInfo");
+
+                                    var serializedObj = PSSerializer.Serialize(psGetModuleInfoObj);
+
+                                    sw.Write(serializedObj);
+
+                                    // set the xml attribute to hidden
+                                    //System.IO.File.SetAttributes("c:\\code\\temp\\installtestpath\\PSGetModuleInfo.xml", FileAttributes.Hidden);
+                                }
+                            }
+
+
+                            // 4) copy to proper path
+
+                            // TODO: test installing a script when it already exists
+                            // or move to script path
+                            // check for failures
+                            // var newPath = Directory.CreateDirectory(Path.Combine(psModulesPath, p.Identity.Id, p.Identity.Version.ToNormalizedString()));
+
+                            var installPath = SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path;
+                            var newPath = isScript ? installPath
+                                : System.IO.Path.Combine(installPath, p.Identity.Id.ToString());
+                            // when we move the directory over, we'll change the casing of the module directory name from lower case to proper casing.
+
+                            // if script, just move the files over, if module, move the version directory over
+                            var tempModuleVersionDir = isScript ? System.IO.Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString())
+                                : System.IO.Path.Combine(tempInstallPath, p.Identity.Id.ToLower());
+
+                            try
+                            {
+                                if (isScript)
+                                {
+                                    var scriptXML = p.Identity.Id + "_InstalledScriptInfo.xml";
+                                    File.Move(System.IO.Path.Combine(tempModuleVersionDir, scriptXML), System.IO.Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
+                                    File.Move(System.IO.Path.Combine(tempModuleVersionDir, p.Identity.Id.ToLower() + ".ps1"), System.IO.Path.Combine(newPath, p.Identity.Id + ".ps1"));
+                                }
+                                else
+                                {
+                                    CopyDirectory(tempModuleVersionDir, newPath);
+                                }
+
+                                // 2) TODO: Verify that all the proper modules installed correctly 
+                                // remove temp directory recursively
+                                Directory.Delete(tempInstallPath, true);
+                            }
+                            catch (IOException ex)
+                            {
+                                 WriteError(
+                                    new ErrorRecord(
+                                        new PSInvalidOperationException(
+                                            string.Format(CultureInfo.InstalledUICulture, 
+                                                @"Error while saving resource: {0}",
+                                                ex.Message)),
+                                        "SavePSResourcePackageDownloadCopyFailed",
+                                        ErrorCategory.InvalidOperation,
+                                        null));
+                            }
+
+                            pkgsLeftToInstall.Remove(n);
+                        }
+                    }
+                } // end foreach resource names
+            } // end using cacheContext
 
             return pkgsLeftToInstall;
         }
 
+        private static char[] PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+        private static void CopyDirectory(
+            string sourceDirPath,
+            string destDirPath,
+            bool force = true)
+        {
+            sourceDirPath = sourceDirPath.Trim(PathSeparators);
+            destDirPath = destDirPath.Trim(PathSeparators);
 
+            if (!Directory.Exists(destDirPath))
+            {
+                Directory.CreateDirectory(destDirPath);
+            }
+
+            foreach (var dirPath in System.IO.Directory.GetDirectories(sourceDirPath, "*", System.IO.SearchOption.AllDirectories))
+            {
+                var dirName = dirPath.Substring(sourceDirPath.Length).Trim(PathSeparators);
+                var dirToPath = System.IO.Path.Combine(destDirPath, dirName);
+                if (!Directory.Exists(dirToPath))
+                {
+                    System.IO.Directory.CreateDirectory(dirToPath);
+                }
+            }
+
+            foreach (var fileNamePath in System.IO.Directory.GetFiles(sourceDirPath, "*", System.IO.SearchOption.AllDirectories))
+            {
+                var fileName = fileNamePath.Substring(sourceDirPath.Length).Trim(PathSeparators);
+                System.IO.File.Copy(fileNamePath, System.IO.Path.Combine(destDirPath, fileName), force);
+            }
+        }
 
         private List<IPackageSearchMetadata> FindDependenciesFromSource(IPackageSearchMetadata pkg, PackageMetadataResource pkgMetadataResource, SourceCacheContext srcContext)
         {
