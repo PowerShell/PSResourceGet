@@ -41,11 +41,8 @@ Function CopyBinariesToDestinationDir($itemsToCopy, $destination, $framework, $c
 
         Write-Host("item to copy is: $file")
 
-        $fullPath = Join-Path -Path $solutionDir -ChildPath 'bin' | Join-Path -ChildPath $configuration | Join-Path -ChildPath $framework | Join-Path -ChildPath "$file$ext"
-        Write-Host("Full path is: $fullPath")
-
-        $fullPathWithPlatform = Join-Path -Path $solutionDir -ChildPath 'bin' | Join-Path -ChildPath $platform | Join-Path -ChildPath $configuration | Join-Path -ChildPath $framework | Join-Path -ChildPath "$file$ext"
-        Write-Host("Full path with platform is: $fullPathWithPlatform")
+        $fullPath = Join-Path -Path $solutionDir -ChildPath 'bin' -AdditionalChildPath $configuration, $framework, "publish", "$file$ext"
+        $fullPathWithPlatform = Join-Path -Path $solutionDir -ChildPath 'bin' -AdditionalChildPath $platform, $configuration, $framework, "publish", "$file$ext"
 
         if (Test-Path $fullPath) {
             Write-Host("In full path, copying item over to:  $(Join-Path $destination "$file$ext")")
@@ -74,12 +71,18 @@ write-host ("solutionDir: $($solutionDir)")
 
 $assemblyNames = @(
     "PowerShellGet"
+    'Microsoft.Extensions.Logging.Abstractions'
+    'MoreLinq'
+    'NuGet.Commands'
+    'NuGet.Common'
+    'NuGet.Configuration'
+    'NuGet.Frameworks'
+    'NuGet.Packaging'
+    'NuGet.ProjectModel'
+    'NuGet.Protocol'
+    'NuGet.Repositories'
+    'NuGet.Versioning'
 )
-
-
-
-$itemsToCopyBinaries = $assemblyNames | % { "$solutionDir\$_\bin\$Configuration\$currentFramework\$_.dll" }
-$itemsToCopyPdbs = $assemblyNames | % { "$solutionDir\$_\bin\$Configuration\$currentFramework\$_.pdb" }
 
 $projectPath = Split-Path $solutionDir -Parent
 $itemsToCopyCommon = @("$projectPath/PowerShellGet.psd1","$projectPath/PSModule.psm1")
