@@ -135,10 +135,10 @@ Describe 'Test Find-PSResource for Command' {
     # # Action: Find-PSResource -ModuleName ActiveDirectoryCSDsc
     # #
     # # Expected Result: returns DSCResource with specified ModuleName
-    # It "find a DSCResource of package type module, given ModuleName parameter" {
-    #     $res = Find-PSResource -ModuleName ActiveDirectoryCSDsc
-    #     $res.Name | Should -Be "ActiveDirectoryCSDsc"
-    # }
+    It "find a DSCResource of package type module, given ModuleName parameter" {
+        $res = Find-PSResource -ModuleName ActiveDirectoryCSDsc -Repository PSGallery
+        $res.Name | Should -Be "ActiveDirectoryCSDsc"
+    }
 
     # Purpose: find a DSCResource with a specific tag, given Tags parameter
     #
