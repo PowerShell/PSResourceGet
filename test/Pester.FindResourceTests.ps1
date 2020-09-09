@@ -28,7 +28,7 @@ if (-not (Test-Path -LiteralPath $tmpdir)){
 ##########################
 ### Find-PSResource ###
 ##########################
-Describe 'Test Find-PSResource' { # todo: add tags?
+Describe 'Test Find-PSResource for Module' { # todo: add tags?
 
 
     # Purpose: to check if v3 installs the PSGallery repo by default
@@ -74,7 +74,7 @@ Describe 'Test Find-PSResource' { # todo: add tags?
     # Action: Find-PSResource -Name "ContosoServer"
     #
     # Expected Result: Should find ContosoServer resource
-    It "Find Specific Resource by Name" {
+    It "Find Specific Module Resource by Name" {
         # install ContosoServer module from PoshTestGallery first, todo: change that to be a connection to the link
         $specItem = Find-PSResource -Name ContosoServer
         $specItem.Name | Should -Be "ContosoServer"
@@ -423,31 +423,5 @@ Describe 'Test Find-PSResource' { # todo: add tags?
         $res.Count | Should -BeGreaterThan 1
         $res.Count | Should -Be 11
     }
-
-
-    ########
-    # For scripts
-    ########
-    
-    # Purpose: not find a non-available script resource with range wildcards
-    #
-    # Action: Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?ptW"
-    #
-    # Expected Result: should not return a resource
-    It "Not find a non-available script resource with range wildcards" {
-        $res = Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?ptW"
-        $res | Should -BeNullOrEmpty
-    }
-
-    # Purpose: Should successfully not find a resource that doesn't have a valid name
-    #
-    # Action: Find-PSResource -Name MicrosoftRocks -Repository PoshTestGallery
-    #
-    # Expected Result: shouldn't return a resource
-    It "Should successfully not find a resource that doesn't have a valid name" {
-        $res = Find-PSResource -Name MicrosoftRocks -Repository PoshTestGallery
-        $res | Should -BeNullOrEmpty
-    }
-
 
 }
