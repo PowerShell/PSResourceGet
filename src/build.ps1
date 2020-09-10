@@ -85,7 +85,10 @@ $assemblyNames = @(
 )
 
 $projectPath = Split-Path $solutionDir -Parent
-$itemsToCopyCommon = @("$projectPath/PowerShellGet.psd1","$projectPath/PSModule.psm1")
+$itemsToCopyCommon = @(
+    (Join-Path $projectPath "PowerShellGet.psd1")
+    (Join-Path $projectPath "PSModule.psm1")
+)
 
 $destinationDir = "$solutionDir/out/PowerShellGet"
 
