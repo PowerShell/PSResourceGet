@@ -58,5 +58,59 @@ Describe 'Test Find-PSResource for Command' {
         $repo.Trusted | should be true
     }
 
+    # Name
+   
+    # Purpose: find Command resource given Name paramater
+    #
+    # Action: Find-PSResource -Name Az.Compute
+    #
+    # Expected Result: returns Az.Compute resource
+    It "find Command resource given Name parameter" {
+        $res = Find-PSResource -Name Az.Compute
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be "Az.Compute"
+    }
+
+    # Purpose: not find Command resource given unavailable wildcard name
+    #
+    # Action: Find-PSResource -Name "A[zZ].?om[pP]u?K"
+    #
+    # Expected Result: should not return the Az.Compute resource
+    It "not find Command resource given unavailable wildcard name" {
+        $res = Find-PSResource -Name "A[zZ].?om[pP]u?K"
+        $res | Should -BeNullOrEmpty
+    }
+
+    # Purpose: not find Command resource given unavailable name
+    #
+    # Action: Find-PSResource -Name NonExistantCommand
+    #
+    # Expected result: should not return a NonExistantCommand resource
+    It "should not find Command resource given unavailable name" {
+        $res = Find-PSResource -Name NonExistantCommand
+        $res | Should -BeNullOrEmpty
+    }
+
+
+    # Version
+
+    # Purpose: find Command resource with exact version, given Version parameter
+    #
+    # Action:
+    #
+    # Expected Result:
+    It "find Command resource with exact version, given Version parameter" {
+        $res = Find-PSResource -Name Az.Compute -Version "[4.3.0.0]"
+        $res.Name | Should -Be "Az.Compute"
+        $res.Version | Should -Be "4.3.0.0"
+    }
+
+    
+
+    # Prerelease
+    # ModuleName
+    # Tags
+    # Repo
+
     
 }
