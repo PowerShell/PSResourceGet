@@ -3,10 +3,7 @@
 # Copyright (c) Microsoft Corporation, 2020
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-# Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
-
-Import-Module "C:\Users\annavied\Documents\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
+Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
 
 $PSGalleryName = 'PSGallery'
@@ -15,8 +12,6 @@ $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $PoshTestGalleryName = 'PoshTestGallery'
 $PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
-
-# Register-PSResourceRepository -PSGallery
 
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
@@ -35,7 +30,7 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Get-PSResourceRepository PSGallery
     #
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
-    It 'Find the Default Registered PSGallery' {
+    It 'find the default registered PSGallery' {
 
         $repo = Get-PSResourceRepository $PSGalleryName
         $repo | Should -Not -BeNullOrEmpty
@@ -49,7 +44,7 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Register-PSResourceRepository PoshTestGallery -URL https://www.poshtestgallery.com/api/v2 -Trusted
     #
     # Expected Result: PoshTestGallery resource repo has registered successfully
-    It 'Register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
+    It 'register the poshtest repository when -URL is a website and installation policy is trusted' {
         # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
         $repo = Get-PSResourceRepository $PoshTestGalleryName
@@ -80,13 +75,13 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be "8.1.0.0"
     }
 
-    # Purpose: find a DSCResource resource with specified range Version parameter -> [7.4.0, 8.1.0]
+    # Purpose: find a DSCResource resource with specified range Version parameter -> [7.4.0.0, 8.1.0.0]
     #
     # Action: Find-PSResource -Name NetworkingDsc -Version "[8.1.0]"
     #
     # Expected Result: returns NetworkingDsc resource with latest version in range (i.e 8.1.0.0)
-    It "find a DSCResource resource with specified single/exact Version parameter -> [7.4.0, 8.1.0]" {
-        $res = Find-PSResource -Name NetworkingDsc -Version "[7.4.0, 8.1.0]"
+    It "find a DSCResource resource with specified single/exact Version parameter -> [7.4.0.0, 8.1.0.0]" {
+        $res = Find-PSResource -Name NetworkingDsc -Version "[7.4.0.0, 8.1.0.0]"
         $res.Name | Should -Be "NetworkingDsc"
         $res.Version | Should -Be "8.1.0.0"
     }

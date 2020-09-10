@@ -3,10 +3,7 @@
 # Copyright (c) Microsoft Corporation, 2020
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-# Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
-
-Import-Module "C:\Users\annavied\Documents\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
+Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
 
 $PSGalleryName = 'PSGallery'
@@ -15,8 +12,6 @@ $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $PoshTestGalleryName = 'PoshTestGallery'
 $PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
-
-# Register-PSResourceRepository -PSGallery
 
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
@@ -28,14 +23,14 @@ if (-not (Test-Path -LiteralPath $tmpdir)){
 ##########################
 ### Find-PSResource ###
 ##########################
-Describe 'Test Find-PSResource for Command' {
+Describe 'Test Find-PSResource for Role Capability' {
     
     # Purpose: to check if v3 installs the PSGallery repo by default
     #
     # Action: Get-PSResourceRepository PSGallery
     #
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
-    It 'Find the Default Registered PSGallery' {
+    It 'find the default registered PSGallery' {
 
         $repo = Get-PSResourceRepository $PSGalleryName
         $repo | Should -Not -BeNullOrEmpty
@@ -49,7 +44,7 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Register-PSResourceRepository PoshTestGallery -URL https://www.poshtestgallery.com/api/v2 -Trusted
     #
     # Expected Result: PoshTestGallery resource repo has registered successfully
-    It 'Register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
+    It 'register the poshtest repository when -URL is a website and installation policy is trusted' {
         # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
         $repo = Get-PSResourceRepository $PoshTestGalleryName
@@ -100,7 +95,7 @@ Describe 'Test Find-PSResource for Command' {
 
     # Purpose: find Role Capability resource with range version, given Version parameter
     #
-    # Action: Find-PSResource -Name "TestRoleCapModule" -Version "[2.0.0.0]"
+    # Action: Find-PSResource -Name "TestRoleCapModule" -Version "[1.0.0.0, 2.0.0.0]"
     #
     # Expected Result: return TestRoleCapModule resource with latest version in range (i.e 2.0.0.0)
     It "find Role Capability resource with range version, given Version parameter -> [1.0.0.0, 2.0.0.0]" {
@@ -113,17 +108,17 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Find-PSResource -Name "TestRoleCapModule" -Version "*"
     #
     # Expected Result: returns all versions of DSCTestModule (versions in descending order)
-    # Note: DSCTestModule fulfils both DSCResource and RoleCapability categories
     It "find Role Capability resource with wildcard version, given Version parameter -> '*' " {
+        # Note: DSCTestModule fulfils both DSCResource and RoleCapability categories
         $res = Find-PSResource -Name DSCTestModule -Version "*"
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
     # Purpose: find Role Capability resource with preview version, using Prerelease parameter
     #
-    # Action: 
+    # Action: Find-PSResource -Name <NameofRoleCapabilityResource> -Prerelease
     #
-    # Expected Result: 
+    # Expected Result: should return Role Capability resource with latest version (including preview versions)
     # TODO: 0 mathces on server/site end when Prerelease selected. Add, and then test!
 
     

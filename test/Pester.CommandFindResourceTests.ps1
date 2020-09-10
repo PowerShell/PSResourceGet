@@ -3,10 +3,7 @@
 # Copyright (c) Microsoft Corporation, 2020
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-# Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
-
-Import-Module "C:\Users\annavied\Documents\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
+Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
 
 $PSGalleryName = 'PSGallery'
@@ -15,8 +12,6 @@ $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $PoshTestGalleryName = 'PoshTestGallery'
 $PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
-
-# Register-PSResourceRepository -PSGallery
 
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
@@ -35,7 +30,7 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Get-PSResourceRepository PSGallery
     #
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
-    It 'Find the Default Registered PSGallery' {
+    It 'find the Default Registered PSGallery' {
 
         $repo = Get-PSResourceRepository $PSGalleryName
         $repo | Should -Not -BeNullOrEmpty
@@ -49,7 +44,7 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Register-PSResourceRepository PoshTestGallery -URL https://www.poshtestgallery.com/api/v2 -Trusted
     #
     # Expected Result: PoshTestGallery resource repo has registered successfully
-    It 'Register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
+    It 'register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
         # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
         $repo = Get-PSResourceRepository $PoshTestGalleryName
@@ -58,8 +53,6 @@ Describe 'Test Find-PSResource for Command' {
         $repo.Trusted | should be true
     }
 
-    # Name
-   
     # Purpose: find Command resource given Name paramater
     #
     # Action: Find-PSResource -Name Az.Compute
@@ -85,16 +78,13 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Action: Find-PSResource -Name NonExistantCommand
     #
-    # Expected result: should not return a NonExistantCommand resource
+    # Expected result: should not return NonExistantCommand resource
     It "should not find Command resource given unavailable name" {
         $res = Find-PSResource -Name NonExistantCommand
         $res | Should -BeNullOrEmpty
     }
 
-
-    # Version
-
-    # Purpose: find Command resource with exact version, given Version parameter
+    # Purpose: find Command resource with exact version, given Version parameter -> [4.3.0.0]
     #
     # Action: Find-PSResource -Name Az.Compute -Version "[4.3.0.0]"
     #
@@ -105,7 +95,7 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be "4.3.0.0"
     }
 
-    # Purpose: find Command resource with range version, given Version parameter
+    # Purpose: find Command resource with range version, given Version parameter -> [4.1.0.0, 4.3.0.0]
     #
     # Action: Find-PSResource -Name Az.Compute -Version "[4.1.0.0, 4.3.0.0]"
     #
@@ -116,7 +106,7 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be "4.3.0.0"
     }
 
-    # Purpose: find Command resource with wildcard version, given Version parameter
+    # Purpose: find Command resource with wildcard version, given Version parameter -> '*' 
     #
     # Action: Find-PSResource -Name Az.Compute -Version "*"
     #
@@ -162,11 +152,9 @@ Describe 'Test Find-PSResource for Command' {
         $res2.Name | Should -Be "xWindowsUpdate"
     }
 
-    # Tags
-    #singlee tag
     # Purpose: find resource with tag, given single Tags parameter
     #
-    # Action: Find-PSResource -Tags "Azure" -Repository PoshTestGallery | Where-Object { $_.Name -eq "" }
+    # Action: Find-PSResource -Tags "Azure" -Repository PoshTestGallery | Where-Object { $_.Name -eq "Az.Accounts" }
     #
     # Expected Result: should return Az.Accounts resource
     It "find resource with single tag, given Tags parameter" {
