@@ -805,9 +805,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             parsedMetadataHash.Add(key, value);
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
-                            var message = String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value);
+                            var message = String.Format("Failed to add key '{0}' and value '{1}' to hashtable.  Error: {2}", key, value, e.Message);
                             var ex = new ArgumentException(message);
                             var metadataCannotBeAdded = new ErrorRecord(ex, "metadataCannotBeAdded", ErrorCategory.MetadataError, null);
 
