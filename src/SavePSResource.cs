@@ -481,14 +481,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // Create XMLs
                             using (StreamWriter sw = new StreamWriter(fullinstallPath))
                             {
-                                var psModule = "PSModule";
-
                                 var tags = p.Tags.Split(' ');
-
 
                                 var module = tags.Contains("PSModule") ? "Module" : null;
                                 var script = tags.Contains("PSScript") ? "Script" : null;
-
 
                                 List<string> includesDscResource = new List<string>();
                                 List<string> includesCommand = new List<string>();
@@ -500,8 +496,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 var psCommand = "PSCommand_";
                                 var psFunction = "PSFunction_";
                                 var psRoleCapability = "PSRoleCapability_";
-
-
 
                                 foreach (var tag in tags)
                                 {

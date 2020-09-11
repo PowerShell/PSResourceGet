@@ -31,7 +31,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     class GetHelper : PSCmdlet
     {
         private CancellationToken cancellationToken;
-        private readonly bool update;
         private readonly PSCmdlet cmdletPassedIn;
 
 
@@ -164,8 +163,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             List<string> installedPkgsToReturn = new List<string>();
-
-            IEnumerable<string> returnPkgs = null;
 
             //2) use above list to check 
             // if the version specificed is a version range
