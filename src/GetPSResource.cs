@@ -88,11 +88,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         */
 
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-        private CancellationToken cancellationToken;
-        private readonly PSCmdlet cmdletPassedIn;
-        private string programFilesPath;
-        private string myDocumentsPath;
-
 
         protected override void ProcessRecord()
         {

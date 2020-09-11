@@ -474,7 +474,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     MSBuildProjectFactory.ProjectCreator,
                     builder);
 
-            runner.BuildPackage();
+            runner.RunPackageBuild();
 
             
             // Push the nupkg to the appropriate repository 
@@ -805,7 +805,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             parsedMetadataHash.Add(key, value);
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             var message = String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value);
                             var ex = new ArgumentException(message);

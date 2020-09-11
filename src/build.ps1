@@ -5,9 +5,14 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug",
 
+    [switch]$Clean,
+
     [switch]$EmbedProviderManifest
 )
 
+if ($Clean) {
+    git clean -fdx
+}
 Function Test-DotNetRestore {
     param(
         [string] $projectPath
@@ -96,9 +101,10 @@ $destinationDirBinaries = "$destinationDir/$currentFramework"
 
 try {
     Push-Location $solutionPath
-    dotnet restore
-    dotnet build --configuration $Configuration
-    dotnet publish --framework $framework --configuration $Configuration
+    dotnet publish --framework $framework --configuration $Configuration -warnaserror
+    if ($LASTEXITCODE -ne 0) {
+        throw "Build failed"
+    }
 }
 finally {
     Pop-Location
