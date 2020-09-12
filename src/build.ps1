@@ -5,14 +5,21 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug",
 
-    [switch]$Clean,
-
-    [switch]$EmbedProviderManifest
+    [switch]$Clean
 )
 
+$solutionDir = $PSScriptRoot
+
 if ($Clean) {
-    git clean -fdx
+    foreach ($path in 'out','bin','obj') {
+        $targetPath = Join-Path -Path $solutionDir -ChildPath $path
+        if (Test-Path -Path $targetPath) {
+            Write-Verbose -Verbose "Removing $targetPath..."
+            Remove-Item -Recurse $targetPath -Force -ErrorAction Stop
+        }
+    }
 }
+
 Function Test-DotNetRestore {
     param(
         [string] $projectPath
@@ -68,12 +75,6 @@ Function CopyBinariesToDestinationDir($itemsToCopy, $destination, $framework, $c
 
 $currentFramework = $framework
 
-$solutionPath = Split-Path $MyInvocation.InvocationName
-$solutionDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($solutionPath)
-
-write-host ("solutionDir: $($solutionDir)")
-
-
 $assemblyNames = @(
     "PowerShellGet"
     'Microsoft.Extensions.Logging.Abstractions'
@@ -100,7 +101,7 @@ $destinationDir = "$solutionDir/out/PowerShellGet"
 $destinationDirBinaries = "$destinationDir/$currentFramework"
 
 try {
-    Push-Location $solutionPath
+    Push-Location $solutionDir
     dotnet publish --framework $framework --configuration $Configuration -warnaserror
     if ($LASTEXITCODE -ne 0) {
         throw "Build failed"
