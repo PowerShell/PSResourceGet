@@ -14,7 +14,7 @@ if ($Clean) {
     foreach ($path in 'out','bin','obj') {
         $targetPath = Join-Path -Path $solutionDir -ChildPath $path
         if (Test-Path -Path $targetPath) {
-            Write-Verbose -Verbose "Removing $targetPath..."
+            Write-Verbose "Removing $targetPath..." -Verbose
             Remove-Item -Recurse $targetPath -Force -ErrorAction Stop
         }
     }
