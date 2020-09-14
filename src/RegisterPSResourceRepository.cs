@@ -59,7 +59,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (!Uri.TryCreate(value, string.Empty, out url))
                 {
                     // Try the URL as a file path
-                    var resolvedPath = string.Format(CultureInfo.InvariantCulture, "file://{0}", SessionState.Path.GetResolvedPSPathFromPSPath(value.ToString()).FirstOrDefault().Path);
+                    var resolvedPath = string.Format(CultureInfo.InvariantCulture, "{0}{1}{2}", Uri.UriSchemeFile, Uri.SchemeDelimiter, SessionState.Path.GetResolvedPSPathFromPSPath(value.ToString()).FirstOrDefault().Path);
                     if (!Uri.TryCreate(resolvedPath, UriKind.Absolute, out url))
                     {
                         var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
