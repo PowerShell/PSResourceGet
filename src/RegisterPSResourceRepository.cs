@@ -56,16 +56,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set
             {
                 Uri url;
-                Uri.TryCreate(value, string.Empty, out url);
-
-                if (url == null)
+                if (!Uri.TryCreate(value, string.Empty, out url))
                 {
                     // Try the URL as a file path
-                    var resolvedPath = string.Format("file://{0}", SessionState.Path.GetResolvedPSPathFromPSPath(value.ToString()).FirstOrDefault().Path);
-                    Uri.TryCreate(resolvedPath, UriKind.Absolute, out url);
-                    if (url == null)
+                    var resolvedPath = string.Format(CultureInfo.InvariantCulture, "file://{0}", SessionState.Path.GetResolvedPSPathFromPSPath(value.ToString()).FirstOrDefault().Path);
+                    if (!Uri.TryCreate(resolvedPath, UriKind.Absolute, out url))
                     {
-                        var message = String.Format("The URL provided is not valid: {0}", value);
+                        var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
                         var ex = new ArgumentException(message);
                         var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
                         ThrowTerminatingError(moduleManifestNotFound);
