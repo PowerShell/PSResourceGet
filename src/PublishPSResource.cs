@@ -474,7 +474,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     MSBuildProjectFactory.ProjectCreator,
                     builder);
 
-            runner.BuildPackage();
+            runner.RunPackageBuild();
 
             
             // Push the nupkg to the appropriate repository 
@@ -575,12 +575,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else 
             {
                 // no version is specified for the nuspec
-                var message = "There is no package version specified. Please specify a verison before publishing.";
+                var message = "There is no package version specified. Please specify a version before publishing.";
                 var ex = new ArgumentException(message);  
                 var NoVersionFound = new ErrorRecord(ex, "NoVersionFound", ErrorCategory.InvalidArgument, null);
 
                 this.ThrowTerminatingError(NoVersionFound);
             }
+
+            // Look for Prerelease tag
+            if (parsedMetadataHash.ContainsKey("PrivateData"))
+            {
+                if (parsedMetadataHash["PrivateData"] is Hashtable privateData &&
+                    privateData.ContainsKey("PSData"))
+                {
+                    if (privateData["PSData"] is Hashtable psData &&
+                        psData.ContainsKey("Prerelease"))
+                    {
+                        if (psData["Prerelease"] is string preReleaseVersion)
+                        {
+                            version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                        }
+                    }
+                }
+            }
+
             NuGetVersion.TryParse(version, out pkgVersion);
 
             metadataElementsDictionary.Add("version", pkgVersion.ToNormalizedString());
@@ -789,7 +807,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         catch (Exception e)
                         {
-                            var message = String.Format("Failed to add key '{0}' and value '{1}' to hashtable", key, value);
+                            var message = String.Format("Failed to add key '{0}' and value '{1}' to hashtable.  Error: {2}", key, value, e.Message);
                             var ex = new ArgumentException(message);
                             var metadataCannotBeAdded = new ErrorRecord(ex, "metadataCannotBeAdded", ErrorCategory.MetadataError, null);
 

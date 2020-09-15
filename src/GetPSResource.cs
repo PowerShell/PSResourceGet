@@ -88,11 +88,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         */
 
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-        private CancellationToken cancellationToken;
-        private readonly PSCmdlet cmdletPassedIn;
-        private string programFilesPath;
-        private string myDocumentsPath;
-
 
         protected override void ProcessRecord()
         {
@@ -111,10 +106,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Temporary PSObject for output purposes
                 PSObject temp = new PSObject();
 
-                temp.Members.Add(new PSNoteProperty("Name", psObject.Properties["Name"].ToString()));
-                temp.Members.Add(new PSNoteProperty("Version", psObject.Properties["Version"].ToString()));
-                temp.Members.Add(new PSNoteProperty("Repository", psObject.Properties["Repository"].ToString()));
-                temp.Members.Add(new PSNoteProperty("Description", psObject.Properties["Description"].ToString()));
+                temp.Members.Add(new PSNoteProperty("Name", psObject.Properties["Name"].Value.ToString()));
+                temp.Members.Add(new PSNoteProperty("Version", psObject.Properties["Version"].Value.ToString()));
+                temp.Members.Add(new PSNoteProperty("Repository", psObject.Properties["Repository"].Value.ToString()));
+                temp.Members.Add(new PSNoteProperty("Description", psObject.Properties["Description"].Value.ToString()));
                 WriteObject(temp);
             }
         }

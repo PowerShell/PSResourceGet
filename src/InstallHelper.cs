@@ -188,7 +188,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // TODO:  implement after implementing publish
                     throw new Exception("This feature is not yet implemented");
-                    return;
                 }
                 else if (resolvedReqResourceFile.EndsWith(".json"))
                 {
@@ -204,7 +203,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     catch (Exception e)
                     {
-                        var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                        var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.  Error: {0}", e.Message);
                         var ex = new ArgumentException(exMessage);
                         var RequiredResourceNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceNotInProperJsonFormat", ErrorCategory.ObjectNotFound, null);
 
@@ -231,7 +230,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                    var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.  Error: {0}", e.Message);
                     var ex = new ArgumentException(exMessage);
                     var RequiredResourceNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceNotInProperJsonFormat", ErrorCategory.ObjectNotFound, null);
 
@@ -245,7 +244,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                    var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.  Error: {0}", e.Message);
                     var ex = new ArgumentException(exMessage);
                     var RequiredResourceNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceNotInProperJsonFormat", ErrorCategory.ObjectNotFound, null);
 
@@ -265,15 +264,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         pkgsinJson = JsonConvert.DeserializeObject<Dictionary<string, PkgParams>>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         try
                         {
                             jsonPkgsNameVersion = JsonConvert.DeserializeObject<Dictionary<string, string>>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
                         }
-                        catch (Exception e2)
+                        catch (Exception e)
                         {
-                            var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.");
+                            var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a hashtable or a json object.  Error: {0}", e.Message);
                             var ex = new ArgumentException(exMessage);
                             var RequiredResourceNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceNotInProperJsonFormat", ErrorCategory.ObjectNotFound, null);
 

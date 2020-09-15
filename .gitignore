@@ -1,0 +1,5 @@
+src/bin
+src/obj
+src/out
+src/dotnet-install.sh
+src/dotnet-uninstall-pkgs.sh
