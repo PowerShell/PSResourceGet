@@ -5,8 +5,20 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug",
 
-    [switch]$EmbedProviderManifest
+    [switch]$Clean
 )
+
+$solutionDir = $PSScriptRoot
+
+if ($Clean) {
+    foreach ($path in 'out','bin','obj') {
+        $targetPath = Join-Path -Path $solutionDir -ChildPath $path
+        if (Test-Path -Path $targetPath) {
+            Write-Verbose "Removing $targetPath..." -Verbose
+            Remove-Item -Recurse $targetPath -Force -ErrorAction Stop
+        }
+    }
+}
 
 Function Test-DotNetRestore {
     param(
@@ -41,11 +53,8 @@ Function CopyBinariesToDestinationDir($itemsToCopy, $destination, $framework, $c
 
         Write-Host("item to copy is: $file")
 
-        $fullPath = Join-Path -Path $solutionDir -ChildPath 'bin' | Join-Path -ChildPath $configuration | Join-Path -ChildPath $framework | Join-Path -ChildPath "$file$ext"
-        Write-Host("Full path is: $fullPath")
-
-        $fullPathWithPlatform = Join-Path -Path $solutionDir -ChildPath 'bin' | Join-Path -ChildPath $platform | Join-Path -ChildPath $configuration | Join-Path -ChildPath $framework | Join-Path -ChildPath "$file$ext"
-        Write-Host("Full path with platform is: $fullPathWithPlatform")
+        $fullPath = Join-Path -Path $solutionDir -ChildPath 'bin' -AdditionalChildPath $configuration, $framework, "publish", "$file$ext"
+        $fullPathWithPlatform = Join-Path -Path $solutionDir -ChildPath 'bin' -AdditionalChildPath $platform, $configuration, $framework, "publish", "$file$ext"
 
         if (Test-Path $fullPath) {
             Write-Host("In full path, copying item over to:  $(Join-Path $destination "$file$ext")")
@@ -66,45 +75,49 @@ Function CopyBinariesToDestinationDir($itemsToCopy, $destination, $framework, $c
 
 $currentFramework = $framework
 
-$solutionPath = Split-Path $MyInvocation.InvocationName
-$solutionDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($solutionPath)
-
-write-host ("solutionDir: $($solutionDir)")
-
-
 $assemblyNames = @(
     "PowerShellGet"
+    'Microsoft.Extensions.Logging.Abstractions'
+    'MoreLinq'
+    'NuGet.Commands'
+    'NuGet.Common'
+    'NuGet.Configuration'
+    'NuGet.Frameworks'
+    'NuGet.Packaging'
+    'NuGet.ProjectModel'
+    'NuGet.Protocol'
+    'NuGet.Repositories'
+    'NuGet.Versioning'
 )
 
-
-
-$itemsToCopyBinaries = $assemblyNames | % { "$solutionDir\$_\bin\$Configuration\$currentFramework\$_.dll" }
-$itemsToCopyPdbs = $assemblyNames | % { "$solutionDir\$_\bin\$Configuration\$currentFramework\$_.pdb" }
-
-$itemsToCopyCommon = @("$solutionDir\PowerShellGet.psd1")
+$projectPath = Split-Path $solutionDir -Parent
+$itemsToCopyCommon = @(
+    (Join-Path $projectPath "PowerShellGet.psd1")
+    (Join-Path $projectPath "PSModule.psm1")
+)
 
 $destinationDir = "$solutionDir/out/PowerShellGet"
 
 $destinationDirBinaries = "$destinationDir/$currentFramework"
 
 try {
-    dotnet restore
-    dotnet build --configuration $Configuration
-    dotnet publish --framework $framework --configuration $Configuration
+    Push-Location $solutionDir
+    dotnet publish --framework $framework --configuration $Configuration -warnaserror
+    if ($LASTEXITCODE -ne 0) {
+        throw "Build failed"
+    }
 }
 finally {
+    Pop-Location
 }
 
-
 CopyToDestinationDir $itemsToCopyCommon $destinationDir
-
 
 if (-not (CopyBinariesToDestinationDir $assemblyNames $destinationDirBinaries $currentFramework $Configuration '.dll' $solutionDir)) {
     throw 'Build failed'
 }
 
 CopyBinariesToDestinationDir $assemblyNames $destinationDirBinaries $currentFramework $Configuration '.pdb' $solutionDir
-
 
 #Packing
 $sourcePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($destinationDir)

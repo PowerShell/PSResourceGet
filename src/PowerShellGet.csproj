@@ -18,7 +18,6 @@
     <PackageReference Include="NuGet.Packaging" Version="5.7.0-rtm.6702" />
     <PackageReference Include="NuGet.ProjectModel" Version="5.7.0-rtm.6702" />
     <PackageReference Include="NuGet.Protocol" Version="5.7.0-rtm.6702" />
-    <PackageReference Include="NuGet.Protocol.Core.Types" Version="4.3.0-beta2-2463" />
     <PackageReference Include="NuGet.Repositories" Version="4.3.0-beta1-2418" />
     <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />

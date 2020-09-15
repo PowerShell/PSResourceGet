@@ -92,12 +92,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         private string programFilesPath;
         private string myDocumentsPath;
-
-        private string psPath;
-        private string psModulesPath;
-        private string psScriptsPath;
-        private List<string> psModulesPathAllDirs;
-        private List<string> psScriptsPathAllFiles;
         List<string> dirsToDelete;
 
         private CancellationTokenSource source;
@@ -125,14 +119,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             var consoleIsElevated = false;
-            var isWindowsPS = true;
 
 #if NET472
             // WindowsPS
             var id = System.Security.Principal.WindowsIdentity.GetCurrent();
             consoleIsElevated = (id.Owner != id.User);
-            isWindowsPS = true;
-
             myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
             programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
 #else
