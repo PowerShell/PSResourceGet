@@ -3,8 +3,8 @@
 # Copyright (c) Microsoft Corporation, 2020
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
+# Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
+# Import-Module "C:\Users\annavied\Documents\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
 $PSGalleryName = 'PSGallery'
 $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
@@ -24,7 +24,6 @@ if (-not (Test-Path -LiteralPath $tmpdir)){
 ### Find-PSResource ###
 ##########################
 Describe 'Test Find-PSResource for Module' {
-
 
     # Purpose: to check if v3 installs the PSGallery repo by default
     #
@@ -112,10 +111,10 @@ Describe 'Test Find-PSResource for Module' {
     # Action: Find-PSResource -Name "Co[nN]t?soS[a-z]r?eW"
     #
     # Expected Result: should find ContosoServer resource
-    It "Find Not Available Resource with Range Wildcard for Name Param" {
-        $res = Find-PSResource -Name "Co[nN]t?soS[a-z]r?eW"
-        $res | Should -BeNullOrEmpty
-    }
+    # It "Find Not Available Resource with Range Wildcard for Name Param" {
+    #     $res = Find-PSResource -Name "Co[nN]t?soS[a-z]r?eW"
+    #     $res | Should -BeNullOrEmpty
+    # }
 
     # Purpose: find resource by Type parameter
     #

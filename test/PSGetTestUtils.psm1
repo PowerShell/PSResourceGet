@@ -6,6 +6,25 @@
 
 #."$PSScriptRoot\uiproxy.ps1"
 
+# import the .dll:
+$baseP = $PSScriptRoot -split "\\" #PSScriptRoot should be : C:\Users\annavied\Documents\PowerShellGet\test
+$basePWithoutTest = $baseP[0..($baseP.Length-2)] #basePWithoutTest should be: C:\Users\annavied\Documents\PowerShellGet
+$basePWithoutTest = $basePWithoutTest -Join "\"
+$script:fullPath = Join-Path $basePWithoutTest -ChildPath "\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll"
+
+Write-Host $script:fullPath
+Import-Module $script:fullPath
+
+# import the .psd1:
+# $baseP = $PSScriptRoot -split "\\"
+# $basePWithoutTest = $baseP[0..($baseP.Length-2)]
+# $basePWithoutTest = $basePWithoutTest -Join "\"
+# $script:fullPath = Join-Path $basePWithoutTest -ChildPath "\PowerShellGet.psd1" 
+# Write-Host "The full path is:"
+# Write-Host $script:fullPath
+# Write-Host "done writing it out"
+# Import-Module $script:fullPath -force
+
 $script:DotnetCommandPath = @()
 $script:EnvironmentVariableTarget = @{ Process = 0; User = 1; Machine = 2 }
 $script:EnvPATHValueBackup = $null
@@ -16,6 +35,12 @@ $script:IsWindows = (-not (Get-Variable -Name IsWindows -ErrorAction Ignore)) -o
 $script:IsLinux = (Get-Variable -Name IsLinux -ErrorAction Ignore) -and $IsLinux
 $script:IsMacOS = (Get-Variable -Name IsMacOS -ErrorAction Ignore) -and $IsMacOS
 $script:IsCoreCLR = $PSVersionTable.ContainsKey('PSEdition') -and $PSVersionTable.PSEdition -eq 'Core'
+
+$script:PSGalleryName = 'PSGallery'
+$script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
+
+$script:PoshTestGalleryName = 'PoshTestGallery'
+$script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
 if($script:IsInbox)
 {
@@ -115,6 +140,22 @@ function Get-TempPath {
 
 function Get-PSGetLocalAppDataPath {
     return $script:PSGetAppLocalPath
+}
+
+function Get-PSGalleryName {
+    return $script:PSGalleryName
+}
+
+function Get-PSGalleryLocation {
+    return $script:PSGalleryLocation
+}
+
+function Get-PoshTestGalleryName {
+    return $script:PoshTestGalleryName
+}
+
+function Get-PoshTestGalleryLocation {
+    return $script:PoshTestGalleryLocation
 }
 
 
