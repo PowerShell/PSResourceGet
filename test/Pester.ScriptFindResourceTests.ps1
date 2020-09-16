@@ -1,7 +1,5 @@
-# This is a Pester test suite to validate Find-PSResource
-# for script resources, retains tests from Find-Script from v2.
-#
-# Copyright (c) Microsoft Corporation, 2020
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
 Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
