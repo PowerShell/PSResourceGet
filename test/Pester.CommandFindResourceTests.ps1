@@ -56,7 +56,6 @@ Describe 'Test Find-PSResource for Command' {
     It "find Command resource with exact version, given Version parameter -> '*' " {
         $res = Find-PSResource -Name Az.Compute -Version "*"
         $res.Count | Should -BeGreaterOrEqual 40
-        # todo check each item returned in list and its name
     }
 
     # Purpose: find Command resource with latest-nonpreview versions, by excluding Prerelease parameter
