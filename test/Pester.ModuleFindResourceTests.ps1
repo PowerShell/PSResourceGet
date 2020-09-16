@@ -2,19 +2,7 @@
 # Licensed under the MIT License.
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-# Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-# Import-Module "C:\Users\annavied\Documents\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
-$TestLocalDirectory = 'TestLocalDirectory'
-$tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
-
-if (-not (Test-Path -LiteralPath $tmpdir)){
-    New-Item -Path $tmpdir -ItemType Directory > $null
-}
-
-##########################
-### Find-PSResource ###
-##########################
 Describe 'Test Find-PSResource for Module' {
 
     # Purpose: to check if v3 installs the PSGallery repo by default

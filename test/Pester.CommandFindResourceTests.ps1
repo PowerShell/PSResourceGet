@@ -1,18 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
+Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -Force
 
-$TestLocalDirectory = 'TestLocalDirectory'
-$tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
-
-if (-not (Test-Path -LiteralPath $tmpdir)){
-    New-Item -Path $tmpdir -ItemType Directory > $null
-}
-
-##########################
-### Find-PSResource ###
-##########################
 Describe 'Test Find-PSResource for Command' {
     
     # Purpose: to check if v3 installs the PSGallery repo by default

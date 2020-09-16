@@ -2,15 +2,6 @@
 # Licensed under the MIT License.
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-# Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
-
-$TestLocalDirectory = 'TestLocalDirectory'
-$tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
-
-if (-not (Test-Path -LiteralPath $tmpdir)){
-    New-Item -Path $tmpdir -ItemType Directory > $null
-}
 
 Describe "Test Find-PSResource for Script" {
     
