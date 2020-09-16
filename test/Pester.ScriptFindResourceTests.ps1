@@ -4,34 +4,6 @@
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
 
 Describe "Test Find-PSResource for Script" {
-    
-    # Purpose: to check if v3 installs the PSGallery repo by default
-    #
-    # Action: Get-PSResourceRepository PSGallery
-    #
-    # Expected Result: Should find that the PSGallery resource repo is already registered in v3
-    It 'find the default registered PSGallery' {
-
-        $repo = Get-PSResourceRepository @(Get-PSGalleryName)
-        $repo | Should -Not -BeNullOrEmpty
-        $repo.URL | Should be @(Get-PSGalleryLocation)
-        $repo.Trusted | Should be false
-        $repo.Priority | Should be 50
-    }
-
-    # Purpose: to register PoshTestGallery resource repo and check it registered successfully
-    #
-    # Action: Register-PSResourceRepository PoshTestGallery -URL https://www.poshtestgallery.com/api/v2 -Trusted
-    #
-    # Expected Result: PoshTestGallery resource repo has registered successfully
-    It 'register the poshtest repository when -URL is a website and installation policy is trusted' {
-        # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
-
-        $repo = Get-PSResourceRepository @(Get-PoshTestGalleryName)
-        $repo.Name | should be @(Get-PoshTestGalleryName)
-        $repo.URL | Should be @(Get-PoshTestGalleryLocation)
-        $repo.Trusted | should be true
-    }
 
     # Purpose: find a script resource with specified Name parameter
     #
@@ -42,28 +14,6 @@ Describe "Test Find-PSResource for Script" {
         $res = Find-PSResource -Name Fabrikam-ServerScript
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Fabrikam-ServerScript"
-    }
-
-    # # Purpose: find a script resource with range wildcards
-    # #
-    # # Action: Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?pt"
-    # #
-    # # Expected Result: should return a resource with specified name
-    # # TODO: add wildcard implementation
-    # It "should find a script resource with range wildcards" {
-    #     $res = Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?pt"
-    #     $res | Should -Not -BeNullOrEmpty
-    #     $res.Name | Should -Be "Fabrikam-ServerScript"
-    # }
-
-    # Purpose: not find a non-available script resource with range wildcards
-    #
-    # Action: Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?ptW"
-    #
-    # Expected Result: should not return a resource
-    It "not find a non-available script resource with range wildcards" {
-        $res = Find-PSResource -Name "Fab[rR]ikam?Ser[a-z]erScr?ptW"
-        $res | Should -BeNullOrEmpty
     }
 
     # Purpose: successfully not find a resource that doesn't have a valid name
@@ -85,7 +35,6 @@ Describe "Test Find-PSResource for Script" {
         $res = Find-PSResource -Name Fabrikam-ServerScript,Fabrikam-ClientScript -Repository @(Get-PoshTestGalleryName)
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -Be 2
-        # TODO: add check to see that each item has expected name
     }
 
     # Purpose: find resource with specified Name and exact Version parameter -> [2.0.0.0]
@@ -117,7 +66,6 @@ Describe "Test Find-PSResource for Script" {
     # Expected Result: returns all Fabrikam-ServerScript resources (i.e all 5 versions in descending order)
     It "find resource with specified Name and range Version parameter -> '*' " {
         $res = Find-PSResource -Name Fabrikam-ServerScript -Version "*" -Repository @(Get-PoshTestGalleryName)
-        #TODO figure out iterating over the returned list
         $res.Count | Should -BeGreaterOrEqual 5
     }
 
@@ -141,36 +89,6 @@ Describe "Test Find-PSResource for Script" {
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "PSGTEST-PublishPrereleaseScript-579"
     }
-
-    # # Purpose: find resource using Tags parameter, single tag value
-    # #
-    # # Action: Find-PSResource -Tags "Tag-Fabrikam-Script-2.5" | Where-Object { $_.Name -eq "Fabrikam-Script" }
-    # #
-    # # Expected Result: should return resource that has specified Tags value
-    # # TODO: Fix! it doesn't return anything, most likely does searchAsync() and then filters by params
-    # # bc the Tags param works for Module, and if Tags value = Tag1 only returns module resources that have this
-    # It "find script resource when Tags parameter is specified with single value" {
-    #     $tagValue = "Tag-Fabrikam-Script-2.5"
-    #     $res = Find-PSResource -Tags $tagValue | Where-Object { $_.Name -eq "Fabrikam-Script" }
-    #     $res | Should -Not -BeNullOrEmpty
-    #     $res.Name | Should -Be "Fabrikam-Script"
-    # }
-
-    # # Purpose: find resource using Tags parameter, multiple tag values
-    # #
-    # # Action: Find-PSResource -Tags "Tag-Fabrikam-Script-2.5" | Where-Object { $_.Name -eq "Fabrikam-Script" }
-    # #
-    # # Expected Result: should return resource that has specified Tags value
-    # # TODO: Fix! it doesn't return anything, most likely does searchAsync() and then filters by params
-    # # bc the Tags param works for Module, and if Tags value = Tag1 only returns module resources that have this
-    # It "find script resource when Tags parameter is specified, with multiple values" {
-    #     $tagValue1 = "Tag-Fabrikam-Script-2.5"
-    #     $tagValue2 = "Tag1"
-    #     $res = Find-PSResource -Tags $tagValue1,$tagValue2 | Where-Object { $_.Name -eq "Fabrikam-Script" }
-    #     $res | Should -Not -BeNullOrEmpty
-    #     $res.Name | Should -Be "Fabrikam-Script"
-    # }
-
     
     # Purpose: not find un-available resource from specified repository, when given Repository parameter
     #
