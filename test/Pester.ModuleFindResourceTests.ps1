@@ -5,13 +5,6 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinu
 # Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 # Import-Module "C:\Users\annavied\Documents\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
-$PSGalleryName = 'PSGallery'
-$PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
-
-$PoshTestGalleryName = 'PoshTestGallery'
-$PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
-
-
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
 
@@ -30,10 +23,9 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
     It 'find the default registered PSGallery' {
-
-        $repo = Get-PSResourceRepository $PSGalleryName
+        $repo = Get-PSResourceRepository -Name @(Get-PSGalleryName)
         $repo | Should -Not -BeNullOrEmpty
-        $repo.URL | Should be $PSGalleryLocation
+        $repo.URL | Should be @(Get-PSGalleryLocation)
         $repo.Trusted | Should be false
         $repo.Priority | Should be 50
     }
@@ -46,9 +38,10 @@ Describe 'Test Find-PSResource for Module' {
     It 'register the poshtest repository when -URL is a website and installation policy is trusted' {
         # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
-        $repo = Get-PSResourceRepository $PoshTestGalleryName
-        $repo.Name | should be $PoshTestGalleryName
-        $repo.URL | should be $PostTestGalleryLocation
+        $repo = Get-PSResourceRepository @(Get-PoshTestGalleryName)
+        $repo | Should -Not -BeNullOrEmpty
+        $repo.Name | should be @(Get-PoshTestGalleryName)
+        $repo.URL | Should be @(Get-PoshTestGalleryLocation)
         $repo.Trusted | should be true
     }
 
@@ -141,7 +134,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns nothing, prints error message
     It "find resource when given ModuleName, Version param null, and Name is of a script resource" {
-        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery
+        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository @(Get-PoshTestGalleryName)
         $res | Should -BeNullOrEmpty
     }
 
@@ -151,7 +144,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns ContosoServer resource   
     It "find resource when given ModuleName, Version param null, and Name is of a module resource" {
-        $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery
+        $res = Find-PSResource -ModuleName ContosoServer -Repository @(Get-PoshTestGalleryName)
         $res.Name | Should -Be "ContosoServer"
     }
 
@@ -161,7 +154,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns Fabrikam-ServerScript resource   
     It "find resource when given Name, Version param null, and name is of a script resource" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository @(Get-PoshTestGalleryName)
         $res.Name | Should -Be "Fabrikam-ServerScript"
     }
 
@@ -171,7 +164,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns ContosoServer resource
     It "find resource when given Name, Version param null, and name is of a module resource" {
-        $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery
+        $res = Find-PSResource -Name ContosoServer -Repository @(Get-PoshTestGalleryName)
         $res.Name | Should -Be "ContosoServer"
     }
 
@@ -181,7 +174,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: doesn't return anything, prints error message
     It "find resource when given ModuleName, Version not null --> [2.0], and name is of a script resource" {
-        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0.0.0]"
+        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository @(Get-PoshTestGalleryName) -Version "[2.0.0.0]"
         $res | Should -BeNullOrEmpty
     }
 
@@ -191,7 +184,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns ContosoServer resource with specified version
     It "find resource when given ModuleName, Version not null --> [2.0], name is of a module resource" {
-        $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery -Version "[2.0.0.0]"
+        $res = Find-PSResource -ModuleName ContosoServer -Repository @(Get-PoshTestGalleryName) -Version "[2.0.0.0]"
         $res.Name | Should -Be "ContosoServer"
         $res.Version | Should -Be "2.0.0.0"
     }
@@ -202,7 +195,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns Fabrikam-ServerScript resource with specified version
     It "find resource when given ModuleName, Version not null --> [2.0], name is of a script resource" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0.0.0]"
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository @(Get-PoshTestGalleryName) -Version "[2.0.0.0]"
         $res.Name | Should -Be "Fabrikam-ServerScript"
         $res.Version | Should -Be "2.0.0.0"
     }
@@ -213,7 +206,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns ContosoServer resource with specified version
     It "find resource when given Name, Version not null --> [2.0.0.0], name is of a module resource" {
-        $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery -Version "[2.0.0.0]"
+        $res = Find-PSResource -Name ContosoServer -Repository @(Get-PoshTestGalleryName) -Version "[2.0.0.0]"
         $res.Name | Should -Be "ContosoServer"
         $res.Version | Should -Be "2.0.0.0"
     }
@@ -224,7 +217,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: shouldn't return any resource, prints error message
     It "find resource when given ModuleName, Version not null --> [1.0.0.0, 2.5.0.0], name is of a script resource"{
-        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository PoshTestGallery -Version "[1.0.0.0, 2.5.0.0]"
+        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Repository @(Get-PoshTestGalleryName) -Version "[1.0.0.0, 2.5.0.0]"
         $res | Should -BeNullOrEmpty
     }
 
@@ -234,7 +227,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns resource with latest version in the specified range
     It "find resource when given ModuleName, Version not null --> [1.0.0.0, 2.5.0.0], name is of a module resource" {
-        $res = Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery -Version "[1.0.0.0, 2.5.0.0]"
+        $res = Find-PSResource -ModuleName ContosoServer -Repository @(Get-PoshTestGalleryName) -Version "[1.0.0.0, 2.5.0.0]"
         $res.Name | Should -Be "ContosoServer"
         $res.Version | Should -Be "2.5.0.0"
     }
@@ -245,7 +238,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns resource with latest version in the specified range
     It "find resource when given Name, Version not null --> [1.0.0.0, 2.5.0.0], name is of a script resource" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[1.0.0.0, 2.5.0.0]"
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository @(Get-PoshTestGalleryName) -Version "[1.0.0.0, 2.5.0.0]"
         $res.Name | Should -Be "Fabrikam-ServerScript"
         $res.Version | Should -Be "2.5.0.0"
     }
@@ -256,7 +249,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns resource with latest version in the specified range
     It "find resources when given Name, Version not null --> [1.0.0.0, 2.5.0.0], name is of module resource" {
-        $res = Find-PSResource -Name ContosoServer -Repository PoshTestGallery -Version "[1.0.0.0, 2.5.0.0]"
+        $res = Find-PSResource -Name ContosoServer -Repository @(Get-PoshTestGalleryName) -Version "[1.0.0.0, 2.5.0.0]"
         $res.Name | Should -Be "ContosoServer"
         $res.Version | Should -Be "2.5.0.0"
     }
@@ -267,7 +260,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: shouldn't return any resource, prints error message
     It "find resources when given ModuleName, Version not null --> '*', name is of a script resource" {
-        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Version "*" -Repository PoshTestGallery
+        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Version "*" -Repository @(Get-PoshTestGalleryName)
         $res | Should -BeNullOrEmpty
     }
 
@@ -277,7 +270,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns 4 ContosoServer resources (of all versions in descending order)
     It "find resources when given ModuleName, Version not null --> '*', name is of a module resource" {
-        $res = Find-PSResource -ModuleName ContosoServer -Version "*" -Repository PoshTestGallery
+        $res = Find-PSResource -ModuleName ContosoServer -Version "*" -Repository @(Get-PoshTestGalleryName)
         $res.Count | Should -BeGreaterOrEqual 4
     }
 
@@ -287,7 +280,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns 5  Fabrikam-ServerScript resources (of all versions in descending order)
     It "find resources when given Name, Version not null --> '*', name is of a script resource" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Version "*" -Repository PoshTestGallery
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Version "*" -Repository @(Get-PoshTestGalleryName)
         $res.Count | Should -BeGreaterOrEqual 5
     }
 
@@ -297,7 +290,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns 4  ContosoServer resources (of all versions in descending order)
     It "find resources when given Name, Version not null --> '*', name is of a module resource" {
-        $res = Find-PSResource -Name ContosoServer -Version "*" -Repository PoshTestGallery
+        $res = Find-PSResource -Name ContosoServer -Version "*" -Repository @(Get-PoshTestGalleryName)
         $res.Count | Should -BeGreaterOrEqual  4
     }
 
@@ -351,11 +344,11 @@ Describe 'Test Find-PSResource for Module' {
     # Expected Result: Should find the resource from the specified repository
     It "Find resource given repository parameter" {
         # ContosoServer resource doesn't exist in the PSGallery repository
-        $res = Find-PSResource ContosoServer -Repository $PSGalleryName
+        $res = Find-PSResource ContosoServer -Repository @(Get-PSGalleryName)
         $res | Should -BeNullOrEmpty
 
         # ContosoServer resource exists in the PostTestGalleryRepository
-        $resCorrectRepo = Find-PSResource ContosoServer -Repository $PoshTestGalleryName
+        $resCorrectRepo = Find-PSResource ContosoServer -Repository @(Get-PoshTestGalleryName)
         $resCorrectRepo | Should -Not -BeNullOrEmpty
         $resCorrectRepo.Repository | Should -Be "PoshTestGallery"
     }
@@ -370,7 +363,7 @@ Describe 'Test Find-PSResource for Module' {
         $res = Find-PSResource xActiveDirectory
         $res.Repository | Should -Be "PoshTestGallery" # first availability found in PostTestGallery
         # check that it can be returned from non-first-availability/non-default repo
-        $resNonDefault = Find-PSResource xActiveDirectory -Repository "PSGallery"
+        $resNonDefault = Find-PSResource xActiveDirectory -Repository @(Get-PSGalleryName)
         $resNonDefault.Repository | Should -Be "PSGallery"
     }
 

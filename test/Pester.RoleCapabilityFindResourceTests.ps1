@@ -2,15 +2,6 @@
 # Licensed under the MIT License.
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
-
-$PSGalleryName = 'PSGallery'
-$PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
-
-$PoshTestGalleryName = 'PoshTestGallery'
-$PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
-
 
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
@@ -31,9 +22,9 @@ Describe 'Test Find-PSResource for Role Capability' {
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
     It 'find the default registered PSGallery' {
 
-        $repo = Get-PSResourceRepository $PSGalleryName
+        $repo = Get-PSResourceRepository @(Get-PSGalleryName)
         $repo | Should -Not -BeNullOrEmpty
-        $repo.URL | Should be $PSGalleryLocation
+        $repo.URL | Should be @(Get-PSGalleryLocation)
         $repo.Trusted | Should be false
         $repo.Priority | Should be 50
     }
@@ -46,9 +37,9 @@ Describe 'Test Find-PSResource for Role Capability' {
     It 'register the poshtest repository when -URL is a website and installation policy is trusted' {
         # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
-        $repo = Get-PSResourceRepository $PoshTestGalleryName
-        $repo.Name | should be $PoshTestGalleryName
-        $repo.URL | should be $PostTestGalleryLocation
+        $repo = Get-PSResourceRepository @(Get-PoshTestGalleryName)
+        $repo.Name | should be @(Get-PoshTestGalleryName)
+        $repo.URL | should be @(Get-PoshTestGalleryLocation)
         $repo.Trusted | should be true
     }
 
@@ -127,7 +118,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should return JeaExamples resource
     It "find Role Capability resource, given ModuleName parameter" {
-        $res = Find-PSResource -ModuleName JeaExamples -Repository PSGallery
+        $res = Find-PSResource -ModuleName JeaExamples -Repository @(Get-PSGalleryName)
         $res.Name | Should -Be "JeaExamples"
     }
 
@@ -138,7 +129,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     # Expected Result: should return PSGETTEST-TestPackageMetadata resource
     It "find Role Capability resource with given Tags parameter" {
         $tagValue = "Tag-testPAckageMetadata-2.5"
-        $res = Find-PSResource -Tags $tagValue -Repository $PoshTestGalleryName | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+        $res = Find-PSResource -Tags $tagValue -Repository @(Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
         $res.Name | Should -Be "PSGETTEST-TestPackageMetadata"
     }
 
@@ -151,7 +142,7 @@ Describe 'Test Find-PSResource for Role Capability' {
         $tagValue1 = "Tag-testPAckageMetadata-2.5"
         $tagValue2 = "PSGet"
         $tagValue3 = "Tag2"
-        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository $PoshTestGalleryName | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository @(Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
         $res.Name | Should -Be "PSGETTEST-TestPackageMetadata"
     }
 
@@ -161,7 +152,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should not find JeaExamples resource
     It "not find Role Capability resource that doesn't exist in specified repository, given Repository parameter" {
-        $res = Find-PSResource -Name JeaExamples -Repository $PoshTestGalleryName
+        $res = Find-PSResource -Name JeaExamples -Repository @(Get-PoshTestGalleryName)
         $res | Should -BeNullOrEmpty
     }
 
@@ -171,7 +162,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should find JeaExamples resource
     It "find resource that exists only in a specific repository, given Repository parameter" {
-        $resRightRepo = Find-PSResource -Name JeaExamples -Repository $PSGalleryName
+        $resRightRepo = Find-PSResource -Name JeaExamples -Repository @(Get-PSGalleryName)
         $resRightRepo.Name | Should -Be "JeaExamples"
     }    
 }

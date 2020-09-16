@@ -2,15 +2,6 @@
 # Licensed under the MIT License.
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
-
-$PSGalleryName = 'PSGallery'
-$PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
-
-$PoshTestGalleryName = 'PoshTestGallery'
-$PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
-
 
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
@@ -31,9 +22,9 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
     It 'find the Default Registered PSGallery' {
 
-        $repo = Get-PSResourceRepository $PSGalleryName
+        $repo = Get-PSResourceRepository @(Get-PSGalleryName)
         $repo | Should -Not -BeNullOrEmpty
-        $repo.URL | Should be $PSGalleryLocation
+        $repo.URL | Should be @(Get-PSGalleryLocation)
         $repo.Trusted | Should be false
         $repo.Priority | Should be 50
     }
@@ -46,9 +37,9 @@ Describe 'Test Find-PSResource for Command' {
     It 'register the Poshtest Repository When -URL is a Website and Installation Policy is Trusted' {
         # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
-        $repo = Get-PSResourceRepository $PoshTestGalleryName
-        $repo.Name | should be $PoshTestGalleryName
-        $repo.URL | should be $PostTestGalleryLocation
+        $repo = Get-PSResourceRepository @(Get-PoshTestGalleryName)
+        $repo.Name | should be @(Get-PoshTestGalleryName)
+        $repo.URL | should be @(Get-PoshTestGalleryLocation)
         $repo.Trusted | should be true
     }
 
@@ -124,7 +115,7 @@ Describe 'Test Find-PSResource for Command' {
     It "find Command resource with latest-nonpreview versions, by excluding Prerelease parameter" {
         $res = Find-PSResource -Name Az.Accounts
         $res.Name | Should -Be "Az.Accounts"
-        $res.Version | Should -Be "1.9.3.0"
+        $res.Version | Should -Be "1.9.4.0"
     }
 
     # Purpose: find Command resource with latest version (including preview versions), with Prerelease parameter
@@ -147,7 +138,7 @@ Describe 'Test Find-PSResource for Command' {
         $res = Find-PSResource -ModuleName "AzureRM.OperationalInsights"
         $res.Name | Should -Be "AzureRM.OperationalInsights"
         # TODO: look into why this requires Repository param to work if it only exists in secondary repo.
-        $res2 = Find-PSResource -ModuleName "xWindowsUpdate" -Repository $PSGalleryName
+        $res2 = Find-PSResource -ModuleName "xWindowsUpdate" -Repository @(Get-PSGalleryName)
         $res2.Name | Should -Be "xWindowsUpdate"
     }
 
@@ -158,7 +149,7 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: should return Az.Accounts resource
     It "find resource with single tag, given Tags parameter" {
         $tagValue = "Azure"
-        $res = Find-PSResource -Tags $tagValue -Repository PoshTestGallery | Where-Object { $_.Name -eq "Az.Accounts" }
+        $res = Find-PSResource -Tags $tagValue -Repository @(Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
 
@@ -174,7 +165,7 @@ Describe 'Test Find-PSResource for Command' {
         $tagValue1 = "Azure"
         $tagValue2 = "Authentication"
         $tagValue3 = "ARM"
-        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository PoshTestGallery | Where-Object { $_.Name -eq "Az.Accounts" }
+        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository @(Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
     }
@@ -185,7 +176,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not find xWindowsUpdate resource
     It "not find Command resource from repository where it is not available, given Repository parameter" {
-        $res = Find-PSResource -Name "xWindowsUpdate" -Repository $PoshTestGalleryName
+        $res = Find-PSResource -Name "xWindowsUpdate" -Repository @(Get-PoshTestGalleryName)
         $res | Should -BeNullOrEmpty
     }
 
@@ -195,7 +186,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should find xWindowsUpdate resource
     It "find Command resource, given Repository parameter" {
-        $res = Find-PSResource -Name "xWindowsUpdate" -Repository $PSGalleryName
+        $res = Find-PSResource -Name "xWindowsUpdate" -Repository @(Get-PSGalleryName)
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "xWindowsUpdate"
     }    

@@ -2,15 +2,6 @@
 # Licensed under the MIT License.
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
-
-$PSGalleryName = 'PSGallery'
-$PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
-
-$PoshTestGalleryName = 'PoshTestGallery'
-$PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
-
 
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
@@ -31,9 +22,9 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
     It 'find the default registered PSGallery' {
 
-        $repo = Get-PSResourceRepository $PSGalleryName
+        $repo = Get-PSResourceRepository @(Get-PSGalleryName)
         $repo | Should -Not -BeNullOrEmpty
-        $repo.URL | Should be $PSGalleryLocation
+        $repo.URL | Should be @(Get-PSGalleryLocation)
         $repo.Trusted | Should be false
         $repo.Priority | Should be 50
     }
@@ -46,9 +37,9 @@ Describe 'Test Find-PSResource for Command' {
     It 'register the poshtest repository when -URL is a website and installation policy is trusted' {
         # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
-        $repo = Get-PSResourceRepository $PoshTestGalleryName
-        $repo.Name | should be $PoshTestGalleryName
-        $repo.URL | should be $PostTestGalleryLocation
+        $repo = Get-PSResourceRepository @(Get-PoshTestGalleryName)
+        $repo.Name | should be @(Get-PoshTestGalleryName)
+        $repo.URL | should be @(Get-PoshTestGalleryLocation)
         $repo.Trusted | should be true
     }
 
@@ -117,10 +108,10 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: should return (later) preview version than if without Prerelease parameter
     It "find DSCResource resource with preview version, with Prerelease parameter" {
         # the ActiveDirectoryCDDsc resource has prereview and non-prereview versions
-        $res = Find-PSResource -Name ActiveDirectoryCSDsc -Repository $PSGalleryName
+        $res = Find-PSResource -Name ActiveDirectoryCSDsc -Repository @(Get-PSGalleryName)
         $res.Version | Should -Be "5.0.0.0"
 
-        $resPrerelease = Find-PSResource -Name ActiveDirectoryCSDsc -Prerelease -Repository $PSGalleryName
+        $resPrerelease = Find-PSResource -Name ActiveDirectoryCSDsc -Prerelease -Repository @(Get-PSGalleryName)
         $resPrerelease.Version | Should -Be "5.0.1.0"
     }
 
@@ -130,7 +121,7 @@ Describe 'Test Find-PSResource for Command' {
     # #
     # # Expected Result: returns DSCResource with specified ModuleName
     It "find a DSCResource of package type module, given ModuleName parameter" {
-        $res = Find-PSResource -ModuleName ActiveDirectoryCSDsc -Repository PSGallery
+        $res = Find-PSResource -ModuleName ActiveDirectoryCSDsc -Repository @(Get-PSGalleryName)
         $res.Name | Should -Be "ActiveDirectoryCSDsc"
     }
 
@@ -141,7 +132,7 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: return DscTestModule resource
     It "find a DSCResource with specific tag, given Tags parameter"{
         $tagValue = "CommandsAndResource"
-        $res = Find-PSResource -Tags $tagValue -Repository $PoshTestGalleryName | Where-Object { $_.Name -eq "DscTestModule" }
+        $res = Find-PSResource -Tags $tagValue -Repository @(Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "DscTestModule" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "DscTestModule"
     }
@@ -155,7 +146,7 @@ Describe 'Test Find-PSResource for Command' {
         $tagValue1 = "CommandsAndResource"
         $tagValue2 = "Tag-DscTestModule-2.5"
         $tagValue3 = "Tag1"
-        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository $PoshTestGalleryName | Where-Object { $_.Name -eq "DscTestModule" }
+        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository @(Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "DscTestModule" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "DscTestModule"
     }
@@ -166,7 +157,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not AccessControlDSC from PoshTestGallery repository
     It "not find DSCResource from repository, given Repository parameter" {
-        $res = Find-PSResource -Name AccessControlDSC -Repository $PoshTestGalleryName
+        $res = Find-PSResource -Name AccessControlDSC -Repository @(Get-PoshTestGalleryName)
         $res | Should -BeNullOrEmpty
     }
 
@@ -176,7 +167,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should find AccessControlDSC from PSGallery repository
     It "find DSCResource from repository, given Repository parameter" {
-        $res = Find-PSResource -Name AccessControlDSC -Repository $PSGalleryName
+        $res = Find-PSResource -Name AccessControlDSC -Repository @(Get-PSGalleryName)
         $res.Name | Should -Be "AccessControlDSC"
     }
 

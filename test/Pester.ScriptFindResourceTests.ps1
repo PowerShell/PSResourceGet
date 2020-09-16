@@ -2,14 +2,7 @@
 # Licensed under the MIT License.
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
-
-
-$PSGalleryName = 'PSGallery'
-$PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
-
-$PoshTestGalleryName = 'PoshTestGallery'
-$PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
+# Import-Module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
 
 $TestLocalDirectory = 'TestLocalDirectory'
@@ -28,9 +21,9 @@ Describe "Test Find-PSResource for Script" {
     # Expected Result: Should find that the PSGallery resource repo is already registered in v3
     It 'find the default registered PSGallery' {
 
-        $repo = Get-PSResourceRepository $PSGalleryName
+        $repo = Get-PSResourceRepository @(Get-PSGalleryName)
         $repo | Should -Not -BeNullOrEmpty
-        $repo.URL | Should be $PSGalleryLocation
+        $repo.URL | Should be @(Get-PSGalleryLocation)
         $repo.Trusted | Should be false
         $repo.Priority | Should be 50
     }
@@ -43,9 +36,9 @@ Describe "Test Find-PSResource for Script" {
     It 'register the poshtest repository when -URL is a website and installation policy is trusted' {
         # Register-PSResourceRepository $PoshTestGalleryName -URL $PostTestGalleryLocation -Trusted
 
-        $repo = Get-PSResourceRepository $PoshTestGalleryName
-        $repo.Name | should be $PoshTestGalleryName
-        $repo.URL | should be $PostTestGalleryLocation
+        $repo = Get-PSResourceRepository @(Get-PoshTestGalleryName)
+        $repo.Name | should be @(Get-PoshTestGalleryName)
+        $repo.URL | Should be @(Get-PoshTestGalleryLocation)
         $repo.Trusted | should be true
     }
 
@@ -88,7 +81,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should not return a resource, as none with specified name exists
     It "not find a resource that doesn't have a valid name" {
-        $res = Find-PSResource -Name NonExistantScript -Repository PoshTestGallery
+        $res = Find-PSResource -Name NonExistantScript -Repository @(Get-PoshTestGalleryName)
         $res | Should -BeNullOrEmpty
     }
 
@@ -98,7 +91,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should return the multiple resources specified
     It "find resources with multiple values provided for Name parameter" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript,Fabrikam-ClientScript -Repository PoshTestGallery
+        $res = Find-PSResource -Name Fabrikam-ServerScript,Fabrikam-ClientScript -Repository @(Get-PoshTestGalleryName)
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -Be 2
         # TODO: add check to see that each item has expected name
@@ -110,7 +103,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should return Fabrikam-ServerScript resource with Version 2.0.0.0
     It "find resource with specified Name and Version parameter -> [2.0.0.0]" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[2.0.0.0]"
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository @(Get-PoshTestGalleryName) -Version "[2.0.0.0]"
         $res.Name | Should -Be "Fabrikam-ServerScript"
         $res.Version | Should -Be "2.0.0.0"
     }
@@ -121,7 +114,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should return Fabrikam-ServerScript resource with latest version within specified range (i.e 2.0.0.0)
     It "find resource with specified Name and range Version parameter -> [1.0.0.0, 2.0.0.0]" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository PoshTestGallery -Version "[1.0.0.0, 2.0.0.0]"
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Repository @(Get-PoshTestGalleryName) -Version "[1.0.0.0, 2.0.0.0]"
         $res.Name | Should -Be "Fabrikam-ServerScript"
         $res.Version | Should -Be "2.0.0.0"
     }
@@ -132,7 +125,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: returns all Fabrikam-ServerScript resources (i.e all 5 versions in descending order)
     It "find resource with specified Name and range Version parameter -> '*' " {
-        $res = Find-PSResource -Name Fabrikam-ServerScript -Version "*" -Repository PoshTestGallery
+        $res = Find-PSResource -Name Fabrikam-ServerScript -Version "*" -Repository @(Get-PoshTestGalleryName)
         #TODO figure out iterating over the returned list
         $res.Count | Should -BeGreaterOrEqual 5
     }
@@ -194,7 +187,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should not find resource from specified PSGallery repository becuase resource doesn't exist there
     It "find resource from specified repository, when given Repository parameter" {
-        $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository $PoshTestGalleryName
+        $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository @(Get-PoshTestGalleryName)
         $res | Should -BeNullOrEmpty
     }
     
@@ -204,7 +197,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should return resource from specified repository where it exists
     It "find resource from specified repository, when given Repository parameter" {
-        $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository $PSGalleryName
+        $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository @(Get-PSGalleryName)
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Get-WindowsAutoPilotInfo"
         $res.Repository | Should -Be "PSGallery"

@@ -42,6 +42,7 @@ $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $script:PoshTestGalleryName = 'PoshTestGallery'
 $script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
+
 if($script:IsInbox)
 {
     $script:ProgramFilesPSPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramFiles -ChildPath "WindowsPowerShell"
@@ -142,7 +143,8 @@ function Get-PSGetLocalAppDataPath {
     return $script:PSGetAppLocalPath
 }
 
-function Get-PSGalleryName {
+function Get-PSGalleryName
+{
     return $script:PSGalleryName
 }
 
@@ -155,7 +157,7 @@ function Get-PoshTestGalleryName {
 }
 
 function Get-PoshTestGalleryLocation {
-    return $script:PoshTestGalleryLocation
+    return $script:PostTestGalleryLocation
 }
 
 
