@@ -8,7 +8,7 @@
 
 
 $baseParentPath = Split-Path -Path $PSScriptRoot # removes test directory and returns remaning parent path
-$fullPath = Join-Path -Path $baseParentPath -ChildPath "src" -AdditionalChildPath ("bin", "Debug", "netstandard2.0", "publish", "PowerShellGet.dll")
+$fullPath = Join-Path -Path $baseParentPath -ChildPath "src" -AdditionalChildPath "out", "PowerShellGet"
 Import-Module $fullPath -Force
 
 
