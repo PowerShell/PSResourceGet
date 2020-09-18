@@ -1,0 +1,195 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -Force
+
+Describe 'Test Find-PSResource for Module' {
+
+    # Purpose: to find all resources when no parameters are specified
+    #
+    # Action: Find-PSResource
+    #
+    # Expected-Result: finds all (more than 1) resources in PSGallery
+    It "find Resources Without Any Parameter Values" {
+        $psGetItemInfo = Find-PSResource
+        $psGetItemInfo.Count | Should -BeGreaterThan 1
+    }
+
+    # Purpose: to find a specific resource by name
+    #
+    # Action: Find-PSResource -Name "ContosoServer"
+    #
+    # Expected Result: Should find ContosoServer resource
+    It "find Specific Module Resource by Name" {
+        $specItem = Find-PSResource -Name ContosoServer
+        $specItem.Name | Should -Be "ContosoServer"
+    }
+
+    # Purpose: to find a resource(s) with regex in name parameter
+    #
+    # Action: Find-PSResource -Name Contoso*
+    #
+    # Expected Result: should find multiple resources,namely atleast ContosoServer, ContosoClient, Contoso
+    It "find multiple Resource(s) with Wildcards for Name Param" {
+        $res = Find-PSResource -Name Contoso*
+        $res.Count | Should -BeGreaterOrEqual 1
+    }
+
+    # Purpose: to find a specific resource with wildcard in name
+    #
+    # Action: Find-PSResource *ontosoServe*
+    # 
+    # Expected Result: should find the ContosoServer resource
+    It "find Specific Resource with Wildcards for Name Param" {
+        $res = Find-PSResource *ontosoServe*
+        $res.Name | Should -Be "ContosoServer"
+    }
+
+    # Purpose: find resource when given Name, Version param not null
+    #
+    # Action: Find-PSResource -Name ContosoServer -Repository PoshTestGallery
+    #
+    # Expected Result: returns ContosoServer resource
+    It "find resource when given Name to <Reason> <Version>" -TestCases @(
+        @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+        @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
+        @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="(,1.5.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    ) {
+        param($Version, $ExpectedVersion)
+        $res = Find-PSResource -Name "ContosoServer" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res.Name | Should -Be "ContosoServer"
+        $res.Version | Should -Be $ExpectedVersion
+    }
+
+    # Purpose: find resources when given Name, Version not null --> '*'
+    #
+    # Action: Find-PSResource -Name ContosoServer -Version "*" -Repository PoshTestGallery
+    #
+    # Expected Result: returns 4 ContosoServer resources (of all versions in descending order)
+    It "find resources when given Name, Version not null --> '*'" {
+        $res = Find-PSResource -Name ContosoServer -Version "*" -Repository (Get-PoshTestGalleryName)
+        $res.Count | Should -BeGreaterOrEqual 4
+    } 
+
+    # Purpose: find resource when given ModuleName, Version param null
+    #
+    # Action: Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery
+    #
+    # Expected Result: returns nothing, prints error message
+    It "find resource when given ModuleName, Version param null" {
+        $res = Find-PSResource -ModuleName "ContosoServer" -Repository (Get-PoshTestGalleryName)
+        $res.Name | Should -Be "ContosoServer"
+        $res.Version | Should -Be "2.5.0.0"
+    }
+
+    # Purpose: find resource when given ModuleName, Version param not null
+    #
+    # Action: Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery
+    #
+    # Expected Result: returns ContosoServer resource
+    It "find resource when given ModuleName to <Reason>" -TestCases @(
+        @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+        @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0,2.5.0.0)";  ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
+        @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="(,1.5.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0,2.5.0.0)";  ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    ) {
+        param($Version, $ExpectedVersion)
+        $res = Find-PSResource -ModuleName "ContosoServer" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res.Name | Should -Be "ContosoServer"
+        $res.Version | Should -Be $ExpectedVersion
+    }
+
+    # Purpose: find resources when given ModuleName, Version not null --> '*'
+    #
+    # Action: Find-PSResource -ModuleName ContosoServer -Version "*" -Repository PoshTestGallery
+    #
+    # Expected Result: returns 4 ContosoServer resources (of all versions in descending order)
+    It "find resources when given ModuleName, Version not null --> '*'" {
+        $res = Find-PSResource -ModuleName ContosoServer -Version "*" -Repository (Get-PoshTestGalleryName)
+        $res.Count | Should -BeGreaterOrEqual 4
+    }
+
+    # Purpose: to find a prerelease resource with the prerelease param
+    #
+    # Action: Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139" -Prerelease
+    #
+    # Expected Result: without prerelease param latest nonpreview version (or null, if none exists)
+    # should be returned. With it the module should be returned and valid
+    It "find Resource with Prerelease param" {
+        $res = Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139"
+        $res | Should -BeNullOrEmpty
+
+        # add prerelease param to cmdlet query
+        $resWPrelease = Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139" -Prerelease
+        $resWPrelease | Should -Not -BeNullOrEmpty
+        $resWPrelease.Name | Should -Be "PSGTEST-PublishPrereleaseModule-3139"
+    }
+
+    # Purpose: to find a resource given Tags parameter with one value
+    #
+    # Action: Find-PSResource -Tags CommandsAndResource | Where-Object { $_.Name -eq "DscTestModule" }
+    #
+    # Expected Result: should return all resources with that tag, and then filer by name
+    It "find a resource given Tags parameter with one value" {
+        $res = Find-PSResource -Tags CommandsAndResource | Where-Object { $_.Name -eq "DscTestModule" }
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be "DscTestModule"
+    }
+
+    # Purpose: find resource(s) given multiple tags for the Tags parameter.
+    #
+    # Action: Find-PSResource -Tags CommandsAndResource,DSC,Tag1
+    #
+    # Expected Result: Should return more resources than if just queried with -Tags CommandsAndResources
+    It "find a resource given tags parameter with multiple values" {
+        $resSingleTag = Find-PSResource -Tags CommandsAndResource
+        $res = Find-PSResource -Tags CommandsAndResource,DSC,Tag1
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterOrEqual $resSingleTag.Count
+    }
+
+    # Purpose: find a resource in a specific repository, given Repository parameter
+    #
+    # Action: Find-PSResource ContosoServer -Repository $PoshTestGalleryName
+    #
+    # Expected Result: Should find the resource from the specified repository
+    It "find resource given repository parameter" {
+        $res = Find-PSResource ContosoServer -Repository (Get-PSGalleryName)
+        $res | Should -BeNullOrEmpty
+
+        # ContosoServer resource exists in the PostTestGalleryRepository
+        $resCorrectRepo = Find-PSResource ContosoServer -Repository (Get-PoshTestGalleryName)
+        $resCorrectRepo | Should -Not -BeNullOrEmpty
+        $resCorrectRepo.Repository | Should -Be "PoshTestGallery"
+    }
+
+    # Purpose: find resource given Repository param, when resource of same name exists in multiple repos
+    #
+    # Action: Find-PSResource xActiveDirectory -Repository "PSGallery"
+    #
+    # Expected Result: Returns resource from specified repository
+    It "find Resource given repository parameter, where resource exists in multiple repos" {
+        $res = Find-PSResource xActiveDirectory
+        $res.Repository | Should -Be "PoshTestGallery" # first availability found in PostTestGallery
+        # check that it can be returned from non-first-availability/non-default repo
+        $resNonDefault = Find-PSResource xActiveDirectory -Repository (Get-PSGalleryName)
+        $resNonDefault.Repository | Should -Be "PSGallery"
+    }
+
+    # Purpose: find a resource and associated dependecies given IncludeDependencies parameter
+    #
+    # Action: Find-PSResource ModuleWithDependencies1 -IncludeDependencies
+    #
+    # Expected Result: should return resource specified and all associated dependecy resources
+    It "find resource with IncludeDependencies parameter" {
+        $res = Find-PSResource ModuleWithDependencies1 -IncludeDependencies -Version "[1.0,2.0]"
+        $res.Count | Should -BeGreaterOrEqual 11
+    }
+}

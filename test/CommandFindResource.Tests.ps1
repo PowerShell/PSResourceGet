@@ -26,35 +26,35 @@ Describe 'Test Find-PSResource for Command' {
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: find Command resource with exact version, given Version parameter -> [4.3.0.0]
+    # Purpose: find Command resource with exact version, given Version parameter
     #
     # Action: Find-PSResource -Name Az.Compute -Version "[4.3.0.0]"
     #
     # Expected Result: should return Az.Compute resource with version 4.3.0.0
-    It "find Command resource with exact version, given Version parameter -> [4.3.0.0]" {
-        $res = Find-PSResource -Name Az.Compute -Version "[4.3.0.0]"
+    It "find Command resource given Name to <Reason>" -TestCases @(
+        @{Version="[4.3.0.0]";          ExpectedVersion="4.3.0.0"; Reason="validate version, exact match"},
+        @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
+        @{Version="(4.2.1.0,)";         ExpectedVersion="4.3.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    )
+    {
+        param($Version, $ExpectedVersion)
+        $res = Find-PSResource -Name "Az.Compute" -Version $Version -Repository (Get-PoshTestGalleryName)
         $res.Name | Should -Be "Az.Compute"
-        $res.Version | Should -Be "4.3.0.0"
+        $res.Version | Should -Be $ExpectedVersion
     }
 
-    # Purpose: find Command resource with range version, given Version parameter -> [4.1.0.0, 4.3.0.0]
-    #
-    # Action: Find-PSResource -Name Az.Compute -Version "[4.1.0.0, 4.3.0.0]"
-    #
-    # Expected Result: should return Az.Compute resource with latest version in range (i.e. 4.3.0.0)
-    It "find Command resource with range version, given Version parameter -> [4.1.0.0, 4.3.0.0]" {
-        $res = Find-PSResource -Name Az.Compute -Version "[4.1.0.0, 4.3.0.0]"
-        $res.Name | Should -Be "Az.Compute"
-        $res.Version | Should -Be "4.3.0.0"
-    }
-
+    
     # Purpose: find Command resource with wildcard version, given Version parameter -> '*' 
     #
     # Action: Find-PSResource -Name Az.Compute -Version "*"
     #
     # Expected Result: should return all Az.Compute resources (versions in descending order)
-    It "find Command resource with exact version, given Version parameter -> '*' " {
-        $res = Find-PSResource -Name Az.Compute -Version "*"
+    It "find Command resource given Name to validate version wilcard match " {
+        $res = Find-PSResource -Name "Az.Compute" -Version "*"
         $res.Count | Should -BeGreaterOrEqual 40
     }
 
@@ -80,16 +80,44 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be "2.0.1.0"
     }
 
-    # Purpose: find Command resource, of package type module, with ModuleName parameter
+    # Purpose: find Command resource given ModuleName parameter with Version null or empty
     #
-    # Action: Find-PSResource -ModuleName AzureRM.OperationalInsights
+    # Action: Find-PSResource -ModuleName "Az.Accounts" -Repository "PoshTestGallery"
     #
-    # Expected Result: should return AzureRM.OperationalInsights resource
-    It "find Command resource, of package type module, with ModuleName parameter" {
-        $res = Find-PSResource -ModuleName "AzureRM.OperationalInsights"
-        $res.Name | Should -Be "AzureRM.OperationalInsights"
-        $res2 = Find-PSResource -ModuleName "xWindowsUpdate" -Repository @(Get-PSGalleryName)
-        $res2.Name | Should -Be "xWindowsUpdate"
+    # Expected Result: should return resource with latest version
+    It "find Command resource given ModuleName with Version null or empty" {
+        $res = Find-PSResource -ModuleName "Az.Compute" -Repository (Get-PoshTestGalleryName)
+        $res.Name | Should -Be "Az.Compute"
+    }
+
+    # Purpose: find command resource when given ModuleName and any Version parameter
+    #
+    # Action: Find-PSResource -Name "Az.Accounts" -Version [2.0.0.0] -Repository "PoshTestGallery"
+    #
+    # Expected Result: should find a command resource when given ModuleName and any version value
+    It "find Command resource when given ModuleName to <Reason>" -TestCases @(
+        @{Version="[4.3.0.0]";          ExpectedVersion="4.3.0.0"; Reason="validate version, exact match"},
+        @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
+        @{Version="(4.2.1.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    ) {
+        param($Version, $ExpectedVersion)
+        $res = Find-PSResource -ModuleName "Az.Compute" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res.Name | Should -Be "Az.Compute"
+        $res.Version | Should -Be $ExpectedVersion
+    }
+
+    # Purpose: find Command resource given ModuleName to validate version match
+    #
+    # Action: Find-PSResource -ModuleName Az.Compute -Version "*"
+    #
+    # Expected Result: should return all Az.Compute resources (versions in descending order)
+    It "find Command resource given ModuleName to validate version wildcard match " {
+        $res = Find-PSResource -ModuleName "Az.Compute" -Version "*"
+        $res.Count | Should -BeGreaterOrEqual 40
     }
 
     # Purpose: find resource with tag, given single Tags parameter
