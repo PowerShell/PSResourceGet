@@ -127,7 +127,7 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: should return Az.Accounts resource
     It "find resource with single tag, given Tags parameter" {
         $tagValue = "Azure"
-        $res = Find-PSResource -Tags $tagValue -Repository @(Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
+        $res = Find-PSResource -Tags $tagValue -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
 
@@ -143,7 +143,7 @@ Describe 'Test Find-PSResource for Command' {
         $tagValue1 = "Azure"
         $tagValue2 = "Authentication"
         $tagValue3 = "ARM"
-        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository @(Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
+        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
     }
@@ -154,7 +154,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not find xWindowsUpdate resource
     It "not find Command resource from repository where it is not available, given Repository parameter" {
-        $res = Find-PSResource -Name "xWindowsUpdate" -Repository @(Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name "xWindowsUpdate" -Repository (Get-PoshTestGalleryName)
         $res | Should -BeNullOrEmpty
     }
 
@@ -164,7 +164,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should find xWindowsUpdate resource
     It "find Command resource, given Repository parameter" {
-        $res = Find-PSResource -Name "xWindowsUpdate" -Repository @(Get-PSGalleryName)
+        $res = Find-PSResource -Name "xWindowsUpdate" -Repository (Get-PSGalleryName)
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "xWindowsUpdate"
     }    
