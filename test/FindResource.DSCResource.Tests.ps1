@@ -27,6 +27,7 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: return resource meeting version criteria
     It "find DSC resource when given Name to <Reason>" -TestCases @(
         @{Version="[6.0.0.0]";          ExpectedVersion="6.0.0.0"; Reason="validate version, exact match"},
+        @{Version="6.0.0.0";            ExpectedVersion="6.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
         @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
@@ -107,6 +108,7 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: return resource meeting version criteria
     It "find DSC resource when given ModuleName to <Reason>" -TestCases @(
         @{Version="[6.0.0.0]";          ExpectedVersion="6.0.0.0"; Reason="validate version, exact match"},
+        @{Version="6.0.0.0";            ExpectedVersion="6.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
         @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},

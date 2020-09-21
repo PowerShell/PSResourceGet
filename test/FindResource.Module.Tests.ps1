@@ -56,6 +56,7 @@ Describe 'Test Find-PSResource for Module' {
     # Expected Result: returns ContosoServer resource
     It "find resource when given Name to <Reason> <Version>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+        @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
         @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
@@ -108,6 +109,7 @@ Describe 'Test Find-PSResource for Module' {
     # Expected Result: returns ContosoServer resource
     It "find resource when given ModuleName to <Reason>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+        @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(1.0.0.0,2.5.0.0)";  ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
         @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},

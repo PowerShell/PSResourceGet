@@ -38,6 +38,7 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: should return Az.Compute resource with version 4.3.0.0
     It "find Command resource given Name to <Reason>" -TestCases @(
         @{Version="[4.3.0.0]";          ExpectedVersion="4.3.0.0"; Reason="validate version, exact match"},
+        @{Version="4.3.0.0";            ExpectedVersion="4.3.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
         @{Version="[4.4.0.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version inclusive"},
@@ -112,6 +113,7 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: should find a command resource when given ModuleName and any version value
     It "find Command resource given ModuleName to <Reason>" -TestCases @(
         @{Version="[4.3.0.0]";          ExpectedVersion="4.3.0.0"; Reason="validate version, exact match"},
+        @{Version="4.3.0.0";            ExpectedVersion="4.3.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
         @{Version="[4.4.0.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version inclusive"},
