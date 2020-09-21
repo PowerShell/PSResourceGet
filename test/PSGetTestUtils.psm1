@@ -6,11 +6,9 @@
 
 #."$PSScriptRoot\uiproxy.ps1"
 
-
 $baseParentPath = Split-Path -Path $PSScriptRoot # removes test directory and returns remaning parent path
 $fullPath = Join-Path -Path $baseParentPath -ChildPath "src" -AdditionalChildPath "out", "PowerShellGet"
 Import-Module $fullPath -Force
-
 
 $script:DotnetCommandPath = @()
 $script:EnvironmentVariableTarget = @{ Process = 0; User = 1; Machine = 2 }
@@ -28,7 +26,6 @@ $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 
 $script:PoshTestGalleryName = 'PoshTestGallery'
 $script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
-
 
 if($script:IsInbox)
 {
@@ -147,10 +144,6 @@ function Get-PoshTestGalleryLocation {
     return $script:PostTestGalleryLocation
 }
 
-
-
-
-
 function RemoveItem
 {
     Param(
@@ -163,7 +156,6 @@ function RemoveItem
         Remove-Item $path -Force -Recurse -ErrorAction SilentlyContinue
     }
 }
-
 
 function Create-PSScriptMetadata
 {
