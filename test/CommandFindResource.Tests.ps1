@@ -35,7 +35,8 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="[4.3.0.0]";          ExpectedVersion="4.3.0.0"; Reason="validate version, exact match"},
         @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
-        @{Version="(4.2.1.0,)";         ExpectedVersion="4.3.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[4.4.0.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version inclusive"},
+        @{Version="(4.2.1.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version exclusive"},
         @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
@@ -47,6 +48,15 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
+    # Purpose: not find Command resource with invalid verison, given Version parameter -> (4.3.1.0)
+    #
+    # Action: Find-PSResource -Name "Az.Compute" -Version "(4.3.1.0)"
+    #
+    # Expected Result: should not return a resource as version is invalid
+    It "not find Command resource given Name to validate handling an invalid version" {
+        $res = Find-PSResource -Name "Az.Compute" -Version "(4.3.1.0)"
+        $res | Should -BeNullOrEmpty
+    }
     
     # Purpose: find Command resource with wildcard version, given Version parameter -> '*' 
     #
@@ -95,15 +105,17 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Find-PSResource -Name "Az.Accounts" -Version [2.0.0.0] -Repository "PoshTestGallery"
     #
     # Expected Result: should find a command resource when given ModuleName and any version value
-    It "find Command resource when given ModuleName to <Reason>" -TestCases @(
+    It "find Command resource given ModuleName to <Reason>" -TestCases @(
         @{Version="[4.3.0.0]";          ExpectedVersion="4.3.0.0"; Reason="validate version, exact match"},
         @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
+        @{Version="[4.4.0.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version inclusive"},
         @{Version="(4.2.1.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version exclusive"},
         @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    ) {
+    )
+    {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "Az.Compute" -Version $Version -Repository (Get-PoshTestGalleryName)
         $res.Name | Should -Be "Az.Compute"

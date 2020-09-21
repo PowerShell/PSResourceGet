@@ -36,6 +36,7 @@ Describe 'Test Find-PSResource for Role Capability' {
         @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
         @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version inclusive"},
         @{Version="(,2.5.0.0)";         ExpectedVersion="2.0.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,2.5.0.0]";         ExpectedVersion="2.5.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
@@ -46,8 +47,15 @@ Describe 'Test Find-PSResource for Role Capability' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    ##########################
-
+    # Purpose: not find resource with invalid verison, given Version parameter -> (1.0.0.0)
+    #
+    # Action: Find-PSResource -Name "DscTestModule" -Version "(1.0.0.0)"
+    #
+    # Expected Result: should not return a resource as version is invalid
+    It "not find Command resource given Name to validate handling an invalid version" {
+        $res = Find-PSResource -Name "DscTestModule" -Version "(1.0.0.0)"
+        $res | Should -BeNullOrEmpty
+    }
 
     # Purpose: find Role Capability resource with wildcard version, given Version parameter
     #
@@ -80,6 +88,7 @@ Describe 'Test Find-PSResource for Role Capability' {
         @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
         @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version inclusive"},
         @{Version="(,2.5.0.0)";         ExpectedVersion="2.0.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,2.5.0.0]";         ExpectedVersion="2.5.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}

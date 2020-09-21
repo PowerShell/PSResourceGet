@@ -26,6 +26,7 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
         @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version inclusive"},
         @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
@@ -34,6 +35,16 @@ Describe 'Test Find-PSResource for Command' {
         $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository (Get-PSGalleryName)
         $res.Name | Should -Be "NetworkingDsc"
         $res.Version | Should -Be $ExpectedVersion
+    }
+
+    # Purpose: not find DSC resource with invalid verison, given Version parameter -> (6.0.0.0)
+    #
+    # Action: Find-PSResource -Name "NetworkingDsc" -Version "(6.0.0.0)"
+    #
+    # Expected Result: should not return a resource as version is invalid
+    It "not find DSC resource given Name to validate handling an invalid version" {
+        $res = Find-PSResource -Name "NetworkingDsc" -Version "(6.0.0.0)"
+        $res | Should -BeNullOrEmpty
     }
 
 
@@ -95,6 +106,7 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
         @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version inclusive"},
         @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
