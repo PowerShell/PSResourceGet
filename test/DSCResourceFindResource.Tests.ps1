@@ -5,6 +5,10 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -force
 
 Describe 'Test Find-PSResource for Command' {
 
+    BeforeAll{
+        $TestGalleryName = Get-PoshTestGalleryName
+        $PSGalleryName = Get-PSGalleryName
+    }
     # Purpose: find a DSCResource resource given Name parameter
     #
     # Action: Find-PSResource -Name NetworkingDsc
@@ -32,7 +36,7 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository (Get-PSGalleryName)
+        $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository $PSGalleryName
         $res.Name | Should -Be "NetworkingDsc"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -78,10 +82,10 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should return (a later or) preview version than if without Prerelease parameter
     It "find DSCResource resource with preview version, with Prerelease parameter" {
-        $res = Find-PSResource -Name ActiveDirectoryCSDsc -Repository (Get-PSGalleryName)
+        $res = Find-PSResource -Name ActiveDirectoryCSDsc -Repository $PSGalleryName
         $res.Version | Should -Be "5.0.0.0"
 
-        $resPrerelease = Find-PSResource -Name ActiveDirectoryCSDsc -Prerelease -Repository (Get-PSGalleryName)
+        $resPrerelease = Find-PSResource -Name ActiveDirectoryCSDsc -Prerelease -Repository $PSGalleryName
         $resPrerelease.Version | Should -Be "5.0.1.0"
     }
 
@@ -92,7 +96,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: returns DSCResource with specified ModuleName
     It "find a DSCResource of package type module, given ModuleName parameter" {
-        $res = Find-PSResource -ModuleName NetworkingDsc -Repository (Get-PSGalleryName)
+        $res = Find-PSResource -ModuleName NetworkingDsc -Repository $PSGalleryName
         $res.Name | Should -Be "NetworkingDsc"
     }
 
@@ -112,7 +116,7 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -ModuleName "NetworkingDsc" -Version $Version -Repository (Get-PSGalleryName)
+        $res = Find-PSResource -ModuleName "NetworkingDsc" -Version $Version -Repository $PSGalleryName
         $res.Name | Should -Be "NetworkingDsc"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -124,7 +128,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: return DscTestModule resource
     It "find a DSCResource with specific tag, given Tags parameter"{
-        $res = Find-PSResource -Tags "CommandsAndResource" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "DscTestModule" }
+        $res = Find-PSResource -Tags "CommandsAndResource" -Repository $TestGalleryName | Where-Object { $_.Name -eq "DscTestModule" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "DscTestModule"
     }
@@ -135,7 +139,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: return DscTestModule resource
     It "find a DSCResource with specific tag, given Tags parameter"{
-        $res = Find-PSResource -Tags "CommandsAndResource","Tag-DscTestModule-2.5","Tag1" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "DscTestModule" }
+        $res = Find-PSResource -Tags "CommandsAndResource","Tag-DscTestModule-2.5","Tag1" -Repository $TestGalleryName | Where-Object { $_.Name -eq "DscTestModule" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "DscTestModule"
     }
@@ -146,7 +150,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not AccessControlDSC from PoshTestGallery repository
     It "not find DSCResource from repository, given Repository parameter" {
-        $res = Find-PSResource -Name AccessControlDSC -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name AccessControlDSC -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
@@ -156,7 +160,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should find AccessControlDSC from PSGallery repository
     It "find DSCResource from repository, given Repository parameter" {
-        $res = Find-PSResource -Name AccessControlDSC -Repository (Get-PSGalleryName)
+        $res = Find-PSResource -Name AccessControlDSC -Repository $PSGalleryName
         $res.Name | Should -Be "AccessControlDSC"
     }
 

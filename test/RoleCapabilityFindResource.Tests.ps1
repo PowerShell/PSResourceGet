@@ -5,6 +5,11 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -force
 
 Describe 'Test Find-PSResource for Role Capability' {
 
+    BeforeAll {
+        $TestGalleryName = Get-PoshTestGalleryName
+        $PSGalleryName = Get-PSGalleryName
+    }
+
     # Purpose: find Role Capability resource, given Name parameter
     #
     # Action: Find-PSResource -Name TestRoleCapModule
@@ -42,7 +47,7 @@ Describe 'Test Find-PSResource for Role Capability' {
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -Name "DscTestModule" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name "DscTestModule" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "DscTestModule"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -63,7 +68,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: returns all versions of DSCTestModule (versions in descending order)
     It "find Role Capability resource with wildcard version, given Version parameter -> '*' " {
-        $res = Find-PSResource -Name "DscTestModule" -Version "*" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name "DscTestModule" -Version "*" -Repository $TestGalleryName
         $res.Count | Should -BeGreaterOrEqual 1
     }
     
@@ -73,7 +78,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should return JeaExamples resource
     It "find Role Capability resource, given ModuleName parameter" {
-        $res = Find-PSResource -ModuleName "DscTestModule" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName "DscTestModule" -Repository $TestGalleryName
         $res.Name | Should -Be "DscTestModule"
     }
 
@@ -94,7 +99,7 @@ Describe 'Test Find-PSResource for Role Capability' {
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -ModuleName "DscTestModule" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName "DscTestModule" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "DscTestModule"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -105,7 +110,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should return PSGETTEST-TestPackageMetadata resource
     It "find Role Capability resource with given Tags parameter" {
-        $res = Find-PSResource -Tags "Tag-testPAckageMetadata-2.5" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+        $res = Find-PSResource -Tags "Tag-testPAckageMetadata-2.5" -Repository $TestGalleryName | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
         $res.Name | Should -Be "PSGETTEST-TestPackageMetadata"
     }
 
@@ -115,7 +120,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should return PSGETTEST-TestPackageMetadata resource
     It "find Role Capability resource with given Tags parameter" {
-        $res = Find-PSResource -Tags "Tag-testPAckageMetadata-2.5","Tag2", "PSGet" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+        $res = Find-PSResource -Tags "Tag-testPAckageMetadata-2.5","Tag2", "PSGet" -Repository $TestGalleryName | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
         $res.Name | Should -Be "PSGETTEST-TestPackageMetadata"
     }
 
@@ -125,7 +130,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should not find JeaExamples resource
     It "not find Role Capability resource that doesn't exist in specified repository, given Repository parameter" {
-        $res = Find-PSResource -Name JeaExamples -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name JeaExamples -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
@@ -135,7 +140,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should find JeaExamples resource
     It "find resource that exists only in a specific repository, given Repository parameter" {
-        $resRightRepo = Find-PSResource -Name JeaExamples -Repository (Get-PSGalleryName)
+        $resRightRepo = Find-PSResource -Name JeaExamples -Repository $PSGalleryName
         $resRightRepo.Name | Should -Be "JeaExamples"
     }    
 }

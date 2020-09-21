@@ -5,6 +5,10 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Find-PSResource for Module' {
 
+    BeforeAll {
+        $TestGalleryName = Get-PoshTestGalleryName
+        $PSGalleryName = Get-PSGalleryName
+    }
     # Purpose: to find all resources when no parameters are specified
     #
     # Action: Find-PSResource
@@ -61,7 +65,7 @@ Describe 'Test Find-PSResource for Module' {
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -Name "ContosoServer" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name "ContosoServer" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "ContosoServer"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -82,7 +86,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns 4 ContosoServer resources (of all versions in descending order)
     It "find resources when given Name, Version not null --> '*'" {
-        $res = Find-PSResource -Name ContosoServer -Version "*" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name ContosoServer -Version "*" -Repository $TestGalleryName
         $res.Count | Should -BeGreaterOrEqual 4
     } 
 
@@ -92,7 +96,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns nothing, prints error message
     It "find resource when given ModuleName, Version param null" {
-        $res = Find-PSResource -ModuleName "ContosoServer" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName "ContosoServer" -Repository $TestGalleryName
         $res.Name | Should -Be "ContosoServer"
         $res.Version | Should -Be "2.5.0.0"
     }
@@ -113,7 +117,7 @@ Describe 'Test Find-PSResource for Module' {
         @{Version="[1.0.0.0,2.5.0.0)";  ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -ModuleName "ContosoServer" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName "ContosoServer" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "ContosoServer"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -124,7 +128,7 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: returns 4 ContosoServer resources (of all versions in descending order)
     It "find resources when given ModuleName, Version not null --> '*'" {
-        $res = Find-PSResource -ModuleName ContosoServer -Version "*" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName ContosoServer -Version "*" -Repository $TestGalleryName
         $res.Count | Should -BeGreaterOrEqual 4
     }
 
@@ -173,11 +177,11 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: Should find the resource from the specified repository
     It "find resource given repository parameter" {
-        $res = Find-PSResource ContosoServer -Repository (Get-PSGalleryName)
+        $res = Find-PSResource ContosoServer -Repository $PSGalleryName
         $res | Should -BeNullOrEmpty
 
         # ContosoServer resource exists in the PostTestGalleryRepository
-        $resCorrectRepo = Find-PSResource ContosoServer -Repository (Get-PoshTestGalleryName)
+        $resCorrectRepo = Find-PSResource ContosoServer -Repository $TestGalleryName
         $resCorrectRepo | Should -Not -BeNullOrEmpty
         $resCorrectRepo.Repository | Should -Be "PoshTestGallery"
     }
@@ -191,7 +195,7 @@ Describe 'Test Find-PSResource for Module' {
         $res = Find-PSResource xActiveDirectory
         $res.Repository | Should -Be "PoshTestGallery" # first availability found in PostTestGallery
         # check that it can be returned from non-first-availability/non-default repo
-        $resNonDefault = Find-PSResource xActiveDirectory -Repository (Get-PSGalleryName)
+        $resNonDefault = Find-PSResource xActiveDirectory -Repository $PSGalleryName
         $resNonDefault.Repository | Should -Be "PSGallery"
     }
 

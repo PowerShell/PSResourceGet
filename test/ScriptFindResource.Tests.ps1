@@ -5,6 +5,11 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -force
 
 Describe "Test Find-PSResource for Script" {
 
+    BeforeAll {
+        $TestGalleryName = Get-PoshTestGalleryName
+        $PSGalleryName = Get-PSGalleryName
+    }
+
     # Purpose: find a script resource with specified Name parameter
     #
     # Action: Find-PSResource -Name Fabrikam-ServerScript
@@ -22,7 +27,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should not return a resource, as none with specified name exists
     It "not find a resource that doesn't have a valid name" {
-        $res = Find-PSResource -Name NonExistantScript -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name NonExistantScript -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
@@ -32,7 +37,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should return the multiple resources specified
     It "find resources with multiple values provided for Name parameter" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript,Fabrikam-ClientScript -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name Fabrikam-ServerScript,Fabrikam-ClientScript -Repository $TestGalleryName
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -Be 2
     }
@@ -53,7 +58,7 @@ Describe "Test Find-PSResource for Script" {
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -Name "Fabrikam-ServerScript" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name "Fabrikam-ServerScript" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "Fabrikam-ServerScript"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -74,7 +79,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: returns 4 ContosoServer resources (of all versions in descending order)
     It "find resources when given Name, Version not null --> '*'" {
-        $res = Find-PSResource -Name "Fabrikam-ServerScript" -Version "*" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name "Fabrikam-ServerScript" -Version "*" -Repository $TestGalleryName
         $res.Count | Should -BeGreaterOrEqual 5
     }
 
@@ -84,7 +89,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: not find a script resource when given ModuleName
     It "not find script resource when given ModuleName" {
-        $res = Find-PSResource -ModuleName "Fabrikam-ServerScript" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName "Fabrikam-ServerScript" -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
@@ -104,7 +109,7 @@ Describe "Test Find-PSResource for Script" {
         @{Version="[1.0.0.0, 2.5.0.0)"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -ModuleName "Fabrikam-ServerScript" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName "Fabrikam-ServerScript" -Version $Version -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
@@ -114,29 +119,22 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: not return a resource
     It "not find script resource with specified ModuleName and range Version parameter -> '*' " {
-        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Version "*" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName Fabrikam-ServerScript -Version "*" -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: not find prerelease resource when Prerelease parameter isn't specified
-    #
-    # Action: Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579
-    #
-    # Expected Result: should not find PSGTEST-PublishPrereleaseScript-579
-    It "not find prerelease resource when Prerelease parameter isn't specified" {
-        $res = Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579
-        $res | Should -BeNullOrEmpty
-    }
-
-    # Purpose: find prerelease resource when Prerelease parameter is specified
+    # Purpose: find prerelease version of resource when Prerelease parameter is specified
     #
     # Action: Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579
     #
     # Expected Result: find PSGTEST-PublishPrereleaseScript-579
     It "find prerelease resource when Prerelease parameter is specified" {
-        $res = Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579 -Prerelease
-        $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be "PSGTEST-PublishPrereleaseScript-579"
+        $res = Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579
+        $res | Should -BeNullOrEmpty
+
+        $resPrerelease = Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579 -Prerelease
+        $resPrerelease | Should -Not -BeNullOrEmpty
+        $resPrerelease.Name | Should -Be "PSGTEST-PublishPrereleaseScript-579"
     }
     
     # Purpose: not find un-available resource from specified repository, when given Repository parameter
@@ -145,7 +143,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should not find resource from specified PSGallery repository becuase resource doesn't exist there
     It "find resource from specified repository, when given Repository parameter" {
-        $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
     
@@ -155,7 +153,7 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should return resource from specified repository where it exists
     It "find resource from specified repository, when given Repository parameter" {
-        $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository (Get-PSGalleryName)
+        $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Get-WindowsAutoPilotInfo"
         $res.Repository | Should -Be "PSGallery"

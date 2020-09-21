@@ -4,6 +4,11 @@
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Find-PSResource for Command' {
+
+    BeforeAll{
+        $TestGalleryName = Get-PoshTestGalleryName
+        $PSGalleryName = Get-PSGalleryName
+    }
     
     # Purpose: find Command resource given Name paramater
     #
@@ -43,7 +48,7 @@ Describe 'Test Find-PSResource for Command' {
     )
     {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -Name "Az.Compute" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name "Az.Compute" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "Az.Compute"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -96,7 +101,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should return resource with latest version
     It "find Command resource given ModuleName with Version null or empty" {
-        $res = Find-PSResource -ModuleName "Az.Compute" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName "Az.Compute" -Repository $TestGalleryName
         $res.Name | Should -Be "Az.Compute"
     }
 
@@ -117,7 +122,7 @@ Describe 'Test Find-PSResource for Command' {
     )
     {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -ModuleName "Az.Compute" -Version $Version -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -ModuleName "Az.Compute" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "Az.Compute"
         $res.Version | Should -Be $ExpectedVersion
     }
@@ -138,7 +143,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should return Az.Accounts resource
     It "find resource with single tag, given Tags parameter" {
-        $res = Find-PSResource -Tags "Azure" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
+        $res = Find-PSResource -Tags "Azure" -Repository $TestGalleryName | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
 
@@ -151,7 +156,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should return Az.Accounts resource
     It "find resource with multiple tags, given Tags parameter" {
-        $res = Find-PSResource -Tags "Azure","Authentication","ARM" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
+        $res = Find-PSResource -Tags "Azure","Authentication","ARM" -Repository $TestGalleryName | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
     }
@@ -162,7 +167,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not find xWindowsUpdate resource
     It "not find Command resource from repository where it is not available, given Repository parameter" {
-        $res = Find-PSResource -Name "xWindowsUpdate" -Repository (Get-PoshTestGalleryName)
+        $res = Find-PSResource -Name "xWindowsUpdate" -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
@@ -172,7 +177,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should find xWindowsUpdate resource
     It "find Command resource, given Repository parameter" {
-        $res = Find-PSResource -Name "xWindowsUpdate" -Repository (Get-PSGalleryName)
+        $res = Find-PSResource -Name "xWindowsUpdate" -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "xWindowsUpdate"
     }    
