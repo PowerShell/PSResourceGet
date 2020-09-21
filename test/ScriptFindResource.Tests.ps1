@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
+Import-Module "$psscriptroot\PSGetTestUtils.psm1" -force
 
 Describe "Test Find-PSResource for Script" {
 
