@@ -42,16 +42,28 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    # Purpose: not find DSC resource with invalid verison, given Version parameter -> (6.0.0.0)
+    # Purpose: not find resources with invalid version
     #
-    # Action: Find-PSResource -Name "NetworkingDsc" -Version "(6.0.0.0)"
+    # Action: Find-PSResource -Name "NetworkingDsc" -Version "(2.5.0.0)"
     #
-    # Expected Result: should not return a resource as version is invalid
-    It "not find DSC resource given Name to validate handling an invalid version" {
-        $res = Find-PSResource -Name "NetworkingDsc" -Version "(6.0.0.0)"
+    # Expected Result: should not return a resource
+    It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
+        @{Version="(8.1.0.0)";       Description="exlcusive version (8.1.0.0)"},
+        @{Version="[8-1-0-0]";       Description="version formatted with invalid delimiter"},
+        @{Version="[8.*.0]";         Description="version with wilcard in middle"},
+        @{Version="[*.1.0.0]";       Description="version with wilcard at start"},
+        @{Version="[8.*.0.0]";       Description="version with wildcard at second digit"},
+        @{Version="[8.1.*.0]";       Description="version with wildcard at third digit"}
+        @{Version="[8.1.0.*";        Description="version with wildcard at end"},
+        @{Version="[8..0.0]";        Description="version with missing digit in middle"},
+        @{Version="[8.1.0.]";        Description="version with missing digit at end"},
+        @{Version="[8.1.0.0.0]";     Description="version with more than 4 digits"}
+    )
+    {
+        param($Version, $Description)
+        $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository $PSGalleryName
         $res | Should -BeNullOrEmpty
     }
-
 
     # Purpose: find a DSCResource resource with wilcard range Version parameter -> '*'
     #

@@ -71,6 +71,29 @@ Describe 'Test Find-PSResource for Module' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
+    # Purpose: not find resources with invalid version
+    #
+    # Action: Find-PSResource -Name "ContosoServer" -Version "(1.5.0.0)"
+    #
+    # Expected Result: should not return a resource
+    It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
+        @{Version="(1.5.0.0)";       Description="exlcusive version (8.1.0.0)"},
+        @{Version="[1-5-0-0]";       Description="version formatted with invalid delimiter"},
+        @{Version="[1.*.0]";         Description="version with wilcard in middle"},
+        @{Version="[*.5.0.0]";       Description="version with wilcard at start"},
+        @{Version="[1.*.0.0]";       Description="version with wildcard at second digit"},
+        @{Version="[1.5.*.0]";       Description="version with wildcard at third digit"}
+        @{Version="[1.5.0.*";        Description="version with wildcard at end"},
+        @{Version="[1..0.0]";        Description="version with missing digit in middle"},
+        @{Version="[1.5.0.]";        Description="version with missing digit at end"},
+        @{Version="[1.5.0.0.0]";     Description="version with more than 4 digits"}
+    )
+    {
+        param($Version, $Description)
+        $res = Find-PSResource -Name "ContosoServer" -Version $Version -Repository $TestGalleryName
+        $res | Should -BeNullOrEmpty
+    }
+
     # Purpose: not find resource with invalid verison, given Version parameter -> (1.5.0.0)
     #
     # Action: Find-PSResource -Name "ContosoServer" -Version "(1.5.0.0)"
