@@ -138,8 +138,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should return Az.Accounts resource
     It "find resource with single tag, given Tags parameter" {
-        $tagValue = "Azure"
-        $res = Find-PSResource -Tags $tagValue -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
+        $res = Find-PSResource -Tags "Azure" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
 
@@ -152,10 +151,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should return Az.Accounts resource
     It "find resource with multiple tags, given Tags parameter" {
-        $tagValue1 = "Azure"
-        $tagValue2 = "Authentication"
-        $tagValue3 = "ARM"
-        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
+        $res = Find-PSResource -Tags "Azure","Authentication","ARM" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
     }

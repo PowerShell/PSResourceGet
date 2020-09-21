@@ -105,8 +105,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should return PSGETTEST-TestPackageMetadata resource
     It "find Role Capability resource with given Tags parameter" {
-        $tagValue = "Tag-testPAckageMetadata-2.5"
-        $res = Find-PSResource -Tags $tagValue -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+        $res = Find-PSResource -Tags "Tag-testPAckageMetadata-2.5" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
         $res.Name | Should -Be "PSGETTEST-TestPackageMetadata"
     }
 
@@ -116,10 +115,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should return PSGETTEST-TestPackageMetadata resource
     It "find Role Capability resource with given Tags parameter" {
-        $tagValue1 = "Tag-testPAckageMetadata-2.5"
-        $tagValue2 = "PSGet"
-        $tagValue3 = "Tag2"
-        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+        $res = Find-PSResource -Tags "Tag-testPAckageMetadata-2.5","Tag2", "PSGet" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
         $res.Name | Should -Be "PSGETTEST-TestPackageMetadata"
     }
 

@@ -124,8 +124,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: return DscTestModule resource
     It "find a DSCResource with specific tag, given Tags parameter"{
-        $tagValue = "CommandsAndResource"
-        $res = Find-PSResource -Tags $tagValue -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "DscTestModule" }
+        $res = Find-PSResource -Tags "CommandsAndResource" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "DscTestModule" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "DscTestModule"
     }
@@ -136,10 +135,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: return DscTestModule resource
     It "find a DSCResource with specific tag, given Tags parameter"{
-        $tagValue1 = "CommandsAndResource"
-        $tagValue2 = "Tag-DscTestModule-2.5"
-        $tagValue3 = "Tag1"
-        $res = Find-PSResource -Tags $tagValue1,$tagValue2,$tagValue3 -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "DscTestModule" }
+        $res = Find-PSResource -Tags "CommandsAndResource","Tag-DscTestModule-2.5","Tag1" -Repository (Get-PoshTestGalleryName) | Where-Object { $_.Name -eq "DscTestModule" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "DscTestModule"
     }
