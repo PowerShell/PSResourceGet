@@ -176,7 +176,5 @@ Describe 'Test Find-PSResource for Role Capability' {
         $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
 
         $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
-        Write-Host $timeNoRepoSpecified
-        Write-Host $timeRepoSpecified
     }
 }
