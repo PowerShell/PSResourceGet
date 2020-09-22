@@ -63,13 +63,13 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="(4.2.1.0)";       Description="exlcusive version (4.2.1.0)"},
         @{Version="[4-2-1-0]";       Description="version formatted with invalid delimiter"},
         @{Version="[4.*.0]";         Description="version with wilcard in middle"},
-        @{Version="[*.2.0.0]";       Description="version with wilcard at start"},
+        @{Version="[*.2.1.0]";       Description="version with wilcard at start"},
         @{Version="[4.*.1.0]";       Description="version with wildcard at second digit"},
         @{Version="[4.2.*.0]";       Description="version with wildcard at third digit"}
         @{Version="[4.2.1.*";        Description="version with wildcard at end"},
-        @{Version="[1..0.0]";        Description="version with missing digit in middle"},
-        @{Version="[1.5.0.]";        Description="version with missing digit at end"},
-        @{Version="[1.5.0.0.0]";     Description="version with more than 4 digits"}
+        @{Version="[4..1.0]";        Description="version with missing digit in middle"},
+        @{Version="[4.2.1.]";        Description="version with missing digit at end"},
+        @{Version="[4.2.1.0.0]";     Description="version with more than 4 digits"}
     )
     {
         param($Version, $Description)
