@@ -18,14 +18,12 @@ using MoreLinq.Extensions;
 using Newtonsoft.Json;
 using NuGet.Common;
 using NuGet.Configuration;
+using NuGet.Packaging;
 using NuGet.Packaging.Core;
+using NuGet.Packaging.PackageExtraction;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
-using NuGet.Packaging;
-using NuGet.Packaging.PackageExtraction;
-using NuGet.Packaging.Signing;
-using NuGet.Repositories;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
