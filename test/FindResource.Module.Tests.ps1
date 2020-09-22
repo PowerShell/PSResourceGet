@@ -209,16 +209,38 @@ Describe 'Test Find-PSResource for Module' {
         $resCorrectRepo.Repository | Should -Be "PoshTestGallery"
     }
 
-    # Purpose: find resource given Repository param, when resource of same name exists in multiple repos
+    # Purpose: find resource that exists in test and psgallery, given Repository parameter
     #
-    # Action: Find-PSResource xActiveDirectory -Repository "PSGallery"
+    # Action: Find-PSResource -Name "Az.Compute" -Repository PSGallery
     #
-    # Expected Result: Returns resource from specified repository
+    # Expected Result: find resource quicker when repository is specified
+    It "find resource existing in multiple repositories given Repository parameter" {
+        $stopwatchNoRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $res = Find-PSResource -Name "Az.Compute"
+        $res.Repository | Should -Be "PoshTestGallery"
+        $timeNoRepoSpecified = $stopwatchNoRepoSpecified.Elapsed.TotalMilliseconds
+
+        $stopwatchRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $resRepoSpecified = Find-PSResource -Name "Az.Compute" -Repository $TestGalleryName
+        $resRepoSpecified.Repository | Should -Be "PoshTestGallery"
+        $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
+
+        $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
+    }
+
+    # Purpose: find resource in first repository where it exists given Repository parameter
+    #
+    # Action: Find-PSResource "Az.Compute"
+    #         Find-PSResource "Az.Compute" -Repository PSGallery
+    #
+    # Expected Result: Returns resource from first avaiable or specfied repository
     It "find Resource given repository parameter, where resource exists in multiple repos" {
-        $res = Find-PSResource xActiveDirectory
-        $res.Repository | Should -Be "PoshTestGallery" # first availability found in PostTestGallery
-        # check that it can be returned from non-first-availability/non-default repo
-        $resNonDefault = Find-PSResource xActiveDirectory -Repository $PSGalleryName
+        # first availability found in PoshTestGallery
+        $res = Find-PSResource "Az.Compute"
+        $res.Repository | Should -Be "PoshTestGallery"
+
+        # check that same resource can be returned from non-first-availability/non-default repo
+        $resNonDefault = Find-PSResource "Az.Compute" -Repository $PSGalleryName
         $resNonDefault.Repository | Should -Be "PSGallery"
     }
 

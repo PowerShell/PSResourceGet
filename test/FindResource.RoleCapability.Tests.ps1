@@ -121,21 +121,21 @@ Describe 'Test Find-PSResource for Role Capability' {
 
     # Purpose: find Role Capability resource with given Tags parameter
     #
-    # Action: Find-PSResource -Tags "Tag-testPAckageMetadata-2.5" -Repository PoshTestGallery | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+    # Action: Find-PSResource -Tags "CommandsAndResource" -Repository PoshTestGallery | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
     #
     # Expected Result: should return PSGETTEST-TestPackageMetadata resource
     It "find Role Capability resource with given Tags parameter" {
-        $res = Find-PSResource -Tags "Tag-testPAckageMetadata-2.5" -Repository $TestGalleryName | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+        $res = Find-PSResource -Tags "CommandsAndResource" -Repository $TestGalleryName | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
         $res.Name | Should -Be "PSGETTEST-TestPackageMetadata"
     }
 
     # Purpose: find Role Capability resource with multiple given Tags parameter
     #
-    # Action: Find-PSResource -Tags "Tag-testPAckageMetadata-2.5","Tag2", "PSGet" -Repository PoshTestGallery | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+    # Action: Find-PSResource -Tags "CommandsAndResource","Tag2", "PSGet" -Repository PoshTestGallery | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
     #
     # Expected Result: should return PSGETTEST-TestPackageMetadata resource
     It "find Role Capability resource with given Tags parameter" {
-        $res = Find-PSResource -Tags "Tag-testPAckageMetadata-2.5","Tag2", "PSGet" -Repository $TestGalleryName | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
+        $res = Find-PSResource -Tags "CommandsAndResource","Tag2", "PSGet" -Repository $TestGalleryName | Where-Object { $_.Name -eq "PSGETTEST-TestPackageMetadata" }
         $res.Name | Should -Be "PSGETTEST-TestPackageMetadata"
     }
 
@@ -157,5 +157,26 @@ Describe 'Test Find-PSResource for Role Capability' {
     It "find resource that exists only in a specific repository, given Repository parameter" {
         $resRightRepo = Find-PSResource -Name JeaExamples -Repository $PSGalleryName
         $resRightRepo.Name | Should -Be "JeaExamples"
-    }    
+    }
+
+    # Purpose: find resource and check performance opitmization, given and not given Repository parameter
+    #
+    # Action: Find-PSResource -Name JeaExamples" -Repository PSGallery
+    #
+    # Expected Result: find resource quicker when repository is specified
+    It "find resource and check performance opitmization, given and not given Repository parameter" {
+        $stopwatchNoRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $res = Find-PSResource -Name "JeaExamples"
+        $res.Repository | Should -Be "PSGallery"
+        $timeNoRepoSpecified = $stopwatchNoRepoSpecified.Elapsed.TotalMilliseconds
+
+        $stopwatchRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $resRepoSpecified = Find-PSResource -Name "JeaExamples" -Repository $PSGalleryName
+        $resRepoSpecified.Repository | Should -Be "PSGallery"
+        $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
+
+        $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
+        Write-Host $timeNoRepoSpecified
+        Write-Host $timeRepoSpecified
+    }
 }

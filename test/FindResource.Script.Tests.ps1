@@ -174,6 +174,41 @@ Describe "Test Find-PSResource for Script" {
         $res.Repository | Should -Be "PSGallery"
     }
 
+    # Purpose: find resource that exists in test and psgallery, given Repository parameter
+    #
+    # Action: Find-PSResource -Name "Connect-AzureVM" -Repository PSGallery
+    #
+    # Expected Result: find resource quicker when repository is specified
+    It "find resource existing in multiple repositories given Repository parameter" {
+        $stopwatchNoRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $res = Find-PSResource -Name "Connect-AzureVM"
+        $res.Repository | Should -Be "PoshTestGallery"
+        $timeNoRepoSpecified = $stopwatchNoRepoSpecified.Elapsed.TotalMilliseconds
+
+        $stopwatchRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $resRepoSpecified = Find-PSResource -Name "Connect-AzureVM" -Repository $TestGalleryName
+        $resRepoSpecified.Repository | Should -Be "PoshTestGallery"
+        $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
+
+        $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
+    }
+
+    # Purpose: find resource in first repository where it exists given Repository parameter
+    #
+    # Action: Find-PSResource "Connect-AzureVM"
+    #         Find-PSResource "Connect-AzureVM" -Repository PSGallery
+    #
+    # Expected Result: Returns resource from first avaiable or specfied repository
+    It "find Resource given repository parameter, where resource exists in multiple repos" {
+        # first availability found in PoshTestGallery
+        $res = Find-PSResource "Connect-AzureVM"
+        $res.Repository | Should -Be "PoshTestGallery"
+
+        # check that same resource can be returned from non-first-availability/non-default repo
+        $resNonDefault = Find-PSResource "Connect-AzureVM" -Repository $PSGalleryName
+        $resNonDefault.Repository | Should -Be "PSGallery"
+    }
+
     # Purpose: find a resource but not its dependency resource(s)
     #
     # Action: Find-PSResources -Name Script-WithDependencies1

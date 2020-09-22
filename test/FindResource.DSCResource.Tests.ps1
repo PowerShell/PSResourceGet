@@ -178,6 +178,41 @@ Describe 'Test Find-PSResource for Command' {
         $res.Name | Should -Be "AccessControlDSC"
     }
 
+    # Purpose: find resource that exists in test and psgallery, given Repository parameter
+    #
+    # Action: Find-PSResource -Name "PackageManagement" -Repository PSGallery
+    #
+    # Expected Result: find resource quicker when repository is specified
+    It "find resource existing in multiple repositories given Repository parameter" {
+        $stopwatchNoRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $res = Find-PSResource -Name "PackageManagement"
+        $res.Repository | Should -Be "PoshTestGallery"
+        $timeNoRepoSpecified = $stopwatchNoRepoSpecified.Elapsed.TotalMilliseconds
+
+        $stopwatchRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $resRepoSpecified = Find-PSResource -Name "PackageManagement" -Repository $TestGalleryName
+        $resRepoSpecified.Repository | Should -Be "PoshTestGallery"
+        $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
+
+        $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
+    }
+
+    # Purpose: find resource in first repository where it exists given Repository parameter
+    #
+    # Action: Find-PSResource "PackageManagement"
+    #         Find-PSResource "PackageManagement" -Repository PSGallery
+    #
+    # Expected Result: Returns resource from first avaiable or specfied repository
+    It "find Resource given repository parameter, where resource exists in multiple repos" {
+        # first availability found in PoshTestGallery
+        $res = Find-PSResource "PackageManagement"
+        $res.Repository | Should -Be "PoshTestGallery"
+
+        # check that same resource can be returned from non-first-availability/non-default repo
+        $resNonDefault = Find-PSResource "PackageManagement" -Repository $PSGalleryName
+        $resNonDefault.Repository | Should -Be "PSGallery"
+    }
+
     # Purpose: not find existing DSCResource from non-existant repository, given Repository parameter
     #
     # Action: Find-PSResource -Name AccessControlDSC -Repository NonExistantRepo
@@ -186,5 +221,5 @@ Describe 'Test Find-PSResource for Command' {
     It "not find DSCResource from non-existant repository, given Repository parameter" {
         $res = Find-PSResource -Name AccessControlDSC -Repository NonExistantRepo
         $res.Name | Should -BeNullOrEmpty
-    }    
+    }
 }

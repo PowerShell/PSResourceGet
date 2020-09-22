@@ -186,5 +186,40 @@ Describe 'Test Find-PSResource for Command' {
         $res = Find-PSResource -Name "xWindowsUpdate" -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "xWindowsUpdate"
-    }    
+    }
+
+    # Purpose: find resource that exists in test and psgallery, given Repository parameter
+    #
+    # Action: Find-PSResource -Name "Az.Accounts" -Repository PSGallery
+    #
+    # Expected Result: find resource quicker when repository is specified
+    It "find resource existing in multiple repositories given Repository parameter" {
+        $stopwatchNoRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $res = Find-PSResource -Name "Az.Accounts"
+        $res.Repository | Should -Be "PoshTestGallery"
+        $timeNoRepoSpecified = $stopwatchNoRepoSpecified.Elapsed.TotalMilliseconds
+
+        $stopwatchRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
+        $resRepoSpecified = Find-PSResource -Name "Az.Accounts" -Repository $TestGalleryName
+        $resRepoSpecified.Repository | Should -Be "PoshTestGallery"
+        $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
+
+        $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
+    }
+
+    # Purpose: find resource in first repository where it exists given Repository parameter
+    #
+    # Action: Find-PSResource "Az.Accounts"
+    #         Find-PSResource "Az.Accounts" -Repository PSGallery
+    #
+    # Expected Result: Returns resource from first avaiable or specfied repository
+    It "find Resource given repository parameter, where resource exists in multiple repos" {
+        # first availability found in PoshTestGallery
+        $res = Find-PSResource "Az.Accounts"
+        $res.Repository | Should -Be "PoshTestGallery"
+
+        # check that same resource can be returned from non-first-availability/non-default repo
+        $resNonDefault = Find-PSResource "Az.Accounts" -Repository $PSGalleryName
+        $resNonDefault.Repository | Should -Be "PSGallery"
+    } 
 }
