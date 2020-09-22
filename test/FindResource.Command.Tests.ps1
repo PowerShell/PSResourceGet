@@ -87,26 +87,17 @@ Describe 'Test Find-PSResource for Command' {
         $res.Count | Should -BeGreaterOrEqual 40
     }
 
-    # Purpose: find Command resource with latest-nonpreview versions, by excluding Prerelease parameter
-    #
-    # Action: Find-PSResource -Name Az.Accounts
-    #
-    # Expected Result: should return latest non-prerelease/non-preview version of Az.Accounts resource
-    It "find Command resource with latest-nonpreview versions, by excluding Prerelease parameter" {
-        $res = Find-PSResource -Name Az.Accounts
-        $res.Name | Should -Be "Az.Accounts"
-        $res.Version | Should -Be "1.9.4.0"
-    }
-
     # Purpose: find Command resource with latest version (including preview versions), with Prerelease parameter
     #
     # Action: Find-PSResource -Name Az.Accounts -Prerelease
     #
     # Expected Result: should return latest version (including preview versions) of Az.Accounts resource
     It "find Command resource with latest version (including preview versions), with Prerelease parameter" {
-        $res = Find-PSResource -Name Az.Accounts -Prerelease
-        $res.Name | Should -Be "Az.Accounts"
-        $res.Version | Should -Be "2.0.1.0"
+        $res = Find-PSResource -Name "Az.Accounts"
+        $res.Version | Should -Be "1.9.4.0"
+
+        $resPrerelease = Find-PSResource -Name Az.Accounts -Prerelease
+        $resPrerelease.Version | Should -Be "2.0.1.0"
     }
 
     # Purpose: find Command resource given ModuleName parameter with Version null or empty

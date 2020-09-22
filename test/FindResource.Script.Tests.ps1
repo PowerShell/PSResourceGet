@@ -138,18 +138,18 @@ Describe "Test Find-PSResource for Script" {
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: find prerelease version of resource when Prerelease parameter is specified
+    # Purpose: find resource with latest version (including prerelease version) given Prerelease parameter
     #
-    # Action: Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579
+    # Action: Find-PSResource -Name "test_script" -Prerelease
     #
-    # Expected Result: find PSGTEST-PublishPrereleaseScript-579
-    It "find prerelease resource when Prerelease parameter is specified" {
-        $res = Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579
-        $res | Should -BeNullOrEmpty
+    # Expected Result: should return latest version (may be a prerelease version)
+    It "find resource with latest (including prerelease) version given Prerelease parameter" {
+        # test_script resource's latest version is a prerelease version, before that it has a non-prerelease version
+        $res = Find-PSResource -Name "test_script"
+        $res.Version | Should -Be "2.5.0.0"
 
-        $resPrerelease = Find-PSResource -Name PSGTEST-PublishPrereleaseScript-579 -Prerelease
-        $resPrerelease | Should -Not -BeNullOrEmpty
-        $resPrerelease.Name | Should -Be "PSGTEST-PublishPrereleaseScript-579"
+        $resPrerelease = Find-PSResource -Name "test_script" -Prerelease
+        $resPrerelease.Version | Should -Be "3.0.0.0"        
     }
     
     # Purpose: not find un-available resource from specified repository, when given Repository parameter

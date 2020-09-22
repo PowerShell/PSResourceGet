@@ -157,20 +157,18 @@ Describe 'Test Find-PSResource for Module' {
         $res.Count | Should -BeGreaterOrEqual 4
     }
 
-    # Purpose: to find a prerelease resource with the prerelease param
+    # Purpose: find resource with latest version (including prerelease version) given Prerelease parameter
     #
-    # Action: Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139" -Prerelease
+    # Action: Find-PSResource -Name "test_module" -Prerelease
     #
-    # Expected Result: without prerelease param latest nonpreview version (or null, if none exists)
-    # should be returned. With it the module should be returned and valid
-    It "find Resource with Prerelease param" {
-        $res = Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139"
-        $res | Should -BeNullOrEmpty
+    # Expected Result: should return latest version (may be a prerelease version)
+    It "find resource with latest (including prerelease) version given Prerelease parameter" {
+        # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
+        $res = Find-PSResource -Name "test_module"
+        $res.Version | Should -Be "5.0.0.0"
 
-        # add prerelease param to cmdlet query
-        $resWPrelease = Find-PSResource -Name "PSGTEST-PublishPrereleaseModule-3139" -Prerelease
-        $resWPrelease | Should -Not -BeNullOrEmpty
-        $resWPrelease.Name | Should -Be "PSGTEST-PublishPrereleaseModule-3139"
+        $resPrerelease = Find-PSResource -Name "test_module" -Prerelease
+        $resPrerelease.Version | Should -Be "5.2.5.0"        
     }
 
     # Purpose: to find a resource given Tags parameter with one value
