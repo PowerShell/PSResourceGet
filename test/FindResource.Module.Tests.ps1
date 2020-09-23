@@ -5,10 +5,16 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Find-PSResource for Module' {
 
-    BeforeAll {
+    BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        Get-NewPSResourceRepositoryFile
     }
+
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+
     # Purpose: to find all resources when no parameters are specified
     #
     # Action: Find-PSResource
@@ -215,17 +221,22 @@ Describe 'Test Find-PSResource for Module' {
     #
     # Expected Result: find resource quicker when repository is specified
     It "find resource existing in multiple repositories given Repository parameter" {
-        $stopwatchNoRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
-        $res = Find-PSResource -Name "Az.Compute"
-        $res.Repository | Should -Be "PoshTestGallery"
-        $timeNoRepoSpecified = $stopwatchNoRepoSpecified.Elapsed.TotalMilliseconds
+        $repeat = 100
+        $timeWithoutRepoSpecified = Measure-Command -Expression {
+            for ($i = 0; $i -lt $repeat; $i++) {
+                $res = Find-PSResource -Name "Az.Compute"
+                $res.Repository | Should -Be "PoshTestGallery"                
+            }
+        }
 
-        $stopwatchRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
-        $resRepoSpecified = Find-PSResource -Name "Az.Compute" -Repository $TestGalleryName
-        $resRepoSpecified.Repository | Should -Be "PoshTestGallery"
-        $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
+        $timeWithRepoSpecified = Measure-Command -Expression {
+            for ($i = 0; $i -lt $repeat; $i++) {
+                $res = Find-PSResource -Name "Az.Compute" -Repository $TestGalleryName
+                $res.Repository | Should -Be "PoshTestGallery" 
+            }
+        }
 
-        $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
+        $timeWithRepoSpecified | Should -BeLessOrEqual $timeWithoutRepoSpecified
     }
 
     # Purpose: find resource in first repository where it exists given Repository parameter

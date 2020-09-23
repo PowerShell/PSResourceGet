@@ -27,6 +27,7 @@ $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $script:PoshTestGalleryName = 'PoshTestGallery'
 $script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
+
 if($script:IsInbox)
 {
     $script:ProgramFilesPSPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramFiles -ChildPath "WindowsPowerShell"
@@ -144,6 +145,29 @@ function Get-PoshTestGalleryLocation {
     return $script:PostTestGalleryLocation
 }
 
+function Get-NewPSResourceRepositoryFile {
+    # register our own repositories with desired priority
+    $originalXmlFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
+    Copy-Item -Path $originalXmlFilePath -Destination  $tempXmlFilePath
+
+    Remove-Item -Path $originalXmlFilePath -Force
+
+    $fileToCopy = Join-Path -Path $PSScriptRoot -ChildPath "testRepositories.xml"
+    Copy-Item $fileToCopy -Destination $originalXmlFilePath
+
+}
+
+function Get-RevertPSResourceRepositoryFile {
+    $originalXmlFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
+
+    Remove-Item -Path $originalXmlFilePath -Force
+    
+    Copy-Item -Path $tempXmlFilePath -Destination $originalXmlFilePath
+
+    Remove-Item $tempXmlFilePath
+}
 function RemoveItem
 {
     Param(

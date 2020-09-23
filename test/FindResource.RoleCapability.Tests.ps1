@@ -5,9 +5,14 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -force
 
 Describe 'Test Find-PSResource for Role Capability' {
 
-    BeforeAll {
+    BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        Get-NewPSResourceRepositoryFile
+    }
+
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
     }
 
     # Purpose: find Role Capability resource, given Name parameter
@@ -164,17 +169,22 @@ Describe 'Test Find-PSResource for Role Capability' {
     # Action: Find-PSResource -Name JeaExamples" -Repository PSGallery
     #
     # Expected Result: find resource quicker when repository is specified
-    It "find resource and check performance opitmization, given and not given Repository parameter" {
-        $stopwatchNoRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
-        $res = Find-PSResource -Name "JeaExamples"
-        $res.Repository | Should -Be "PSGallery"
-        $timeNoRepoSpecified = $stopwatchNoRepoSpecified.Elapsed.TotalMilliseconds
+    It "find resource existing in multiple repositories given Repository parameter" {
+        $repeat = 100
+        $timeWithoutRepoSpecified = Measure-Command -Expression {
+            for ($i = 0; $i -lt $repeat; $i++) {
+                $res = Find-PSResource -Name "JeaExamples"
+                $res.Repository | Should -Be "PSGallery"                
+            }
+        }
 
-        $stopwatchRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
-        $resRepoSpecified = Find-PSResource -Name "JeaExamples" -Repository $PSGalleryName
-        $resRepoSpecified.Repository | Should -Be "PSGallery"
-        $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
+        $timeWithRepoSpecified = Measure-Command -Expression {
+            for ($i = 0; $i -lt $repeat; $i++) {
+                $res = Find-PSResource -Name "JeaExamples" -Repository $PSGalleryName
+                $res.Repository | Should -Be "PSGallery" 
+            }
+        }
 
-        $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
+        $timeWithRepoSpecified | Should -BeLessOrEqual $timeWithoutRepoSpecified
     }
 }

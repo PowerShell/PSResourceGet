@@ -5,9 +5,14 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -force
 
 Describe "Test Find-PSResource for Script" {
 
-    BeforeAll {
+    BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        Get-NewPSResourceRepositoryFile
+    }
+
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
     }
 
     # Purpose: find a script resource with specified Name parameter
@@ -180,17 +185,22 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: find resource quicker when repository is specified
     It "find resource existing in multiple repositories given Repository parameter" {
-        $stopwatchNoRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
-        $res = Find-PSResource -Name "Connect-AzureVM"
-        $res.Repository | Should -Be "PoshTestGallery"
-        $timeNoRepoSpecified = $stopwatchNoRepoSpecified.Elapsed.TotalMilliseconds
+        $repeat = 100
+        $timeWithoutRepoSpecified = Measure-Command -Expression {
+            for ($i = 0; $i -lt $repeat; $i++) {
+                $res = Find-PSResource -Name "Connect-AzureVM"
+                $res.Repository | Should -Be "PoshTestGallery"                
+            }
+        }
 
-        $stopwatchRepoSpecified = [System.Diagnostics.Stopwatch]::StartNew()
-        $resRepoSpecified = Find-PSResource -Name "Connect-AzureVM" -Repository $TestGalleryName
-        $resRepoSpecified.Repository | Should -Be "PoshTestGallery"
-        $timeRepoSpecified = $stopwatchRepoSpecified.Elapsed.TotalMilliseconds
+        $timeWithRepoSpecified = Measure-Command -Expression {
+            for ($i = 0; $i -lt $repeat; $i++) {
+                $res = Find-PSResource -Name "Connect-AzureVM" -Repository $TestGalleryName
+                $res.Repository | Should -Be "PoshTestGallery" 
+            }
+        }
 
-        $timeRepoSpecified | Should -BeLessOrEqual $timeNoRepoSpecified
+        $timeWithRepoSpecified | Should -BeLessOrEqual $timeWithoutRepoSpecified
     }
 
     # Purpose: find resource in first repository where it exists given Repository parameter
