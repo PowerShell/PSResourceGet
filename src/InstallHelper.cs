@@ -64,106 +64,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; Scope: '{4}'; AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7}'; TrustRepository: '{8}'; NoClobber: '{9}';", string.Join(",", _name), _version != null ? _version : string.Empty, _prerelease.ToString(), _repository != null ? string.Join(",", _repository) : string.Empty, _scope != null ? _scope : string.Empty, _acceptLicense.ToString(), _quiet.ToString(), _reinstall.ToString(), _trustRepository.ToString(), _noClobber.ToString()));
 
+            Hashtable hash;
             if (!save)
             {
-                var consoleIsElevated = false;
-                var isWindowsPS = false;
-                cmdletPassedIn.WriteDebug("Entering InstallHelper::ProcessInstallParams");
-#if NET472
-            // If WindowsPS
-            var id = System.Security.Principal.WindowsIdentity.GetCurrent();
-            consoleIsElevated = (id.Owner != id.User);
-            isWindowsPS = true;
+                // call functions
+                hash = Utilities.GetInstallationPaths(cmdletPassedIn, _scope);
+                programFilesPath = hash["programFilesPath"] as string;
+                myDocumentsPath = hash["myDocumentsPath"] as string;
+                psPath = hash["psPath"] as string;
+                psModulesPath = hash["psModulesPath"] as string;
+                psScriptsPath = hash["psScriptsPath"] as string;
+                psInstalledScriptsInfoPath = hash["psInstalledScriptsInfoPath"] as string;
 
-            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-#else
-                // If PS6+ on Windows
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    var id = System.Security.Principal.WindowsIdentity.GetCurrent();
-                    consoleIsElevated = (id.Owner != id.User);
-
-                    myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-                    programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-                }
-                else
-                {
-                    // Paths are the same for both Linux and MacOS
-                    myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
-                    programFilesPath = Path.Combine("/usr", "local", "share", "powershell");
-
-                    using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
-                    {
-                        var uID = pwsh.AddScript("id -u").Invoke();
-                        foreach (var item in uID)
-                        {
-                            cmdletPassedIn.WriteDebug(string.Format("UID is: '{0}'", item));
-                            consoleIsElevated = (String.Equals(item.ToString(), "0"));
-                        }
-
-                    }
-                }
-#endif
-                cmdletPassedIn.WriteDebug(string.Format("Console is elevated: '{0}'", consoleIsElevated));
-                cmdletPassedIn.WriteDebug(string.Format("Console is Windows PowerShell: '{0}'", isWindowsPS));
-                cmdletPassedIn.WriteDebug(string.Format("Current user scope installation path: '{0}'", myDocumentsPath));
-                cmdletPassedIn.WriteDebug(string.Format("All users scope installation path: '{0}'", programFilesPath));
-
-                // If Scope is AllUsers and there is no console elevation
-                if (!string.IsNullOrEmpty(_scope) && _scope.Equals("AllUsers", StringComparison.OrdinalIgnoreCase) && !consoleIsElevated)
-                {
-                    // Throw an error when Install-PSResource is used as a non-admin user and '-Scope AllUsers'
-                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Install-PSResource requires admin privilege for AllUsers scope."));
-                }
-
-                // If no scope is specified (whether or not the console is elevated) default installation will be to CurrentUser
-                // If running under admin on Windows with PowerShell less than PS6, default will be AllUsers
-                if (string.IsNullOrEmpty(_scope))
-                {
-                    // If non-Windows or non-elevated default scope will be current user
-                    _scope = "CurrentUser";
-
-                    // If Windows and elevated default scope will be all users 
-                    if (isWindowsPS && consoleIsElevated)
-                    {
-                        _scope = "AllUsers";
-                    }
-                }
-                cmdletPassedIn.WriteVerbose(string.Format("Scope is: {0}", _scope));
-
-                psPath = string.Equals(_scope, "AllUsers") ? programFilesPath : myDocumentsPath;
-                psModulesPath = Path.Combine(psPath, "Modules");
-                psScriptsPath = Path.Combine(psPath, "Scripts");
-                psInstalledScriptsInfoPath = Path.Combine(psScriptsPath, "InstalledScriptInfos");
-
-                cmdletPassedIn.WriteDebug("Checking to see if paths exist");
-                cmdletPassedIn.WriteDebug(string.Format("Path: '{0}'  >>> exists? '{1}'", psModulesPath, Directory.Exists(psModulesPath)));
-                cmdletPassedIn.WriteDebug(string.Format("Path: '{0}'  >>> exists? '{1}'", psScriptsPath, Directory.Exists(psScriptsPath)));
-                cmdletPassedIn.WriteDebug(string.Format("Path: '{0}'  >>> exists? '{1}'", psInstalledScriptsInfoPath, Directory.Exists(psInstalledScriptsInfoPath)));
-
-
-                // Create PowerShell modules and scripts paths if they don't already exist
-                if (!Directory.Exists(psModulesPath))
-                {
-                    cmdletPassedIn.WriteVerbose(string.Format("Newly created PowerShell modules path is: {0}", psModulesPath));
-                    Directory.CreateDirectory(psModulesPath);
-                }
-                if (!Directory.Exists(psScriptsPath))
-                {
-                    cmdletPassedIn.WriteVerbose(string.Format("Newly created PowerShell scripts path is: {0}", psScriptsPath));
-                    Directory.CreateDirectory(psScriptsPath);
-                }
-                if (!Directory.Exists(psInstalledScriptsInfoPath))
-                {
-                    cmdletPassedIn.WriteVerbose(string.Format("Newly created PowerShell installed scripts info path  is: {0}", psInstalledScriptsInfoPath));
-                    Directory.CreateDirectory(psInstalledScriptsInfoPath);
-                }
-
-                psModulesPathAllDirs = (Directory.GetDirectories(psModulesPath)).ToList();
-                // Get the script metadata XML files from the 'InstalledScriptInfos' directory
-                psScriptsPathAllDirs = (Directory.GetFiles(psInstalledScriptsInfoPath)).ToList();
+                psModulesPathAllDirs = hash["psModulesPathAllDirs"] as List<string>;
+                psScriptsPathAllDirs = hash["psScriptsPathAllDirs"] as List<string>;
             }
+
+
 
             Dictionary<string, PkgParams> pkgsinJson = new Dictionary<string, PkgParams>();
             Dictionary<string, string> jsonPkgsNameVersion = new Dictionary<string, string>();
