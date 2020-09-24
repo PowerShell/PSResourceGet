@@ -103,17 +103,17 @@ namespace Microsoft.PowerShell.PowerShellGet
             // Create PowerShell modules and scripts paths if they don't already exist
             if (!Directory.Exists(psModulesPath))
             {
-                cmdletPassedIn.WriteVerbose(string.Format("Newly created PowerShell modules path is: {0}", psModulesPath));
+                cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell modules path '{0}'", psModulesPath));
                 Directory.CreateDirectory(psModulesPath);
             }
             if (!Directory.Exists(psScriptsPath))
             {
-                cmdletPassedIn.WriteVerbose(string.Format("Newly created PowerShell scripts path is: {0}", psScriptsPath));
+                cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell scripts path '{0}'", psScriptsPath));
                 Directory.CreateDirectory(psScriptsPath);
             }
             if (!Directory.Exists(psInstalledScriptsInfoPath))
             {
-                cmdletPassedIn.WriteVerbose(string.Format("Newly created PowerShell installed scripts info path  is: {0}", psInstalledScriptsInfoPath));
+                cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell installed scripts info path '{0}'", psInstalledScriptsInfoPath));
                 Directory.CreateDirectory(psInstalledScriptsInfoPath);
             }
 
