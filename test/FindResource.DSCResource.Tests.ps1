@@ -233,4 +233,49 @@ Describe 'Test Find-PSResource for Command' {
         $res = Find-PSResource -Name AccessControlDSC -Repository NonExistantRepo
         $res.Name | Should -BeNullOrEmpty
     }
+
+
+
+
+    # Purpose: find resource in local repository given Repository parameter
+    #
+    # Action: Find-PSResource -Name "local_command_module" -Repository "psgettestlocal"
+    #
+    # Expected Result: should find resource from local repository
+    It "find resource in local repository given Repository parameter" {
+
+        # create path and make sure testdir there exists, otherwise will cause problems in .xml file URL
+        $repoURLAddress = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "testdir"
+        $null = New-Item -Path $repoURLAddress -ItemType Directory -Force 
+
+        Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+
+        # register module to that repository
+        $TestLocalDirectory = 'TestLocalDirectory'
+        $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
+
+        $script:TempModulesPath = Join-Path -Path $tmpdir -ChildPath "PSGet_$(Get-Random)"
+        $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
+
+        $script:PublishModuleName = "TestFindDSCModule"
+        $script:PublishModuleBase = Join-Path $script:TempModulesPath $script:PublishModuleName
+        $null = New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
+
+        $PublishModuleBase = Join-Path $script:TempModulesPath $script:PublishModuleName
+        $version = "1.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
+
+        Publish-PSResource -path  $script:PublishModuleBase -Repository psgettestlocal
+
+        # test find
+        $res = Find-PSResource -Name $script:PublishModuleName -Repository "psgettestlocal"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $script:PublishModuleName
+
+        if($tempdir -and (Test-Path $tempdir))
+        {
+            Remove-Item $tempdir -Force -Recurse -ErrorAction SilentlyContinue
+        }
+
+    }
 }

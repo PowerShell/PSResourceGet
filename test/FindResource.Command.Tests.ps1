@@ -6,13 +6,13 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe 'Test Find-PSResource for Command' {
 
     BeforeAll{
-        $TestGalleryName = Get-PoshTestGalleryName
-        $PSGalleryName = Get-PSGalleryName
-        Get-NewPSResourceRepositoryFile
+       $TestGalleryName = Get-PoshTestGalleryName
+       $PSGalleryName = Get-PSGalleryName
+       Get-NewPSResourceRepositoryFile
     }
 
     AfterAll {
-        Get-RevertPSResourceRepositoryFile
+       Get-RevertPSResourceRepositoryFile
     }
     
     # Purpose: find Command resource given Name paramater
@@ -232,4 +232,44 @@ Describe 'Test Find-PSResource for Command' {
         $resNonDefault = Find-PSResource "Az.Accounts" -Repository $PSGalleryName
         $resNonDefault.Repository | Should -Be "PSGallery"
     } 
+
+    # Purpose: find resource in local repository given Repository parameter
+    #
+    # Action: Find-PSResource -Name "local_command_module" -Repository "psgettestlocal"
+    #
+    # Expected Result: should find resource from local repository
+    It "find resource in local repository given Repository parameter" {
+
+        # create path and make sure testdir there exists, otherwise will cause problems in .xml file URL
+        $repoURLAddress = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "testdir"
+        $null = New-Item -Path $repoURLAddress -ItemType Directory -Force 
+
+        Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+
+        $TestLocalDirectory = 'TestLocalDirectory'
+        $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
+
+        $script:TempModulesPath = Join-Path -Path $tmpdir -ChildPath "PSGet_$(Get-Random)"
+        $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
+
+        $script:PublishModuleName = "TestFindCommandModule"
+        $script:PublishModuleBase = Join-Path $script:TempModulesPath $script:PublishModuleName
+        $null = New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
+
+        $PublishModuleBase = Join-Path $script:TempModulesPath $script:PublishModuleName
+        $version = "1.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1" -CmdletsToExport @('Get-Test', 'Set-Test')
+
+        Publish-PSResource -path  $script:PublishModuleBase -Repository psgettestlocal
+
+        # test find
+        $res = Find-PSResource -Name $script:PublishModuleName -Repository "psgettestlocal"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $script:PublishModuleName
+
+        if($tempdir -and (Test-Path $tempdir))
+        {
+            Remove-Item $tempdir -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
 }

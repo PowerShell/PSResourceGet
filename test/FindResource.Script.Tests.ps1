@@ -240,4 +240,54 @@ Describe "Test Find-PSResource for Script" {
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterOrEqual 9
     }
+
+
+    It "find resource in local repository given Repository parameter" {
+
+        # create path and make sure testdir there exists, otherwise will cause problems in .xml file URL
+        $repoURLAddress = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "testdir"
+        $null = New-Item -Path $repoURLAddress -ItemType Directory -Force 
+
+        Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+
+        # register module to that repository
+        $TestLocalDirectory = 'TestLocalDirectory'
+        $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
+
+        $script:TempModulesPath = Join-Path -Path $tmpdir -ChildPath "PSGet_$(Get-Random)"
+        $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
+
+        $Name = 'TestScriptName'
+        $scriptFilePath = Join-Path -Path $script:TempModulesPath -ChildPath "$Name.ps1"
+        $null = New-Item -Path $scriptFilePath -ItemType File -Force
+
+        $version = "1.0.0"
+        $params = @{
+                    #Path = $scriptFilePath
+                    Version = $version
+                    #GUID = 
+                    Author = 'Jane'
+                    CompanyName = 'Microsoft Corporation'
+                    Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
+                    Description = "Description for the $Name script"
+                    LicenseUri = "https://$Name.com/license"
+                    IconUri = "https://$Name.com/icon"
+                    ProjectUri = "https://$Name.com"
+                    Tags = @('Tag1','Tag2', "Tag-$Name-$version")
+                    ReleaseNotes = "$Name release notes"
+                    }
+
+        $scriptMetadata = Create-PSScriptMetadata @params
+        Set-Content -Path $scriptFilePath -Value $scriptMetadata
+
+        Publish-PSResource -path $scriptFilePath -Repository psgettestlocal
+
+        $res = Find-PSResource -Name $Name -Repository "psgettestlocal"
+        $res | Should -Not -BeNullOrEmpty
+
+        if($tempdir -and (Test-Path $tempdir))
+        {
+            Remove-Item $tempdir -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
 }

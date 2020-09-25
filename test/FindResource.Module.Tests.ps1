@@ -220,24 +220,24 @@ Describe 'Test Find-PSResource for Module' {
     # Action: Find-PSResource -Name "Az.Compute" -Repository PSGallery
     #
     # Expected Result: find resource quicker when repository is specified
-    It "find resource existing in multiple repositories given Repository parameter" {
-        $repeat = 100
-        $timeWithoutRepoSpecified = Measure-Command -Expression {
-            for ($i = 0; $i -lt $repeat; $i++) {
-                $res = Find-PSResource -Name "Az.Compute"
-                $res.Repository | Should -Be "PoshTestGallery"                
-            }
-        }
+    # It "find resource existing in multiple repositories given Repository parameter" {
+    #     $repeat = 100
+    #     $timeWithoutRepoSpecified = Measure-Command -Expression {
+    #         for ($i = 0; $i -lt $repeat; $i++) {
+    #             $res = Find-PSResource -Name "Az.Compute"
+    #             $res.Repository | Should -Be "PoshTestGallery"                
+    #         }
+    #     }
 
-        $timeWithRepoSpecified = Measure-Command -Expression {
-            for ($i = 0; $i -lt $repeat; $i++) {
-                $res = Find-PSResource -Name "Az.Compute" -Repository $TestGalleryName
-                $res.Repository | Should -Be "PoshTestGallery" 
-            }
-        }
+    #     $timeWithRepoSpecified = Measure-Command -Expression {
+    #         for ($i = 0; $i -lt $repeat; $i++) {
+    #             $res = Find-PSResource -Name "Az.Compute" -Repository $TestGalleryName
+    #             $res.Repository | Should -Be "PoshTestGallery" 
+    #         }
+    #     }
 
-        $timeWithRepoSpecified | Should -BeLessOrEqual $timeWithoutRepoSpecified
-    }
+    #     $timeWithRepoSpecified | Should -BeLessOrEqual $timeWithoutRepoSpecified
+    # }
 
     # Purpose: find resource in first repository where it exists given Repository parameter
     #
@@ -263,5 +263,46 @@ Describe 'Test Find-PSResource for Module' {
     It "find resource with IncludeDependencies parameter" {
         $res = Find-PSResource ModuleWithDependencies1 -IncludeDependencies -Version "[1.0,2.0]"
         $res.Count | Should -BeGreaterOrEqual 11
+    }
+
+
+
+        # Purpose: find resource in local repository given Repository parameter
+    #
+    # Action: Find-PSResource -Name "local_command_module" -Repository "psgettestlocal"
+    #
+    # Expected Result: should find resource from local repository
+    It "find resource in local repository given Repository parameter" {
+
+        # create path and make sure testdir there exists, otherwise will cause problems in .xml file URL
+        $repoURLAddress = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "testdir"
+        $null = New-Item -Path $repoURLAddress -ItemType Directory -Force 
+
+        Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+
+        $TestLocalDirectory = 'TestLocalDirectory'
+        $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
+
+        $script:TempModulesPath = Join-Path -Path $tmpdir -ChildPath "PSGet_$(Get-Random)"
+        $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
+
+        $script:PublishModuleName = "TestFindModule"
+        $script:PublishModuleBase = Join-Path $script:TempModulesPath $script:PublishModuleName
+        $null = New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
+
+        $PublishModuleBase = Join-Path $script:TempModulesPath $script:PublishModuleName
+        $version = "1.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
+        Publish-PSResource -path  $script:PublishModuleBase -Repository psgettestlocal
+
+        # test find
+        $res = Find-PSResource -Name $script:PublishModuleName -Repository "psgettestlocal"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $script:PublishModuleName
+
+        if($tempdir -and (Test-Path $tempdir))
+        {
+            Remove-Item $tempdir -Force -Recurse -ErrorAction SilentlyContinue
+        }
     }
 }
