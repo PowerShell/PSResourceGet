@@ -283,110 +283,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceCacheContext context = new SourceCacheContext();
 
             // TODO:  proper error handling here
-            PackageMetadataResource resourceMetadata = null;
-            LocalPackageMetadataResource localPkgMetadataResource = null;
+            PackageMetadataResource pkgMetadataResource = null;
+
             try
             {
                 if (localRepo)
                 {
                     var localResource = new FindLocalPackagesResourceV2(repositoryUrl);
-                    localPkgMetadataResource = new LocalPackageMetadataResource(localResource);
+                    pkgMetadataResource = new LocalPackageMetadataResource(localResource);
                 }
                 else
                 {
-                    resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
+                    pkgMetadataResource = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
                 }
             }
             catch
             {
             }
-            if (localPkgMetadataResource == null && resourceMetadata == null)
+            if (pkgMetadataResource == null)
             {
-              cmdletPassedIn.WriteVerbose(string.Format("Error retreiving resource repository from '{0}'. Try running command again with -Credential", repositoryName));
+                cmdletPassedIn.WriteVerbose(string.Format("Error retreiving resource repository from '{0}'. Try running command again with -Credential", repositoryName));
 
                 return pkgsLeftToInstall;
             }
 
             foreach (var pkgName in packageNames)
             {
-                IPackageSearchMetadata filteredFoundPkgs = null;
+                var versionRange = Utilities.GetPkgVersion(version);
+                cmdletPassedIn.WriteDebug(string.Format("Parsed version is: '{0}'", versionRange.ToString()));
 
-                VersionRange versionRange = null;
-                if (version == null)  
-                {
-                    // ensure that the latst version is returned first (the ordering of versions differ
-                    // TODO: proper error handling
-                    try
-                    {
-                        if (localRepo)
-                        {
-                            var localResource = new FindLocalPackagesResourceV2(repositoryUrl);
-                            localPkgMetadataResource = new LocalPackageMetadataResource(localResource);
+                var filteredFoundPkgs = FindFilteredPackages(pkgName, pkgMetadataResource, context, repositoryName, versionRange, prerelease);
 
-                            filteredFoundPkgs = (localPkgMetadataResource.GetMetadataAsync(pkgName, prerelease, false, context, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                                .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
-                                .FirstOrDefault());
-                        }
-                        else
-                        {
-                            filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(pkgName, prerelease, false, context, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                                .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
-                                .FirstOrDefault());
-                        }
-                            // Check if exact version
-                            NuGetVersion nugetVersion;
-                            NuGetVersion.TryParse(filteredFoundPkgs.Identity.Version.ToString(), out nugetVersion);
-
-                            if (nugetVersion != null)
-                            {
-                                versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
-                            }
-                    }
-                    catch
-                    {
-                    }
-
-                    if (filteredFoundPkgs == null)
-                    {
-                        cmdletPassedIn.WriteVerbose(String.Format("Could not find package '{0}' in repository '{1}'", pkgName, repositoryName));
-
-                        return pkgsLeftToInstall;
-                    }
-                }
-                else
-                {
-                    // Check if exact version
-                    NuGetVersion nugetVersion;
-                    NuGetVersion.TryParse(version, out nugetVersion);
-
-                    if (nugetVersion != null)
-                    {
-                        // Exact version
-                        versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
-                    }
-                    else
-                    {
-                        // Check if version range
-                        versionRange = VersionRange.Parse(version);
-                    }
-                    cmdletPassedIn.WriteDebug(string.Format("Parsed version is: '{0}'", versionRange.ToString()));
-
-                    // Search for packages within a version range
-                    // ensure that the latest version is returned first (the ordering of versions differ
-                    filteredFoundPkgs = (resourceMetadata.GetMetadataAsync(pkgName, prerelease, false, context, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
-                        .Where(p => versionRange.Satisfies(p.Identity.Version))
-                        .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
-                        .FirstOrDefault());
+                if (filteredFoundPkgs == null)
+                {   
+                    return pkgsLeftToInstall;
                 }
 
                 List<IPackageSearchMetadata> foundDependencies = new List<IPackageSearchMetadata>();
-
                 // Found package to install, now search for dependencies
                 if (filteredFoundPkgs != null)
                 {
                     // TODO: improve dependency search
                     // This function recursively finds all dependencies
-                    foundDependencies.AddRange(FindDependenciesFromSource(filteredFoundPkgs, resourceMetadata, localPkgMetadataResource, context, prerelease, reinstall, _path, repositoryUrl));
+                    foundDependencies.AddRange(FindDependenciesFromSource(filteredFoundPkgs, pkgMetadataResource, context, prerelease, reinstall, _path, repositoryUrl));
                 }
 
                 List<IPackageSearchMetadata> pkgsToInstall = new List<IPackageSearchMetadata>();
@@ -1037,8 +976,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return pkgsLeftToInstall;
         }
 
+        private IPackageSearchMetadata FindFilteredPackages(string pkgName, PackageMetadataResource pkgMetadataResource, SourceCacheContext srcContext, string repositoryName, VersionRange versionRange, bool prerelease)
+        {
+            IPackageSearchMetadata filteredFoundPkgs = null;
 
-        private List<IPackageSearchMetadata> FindDependenciesFromSource(IPackageSearchMetadata pkg, PackageMetadataResource pkgMetadataResource, LocalPackageMetadataResource localpkgMetadataResource, SourceCacheContext srcContext, bool prerelease, bool reinstall, string _path, string repositoryUrl)
+            if (versionRange == null)
+            {
+                // ensure that the latst version is returned first (the ordering of versions differ
+                // TODO: proper error handling
+                try
+                {
+                    filteredFoundPkgs = (pkgMetadataResource.GetMetadataAsync(pkgName, prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
+                        .FirstOrDefault());
+
+                    versionRange = Utilities.GetPkgVersion(filteredFoundPkgs.Identity.Version.ToString());
+                }
+                catch
+                {
+                }
+
+                if (filteredFoundPkgs == null)
+                {
+                    cmdletPassedIn.WriteVerbose(String.Format("Could not find package '{0}' in repository '{1}'", pkgName, repositoryName));
+
+                    return null;
+                }
+            }
+            else
+            {
+                // Search for packages within a version range
+                // ensure that the latest version is returned first (the ordering of versions differ
+                filteredFoundPkgs = (pkgMetadataResource.GetMetadataAsync(pkgName, prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                    .Where(p => versionRange.Satisfies(p.Identity.Version))
+                    .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)
+                    .FirstOrDefault());
+            }
+
+            return filteredFoundPkgs;
+        }
+
+        private List<IPackageSearchMetadata> FindDependenciesFromSource(IPackageSearchMetadata pkg, PackageMetadataResource pkgMetadataResource, SourceCacheContext srcContext, bool prerelease, bool reinstall, string _path, string repositoryUrl)
         {
             // Dependency resolver
             // This function is recursively called
@@ -1055,15 +1033,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     IEnumerable<IPackageSearchMetadata> dependencies = null;
                     // a) Check that the appropriate pkg dependencies exist
                     // Returns all versions from a single package id.
-                    if (localRepo)
-                    {
-                        dependencies = localpkgMetadataResource.GetMetadataAsync(pkgDependency.Id, prerelease, true, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-
-                    }
-                    else
+                    try
                     {
                         dependencies = pkgMetadataResource.GetMetadataAsync(pkgDependency.Id, prerelease, true, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
                     }
+                    catch 
+                    { }
                     // b) Check if the appropriate verion range exists  (if version exists, then add it to the list to return)
                     VersionRange versionRange = null;
                     try
@@ -1120,7 +1095,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     // Search for any dependencies the pkg has
-                    foundDependencies.AddRange(FindDependenciesFromSource(depPkgToReturn, pkgMetadataResource, localpkgMetadataResource, srcContext, prerelease, reinstall, _path, repositoryUrl));
+                    foundDependencies.AddRange(FindDependenciesFromSource(depPkgToReturn, pkgMetadataResource, srcContext, prerelease, reinstall, _path, repositoryUrl));
                 }
             }
 

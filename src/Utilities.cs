@@ -10,8 +10,8 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
-using System.Globalization;
 using System.Collections;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet
 {
@@ -22,7 +22,26 @@ namespace Microsoft.PowerShell.PowerShellGet
     static class Utilities
     {
 
+        public static VersionRange GetPkgVersion(string versionPassedIn)
+        {
+            // Check if exact version
+            NuGetVersion nugetVersion;
+            NuGetVersion.TryParse(versionPassedIn, out nugetVersion);
+            //NuGetVersion.TryParse(pkg.Identity.Version.ToString(), out nugetVersion);
 
+            VersionRange versionRange = null;
+            if (nugetVersion != null)
+            {
+                versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
+            }
+            else
+            {
+                // Check if version range
+                VersionRange.TryParse(versionPassedIn, out versionRange);
+            }
+
+            return versionRange;
+        }
 
 
         public static Hashtable GetInstallationPaths(PSCmdlet cmdletPassedIn, string scope)
@@ -101,21 +120,29 @@ namespace Microsoft.PowerShell.PowerShellGet
 
 
             // Create PowerShell modules and scripts paths if they don't already exist
-            if (!Directory.Exists(psModulesPath))
-            {
-                cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell modules path '{0}'", psModulesPath));
-                Directory.CreateDirectory(psModulesPath);
+            try {
+                if (!Directory.Exists(psModulesPath))
+                {
+                    cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell modules path '{0}'", psModulesPath));
+                    Directory.CreateDirectory(psModulesPath);
+
+                }
+                if (!Directory.Exists(psScriptsPath))
+                {
+                    cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell scripts path '{0}'", psScriptsPath));
+                    Directory.CreateDirectory(psScriptsPath);
+                }
+                if (!Directory.Exists(psInstalledScriptsInfoPath))
+                {
+                    cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell installed scripts info path '{0}'", psInstalledScriptsInfoPath));
+                    Directory.CreateDirectory(psInstalledScriptsInfoPath);
+                }
             }
-            if (!Directory.Exists(psScriptsPath))
+            catch
             {
-                cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell scripts path '{0}'", psScriptsPath));
-                Directory.CreateDirectory(psScriptsPath);
+
             }
-            if (!Directory.Exists(psInstalledScriptsInfoPath))
-            {
-                cmdletPassedIn.WriteVerbose(string.Format("Creating PowerShell installed scripts info path '{0}'", psInstalledScriptsInfoPath));
-                Directory.CreateDirectory(psInstalledScriptsInfoPath);
-            }
+
 
             List<string> psModulesPathAllDirs = (Directory.GetDirectories(psModulesPath)).ToList();
             hash.Add("psModulesPathAllDirs", psModulesPathAllDirs);
