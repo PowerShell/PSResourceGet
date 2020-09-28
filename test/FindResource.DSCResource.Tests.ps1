@@ -170,7 +170,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not AccessControlDSC from PoshTestGallery repository
     It "not find DSCResource from repository, given Repository parameter" {
-        $res = Find-PSResource -Name Carbon -Repository $TestGalleryName
+        $res = Find-PSResource -Name AccessControlDSC -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
@@ -180,9 +180,9 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should find AccessControlDSC from PSGallery repository
     It "find DSCResource from repository, given Repository parameter" {
-        $res = Find-PSResource -Name Carbon -Repository $PSGalleryName
+        $res = Find-PSResource -Name AccessControlDSC -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be "Carbon"
+        $res.Name | Should -Be "AccessControlDSC"
     }
 
     # Purpose: find resource in first repository where it exists given Repository parameter
