@@ -168,6 +168,141 @@ function Get-RevertPSResourceRepositoryFile {
 
     Remove-Item $tempXmlFilePath
 }
+
+function Get-LocalRepoSetUp
+{
+    $repoURLAddress = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "testdir"
+    $null = New-Item -Path $repoURLAddress -ItemType Directory -Force 
+
+    Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+
+    $TestLocalDirectory = 'TestLocalDirectory'
+    $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
+
+    $script:TempModulesPath = Join-Path -Path $tmpdir -ChildPath "PSGet_$(Get-Random)"
+    $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
+}
+
+function Get-RoleCapabilityResourcePublishedToLocalRepo
+{
+    Param(
+        [string]
+        $roleCapName
+    )
+
+    Get-LocalRepoSetUp
+
+    $PublishModuleName = $roleCapName
+    $PublishModuleBase = Join-Path $TempModulesPath $PublishModuleName
+    $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
+
+    $PublishModuleBase = Join-Path $TempModulesPath $PublishModuleName
+    $version = "1.0"
+
+    New-PSRoleCapabilityFile -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psrc")
+    New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1"
+
+    Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
+}
+
+function Get-DSCResourcePublishedToLocalRepo {
+    Param(
+        [string]
+        $dscName
+    )
+
+    Get-LocalRepoSetUp
+
+    $PublishModuleName = $dscName
+    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
+
+    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    $version = "1.0"
+    New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
+
+    Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
+}
+
+function Get-ScriptResourcePublishedToLocalRepo {
+    Param(
+        [string]
+        $scriptName
+    )
+    Get-LocalRepoSetUp
+
+    $Name = $scriptName
+    $scriptFilePath = Join-Path -Path $script:TempModulesPath -ChildPath "$Name.ps1"
+    $null = New-Item -Path $scriptFilePath -ItemType File -Force
+
+    $version = "1.0.0"
+    $params = @{
+                #Path = $scriptFilePath
+                Version = $version
+                #GUID = 
+                Author = 'Jane'
+                CompanyName = 'Microsoft Corporation'
+                Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
+                Description = "Description for the $Name script"
+                LicenseUri = "https://$Name.com/license"
+                IconUri = "https://$Name.com/icon"
+                ProjectUri = "https://$Name.com"
+                Tags = @('Tag1','Tag2', "Tag-$Name-$version")
+                ReleaseNotes = "$Name release notes"
+                }
+
+    $scriptMetadata = Create-PSScriptMetadata @params
+    Set-Content -Path $scriptFilePath -Value $scriptMetadata
+
+    Publish-PSResource -path $scriptFilePath -Repository psgettestlocal
+}
+
+function Get-CommandResourcePublishedToLocalRepo {
+    Param(
+        [string]
+        $cmdName
+    )
+    Get-LocalRepoSetUp
+
+    $PublishModuleName = $cmdName
+    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
+
+    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    $version = "1.0"
+    New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1" -CmdletsToExport @('Get-Test', 'Set-Test')
+
+    Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
+}
+function Get-ModuleResourcePublishedToLocalRepo {
+    Param(
+        [string]
+        $modName
+    )
+    Get-LocalRepoSetUp
+
+    $PublishModuleName = $modName
+    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
+
+    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    $version = "1.0"
+    New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1"
+    Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
+}
+
+
+function RemoveTmpdir
+{
+    $TestLocalDirectory = 'TestLocalDirectory'
+    $tmpdir = Join-Path -Path $script:TempPath -ChildPath $TestLocalDirectory
+    if($tmpdir -and (Test-Path $tmpdir))
+    {
+        Remove-Item $tmpdir -Force -Recurse -ErrorAction SilentlyContinue
+    }
+}
+
+
 function RemoveItem
 {
     Param(

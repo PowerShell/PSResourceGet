@@ -193,30 +193,6 @@ Describe 'Test Find-PSResource for Command' {
         $res.Name | Should -Be "xWindowsUpdate"
     }
 
-    # Purpose: find resource that exists in test and psgallery, given Repository parameter
-    #
-    # Action: Find-PSResource -Name "Az.Accounts" -Repository PSGallery
-    #
-    # Expected Result: find resource quicker when repository is specified
-    It "find resource existing in multiple repositories given Repository parameter" {
-        $repeat = 100
-        $timeWithoutRepoSpecified = Measure-Command -Expression {
-            for ($i = 0; $i -lt $repeat; $i++) {
-                $res = Find-PSResource -Name "Az.Accounts"
-                $res.Repository | Should -Be "PoshTestGallery"                
-            }
-        }
-
-        $timeWithRepoSpecified = Measure-Command -Expression {
-            for ($i = 0; $i -lt $repeat; $i++) {
-                $res = Find-PSResource -Name "Az.Accounts" -Repository $TestGalleryName
-                $res.Repository | Should -Be "PoshTestGallery" 
-            }
-        }
-
-        $timeWithRepoSpecified | Should -BeLessOrEqual $timeWithoutRepoSpecified
-    }
-
     # Purpose: find resource in first repository where it exists given Repository parameter
     #
     # Action: Find-PSResource "Az.Accounts"
@@ -230,6 +206,7 @@ Describe 'Test Find-PSResource for Command' {
 
         # check that same resource can be returned from non-first-availability/non-default repo
         $resNonDefault = Find-PSResource "Az.Accounts" -Repository $PSGalleryName
+        $resNonDefault | Should -Not -BeNullOrEmpty
         $resNonDefault.Repository | Should -Be "PSGallery"
     } 
 
@@ -239,37 +216,13 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should find resource from local repository
     It "find resource in local repository given Repository parameter" {
+        $publishCmdName = "TestFindCommandModule"
+        Get-CommandResourcePublishedToLocalRepo $publishCmdName
 
-        # create path and make sure testdir there exists, otherwise will cause problems in .xml file URL
-        $repoURLAddress = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "testdir"
-        $null = New-Item -Path $repoURLAddress -ItemType Directory -Force 
-
-        Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
-
-        $TestLocalDirectory = 'TestLocalDirectory'
-        $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
-
-        $script:TempModulesPath = Join-Path -Path $tmpdir -ChildPath "PSGet_$(Get-Random)"
-        $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
-
-        $script:PublishModuleName = "TestFindCommandModule"
-        $script:PublishModuleBase = Join-Path $script:TempModulesPath $script:PublishModuleName
-        $null = New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
-
-        $PublishModuleBase = Join-Path $script:TempModulesPath $script:PublishModuleName
-        $version = "1.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1" -CmdletsToExport @('Get-Test', 'Set-Test')
-
-        Publish-PSResource -path  $script:PublishModuleBase -Repository psgettestlocal
-
-        # test find
-        $res = Find-PSResource -Name $script:PublishModuleName -Repository "psgettestlocal"
+        $res = Find-PSResource -Name $publishCmdName -Repository "psgettestlocal"
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be $script:PublishModuleName
+        $res.Name | Should -Be $publishCmdName
 
-        if($tempdir -and (Test-Path $tempdir))
-        {
-            Remove-Item $tempdir -Force -Recurse -ErrorAction SilentlyContinue
-        }
+        RemoveTmpdir
     }
 }
