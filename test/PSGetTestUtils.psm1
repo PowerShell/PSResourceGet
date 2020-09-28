@@ -155,7 +155,6 @@ function Get-NewPSResourceRepositoryFile {
 
     $fileToCopy = Join-Path -Path $PSScriptRoot -ChildPath "testRepositories.xml"
     Copy-Item $fileToCopy -Destination $originalXmlFilePath
-
 }
 
 function Get-RevertPSResourceRepositoryFile {
@@ -274,6 +273,7 @@ function Get-CommandResourcePublishedToLocalRepo {
 
     Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
 }
+
 function Get-ModuleResourcePublishedToLocalRepo {
     Param(
         [string]
@@ -291,7 +291,6 @@ function Get-ModuleResourcePublishedToLocalRepo {
     Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
 }
 
-
 function RemoveTmpdir
 {
     $TestLocalDirectory = 'TestLocalDirectory'
@@ -301,7 +300,6 @@ function RemoveTmpdir
         Remove-Item $tmpdir -Force -Recurse -ErrorAction SilentlyContinue
     }
 }
-
 
 function RemoveItem
 {
