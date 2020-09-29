@@ -27,7 +27,6 @@ $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $script:PoshTestGalleryName = 'PoshTestGallery'
 $script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
-
 if($script:IsInbox)
 {
     $script:ProgramFilesPSPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramFiles -ChildPath "WindowsPowerShell"
@@ -170,7 +169,6 @@ function Get-RevertPSResourceRepositoryFile {
 
 function Get-TestDriveSetUp
 {
-    #repoURL (repo source URL) is to be $TestDrive/testdir (testdir folder created there)
     $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
     $null = New-Item $repoURLAddress -ItemType Directory -Force
 
@@ -190,19 +188,16 @@ function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive
     )
 
     Get-TestDriveSetUp
-    #create folder of same name as module, as this is how module creation works
+
     $publishModuleName = $roleCapName
     $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    # create the module manifest
     $version = "1.0"
     New-PSRoleCapabilityFile -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psrc")
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
 
-    # publish the resource
     Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
-
 }
 
 function Get-DSCResourcePublishedToLocalRepoTestDrive
@@ -214,18 +209,14 @@ function Get-DSCResourcePublishedToLocalRepoTestDrive
 
     Get-TestDriveSetUp
 
-    #create folder of same name as module, as this is how module creation works
     $publishModuleName = $dscName
     $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    # create the module manifest
     $version = "1.0"
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
 
-    # publish the resource
     Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
-
 }
 
 function Get-ScriptResourcePublishedToLocalRepoTestDrive
@@ -267,19 +258,15 @@ function Get-CommandResourcePublishedToLocalRepoTestDrive
         [string]
         $cmdName
     )
-
     Get-TestDriveSetUp
 
-    # create folder of same name as module, as this is how module creation works
     $publishModuleName = $cmdName
     $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    # create the module manifest
     $version = "1.0"
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -CmdletsToExport @('Get-Test', 'Set-Test')
 
-    # publish the resource
     Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
 }
 
@@ -289,19 +276,15 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
         [string]
         $moduleName
     )
-
     Get-TestDriveSetUp
 
-    #create folder of same name as module, as this is how module creation works
     $publishModuleName = $moduleName
     $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    # create the module manifest
     $version = "1.0"
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1"
 
-    # publish the resource
     Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
 }
 

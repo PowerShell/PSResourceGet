@@ -62,7 +62,8 @@ Describe "Test Find-PSResource for Script" {
         @{Version="(,1.5.0.0)";         ExpectedVersion="1.2.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    ) {
+    )
+    {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "Fabrikam-ServerScript" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "Fabrikam-ServerScript"
@@ -127,7 +128,8 @@ Describe "Test Find-PSResource for Script" {
         @{Version="(,1.5.0.0)";         Reason="validate version, maximum version exclusive"},
         @{Version="(,1.5.0.0]";         Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    ) {
+    )
+    {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "Fabrikam-ServerScript" -Version $Version -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
@@ -156,7 +158,7 @@ Describe "Test Find-PSResource for Script" {
         $resPrerelease = Find-PSResource -Name "test_script" -Prerelease
         $resPrerelease.Version | Should -Be "3.0.0.0"        
     }
-    
+
     # Purpose: not find un-available resource from specified repository, when given Repository parameter
     #
     # Action: Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository PoshTestGallery
@@ -166,7 +168,7 @@ Describe "Test Find-PSResource for Script" {
         $res = Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
-    
+
     # Purpose: find resource from specified repository, when given Repository parameter
     #
     # Action: Find-PSResource -Name Get-WindowsAutoPilotInfo -Repository PSGallery

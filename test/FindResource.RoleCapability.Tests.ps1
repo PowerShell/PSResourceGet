@@ -35,7 +35,6 @@ Describe 'Test Find-PSResource for Role Capability' {
         $res | Should -BeNullOrEmpty
     }
 
-
     # Purpose: find a RoleCapability resource given Name, to validate version parameter values
     #
     # Action: Find-PSResource -Name DscTestModule -Version [2.0.0.0]
@@ -51,7 +50,8 @@ Describe 'Test Find-PSResource for Role Capability' {
         @{Version="(,2.5.0.0)";         ExpectedVersion="2.0.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,2.5.0.0]";         ExpectedVersion="2.5.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    ) {
+    )
+    {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "DscTestModule" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "DscTestModule"
@@ -100,7 +100,6 @@ Describe 'Test Find-PSResource for Role Capability' {
         $res = Find-PSResource -ModuleName "DscTestModule" -Repository $TestGalleryName
         $res.Name | Should -Be "DscTestModule"
     }
-
 
     # Purpose: find a RoleCapability resource given ModuleName, to validate version parameter values
     #

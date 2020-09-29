@@ -41,7 +41,8 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    ) {
+    )
+    {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository $PSGalleryName
         $res.Name | Should -Be "NetworkingDsc"
@@ -108,7 +109,6 @@ Describe 'Test Find-PSResource for Command' {
         $resPrerelease.Version | Should -Be "5.0.1.0"
     }
 
-
     # Purpose: find a DSCResource of package type module, given ModuleName parameter
     #
     # Action: Find-PSResource -ModuleName NetworkingDsc
@@ -134,13 +134,13 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    ) {
+    )
+    {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "NetworkingDsc" -Version $Version -Repository $PSGalleryName
         $res.Name | Should -Be "NetworkingDsc"
         $res.Version | Should -Be $ExpectedVersion
     }
-
 
     # Purpose: find a DSCResource with a specific tag, given Tags parameter
     #

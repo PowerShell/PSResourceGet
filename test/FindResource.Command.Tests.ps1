@@ -160,7 +160,6 @@ Describe 'Test Find-PSResource for Command' {
 
     }
 
-
     # Purpose: find resource with tags, given multiple Tags parameter values
     #
     # Action: Find-PSResource -Tags "Azure","Authentication","ARM" -Repository PoshTestGallery | Where-Object { $_.Name -eq "Az.Accounts" }
@@ -208,7 +207,7 @@ Describe 'Test Find-PSResource for Command' {
         $resNonDefault = Find-PSResource "Az.Accounts" -Repository $PSGalleryName
         $resNonDefault | Should -Not -BeNullOrEmpty
         $resNonDefault.Repository | Should -Be "PSGallery"
-    } 
+    }
 
     # Purpose: find resource in local repository given Repository parameter
     #

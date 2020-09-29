@@ -48,7 +48,7 @@ Describe 'Test Find-PSResource for Module' {
     # Purpose: to find a specific resource with wildcard in name
     #
     # Action: Find-PSResource *ontosoServe*
-    # 
+    #
     # Expected Result: should find the ContosoServer resource
     It "find Specific Resource with Wildcards for Name Param" {
         $res = Find-PSResource *ontosoServe*
@@ -70,7 +70,8 @@ Describe 'Test Find-PSResource for Module' {
         @{Version="(,1.5.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    ) {
+    )
+    {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "ContosoServer" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "ContosoServer"
@@ -118,7 +119,7 @@ Describe 'Test Find-PSResource for Module' {
     It "find resources when given Name, Version not null --> '*'" {
         $res = Find-PSResource -Name ContosoServer -Version "*" -Repository $TestGalleryName
         $res.Count | Should -BeGreaterOrEqual 4
-    } 
+    }
 
     # Purpose: find resource when given ModuleName, Version param null
     #
@@ -146,7 +147,8 @@ Describe 'Test Find-PSResource for Module' {
         @{Version="(,1.5.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0,2.5.0.0)";  ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    ) {
+    )
+    {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "ContosoServer" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "ContosoServer"
@@ -240,8 +242,6 @@ Describe 'Test Find-PSResource for Module' {
         $res = Find-PSResource ModuleWithDependencies1 -IncludeDependencies -Version "[1.0,2.0]"
         $res.Count | Should -BeGreaterOrEqual 11
     }
-
-
 
     # Purpose: find resource in local repository given Repository parameter
     #
