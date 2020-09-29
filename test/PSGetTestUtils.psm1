@@ -146,8 +146,8 @@ function Get-PoshTestGalleryLocation {
 
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
-    $originalXmlFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
-    $tempXmlFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
+    $originalXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
     Copy-Item -Path $originalXmlFilePath -Destination  $tempXmlFilePath
 
     Remove-Item -Path $originalXmlFilePath -Force
@@ -157,8 +157,8 @@ function Get-NewPSResourceRepositoryFile {
 }
 
 function Get-RevertPSResourceRepositoryFile {
-    $originalXmlFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
-    $tempXmlFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
+    $originalXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
 
     Remove-Item -Path $originalXmlFilePath -Force
     
