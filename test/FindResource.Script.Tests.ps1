@@ -217,14 +217,13 @@ Describe "Test Find-PSResource for Script" {
         $res.Count | Should -BeGreaterOrEqual 9
     }
 
-
     It "find resource in local repository given Repository parameter" {
-        $scriptName = 'TestScriptName'
-        Get-ScriptResourcePublishedToLocalRepo $scriptName
+        $scriptName = "TestScriptName"
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName
 
         $res = Find-PSResource -Name $scriptName -Repository "psgettestlocal"
         $res | Should -Not -BeNullOrEmpty
-
-        RemoveTmpdir
+        $res.Name | Should -Be $scriptName
+        $res.Repository | Should -Be "psgettestlocal"
     }
 }

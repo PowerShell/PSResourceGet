@@ -250,12 +250,11 @@ Describe 'Test Find-PSResource for Module' {
     # Expected Result: should find resource from local repository
     It "find resource in local repository given Repository parameter" {
         $publishModuleName = "TestFindModule"
-        Get-ModuleResourcePublishedToLocalRepo $publishModuleName
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName
 
         $res = Find-PSResource -Name $publishModuleName -Repository "psgettestlocal"
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $publishModuleName
-
-        RemoveTmpdir
+        $res.Repository | Should -Be "psgettestlocal"
     }
 }

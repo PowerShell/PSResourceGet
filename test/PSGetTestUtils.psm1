@@ -168,70 +168,75 @@ function Get-RevertPSResourceRepositoryFile {
     Remove-Item $tempXmlFilePath
 }
 
-function Get-LocalRepoSetUp
+function Get-TestDriveSetUp
 {
-    $repoURLAddress = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "testdir"
-    $null = New-Item -Path $repoURLAddress -ItemType Directory -Force 
+    #repoURL (repo source URL) is to be $TestDrive/testdir (testdir folder created there)
+    $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+    $null = New-Item $repoURLAddress -ItemType Directory -Force
 
     Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
 
-    $TestLocalDirectory = 'TestLocalDirectory'
-    $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
-
-    $script:TempModulesPath = Join-Path -Path $tmpdir -ChildPath "PSGet_$(Get-Random)"
-    $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
+    $testResourcesFolder = Join-Path $TestDrive -ChildPath "TestLocalDirectory"
+    
+    $script:testIndividualResourceFolder = Join-Path -Path $testResourcesFolder -ChildPath "PSGet_$(Get-Random)"
+    $null = New-Item -Path $testIndividualResourceFolder -ItemType Directory -Force
 }
 
-function Get-RoleCapabilityResourcePublishedToLocalRepo
+function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
         $roleCapName
     )
 
-    Get-LocalRepoSetUp
+    Get-TestDriveSetUp
+    #create folder of same name as module, as this is how module creation works
+    $publishModuleName = $roleCapName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    $PublishModuleName = $roleCapName
-    $PublishModuleBase = Join-Path $TempModulesPath $PublishModuleName
-    $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
-
-    $PublishModuleBase = Join-Path $TempModulesPath $PublishModuleName
+    # create the module manifest
     $version = "1.0"
+    New-PSRoleCapabilityFile -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psrc")
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
 
-    New-PSRoleCapabilityFile -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psrc")
-    New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1"
+    # publish the resource
+    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
 
-    Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
 }
 
-function Get-DSCResourcePublishedToLocalRepo {
+function Get-DSCResourcePublishedToLocalRepoTestDrive
+{
     Param(
         [string]
         $dscName
     )
 
-    Get-LocalRepoSetUp
+    Get-TestDriveSetUp
 
-    $PublishModuleName = $dscName
-    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
-    $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
+    #create folder of same name as module, as this is how module creation works
+    $publishModuleName = $dscName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    # create the module manifest
     $version = "1.0"
-    New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
 
-    Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
+    # publish the resource
+    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+
 }
 
-function Get-ScriptResourcePublishedToLocalRepo {
+function Get-ScriptResourcePublishedToLocalRepoTestDrive
+{
     Param(
         [string]
         $scriptName
     )
-    Get-LocalRepoSetUp
+    Get-TestDriveSetUp
 
-    $Name = $scriptName
-    $scriptFilePath = Join-Path -Path $script:TempModulesPath -ChildPath "$Name.ps1"
+    $scriptFilePath = Join-Path -Path $script:testIndividualResourceFolder -ChildPath "$scriptName.ps1"
     $null = New-Item -Path $scriptFilePath -ItemType File -Force
 
     $version = "1.0.0"
@@ -242,12 +247,12 @@ function Get-ScriptResourcePublishedToLocalRepo {
                 Author = 'Jane'
                 CompanyName = 'Microsoft Corporation'
                 Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
-                Description = "Description for the $Name script"
-                LicenseUri = "https://$Name.com/license"
-                IconUri = "https://$Name.com/icon"
-                ProjectUri = "https://$Name.com"
-                Tags = @('Tag1','Tag2', "Tag-$Name-$version")
-                ReleaseNotes = "$Name release notes"
+                Description = "Description for the $scriptName script"
+                LicenseUri = "https://$scriptName.com/license"
+                IconUri = "https://$scriptName.com/icon"
+                ProjectUri = "https://$scriptName.com"
+                Tags = @('Tag1','Tag2', "Tag-$scriptName-$version")
+                ReleaseNotes = "$scriptName release notes"
                 }
 
     $scriptMetadata = Create-PSScriptMetadata @params
@@ -256,49 +261,48 @@ function Get-ScriptResourcePublishedToLocalRepo {
     Publish-PSResource -path $scriptFilePath -Repository psgettestlocal
 }
 
-function Get-CommandResourcePublishedToLocalRepo {
+function Get-CommandResourcePublishedToLocalRepoTestDrive
+{
     Param(
         [string]
         $cmdName
     )
-    Get-LocalRepoSetUp
 
-    $PublishModuleName = $cmdName
-    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
-    $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
+    Get-TestDriveSetUp
 
-    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    # create folder of same name as module, as this is how module creation works
+    $publishModuleName = $cmdName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
+
+    # create the module manifest
     $version = "1.0"
-    New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1" -CmdletsToExport @('Get-Test', 'Set-Test')
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -CmdletsToExport @('Get-Test', 'Set-Test')
 
-    Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
+    # publish the resource
+    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
 }
 
-function Get-ModuleResourcePublishedToLocalRepo {
+function Get-ModuleResourcePublishedToLocalRepoTestDrive
+{
     Param(
         [string]
-        $modName
+        $moduleName
     )
-    Get-LocalRepoSetUp
 
-    $PublishModuleName = $modName
-    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
-    $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
+    Get-TestDriveSetUp
 
-    $PublishModuleBase = Join-Path $script:TempModulesPath $PublishModuleName
+    #create folder of same name as module, as this is how module creation works
+    $publishModuleName = $moduleName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
+
+    # create the module manifest
     $version = "1.0"
-    New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1"
-    Publish-PSResource -path  $PublishModuleBase -Repository psgettestlocal
-}
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1"
 
-function RemoveTmpdir
-{
-    $TestLocalDirectory = 'TestLocalDirectory'
-    $tmpdir = Join-Path -Path $script:TempPath -ChildPath $TestLocalDirectory
-    if($tmpdir -and (Test-Path $tmpdir))
-    {
-        Remove-Item $tmpdir -Force -Recurse -ErrorAction SilentlyContinue
-    }
+    # publish the resource
+    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
 }
 
 function RemoveItem

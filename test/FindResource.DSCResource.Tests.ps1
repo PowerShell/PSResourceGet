@@ -216,14 +216,23 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Find-PSResource -Name "local_command_module" -Repository "psgettestlocal"
     #
     # Expected Result: should find resource from local repository
-    It "find resource in local repository given Repository parameter" {
+    # It "find resource in local repository given Repository parameter" {
+    #     $publishDscName = "TestFindDSCModule"
+    #     Get-DSCResourcePublishedToLocalRepo $publishDscName
+
+    #     $res = Find-PSResource -Name $publishDscName -Repository "psgettestlocal"
+    #     $res | Should -Not -BeNullOrEmpty
+    #     $res.Name | Should -Be $publishDscName
+
+    #     RemoveTmpdir
+    # }
+    It "find resource in local repository given Repository parameter"{
         $publishDscName = "TestFindDSCModule"
-        Get-DSCResourcePublishedToLocalRepo $publishDscName
+        Get-DSCResourcePublishedToLocalRepoTestDrive $publishDscName
 
         $res = Find-PSResource -Name $publishDscName -Repository "psgettestlocal"
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $publishDscName
-
-        RemoveTmpdir
+        $res.Repository | Should -Be "psgettestlocal"
     }
 }

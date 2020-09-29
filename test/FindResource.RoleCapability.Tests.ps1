@@ -166,12 +166,11 @@ Describe 'Test Find-PSResource for Role Capability' {
 
     It "find resource in local repository given Repository parameter" {
         $roleCapName = "TestFindRoleCapModule"
-        Get-RoleCapabilityResourcePublishedToLocalRepo $roleCapName
- 
+        Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive $roleCapName
+
         $res = Find-PSResource -Name $roleCapName -Repository "psgettestlocal"
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $roleCapName
-
-        RemoveTmpdir
+        $res.Repository | Should -Be "psgettestlocal"
     }
 }
