@@ -183,7 +183,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // https://docs.microsoft.com/en-us/dotnet/api/system.uri.trycreate?view=netframework-4.8#System_Uri_TryCreate_System_Uri_System_Uri_System_Uri__
                 // check to see if the url is formatted correctly
-                if (_url != null && !(Uri.TryCreate(_url, String.Empty, out _url)
+                if (_url != null && !(Uri.TryCreate(_url.ToString(), UriKind.Absolute, out _url)
                      && (_url.Scheme == Uri.UriSchemeHttp || _url.Scheme == Uri.UriSchemeHttps || _url.Scheme == Uri.UriSchemeFile || _url.Scheme == Uri.UriSchemeFtp)))
                 {
                     throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Invalid Url"));
