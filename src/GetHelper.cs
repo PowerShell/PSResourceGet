@@ -58,7 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // PSModules path
                 var psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                var modulePaths = psModulePath.Split(';');
+                var modulePaths = psModulePath.Split(';').Where(d => Directory.Exists(d));
 
 
 #if NET472
@@ -86,7 +86,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach (var modulePath in modulePaths)
                 {
-                    dirsToSearch.AddRange(Directory.GetDirectories(modulePath).ToList());
+                    if (Directory.Exists(modulePath))
+                    {
+                        dirsToSearch.AddRange(Directory.GetDirectories(modulePath).ToList());
+                    }
                 }
 
 
