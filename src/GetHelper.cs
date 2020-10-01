@@ -58,7 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // PSModules path
                 var psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                var modulePaths = psModulePath.Split(';').Where(d => Directory.Exists(d));
+                var modulePaths = psModulePath.Split(';');
 
 
 #if NET472
