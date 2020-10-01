@@ -1,0 +1,120 @@
+parameters:
+  jobName: TestPkgWin
+  imageName: windows-2019
+  displayName: PowerShell Core on Windows
+  powershellExecutable: pwsh
+
+jobs:
+- job: ${{ parameters.jobName }}
+  pool:
+    vmImage: ${{ parameters.imageName }}
+  displayName: ${{ parameters.displayName }}
+  steps:
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download artifacts'
+    inputs:
+      buildType: current
+      downloadType: specific
+      itemPattern: '**/*.nupkg'
+      downloadPath: '$(System.ArtifactsDirectory)'
+
+  - ${{ parameters.powershellExecutable }}: |
+      Get-ChildItem -Path "$(System.ArtifactsDirectory)"
+    displayName: Capture artifacts directory
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      if (Test-Path -Path $modulePath) {
+        Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+        Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+      }
+      if (! (Test-Path -Path $modulePath)) {
+        Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+        $null = New-Item -Path $modulePath -ItemType Directory
+      }
+    displayName: Create temporary module path for PSPackageProject
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      Save-Module -Name "Microsoft.PowerShell.SecretManagement" -Path $modulePath -AllowPrerelease -Repository PSGallery -Force
+    displayName: Install Microsoft.PowerShell.SecretManagement
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      Save-Module -Name "platyPS" -Path $modulePath -Force
+    displayName: Install platyPS dependency
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      Save-Module -Name "PSScriptAnalyzer" -Path $modulePath -RequiredVersion 1.18.0 -Force
+    displayName: Install PSScriptAnalyzer dependency
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      Save-Module -Name PSPackageProject -Path $modulePath -Force
+    displayName: Install PSPackageProject module
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.0-beta10 -AllowPrerelease -Force
+    displayName: Install PowerShellGet Module
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      Save-Module -Name "Pester" -Path $modulePath -MaximumVersion 4.99 -Force
+    displayName: Install Pester 4.0
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+      Get-Module -Name Pester -ListAvailable
+    displayName: Capture Pester module environment
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+      $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
+      Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
+      Import-Module -Name $modPath -Force
+      #
+      $sourceName = 'pspackageproject-local-repo'
+      Register-PackageSource -Name $sourceName -Location "$(System.ArtifactsDirectory)" -ProviderName PowerShellGet -Force -ErrorAction Ignore
+      Get-PackageSource -Name $sourceName
+      $config = Get-PSPackageProjectConfiguration
+      $buildOutputPath = $config.BuildOutputPath
+      Write-Verbose -Verbose -Message "PSPackage build output path: $buildOutputPath"
+      $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
+      $moduleName = $config.ModuleName
+      Write-Verbose -Verbose "Saving package $sourceName to $($config.BuildOutputPath)"
+      Save-Package -Name $moduleName -Source $sourceName -ProviderName PowerShellGet -Path $config.BuildOutputPath -AllowPrereleaseVersions -Force
+    displayName: Extract product artifact
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+      $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
+      Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
+      Import-Module -Name $modPath -Force
+      Get-Module
+      #
+      Invoke-PSPackageProjectTest -Type Functional
+    displayName: Execute functional tests
+    errorActionPreference: continue
+
+  - ${{ parameters.powershellExecutable }}: |
+      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+      $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+      $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
+      Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
+      Import-Module -Name $modPath -Force
+      Get-Module
+      #
+      Invoke-PSPackageProjectTest -Type StaticAnalysis
+    displayName: Execute static analysis tests
+    errorActionPreference: continue
+    condition: succeededOrFailed()
+
+  - ${{ parameters.powershellExecutable }}: |
+      Unregister-PSRepository -Name 'pspackageproject-local-repo' -ErrorAction Ignore
+    displayName: Unregister temporary PSRepository
+    condition: always()

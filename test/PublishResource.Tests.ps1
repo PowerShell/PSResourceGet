@@ -3,7 +3,12 @@
 # Copyright (c) Microsoft Corporation, 2019
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-import-module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
+
+if (! (Get-Module -Name PowerShellGet))
+{
+    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
+    Import-Module -Name PowerShellGallery -RequiredVersion 3.0.0 -Force
+}
 
 $PSGalleryName = 'PSGallery'
 $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
@@ -11,12 +16,9 @@ $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
 
-
-
 if (-not (Test-Path -LiteralPath $tmpdir)) {
     New-Item -Path $tmpdir -ItemType Directory > $null
 }
-
 
 ##########################
 ### Publish-PSResource ###

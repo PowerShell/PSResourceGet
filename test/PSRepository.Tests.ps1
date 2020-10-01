@@ -2,8 +2,11 @@
 #
 # Copyright (c) Microsoft Corporation, 2019
 
-# Import-Module "$PSScriptRoot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue
-import-module "C:\code\PowerShellGet\v3\PowerShellGet\bin\Debug\netcoreapp2.2\PowerShellGet.dll"
+if (! (Get-Module -Name PowerShellGet))
+{
+    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
+    Import-Module -Name PowerShellGallery -RequiredVersion 3.0.0 -Force
+}
 
 $PSGalleryName = 'PSGallery'
 $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
