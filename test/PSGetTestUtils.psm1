@@ -6,6 +6,10 @@
 
 #."$PSScriptRoot\uiproxy.ps1"
 
+$baseParentPath = Split-Path -Path $PSScriptRoot # removes test directory and returns remaning parent path
+$fullPath = Join-Path -Path $baseParentPath -ChildPath "src" -AdditionalChildPath "out", "PowerShellGet"
+Import-Module $fullPath -Force
+
 $script:DotnetCommandPath = @()
 $script:EnvironmentVariableTarget = @{ Process = 0; User = 1; Machine = 2 }
 $script:EnvPATHValueBackup = $null
@@ -16,6 +20,12 @@ $script:IsWindows = (-not (Get-Variable -Name IsWindows -ErrorAction Ignore)) -o
 $script:IsLinux = (Get-Variable -Name IsLinux -ErrorAction Ignore) -and $IsLinux
 $script:IsMacOS = (Get-Variable -Name IsMacOS -ErrorAction Ignore) -and $IsMacOS
 $script:IsCoreCLR = $PSVersionTable.ContainsKey('PSEdition') -and $PSVersionTable.PSEdition -eq 'Core'
+
+$script:PSGalleryName = 'PSGallery'
+$script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
+
+$script:PoshTestGalleryName = 'PoshTestGallery'
+$script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
 if($script:IsInbox)
 {
@@ -117,9 +127,166 @@ function Get-PSGetLocalAppDataPath {
     return $script:PSGetAppLocalPath
 }
 
+function Get-PSGalleryName
+{
+    return $script:PSGalleryName
+}
 
+function Get-PSGalleryLocation {
+    return $script:PSGalleryLocation
+}
 
+function Get-PoshTestGalleryName {
+    return $script:PoshTestGalleryName
+}
 
+function Get-PoshTestGalleryLocation {
+    return $script:PostTestGalleryLocation
+}
+
+function Get-NewPSResourceRepositoryFile {
+    # register our own repositories with desired priority
+    $originalXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
+    Copy-Item -Path $originalXmlFilePath -Destination  $tempXmlFilePath
+
+    Remove-Item -Path $originalXmlFilePath -Force
+
+    $fileToCopy = Join-Path -Path $PSScriptRoot -ChildPath "testRepositories.xml"
+    Copy-Item $fileToCopy -Destination $originalXmlFilePath
+}
+
+function Get-RevertPSResourceRepositoryFile {
+    $originalXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
+
+    Remove-Item -Path $originalXmlFilePath -Force
+    
+    Copy-Item -Path $tempXmlFilePath -Destination $originalXmlFilePath
+
+    Remove-Item $tempXmlFilePath
+}
+
+function Get-TestDriveSetUp
+{
+    $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+    $null = New-Item $repoURLAddress -ItemType Directory -Force
+
+    Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+
+    $testResourcesFolder = Join-Path $TestDrive -ChildPath "TestLocalDirectory"
+    
+    $script:testIndividualResourceFolder = Join-Path -Path $testResourcesFolder -ChildPath "PSGet_$(Get-Random)"
+    $null = New-Item -Path $testIndividualResourceFolder -ItemType Directory -Force
+}
+
+function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive
+{
+    Param(
+        [string]
+        $roleCapName
+    )
+
+    Get-TestDriveSetUp
+
+    $publishModuleName = $roleCapName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
+
+    $version = "1.0"
+    New-PSRoleCapabilityFile -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psrc")
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
+
+    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+}
+
+function Get-DSCResourcePublishedToLocalRepoTestDrive
+{
+    Param(
+        [string]
+        $dscName
+    )
+
+    Get-TestDriveSetUp
+
+    $publishModuleName = $dscName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
+
+    $version = "1.0"
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
+
+    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+}
+
+function Get-ScriptResourcePublishedToLocalRepoTestDrive
+{
+    Param(
+        [string]
+        $scriptName
+    )
+    Get-TestDriveSetUp
+
+    $scriptFilePath = Join-Path -Path $script:testIndividualResourceFolder -ChildPath "$scriptName.ps1"
+    $null = New-Item -Path $scriptFilePath -ItemType File -Force
+
+    $version = "1.0.0"
+    $params = @{
+                #Path = $scriptFilePath
+                Version = $version
+                #GUID = 
+                Author = 'Jane'
+                CompanyName = 'Microsoft Corporation'
+                Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
+                Description = "Description for the $scriptName script"
+                LicenseUri = "https://$scriptName.com/license"
+                IconUri = "https://$scriptName.com/icon"
+                ProjectUri = "https://$scriptName.com"
+                Tags = @('Tag1','Tag2', "Tag-$scriptName-$version")
+                ReleaseNotes = "$scriptName release notes"
+                }
+
+    $scriptMetadata = Create-PSScriptMetadata @params
+    Set-Content -Path $scriptFilePath -Value $scriptMetadata
+
+    Publish-PSResource -path $scriptFilePath -Repository psgettestlocal
+}
+
+function Get-CommandResourcePublishedToLocalRepoTestDrive
+{
+    Param(
+        [string]
+        $cmdName
+    )
+    Get-TestDriveSetUp
+
+    $publishModuleName = $cmdName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
+
+    $version = "1.0"
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -CmdletsToExport @('Get-Test', 'Set-Test')
+
+    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+}
+
+function Get-ModuleResourcePublishedToLocalRepoTestDrive
+{
+    Param(
+        [string]
+        $moduleName
+    )
+    Get-TestDriveSetUp
+
+    $publishModuleName = $moduleName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
+
+    $version = "1.0"
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1"
+
+    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+}
 
 function RemoveItem
 {
@@ -133,7 +300,6 @@ function RemoveItem
         Remove-Item $path -Force -Recurse -ErrorAction SilentlyContinue
     }
 }
-
 
 function Create-PSScriptMetadata
 {
