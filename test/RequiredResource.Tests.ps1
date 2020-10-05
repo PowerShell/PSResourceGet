@@ -2,10 +2,15 @@
 #
 # Copyright (c) Microsoft Corporation, 2019
 
-if (! (Get-Module -Name PowerShellGet))
+# TODO:
+Write-Warning "PSRepository.Tests.ps1 is current disabled."
+return
+
+$psGetMod = Get-Module -Name PowerShellGet
+if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
 {
     Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
-    Import-Module -Name PowerShellGallery -RequiredVersion 3.0.0 -Force
+    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
 }
 
 $PSGalleryName = 'PSGallery'
@@ -13,6 +18,8 @@ $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 
 $TestLocalDirectory = 'TestLocalDirectory'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
+
+
 
 if (-not (Test-Path -LiteralPath $tmpdir)) {
     New-Item -Path $tmpdir -ItemType Directory > $null

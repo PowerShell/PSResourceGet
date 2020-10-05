@@ -1,11 +1,15 @@
-# This is a Pester test suite to validate Register-PSResourceRepository, Unregister-PSResourceRepository, Get-PSResourceRepository, and Set-PSResourceRepository.
-#
-# Copyright (c) Microsoft Corporation, 2019
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
-if (! (Get-Module -Name PowerShellGet))
+# TODO:
+Write-Warning "PSRepository.Tests.ps1 is current disabled."
+return
+
+$psGetMod = Get-Module -Name PowerShellGet
+if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
 {
     Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
-    Import-Module -Name PowerShellGallery -RequiredVersion 3.0.0 -Force
+    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
 }
 
 $PSGalleryName = 'PSGallery'
@@ -20,16 +24,11 @@ $TestRepoURL2 = 'https://api.nuget.org/v3/index.json'
 $TestRepoLocalName = 'TestLocalRepo'
 $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestRepoLocalName
 
-
-
-
 if (-not (Test-Path -LiteralPath $tmpdir)) {
     New-Item -Path $tmpdir -ItemType Directory > $null
 }
 Write-Host $tmpdir
 $TestRepoLocalURL = $tmpdir
-
-
 
 $TestRepoLocalName2 = "TestLocalRepoName2"
 $tmpdir2 = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestRepoLocalName2
@@ -45,9 +44,6 @@ $TestRepoLocalURL2 = $tmpdir2
 #}
 
 $ErrorActionPreference = "SilentlyContinue"
-
-
-
 
 #####################################
 ### Register-PSResourceRepository ###
@@ -75,7 +71,8 @@ Describe 'Test Register-PSResourceRepository' -tags 'BVT' {
     }
 
 	AfterEach {
-	}
+    }
+    
     ### Registering the PowerShell Gallery
     It 'Should register the default PSGallery' {
         Register-PSResourceRepository -PSGallery
