@@ -2,8 +2,18 @@
 #
 # Copyright (c) Microsoft Corporation, 2019
 
+# TODO:
+Write-Warning "PSRepository.Tests.ps1 is current disabled."
+return
+
+$psGetMod = Get-Module -Name PowerShellGet
+if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
+{
+    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
+    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
+}
+
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
-import-module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
 
 $PSGalleryName = 'PSGallery'
 $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'

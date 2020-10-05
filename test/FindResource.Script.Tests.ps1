@@ -62,8 +62,7 @@ Describe "Test Find-PSResource for Script" {
         @{Version="(,1.5.0.0)";         ExpectedVersion="1.2.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    )
-    {
+    ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "Fabrikam-ServerScript" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "Fabrikam-ServerScript"
@@ -76,20 +75,25 @@ Describe "Test Find-PSResource for Script" {
     #
     # Expected Result: should not return a resource
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version="(1.5.0.0)";       Description="exlcusive version (2.5.0.0)"},
-        @{Version="[1-5-0-0]";       Description="version formatted with invalid delimiter"},
-        @{Version="[1.*.0]";         Description="version with wilcard in middle"},
-        @{Version="[*.5.0.0]";       Description="version with wilcard at start"},
-        @{Version="[1.*.0.0]";       Description="version with wildcard at second digit"},
-        @{Version="[1.5.*.0]";       Description="version with wildcard at third digit"}
-        @{Version="[1.5.0.*";        Description="version with wildcard at end"},
-        @{Version="[1..0.0]";        Description="version with missing digit in middle"},
-        @{Version="[1.5.0.]";        Description="version with missing digit at end"},
-        @{Version="[1.5.0.0.0]";     Description="version with more than 4 digits"}
-    )
-    {
+        @{Version='(1.5.0.0)';       Description="exlcusive version (2.5.0.0)"},
+        @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
+        @{Version='[1.*.0]';         Description="version with wilcard in middle"},
+        @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
+        @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
+        @{Version='[1.5.*.0]';       Description="version with wildcard at third digit"}
+        @{Version='[1.5.0.*';        Description="version with wildcard at end"},
+        @{Version='[1..0.0]';        Description="version with missing digit in middle"},
+        @{Version='[1.5.0.]';        Description="version with missing digit at end"},
+        @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
+    ) {
         param($Version, $Description)
-        $res = Find-PSResource -Name "Fabrikam-ServerScript" -Version $Version -Repository $TestGalleryName
+
+        $res = $null
+        try {
+            $res = Find-PSResource -Name "Fabrikam-ServerScript" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore
+        }
+        catch {}
+
         $res | Should -BeNullOrEmpty
     }
 
@@ -128,8 +132,7 @@ Describe "Test Find-PSResource for Script" {
         @{Version="(,1.5.0.0)";         Reason="validate version, maximum version exclusive"},
         @{Version="(,1.5.0.0]";         Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    )
-    {
+    ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "Fabrikam-ServerScript" -Version $Version -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty

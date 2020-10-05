@@ -1,0 +1,206 @@
+name: $(BuildDefinitionName)-$(date:yyMM).$(date:dd)$(rev:rrr)
+trigger:
+  # Batch merge builds together while a merge build is running
+  batch: true
+  branches:
+    include:
+    - master
+pr:
+  branches:
+    include:
+    - master
+
+stages:
+- stage: Build
+  displayName: Build PowerShellGet Module Package
+  jobs:
+  - job: BuildPkg
+    displayName: Build Package
+    pool:
+      name: Package ES CodeHub Lab E
+
+    steps:
+    - powershell: |
+        $powerShellPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'powershell'
+        Invoke-WebRequest -Uri https://raw.githubusercontent.com/PowerShell/PowerShell/master/tools/install-powershell.ps1 -outfile ./install-powershell.ps1
+        ./install-powershell.ps1 -Destination $powerShellPath
+        $vstsCommandString = "vso[task.setvariable variable=PATH]$powerShellPath;$env:PATH"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+      displayName: Install PowerShell Core
+
+    - task: UseDotNet@2
+      displayName: 'Install .NET Core 3.1.401 sdk'
+      inputs:
+        packageType: sdk
+        version: 3.1.401
+
+    - task: NuGetToolInstaller@1
+      displayName: 'Install NuGet 5.6.0'
+      inputs:
+        checkLatest: false
+        version: 5.6.0
+
+    - task: PkgESSetupBuild@10
+      displayName: 'Package ES - Setup Build'
+      inputs:
+        productName: PowerShellGet
+        useDfs: false
+        branchVersion: true
+        disableMsbuildVersion: true
+
+    - pwsh: |
+        Get-ChildItem -Path env:
+      displayName: Capture environment for build
+      condition: succeededOrFailed()
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        if (Test-Path -Path $modulePath) {
+          Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+          Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+        }
+        if (! (Test-Path -Path $modulePath)) {
+          Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+          $null = New-Item -Path $modulePath -ItemType Directory
+        }
+      displayName: Create temporary module path for PSPackageProject
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.0-beta10 -AllowPrerelease -Force
+      displayName: Install PowerShellGet Module
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Save-Module -Name "platyPS" -Path $modulePath -Force
+      displayName: Install platyPS dependency
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Save-Module -Name "PSScriptAnalyzer" -Path $modulePath -RequiredVersion 1.18.0 -Force
+      displayName: Install PSScriptAnalyzer dependency
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
+      displayName: Install Pester version 4
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Save-Module -Name PSPackageProject -Path $modulePath -Force
+      displayName: Install PSPackageProject module
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
+        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
+        Import-Module -Name $modPath -Force
+        #
+        # First build for netstandard2.0 framework
+        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'netstandard2.0'
+        # Next build for net472 framework
+        $(Build.SourcesDirectory)/build.ps1 -Build -BuildConfiguration Release -BuildFramework 'net472'
+      displayName: Build and publish artifact
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
+        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
+        Import-Module -Name $modPath -Force
+        #
+        $config = Get-PSPackageProjectConfiguration
+        $signSrcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
+        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
+        if (! (Test-Path -Path $signOutPath)) {
+          $null = New-Item -Path $signOutPath -ItemType Directory
+        }
+        Write-Host "Signed output path is: $signOutPath"
+        $signXmlPath = "$($config.SourcePath)\..\sign-module-files.xml"
+        # Set signing src path variable
+        $vstsCommandString = "vso[task.setvariable variable=signSrcPath]${signSrcPath}"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+        # Set signing out path variable
+        $vstsCommandString = "vso[task.setvariable variable=signOutPath]${signOutPath}"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+        # Set signing xml path
+        $vstsCommandString = "vso[task.setvariable variable=signXmlPath]${signXmlPath}"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+      displayName: Set up for code signing
+
+    - pwsh: |
+        Get-ChildItem -Path env:
+      displayName: Capture environment for module code signing
+      condition: succeededOrFailed()
+
+    - task: PkgESCodeSign@10
+      displayName: Sign build files
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      inputs:
+        signConfigXml: '$(signXmlPath)'
+        inPathRoot: '$(signSrcPath)'
+        outPathRoot: '$(signOutPath)'
+        binVersion: Production
+        binVersionOverride: ''
+      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
+        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
+        Import-Module -Name $modPath -Force
+        #
+        if ($env:SkipSigning -eq 'True')
+        {
+          $(Build.SourcesDirectory)/build.ps1 -Publish
+        }
+        else
+        {
+          $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+        }
+      displayName: Create module artifact
+
+- stage: Compliance
+  displayName: Compliance
+  dependsOn: Build
+  jobs:
+  - job: ComplianceJob
+    pool:
+      name: Package ES CodeHub Lab E
+    steps:
+    - template: compliance.yml
+
+- stage: Test
+  displayName: Test Package
+  dependsOn: Build
+  jobs:
+  - template: test.yml
+    parameters:
+      jobName: TestPkgWin
+      displayName: PowerShell Core on Windows
+      imageName: windows-2019
+
+  - template: test.yml
+    parameters:
+      jobName: TestPkgUbuntu16
+      displayName: PowerShell Core on Ubuntu 16.04
+      imageName: ubuntu-16.04
+
+  - template: test.yml
+    parameters:
+      jobName: TestPkgWinMacOS
+      displayName: PowerShell Core on macOS
+      imageName: macOS-10.14
+
+- stage: Release
+  displayName: Release Package
+  condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), eq(variables['Publish'], 'True'))
+  jobs:
+  - template: release.yml

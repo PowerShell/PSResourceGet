@@ -50,8 +50,7 @@ Describe 'Test Find-PSResource for Role Capability' {
         @{Version="(,2.5.0.0)";         ExpectedVersion="2.0.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,2.5.0.0]";         ExpectedVersion="2.5.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    )
-    {
+    ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "DscTestModule" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "DscTestModule"
@@ -64,20 +63,25 @@ Describe 'Test Find-PSResource for Role Capability' {
     #
     # Expected Result: should not return a resource
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version="(2.5.0.0)";       Description="exlcusive version (2.5.0.0)"},
-        @{Version="[2-5-0-0]";       Description="version formatted with invalid delimiter"},
-        @{Version="[2.*.0]";         Description="version with wilcard in middle"},
-        @{Version="[*.5.0.0]";       Description="version with wilcard at start"},
-        @{Version="[2.*.0.0]";       Description="version with wildcard at second digit"},
-        @{Version="[2.5.*.0]";       Description="version with wildcard at third digit"}
-        @{Version="[2.5.0.*";        Description="version with wildcard at end"},
-        @{Version="[2..0.0]";        Description="version with missing digit in middle"},
-        @{Version="[2.5.0.]";        Description="version with missing digit at end"},
-        @{Version="[2.5.0.0.0]";     Description="version with more than 4 digits"}
-    )
-    {
+        @{Version='(2.5.0.0)';       Description="exlcusive version (2.5.0.0)"},
+        @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"},
+        @{Version='[2.*.0]';         Description="version with wilcard in middle"},
+        @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
+        @{Version='[2.*.0.0]';       Description="version with wildcard at second digit"},
+        @{Version='[2.5.*.0]';       Description="version with wildcard at third digit"}
+        @{Version='[2.5.0.*';        Description="version with wildcard at end"},
+        @{Version='[2..0.0]';        Description="version with missing digit in middle"},
+        @{Version='[2.5.0.]';        Description="version with missing digit at end"},
+        @{Version='[2.5.0.0.0]';     Description="version with more than 4 digits"}
+    ) {
         param($Version, $Description)
-        $res = Find-PSResource -Name "DscTestModule" -Version $Version -Repository $TestGalleryName
+
+        $res = $null
+        try {
+            $res = Find-PSResource -Name "DscTestModule" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore
+        }
+        catch {}
+        
         $res | Should -BeNullOrEmpty
     }
 

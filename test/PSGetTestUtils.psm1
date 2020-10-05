@@ -6,9 +6,12 @@
 
 #."$PSScriptRoot\uiproxy.ps1"
 
-$baseParentPath = Split-Path -Path $PSScriptRoot # removes test directory and returns remaning parent path
-$fullPath = Join-Path -Path $baseParentPath -ChildPath "src" -AdditionalChildPath "out", "PowerShellGet"
-Import-Module $fullPath -Force
+$psGetMod = Get-Module -Name PowerShellGet
+if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
+{
+    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
+    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
+}
 
 $script:DotnetCommandPath = @()
 $script:EnvironmentVariableTarget = @{ Process = 0; User = 1; Machine = 2 }

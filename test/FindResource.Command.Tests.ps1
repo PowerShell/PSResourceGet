@@ -51,8 +51,7 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    )
-    {
+    ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "Az.Compute" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "Az.Compute"
@@ -65,20 +64,25 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not return a resource
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version="(4.2.1.0)";       Description="exlcusive version (4.2.1.0)"},
-        @{Version="[4-2-1-0]";       Description="version formatted with invalid delimiter"},
-        @{Version="[4.*.0]";         Description="version with wilcard in middle"},
-        @{Version="[*.2.1.0]";       Description="version with wilcard at start"},
-        @{Version="[4.*.1.0]";       Description="version with wildcard at second digit"},
-        @{Version="[4.2.*.0]";       Description="version with wildcard at third digit"}
-        @{Version="[4.2.1.*";        Description="version with wildcard at end"},
-        @{Version="[4..1.0]";        Description="version with missing digit in middle"},
-        @{Version="[4.2.1.]";        Description="version with missing digit at end"},
-        @{Version="[4.2.1.0.0]";     Description="version with more than 4 digits"}
-    )
-    {
+        @{Version='(4.2.1.0)';       Description="exlcusive version (4.2.1.0)"},
+        @{Version='[4-2-1-0]';       Description="version formatted with invalid delimiter"},
+        @{Version='[4.*.0]';         Description="version with wilcard in middle"},
+        @{Version='[*.2.1.0]';       Description="version with wilcard at start"},
+        @{Version='[4.*.1.0]';       Description="version with wildcard at second digit"},
+        @{Version='[4.2.*.0]';       Description="version with wildcard at third digit"}
+        @{Version='[4.2.1.*]';        Description="version with wildcard at end"},
+        @{Version='[4..1.0]';        Description="version with missing digit in middle"},
+        @{Version='[4.2.1.]';        Description="version with missing digit at end"},
+        @{Version='[4.2.1.0.0]';     Description="version with more than 4 digits"}
+    ) {
         param($Version, $Description)
-        $res = Find-PSResource -Name "Az.Compute" -Version $Version -Repository $TestGalleryName
+
+        $res = $null
+        try {
+            $res = Find-PSResource -Name "Az.Compute" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore
+        }
+        catch {}
+
         $res | Should -BeNullOrEmpty
     }
     
@@ -130,8 +134,7 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    )
-    {
+    ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "Az.Compute" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "Az.Compute"
@@ -157,7 +160,6 @@ Describe 'Test Find-PSResource for Command' {
         $res = Find-PSResource -Tags "Azure" -Repository $TestGalleryName | Where-Object { $_.Name -eq "Az.Accounts" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "Az.Accounts"
-
     }
 
     # Purpose: find resource with tags, given multiple Tags parameter values

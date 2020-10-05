@@ -41,8 +41,7 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    )
-    {
+    ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository $PSGalleryName
         $res.Name | Should -Be "NetworkingDsc"
@@ -55,20 +54,25 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not return a resource
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version="(8.1.0.0)";       Description="exlcusive version (8.1.0.0)"},
-        @{Version="[8-1-0-0]";       Description="version formatted with invalid delimiter"},
-        @{Version="[8.*.0]";         Description="version with wilcard in middle"},
-        @{Version="[*.1.0.0]";       Description="version with wilcard at start"},
-        @{Version="[8.*.0.0]";       Description="version with wildcard at second digit"},
-        @{Version="[8.1.*.0]";       Description="version with wildcard at third digit"}
-        @{Version="[8.1.0.*";        Description="version with wildcard at end"},
-        @{Version="[8..0.0]";        Description="version with missing digit in middle"},
-        @{Version="[8.1.0.]";        Description="version with missing digit at end"},
-        @{Version="[8.1.0.0.0]";     Description="version with more than 4 digits"}
-    )
-    {
+        @{Version='(8.1.0.0)';       Description="exlcusive version (8.1.0.0)"},
+        @{Version='[8-1-0-0]';       Description="version formatted with invalid delimiter"},
+        @{Version='[8.*.0]';         Description="version with wilcard in middle"},
+        @{Version='[*.1.0.0]';       Description="version with wilcard at start"},
+        @{Version='[8.*.0.0]';       Description="version with wildcard at second digit"},
+        @{Version='[8.1.*.0]';       Description="version with wildcard at third digit"}
+        @{Version='[8.1.0.*';        Description="version with wildcard at end"},
+        @{Version='[8..0.0]';        Description="version with missing digit in middle"},
+        @{Version='[8.1.0.]';        Description="version with missing digit at end"},
+        @{Version='[8.1.0.0.0]';     Description="version with more than 4 digits"}
+    ) {
         param($Version, $Description)
-        $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository $PSGalleryName
+
+        $res = $null
+        try {
+            $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository $PSGalleryName -ErrorAction Ignore
+        }
+        catch {}
+
         $res | Should -BeNullOrEmpty
     }
 
@@ -134,8 +138,7 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-    )
-    {
+    ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "NetworkingDsc" -Version $Version -Repository $PSGalleryName
         $res.Name | Should -Be "NetworkingDsc"
