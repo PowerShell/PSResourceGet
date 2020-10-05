@@ -113,8 +113,6 @@ function DoBuild
             {
                 throw "Expected binary was not created: $BuildSrcPath/${ModuleName}.dll"
             }
-
-            # TODO: Create zip file ?
         }
         catch {
             # Write-Error "dotnet build failed with error: $_"
