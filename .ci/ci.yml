@@ -64,32 +64,21 @@ stages:
           Write-Verbose -Verbose "Creating new temp module path: $modulePath"
           $null = New-Item -Path $modulePath -ItemType Directory
         }
-      displayName: Create temporary module path for PSPackageProject
+      displayName: Create temporary module path
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Write-Verbose -Verbose "Install PowerShellGet V3 to temp module path"
         Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.0-beta10 -AllowPrerelease -Force
-      displayName: Install PowerShellGet Module
-
-    - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Write-Verbose -Verbose "Install PlatyPS to temp module path"
         Save-Module -Name "platyPS" -Path $modulePath -Force
-      displayName: Install platyPS dependency
-
-    - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Write-Verbose -Verbose "Install PSScriptAnalyzer to temp module path"
         Save-Module -Name "PSScriptAnalyzer" -Path $modulePath -RequiredVersion 1.18.0 -Force
-      displayName: Install PSScriptAnalyzer dependency
-
-    - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Write-Verbose -Verbose "Install Pester 4.X to temp module path"
         Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
-      displayName: Install Pester version 4
-
-    - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Write-Verbose -Verbose "Install PSPackageProject to temp module path"
         Save-Module -Name PSPackageProject -Path $modulePath -Force
-      displayName: Install PSPackageProject module
+      displayName: Install PSPackageProject and dependencies
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
