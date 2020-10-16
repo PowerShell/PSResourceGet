@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -force
 
-Describe 'Test Find-PSResource for Command' {
+Describe 'Test Find-PSResource for DSC Resource' {
 
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
@@ -21,9 +21,9 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: returns resource with name NetworkingDsc
     It "find a DSCResource resource given Name parameter" {
-        $res = Find-PSResource -Name NetworkingDsc
+        $res = Find-PSResource -Name "test_dsc_module"
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be "NetworkingDsc"
+        $res.Name | Should -Be "test_dsc_module"
     }
 
     # Purpose: find a DSC resource given Name, to validate version parameter values
@@ -32,44 +32,44 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: return resource meeting version criteria
     It "find DSC resource when given Name to <Reason>" -TestCases @(
-        @{Version="[6.0.0.0]";          ExpectedVersion="6.0.0.0"; Reason="validate version, exact match"},
-        @{Version="6.0.0.0";            ExpectedVersion="6.0.0.0"; Reason="validate version, exact match without bracket syntax"},
-        @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
-        @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
-        @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
-        @{Version="[6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version inclusive"},
-        @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
-        @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
-        @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+        @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+        @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
+        @{Version="[1.0.0.0, 4.0.0.0]"; ExpectedVersion="4.0.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0, 4.0.0.0)"; ExpectedVersion="3.5.0.0"; Reason="validate version, exact range exclusive"},
+        @{Version="(1.0.0.0,)";         ExpectedVersion="4.0.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[3.5.0.0,)";         ExpectedVersion="4.0.0.0"; Reason="validate version, minimum version inclusive"},
+        @{Version="(,4.0.0.0)";         ExpectedVersion="3.5.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,4.0.0.0]";         ExpectedVersion="4.0.0.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0, 4.0.0.0)"; ExpectedVersion="3.5.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository $PSGalleryName
-        $res.Name | Should -Be "NetworkingDsc"
+        $res = Find-PSResource -Name "test_dsc_module" -Version $Version -Repository $TestGalleryName
+        $res.Name | Should -Be "test_dsc_module"
         $res.Version | Should -Be $ExpectedVersion
     }
 
     # Purpose: not find resources with invalid version
     #
-    # Action: Find-PSResource -Name "NetworkingDsc" -Version "(2.5.0.0)"
+    # Action: Find-PSResource -Name "test_dsc_module" -Version "(2.5.*.0)"
     #
     # Expected Result: should not return a resource
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='(8.1.0.0)';       Description="exlcusive version (8.1.0.0)"},
-        @{Version='[8-1-0-0]';       Description="version formatted with invalid delimiter"},
-        @{Version='[8.*.0]';         Description="version with wilcard in middle"},
-        @{Version='[*.1.0.0]';       Description="version with wilcard at start"},
-        @{Version='[8.*.0.0]';       Description="version with wildcard at second digit"},
-        @{Version='[8.1.*.0]';       Description="version with wildcard at third digit"}
-        @{Version='[8.1.0.*';        Description="version with wildcard at end"},
-        @{Version='[8..0.0]';        Description="version with missing digit in middle"},
-        @{Version='[8.1.0.]';        Description="version with missing digit at end"},
-        @{Version='[8.1.0.0.0]';     Description="version with more than 4 digits"}
+        @{Version='(2.5.0.0)';       Description="exlcusive version (8.1.0.0)"},
+        @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"},
+        @{Version='[2.*.0]';         Description="version with wilcard in middle"},
+        @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
+        @{Version='[2.*.0.0]';       Description="version with wildcard at second digit"},
+        @{Version='[2.5.*.0]';       Description="version with wildcard at third digit"}
+        @{Version='[2.5.0.*';        Description="version with wildcard at end"},
+        @{Version='[2..0.0]';        Description="version with missing digit in middle"},
+        @{Version='[2.5.0.]';        Description="version with missing digit at end"},
+        @{Version='[2.5.0.0.0]';     Description="version with more than 4 digits"}
     ) {
         param($Version, $Description)
 
         $res = $null
         try {
-            $res = Find-PSResource -Name "NetworkingDsc" -Version $Version -Repository $PSGalleryName -ErrorAction Ignore
+            $res = Find-PSResource -Name "test_dsc_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore
         }
         catch {}
 
@@ -78,12 +78,12 @@ Describe 'Test Find-PSResource for Command' {
 
     # Purpose: find a DSCResource resource with wilcard range Version parameter -> '*'
     #
-    # Action: Find-PSResource -Name NetworkingDsc -Version "*"
+    # Action: Find-PSResource -Name test_dsc_module -Version "*"
     #
-    # Expected Result: returns all NetworkingDsc resources (with versions in descending order)
+    # Expected Result: returns all test_dsc_module resources (with versions in descending order)
     It "find a DSCResource resource given Name with Version wildcard match " {
-        $res = Find-PSResource -Name NetworkingDsc -Version "*"
-        $res.Count | Should -BeGreaterOrEqual 11
+        $res = Find-PSResource -Name "test_dsc_module" -Version "*"
+        $res.Count | Should -Be 7
     }
 
     # Purpose: find DSC resource with all versions (incl preview), with Prerelease parameter
@@ -92,10 +92,10 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should return more versions with prerelease parameter than without
     It "find DSCResource resource with all preview versions, with Prerelease parameter" {
-        $res = Find-PSResource -Name ActiveDirectoryCSDsc -Version "*"
+        $res = Find-PSResource -Name "test_dsc_module" -Version "*"
         $withoutPrereleaseVersions = $res.Count
 
-        $resPrerelease = Find-PSResource -Name ActiveDirectoryCSDsc -Version "*" -Prerelease
+        $resPrerelease = Find-PSResource -Name "test_dsc_module" -Version "*" -Prerelease
         $withPrereleaseVersions = $resPrerelease.Count
         $withPrereleaseVersions | Should -BeGreaterOrEqual $withoutPrereleaseVersions
     }
@@ -106,11 +106,11 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should return (a later or) preview version than if without Prerelease parameter
     It "find DSCResource resource with preview version, with Prerelease parameter" {
-        $res = Find-PSResource -Name ActiveDirectoryCSDsc -Repository $PSGalleryName
-        $res.Version | Should -Be "5.0.0.0"
+        $res = Find-PSResource -Name "test_dsc_module" -Repository $TestGalleryName
+        $res.Version | Should -Be "4.0.0.0"
 
-        $resPrerelease = Find-PSResource -Name ActiveDirectoryCSDsc -Prerelease -Repository $PSGalleryName
-        $resPrerelease.Version | Should -Be "5.0.1.0"
+        $resPrerelease = Find-PSResource -Name "test_dsc_module" -Prerelease -Repository $TestGalleryName
+        $resPrerelease.Version | Should -Be "4.5.0.0"
     }
 
     # Purpose: find a DSCResource of package type module, given ModuleName parameter
@@ -119,8 +119,8 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: returns DSCResource with specified ModuleName
     It "find a DSCResource of package type module, given ModuleName parameter" {
-        $res = Find-PSResource -ModuleName NetworkingDsc -Repository $PSGalleryName
-        $res.Name | Should -Be "NetworkingDsc"
+        $res = Find-PSResource -ModuleName "test_dsc_module" -Repository $TestGalleryName
+        $res.Name | Should -Be "test_dsc_module"
     }
 
     # Purpose: find a DSC resource given Name, to validate version parameter values
@@ -129,63 +129,63 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: return resource meeting version criteria
     It "find DSC resource when given ModuleName to <Reason>" -TestCases @(
-        @{Version="[6.0.0.0]";          ExpectedVersion="6.0.0.0"; Reason="validate version, exact match"},
-        @{Version="6.0.0.0";            ExpectedVersion="6.0.0.0"; Reason="validate version, exact match without bracket syntax"},
-        @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
-        @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
-        @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
-        @{Version="[6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version inclusive"},
-        @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
-        @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
-        @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+        @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+        @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
+        @{Version="[1.0.0.0, 4.0.0.0]"; ExpectedVersion="4.0.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0, 4.0.0.0)"; ExpectedVersion="3.5.0.0"; Reason="validate version, exact range exclusive"},
+        @{Version="(1.0.0.0,)";         ExpectedVersion="4.0.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[3.5.0.0,)";         ExpectedVersion="4.0.0.0"; Reason="validate version, minimum version inclusive"},
+        @{Version="(,4.0.0.0)";         ExpectedVersion="3.5.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,4.0.0.0]";         ExpectedVersion="4.0.0.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0, 4.0.0.0)"; ExpectedVersion="3.5.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Find-PSResource -ModuleName "NetworkingDsc" -Version $Version -Repository $PSGalleryName
-        $res.Name | Should -Be "NetworkingDsc"
+        $res = Find-PSResource -ModuleName "test_dsc_module" -Version $Version -Repository $TestGalleryName
+        $res.Name | Should -Be "test_dsc_module"
         $res.Version | Should -Be $ExpectedVersion
     }
 
     # Purpose: find a DSCResource with a specific tag, given Tags parameter
     #
-    # Action: Find-PSResource -Tags CommandsAndResource -Repository PoshTestGallery | Where-Object { $_.Name -eq "DscTestModule" }
+    # Action: Find-PSResource -Tags "DSC" -Repository PoshTestGallery | Where-Object { $_.Name -eq "test_dsc_module" }
     #
     # Expected Result: return DscTestModule resource
     It "find a DSCResource with specific tag, given Tags parameter"{
-        $res = Find-PSResource -Tags "CommandsAndResource" -Repository $TestGalleryName | Where-Object { $_.Name -eq "DscTestModule" }
+        $res = Find-PSResource -Tags "DSC" -Repository $TestGalleryName | Where-Object { $_.Name -eq "test_dsc_module" }
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be "DscTestModule"
+        $res.Name | Should -Be "test_dsc_module"
     }
 
     # Purpose: find a DSCResource with multiple tag, given Tags parameter
     #
-    # Action: Find-PSResource -Tags CommandsAndResource,Tag-DscTestModule-2.5,Tag1 -Repository PoshTestGallery | Where-Object { $_.Name -eq "DscTestModule" }
+    # Action: Find-PSResource -Tags "DSC","PSDscResource_" -Repository PoshTestGallery | Where-Object { $_.Name -eq "DscTestModule" }
     #
     # Expected Result: return DscTestModule resource
     It "find a DSCResource with specific tag, given Tags parameter"{
-        $res = Find-PSResource -Tags "CommandsAndResource","Tag-DscTestModule-2.5","Tag1" -Repository $TestGalleryName | Where-Object { $_.Name -eq "DscTestModule" }
+        $res = Find-PSResource -Tags "DSC","PSDscResource_" -Repository $TestGalleryName | Where-Object { $_.Name -eq "test_dsc_module" }
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be "DscTestModule"
+        $res.Name | Should -Be "test_dsc_module"
     }
 
     # Purpose: not find non-available DSCResource from repository, given Repository parameter
     #
-    # Action: Find-PSResource -Name Carbon -Repository PSGallery
+    # Action: Find-PSResource -Name "test_dsc_module" -Repository PSGallery
     #
-    # Expected Result: should not AccessControlDSC from PoshTestGallery repository
+    # Expected Result: should not "test_dsc_module" from PoshTestGallery repository
     It "not find DSCResource from repository, given Repository parameter" {
-        $res = Find-PSResource -Name AccessControlDSC -Repository $TestGalleryName
+        $res = Find-PSResource -Name "test_dsc_module" -Repository $PSGalleryName
         $res | Should -BeNullOrEmpty
     }
 
     # Purpose: find DSCResource from repository, given Repository parameter
     #
-    # Action: Find-PSResource -Name Carbon -Repository PoshTestGallery
+    # Action: Find-PSResource -Name "test_dsc_module" -Repository PoshTestGallery
     #
-    # Expected Result: should find AccessControlDSC from PSGallery repository
+    # Expected Result: should find "test_dsc_module" from PSGallery repository
     It "find DSCResource from repository, given Repository parameter" {
-        $res = Find-PSResource -Name AccessControlDSC -Repository $PSGalleryName
+        $res = Find-PSResource -Name "test_dsc_module" -Repository $TestGalleryName
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be "AccessControlDSC"
+        $res.Name | Should -Be "test_dsc_module"
     }
 
     # Purpose: find resource in first repository where it exists given Repository parameter
@@ -210,7 +210,7 @@ Describe 'Test Find-PSResource for Command' {
     #
     # Expected Result: should not find AccessControlDSC resource from NonExistantRepo repository
     It "not find DSCResource from non-existant repository, given Repository parameter" {
-        $res = Find-PSResource -Name AccessControlDSC -Repository NonExistantRepo
+        $res = Find-PSResource -Name "test_dsc_module" -Repository NonExistantRepo
         $res.Name | Should -BeNullOrEmpty
     }
 
