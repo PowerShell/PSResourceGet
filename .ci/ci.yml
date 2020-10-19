@@ -140,11 +140,7 @@ stages:
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
       displayName: Set up for module created files code signing
-
-    - pwsh: |
-        Get-ChildItem -Path env:
-      displayName: Capture environment for module created files code signing
-      condition: succeededOrFailed()
+      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
     - template: ./templates/sign.yml
       parameters:
@@ -214,11 +210,7 @@ stages:
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
       displayName: Set up for module third party files code signing
-
-    - pwsh: |
-        Get-ChildItem -Path env:
-      displayName: Capture environment for module third party files code signing
-      condition: succeededOrFailed()
+      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
     - template: ./templates/sign.yml
       parameters:
@@ -241,6 +233,9 @@ stages:
         if (! (Test-Path -Path $signOutPath)) {
           $null = New-Item -Path $signOutPath -ItemType Directory
         }
+
+        # en-US
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "en-US") -Dest $signOutPath -Recurse
 
         # Net472 directory
         $net472SignedOutPath = Join-Path -Path $signOutPath -ChildPath "net472"
@@ -272,6 +267,7 @@ stages:
           }
         }
       displayName: Copy already properly signed third party files
+      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'

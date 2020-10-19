@@ -80,4 +80,6 @@ steps:
     Write-Verbose "SIGNED_OUTPUT_PATH- ${{ parameters.signOutputPath }}" -Verbose
     Copy-Item -Path ${{ parameters.buildOutputPath }}\* -Dest ${{ parameters.signOutputPath }}\ -Recurse -Force -Verbose
   displayName: Copy signed files to signed output directory
+  condition: and(and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True')), ne(variables['SigningServer'], ''))
   timeoutInMinutes: 10
+  
