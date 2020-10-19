@@ -92,7 +92,7 @@ steps:
   displayName: 'Run BinSkim '
   inputs:
     InputType: Basic
-    AnalyzeTarget: '$(BUILD_SOURCE)\PowerShellGet\netstandard2.0\Microsoft.PowerShellGet.dll'
+    AnalyzeTarget: '$(BUILD_SOURCE)\PowerShellGet\3.0.0\netstandard2.0\PowerShellGet.dll'
     AnalyzeSymPath: 'SRV*'
     AnalyzeVerbose: true
     AnalyzeHashes: true

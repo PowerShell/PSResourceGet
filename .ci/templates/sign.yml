@@ -1,0 +1,83 @@
+parameters:
+  - name: "buildOutputPath"
+    default: "$(Build.ArtifactStagingDirectory)\\build"
+  - name: "signOutputPath"
+    default: "$(Build.ArtifactStagingDirectory)\\signed"
+  - name: "certificateId"
+    default: "CP-230012"
+  - name: "pattern"
+    default: "*.dll,*.exe"
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Install .NET Core sdk 2.x for ESRP'
+  inputs:
+    version: 2.x
+
+- pwsh: |
+    [string] $CertificateId = "${{ parameters.certificateId }}"
+    Write-Verbose "CertificateId - $CertificateId" -Verbose
+
+    [string] $VariableName = "EsrpJson"
+
+    [string] $SigningServer = '$(SigningServer)'
+    Write-Verbose "SigningServer - $SigningServer" -Verbose
+
+    $esrpParameters = @(
+    @{
+        ParameterName  = "OpusName"
+        ParameterValue = "Microsoft"
+    }
+    @{
+        ParameterName  = "OpusInfo"
+        ParameterValue = "http://www.microsoft.com"
+    }
+    @{
+        ParameterName  = "PageHash"
+        ParameterValue = "/NPH"
+    }
+    @{
+        ParameterName  = "FileDigest"
+        ParameterValue = "/fd sha256"
+    }
+    @{
+        ParameterName  = "TimeStamp"
+        ParameterValue = "/tr ""$SigningServer"" /td sha256"
+    }
+    )
+
+    $esrp = @(@{
+    keyCode = $CertificateId
+    operationSetCode = "SigntoolSign"
+    parameters = $esrpParameters
+    toolName = "signtool.exe"
+    toolVersion = "6.2.9304.0"
+    })
+
+    $vstsCommandString = "vso[task.setvariable variable=$VariableName][$($esrp | ConvertTo-Json -Compress)]"
+    Write-Verbose -Message ("sending " + $vstsCommandString) -Verbose
+    Write-Host "##$vstsCommandString"
+
+    $vstsCommandString = "vso[task.setvariable variable=GDN_CODESIGN_TARGETDIRECTORY]${{ parameters.signOutputPath }}"
+    Write-Verbose -Message ("sending " + $vstsCommandString) -Verbose
+    Write-Host "##$vstsCommandString"
+  displayName: Generate signing JSON
+  condition: and(and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True')), ne(variables['SigningServer'], ''))
+
+- task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+  displayName: Sign files
+  inputs:
+    ConnectedServiceName: pwshSigning
+    FolderPath: '${{ parameters.buildOutputPath }}'
+    UseMinimatch: false
+    signConfigType: inlineSignParams
+    inlineOperation: $(EsrpJson)
+    Pattern: ${{ parameters.pattern }}
+  condition: and(and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True')), ne(variables['SigningServer'], ''))
+
+- pwsh: |
+    Write-Verbose "BUILD_OUTPUT_PATH- ${{ parameters.buildOutputPath }}" -Verbose
+    Write-Verbose "SIGNED_OUTPUT_PATH- ${{ parameters.signOutputPath }}" -Verbose
+    Copy-Item -Path ${{ parameters.buildOutputPath }}\* -Dest ${{ parameters.signOutputPath }}\ -Recurse -Force -Verbose
+  displayName: Copy signed files to signed output directory
+  timeoutInMinutes: 10

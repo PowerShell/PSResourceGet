@@ -90,10 +90,10 @@ Describe 'Test Install-PSResource using the RequiredResource parameter set' -tag
     It 'Should install the resource specified in the hashtable' {
         $hash = 
         @{
-            “name” = “CertificateDsc”
-            "trustrepository" = "true"
-            “version” = "[4.0.0,4.2.0]”
-            "Prerelease" = "true"
+            name = "CertificateDsc"
+            trustrepository = "true"
+            version = "[4.0.0,4.2.0]"
+            Prerelease = "true"
         }
 
         $ret = Install-PSResource -RequiredResource $hash
@@ -145,4 +145,3 @@ Describe 'Test Install-PSResource using the RequiredResource parameter set' -tag
         $pkg.Version.ToString() | Should -BeLessOrEqual 4.2.0.0
     }
 }
-

@@ -46,8 +46,10 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="4.3.0.0";            ExpectedVersion="4.3.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
+        <#
         @{Version="[4.4.0.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version inclusive"},
         @{Version="(4.2.1.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version exclusive"},
+        #>
         @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
@@ -101,6 +103,7 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Find-PSResource -Name Az.Accounts -Prerelease
     #
     # Expected Result: should return latest version (including preview versions) of Az.Accounts resource
+    <#
     It "find Command resource with latest version (including preview versions), with Prerelease parameter" {
         $res = Find-PSResource -Name "Az.Accounts"
         $res.Version | Should -Be "1.9.4.0"
@@ -108,6 +111,7 @@ Describe 'Test Find-PSResource for Command' {
         $resPrerelease = Find-PSResource -Name Az.Accounts -Prerelease
         $resPrerelease.Version | Should -Be "2.0.1.0"
     }
+    #>
 
     # Purpose: find Command resource given ModuleName parameter with Version null or empty
     #
@@ -129,8 +133,10 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="4.3.0.0";            ExpectedVersion="4.3.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
+        <#
         @{Version="[4.4.0.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version inclusive"},
         @{Version="(4.2.1.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version exclusive"},
+        #>
         @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
