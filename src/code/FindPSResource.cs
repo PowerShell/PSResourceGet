@@ -398,10 +398,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
                 }
 
-                foreach (var n in _name)
-                {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context));
+                foreach(string n in _name){
+                    if (pkgsLeftToFind.Any())
+                    {
+                        var foundPkgs = FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context);
+                        if (foundPkgs.Any() && foundPkgs.First().Count() != 0)
+                        {
+                            returnedPkgs.AddRange(foundPkgs);
+
+
+                            // if the repository is not specified or the repository is specified (but it's not '*'), then we can stop continuing to search for the package
+                            if (_repository == null ||  !_repository[0].Equals("*"))
+                            {
+                                pkgsLeftToFind.Remove(n);
+                            }
+                        }
+                    }
                 }
+                // foreach (var n in _name)
+                // {
+                //     returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context));
+                // }
             }
             else
             {

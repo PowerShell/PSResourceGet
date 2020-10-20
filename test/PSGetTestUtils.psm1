@@ -174,8 +174,11 @@ function Get-TestDriveSetUp
 {
     $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
     $null = New-Item $repoURLAddress -ItemType Directory -Force
-
     Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+
+    $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
+    $null = New-Item $repoURLAddress2 -ItemType Directory -Force
+    Set-PSResourceRepository -Name "psgettestlocal2" -URL $repoURLAddress2
 
     $testResourcesFolder = Join-Path $TestDrive -ChildPath "TestLocalDirectory"
     
@@ -226,7 +229,10 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
-        $scriptName
+        $scriptName,
+
+        [string]
+        $repoName
     )
     Get-TestDriveSetUp
 
@@ -252,7 +258,7 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
     $scriptMetadata = Create-PSScriptMetadata @params
     Set-Content -Path $scriptFilePath -Value $scriptMetadata
 
-    Publish-PSResource -path $scriptFilePath -Repository psgettestlocal
+    Publish-PSResource -path $scriptFilePath -Repository $repoName
 }
 
 function Get-CommandResourcePublishedToLocalRepoTestDrive

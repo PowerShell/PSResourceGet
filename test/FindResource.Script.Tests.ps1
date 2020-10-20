@@ -200,6 +200,21 @@ Describe "Test Find-PSResource for Script" {
         $resNonDefault.Repository | Should -Be "PSGallery"
     }
 
+    It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
+        $scriptName = "test_local_script"
+        $repoHigherPriorityRanking = "psgettestlocal"
+        $repoLowerPriorityRanking = "psgettestlocal2"
+
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName $repoHigherPriorityRanking
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName $repoLowerPriorityRanking
+
+        $res = Find-PSResource -Name "test_local_script"
+        $res.Repository | Should -Be $repoHigherPriorityRanking
+
+        $resNonDefault = Find-PSResource -Name "test_local_script" -Repository $repoLowerPriorityRanking
+        $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
+    }
+
     # Purpose: find a resource and its dependency resource(s) with IncludeDependencies parameter
     #
     # Action: Find-PSResources -Name "test_script" -IncludeDependencies
@@ -215,11 +230,12 @@ Describe "Test Find-PSResource for Script" {
 
     It "find resource in local repository given Repository parameter" {
         $scriptName = "TestScriptName"
-        Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName
+        $repoName = "psgettestlocal"
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName $repoName
 
-        $res = Find-PSResource -Name $scriptName -Repository "psgettestlocal"
+        $res = Find-PSResource -Name $scriptName -Repository $repoName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $scriptName
-        $res.Repository | Should -Be "psgettestlocal"
+        $res.Repository | Should -Be $repoName
     }
 }
