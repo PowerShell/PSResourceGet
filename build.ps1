@@ -51,6 +51,7 @@ $script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
 $script:SignedDirectory = $config.SignedOutputPath
 $script:TestPath = $config.TestPath
+$script:DSCModulePath = "DSC"
 
 $script:ModuleRoot = $PSScriptRoot
 $script:Culture = $config.Culture

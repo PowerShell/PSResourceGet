@@ -36,8 +36,10 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="6.0.0.0";            ExpectedVersion="6.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
+        <#
         @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
         @{Version="[6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version inclusive"},
+        #>
         @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
@@ -133,8 +135,10 @@ Describe 'Test Find-PSResource for Command' {
         @{Version="6.0.0.0";            ExpectedVersion="6.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
         @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
+        <#
         @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
         @{Version="[6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version inclusive"},
+        #>
         @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
         @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
         @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}

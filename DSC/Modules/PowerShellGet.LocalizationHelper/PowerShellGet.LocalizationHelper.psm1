@@ -9,6 +9,7 @@
         The name of the invalid argument that is causing this error to be thrown.
 #>
 function New-InvalidArgumentException {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     [CmdletBinding()]
     param
     (
@@ -47,6 +48,7 @@ function New-InvalidArgumentException {
         The error record containing the exception that is causing this terminating error.
 #>
 function New-InvalidOperationException {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     [CmdletBinding()]
     param
     (
@@ -96,6 +98,7 @@ function New-InvalidOperationException {
         The error record containing the exception that is causing this terminating error.
 #>
 function New-ObjectNotFoundException {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     [CmdletBinding()]
     param
     (
@@ -145,6 +148,7 @@ function New-ObjectNotFoundException {
         The error record containing the exception that is causing this terminating error.
 #>
 function New-InvalidResultException {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     [CmdletBinding()]
     param
     (
