@@ -221,7 +221,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // if it can't find the pkg in one repository, it'll look in the next one in the list
                 // returns any pkgs found, and any pkgs that weren't found
-                    returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
+                returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
 
 
                 // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
@@ -398,9 +398,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
                 }
 
-                foreach (var n in _name)
-                {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context));
+                foreach(string n in _name){
+                    if (pkgsLeftToFind.Any())
+                    {
+                        var foundPkgs = FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context);
+                        if (foundPkgs.Any() && foundPkgs.First().Count() != 0)
+                        {
+                            returnedPkgs.AddRange(foundPkgs);
+
+
+                            // if the repository is not specified or the repository is specified (but it's not '*'), then we can stop continuing to search for the package
+                            if (_repository == null ||  !_repository[0].Equals("*"))
+                            {
+                                pkgsLeftToFind.Remove(n);
+                            }
+                        }
+                    }
                 }
             }
             else
