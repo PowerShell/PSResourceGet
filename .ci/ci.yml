@@ -20,7 +20,7 @@ stages:
   - job: BuildPkg
     displayName: Build Package
     pool:
-      name: Package ES CodeHub Lab E
+      vmImage: windows-latest
 
     steps:
     - powershell: |
