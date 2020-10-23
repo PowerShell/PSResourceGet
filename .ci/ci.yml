@@ -5,10 +5,12 @@ trigger:
   branches:
     include:
     - master
+    - development
 pr:
   branches:
     include:
     - master
+    - development
 
 variables:
   - group: ESRP
