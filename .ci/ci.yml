@@ -20,7 +20,7 @@ stages:
   - job: BuildPkg
     displayName: Build Package
     pool:
-      vmImage: windows-latest
+      vmImage: windows-2019
 
     steps:
     - powershell: |
@@ -292,7 +292,7 @@ stages:
   jobs:
   - job: ComplianceJob
     pool:
-      name: Package ES CodeHub Lab E
+      vmImage: windows-2019
     steps:
     - template: compliance.yml
 
