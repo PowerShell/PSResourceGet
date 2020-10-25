@@ -26,14 +26,5 @@ $script:PSGet = 'PowerShellGet.dll'
 $pathToFramework = Join-Path -Path $script:PSModuleRoot -ChildPath $script:Framework
 $pathToAssembly = Join-Path -Path $pathToFramework -ChildPath $script:PSGet
 
-<#
-# Remove framework binaries that are not needed
-$FrameworkToRemovePath = Join-Path -Path $script:PSModuleRoot -ChildPath $script:FrameworkToRemove
-if (Test-Path $FrameworkToRemovePath)
-{
-    Remove-Item $FrameworkToRemovePath -Force -Recurse
-}
-#>
-
 # NOW LOAD THE APPROPRIATE ASSEMBLY
-$ImportedPSGetModule = Import-Module -Name $pathToAssembly -PassThru
+Import-Module -Name $pathToAssembly

@@ -18,10 +18,10 @@ function DoBuild
     Write-Verbose -Verbose -Message "Module build source path: '$BuildSrcPath'"
 
     # Copy module script files
-    Write-Verbose -Verbose "Copy-Item ${SrcPath}/${ModuleName}.psd1 to ${OutDirectory}/${ModuleName}"
-    Copy-Item -Path "${SrcPath}/${ModuleName}.psd1" -Dest "${OutDirectory}/${ModuleName}"
-    Write-Verbose -Verbose "Copy Item ${SrcPath}/PSModule.psm1 to ${OutDirectory}/${ModuleName}"
-    Copy-Item -Path "${SrcPath}/PSModule.psm1" -Dest "${OutDirectory}/${ModuleName}"
+    Write-Verbose -Verbose "Copy-Item ${SrcPath}/${ModuleName}.psd1 to $BuildOutPath"
+    Copy-Item -Path "${SrcPath}/${ModuleName}.psd1" -Dest "$BuildOutPath" -Force
+    Write-Verbose -Verbose "Copy Item ${SrcPath}/PSModule.psm1 to $BuildOutPath"
+    Copy-Item -Path "${SrcPath}/PSModule.psm1" -Dest "$BuildOutPath" -Force
 
     # Create BuildFramework directory for binary location
     $BuildOutputBin = Join-Path -Path $BuildOutPath -ChildPath $BuildFramework
@@ -32,8 +32,23 @@ function DoBuild
 
     # Copy help
     Write-Verbose -Verbose -Message "Copying help files to '$BuildOutPath'"
-    Copy-Item -Path "${HelpPath}/${Culture}" -Dest "$BuildOutPath" -Recurse
+    Copy-Item -Path "${HelpPath}/${Culture}" -Dest "$BuildOutPath" -Recurse -Force
 
+    #
+    # Copy DSC resources
+    # TODO: This should not be part of PowerShellGet build/publish and should be moved to its own project
+    #
+    Write-Verbose -Verbose -Message "Copying DSC resources to '$BuildOutPath"
+    Copy-Item -Path "${DSCModulePath}/DscResources" -Dest "$BuildOutPath" -Recurse -Force
+
+    #
+    # Copy Localization and Resources helper modules
+    # TODO: This should not be part of PowerShellGet build/publish and should be moved to its own project
+    #
+    Write-Verbose -Verbose -Message "Copying DSC resources to '$BuildOutPath"
+    Copy-Item -Path "${DSCModulePath}/Modules" -Dest "$BuildOutPath" -Recurse -Force
+
+    # Build and place binaries
     if ( Test-Path "${SrcPath}/code" ) {
         Write-Verbose -Verbose -Message "Building assembly and copying to '$BuildOutPath'"
         # Build code and place it in the staging location

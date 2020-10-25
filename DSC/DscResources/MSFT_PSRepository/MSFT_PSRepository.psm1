@@ -209,6 +209,7 @@ function Set-TargetResource {
         settings than those in DscResource.Tests DSC test framework.
         Only those suppression that contradict this repository guideline is added here.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('DscResource.AnalyzerRules\Measure-FunctionBlockBraces', '')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('DscResource.AnalyzerRules\Measure-IfStatement', '')]
     [CmdletBinding()]

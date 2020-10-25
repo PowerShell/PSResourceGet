@@ -149,25 +149,33 @@ function Get-PoshTestGalleryLocation {
 
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
-    $originalXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
-    $tempXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
-    Copy-Item -Path $originalXmlFilePath -Destination  $tempXmlFilePath
+    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
+    $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
+    
+    if (Test-Path -Path $originalXmlFilePath) {
+        Copy-Item -Path $originalXmlFilePath -Destination $tempXmlFilePath
+        Remove-Item -Path $originalXmlFilePath -Force -ErrorAction Ignore
+    }
 
-    Remove-Item -Path $originalXmlFilePath -Force
+    if (! (Test-Path -Path $powerShellGetPath)) {
+        $null = New-Item -Path $powerShellGetPath -ItemType Directory -Verbose
+    }
 
     $fileToCopy = Join-Path -Path $PSScriptRoot -ChildPath "testRepositories.xml"
-    Copy-Item $fileToCopy -Destination $originalXmlFilePath
+    Copy-Item -Path $fileToCopy -Destination $originalXmlFilePath -Force -Verbose
 }
 
 function Get-RevertPSResourceRepositoryFile {
-    $originalXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "PSResourceRepository.xml"
-    $tempXmlFilePath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet" -AdditionalChildPath "temp.xml"
+    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
+    $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
 
-    Remove-Item -Path $originalXmlFilePath -Force
-    
-    Copy-Item -Path $tempXmlFilePath -Destination $originalXmlFilePath
-
-    Remove-Item $tempXmlFilePath
+    if (Test-Path -Path $tempXmlFilePath) {
+        Remove-Item -Path $originalXmlFilePath -Force -ErrorAction Ignore
+        Copy-Item -Path $tempXmlFilePath -Destination $originalXmlFilePath -Force
+        Remove-Item -Path $tempXmlFilePath -Force -ErrorAction Ignore
+    }
 }
 
 function Get-TestDriveSetUp

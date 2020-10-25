@@ -221,7 +221,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // if it can't find the pkg in one repository, it'll look in the next one in the list
                 // returns any pkgs found, and any pkgs that weren't found
-                    returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
+                returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
 
 
                 // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
