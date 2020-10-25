@@ -15,51 +15,31 @@ Describe 'Test Find-PSResource for Module' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    # Purpose: to find all resources when no parameters are specified
-    #
-    # Action: Find-PSResource
-    #
-    # Expected-Result: finds all (more than 1) resources in PSGallery
     It "find Resources Without Any Parameter Values" {
         $psGetItemInfo = Find-PSResource
         $psGetItemInfo.Count | Should -BeGreaterThan 1
     }
 
-    # Purpose: to find a specific resource by name
-    #
-    # Action: Find-PSResource -Name "test_module"
-    #
-    # Expected Result: Should find "test_module" resource
     It "find Specific Module Resource by Name" {
         $specItem = Find-PSResource -Name "test_module"
         $specItem.Name | Should -Be "test_module"
     }
 
-    # Purpose: to find a resource(s) with regex in name parameter
-    #
-    # Action: Find-PSResource -Name Contoso*
-    #
-    # Expected Result: should find multiple resources,namely atleast ContosoServer, ContosoClient, Contoso
     It "find multiple Resource(s) with Wildcards for Name Param" {
         $res = Find-PSResource -Name test_*
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
-    # Purpose: to find a specific resource with wildcard in name
-    #
-    # Action: Find-PSResource *ontosoServe*
-    #
-    # Expected Result: should find the ContosoServer resource
     It "find Specific Resource with Wildcards for Name Param" {
         $res = Find-PSResource *est_modul*
         $res.Name | Should -Be "test_module"
     }
 
-    # Purpose: find resource when given Name, Version param not null
-    #
-    # Action: Find-PSResource -Name test_module -Repository PoshTestGallery
-    #
-    # Expected Result: returns test_module resource
+    It "should not find resource given nonexistant name" {
+        $res = Find-PSResource -Name NonExistantModule
+        $res | Should -BeNullOrEmpty
+    }
+
     It "find resource when given Name to <Reason> <Version>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
         @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
@@ -77,11 +57,6 @@ Describe 'Test Find-PSResource for Module' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    # Purpose: not find resources with invalid version
-    #
-    # Action: Find-PSResource -Name "test_module" -Version "(1.5.0.0)"
-    #
-    # Expected Result: should not return a resource
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
         @{Version='(1.5.0.0)';       Description="exclusive version (8.1.0.0)"},
         @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
@@ -105,32 +80,17 @@ Describe 'Test Find-PSResource for Module' {
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: find resources when given Name, Version not null --> '*'
-    #
-    # Action: Find-PSResource -Name "test_module" -Version "*" -Repository PoshTestGallery
-    #
-    # Expected Result: returns 4 "test_module" resources (of all versions in descending order)
     It "find resources when given Name, Version not null --> '*'" {
         $res = Find-PSResource -Name "test_module" -Version "*" -Repository $TestGalleryName
         $res.Count | Should -Be 7
     }
 
-    # Purpose: find resource when given ModuleName, Version param null
-    #
-    # Action: Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery
-    #
-    # Expected Result: returns nothing, prints error message
-    It "find resource when given ModuleName, Version param null" {
-        $res = Find-PSResource -ModuleName "test_module" -Repository $TestGalleryName
+    It "find resource when given Name, Version param null" {
+        $res = Find-PSResource -Name "test_module" -Repository $TestGalleryName
         $res.Name | Should -Be "test_module"
         $res.Version | Should -Be "5.0.0.0"
     }
 
-    # Purpose: find resource when given ModuleName, Version param not null
-    #
-    # Action: Find-PSResource -ModuleName ContosoServer -Repository PoshTestGallery
-    #
-    # Expected Result: returns ContosoServer resource
     It "find resource when given ModuleName to <Reason>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
         @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
@@ -148,74 +108,64 @@ Describe 'Test Find-PSResource for Module' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    # Purpose: find resources when given ModuleName, Version not null --> '*'
-    #
-    # Action: Find-PSResource -ModuleName test_module -Version "*" -Repository PoshTestGallery
-    #
-    # Expected Result: returns all test_module resources (of all versions in descending order)
     It "find resources when given ModuleName, Version not null --> '*'" {
         $res = Find-PSResource -ModuleName "test_module" -Version "*" -Repository $TestGalleryName
         $res.Count | Should -Be 7
     }
 
-    # Purpose: find resource with latest version (including prerelease version) given Prerelease parameter
-    #
-    # Action: Find-PSResource -Name "test_module" -Prerelease
-    #
-    # Expected Result: should return latest version (may be a prerelease version)
+    It "find resource when given ModuleName, Version param null" {
+        $res = Find-PSResource -ModuleName "test_module" -Repository $TestGalleryName
+        $res.Name | Should -Be "test_module"
+        $res.Version | Should -Be "5.0.0.0"
+    }
+
     It "find resource with latest (including prerelease) version given Prerelease parameter" {
         # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
-        $res = Find-PSResource -Name "test_module"
+        $res = Find-PSResource -Name "test_module" -Repository $TestGalleryName
         $res.Version | Should -Be "5.0.0.0"
 
-        $resPrerelease = Find-PSResource -Name "test_module" -Prerelease
+        $resPrerelease = Find-PSResource -Name "test_module" -Prerelease -Repository $TestGalleryName
         $resPrerelease.Version | Should -Be "5.2.5.0"        
     }
 
-    # Purpose: to find a resource given Tags parameter with one value
-    #
-    # Action: Find-PSResource -Tags "Test" | Where-Object { $_.Name -eq "test_module" }
-    #
-    # Expected Result: should return all resources with that tag, and then filter by name
     It "find a resource given Tags parameter with one value" {
         $res = Find-PSResource -Tags "Test" | Where-Object { $_.Name -eq "test_module" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "test_module"
     }
 
-    # Purpose: find resource(s) given multiple tags for the Tags parameter.
-    #
-    # Action: Find-PSResource -Tags "Test", "CommandsAndResource", "Tag2"
-    #
-    # Expected Result: Should return more resources than if just queried with -Tags CommandsAndResources
     It "find a resource given tags parameter with multiple values" {
-        $resSingleTag = Find-PSResource -Tags "CommandsAndResource"
-        $res = Find-PSResource -Tags "Test","CommandsAndResource","Tag2"
+        $resSingleTag = Find-PSResource -Tags "Test" -Repository $TestGalleryName
+        $resMultipleTags = Find-PSResource -Tags "Test","CommandsAndResource","Tag2" -Repository $TestGalleryName
+        $resMultipleTags.Count | Should -BeGreaterOrEqual $resSingleTag.Count
+
+        $res = $resMultipleTags | Where-Object { $_.Name -eq "test_module" }
         $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -BeGreaterOrEqual $resSingleTag.Count
+        $res.Name | Should -Be "test_module"
     }
 
-    # Purpose: find a resource in a specific repository, given Repository parameter
-    #
-    # Action: Find-PSResource "test_module" -Repository $PoshTestGalleryName
-    #
-    # Expected Result: Should find the resource from the specified repository
-    It "find resource given repository parameter" {
+    It "not find resource given repository parameter where resource does not exist" {
         $res = Find-PSResource "test_module" -Repository $PSGalleryName
         $res | Should -BeNullOrEmpty
+    }
 
-        # ContosoServer resource exists in the PostTestGalleryRepository
+    It "find resource given repository parameter where resource does exist" {
         $resCorrectRepo = Find-PSResource "test_module" -Repository $TestGalleryName
         $resCorrectRepo | Should -Not -BeNullOrEmpty
         $resCorrectRepo.Repository | Should -Be "PoshTestGallery"
     }
 
-    # Purpose: find resource in first repository where it exists given Repository parameter
-    #
-    # Action: Find-PSResource "Az.Compute"
-    #         Find-PSResource "Az.Compute" -Repository PSGallery
-    #
-    # Expected Result: Returns resource from first avaiable or specfied repository
+    It "find resource in local repository given Repository parameter" {
+        $publishModuleName = "TestFindModule"
+        $repoName = "psgettestlocal"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
+
+        $res = Find-PSResource -Name $publishModuleName -Repository $repoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $publishModuleName
+        $res.Repository | Should -Be $repoName
+    }
+
     It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
         $moduleName = "test_local_mod"
         $repoHigherPriorityRanking = "psgettestlocal"
@@ -231,29 +181,8 @@ Describe 'Test Find-PSResource for Module' {
         $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 
-    # Purpose: find a resource and associated dependecies given IncludeDependencies parameter
-    #
-    # Action: Find-PSResource "test_module" -IncludeDependencies
-    #
-    # Expected Result: should return resource specified and all associated dependecy resources
     It "find resource with IncludeDependencies parameter" {
         $res = Find-PSResource "test_module" -IncludeDependencies
         $res.Count | Should -Be 6
-    }
-
-    # Purpose: find resource in local repository given Repository parameter
-    #
-    # Action: Find-PSResource -Name "local_command_module" -Repository "psgettestlocal"
-    #
-    # Expected Result: should find resource from local repository
-    It "find resource in local repository given Repository parameter" {
-        $publishModuleName = "TestFindModule"
-        $repoName = "psgettestlocal"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
-
-        $res = Find-PSResource -Name $publishModuleName -Repository $repoName
-        $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be $publishModuleName
-        $res.Repository | Should -Be $repoName
     }
 }

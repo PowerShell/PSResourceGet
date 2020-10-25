@@ -14,33 +14,27 @@ Describe 'Test Find-PSResource for Command' {
     AfterAll {
        Get-RevertPSResourceRepositoryFile
     }
-    
-    # Purpose: find Command resource given Name paramater
-    #
-    # Action: Find-PSResource -Name "test_command_module"
-    #
-    # Expected Result: returns "test_command_module" resource
+
     It "find Command resource given Name parameter" {
         $res = Find-PSResource -Name "test_command_module"
-        $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "test_command_module"
     }
 
-    # Purpose: not find Command resource given unavailable name
-    #
-    # Action: Find-PSResource -Name NonExistantCommand
-    #
-    # Expected result: should not return NonExistantCommand resource
-    It "should not find Command resource given unavailable name" {
+    It "find multiple Resource(s) with Wildcards for Name Param" {
+        $res = Find-PSResource -Name test_command*
+        $res.Count | Should -BeGreaterOrEqual 1
+    }
+
+    It "find Specific Resource with Wildcards for Name Param" {
+        $res = Find-PSResource *est_comman*
+        $res.Name | Should -Be "test_command_module"
+    }
+
+    It "should not find resource given nonexistant name" {
         $res = Find-PSResource -Name NonExistantCommand
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: find Command resource with exact version, given Version parameter
-    #
-    # Action: Find-PSResource -Name"test_command_module" -Version "[4.3.0.0]"
-    #
-    # Expected Result: should return "test_command_module" resource with version 4.3.0.0
     It "find Command resource given Name to <Version> ---  <Reason>" -TestCases @(
         @{Version="[1.5.0.0]";          ExpectedVersion="1.5.0.0"; Reason="validate version, exact match"},
         @{Version="1.5.0.0";            ExpectedVersion="1.5.0.0"; Reason="validate version, exact match without bracket syntax"},
@@ -58,11 +52,6 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    # Purpose: not find resources with invalid version
-    #
-    # Action: Find-PSResource -Name "test_command_module" -Version "2..5.0"
-    #
-    # Expected Result: should not return a resource
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
         @{Version='(2.5.0.0)';       Description="exlcusive version (4.2.1.0)"},
         @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"},
@@ -85,47 +74,18 @@ Describe 'Test Find-PSResource for Command' {
 
         $res | Should -BeNullOrEmpty
     }
-    
-    # Purpose: find Command resource with wildcard version, given Version parameter -> '*' 
-    #
-    # Action: Find-PSResource -Name "test_command_module" -Version "*"
-    #
-    # Expected Result: should return all "test_command_module" resources (versions in descending order)
+
     It "find Command resource given Name to validate version wilcard match " {
-        $res = Find-PSResource -Name "test_command_module" -Version "*"
+        $res = Find-PSResource -Name "test_command_module" -Version "*" -Repository $TestGalleryName
         $res.Count | Should -Be 4
     }
 
-    # Purpose: find Command resource with latest version (including preview versions), with Prerelease parameter
-    #
-    # Action: Find-PSResource -Name "test_command_module" -Prerelease
-    #
-    # Expected Result: should return latest version (including preview versions) of Az.Accounts resource
-    <#
-    It "find Command resource with latest version (including preview versions), with Prerelease parameter" {
-        $res = Find-PSResource -Name "test_command_module"
-        $res.Version | Should -Be "2.5.0.0"
-
-        $resPrerelease = Find-PSResource -Name "test_command_module" -Prerelease
-        $resPrerelease.Version | Should -Be "2.6.5.0"
-    }
-    #>
-
-    # Purpose: find Command resource given ModuleName parameter with Version null or empty
-    #
-    # Action: Find-PSResource -ModuleName "test_command_module" -Repository "PoshTestGallery"
-    #
-    # Expected Result: should return resource with latest version
-    It "find Command resource given ModuleName with Version null or empty" {
+    It "find resource when given ModuleName, Version param null" {
         $res = Find-PSResource -ModuleName "test_command_module" -Repository $TestGalleryName
         $res.Name | Should -Be "test_command_module"
+        $res.Version | Should -Be "2.5.0.0"
     }
 
-    # Purpose: find command resource when given ModuleName and any Version parameter
-    #
-    # Action: Find-PSResource -Name "Az.Accounts" -Version [2.0.0.0] -Repository "PoshTestGallery"
-    #
-    # Expected Result: should find a command resource when given ModuleName and any version value
     It "find Command resource given ModuleName to <Version> ---  <Reason>" -TestCases @(
         @{Version="[1.5.0.0]";          ExpectedVersion="1.5.0.0"; Reason="validate version, exact match"},
         @{Version="1.5.0.0";            ExpectedVersion="1.5.0.0"; Reason="validate version, exact match without bracket syntax"},
@@ -143,65 +103,64 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    # Purpose: find Command resource given ModuleName to validate version match
-    #
-    # Action: Find-PSResource -ModuleName "test_command_module" -Version "*"
-    #
-    # Expected Result: should return all "test_command_module" resources (versions in descending order)
     It "find Command resource given ModuleName to validate version wildcard match " {
-        $res = Find-PSResource -ModuleName "test_command_module" -Version "*"
+        $res = Find-PSResource -ModuleName "test_command_module" -Version "*" -Repository $TestGalleryName
         $res.Count | Should -Be 4
     }
 
-    # Purpose: find resource with tag, given single Tags parameter
-    #
-    # Action: Find-PSResource -Tags "Test" -Repository PoshTestGallery | Where-Object { $_.Name -eq "test_command_module" }
-    #
-    # Expected Result: should return Az.Accounts resource
+
+    It "find Command resource given ModuleName with Version null or empty" {
+        $res = Find-PSResource -ModuleName "test_command_module" -Repository $TestGalleryName
+        $res.Name | Should -Be "test_command_module"
+        $res.Version | Should -Be "2.5.0.0"
+    }
+
+    It "find Command resource with latest version (including preview versions), with Prerelease parameter" {
+        $res = Find-PSResource -Name "test_command_module" -Repository $TestGalleryName
+        $res.Version | Should -Be "2.5.0.0"
+
+        $resPrerelease = Find-PSResource -Name "test_command_module" -Prerelease -Repository $TestGalleryName
+        $resPrerelease.Version | Should -Be "2.6.5.0"
+    }
+
     It "find resource with single tag, given Tags parameter" {
         $res = Find-PSResource -Tags "Test" -Repository $TestGalleryName | Where-Object { $_.Name -eq "test_command_module" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "test_command_module"
     }
 
-    # Purpose: find resource with tags, given multiple Tags parameter values
-    #
-    # Action: Find-PSResource -Tags "Test", "Subscription", "Tag1" -Repository PoshTestGallery | Where-Object { $_.Name -eq "test_command_module" }
-    #
-    # Expected Result: should return test_command_module resource
     It "find resource with multiple tags, given Tags parameter" {
-        $res = Find-PSResource -Tags "Test", "Subscription", "Tag1" -Repository $TestGalleryName | Where-Object { $_.Name -eq "test_command_module" }
+        $resSingleTag = Find-PSResource -Tags "Test" -Repository $TestGalleryName
+        $resMultipleTags = Find-PSResource -Tags "Test", "Subscription", "Tag1" -Repository $TestGalleryName
+        $resMultipleTags.Count | Should -BeGreaterOrEqual $resSingleTag.Count
+
+        $res = $resMultipleTags | Where-Object { $_.Name -eq "test_command_module" }
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "test_command_module"
     }
 
-    # Purpose: not find Command resource from repository where it is not available, given Repository parameter
-    #
-    # Action: Find-PSResource -Name "test_command_module" -Repository PoshTestGallery
-    #
-    # Expected Result: should not find test_command_module resource
-    It "not find Command resource from repository where it is not available, given Repository parameter" {
+    It "not find resource given Repository parameter where resource does not exist" {
         $res = Find-PSResource -Name "test_command_module" -Repository $PSGalleryName
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: find Command resource from repository where it is available, given Repository parameter
-    #
-    # Action: Find-PSResource -Name "test_command_module" -Repository PSGallery
-    #
-    # Expected Result: should find "test_command_module" resource
-    It "find Command resource, given Repository parameter" {
+    It "find resource given repository parameter where resource does exist" {
         $res = Find-PSResource -Name "test_command_module" -Repository $TestGalleryName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "test_command_module"
     }
 
-    # Purpose: find resource in first repository where it exists given Repository parameter
-    #
-    # Action: Find-PSResource "Az.Accounts"
-    #         Find-PSResource "Az.Accounts" -Repository PSGallery
-    #
-    # Expected Result: Returns resource from first avaiable or specfied repository
+    It "find resource in local repository given Repository parameter" {
+        $publishCmdName = "TestFindCommandModule"
+        $repoName = "psgettestlocal"
+        Get-CommandResourcePublishedToLocalRepoTestDrive $publishCmdName $repoName
+
+        $res = Find-PSResource -Name $publishCmdName -Repository $repoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $publishCmdName
+        $res.Repository | Should -Be $repoName
+    }
+
     It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
         $cmdName = "test_local_cmd"
         $repoHigherPriorityRanking = "psgettestlocal"
@@ -217,19 +176,8 @@ Describe 'Test Find-PSResource for Command' {
         $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 
-    # Purpose: find resource in local repository given Repository parameter
-    #
-    # Action: Find-PSResource -Name "local_command_module" -Repository "psgettestlocal"
-    #
-    # Expected Result: should find resource from local repository
-    It "find resource in local repository given Repository parameter" {
-        $publishCmdName = "TestFindCommandModule"
-        $repoName = "psgettestlocal"
-        Get-CommandResourcePublishedToLocalRepoTestDrive $publishCmdName $repoName
-
-        $res = Find-PSResource -Name $publishCmdName -Repository $repoName
-        $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be $publishCmdName
-        $res.Repository | Should -Be $repoName
+    It "find resource with IncludeDependencies parameter" {
+        $res = Find-PSResource "test_command_module" -IncludeDependencies
+        $res.Count | Should -Be 6
     }
 }
