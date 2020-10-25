@@ -85,12 +85,6 @@ Describe 'Test Find-PSResource for Module' {
         $res.Count | Should -Be 7
     }
 
-    It "find resource when given Name, Version param null" {
-        $res = Find-PSResource -Name "test_module" -Repository $TestGalleryName
-        $res.Name | Should -Be "test_module"
-        $res.Version | Should -Be "5.0.0.0"
-    }
-
     It "find resource when given ModuleName to <Reason>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
         @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
@@ -150,9 +144,10 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resource given repository parameter where resource does exist" {
-        $resCorrectRepo = Find-PSResource "test_module" -Repository $TestGalleryName
-        $resCorrectRepo | Should -Not -BeNullOrEmpty
-        $resCorrectRepo.Repository | Should -Be "PoshTestGallery"
+        $res = Find-PSResource "test_module" -Repository $TestGalleryName
+        $res.Repository | Should -Be $TestGalleryName
+        $res.Name | Should -Be "test_module"
+        $res.Version | Should -Be "5.0.0.0"
     }
 
     It "find resource in local repository given Repository parameter" {
@@ -182,7 +177,7 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resource with IncludeDependencies parameter" {
-        $res = Find-PSResource "test_module" -IncludeDependencies
+        $res = Find-PSResource -Name "test_module" -IncludeDependencies
         $res.Count | Should -Be 6
     }
 }

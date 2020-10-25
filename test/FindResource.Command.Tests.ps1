@@ -30,12 +30,7 @@ Describe 'Test Find-PSResource for Command' {
         $res.Name | Should -Be "test_command_module"
     }
 
-    It "should not find resource given nonexistant name" {
-        $res = Find-PSResource -Name NonExistantCommand
-        $res | Should -BeNullOrEmpty
-    }
-
-    It "find Command resource given Name to <Version> ---  <Reason>" -TestCases @(
+    It "find Command resource given Name to <Reason>" -TestCases @(
         @{Version="[1.5.0.0]";          ExpectedVersion="1.5.0.0"; Reason="validate version, exact match"},
         @{Version="1.5.0.0";            ExpectedVersion="1.5.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
@@ -80,13 +75,7 @@ Describe 'Test Find-PSResource for Command' {
         $res.Count | Should -Be 4
     }
 
-    It "find resource when given ModuleName, Version param null" {
-        $res = Find-PSResource -ModuleName "test_command_module" -Repository $TestGalleryName
-        $res.Name | Should -Be "test_command_module"
-        $res.Version | Should -Be "2.5.0.0"
-    }
-
-    It "find Command resource given ModuleName to <Version> ---  <Reason>" -TestCases @(
+    It "find Command resource given ModuleName to <Reason>" -TestCases @(
         @{Version="[1.5.0.0]";          ExpectedVersion="1.5.0.0"; Reason="validate version, exact match"},
         @{Version="1.5.0.0";            ExpectedVersion="1.5.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
@@ -107,7 +96,6 @@ Describe 'Test Find-PSResource for Command' {
         $res = Find-PSResource -ModuleName "test_command_module" -Version "*" -Repository $TestGalleryName
         $res.Count | Should -Be 4
     }
-
 
     It "find Command resource given ModuleName with Version null or empty" {
         $res = Find-PSResource -ModuleName "test_command_module" -Repository $TestGalleryName
@@ -146,8 +134,8 @@ Describe 'Test Find-PSResource for Command' {
 
     It "find resource given repository parameter where resource does exist" {
         $res = Find-PSResource -Name "test_command_module" -Repository $TestGalleryName
-        $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "test_command_module"
+        $res.Version | Should -Be "2.5.0.0"
     }
 
     It "find resource in local repository given Repository parameter" {
@@ -177,7 +165,7 @@ Describe 'Test Find-PSResource for Command' {
     }
 
     It "find resource with IncludeDependencies parameter" {
-        $res = Find-PSResource "test_command_module" -IncludeDependencies
+        $res = Find-PSResource -Name "test_command_module" -IncludeDependencies
         $res.Count | Should -Be 6
     }
 }

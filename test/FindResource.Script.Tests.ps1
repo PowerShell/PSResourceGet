@@ -15,43 +15,11 @@ Describe "Test Find-PSResource for Script" {
         Get-RevertPSResourceRepositoryFile
     }
 
-    # Purpose: find a script resource with specified Name parameter
-    #
-    # Action: Find-PSResource -Name "test_script"
-    #
-    # Expected Result: should return a resource with specified name Fabrikam-ServerScript
     It "find resource given Name parameter" {
         $res = Find-PSResource -Name "test_script"
-        $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "test_script"
     }
 
-    # Purpose: successfully not find a resource that doesn't have a valid name
-    #
-    # Action: Find-PSResource -Name NonExistantScript -Repository PoshTestGallery
-    #
-    # Expected Result: should not return a resource, as none with specified name exists
-    It "not find a resource that doesn't have a valid name" {
-        $res = Find-PSResource -Name NonExistantScript -Repository $TestGalleryName
-        $res | Should -BeNullOrEmpty
-    }
-
-    # Purpose: find resources with multiple values provided for Name parameter
-    #
-    # Action: Find-PSResource -Name Fabrikam-ServerScript,Fabrikam-ClientScript -Repository PoshTestGallery
-    #
-    # Expected Result: should return the multiple resources specified
-    It "find resources with multiple values provided for Name parameter" {
-        $res = Find-PSResource -Name Fabrikam-ServerScript,Fabrikam-ClientScript -Repository $TestGalleryName
-        $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -Be 2
-    }
-
-    # Purpose: find resource when given Name, Version param not null
-    #
-    # Action: Find-PSResource -Name "test_script" -Repository PoshTestGallery
-    #
-    # Expected Results: should return resource with appropriate version
     It "find resource when given Name to <Reason>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
         @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
@@ -69,11 +37,6 @@ Describe "Test Find-PSResource for Script" {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    # Purpose: not find resources with invalid version
-    #
-    # Action: Find-PSResource -Name "test_script" -Version "(1.5.0.0)"
-    #
-    # Expected Result: should not return a resource
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
         @{Version='(1.5.0.0)';       Description="exlcusive version (2.5.0.0)"},
         @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
@@ -97,31 +60,16 @@ Describe "Test Find-PSResource for Script" {
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: find resources when given Name, Version not null --> '*'
-    #
-    # Action: Find-PSResource -Name "test_script" -Version "*" -Repository PoshTestGallery
-    #
-    # Expected Result: returns 4 test_script resources (of all versions in descending order)
     It "find resources when given Name, Version not null --> '*'" {
         $res = Find-PSResource -Name "test_script" -Version "*" -Repository $TestGalleryName
         $res.Count | Should -Be 4
     }
 
-    # Purpose: not find script resource when given ModuleName and no Version parameter
-    #
-    # Action: Find-PSResource -ModuleName "test_script" -Repository PoshTestGallery
-    #
-    # Expected Result: not find a script resource when given ModuleName
     It "not find script resource when given ModuleName" {
         $res = Find-PSResource -ModuleName "test_script" -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: not find script resource when given ModuleName and any Version parameter
-    #
-    # Action: Find-PSResource -Name "test_script" -Version [2.0.0.0] -Repository "PoshTestGallery"
-    #
-    # Expected Result: should not find a script resource when given ModuleName and any version value
     It "not find script resource when given ModuleName to <Reason>" -TestCases @(
         @{Version="[2.0.0.0]";          Reason="validate version, exact match"},
         @{Version="2.0.0.0";            Reason="validate version, exact match without bracket syntax"},
@@ -138,66 +86,41 @@ Describe "Test Find-PSResource for Script" {
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: not find resource with given ModuleName and wildcard Version -> '*'
-    #
-    # Action: Find-PSResource -ModuleName Fabrikam-ServerScript -Version "*" -Repository PoshTestGallery
-    #
-    # Expected Result: not return a resource
     It "not find script resource with specified ModuleName and range Version parameter -> '*' " {
         $res = Find-PSResource -ModuleName "test_script" -Version "*" -Repository $TestGalleryName
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: find resource with latest version (including prerelease version) given Prerelease parameter
-    #
-    # Action: Find-PSResource -Name "test_script" -Prerelease
-    #
-    # Expected Result: should return latest version (may be a prerelease version)
     It "find resource with latest (including prerelease) version given Prerelease parameter" {
         # test_script resource's latest version is a prerelease version, before that it has a non-prerelease version
-        $res = Find-PSResource -Name "test_script"
+        $res = Find-PSResource -Name "test_script" -Repository $TestGalleryName
         $res.Version | Should -Be "2.5.0.0"
 
-        $resPrerelease = Find-PSResource -Name "test_script" -Prerelease
-        $resPrerelease.Version | Should -Be "3.0.0.0"        
+        $resPrerelease = Find-PSResource -Name "test_script" -Prerelease -Repository $TestGalleryName
+        $resPrerelease.Version | Should -Be "3.0.0.0"  
     }
 
-    # Purpose: not find un-available resource from specified repository, when given Repository parameter
-    #
-    # Action: Find-PSResource -Name "test_script" -Repository PoshTestGallery
-    #
-    # Expected Result: should not find resource from specified PSGallery repository becuase resource doesn't exist there
-    It "find resource from specified repository, when given Repository parameter" {
+    It "not find resource given Repository parameter where resource does not exist" {
         $res = Find-PSResource -Name "test_script" -Repository $PSGalleryName
         $res | Should -BeNullOrEmpty
     }
 
-    # Purpose: find resource from specified repository, when given Repository parameter
-    #
-    # Action: Find-PSResource -Name "test_script" -Repository PSGallery
-    #
-    # Expected Result: should return resource from specified repository where it exists
-    It "find resource from specified repository, when given Repository parameter" {
+    It "find resource given repository parameter where resource does exist" {
         $res = Find-PSResource -Name "test_script" -Repository $TestGalleryName
-        $res | Should -Not -BeNullOrEmpty
+        $res.Repository | Should -Be $TestGalleryName
         $res.Name | Should -Be "test_script"
-        $res.Repository | Should -Be "PoshTestGallery"
+        $res.Version | Should -Be "2.5.0.0"
     }
 
-    # Purpose: find resource in first repository where it exists given Repository parameter
-    #
-    # Action: Find-PSResource "Connect-AzureVM"
-    #         Find-PSResource "Connect-AzureVM" -Repository PSGallery
-    #
-    # Expected Result: Returns resource from first avaiable or specfied repository
-    It "find Resource given repository parameter, where resource exists in multiple repos" {
-        # first availability found in PoshTestGallery
-        $res = Find-PSResource "Connect-AzureVM"
-        $res.Repository | Should -Be "PoshTestGallery"
+    It "find resource in local repository given Repository parameter" {
+        $scriptName = "TestScriptName"
+        $repoName = "psgettestlocal"
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName $repoName
 
-        # check that same resource can be returned from non-first-availability/non-default repo
-        $resNonDefault = Find-PSResource "Connect-AzureVM" -Repository $PSGalleryName
-        $resNonDefault.Repository | Should -Be "PSGallery"
+        $res = Find-PSResource -Name $scriptName -Repository $repoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $scriptName
+        $res.Repository | Should -Be $repoName
     }
 
     It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
@@ -215,27 +138,8 @@ Describe "Test Find-PSResource for Script" {
         $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 
-    # Purpose: find a resource and its dependency resource(s) with IncludeDependencies parameter
-    #
-    # Action: Find-PSResources -Name "test_script" -IncludeDependencies
-    #
-    # Expected Result: should return resource and all of its dependency resources
-    It "find resource and its dependency resource(s) with IncludeDependencies parameter" {
-        $resWithoutDependencies = Find-PSResource -Name "test_script"
-
-        $resWithDependencies = Find-PSResource -Name "test_script" -IncludeDependencies
-        $resWithDependencies | Should -Not -BeNullOrEmpty
-        $resWithDependencies.Count | Should -BeGreaterOrEqual $resWithoutDependencies.Count
-    }
-
-    It "find resource in local repository given Repository parameter" {
-        $scriptName = "TestScriptName"
-        $repoName = "psgettestlocal"
-        Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName $repoName
-
-        $res = Find-PSResource -Name $scriptName -Repository $repoName
-        $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be $scriptName
-        $res.Repository | Should -Be $repoName
+    It "find resource with IncludeDependencies parameter" {
+        $res = Find-PSResource -Name "test_script" -IncludeDependencies
+        $res.Count | Should -Be 9
     }
 }
