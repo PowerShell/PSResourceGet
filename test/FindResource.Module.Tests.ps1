@@ -216,14 +216,19 @@ Describe 'Test Find-PSResource for Module' {
     #         Find-PSResource "Az.Compute" -Repository PSGallery
     #
     # Expected Result: Returns resource from first avaiable or specfied repository
-    It "find Resource given repository parameter, where resource exists in multiple repos" {
-        # first availability found in PoshTestGallery
-        $res = Find-PSResource "Az.Compute"
-        $res.Repository | Should -Be "PoshTestGallery"
+    It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
+        $moduleName = "test_local_mod"
+        $repoHigherPriorityRanking = "psgettestlocal"
+        $repoLowerPriorityRanking = "psgettestlocal2"
 
-        # check that same resource can be returned from non-first-availability/non-default repo
-        $resNonDefault = Find-PSResource "Az.Compute" -Repository $PSGalleryName
-        $resNonDefault.Repository | Should -Be "PSGallery"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoHigherPriorityRanking
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoLowerPriorityRanking
+
+        $res = Find-PSResource -Name $moduleName
+        $res.Repository | Should -Be $repoHigherPriorityRanking
+
+        $resNonDefault = Find-PSResource -Name $moduleName -Repository $repoLowerPriorityRanking
+        $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 
     # Purpose: find a resource and associated dependecies given IncludeDependencies parameter
@@ -243,11 +248,12 @@ Describe 'Test Find-PSResource for Module' {
     # Expected Result: should find resource from local repository
     It "find resource in local repository given Repository parameter" {
         $publishModuleName = "TestFindModule"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName
+        $repoName = "psgettestlocal"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
 
-        $res = Find-PSResource -Name $publishModuleName -Repository "psgettestlocal"
+        $res = Find-PSResource -Name $publishModuleName -Repository $repoName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $publishModuleName
-        $res.Repository | Should -Be "psgettestlocal"
+        $res.Repository | Should -Be $repoName
     }
 }

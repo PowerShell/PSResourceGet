@@ -208,10 +208,10 @@ Describe "Test Find-PSResource for Script" {
         Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName $repoHigherPriorityRanking
         Get-ScriptResourcePublishedToLocalRepoTestDrive $scriptName $repoLowerPriorityRanking
 
-        $res = Find-PSResource -Name "test_local_script"
+        $res = Find-PSResource -Name $scriptName
         $res.Repository | Should -Be $repoHigherPriorityRanking
 
-        $resNonDefault = Find-PSResource -Name "test_local_script" -Repository $repoLowerPriorityRanking
+        $resNonDefault = Find-PSResource -Name $scriptName -Repository $repoLowerPriorityRanking
         $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 

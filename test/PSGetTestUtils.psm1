@@ -198,7 +198,10 @@ function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
-        $roleCapName
+        $roleCapName,
+
+        [string]
+        $repoName
     )
 
     Get-TestDriveSetUp
@@ -211,14 +214,17 @@ function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive
     New-PSRoleCapabilityFile -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psrc")
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
 
-    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+    Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
 function Get-DSCResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
-        $dscName
+        $dscName,
+
+        [string]
+        $repoName
     )
 
     Get-TestDriveSetUp
@@ -230,7 +236,7 @@ function Get-DSCResourcePublishedToLocalRepoTestDrive
     $version = "1.0"
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -DscResourcesToExport @('DefaultGatewayAddress', 'WINSSetting') -Tags @('PSDscResource_', 'DSC')
 
-    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+    Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
 function Get-ScriptResourcePublishedToLocalRepoTestDrive
@@ -273,7 +279,10 @@ function Get-CommandResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
-        $cmdName
+        $cmdName,
+
+        [string]
+        $repoName
     )
     Get-TestDriveSetUp
 
@@ -284,14 +293,17 @@ function Get-CommandResourcePublishedToLocalRepoTestDrive
     $version = "1.0"
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1" -CmdletsToExport @('Get-Test', 'Set-Test')
 
-    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+    Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
 function Get-ModuleResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
-        $moduleName
+        $moduleName,
+
+        [string]
+        $repoName
     )
     Get-TestDriveSetUp
 
@@ -302,7 +314,7 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $version = "1.0"
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1"
 
-    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+    Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
 function RemoveItem

@@ -31,7 +31,7 @@ Describe 'Test Find-PSResource for DSC Resource' {
     # Action: Find-PSResource -Name NetworkingDsc -Version [6.0.0.0]
     #
     # Expected Result: return resource meeting version criteria
-    It "find DSC resource when given Name to <Version> ---  <Reason>" -TestCases @(
+    It "find DSC resource when given Name to <Reason>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
         @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[1.0.0.0, 4.0.0.0]"; ExpectedVersion="4.0.0.0"; Reason="validate version, exact range inclusive"},
@@ -128,7 +128,7 @@ Describe 'Test Find-PSResource for DSC Resource' {
     # Action: Find-PSResource -Name NetworkingDsc -Version [6.0.0.0]
     #
     # Expected Result: return resource meeting version criteria
-    It "find DSC resource when given ModuleName to <Version> --- <Reason>" -TestCases @(
+    It "find DSC resource when given ModuleName to <version> --- <Reason>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
         @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[1.0.0.0, 4.0.0.0]"; ExpectedVersion="4.0.0.0"; Reason="validate version, exact range inclusive"},
@@ -194,14 +194,19 @@ Describe 'Test Find-PSResource for DSC Resource' {
     #         Find-PSResource "PackageManagement" -Repository PSGallery
     #
     # Expected Result: Returns resource from first avaiable or specfied repository
-    It "find Resource given repository parameter, where resource exists in multiple repos" {
-        # first availability found in PoshTestGallery
-        $res = Find-PSResource "PackageManagement"
-        $res.Repository | Should -Be "PoshTestGallery"
+    It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
+        $dscName = "test_local_dsc"
+        $repoHigherPriorityRanking = "psgettestlocal"
+        $repoLowerPriorityRanking = "psgettestlocal2"
 
-        # check that same resource can be returned from non-first-availability/non-default repo
-        $resNonDefault = Find-PSResource "PackageManagement" -Repository $PSGalleryName
-        $resNonDefault.Repository | Should -Be "PSGallery"
+        Get-DSCResourcePublishedToLocalRepoTestDrive $dscName $repoHigherPriorityRanking
+        Get-DSCResourcePublishedToLocalRepoTestDrive $dscName $repoLowerPriorityRanking
+
+        $res = Find-PSResource -Name $dscName
+        $res.Repository | Should -Be $repoHigherPriorityRanking
+
+        $resNonDefault = Find-PSResource -Name $dscName -Repository $repoLowerPriorityRanking
+        $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 
     # Purpose: not find existing DSCResource from non-existant repository, given Repository parameter
@@ -214,28 +219,14 @@ Describe 'Test Find-PSResource for DSC Resource' {
         $res.Name | Should -BeNullOrEmpty
     }
 
-    # Purpose: find resource in local repository given Repository parameter
-    #
-    # Action: Find-PSResource -Name "local_command_module" -Repository "psgettestlocal"
-    #
-    # Expected Result: should find resource from local repository
-    # It "find resource in local repository given Repository parameter" {
-    #     $publishDscName = "TestFindDSCModule"
-    #     Get-DSCResourcePublishedToLocalRepo $publishDscName
-
-    #     $res = Find-PSResource -Name $publishDscName -Repository "psgettestlocal"
-    #     $res | Should -Not -BeNullOrEmpty
-    #     $res.Name | Should -Be $publishDscName
-
-    #     RemoveTmpdir
-    # }
     It "find resource in local repository given Repository parameter"{
         $publishDscName = "TestFindDSCModule"
-        Get-DSCResourcePublishedToLocalRepoTestDrive $publishDscName
+        $repoName = "psgettestlocal"
+        Get-DSCResourcePublishedToLocalRepoTestDrive $publishDscName $repoName
 
-        $res = Find-PSResource -Name $publishDscName -Repository "psgettestlocal"
+        $res = Find-PSResource -Name $publishDscName -Repository $repoName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $publishDscName
-        $res.Repository | Should -Be "psgettestlocal"
+        $res.Repository | Should -Be $repoName
     }
 }

@@ -202,15 +202,19 @@ Describe 'Test Find-PSResource for Command' {
     #         Find-PSResource "Az.Accounts" -Repository PSGallery
     #
     # Expected Result: Returns resource from first avaiable or specfied repository
-    It "find Resource given repository parameter, where resource exists in multiple repos" {
-        # first availability found in PoshTestGallery
-        $res = Find-PSResource "Az.Accounts"
-        $res.Repository | Should -Be "PoshTestGallery"
+    It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
+        $cmdName = "test_local_cmd"
+        $repoHigherPriorityRanking = "psgettestlocal"
+        $repoLowerPriorityRanking = "psgettestlocal2"
 
-        # check that same resource can be returned from non-first-availability/non-default repo
-        $resNonDefault = Find-PSResource "Az.Accounts" -Repository $PSGalleryName
-        $resNonDefault | Should -Not -BeNullOrEmpty
-        $resNonDefault.Repository | Should -Be "PSGallery"
+        Get-CommandResourcePublishedToLocalRepoTestDrive $cmdName $repoHigherPriorityRanking
+        Get-CommandResourcePublishedToLocalRepoTestDrive $cmdName $repoLowerPriorityRanking
+
+        $res = Find-PSResource -Name $cmdName
+        $res.Repository | Should -Be $repoHigherPriorityRanking
+
+        $resNonDefault = Find-PSResource -Name $cmdName -Repository $repoLowerPriorityRanking
+        $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 
     # Purpose: find resource in local repository given Repository parameter
@@ -220,11 +224,12 @@ Describe 'Test Find-PSResource for Command' {
     # Expected Result: should find resource from local repository
     It "find resource in local repository given Repository parameter" {
         $publishCmdName = "TestFindCommandModule"
-        Get-CommandResourcePublishedToLocalRepoTestDrive $publishCmdName
+        $repoName = "psgettestlocal"
+        Get-CommandResourcePublishedToLocalRepoTestDrive $publishCmdName $repoName
 
-        $res = Find-PSResource -Name $publishCmdName -Repository "psgettestlocal"
+        $res = Find-PSResource -Name $publishCmdName -Repository $repoName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $publishCmdName
-        $res.Repository | Should -Be "psgettestlocal"
+        $res.Repository | Should -Be $repoName
     }
 }

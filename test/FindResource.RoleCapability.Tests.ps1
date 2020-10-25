@@ -168,13 +168,29 @@ Describe 'Test Find-PSResource for Role Capability' {
         $resRightRepo.Name | Should -Be "test_rolecap_module"
     }
 
+    It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
+        $roleCapName = "test_local_rolecap"
+        $repoHigherPriorityRanking = "psgettestlocal"
+        $repoLowerPriorityRanking = "psgettestlocal2"
+
+        Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive $roleCapName $repoHigherPriorityRanking
+        Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive $roleCapName $repoLowerPriorityRanking
+
+        $res = Find-PSResource -Name $roleCapName
+        $res.Repository | Should -Be $repoHigherPriorityRanking
+
+        $resNonDefault = Find-PSResource -Name $roleCapName -Repository $repoLowerPriorityRanking
+        $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
+    }
+
     It "find resource in local repository given Repository parameter" {
         $roleCapName = "TestFindRoleCapModule"
-        Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive $roleCapName
+        $repoName = "psgettestlocal"
+        Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive $roleCapName $repoName
 
-        $res = Find-PSResource -Name $roleCapName -Repository "psgettestlocal"
+        $res = Find-PSResource -Name $roleCapName -Repository $repoName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $roleCapName
-        $res.Repository | Should -Be "psgettestlocal"
+        $res.Repository | Should -Be $repoName
     }
 }
