@@ -31,18 +31,16 @@ Describe 'Test Find-PSResource for DSC Resource' {
     # Action: Find-PSResource -Name NetworkingDsc -Version [6.0.0.0]
     #
     # Expected Result: return resource meeting version criteria
-    It "find DSC resource when given Name to <Reason>" -TestCases @(
-        @{Version="[6.0.0.0]";          ExpectedVersion="6.0.0.0"; Reason="validate version, exact match"},
-        @{Version="6.0.0.0";            ExpectedVersion="6.0.0.0"; Reason="validate version, exact match without bracket syntax"},
-        @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
-        @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
-        <#
-        @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
-        @{Version="[6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version inclusive"},
-        #>
-        @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
-        @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
-        @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    It "find DSC resource when given Name to <Version> ---  <Reason>" -TestCases @(
+        @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+        @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
+        @{Version="[1.0.0.0, 4.0.0.0]"; ExpectedVersion="4.0.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0, 4.0.0.0)"; ExpectedVersion="3.5.0.0"; Reason="validate version, exact range exclusive"},
+        @{Version="(1.0.0.0,)";         ExpectedVersion="4.0.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[3.5.0.0,)";         ExpectedVersion="4.0.0.0"; Reason="validate version, minimum version inclusive"},
+        @{Version="(,4.0.0.0)";         ExpectedVersion="3.5.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,4.0.0.0]";         ExpectedVersion="4.0.0.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0, 4.0.0.0)"; ExpectedVersion="3.5.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "test_dsc_module" -Version $Version -Repository $TestGalleryName
@@ -130,18 +128,16 @@ Describe 'Test Find-PSResource for DSC Resource' {
     # Action: Find-PSResource -Name NetworkingDsc -Version [6.0.0.0]
     #
     # Expected Result: return resource meeting version criteria
-    It "find DSC resource when given ModuleName to <Reason>" -TestCases @(
-        @{Version="[6.0.0.0]";          ExpectedVersion="6.0.0.0"; Reason="validate version, exact match"},
-        @{Version="6.0.0.0";            ExpectedVersion="6.0.0.0"; Reason="validate version, exact match without bracket syntax"},
-        @{Version="[6.0.0.0, 8.0.0.0]"; ExpectedVersion="8.0.0.0"; Reason="validate version, exact range inclusive"},
-        @{Version="(6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, exact range exclusive"},
-        <#
-        @{Version="(6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version exclusive"},
-        @{Version="[6.0.0.0,)";         ExpectedVersion="8.1.0.0"; Reason="validate version, minimum version inclusive"},
-        #>
-        @{Version="(,7.4.0.0)";         ExpectedVersion="7.3.0.0"; Reason="validate version, maximum version exclusive"},
-        @{Version="(,7.4.0.0]";         ExpectedVersion="7.4.0.0"; Reason="validate version, maximum version inclusive"},
-        @{Version="[6.0.0.0, 7.4.0.0)"; ExpectedVersion="7.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    It "find DSC resource when given ModuleName to <Version> --- <Reason>" -TestCases @(
+        @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+        @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
+        @{Version="[1.0.0.0, 4.0.0.0]"; ExpectedVersion="4.0.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0, 4.0.0.0)"; ExpectedVersion="3.5.0.0"; Reason="validate version, exact range exclusive"},
+        @{Version="(1.0.0.0,)";         ExpectedVersion="4.0.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="[3.5.0.0,)";         ExpectedVersion="4.0.0.0"; Reason="validate version, minimum version inclusive"},
+        @{Version="(,4.0.0.0)";         ExpectedVersion="3.5.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,4.0.0.0]";         ExpectedVersion="4.0.0.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0, 4.0.0.0)"; ExpectedVersion="3.5.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "test_dsc_module" -Version $Version -Repository $TestGalleryName

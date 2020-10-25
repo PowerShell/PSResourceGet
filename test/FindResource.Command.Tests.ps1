@@ -41,18 +41,16 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Find-PSResource -Name"test_command_module" -Version "[4.3.0.0]"
     #
     # Expected Result: should return "test_command_module" resource with version 4.3.0.0
-    It "find Command resource given Name to <Reason>" -TestCases @(
-        @{Version="[4.3.0.0]";          ExpectedVersion="4.3.0.0"; Reason="validate version, exact match"},
-        @{Version="4.3.0.0";            ExpectedVersion="4.3.0.0"; Reason="validate version, exact match without bracket syntax"},
-        @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
-        @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
-        <#
-        @{Version="[4.4.0.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version inclusive"},
-        @{Version="(4.2.1.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version exclusive"},
-        #>
-        @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
-        @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
-        @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    It "find Command resource given Name to <Version> ---  <Reason>" -TestCases @(
+        @{Version="[1.5.0.0]";          ExpectedVersion="1.5.0.0"; Reason="validate version, exact match"},
+        @{Version="1.5.0.0";            ExpectedVersion="1.5.0.0"; Reason="validate version, exact match without bracket syntax"},
+        @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
+        @{Version="[2.5.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version inclusive"},
+        @{Version="(2.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="(,2.5.0.0)";         ExpectedVersion="2.0.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,2.5.0.0]";         ExpectedVersion="2.5.0.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -Name "test_command_module" -Version $Version -Repository $TestGalleryName
@@ -128,18 +126,16 @@ Describe 'Test Find-PSResource for Command' {
     # Action: Find-PSResource -Name "Az.Accounts" -Version [2.0.0.0] -Repository "PoshTestGallery"
     #
     # Expected Result: should find a command resource when given ModuleName and any version value
-    It "find Command resource given ModuleName to <Reason>" -TestCases @(
-        @{Version="[4.3.0.0]";          ExpectedVersion="4.3.0.0"; Reason="validate version, exact match"},
-        @{Version="4.3.0.0";            ExpectedVersion="4.3.0.0"; Reason="validate version, exact match without bracket syntax"},
-        @{Version="[4.2.0.0, 4.4.0.0]"; ExpectedVersion="4.4.0.0"; Reason="validate version, exact range inclusive"},
-        @{Version="(4.2.0.0, 4.4.0.0)"; ExpectedVersion="4.3.1.0"; Reason="validate version, exact range exclusive"},
-        <#
-        @{Version="[4.4.0.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version inclusive"},
-        @{Version="(4.2.1.0,)";         ExpectedVersion="4.4.0.0"; Reason="validate version, minimum version exclusive"},
-        #>
-        @{Version="(,4.3.1.0)";         ExpectedVersion="4.3.0.0"; Reason="validate version, maximum version exclusive"},
-        @{Version="(,4.3.1.0]";         ExpectedVersion="4.3.1.0"; Reason="validate version, maximum version inclusive"},
-        @{Version="[4.2.0.0, 4.3.1.0)"; ExpectedVersion="4.3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    It "find Command resource given ModuleName to <Version> ---  <Reason>" -TestCases @(
+        @{Version="[1.5.0.0]";          ExpectedVersion="1.5.0.0"; Reason="validate version, exact match"},
+        @{Version="1.5.0.0";            ExpectedVersion="1.5.0.0"; Reason="validate version, exact match without bracket syntax"},
+        @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
+        @{Version="[2.5.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version inclusive"},
+        @{Version="(2.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
+        @{Version="(,2.5.0.0)";         ExpectedVersion="2.0.0.0"; Reason="validate version, maximum version exclusive"},
+        @{Version="(,2.5.0.0]";         ExpectedVersion="2.5.0.0"; Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
         $res = Find-PSResource -ModuleName "test_command_module" -Version $Version -Repository $TestGalleryName
