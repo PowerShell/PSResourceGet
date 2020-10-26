@@ -415,10 +415,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
                 }
-                // foreach (var n in _name)
-                // {
-                //     returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context));
-                // }
             }
             else
             {
