@@ -20,16 +20,6 @@ Describe 'Test Find-PSResource for Command' {
         $res.Name | Should -Be "test_command_module"
     }
 
-    It "find multiple Resource(s) with Wildcards for Name Param" {
-        $res = Find-PSResource -Name test_command*
-        $res.Count | Should -BeGreaterOrEqual 1
-    }
-
-    It "find Specific Resource with Wildcards for Name Param" {
-        $res = Find-PSResource *est_comman*
-        $res.Name | Should -Be "test_command_module"
-    }
-
     It "find Command resource given Name to <Reason>" -TestCases @(
         @{Version="[1.5.0.0]";          ExpectedVersion="1.5.0.0"; Reason="validate version, exact match"},
         @{Version="1.5.0.0";            ExpectedVersion="1.5.0.0"; Reason="validate version, exact match without bracket syntax"},

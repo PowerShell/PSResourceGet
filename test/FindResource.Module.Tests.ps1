@@ -25,16 +25,6 @@ Describe 'Test Find-PSResource for Module' {
         $specItem.Name | Should -Be "test_module"
     }
 
-    It "find multiple Resource(s) with Wildcards for Name Param" {
-        $res = Find-PSResource -Name test_*
-        $res.Count | Should -BeGreaterOrEqual 1
-    }
-
-    It "find Specific Resource with Wildcards for Name Param" {
-        $res = Find-PSResource *est_modul*
-        $res.Name | Should -Be "test_module"
-    }
-
     It "should not find resource given nonexistant name" {
         $res = Find-PSResource -Name NonExistantModule
         $res | Should -BeNullOrEmpty

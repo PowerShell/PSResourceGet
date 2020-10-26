@@ -21,16 +21,6 @@ Describe 'Test Find-PSResource for DSC Resource' {
         $res.Name | Should -Be "test_dsc_module"
     }
 
-    It "find multiple Resource(s) with Wildcards for Name Param" {
-        $res = Find-PSResource -Name test_dsc*
-        $res.Count | Should -BeGreaterOrEqual 1
-    }
-
-    It "find Specific Resource with Wildcards for Name Param" {
-        $res = Find-PSResource *est_ds*
-        $res.Name | Should -Be "test_dsc_module"
-    }
-
     It "find DSC resource when given Name to <Reason>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
         @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},

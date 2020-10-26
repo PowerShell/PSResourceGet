@@ -20,16 +20,6 @@ Describe 'Test Find-PSResource for Role Capability' {
         $res.Name | Should -Be "test_rolecap_module"
     }
 
-    It "find multiple Resource(s) with Wildcards for Name Param" {
-        $res = Find-PSResource -Name test_rolecap*
-        $res.Count | Should -BeGreaterOrEqual 1
-    }
-
-    It "find Specific Resource with Wildcards for Name Param" {
-        $res = Find-PSResource *est_roleca*
-        $res.Name | Should -Be "test_rolecap_module"
-    }
-
     It "find resource when given Name to <Reason>" -TestCases @(
         @{Version="[1.0.0.0]";          ExpectedVersion="1.0.0.0"; Reason="validate version, exact match"},
         @{Version="1.5.0.0";            ExpectedVersion="1.5.0.0"; Reason="validate version, exact match without bracket syntax"},
