@@ -48,7 +48,7 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='(1.5.0.0)';       Description="exclusive version (8.1.0.0)"},
+        @{Version='(1.5.0.0)';       Description="exclusive version (1.5.0.0)"},
         @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
         @{Version='[1.*.0]';         Description="version with wilcard in middle"},
         @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
@@ -71,8 +71,13 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $res = Find-PSResource -Name "test_module" -Version "*" -Repository $TestGalleryName
-        $res.Count | Should -Be 7
+        $unexpectedModules = @()
+        Find-PSResource -Name "test_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -ne "test_module") {
+                $unexpectedModules += $_.Name
+            }
+        }
+        $unexpectedModules.Count | Should -Be 0
     }
 
     It "find resource when given ModuleName to <Reason>" -TestCases @(
@@ -93,8 +98,13 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resources when given ModuleName, Version not null --> '*'" {
-        $res = Find-PSResource -ModuleName "test_module" -Version "*" -Repository $TestGalleryName
-        $res.Count | Should -Be 7
+        $unexpectedModules = @()
+        Find-PSResource -ModuleName "test_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -ne "test_module") {
+                $unexpectedModules += $_.Name
+            }
+        }
+        $unexpectedModules.Count | Should -Be 0
     }
 
     It "find resource when given ModuleName, Version param null" {

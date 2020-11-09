@@ -39,7 +39,7 @@ Describe 'Test Find-PSResource for DSC Resource' {
     }
 
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='(2.5.0.0)';       Description="exlcusive version (8.1.0.0)"},
+        @{Version='(2.5.0.0)';       Description="exclusive version (2.5.0.0)"},
         @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"},
         @{Version='[2.*.0]';         Description="version with wilcard in middle"},
         @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
@@ -61,9 +61,14 @@ Describe 'Test Find-PSResource for DSC Resource' {
         $res | Should -BeNullOrEmpty
     }
 
-    It "find a DSCResource resource given Name with Version wildcard match " {
-        $res = Find-PSResource -Name "test_dsc_module" -Version "*"
-        $res.Count | Should -Be 8
+    It "find resources when given Name, Version not null --> '*' " {
+        $unexpectedModules = @()
+        Find-PSResource -Name "test_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -ne "test_dsc_module") {
+                $unexpectedModules += $_.Name
+            }
+        }
+        $unexpectedModules.Count | Should -Be 0
     }
 
     It "find DSC resource when given ModuleName to <Reason>" -TestCases @(
@@ -83,9 +88,14 @@ Describe 'Test Find-PSResource for DSC Resource' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    It "find a DSCResource resource given Name with Version wildcard match " {
-        $res = Find-PSResource -ModuleName "test_dsc_module" -Version "*" -Repository $TestGalleryName
-        $res.Count | Should -Be 8
+    It "find resources when given ModuleName, Version not null --> '*' " {
+        $unexpectedModules = @()
+        Find-PSResource -ModuleName "test_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -ne "test_dsc_module") {
+                $unexpectedModules += $_.Name
+            }
+        }
+        $unexpectedModules.Count | Should -Be 0
     }
 
     It "find resource when given ModuleName, Version param null" {

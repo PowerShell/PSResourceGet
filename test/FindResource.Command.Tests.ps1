@@ -38,7 +38,7 @@ Describe 'Test Find-PSResource for Command' {
     }
 
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='(2.5.0.0)';       Description="exlcusive version (4.2.1.0)"},
+        @{Version='(2.5.0.0)';       Description="exclusive version (2.5.0.0)"},
         @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"},
         @{Version='[2.*.0]';         Description="version with wilcard in middle"},
         @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
@@ -60,9 +60,14 @@ Describe 'Test Find-PSResource for Command' {
         $res | Should -BeNullOrEmpty
     }
 
-    It "find Command resource given Name to validate version wilcard match " {
-        $res = Find-PSResource -Name "test_command_module" -Version "*" -Repository $TestGalleryName
-        $res.Count | Should -Be 4
+    It "find resources when given Name, Version not null --> '*'" {
+        $unexpectedModules = @()
+        Find-PSResource -Name "test_command_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -ne "test_command_module") {
+                $unexpectedModules += $_.Name
+            }
+        }
+        $unexpectedModules.Count | Should -Be 0
     }
 
     It "find Command resource given ModuleName to <Reason>" -TestCases @(
@@ -82,9 +87,14 @@ Describe 'Test Find-PSResource for Command' {
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    It "find Command resource given ModuleName to validate version wildcard match " {
-        $res = Find-PSResource -ModuleName "test_command_module" -Version "*" -Repository $TestGalleryName
-        $res.Count | Should -Be 4
+    It "find resources when given ModuleName, Version not null --> '*'" {
+        $unexpectedModules = @()
+        Find-PSResource -ModuleName "test_command_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -ne "test_command_module") {
+                $unexpectedModules += $_.Name
+            }
+        }
+        $unexpectedModules.Count | Should -Be 0
     }
 
     It "find Command resource given ModuleName with Version null or empty" {

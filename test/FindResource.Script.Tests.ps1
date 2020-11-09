@@ -38,7 +38,7 @@ Describe "Test Find-PSResource for Script" {
     }
 
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='(1.5.0.0)';       Description="exlcusive version (2.5.0.0)"},
+        @{Version='(1.5.0.0)';       Description="exclusive version (1.5.0.0)"},
         @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
         @{Version='[1.*.0]';         Description="version with wilcard in middle"},
         @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
@@ -61,8 +61,13 @@ Describe "Test Find-PSResource for Script" {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $res = Find-PSResource -Name "test_script" -Version "*" -Repository $TestGalleryName
-        $res.Count | Should -Be 4
+        $unexpectedModules = @()
+        Find-PSResource -Name "test_script" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -ne "test_script") {
+                $unexpectedModules += $_.Name
+            }
+        }
+        $unexpectedModules.Count | Should -Be 0
     }
 
     It "not find script resource when given ModuleName" {
