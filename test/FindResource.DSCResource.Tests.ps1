@@ -8,6 +8,7 @@ Describe 'Test Find-PSResource for DSC Resource' {
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        $DSCTest = Get-DSCTestModule
         Get-NewPSResourceRepositoryFile
     }
 
@@ -62,13 +63,13 @@ Describe 'Test Find-PSResource for DSC Resource' {
     }
 
     It "find resources when given Name, Version not null --> '*' " {
-        $unexpectedModules = @()
-        Find-PSResource -Name "test_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
-            if($_.Name -ne "test_dsc_module") {
-                $unexpectedModules += $_.Name
+        $expectedModules = @()
+        Find-PSResource -Name "test_dsc_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -eq "test_dsc_module") {
+                $expectedModules += $_.Name
             }
         }
-        $unexpectedModules.Count | Should -Be 0
+        $expectedModules.Count | Should -Be $DSCTest.Count
     }
 
     It "find DSC resource when given ModuleName to <Reason>" -TestCases @(
@@ -89,13 +90,13 @@ Describe 'Test Find-PSResource for DSC Resource' {
     }
 
     It "find resources when given ModuleName, Version not null --> '*' " {
-        $unexpectedModules = @()
-        Find-PSResource -ModuleName "test_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
-            if($_.Name -ne "test_dsc_module") {
-                $unexpectedModules += $_.Name
+        $expectedModules = @()
+        Find-PSResource -ModuleName "test_dsc_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
+            if($_.Name -eq "test_dsc_module") {
+                $expectedModules += $_.Name
             }
         }
-        $unexpectedModules.Count | Should -Be 0
+        $expectedModules.Count | Should -Be $DSCTest.Count
     }
 
     It "find resource when given ModuleName, Version param null" {

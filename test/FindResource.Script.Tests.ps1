@@ -8,6 +8,7 @@ Describe "Test Find-PSResource for Script" {
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        $ScriptTest = Get-ScriptTest
         Get-NewPSResourceRepositoryFile
     }
 
@@ -61,13 +62,13 @@ Describe "Test Find-PSResource for Script" {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $unexpectedModules = @()
+        $expectedModules = @()
         Find-PSResource -Name "test_script" -Version "*" -Repository $TestGalleryName | ForEach-Object {
-            if($_.Name -ne "test_script") {
-                $unexpectedModules += $_.Name
+            if($_.Name -eq "test_script") {
+                $expectedModules += $_.Name
             }
         }
-        $unexpectedModules.Count | Should -Be 0
+        $expectedModules.Count | Should -Be $ScriptTest.Count
     }
 
     It "not find script resource when given ModuleName" {

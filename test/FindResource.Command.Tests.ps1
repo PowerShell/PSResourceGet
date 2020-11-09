@@ -8,6 +8,7 @@ Describe 'Test Find-PSResource for Command' {
     BeforeAll{
        $TestGalleryName = Get-PoshTestGalleryName
        $PSGalleryName = Get-PSGalleryName
+       $CommandTest = Get-CommandTestModule
        Get-NewPSResourceRepositoryFile
     }
 
@@ -61,13 +62,13 @@ Describe 'Test Find-PSResource for Command' {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $unexpectedModules = @()
+        $expectedModules = @()
         Find-PSResource -Name "test_command_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
-            if($_.Name -ne "test_command_module") {
-                $unexpectedModules += $_.Name
+            if($_.Name -eq "test_command_module") {
+                $expectedModules += $_.Name
             }
         }
-        $unexpectedModules.Count | Should -Be 0
+        $expectedModules.Count | Should -Be $CommandTest.Count
     }
 
     It "find Command resource given ModuleName to <Reason>" -TestCases @(
@@ -88,13 +89,13 @@ Describe 'Test Find-PSResource for Command' {
     }
 
     It "find resources when given ModuleName, Version not null --> '*'" {
-        $unexpectedModules = @()
+        $expectedModules = @()
         Find-PSResource -ModuleName "test_command_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
-            if($_.Name -ne "test_command_module") {
-                $unexpectedModules += $_.Name
+            if($_.Name -eq "test_command_module") {
+                $expectedModules += $_.Name
             }
         }
-        $unexpectedModules.Count | Should -Be 0
+        $expectedModules.Count | Should -Be $CommandTest.Count
     }
 
     It "find Command resource given ModuleName with Version null or empty" {

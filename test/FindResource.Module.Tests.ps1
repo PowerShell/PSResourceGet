@@ -8,6 +8,7 @@ Describe 'Test Find-PSResource for Module' {
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        $ModuleTest = Get-ModuleTestModule
         Get-NewPSResourceRepositoryFile
     }
 
@@ -71,13 +72,13 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $unexpectedModules = @()
+        $expectedModules = @()
         Find-PSResource -Name "test_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
-            if($_.Name -ne "test_module") {
-                $unexpectedModules += $_.Name
+            if($_.Name -eq "test_module") {
+                $expectedModules += $_.Name
             }
         }
-        $unexpectedModules.Count | Should -Be 0
+        $expectedModules.Count | Should -Be $ModuleTest.Count
     }
 
     It "find resource when given ModuleName to <Reason>" -TestCases @(
@@ -98,13 +99,13 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resources when given ModuleName, Version not null --> '*'" {
-        $unexpectedModules = @()
+        $expectedModules = @()
         Find-PSResource -ModuleName "test_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
-            if($_.Name -ne "test_module") {
-                $unexpectedModules += $_.Name
+            if($_.Name -eq "test_module") {
+                $expectedModules += $_.Name
             }
         }
-        $unexpectedModules.Count | Should -Be 0
+        $expectedModules.Count | Should -Be $ModuleTest.Count
     }
 
     It "find resource when given ModuleName, Version param null" {
