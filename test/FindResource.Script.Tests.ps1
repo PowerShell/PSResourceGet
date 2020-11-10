@@ -103,7 +103,7 @@ Describe "Test Find-PSResource for Script" {
         $res.Version | Should -Be "2.5.0.0"
 
         $resPrerelease = Find-PSResource -Name "test_script" -Prerelease -Repository $TestGalleryName
-        $resPrerelease.Version | Should -Be "3.0.0.0"  
+        $resPrerelease.Version | Should -Be "3.0.0.0"
     }
 
     It "not find resource given Repository parameter where resource does not exist" {

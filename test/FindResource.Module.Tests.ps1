@@ -67,7 +67,7 @@ Describe 'Test Find-PSResource for Module' {
             $res = Find-PSResource -Name "test_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore
         }
         catch {}
-        
+
         $res | Should -BeNullOrEmpty
     }
 
@@ -120,7 +120,7 @@ Describe 'Test Find-PSResource for Module' {
         $res.Version | Should -Be "5.0.0.0"
 
         $resPrerelease = Find-PSResource -Name "test_module" -Prerelease -Repository $TestGalleryName
-        $resPrerelease.Version | Should -Be "5.2.5.0"        
+        $resPrerelease.Version | Should -Be "5.2.5.0"
     }
 
     It "find a resource given Tags parameter with one value" {

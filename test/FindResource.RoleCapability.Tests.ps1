@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -force
+Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Find-PSResource for Role Capability' {
 
@@ -57,7 +57,7 @@ Describe 'Test Find-PSResource for Role Capability' {
             $res = Find-PSResource -Name "test_rolecap_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore
         }
         catch {}
-        
+
         $res | Should -BeNullOrEmpty
     }
 
