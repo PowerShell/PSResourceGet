@@ -40,7 +40,15 @@ Describe 'Test Find-PSResource for Role Capability' {
 
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
         @{Version='(2.5.0.0)';       Description="exclusive version (2.5.0.0)"},
-        @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"},
+        @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"}
+    ) {
+        param($Version, $Description)
+
+        $res = Find-PSResource -Name "test_rolecap_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
         @{Version='[2.*.0]';         Description="version with wilcard in middle"},
         @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
         @{Version='[2.*.0.0]';       Description="version with wildcard at second digit"},
@@ -52,13 +60,7 @@ Describe 'Test Find-PSResource for Role Capability' {
     ) {
         param($Version, $Description)
 
-        $res = $null
-        try {
-            $res = Find-PSResource -Name "test_rolecap_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore
-        }
-        catch {}
-
-        $res | Should -BeNullOrEmpty
+        {Find-PSResource -Name "test_rolecap_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore} | Should -Throw "'$Version' is not a valid version string."
     }
 
     It "find resources when given Name, Version not null --> '*'" {
