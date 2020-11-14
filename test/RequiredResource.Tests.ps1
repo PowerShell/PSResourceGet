@@ -2,8 +2,16 @@
 #
 # Copyright (c) Microsoft Corporation, 2019
 
-# Import-Module "$PSScriptRoot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue
-import-module "C:\code\PowerShellGet\src\bin\Debug\netstandard2.0\publish\PowerShellGet.dll" -force
+# TODO:
+Write-Warning "PSRepository.Tests.ps1 is current disabled."
+return
+
+$psGetMod = Get-Module -Name PowerShellGet
+if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
+{
+    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
+    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
+}
 
 $PSGalleryName = 'PSGallery'
 $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
@@ -82,10 +90,10 @@ Describe 'Test Install-PSResource using the RequiredResource parameter set' -tag
     It 'Should install the resource specified in the hashtable' {
         $hash = 
         @{
-            “name” = “CertificateDsc”
-            "trustrepository" = "true"
-            “version” = "[4.0.0,4.2.0]”
-            "Prerelease" = "true"
+            name = "CertificateDsc"
+            trustrepository = "true"
+            version = "[4.0.0,4.2.0]"
+            Prerelease = "true"
         }
 
         $ret = Install-PSResource -RequiredResource $hash
@@ -137,4 +145,3 @@ Describe 'Test Install-PSResource using the RequiredResource parameter set' -tag
         $pkg.Version.ToString() | Should -BeLessOrEqual 4.2.0.0
     }
 }
-

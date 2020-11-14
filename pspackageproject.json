@@ -1,0 +1,9 @@
+{
+  "ModuleName": "PowerShellGet",
+  "Culture": "en-US",
+  "BuildOutputPath": "out",
+  "SignedOutputPath": "signed",
+  "HelpPath": "help",
+  "TestPath": "test",
+  "SourcePath": "src"
+}

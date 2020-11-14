@@ -34,6 +34,7 @@ $script:localizedData = Get-LocalizedData -ResourceName 'PowerShellGet.ResourceH
         Specifies a list of arguments you want to extract.
 #>
 function New-SplatParameterHashTable {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable])]
     param
@@ -78,6 +79,7 @@ function New-SplatParameterHashTable {
         None. Throws an error if the test fails.
 #>
 function Test-ParameterValue {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
     [CmdletBinding()]
     param
     (
@@ -235,6 +237,8 @@ function Get-InstallationPolicy {
         If this is empty then all values in DesiredValues are checked.
 #>
 function Test-DscParameterState {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
     [CmdletBinding()]
     param
     (
