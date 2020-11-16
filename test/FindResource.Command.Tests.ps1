@@ -10,10 +10,12 @@ Describe 'Test Find-PSResource for Command' {
        $PSGalleryName = Get-PSGalleryName
        $CommandTest = Get-CommandTestModule
        Get-NewPSResourceRepositoryFile
+       Get-RegisterLocalRepos
     }
 
     AfterAll {
        Get-RevertPSResourceRepositoryFile
+       Get-UnregisterLocalRepos
     }
 
     It "find Command resource given Name parameter" {

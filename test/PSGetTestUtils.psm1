@@ -45,7 +45,7 @@ $script:dsc_test_module = @(
     @{Name="test_dsc_module"; Version="2.5.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
     @{Name="test_dsc_module"; Version="2.0.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
     @{Name="test_dsc_module"; Version="1.5.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
-    @{Name="test_dsc_module"; Version="1.0.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"}    
+    @{Name="test_dsc_module"; Version="1.0.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"}
 )
 
 $script:module_test_module = @(
@@ -196,7 +196,7 @@ function Get-NewPSResourceRepositoryFile {
     $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
     $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
     $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
-    
+
     if (Test-Path -Path $originalXmlFilePath) {
         Copy-Item -Path $originalXmlFilePath -Destination $tempXmlFilePath
         Remove-Item -Path $originalXmlFilePath -Force -ErrorAction Ignore
@@ -222,18 +222,44 @@ function Get-RevertPSResourceRepositoryFile {
     }
 }
 
-function Get-TestDriveSetUp
-{
+function Get-RegisterLocalRepos {
     $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
     $null = New-Item $repoURLAddress -ItemType Directory -Force
-    Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+    # Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+
+    $localRepoParams = @{
+        Name = "psgettestlocal"
+        URL = $repoURLAddress
+        Priority = 40
+        Trusted = $false
+    }
+    Register-PSResourceRepository @localRepoParams
 
     $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
     $null = New-Item $repoURLAddress2 -ItemType Directory -Force
-    Set-PSResourceRepository -Name "psgettestlocal2" -URL $repoURLAddress2
+    # Set-PSResourceRepository -Name "psgettestlocal2" -URL $repoURLAddress2
 
+    $localRepoParams2 = @{
+        Name = "psgettestlocal2"
+        URL = $repoURLAddress2
+        Priority = 50
+        Trusted = $false
+    }
+    Register-PSResourceRepository @localRepoParams2
+}
+
+function Get-UnregisterLocalRepos {
+    if(Get-PSResourceRepository "psgettestlocal"){
+        Unregister-PSResourceRepository -Name "psgettestlocal"
+    }
+    if(Get-PSResourceRepository "psgettestlocal2"){
+        Unregister-PSResourceRepository -Name "psgettestlocal2"
+    }
+}
+function Get-TestDriveSetUp
+{
     $testResourcesFolder = Join-Path $TestDrive -ChildPath "TestLocalDirectory"
-    
+
     $script:testIndividualResourceFolder = Join-Path -Path $testResourcesFolder -ChildPath "PSGet_$(Get-Random)"
     $null = New-Item -Path $testIndividualResourceFolder -ItemType Directory -Force
 }
@@ -301,7 +327,7 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
     $params = @{
                 #Path = $scriptFilePath
                 Version = $version
-                #GUID = 
+                #GUID =
                 Author = 'Jane'
                 CompanyName = 'Microsoft Corporation'
                 Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
@@ -493,7 +519,7 @@ function Create-PSScriptMetadata
 
 .ICONURI$(if ($IconUri) {" $IconUri"})
 
-.EXTERNALMODULEDEPENDENCIES$(if ($ExternalModuleDependencies) {" $($ExternalModuleDependencies -join ',')"}) 
+.EXTERNALMODULEDEPENDENCIES$(if ($ExternalModuleDependencies) {" $($ExternalModuleDependencies -join ',')"})
 
 .REQUIREDSCRIPTS$(if ($RequiredScripts) {" $($RequiredScripts -join ',')"})
 

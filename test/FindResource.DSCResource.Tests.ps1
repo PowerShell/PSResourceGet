@@ -10,10 +10,12 @@ Describe 'Test Find-PSResource for DSC Resource' {
         $PSGalleryName = Get-PSGalleryName
         $DSCTest = Get-DSCTestModule
         Get-NewPSResourceRepositoryFile
+        Get-RegisterLocalRepos
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
+        Get-UnregisterLocalRepos
     }
 
     It "find a DSCResource resource given Name parameter" {

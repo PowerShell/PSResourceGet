@@ -10,15 +10,12 @@ Describe 'Test Find-PSResource for Module' {
         $PSGalleryName = Get-PSGalleryName
         $ModuleTest = Get-ModuleTestModule
         Get-NewPSResourceRepositoryFile
+        Get-RegisterLocalRepos
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
-    }
-
-    It "find Resources Without Any Parameter Values" {
-        $psGetItemInfo = Find-PSResource
-        $psGetItemInfo.Count | Should -BeGreaterThan 1
+        Get-UnregisterLocalRepos
     }
 
     It "find Specific Module Resource by Name" {

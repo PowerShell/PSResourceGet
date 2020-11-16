@@ -10,10 +10,12 @@ Describe 'Test Find-PSResource for Role Capability' {
         $PSGalleryName = Get-PSGalleryName
         $RoleCapTest = Get-RoleCapTestModule
         Get-NewPSResourceRepositoryFile
+        Get-RegisterLocalRepos
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
+        Get-UnregisterLocalRepos
     }
 
     It "find Role Capability resource, given Name parameter" {
@@ -48,7 +50,7 @@ Describe 'Test Find-PSResource for Role Capability' {
         $res | Should -BeNullOrEmpty
     }
 
-    It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
+    It "not find resource and throw error with incorrectly formatted version such as <Description>" -TestCases @(
         @{Version='[2.*.0]';         Description="version with wilcard in middle"},
         @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
         @{Version='[2.*.0.0]';       Description="version with wildcard at second digit"},
