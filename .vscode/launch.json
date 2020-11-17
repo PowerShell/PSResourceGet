@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug PSModule",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "publish",
+            "program": "pwsh",
+            "args": [
+                "-noprofile",
+                "-noexit",
+                "-c",
+                "Import-Module ${workspaceFolder}/out/PowerShellGet.dll -Verbose"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "externalTerminal",
+            "stopAtEntry": false,
+            "logging": {
+                "engineLogging": false,
+                "moduleLoad": false,
+                "exceptions": false,
+                "browserStdOut": false
+            }
+        },
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        }
+    ]
+}
