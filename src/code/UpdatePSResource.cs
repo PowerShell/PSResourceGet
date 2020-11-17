@@ -174,8 +174,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             CancellationTokenSource source = new CancellationTokenSource();
             CancellationToken cancellationToken = source.Token;
 
-            var installHelper = new InstallHelper(update: true, cancellationToken, this);
-            installHelper.ProcessInstallParams(_name, _version, _prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall: false, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile: null, _requiredResourceJson: null, _requiredResourceHash: null);
+            var installHelper = new InstallHelper(update:true, save:false, cancellationToken, this);
+            installHelper.ProcessInstallParams(_name, _version, _prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall: false, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile: null, _requiredResourceJson: null, _requiredResourceHash: null, _path:null, _asNupkg:false, _includeXML:true);
         }
     }
 }
