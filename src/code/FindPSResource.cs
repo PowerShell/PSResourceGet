@@ -267,15 +267,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         public async void ProcessCatalogReader(string repoName, string sourceUrl, CancellationToken cancellationToken){
+            WriteDebug("in function");
             var feed = new Uri("https://api.nuget.org/v3/index.json");
 
             using (var catalog = new CatalogReader(feed))
             {
-                foreach (var entry in await catalog.GetFlattenedEntriesAsync())
-                {
-                    Console.WriteLine($"[{entry.CommitTimeStamp}] {entry.Id} {entry.Version}");
-                    await entry.DownloadNupkgAsync(@"d:\output");
-                }
+                WriteDebug("created CatalogReader");
+                var entries = await catalog.GetEntriesAsync();
+                var flatEntries = catalog.GetFlattenedEntriesAsync();
+                var set = catalog.GetPackageSetAsync();
+
+                var entry = entries.FirstOrDefault();
+                WriteDebug("entry version: " + entry.Version.ToNormalizedString());
+                WriteDebug("entry id: " + entry.Id);
+                // foreach (var entry in await catalog.GetFlattenedEntriesAsync())
+                // {
+                //     Console.WriteLine($"[{entry.CommitTimeStamp}] {entry.Id} {entry.Version}");
+                //     await entry.DownloadNupkgAsync(@"d:\output");
+                // }
             }
         }
 /***
