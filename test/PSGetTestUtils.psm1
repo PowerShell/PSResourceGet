@@ -225,8 +225,6 @@ function Get-RevertPSResourceRepositoryFile {
 function Get-RegisterLocalRepos {
     $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
     $null = New-Item $repoURLAddress -ItemType Directory -Force
-    # Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
-
     $localRepoParams = @{
         Name = "psgettestlocal"
         URL = $repoURLAddress
@@ -237,8 +235,6 @@ function Get-RegisterLocalRepos {
 
     $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
     $null = New-Item $repoURLAddress2 -ItemType Directory -Force
-    # Set-PSResourceRepository -Name "psgettestlocal2" -URL $repoURLAddress2
-
     $localRepoParams2 = @{
         Name = "psgettestlocal2"
         URL = $repoURLAddress2
