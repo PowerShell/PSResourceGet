@@ -1,4 +1,3 @@
-﻿
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -10,8 +9,6 @@ using static System.Environment;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-
-
     /// <summary>
     /// The Install-PSResource cmdlet installs a resource.
     /// It returns nothing.
@@ -246,7 +243,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 foreach (PSModuleInfo pkg in _inputObject)
                 {
-                    var installHelp = new InstallHelper(update: false, cancellationToken, this);
+                    var installHelp = new InstallHelper(update:false, save:false, cancellationToken, this);
                     var prerelease = false;
 
                     if (pkg.PrivateData != null)
@@ -263,7 +260,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
-                    installHelp.ProcessInstallParams(new[] { pkg.Name }, pkg.Version.ToString(), prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash);
+                    installHelp.ProcessInstallParams(new[] { pkg.Name }, pkg.Version.ToString(), prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash, _path:null, _asNupkg:false, _includeXML:true);
                 }
             }
             else if (_inputObject != null && _inputObject[0].GetType().Name.Equals("PSObject"))
@@ -271,7 +268,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // If PSObject 
                 foreach (PSObject pkg in _inputObject)
                 {
-                    var installHelp = new InstallHelper(update: false, cancellationToken, this);
+                    var installHelp = new InstallHelper(update:false, save:false, cancellationToken, this);
 
                     if (pkg != null)
                     {
@@ -279,13 +276,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var version = (NuGetVersion) pkg.Properties["Version"].Value;
                         var prerelease = version.IsPrerelease;
 
-                        installHelp.ProcessInstallParams(new[] { name }, version.ToString(), prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash);
+                        installHelp.ProcessInstallParams(new[] { name }, version.ToString(), prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force: false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash, _path:null, _asNupkg:false, _includeXML:true);
                     }
                 }
             }
 
-            var installHelper = new InstallHelper(update: false, cancellationToken, this);
-            installHelper.ProcessInstallParams(_name, _version, _prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force:false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash);
+            var installHelper = new InstallHelper(update:false, save:false, cancellationToken, this);
+            installHelper.ProcessInstallParams(_name, _version, _prerelease, _repository, _scope, _acceptLicense, _quiet, _reinstall, _force:false, _trustRepository, _noClobber, _credential, _requiredResourceFile, _requiredResourceJson, _requiredResourceHash, _path:null, _asNupkg:false, _includeXML:true);
         }
     }
 }
