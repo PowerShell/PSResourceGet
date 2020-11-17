@@ -51,7 +51,7 @@ Describe 'Test Find-PSResource for DSC Resource' {
         $res | Should -BeNullOrEmpty
     }
 
-    It "not find resource and throw error with incorrectly formatted version such as <Description>" -TestCases @(
+    It "not find resource and throw exception with incorrectly formatted version such as <Description>" -TestCases @(
         @{Version='[2.*.0]';         Description="version with wilcard in middle"},
         @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
         @{Version='[2.*.0.0]';       Description="version with wildcard at second digit"},
@@ -62,8 +62,7 @@ Describe 'Test Find-PSResource for DSC Resource' {
         @{Version='[2.5.0.0.0]';     Description="version with more than 4 digits"}
     ) {
         param($Version, $Description)
-
-        {Find-PSResource -Name "test_dsc_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore} | Should -Throw "'$Version' is not a valid version string."
+        {Find-PSResource -Name "test_dsc_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore} | Should -Throw -ExceptionType ([ArgumentException])
     }
 
     It "find resources when given Name, Version not null --> '*' " {
