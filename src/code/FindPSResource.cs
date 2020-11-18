@@ -269,17 +269,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public async void ProcessCatalogReader(string repoName, string sourceUrl, CancellationToken cancellationToken){
             WriteDebug("in function");
             var feed = new Uri("https://api.nuget.org/v3/index.json");
+            // var feed = new Uri("https://mscodehub.pkgs.visualstudio.com/_packaging/1DS-SDK-Extensions/nuget/v3/index.json");
 
             using (var catalog = new CatalogReader(feed))
             {
                 WriteDebug("created CatalogReader");
                 var entries = await catalog.GetEntriesAsync();
-                var flatEntries = catalog.GetFlattenedEntriesAsync();
-                var set = catalog.GetPackageSetAsync();
+                // var flatEntries = catalog.GetFlattenedEntriesAsync();
+                // var set = catalog.GetPackageSetAsync();
+                WriteDebug("entries count is: " + entries.Count);
+                // WriteDebug(flatEntries.Count);
+                // WriteDebug(set.Count);
 
                 var entry = entries.FirstOrDefault();
-                WriteDebug("entry version: " + entry.Version.ToNormalizedString());
-                WriteDebug("entry id: " + entry.Id);
+
+                WriteDebug(entry.Version.ToNormalizedString());
+                WriteDebug(entry.Id);
+                WriteDebug(entry.PackageBaseAddressIndexUri.AbsoluteUri);
+                WriteDebug(entry.CommitTimeStamp.ToString());
+                // WriteDebug(entry.GetPackageDetailsAsync().ToString());
+                WriteDebug("Done!");
                 // foreach (var entry in await catalog.GetFlattenedEntriesAsync())
                 // {
                 //     Console.WriteLine($"[{entry.CommitTimeStamp}] {entry.Id} {entry.Version}");
