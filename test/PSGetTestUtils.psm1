@@ -30,49 +30,67 @@ $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $script:PoshTestGalleryName = 'PoshTestGallery'
 $script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
-$script:command_test_module = @(
-    @{Name="test_command_module"; Version="2.5.0.0"; Repository="PoshTestGallery"; Description="this a test command resource of type module"},
-    @{Name="test_command_module"; Version="2.0.0.0"; Repository="PoshTestGallery"; Description="this a test command resource of type module"},
-    @{Name="test_command_module"; Version="1.5.0.0"; Repository="PoshTestGallery"; Description="this a test command resource of type module"},
-    @{Name="test_command_module"; Version="1.0.0.0"; Repository="PoshTestGallery"; Description="this a test command resource of type module"}
-)
+$script:cmdName = "test_command_module"
+$script:cmdVersions = @("2.5.0.0", "2.0.0.0", "1.5.0.0", "1.0.0.0")
+$script:cmdDescription = "this a test command resource of type module"
 
-$script:dsc_test_module = @(
-    @{Name="test_dsc_module"; Version="5.0.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
-    @{Name="test_dsc_module"; Version="4.0.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
-    @{Name="test_dsc_module"; Version="3.5.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
-    @{Name="test_dsc_module"; Version="3.0.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
-    @{Name="test_dsc_module"; Version="2.5.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
-    @{Name="test_dsc_module"; Version="2.0.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
-    @{Name="test_dsc_module"; Version="1.5.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"},
-    @{Name="test_dsc_module"; Version="1.0.0.0"; Repository="PoshTestGallery"; Description="this is a dsc resource module. For testing purposes"}
-)
+function Get-ScriptTest {
+    $name = "test_script"
+    $versions = @("2.5.0.0", "2.0.0.0", "1.5.0.0", "1.0.0.0")
+    $description = "A test script for testing PSGet v3"
 
-$script:module_test_module = @(
-    @{Name="test_module"; Version="5.0.0.0"; Repository="PoshTestGallery"; Description="this is a test module without including any categories"},
-    @{Name="test_module"; Version="4.0.0.0"; Repository="PoshTestGallery"; Description="this is a test module without including any categories"},
-    @{Name="test_module"; Version="3.0.0.0"; Repository="PoshTestGallery"; Description="this is a test module without including any categories"},
-    @{Name="test_module"; Version="2.5.0.0"; Repository="PoshTestGallery"; Description="this is a test module without including any categories"},
-    @{Name="test_module"; Version="2.0.0.0"; Repository="PoshTestGallery"; Description="this is a test module without including any categories"},
-    @{Name="test_module"; Version="1.5.0.0"; Repository="PoshTestGallery"; Description="this is a test module without including any categories"},
-    @{Name="test_module"; Version="1.2.0.0"; Repository="PoshTestGallery"; Description="test"}
-)
+    return (Get-ModuleHelper $name $versions $script:PoshTestGalleryName $description)
+}
+function Get-ModuleTestModule {
+    $name = "test_module"
+    $versions = @("5.0.0.0", "4.0.0.0", "3.0.0.0", "2.5.0.0", "2.0.0.0", "1.5.0.0", "1.2.0.0")
+    $description = "this is a test module without including any categories"
 
-$script:rolecap_test_module = @(
-    @{Name="test_rolecap_module"; Version="2.5.0.0"; Repository="PoshTestGallery"; Description="this a test role capability resource of type module"},
-    @{Name="test_rolecap_module"; Version="2.0.0.0"; Repository="PoshTestGallery"; Description="this a test role capability resource of type module"},
-    @{Name="test_rolecap_module"; Version="1.5.0.0"; Repository="PoshTestGallery"; Description="this a test role capability resource of type module"},
-    @{Name="test_rolecap_module"; Version="1.0.0.0"; Repository="PoshTestGallery"; Description="this a test role capability resource of type module"},
-    @{Name="test_rolecap_module"; Version="0.0.2.0"; Repository="PoshTestGallery"; Description="this a test role capability resource of type module"},
-    @{Name="test_rolecap_module"; Version="0.0.1.0"; Repository="PoshTestGallery"; Description="this a test role capability resource of type module"}
-)
+    return (Get-ModuleHelper $name $versions $script:PoshTestGalleryName $description)
+}
+function Get-DSCTestModule {
+    $name = "test_dsc_module"
+    $versions = @("5.0.0.0", "4.0.0.0", "3.5.0.0","3.0.0.0", "2.5.0.0", "2.0.0.0", "1.5.0.0", "1.0.0.0")
+    $description = "this is a dsc resource module. For testing purposes"
 
-$script:script_test = @(
-    @{Name="test_script"; Version="2.5.0.0"; Repository="PoshTestGallery"; Description="A test script for testing PSGet v3"},
-    @{Name="test_script"; Version="2.0.0.0"; Repository="PoshTestGallery"; Description="A test script for testing PSGet v3"},
-    @{Name="test_script"; Version="1.5.0.0"; Repository="PoshTestGallery"; Description="A test script for testing PSGet v3"},
-    @{Name="test_script"; Version="1.0.0.0"; Repository="PoshTestGallery"; Description="A test script for testing PSGet v3"}
-)
+    return (Get-ModuleHelper $name $versions $script:PoshTestGalleryName $description)
+}
+function Get-RoleCapTestModule {
+    $name = "test_rolecap_module"
+    $versions = @("2.5.0.0", "2.0.0.0", "1.5.0.0", "1.0.0.0", "0.0.2.0", "0.0.1.0")
+    $description = "this a test role capability resource of type module"
+
+    return (Get-ModuleHelper $name $versions $script:PoshTestGalleryName $description)
+}
+
+function Get-CommandTestModule {
+    $name = "test_command_module"
+    $versions = @("2.5.0.0", "2.0.0.0", "1.5.0.0", "1.0.0.0")
+    $description = "this a test command resource of type module"
+
+    return (Get-ModuleHelper $name $versions $description $script:PoshTestGalleryName)
+}
+function Get-ModuleHelper {
+    Param(
+        [string]
+        $name,
+
+        [string[]]
+        $versions,
+
+        [string]
+        $repository,
+
+        [string]
+        $description
+    )
+    $module_array = @()
+    foreach ($version in $versions) {
+        $module_version_item = @{Name=$name; Version=$version; Repository=$repository; Description=$description}
+        $module_array += $module_version_item
+    }
+    return $module_array
+}
 
 if($script:IsInbox)
 {
@@ -381,27 +399,6 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1"
 
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
-}
-
-function Get-DSCTestModule
-{
-    return $script:dsc_test_module
-}
-function Get-RoleCapTestModule
-{
-    return $script:rolecap_test_module
-}
-function Get-ModuleTestModule
-{
-    return $script:module_test_module
-}
-function Get-CommandTestModule
-{
-    return $script:command_test_module
-}
-function Get-ScriptTest
-{
-    return $script:script_test
 }
 
 function RemoveItem
