@@ -10,12 +10,12 @@ Describe "Test Find-PSResource for Script" {
         $PSGalleryName = Get-PSGalleryName
         $ScriptTest = Get-ScriptTest
         Get-NewPSResourceRepositoryFile
-        Get-RegisterLocalRepos
+        Register-LocalRepos
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
-        Get-UnregisterLocalRepos
+        Unregister-LocalRepos
     }
 
     It "find resource given Name parameter" {
@@ -65,13 +65,13 @@ Describe "Test Find-PSResource for Script" {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $expectedModules = @()
+        $actualModules = @()
         Find-PSResource -Name "test_script" -Version "*" -Repository $TestGalleryName | ForEach-Object {
             if($_.Name -eq "test_script") {
-                $expectedModules += $_.Name
+                $actualModules += $_.Name
             }
         }
-        $expectedModules.Count | Should -Be $ScriptTest.Count
+        $actualModules.Count | Should -Be $ScriptTest.Count
     }
 
     It "not find script resource when given ModuleName" {

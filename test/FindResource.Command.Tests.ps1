@@ -10,12 +10,12 @@ Describe 'Test Find-PSResource for Command' {
        $PSGalleryName = Get-PSGalleryName
        $CommandTest = Get-CommandTestModule
        Get-NewPSResourceRepositoryFile
-       Get-RegisterLocalRepos
+       Register-LocalRepos
     }
 
     AfterAll {
        Get-RevertPSResourceRepositoryFile
-       Get-UnregisterLocalRepos
+       Unregister-LocalRepos
     }
 
     It "find Command resource given Name parameter" {
@@ -65,13 +65,13 @@ Describe 'Test Find-PSResource for Command' {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $expectedModules = @()
+        $actualModules = @()
         Find-PSResource -Name "test_command_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
             if($_.Name -eq "test_command_module") {
-                $expectedModules += $_.Name
+                $actualModules += $_.Name
             }
         }
-        $expectedModules.Count | Should -Be $CommandTest.Count
+        $actualModules.Count | Should -Be $CommandTest.Count
     }
 
     It "find Command resource given ModuleName to <Reason>" -TestCases @(
@@ -92,13 +92,13 @@ Describe 'Test Find-PSResource for Command' {
     }
 
     It "find resources when given ModuleName, Version not null --> '*'" {
-        $expectedModules = @()
+        $actualModules = @()
         Find-PSResource -ModuleName "test_command_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
             if($_.Name -eq "test_command_module") {
-                $expectedModules += $_.Name
+                $actualModules += $_.Name
             }
         }
-        $expectedModules.Count | Should -Be $CommandTest.Count
+        $actualModules.Count | Should -Be $CommandTest.Count
     }
 
     It "find Command resource given ModuleName with Version null or empty" {

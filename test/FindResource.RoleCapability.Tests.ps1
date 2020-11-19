@@ -10,12 +10,12 @@ Describe 'Test Find-PSResource for Role Capability' {
         $PSGalleryName = Get-PSGalleryName
         $RoleCapTest = Get-RoleCapTestModule
         Get-NewPSResourceRepositoryFile
-        Get-RegisterLocalRepos
+        Register-LocalRepos
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
-        Get-UnregisterLocalRepos
+        Unregister-LocalRepos
     }
 
     It "find Role Capability resource, given Name parameter" {
@@ -65,13 +65,13 @@ Describe 'Test Find-PSResource for Role Capability' {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $expectedModules = @()
+        $actualModules = @()
         Find-PSResource -Name "test_rolecap_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
             if($_.Name -eq "test_rolecap_module") {
-                $expectedModules += $_.Name
+                $actualModules += $_.Name
             }
         }
-        $expectedModules.Count | Should -Be $RoleCapTest.Count
+        $actualModules.Count | Should -Be $RoleCapTest.Count
     }
 
     It "find resource when given Name to <Reason>" -TestCases @(
@@ -92,13 +92,13 @@ Describe 'Test Find-PSResource for Role Capability' {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $expectedModules = @()
+        $actualModules = @()
         Find-PSResource -ModuleName "test_rolecap_module" -Version "*" -Repository $TestGalleryName | ForEach-Object {
             if($_.Name -eq "test_rolecap_module") {
-                $expectedModules += $_.Name
+                $actualModules += $_.Name
             }
         }
-        $expectedModules.Count | Should -Be $RoleCapTest.Count
+        $actualModules.Count | Should -Be $RoleCapTest.Count
     }
 
     It "find resource given ModuleName with Version null or empty" {
