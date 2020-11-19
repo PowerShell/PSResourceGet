@@ -66,7 +66,7 @@ Describe 'Test Find-PSResource for Module' {
         @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
     ) {
         param($Version, $Description)
-        {Find-PSResource -Name "test_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore} | Should -Throw -ExceptionType ([ArgumentException])
+        { Find-PSResource -Name "test_module" -Version $Version -Repository $TestGalleryName -ErrorAction Ignore } | Should -Throw -ExceptionType ([ArgumentException])
     }
 
     It "find resources when given Name, Version not null --> '*'" {
