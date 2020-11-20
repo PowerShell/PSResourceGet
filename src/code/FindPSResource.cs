@@ -207,56 +207,56 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (var repoName in listOfRepositories)
             {
                 ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken);
-                // WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
-                // // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
-                // // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
-                // if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
-                //     (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
-                // {
-                //     this.WriteWarning("This functionality is not yet implemented");
-                //     // right now you can use wildcards with an array of names, ie -name "Az*", "PS*", "*Get", will take a hit performance wise, though.
-                //     // TODO:  add wildcard condition here
-                //     //ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString());
-                // }
+                WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
+                // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
+                // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
+                if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
+                    (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
+                {
+                    this.WriteWarning("This functionality is not yet implemented");
+                    // right now you can use wildcards with an array of names, ie -name "Az*", "PS*", "*Get", will take a hit performance wise, though.
+                    // TODO:  add wildcard condition here
+                    //ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString());
+                }
 
 
 
-                // // if it can't find the pkg in one repository, it'll look in the next one in the list
-                // // returns any pkgs found, and any pkgs that weren't found
-                // returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
+                // if it can't find the pkg in one repository, it'll look in the next one in the list
+                // returns any pkgs found, and any pkgs that weren't found
+                returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
 
 
-                // // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
-                // var flattenedPkgs = returnedPkgsFound.Flatten();
-                // // flattenedPkgs.ToList();
+                // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
+                var flattenedPkgs = returnedPkgsFound.Flatten();
+                // flattenedPkgs.ToList();
 
-                // if (flattenedPkgs.Any() && flattenedPkgs.First() != null)
-                // {
-                //     foreach (IPackageSearchMetadata pkg in flattenedPkgs)
-                //     {
-                //         //WriteObject(pkg);
+                if (flattenedPkgs.Any() && flattenedPkgs.First() != null)
+                {
+                    foreach (IPackageSearchMetadata pkg in flattenedPkgs)
+                    {
+                        //WriteObject(pkg);
 
 
-                //         PSObject pkgAsPSObject = new PSObject();
-                //         pkgAsPSObject.Members.Add(new PSNoteProperty("Name", pkg.Identity.Id));
-                //         // Version.Version ensures type is System.Version instead of type NuGetVersion
-                //         pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version.Version));
-                //         pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repoName.Properties["Name"].Value.ToString()));
-                //         pkgAsPSObject.Members.Add(new PSNoteProperty("Description", pkg.Description));
+                        PSObject pkgAsPSObject = new PSObject();
+                        pkgAsPSObject.Members.Add(new PSNoteProperty("Name", pkg.Identity.Id));
+                        // Version.Version ensures type is System.Version instead of type NuGetVersion
+                        pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version.Version));
+                        pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repoName.Properties["Name"].Value.ToString()));
+                        pkgAsPSObject.Members.Add(new PSNoteProperty("Description", pkg.Description));
 
-                //         WriteObject(pkgAsPSObject);
+                        WriteObject(pkgAsPSObject);
 
-                //     }
-                // }
+                    }
+                }
 
-                // // reset found packages
-                // returnedPkgsFound.Clear();
+                // reset found packages
+                returnedPkgsFound.Clear();
 
-                // // if we need to search all repositories, we'll continue, otherwise we'll just return
-                // if (!pkgsLeftToFind.Any())
-                // {
-                //     break;
-                // }
+                // if we need to search all repositories, we'll continue, otherwise we'll just return
+                if (!pkgsLeftToFind.Any())
+                {
+                    break;
+                }
 
 
 
@@ -266,7 +266,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        public async void ProcessCatalogReader(string repoName, string sourceUrl, CancellationToken cancellationToken){
+        public void ProcessCatalogReader(string repoName, string sourceUrl, CancellationToken cancellationToken){
             WriteDebug("in function");
             var feed = new Uri("https://api.nuget.org/v3/index.json");
             // var feed = new Uri("https://mscodehub.pkgs.visualstudio.com/_packaging/1DS-SDK-Extensions/nuget/v3/index.json");
@@ -274,19 +274,55 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             using (var catalog = new CatalogReader(feed))
             {
                 WriteDebug("created CatalogReader");
-                var entries = await catalog.GetEntriesAsync();
+                var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult();
+                int ct = 0;
+                //"Test"
+                var chosenOne = entries
+                    .Where(x => x.Id == "Fare")
+                    .OrderBy (x => x.Version)
+                    .ToList();
+
+                WriteDebug("the count is: " + chosenOne.Count);
+                foreach(var entry in chosenOne){
+                    WriteDebug("currently on item: " + ct++);
+                    WriteDebug(entry.Id);
+                    WriteDebug(entry.Version.ToNormalizedString());
+                }
+
+                // var chosenOneItem = chosenOne.First();
+                // var chosenOneItem = chosenOne[0];
+                // WriteDebug(chosenOneItem.Id);
+                // WriteDebug(chosenOneItem.Version.ToNormalizedString());
+                // var chosenOneItemTwo = chosenOne[1];
+                // WriteDebug(chosenOneItemTwo.Id);
+                // WriteDebug(chosenOneItemTwo.Version.ToNormalizedString());
+
+
+
                 // var flatEntries = catalog.GetFlattenedEntriesAsync();
                 // var set = catalog.GetPackageSetAsync();
-                WriteDebug("entries count is: " + entries.Count);
+
+                // var chosenEntry = entries
+                //                 .Select(x => x.Id == "EcoSqlServer")
+
+                // var timestamps = entries
+                //         .OrderBy(x => x.CommitTimeStamp)
+                //         .Select(x => x.CommitTimeStamp)
+                //         .ToList();
+
+                // const int packageCount = 10;
+                // var start = timestamps[2];
+                // var end = timestamps[packageCount - 3];
+                // WriteDebug("entries count is: " + entries.Count);
                 // WriteDebug(flatEntries.Count);
                 // WriteDebug(set.Count);
 
-                var entry = entries.FirstOrDefault();
+                // var entry = entries.FirstOrDefault();
 
-                WriteDebug(entry.Version.ToNormalizedString());
-                WriteDebug(entry.Id);
-                WriteDebug(entry.PackageBaseAddressIndexUri.AbsoluteUri);
-                WriteDebug(entry.CommitTimeStamp.ToString());
+                // WriteDebug(entry.Version.ToNormalizedString());
+                // WriteDebug(entry.Id);
+                // WriteDebug(entry.PackageBaseAddressIndexUri.AbsoluteUri);
+                // WriteDebug(entry.CommitTimeStamp.ToString());
                 // WriteDebug(entry.GetPackageDetailsAsync().ToString());
                 WriteDebug("Done!");
                 // foreach (var entry in await catalog.GetFlattenedEntriesAsync())
