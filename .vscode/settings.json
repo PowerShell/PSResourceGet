@@ -1,5 +1,6 @@
 {
     "csharp.semanticHighlighting.enabled": true,
     "omnisharp.enableEditorConfigSupport": true,
-    "omnisharp.enableRoslynAnalyzers": true
+    "omnisharp.enableRoslynAnalyzers": true,
+    "powershell.codeFormatting.addWhitespaceAroundPipe": true
 }

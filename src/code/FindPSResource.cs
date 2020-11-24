@@ -1,215 +1,135 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
-using System;
-using System.Diagnostics;
-using System.Management.Automation;
-using System.Collections.Generic;
-using NuGet.Configuration;
+using LinqKit;
+using Newtonsoft.Json;
+using MoreLinq.Extensions;
 using NuGet.Common;
+using NuGet.Configuration;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
-using System.Threading;
-using LinqKit;
-using MoreLinq.Extensions;
 using NuGet.Versioning;
 using System.Data;
 using System.Linq;
 using System.Net;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
-using System.Net.Http;
+using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Management.Automation;
+using System.Threading;
 using static System.Environment;
-
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-
     /// <summary>
     /// The Register-PSResourceRepository cmdlet registers the default repository for PowerShell modules.
     /// After a repository is registered, you can reference it from the Find-PSResource, Install-PSResource, and Publish-PSResource cmdlets.
     /// The registered repository becomes the default repository in Find-Module and Install-Module.
     /// It returns nothing.
     /// </summary>
-
-    [Cmdlet(VerbsCommon.Find, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
+    [Cmdlet(VerbsCommon.Find, "PSResource", SupportsShouldProcess = true,
         HelpUri = "<add>", RemotingCapability = RemotingCapability.None)]
-    public sealed
-    class FindPSResource : PSCmdlet
+    public sealed class FindPSResource : PSCmdlet
     {
-        //  private string PSGalleryRepoName = "PSGallery";
+        #region Parameters
 
         /// <summary>
-        /// Specifies the desired name for the resource to be searched.
+        /// Specifies the name for the resource to be searched.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
-        public string[] Name
-        {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
-        private string[] _name = new string[0];
+        public string[] Name { get; set; } = new string[0];
 
         /// <summary>
         /// Specifies the type of the resource to be searched for.
         /// </summary>
         [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateSet(new string[] { "Module", "Script", "DscResource", "RoleCapability", "Command" })]
-        public string[] Type
-        {
-            get
-            { return _type; }
-
-            set
-            { _type = value; }
-        }
-        private string[] _type;
+        public string[] Type { get; set; }
 
         /// <summary>
         /// Specifies the version or version range of the package to be searched for
         /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter]
         [ValidateNotNullOrEmpty]
-        public string Version
-        {
-            get
-            { return _version; }
-
-            set
-            { _version = value; }
-        }
-
-        private string _version;
+        public string Version { get; set; }
 
         /// <summary>
         /// Specifies to search for prerelease resources.
         /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
-        public SwitchParameter Prerelease
-        {
-            get
-            { return _prerelease; }
-
-            set
-            { _prerelease = value; }
-        }
-
-        private SwitchParameter _prerelease;
+        [Parameter]
+        public SwitchParameter Prerelease { get; set; }
 
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
-        public string ModuleName
-        {
-            get
-            { return _moduleName; }
-
-            set
-            { _moduleName = value; }
-        }
-        private string _moduleName;
+        public string ModuleName { get; set; }
 
         /// <summary>
         /// Specifies the type of the resource to be searched for.
         /// </summary>
-        [Parameter(ValueFromPipeline = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(ValueFromPipeline = true)]
         [ValidateNotNull]
-        public string[] Tags
-        {
-            get
-            { return _tags; }
-
-            set
-            { _tags = value; }
-        }
-        private string[] _tags;
+        public string[] Tags { get; set; }
 
         /// <summary>
         /// Specify which repositories to search in.
         /// </summary>
+        [Parameter(ValueFromPipeline = true)]
         [ValidateNotNullOrEmpty]
-        [Parameter(ValueFromPipeline = true, ParameterSetName = "NameParameterSet")]
-        public string[] Repository
-        {
-            get { return _repository; }
-
-            set { _repository = value; }
-        }
-        private string[] _repository;
+        public string[] Repository { get; set; }
 
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
-        public PSCredential Credential
-        {
-            get
-            { return _credential; }
-
-            set
-            { _credential = value; }
-        }
-        private PSCredential _credential;
+        [Parameter(ValueFromPipelineByPropertyName = true)]
+        public PSCredential Credential { get; set; }
 
         /// <summary>
         /// Specifies to return any dependency packages.
         /// Currently only used when name param is specified.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
-        public SwitchParameter IncludeDependencies
-        {
-            get { return _includeDependencies; }
+        [Parameter(ValueFromPipelineByPropertyName = true)]
+        public SwitchParameter IncludeDependencies { get; set; }
 
-            set { _includeDependencies = value; }
-        }
-        private SwitchParameter _includeDependencies;
+        #endregion
 
+        #region Members
 
-
-
+        // TODO: Implement...
+        /*
         // This will be a list of all the repository caches
-        public static readonly List<string> RepoCacheFileName = new List<string>();
+        public static readonly List<string> _repoCacheFileName = new List<string>();
         // Temporarily store cache in this path for testing purposes
-        public static readonly string RepositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
+        public static readonly string _repositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
         //public static readonly string RepositoryCacheDir = @"%APPDATA%/PowerShellGet/repositorycache";//@"%APPDTA%\NuGet";
-        //private readonly object p;
+        */
 
-        // Define the cancellation token.
-        CancellationTokenSource source;
-        CancellationToken cancellationToken;
-        List<string> pkgsLeftToFind;
-        private const string CursorFileName = "cursor.json";
+        // TODO: Implement...
+        //private const string CursorFileName = "cursor.json";
+
+        #endregion
+
+        #region Overrides
 
         /// <summary>
         /// </summary>
         protected override void ProcessRecord()
         {
-            source = new CancellationTokenSource();
-            cancellationToken = source.Token;
-
-
-
-            var r = new RespositorySettings();
-            var listOfRepositories = r.Read(_repository);
+            var pkgsLeftToFind = Name.ToList();
+            var cancellationToken = (new CancellationTokenSource()).Token;
+            var listOfRepositories = RepositorySettings.Read(Repository);
 
             var returnedPkgsFound = new List<IEnumerable<IPackageSearchMetadata>>();
-            pkgsLeftToFind = _name.ToList();
             foreach (var repoName in listOfRepositories)
             {
                 WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
                 // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
                 // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
                 if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") && 
-                    (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
+                    (Name.Length == 0 || Name.Any(n => n.Contains("*"))))   //Name.Contains("*")))  /// TEST THIS!!!!!!!
                 {
                     this.WriteWarning("This functionality is not yet implemented");
                     // right now you can use wildcards with an array of names, ie -name "Az*", "PS*", "*Get", will take a hit performance wise, though.
@@ -217,11 +137,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     //ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString());
                 }
 
-
-
                 // if it can't find the pkg in one repository, it'll look in the next one in the list
                 // returns any pkgs found, and any pkgs that weren't found
-                returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
+                returnedPkgsFound.AddRange(
+                    FindPackagesFromSource(
+                        repoName: repoName.Properties["Name"].Value.ToString(),
+                        repositoryUrl: repoName.Properties["Url"].Value.ToString(),
+                        pkgsLeftToFind: pkgsLeftToFind,
+                        cancellationToken: cancellationToken));
 
 
                 // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
@@ -263,6 +186,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
         }
+
+        #endregion
 
 /***
         public void ProcessCatalogReader(string repoName, string sourceUrl)
@@ -319,17 +244,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 LocalPackageSearchResource localResourceSearch = new LocalPackageSearchResource(localResource);
                 LocalPackageMetadataResource localResourceMetadata = new LocalPackageMetadataResource(localResource);
 
-                SearchFilter filter = new SearchFilter(_prerelease);
+                SearchFilter filter = new SearchFilter(Prerelease);
                 SourceCacheContext context = new SourceCacheContext();
 
 
 
                 // url
                 PackageSource source = new PackageSource(sourceUrl);
-                if (_credential != null)
+                if (Credential != null)
                 {
-                    string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                    source.Credentials = PackageSourceCredential.FromUserInput(sourceUrl, _credential.UserName, password, true, null);
+                    string password = new NetworkCredential(string.Empty, Credential.Password).Password;
+                    source.Credentials = PackageSourceCredential.FromUserInput(sourceUrl, Credential.UserName, password, true, null);
                 }
                 var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
 
@@ -344,7 +269,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 Console.WriteLine($"Processing {allLeafItems.Count} catalog leaves.");
                 foreach (var leafItem in allLeafItems)
                 {
-                    _version = leafItem.PackageVersion;
+                    Version = leafItem.PackageVersion;
 
                     IEnumerable<IPackageSearchMetadata> foundPkgs;
                     if (sourceUrl.StartsWith("file://"))
@@ -377,7 +302,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 */
         //
-        public List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSource(string repoName, string repositoryUrl, CancellationToken cancellationToken)
+        public List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSource(
+            string repoName,
+            string repositoryUrl,
+            List<string> pkgsLeftToFind,
+            CancellationToken cancellationToken)
         {
             List<IEnumerable<IPackageSearchMetadata>> returnedPkgs = new List<IEnumerable<IPackageSearchMetadata>>();
 
@@ -389,26 +318,44 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 LocalPackageSearchResource resourceSearch = new LocalPackageSearchResource(localResource);
                 LocalPackageMetadataResource resourceMetadata = new LocalPackageMetadataResource(localResource);
 
-                SearchFilter filter = new SearchFilter(_prerelease);
+                SearchFilter filter = new SearchFilter(Prerelease);
                 SourceCacheContext context = new SourceCacheContext();
 
 
-                if ((_name == null) || (_name.Length == 0))
+                if (Name.Length == 0)
                 {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
+                    returnedPkgs.AddRange(
+                        FindPackagesFromSourceHelper(
+                            repoName: repoName,
+                            name: null,
+                            pkgsLeftToFind: pkgsLeftToFind,
+                            pkgSearchResource: resourceSearch,
+                            pkgMetadataResource: resourceMetadata, 
+                            searchFilter: filter,
+                            srcContext: context,
+                            cancellationToken: cancellationToken));
                 }
 
-                foreach(string n in _name){
+                foreach(string n in Name)
+                {
                     if (pkgsLeftToFind.Any())
                     {
-                        var foundPkgs = FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context);
+                        var foundPkgs = FindPackagesFromSourceHelper(
+                            repoName: repoName,
+                            name: n,
+                            pkgsLeftToFind: pkgsLeftToFind,
+                            pkgSearchResource: resourceSearch,
+                            pkgMetadataResource: resourceMetadata,
+                            searchFilter: filter,
+                            srcContext: context,
+                            cancellationToken: cancellationToken);
+
                         if (foundPkgs.Any() && foundPkgs.First().Count() != 0)
                         {
                             returnedPkgs.AddRange(foundPkgs);
 
-
                             // if the repository is not specified or the repository is specified (but it's not '*'), then we can stop continuing to search for the package
-                            if (_repository == null ||  !_repository[0].Equals("*"))
+                            if (Repository == null ||  !Repository[0].Equals("*"))
                             {
                                 pkgsLeftToFind.Remove(n);
                             }
@@ -418,20 +365,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-
-               
-
                 PackageSource source = new PackageSource(repositoryUrl);
-                if (_credential != null)
+                if (Credential != null)
                 {
-                    string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                    source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, _credential.UserName, password, true, null);
+                    string password = new NetworkCredential(string.Empty, Credential.Password).Password;
+                    source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, Credential.UserName, password, true, null);
                 }
 
-    
-
-                var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
-               
+                var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);               
                 SourceRepository repository = new SourceRepository(source, provider);
 
 
@@ -447,26 +388,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return returnedPkgs;
                 }
 
-                SearchFilter filter = new SearchFilter(_prerelease);
+                SearchFilter filter = new SearchFilter(Prerelease);
                 SourceCacheContext context = new SourceCacheContext();
 
-                if ((_name == null) || (_name.Length == 0))
+                if (Name.Length == 0)
                 {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
+                    returnedPkgs.AddRange(
+                        FindPackagesFromSourceHelper(
+                            repoName: repoName,
+                            name: null,
+                            pkgsLeftToFind: pkgsLeftToFind,
+                            pkgSearchResource: resourceSearch,
+                            pkgMetadataResource: resourceMetadata,
+                            searchFilter: filter,
+                            srcContext: context,
+                            cancellationToken: cancellationToken));
                 }
 
-                foreach (string n in _name)
+                foreach (string n in Name)
                 {
                     if (pkgsLeftToFind.Any())
                     {
-                        var foundPkgs = FindPackagesFromSourceHelper(repoName, repositoryUrl, n, resourceSearch, resourceMetadata, filter, context);
+                        var foundPkgs = FindPackagesFromSourceHelper(
+                            repoName: repoName,
+                            name: n,
+                            pkgsLeftToFind: pkgsLeftToFind,
+                            pkgSearchResource: resourceSearch,
+                            pkgMetadataResource: resourceMetadata,
+                            searchFilter: filter,
+                            srcContext: context,
+                            cancellationToken: cancellationToken);
+
                         if (foundPkgs.Any() && foundPkgs.First().Count() != 0)
                         {
                             returnedPkgs.AddRange(foundPkgs);
 
-
                             // if the repository is not specified or the repository is specified (but it's not '*'), then we can stop continuing to search for the package
-                            if (_repository == null ||  !_repository[0].Equals("*"))
+                            if (Repository == null ||  !Repository[0].Equals("*"))
                             {
                                 pkgsLeftToFind.Remove(n);
                             }
@@ -477,7 +435,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return returnedPkgs;
         }
-
 
         private IEnumerable<DataRow> FindPackageFromCache(string repositoryName)
         {
@@ -500,7 +457,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var predicate = PredicateBuilder.New<DataRow>(true);
 
 
-            if ((_tags != null) && (_tags.Length != 0))
+            if ((Tags != null) && (Tags.Length != 0))
             {
 
                 var tagResults = from t0 in metadataTable.AsEnumerable()
@@ -534,7 +491,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var tagsPredicate = PredicateBuilder.New<DataRow>(true);
 
                 // Build predicate by combining tag searches with 'or'
-                foreach (string t in _tags)
+                foreach (string t in Tags)
                 {
                     tagsPredicate = tagsPredicate.Or(pkg => pkg.Field<string>("Tags").Equals(t));
                 }
@@ -547,36 +504,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 queryTable.Merge(tagsRowCollection.ToDataTable());
             }
 
-            if (_type != null)
+            if (Type != null)
             {
-                if (_type.Contains("Command", StringComparer.OrdinalIgnoreCase))
+                if (Type.Contains("Command", StringComparer.OrdinalIgnoreCase))
                 {
-
                     var commandResults = from t0 in metadataTable.AsEnumerable()
-                                         join t1 in commandsTable.AsEnumerable()
-                                         on t0.Field<string>("Key") equals t1.Field<string>("Key")
-                                         select new PackageMetadataAllTables
-                                         {
-                                             Key = t0["Key"],
-                                             Name = t0["Name"],
-                                             Version = t0["Version"],
-                                             Type = (string)t0["Type"],
-                                             Description = t0["Description"],
-                                             Author = t0["Author"],
-                                             Copyright = t0["Copyright"],
-                                             PublishedDate = t0["PublishedDate"],
-                                             InstalledDate = t0["InstalledDate"],
-                                             UpdatedDate = t0["UpdatedDate"],
-                                             LicenseUri = t0["LicenseUri"],
-                                             ProjectUri = t0["ProjectUri"],
-                                             IconUri = t0["IconUri"],
-                                             PowerShellGetFormatVersion = t0["PowerShellGetFormatVersion"],
-                                             ReleaseNotes = t0["ReleaseNotes"],
-                                             RepositorySourceLocation = t0["RepositorySourceLocation"],
-                                             Repository = t0["Repository"],
-                                             IsPrerelease = t0["IsPrerelease"],
-                                             Commands = t1["Commands"],
-                                         };
+                                            join t1 in commandsTable.AsEnumerable()
+                                            on t0.Field<string>("Key") equals t1.Field<string>("Key")
+                                            select new PackageMetadataAllTables
+                                            {
+                                                Key = t0["Key"],
+                                                Name = t0["Name"],
+                                                Version = t0["Version"],
+                                                Type = (string)t0["Type"],
+                                                Description = t0["Description"],
+                                                Author = t0["Author"],
+                                                Copyright = t0["Copyright"],
+                                                PublishedDate = t0["PublishedDate"],
+                                                InstalledDate = t0["InstalledDate"],
+                                                UpdatedDate = t0["UpdatedDate"],
+                                                LicenseUri = t0["LicenseUri"],
+                                                ProjectUri = t0["ProjectUri"],
+                                                IconUri = t0["IconUri"],
+                                                PowerShellGetFormatVersion = t0["PowerShellGetFormatVersion"],
+                                                ReleaseNotes = t0["ReleaseNotes"],
+                                                RepositorySourceLocation = t0["RepositorySourceLocation"],
+                                                Repository = t0["Repository"],
+                                                IsPrerelease = t0["IsPrerelease"],
+                                                Commands = t1["Commands"],
+                                            };
 
                     DataTable joinedCommandTable = commandResults.ToDataTable();
 
@@ -584,7 +540,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // Build predicate by combining names of commands searches with 'or'
                     // if no name is specified, we'll return all (?)
-                    foreach (string n in _name)
+                    foreach (string n in Name)
                     {
                         commandPredicate = commandPredicate.Or(pkg => pkg.Field<string>("Commands").Equals(n));
                     }
@@ -596,10 +552,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     queryTable.Merge(commandsRowCollection.ToDataTable());
                 }
 
-
-                if (_type.Contains("DscResource", StringComparer.OrdinalIgnoreCase))
+                if (Type.Contains("DscResource", StringComparer.OrdinalIgnoreCase))
                 {
-
                     var dscResourceResults = from t0 in metadataTable.AsEnumerable()
                                              join t1 in dscResourceTable.AsEnumerable()
                                              on t0.Field<string>("Key") equals t1.Field<string>("Key")
@@ -632,7 +586,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // Build predicate by combining names of commands searches with 'or'
                     // if no name is specified, we'll return all (?)
-                    foreach (string n in _name)
+                    foreach (string n in Name)
                     {
                         dscResourcePredicate = dscResourcePredicate.Or(pkg => pkg.Field<string>("DscResources").Equals(n));
                     }
@@ -644,9 +598,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     queryTable.Merge(dscResourcesRowCollection.ToDataTable());
                 }
 
-                if (_type.Contains("RoleCapability", StringComparer.OrdinalIgnoreCase))
+                if (Type.Contains("RoleCapability", StringComparer.OrdinalIgnoreCase))
                 {
-
                     var roleCapabilityResults = from t0 in metadataTable.AsEnumerable()
                                                 join t1 in roleCapabilityTable.AsEnumerable()
                                                 on t0.Field<string>("Key") equals t1.Field<string>("Key")
@@ -679,7 +632,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // Build predicate by combining names of commands searches with 'or'
                     // if no name is specified, we'll return all (?)
-                    foreach (string n in _name)
+                    foreach (string n in Name)
                     {
                         roleCapabilityPredicate = roleCapabilityPredicate.Or(pkg => pkg.Field<string>("RoleCapability").Equals(n));
                     }
@@ -717,7 +670,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             /// ignore-- testing.
-            //if ((queryTable == null) || (queryTable.Rows.Count == 0) && (((_type == null) || (_type.Contains("Module", StringComparer.OrdinalIgnoreCase) || _type.Contains("Script", StringComparer.OrdinalIgnoreCase))) && ((_tags == null) || (_tags.Length == 0))))
+            //if ((queryTable == null) || (queryTable.Rows.Count == 0) && (((Type == null) || (Type.Contains("Module", StringComparer.OrdinalIgnoreCase) || Type.Contains("Script", StringComparer.OrdinalIgnoreCase))) && ((Tags == null) || (Tags.Length == 0))))
             //{
             //    queryTable = metadataTable;
             //}
@@ -727,7 +680,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             allFoundPkgs.Add(finalQueryResults);
 
             // Need to handle includeDependencies
-            if (_includeDependencies)
+            if (IncludeDependencies)
             {
                 foreach (var pkg in finalQueryResults)
                 {
@@ -811,7 +764,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // Build predicate by combining names of commands searches with 'or'
                 // if no name is specified, we'll return all (?)
-                foreach (string n in _name)
+                foreach (string n in Name)
                 {
                     roleCapabilityPredicate = roleCapabilityPredicate.Or(pkg => pkg.Field<string>("RoleCapability").Equals(n));
                 }
@@ -836,32 +789,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             //NuGetVersion nugetVersion0;
             var predicate = PredicateBuilder.New<DataRow>(true);
 
-            if (_type != null)
+            if (Type != null)
             {
                 var typePredicate = PredicateBuilder.New<DataRow>(true);
 
-                if (_type.Contains("Script", StringComparer.OrdinalIgnoreCase))
+                if (Type.Contains("Script", StringComparer.OrdinalIgnoreCase))
                 {
                     typePredicate = typePredicate.Or(pkg => pkg.Field<string>("Type").Equals("Script"));
                 }
-                if (_type.Contains("Module", StringComparer.OrdinalIgnoreCase))
+                if (Type.Contains("Module", StringComparer.OrdinalIgnoreCase))
                 {
                     typePredicate = typePredicate.Or(pkg => pkg.Field<string>("Type").Equals("Module"));
                 }
                 predicate.And(typePredicate);
-
             }
 
             ExpressionStarter<DataRow> starter2 = PredicateBuilder.New<DataRow>(true);
-            if (_moduleName != null)
+            if (ModuleName != null)
             {
-                predicate = predicate.And(pkg => pkg.Field<string>("Name").Equals(_moduleName));
+                predicate = predicate.And(pkg => pkg.Field<string>("Name").Equals(ModuleName));
             }
 
-            if ((_type == null) || ((_type.Length == 0) || !(_type.Contains("Module", StringComparer.OrdinalIgnoreCase) || _type.Contains("Script", StringComparer.OrdinalIgnoreCase))))
+            if ((Type == null) || ((Type.Length == 0) || !(Type.Contains("Module", StringComparer.OrdinalIgnoreCase) || Type.Contains("Script", StringComparer.OrdinalIgnoreCase))))
             {
                 var typeNamePredicate = PredicateBuilder.New<DataRow>(true);
-                foreach (string name in _name)
+                foreach (string name in Name)
                 {
 
                     //// ?
@@ -871,14 +823,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             // cache will only contain the latest stable and latest prerelease of each package
-            if (_version != null)
+            if (Version != null)
             {
 
                 NuGetVersion nugetVersion;
 
                 //VersionRange versionRange = VersionRange.Parse(version);
 
-                if (NuGetVersion.TryParse(_version, out nugetVersion))
+                if (NuGetVersion.TryParse(Version, out nugetVersion))
                 {
                     predicate = predicate.And(pkg => pkg.Field<string>("Version").Equals(nugetVersion));
                 }
@@ -887,20 +839,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             }
-            if (!_prerelease)
+            if (!Prerelease)
             {
                 predicate = predicate.And(pkg => pkg.Field<string>("IsPrerelease").Equals("false"));  // consider checking if it IS prerelease
             }
             return predicate;
         }
 
-
-
-
-
-
-
-        private List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSourceHelper(string repoName, string repositoryUrl, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext)
+        private List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSourceHelper(
+            string repoName,
+            string name,
+            List<string> pkgsLeftToFind,
+            PackageSearchResource pkgSearchResource,
+            PackageMetadataResource pkgMetadataResource,
+            SearchFilter searchFilter,
+            SourceCacheContext srcContext,
+            CancellationToken cancellationToken)
         {
 
             List<IEnumerable<IPackageSearchMetadata>> foundPackages = new List<IEnumerable<IPackageSearchMetadata>>();
@@ -910,11 +864,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             char[] delimiter = new char[] { ' ', ',' };
 
             // If module name is specified, use that as the name for the pkg to search for
-            if (_moduleName != null)
+            if (ModuleName != null)
             {
                 // may need to take 1
-                foundPackages.Add(pkgMetadataResource.GetMetadataAsync(_moduleName, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
-                //foundPackages = pkgMetadataResource.GetMetadataAsync(_moduleName, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                foundPackages.Add(pkgMetadataResource.GetMetadataAsync(ModuleName, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
+                //foundPackages = pkgMetadataResource.GetMetadataAsync(ModuleName, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
             }
             else if (name != null)
             {
@@ -924,7 +878,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     IEnumerable<IPackageSearchMetadata> retrievedPkgs = null;
                     try
                     {
-                        retrievedPkgs = pkgMetadataResource.GetMetadataAsync(name, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                        retrievedPkgs = pkgMetadataResource.GetMetadataAsync(name, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
                     }
                     catch { }
                     if (retrievedPkgs == null || retrievedPkgs.Count() == 0)
@@ -1021,23 +975,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             //use either ModuleName or Name (whichever not null) to prevent id error
-            var nameVal = name == null ? _moduleName : name;
+            var nameVal = name == null ? ModuleName : name;
             // Check version first to narrow down the number of pkgs before potentially searching through tags
-            if (_version != null && nameVal != null)
+            if (Version != null && nameVal != null)
             {
 
-                if (_version.Equals("*"))
+                if (Version.Equals("*"))
                 {
                     // ensure that the latst version is returned first (the ordering of versions differ)
 
-                    if(_moduleName != null) 
+                    if(ModuleName != null) 
                     {
                         // perform checks for PSModule before adding to filteredFoundPackages
-                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSModule"))
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
-                        scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSScript"))
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
  
@@ -1045,14 +999,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     { //name != null
-                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
                     }
                 }
                 else
                 {
                     // try to parse into a singular NuGet version
                     NuGetVersion specificVersion;
-                    NuGetVersion.TryParse(_version, out specificVersion);
+                    NuGetVersion.TryParse(Version, out specificVersion);
 
                     foundPackages.RemoveAll(p => true);
                     VersionRange versionRange = null;
@@ -1067,13 +1021,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // maybe try catch this
                         // check if version range
-                        versionRange = VersionRange.Parse(_version);
+                        versionRange = VersionRange.Parse(Version);
 
                     }
                     // Search for packages within a version range
                     // ensure that the latst version is returned first (the ordering of versions differ
                     // test wth  Find-PSResource 'Carbon' -Version '[,2.4.0)'
-                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                         .Where(p => versionRange.Satisfies(p.Identity.Version))
                         .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
 
@@ -1087,7 +1041,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if(singlePkg != null)
                     {
-                        if(_moduleName != null)
+                        if(ModuleName != null)
                         {
                             var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
                             if(tags.Contains("PSModule"))
@@ -1095,7 +1049,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 filteredFoundPkgs.Add(singlePkg);
                             }
                         }
-                        else if(_name != null)
+                        else if(Name != null)
                         {
                             filteredFoundPkgs.Add(singlePkg);
                         }
@@ -1105,7 +1059,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else // version is null
             {
                 // if version is null, but there we want to return multiple packages (muliple names), skip over this step of removing all but the lastest package/version:
-                if ((name != null && !name.Contains("*")) || _moduleName != null)
+                if ((name != null && !name.Contains("*")) || ModuleName != null)
                 {
                     // choose the most recent version -- it's not doing this right now
                     int toRemove = foundPackages.First().Count() - 1;
@@ -1118,13 +1072,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         //if it was a ModuleName then check if the Tag is PSModule and only add then
                         var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
-                        if(_moduleName != null){
+                        if(ModuleName != null){
                             if(tags.Contains("PSModule")){
                                 filteredFoundPkgs.Add(singlePkg);
                             }
                         }
                         else 
-                        { // _name != null
+                        {
                             filteredFoundPkgs.Add(singlePkg);
                         }
                     }
@@ -1141,7 +1095,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TAGS
             /// should move this to the last thing that gets filtered
             var flattenedPkgs = filteredFoundPkgs.Flatten().ToList();
-            if (_tags != null)
+            if (Tags != null)
             {
                 // clear filteredfoundPkgs because we'll just be adding back the pkgs we we
                 filteredFoundPkgs.RemoveAll(p => true);
@@ -1152,7 +1106,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Enumerable.ElementAt(0)
                     var tagArray = p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
 
-                    foreach (string t in _tags)
+                    foreach (string t in Tags)
                     {
                         // if the pkg contains one of the tags we're searching for
                         if (tagArray.Contains(t, StringComparer.OrdinalIgnoreCase))
@@ -1162,7 +1116,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
                 // make sure just adding one pkg if not * versions
-                if (_version != "*")
+                if (Version != "*")
                 {
                     filteredFoundPkgs.Add(pkgsFilteredByTags.DistinctBy(p => p.Identity.Id));
                 }
@@ -1177,10 +1131,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             // optimizes searcching by 
-            if ((_type != null || !filteredFoundPkgs.Flatten().Any()) && pkgsLeftToFind.Any() && !_name.Contains("*"))
+            if ((Type != null || !filteredFoundPkgs.Flatten().Any()) && pkgsLeftToFind.Any() && !Name.Contains("*"))
             {
-                //if ((_type.Contains("Module") || _type.Contains("Script")) && !_type.Contains("DscResource") && !_type.Contains("Command") && !_type.Contains("RoleCapability"))
-                if (_type == null || _type.Contains("DscResource") || _type.Contains("Command") || _type.Contains("RoleCapability"))
+                //if ((Type.Contains("Module") || Type.Contains("Script")) && !Type.Contains("DscResource") && !Type.Contains("Command") && !Type.Contains("RoleCapability"))
+                if (Type == null || Type.Contains("DscResource") || Type.Contains("Command") || Type.Contains("RoleCapability"))
                 {
 
                     if (!filteredFoundPkgs.Flatten().Any())
@@ -1188,9 +1142,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         filteredFoundPkgs.Add(pkgSearchResource.SearchAsync("", searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
                     }
 
-                    var tempList = (FilterPkgsByResourceType(filteredFoundPkgs));
-                    filteredFoundPkgs.RemoveAll(p => true);
+                    var tempList = (FilterPkgsByResourceType(
+                        filteredFoundPkgs: filteredFoundPkgs,
+                        pkgsLeftToFind: pkgsLeftToFind));
 
+                    filteredFoundPkgs.RemoveAll(p => true);
                     filteredFoundPkgs.Add(tempList);
                 }
 
@@ -1204,7 +1160,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             // Search for dependencies
-            if (_includeDependencies && filteredFoundPkgs.Any())
+            if (IncludeDependencies && filteredFoundPkgs.Any())
             {
                 List<IEnumerable<IPackageSearchMetadata>> foundDependencies = new List<IEnumerable<IPackageSearchMetadata>>();
 
@@ -1216,7 +1172,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // this function recursively finds all dependencies
                     // change into an ieunumerable (helpful for the finddependenciesfromsource function)
 
-                    foundDependencies.AddRange(FindDependenciesFromSource(Enumerable.Repeat(pkg, 1), pkgMetadataResource, srcContext));
+                    foundDependencies.AddRange(FindDependenciesFromSource(
+                        pkg: Enumerable.Repeat(pkg, 1),
+                        pkgMetadataResource: pkgMetadataResource,
+                        srcContext: srcContext,
+                        cancellationToken: cancellationToken));
                 }
 
                 filteredFoundPkgs.AddRange(foundDependencies);
@@ -1229,7 +1189,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-        private List<IEnumerable<IPackageSearchMetadata>> FindDependenciesFromSource(IEnumerable<IPackageSearchMetadata> pkg, PackageMetadataResource pkgMetadataResource, SourceCacheContext srcContext)
+        private List<IEnumerable<IPackageSearchMetadata>> FindDependenciesFromSource(
+            IEnumerable<IPackageSearchMetadata> pkg,
+            PackageMetadataResource pkgMetadataResource,
+            SourceCacheContext srcContext,
+            CancellationToken cancellationToken)
         {
             /// dependency resolver
             ///
@@ -1254,7 +1218,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // 2.1) check that the appropriate pkg dependencies exist
                     // returns all versions from a single package id.
-                    var dependencies = pkgMetadataResource.GetMetadataAsync(pkgDependency.Id, _prerelease, true, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                    var dependencies = pkgMetadataResource.GetMetadataAsync(pkgDependency.Id, Prerelease, true, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
 
                     // then 2.2) check if the appropriate verion range exists  (if version exists, then add it to the list to return)
 
@@ -1289,7 +1253,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     foundDependencies.Add(Enumerable.Repeat(depPkgToReturn, 1));
 
                     // 3) search for any dependencies the pkg has
-                    foundDependencies.AddRange(FindDependenciesFromSource(Enumerable.Repeat(depPkgToReturn, 1), pkgMetadataResource, srcContext));
+                    foundDependencies.AddRange(FindDependenciesFromSource(
+                        pkg: Enumerable.Repeat(depPkgToReturn, 1),
+                        pkgMetadataResource: pkgMetadataResource,
+                        srcContext: srcContext,
+                        cancellationToken: cancellationToken));
                 }
             }
 
@@ -1297,16 +1265,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return foundDependencies;
         }
 
-
-
-
-
-
-
-
-
-
-        private List<IPackageSearchMetadata> FilterPkgsByResourceType(List<IEnumerable<IPackageSearchMetadata>> filteredFoundPkgs)
+        private List<IPackageSearchMetadata> FilterPkgsByResourceType(
+            List<IEnumerable<IPackageSearchMetadata>> filteredFoundPkgs,
+            List<string> pkgsLeftToFind)
         {
 
 
@@ -1318,7 +1279,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var pkgsFilteredByResource = new List<IPackageSearchMetadata>();
 
             // if the type is null, we'll set it to check for everything except modules and scripts, since those types were already checked.
-            _type = _type == null ? new string[] { "DscResource", "RoleCapability", "Command" } : _type;
+            Type = Type == null ? new string[] { "DscResource", "RoleCapability", "Command" } : Type;
             string[] pkgsToFind = new string[5];
             pkgsLeftToFind.CopyTo(pkgsToFind);
 
@@ -1335,7 +1296,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
                     // iterate through type array
-                    foreach (var resourceType in _type)
+                    foreach (var resourceType in Type)
                     {
 
                         switch (resourceType)

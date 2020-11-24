@@ -2,23 +2,23 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Management.Automation;
-using System.Xml.Linq;
 using System.Linq;
+using System.Xml.Linq;
 using static System.Environment;
 
-namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
+namespace Microsoft.PowerShell.PowerShellGet
 {
     /// <summary>
     /// Repository settings
     /// </summary>
-
-    class RespositorySettings
+    internal class RepositorySettings
     {
+        #region Members
+
         /// <summary>
         /// Default file name for a settings file is 'psresourcerepository.config'
         /// Also, the user level setting file at '%APPDATA%\NuGet' always uses this name
@@ -27,30 +27,25 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         public static readonly string DefaultRepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
         public static readonly string DefaultFullRepositoryPath = Path.Combine(DefaultRepositoryPath, DefaultRepositoryFileName);
 
-        public RespositorySettings() { }
+        #endregion
 
-        /// <summary>
-        /// Find a repository XML
-        /// Returns:
-        /// </summary>
-        /// <param name="sectionName"></param>
-        public bool FindRepositoryXML()
+        #region Private Methods
+
+        private static bool FindRepositoryXML()
         {
             // Search in the designated location for the repository XML
-            if (File.Exists(DefaultFullRepositoryPath))
-            {
-                return true;
-            }
-
-            return false;
+            return File.Exists(DefaultFullRepositoryPath);
         }
 
-        /// <summary>
-        /// Create a new repository XML
-        /// Returns: void
-        /// </summary>
-        /// <param name="sectionName"></param>
-        public void CreateNewRepositoryXML()
+        private static void CheckRepositoryXML()
+        {
+            if (!FindRepositoryXML())
+            {
+                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
+            }
+        }
+
+        private static void CreateRepositoryXML()
         {
             // Check to see if the file already exists; if it does return
             if (FindRepositoryXML())
@@ -58,44 +53,45 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
                 return;
             }
 
-            // create directory if needed
+            // Create directory if needed
             if (!Directory.Exists(DefaultRepositoryPath))
             {
                 Directory.CreateDirectory(DefaultRepositoryPath);
             }
 
-            // If the repository xml file doesn't exist yet, create one
-            XDocument newRepoXML = new XDocument(
-                    new XElement("configuration")
-            );
-
-            // Should be saved in:
+            // Create initial file document
+            XDocument newRepoXML = new XDocument(new XElement("configuration"));
             newRepoXML.Save(DefaultFullRepositoryPath);
         }
 
+        #endregion
+
+        #region Public Methods
+
         /// <summary>
         /// Add a repository to the XML
-        /// Returns: void
         /// </summary>
-        /// <param name="sectionName"></param>
-        public void Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        public static void Add(
+            string repoName,
+            Uri repoURL,
+            int repoPriority,
+            bool repoTrusted)
         {
             // Check to see if information we're trying to add to the repository is valid
             if (string.IsNullOrEmpty(repoName))
             {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
                 throw new ArgumentException("Repository name cannot be null or empty");
             }
+
             if (string.IsNullOrEmpty(repoURL.ToString()))
             {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
                 throw new ArgumentException("Repository URL cannot be null or empty");
             }
 
-            // Create will make a new XML if one doesn't already exist
             try
             {
-                CreateNewRepositoryXML();
+                // Create a new XML repository if one doesn't already exist
+                CreateRepositoryXML();
             }
             catch
             {
@@ -106,8 +102,8 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
 
             // Check if what's being added already exists, if it does throw an error
-            var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repoName, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-
+            var node = doc.Descendants("Repository").Where(
+                e => string.Equals(e.Attribute("Name").Value, repoName, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
             if (node != null)
             {
                 throw new ArgumentException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
@@ -123,8 +119,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
                 new XAttribute("Name", repoName),
                 new XAttribute("Url", repoURL),
                 new XAttribute("Priority", repoPriority),
-                new XAttribute("Trusted", repoTrusted)
-                );
+                new XAttribute("Trusted", repoTrusted));
 
             root.Add(newElement);
 
@@ -134,9 +129,8 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 
         /// <summary>
         /// Updates a repository name, URL, priority, or installation policy
-        /// Returns:  void
         /// </summary>
-        public void Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
+        public static void Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
         {
             // Check to see if information we're trying to add to the repository is valid
             if (string.IsNullOrEmpty(repoName))
@@ -146,14 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             }
 
             // We expect the xml to exist, if it doesn't user needs to register a repository
-            try
-            {
-                FindRepositoryXML();
-            }
-            catch
-            {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
-            }
+            CheckRepositoryXML();
 
             // Open file
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
@@ -193,10 +180,8 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 
         /// <summary>
         /// Removes a repository from the XML
-        /// Returns: void
         /// </summary>
-        /// <param name="sectionName"></param>
-        public void Remove(string[] repoNames)
+        public static void Remove(string[] repoNames)
         {
 
             // Check to see if information we're trying to add to the repository is valid
@@ -206,10 +191,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
                 throw new ArgumentException("Repository name cannot be null or empty");
             }
 
-            if (!FindRepositoryXML())
-            {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
-            }
+            CheckRepositoryXML();
 
             // Open file
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
@@ -235,14 +217,9 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             root.Save(DefaultFullRepositoryPath);
         }
 
-        public List<PSObject> Read(string[] repoNames)
+        public static List<PSObject> Read(string[] repoNames)
         {
-            // Can be null, will just retrieve all
-            // Call FindRepositoryXML()  [Create will make a new xml if one doesn't already exist]
-            if (!FindRepositoryXML())
-            {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
-            }
+            CheckRepositoryXML();
 
             // Open file
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
@@ -284,7 +261,6 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
                 }
             }
 
-
             // Sort by priority, then by repo name
             // foundRepos.Sort((x, y) => ( Int32.Parse((x.Members.Where(m => m.Name.Equals("Priority"))).FirstOrDefault().Value.ToString()).CompareTo( Int32.Parse((y.Members.Where(m2 => m2.Name.Equals("Priority"))).FirstOrDefault().Value.ToString()) ) ));
             var reposToReturn = foundRepos.OrderBy(x => (Int32.Parse((x.Members.Where(m => m.Name.Equals("Priority"))).FirstOrDefault().Value.ToString())))
@@ -292,5 +268,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 
             return reposToReturn.ToList();
         }
+
+        #endregion
     }
 }

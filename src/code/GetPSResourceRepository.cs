@@ -2,9 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Management.Automation;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
-
-
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -40,11 +37,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         protected override void ProcessRecord()
         {
-             var r = new RespositorySettings();
-
-             var listOfRepositories = r.Read(_name);
-
-            /// Print out repos
+            var listOfRepositories = RepositorySettings.Read(_name);
             foreach (var repo in listOfRepositories)
             {
                 WriteObject(repo);

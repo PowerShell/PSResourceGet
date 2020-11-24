@@ -13,7 +13,6 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using MoreLinq.Extensions;
 using Newtonsoft.Json;
 using NuGet.Common;

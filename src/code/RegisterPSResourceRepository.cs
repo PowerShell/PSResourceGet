@@ -6,7 +6,6 @@ using System;
 using System.Collections;
 using System.Management.Automation;
 using System.Globalization;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -163,8 +162,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         protected override void ProcessRecord()
         {
-            var r = new RespositorySettings();
-
             if (ParameterSetName.Equals("PSGalleryParameterSet"))
             {
                 if (!_psgallery)
@@ -177,7 +174,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 try
                 {
-                    r.Add(PSGalleryRepoName, psGalleryUri, _priority, _trusted);
+                    RepositorySettings.Add(PSGalleryRepoName, psGalleryUri, _priority, _trusted);
                 }
                 catch (Exception e)
                 {
@@ -198,7 +195,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 try
                 {
-                    r.Add(_name, _url, _priority, _trusted);
+                    RepositorySettings.Add(_name, _url, _priority, _trusted);
                 }
                 catch (Exception e)
                 {
@@ -215,7 +212,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         int _psGalleryRepoPriority = repo.ContainsKey("Priority") ? (int)repo["Priority"] : 50;
                         var _psGalleryRepoTrusted = repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : false;
 
-                        r.Add(PSGalleryRepoName, _psGalleryRepoURL, _psGalleryRepoPriority, _psGalleryRepoTrusted);
+                        RepositorySettings.Add(PSGalleryRepoName, _psGalleryRepoURL, _psGalleryRepoPriority, _psGalleryRepoTrusted);
                         continue;
                     }
 
@@ -250,7 +247,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         _repoTrusted = Convert.ToBoolean(repo["Trusted"].ToString());
                     }
 
-                    r.Add(repo["Name"].ToString(), _repoURL, _repoPriority, _repoTrusted);                    
+                    RepositorySettings.Add(repo["Name"].ToString(), _repoURL, _repoPriority, _repoTrusted);                    
                 }      
             }
             else if (_name.Equals(PSGalleryRepoName))

@@ -13,7 +13,6 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using MoreLinq.Extensions;
 using Newtonsoft.Json;
 using NuGet.Common;
@@ -213,8 +212,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public void ProcessRepositories(string[] packageNames, string version, bool prerelease, string[] repository, string scope, bool acceptLicense, bool quiet, bool reinstall, bool force, bool trustRepository, bool noClobber, PSCredential credential, string _path, bool _asNupkg, bool _includeXML)
         {
-            var r = new RespositorySettings();
-            var listOfRepositories = r.Read(repository);
+            var listOfRepositories = RepositorySettings.Read(repository);
 
             pkgsLeftToInstall = packageNames.ToList();
 

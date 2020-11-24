@@ -1,12 +1,7 @@
-﻿
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-
-
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System;
 using System.Management.Automation;
-
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -49,12 +44,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         protected override void ProcessRecord()
         {
-            var r = new RespositorySettings();
-
             // need to check if name is null?
             try
             {
-                r.Remove(_name);
+                RepositorySettings.Remove(_name);
             }
             catch (Exception e){
                 throw new Exception(string.Format("Unable to successfully unregister repository: {0}", e.Message));

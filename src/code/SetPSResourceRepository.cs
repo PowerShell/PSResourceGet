@@ -1,13 +1,10 @@
-﻿
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-
 
 using System;
 using System.Collections;
 using System.Management.Automation;
 using System.Globalization;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System.Collections.Generic;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -155,8 +152,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         protected override void ProcessRecord()
         {
-            var r = new RespositorySettings();
-
             if (ParameterSetName.Equals("NameParameterSet"))
             {
                 bool? _trustedNullable = isSet ? new bool?(_trusted) : new bool?();
@@ -172,7 +167,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Uri galleryURL = new Uri("https://www.powershellgallery.com/api/v2");
 
                     // name is the only thing that won't get updated
-                    r.Update("PSGallery", galleryURL, _priority, _trustedNullable);
+                    RepositorySettings.Update("PSGallery", galleryURL, _priority, _trustedNullable);
                    
                 }
 
@@ -189,7 +184,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Invalid Url"));
                 }
 
-                r.Update(_name, _url, _priority, _trustedNullable);
+                RepositorySettings.Update(_name, _url, _priority, _trustedNullable);
             }
             else if (ParameterSetName.Equals("RepositoriesParameterSet"))
             {
@@ -211,7 +206,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         Uri galleryURL = new Uri("https://www.powershellgallery.com");
 
-                        r.Update(_psGalleryRepoName, _psGalleryRepoURL, _psGalleryRepoPriority, _psGalleryRepoTrusted);
+                        RepositorySettings.Update(_psGalleryRepoName, _psGalleryRepoURL, _psGalleryRepoPriority, _psGalleryRepoTrusted);
 
                         continue;
                     }
@@ -244,11 +239,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     bool? _repoTrusted = repo.ContainsKey("Trusted") ? (bool?)repo["Trusted"] : null;
 
-                    r.Update(repo["Name"].ToString(), _repoURL, _repoPriority, _repoTrusted);
+                    RepositorySettings.Update(repo["Name"].ToString(), _repoURL, _repoPriority, _repoTrusted);
                 }
             }
         }
-
 
         /// <summary>
         /// </summary>

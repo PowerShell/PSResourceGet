@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
 using System;
 using System.Management.Automation;
 using System.Collections.Generic;
@@ -16,13 +15,11 @@ using NuGet.Versioning;
 using System.Data;
 using System.Linq;
 using System.Net;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System.Net.Http;
 using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using static System.Environment;
-
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -73,13 +70,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             this._includeDependencies = _includeDependencies;
        
 
-                source = new CancellationTokenSource();
+            source = new CancellationTokenSource();
             cancellationToken = source.Token;
 
-
-
-            var r = new RespositorySettings();
-            var listOfRepositories = r.Read(_repository);
+            var listOfRepositories = RepositorySettings.Read(_repository);
 
             var returnedPkgsFound = new List<IEnumerable<IPackageSearchMetadata>>();
             pkgsLeftToFind = _name.ToList();

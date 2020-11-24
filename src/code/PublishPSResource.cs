@@ -10,13 +10,11 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Xml;
 using System.Xml.Linq;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging;
 using NuGet.Versioning;
-
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -399,8 +397,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // find repository
-            var r = new RespositorySettings();
-            var repositoryUrl = r.Read(new[] { _repository });
+            var repositoryUrl = RepositorySettings.Read(new[] { _repository });
 
             if (!repositoryUrl.Any())
             {

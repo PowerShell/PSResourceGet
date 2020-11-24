@@ -1,4 +1,7 @@
-﻿using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using Microsoft.PowerShell.PowerShellGet;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,13 +20,10 @@ internal class RepositoryNameCompleter : IArgumentCompleter
         return CompleteRepositoryName(wordToComplete);
     }
 
-
     private IEnumerable<CompletionResult> CompleteRepositoryName(string wordToComplete)
     {
         List<CompletionResult> res = new List<CompletionResult>();
-
-        RespositorySettings repositorySettings = new RespositorySettings();
-        IReadOnlyList<PSObject> listOfRepositories = repositorySettings.Read(null);
+        IReadOnlyList<PSObject> listOfRepositories = RepositorySettings.Read(null);
 
         foreach (PSObject repo in listOfRepositories)
          {
