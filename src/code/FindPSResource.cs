@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.Management.Automation;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using NuGet.CatalogReader;
 using NuGet.Configuration;
 using NuGet.Common;
@@ -206,7 +207,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             pkgsLeftToFind = _name.ToList();
             foreach (var repoName in listOfRepositories)
             {
-                ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken);
+                // ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken);
                 WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
                 // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
                 // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
@@ -274,16 +275,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             using (var catalog = new CatalogReader(feed))
             {
                 WriteDebug("created CatalogReader");
-                var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult();
-                int ct = 0;
-                //"Test"
-                var chosenOne = entries
-                    .Where(x => x.Id == "Fare")
-                    .OrderBy (x => x.Version)
-                    .ToList();
+                // todo: set input to repoName!
+                string input = "*Far";
+                string pattern = Regex.Escape(input).Replace("\\*", ".*"); //pattern contains greedy equivalent of wilcard
+                WriteDebug("regex pattern is: " + pattern);
+                Regex wildcardRegex = new Regex(pattern);
 
-                WriteDebug("the count is: " + chosenOne.Count);
-                foreach(var entry in chosenOne){
+                var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
+                    .Where(x => wildcardRegex.IsMatch(x.Id))
+                    .OrderBy(x => x.Version)
+                    .ToList();
+                // var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
+                //     .Where(x => x.Id == "Fare")
+                //     .OrderBy(x => x.Version)
+                //     .ToList();
+                int ct = 0;
+                // //"Test"
+                // var chosenOne = entries
+                //     .Where(x => x.Id == "Fare")
+                //     .OrderBy (x => x.Version)
+                //     .ToList();
+
+                WriteDebug("the count is: " + entries.Count);
+                foreach(var entry in entries){
                     WriteDebug("currently on item: " + ct++);
                     WriteDebug(entry.Id);
                     WriteDebug(entry.Version.ToNormalizedString());
