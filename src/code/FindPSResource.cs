@@ -207,7 +207,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             pkgsLeftToFind = _name.ToList();
             foreach (var repoName in listOfRepositories)
             {
-                // ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken);
+                ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken);
                 WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
                 // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
                 // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
@@ -268,40 +268,83 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         public void ProcessCatalogReader(string repoName, string sourceUrl, CancellationToken cancellationToken){
-            WriteDebug("in function");
-            var feed = new Uri("https://api.nuget.org/v3/index.json");
-            // var feed = new Uri("https://mscodehub.pkgs.visualstudio.com/_packaging/1DS-SDK-Extensions/nuget/v3/index.json");
 
+            List<IEnumerable<CatalogEntry>> foundPackages = new List<IEnumerable<CatalogEntry>>();
+            List<CatalogEntry> foundPkgs = new List<CatalogEntry>();
+
+            var feed = new Uri("https://api.nuget.org/v3/index.json");
             using (var catalog = new CatalogReader(feed))
             {
-                WriteDebug("created CatalogReader");
+
                 // todo: set input to repoName!
-                string input = "*Far";
-                string pattern = Regex.Escape(input).Replace("\\*", ".*"); //pattern contains greedy equivalent of wilcard
+                string input = "Far*et";
+                string pattern = Regex.Escape(input).Replace("\\*", ".*?"); //pattern contains not-greedy equivalent of wildcard
+                pattern = @"^" + pattern + @"$"; //add begining and end anchors
                 WriteDebug("regex pattern is: " + pattern);
                 Regex wildcardRegex = new Regex(pattern);
 
+
                 var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
-                    .Where(x => wildcardRegex.IsMatch(x.Id))
-                    .OrderBy(x => x.Version)
+                                .Where(x => wildcardRegex.IsMatch(x.Id));
+
+                var pkgNames = entries.Select(x => x.Id).Distinct().ToList();
+
+                var curious = entries.GroupBy(x => new {x.Id})
+                    .Select(x => x.OrderByDescending(y => y.Version)
+                    .First())
                     .ToList();
+
+                WriteDebug("Curious Ct: " + curious.Count);
+                int ctt = 0;
+                foreach (var curPkg in curious) {
+                    WriteDebug("CURIOUS pkg #" + ctt++ + " name: " + curPkg.Id + ", version: " + curPkg.Version.ToNormalizedString());
+                }
+
+                foreach(var name in pkgNames){
+                    // foundPackages;
+                    var singlePkg = entries.Where(x => x.Id == name).OrderByDescending(x => x.Version).First();
+                    foundPkgs.Add(singlePkg);
+                }
+
+                WriteDebug("count of unique pkgs meeting this (wildcard) name: " + foundPkgs.Count);
+                int ct = 0;
+                foreach(var uniquePkg in foundPkgs){
+                    WriteDebug("pkg #" + ct++ + " name: " + uniquePkg.Id + ", version: " + uniquePkg.Version.ToNormalizedString());
+                }
+
+                    // .Where(x => wildcardRegex.IsMatch(x.Id))
+                    // .OrderBy(x => x.Version)
+                    // .ToList();
+
+                // var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
+                //     .Where(x => wildcardRegex.IsMatch(x.Id));
+                // var pkgNames = entries.Select(x => x.Id).ToList();
+
+
+                // foreach(var nameEntry in entries){
+                //     foundPackages.Add(entries.Where(x => x.Id == nameEntry)
+                //         .OrderByDescending(x => x.Version)
+                //         .First());
+                // }
+
+
                 // var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
                 //     .Where(x => x.Id == "Fare")
                 //     .OrderBy(x => x.Version)
                 //     .ToList();
-                int ct = 0;
+                // int ct = 0;
                 // //"Test"
                 // var chosenOne = entries
                 //     .Where(x => x.Id == "Fare")
                 //     .OrderBy (x => x.Version)
                 //     .ToList();
 
-                WriteDebug("the count is: " + entries.Count);
-                foreach(var entry in entries){
-                    WriteDebug("currently on item: " + ct++);
-                    WriteDebug(entry.Id);
-                    WriteDebug(entry.Version.ToNormalizedString());
-                }
+                // WriteDebug("the count is: " + entries.Count);
+                // foreach(var entry in entries){
+                //     WriteDebug("currently on item: " + ct++);
+                //     WriteDebug(entry.Id);
+                //     WriteDebug(entry.Version.ToNormalizedString());
+                // }
 
                 // var chosenOneItem = chosenOne.First();
                 // var chosenOneItem = chosenOne[0];
@@ -319,10 +362,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // var chosenEntry = entries
                 //                 .Select(x => x.Id == "EcoSqlServer")
 
-                // var timestamps = entries
-                //         .OrderBy(x => x.CommitTimeStamp)
-                //         .Select(x => x.CommitTimeStamp)
-                //         .ToList();
 
                 // const int packageCount = 10;
                 // var start = timestamps[2];
