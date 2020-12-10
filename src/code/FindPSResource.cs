@@ -74,6 +74,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string[] _wildcardName = new string[0];
 
+        /// <summary>
+        /// corresponds to which wildcard implementation technique we want to use/test out
+        /// added this for testing wildcard feature thru CLI
+        /// </summary>
         [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNull]
 
@@ -303,14 +307,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public void ProcessCatalogReader(string repoName, string sourceUrl, CancellationToken cancellationToken){
 
+            //Note: the technique condition will not make it into final PR. It is used right now
+            // to test the different prototypes and their performance.
             var feed = new Uri(sourceUrl);
             using (var catalog = new CatalogReader(feed))
             {
-                Stopwatch stopwatch = new Stopwatch();
 
                 if(_technique == 1)
                 { // WildcardPattern class + GroupBy way
-                    stopwatch.Start();
 
                     WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
                     var uniquePkgsWithLatestVersion = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
@@ -325,17 +329,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         WriteDebug("WP groupby way, pkg #" + count++ + " name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString());
                     }
-                    stopwatch.Stop();
-                    TimeSpan ts = stopwatch.Elapsed;
-                    string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                        ts.Hours, ts.Minutes, ts.Seconds,
-                        ts.Milliseconds / 10);
-                    Console.WriteLine("Runtime for technique " + _technique + "is: " + elapsedTime);
                 }
 
                 else if (_technique == 2)
                 { // Regex + GroupBy way
-                    stopwatch.Start();
 
                     string pattern = Regex.Escape(repoName).Replace("\\*", ".*?"); //pattern contains not-greedy equivalent of wildcard
                     pattern = @"^" + pattern + @"$"; //add begining and end anchors
@@ -353,18 +350,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         WriteDebug("Groupby way, pkg #" + count++ + " name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString());
                     }
-
-                    stopwatch.Stop();
-                    TimeSpan ts = stopwatch.Elapsed;
-                    string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                        ts.Hours, ts.Minutes, ts.Seconds,
-                        ts.Milliseconds / 10);
-                    Console.WriteLine("Runtime for technique " + _technique + "is: " + elapsedTime);
                 }
 
                 else if (_technique == 3)
-                { //get distinct names, then filter further..perhaps useful if we wish to filter on version differently?
-                    stopwatch.Start();
+                { //get distinct names, then filter further..perhaps useful if we wish to filter on version or other features differently?
+                // and by not doing search in one step, can filter on other features in later (search) steps.
 
                     List<CatalogEntry> foundPkgs = new List<CatalogEntry>();
 
@@ -381,13 +371,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     foreach(var pkg in foundPkgs){
                         WriteDebug("Distinct names way, pkg #" + count++ + " name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString());
                     }
-
-                    stopwatch.Stop();
-                    TimeSpan ts = stopwatch.Elapsed;
-                    string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                        ts.Hours, ts.Minutes, ts.Seconds,
-                        ts.Milliseconds / 10);
-                    Console.WriteLine("Runtime for technique " + _technique + "is: " + elapsedTime);
                 }
             }
         }
