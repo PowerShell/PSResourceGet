@@ -60,6 +60,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string[] _name = new string[0];
 
         /// <summary>
+        /// added this for testing wildcard feature through CLI
+        /// </summary>
+        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+        [ValidateNotNullOrEmpty]
+        public string[] WildcardName
+        {
+            get
+            { return _wildcardName; }
+
+            set
+            { _wildcardName = value; }
+        }
+        private string[] _wildcardName = new string[0];
+
+        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+        [ValidateNotNull]
+
+        public int Technique
+        {
+            get
+            { return _technique; }
+
+            set
+            { _technique = value; }
+        }
+        private int _technique = 0;
+
+
+        /// <summary>
         /// Specifies the type of the resource to be searched for.
         /// </summary>
         [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
@@ -207,7 +236,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             pkgsLeftToFind = _name.ToList();
             foreach (var repoName in listOfRepositories)
             {
-                ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken);
+                if(_wildcardName != null && _wildcardName.Length != 0){
+                    // ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken);
+                    string nugetV3Uri = "https://api.nuget.org/v3/index.json";
+                    ProcessCatalogReader(_wildcardName[0], nugetV3Uri, cancellationToken);
+                }
+
                 WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
                 // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
                 // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
@@ -269,122 +303,95 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public void ProcessCatalogReader(string repoName, string sourceUrl, CancellationToken cancellationToken){
 
-            List<IEnumerable<CatalogEntry>> foundPackages = new List<IEnumerable<CatalogEntry>>();
-            List<CatalogEntry> foundPkgs = new List<CatalogEntry>();
-
-            var feed = new Uri("https://api.nuget.org/v3/index.json");
+            var feed = new Uri(sourceUrl);
             using (var catalog = new CatalogReader(feed))
             {
+                Stopwatch stopwatch = new Stopwatch();
 
-                // todo: set input to repoName!
-                string input = "Far*et";
-                string pattern = Regex.Escape(input).Replace("\\*", ".*?"); //pattern contains not-greedy equivalent of wildcard
-                pattern = @"^" + pattern + @"$"; //add begining and end anchors
-                WriteDebug("regex pattern is: " + pattern);
-                Regex wildcardRegex = new Regex(pattern);
+                if(_technique == 1)
+                { // WildcardPattern class + GroupBy way
+                    stopwatch.Start();
 
+                    WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
+                    var uniquePkgsWithLatestVersion = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
+                        .Where(x => v3Pattern.IsMatch(x.Id))
+                        .GroupBy(x => new {x.Id})
+                        .Select(x => x.OrderByDescending(y => y.Version).First())
+                        .ToList();
 
-                var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
-                                .Where(x => wildcardRegex.IsMatch(x.Id));
-
-                var pkgNames = entries.Select(x => x.Id).Distinct().ToList();
-
-                var curious = entries.GroupBy(x => new {x.Id})
-                    .Select(x => x.OrderByDescending(y => y.Version)
-                    .First())
-                    .ToList();
-
-                WriteDebug("Curious Ct: " + curious.Count);
-                int ctt = 0;
-                foreach (var curPkg in curious) {
-                    WriteDebug("CURIOUS pkg #" + ctt++ + " name: " + curPkg.Id + ", version: " + curPkg.Version.ToNormalizedString());
+                    WriteDebug("WildcardPattern class with groupby way, packages list count: " + uniquePkgsWithLatestVersion.Count);
+                    int count = 1;
+                    foreach(var pkg in uniquePkgsWithLatestVersion)
+                    {
+                        WriteDebug("WP groupby way, pkg #" + count++ + " name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString());
+                    }
+                    stopwatch.Stop();
+                    TimeSpan ts = stopwatch.Elapsed;
+                    string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                        ts.Hours, ts.Minutes, ts.Seconds,
+                        ts.Milliseconds / 10);
+                    Console.WriteLine("Runtime for technique " + _technique + "is: " + elapsedTime);
                 }
 
-                foreach(var name in pkgNames){
-                    // foundPackages;
-                    var singlePkg = entries.Where(x => x.Id == name).OrderByDescending(x => x.Version).First();
-                    foundPkgs.Add(singlePkg);
+                else if (_technique == 2)
+                { // Regex + GroupBy way
+                    stopwatch.Start();
+
+                    string pattern = Regex.Escape(repoName).Replace("\\*", ".*?"); //pattern contains not-greedy equivalent of wildcard
+                    pattern = @"^" + pattern + @"$"; //add begining and end anchors
+                    Regex wildcardRegex = new Regex(pattern, RegexOptions.IgnoreCase);
+
+                    var uniquePkgsWithLatestVersion = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
+                                    .Where(x => wildcardRegex.IsMatch(x.Id))
+                                    .GroupBy(x => new {x.Id})
+                                    .Select(x => x.OrderByDescending(y => y.Version).First())
+                                    .ToList();
+
+                    WriteDebug("Groupby way, packages list count: " + uniquePkgsWithLatestVersion.Count);
+                    int count = 1;
+                    foreach (var pkg in uniquePkgsWithLatestVersion)
+                    {
+                        WriteDebug("Groupby way, pkg #" + count++ + " name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString());
+                    }
+
+                    stopwatch.Stop();
+                    TimeSpan ts = stopwatch.Elapsed;
+                    string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                        ts.Hours, ts.Minutes, ts.Seconds,
+                        ts.Milliseconds / 10);
+                    Console.WriteLine("Runtime for technique " + _technique + "is: " + elapsedTime);
                 }
 
-                WriteDebug("count of unique pkgs meeting this (wildcard) name: " + foundPkgs.Count);
-                int ct = 0;
-                foreach(var uniquePkg in foundPkgs){
-                    WriteDebug("pkg #" + ct++ + " name: " + uniquePkg.Id + ", version: " + uniquePkg.Version.ToNormalizedString());
+                else if (_technique == 3)
+                { //get distinct names, then filter further..perhaps useful if we wish to filter on version differently?
+                    stopwatch.Start();
+
+                    List<CatalogEntry> foundPkgs = new List<CatalogEntry>();
+
+                    var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable();
+                    var distinctPkgNames = entries.Select(x => x.Id).Distinct().ToList();
+                    foreach(var name in distinctPkgNames){
+                        var singlePkg = entries.Where(x => x.Id == name)
+                            .OrderByDescending(x => x.Version)
+                            .First();
+                        foundPkgs.Add(singlePkg);
+                    }
+                    WriteDebug("Distinct names way, packages list count: " + foundPkgs.Count);
+                    int count = 1;
+                    foreach(var pkg in foundPkgs){
+                        WriteDebug("Distinct names way, pkg #" + count++ + " name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString());
+                    }
+
+                    stopwatch.Stop();
+                    TimeSpan ts = stopwatch.Elapsed;
+                    string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                        ts.Hours, ts.Minutes, ts.Seconds,
+                        ts.Milliseconds / 10);
+                    Console.WriteLine("Runtime for technique " + _technique + "is: " + elapsedTime);
                 }
-
-                    // .Where(x => wildcardRegex.IsMatch(x.Id))
-                    // .OrderBy(x => x.Version)
-                    // .ToList();
-
-                // var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
-                //     .Where(x => wildcardRegex.IsMatch(x.Id));
-                // var pkgNames = entries.Select(x => x.Id).ToList();
-
-
-                // foreach(var nameEntry in entries){
-                //     foundPackages.Add(entries.Where(x => x.Id == nameEntry)
-                //         .OrderByDescending(x => x.Version)
-                //         .First());
-                // }
-
-
-                // var entries = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable()
-                //     .Where(x => x.Id == "Fare")
-                //     .OrderBy(x => x.Version)
-                //     .ToList();
-                // int ct = 0;
-                // //"Test"
-                // var chosenOne = entries
-                //     .Where(x => x.Id == "Fare")
-                //     .OrderBy (x => x.Version)
-                //     .ToList();
-
-                // WriteDebug("the count is: " + entries.Count);
-                // foreach(var entry in entries){
-                //     WriteDebug("currently on item: " + ct++);
-                //     WriteDebug(entry.Id);
-                //     WriteDebug(entry.Version.ToNormalizedString());
-                // }
-
-                // var chosenOneItem = chosenOne.First();
-                // var chosenOneItem = chosenOne[0];
-                // WriteDebug(chosenOneItem.Id);
-                // WriteDebug(chosenOneItem.Version.ToNormalizedString());
-                // var chosenOneItemTwo = chosenOne[1];
-                // WriteDebug(chosenOneItemTwo.Id);
-                // WriteDebug(chosenOneItemTwo.Version.ToNormalizedString());
-
-
-
-                // var flatEntries = catalog.GetFlattenedEntriesAsync();
-                // var set = catalog.GetPackageSetAsync();
-
-                // var chosenEntry = entries
-                //                 .Select(x => x.Id == "EcoSqlServer")
-
-
-                // const int packageCount = 10;
-                // var start = timestamps[2];
-                // var end = timestamps[packageCount - 3];
-                // WriteDebug("entries count is: " + entries.Count);
-                // WriteDebug(flatEntries.Count);
-                // WriteDebug(set.Count);
-
-                // var entry = entries.FirstOrDefault();
-
-                // WriteDebug(entry.Version.ToNormalizedString());
-                // WriteDebug(entry.Id);
-                // WriteDebug(entry.PackageBaseAddressIndexUri.AbsoluteUri);
-                // WriteDebug(entry.CommitTimeStamp.ToString());
-                // WriteDebug(entry.GetPackageDetailsAsync().ToString());
-                WriteDebug("Done!");
-                // foreach (var entry in await catalog.GetFlattenedEntriesAsync())
-                // {
-                //     Console.WriteLine($"[{entry.CommitTimeStamp}] {entry.Id} {entry.Version}");
-                //     await entry.DownloadNupkgAsync(@"d:\output");
-                // }
             }
         }
+
 /***
         public void ProcessCatalogReader(string repoName, string sourceUrl)
         {
@@ -1067,11 +1074,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     name = name.Equals("*") ? "" : name;   // can't use * in v3 protocol
                     var wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
 
+
+                    // using WildcardPattern class
+                    if(!name.Equals(""))
+                    { //remove check for not containing lone "*", bc WildcardPattern class handles that as expected
+
+                        WildcardPattern pattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
+                        foundPackages.Add(wildcardPkgs.Where(p => pattern.IsMatch(p.Identity.Id)));
+                        if(foundPackages.Flatten().Any())
+                        {
+                            pkgsLeftToFind.Remove(name);
+                        }
+                    }
+
+                    /**
                     // If not searching for *all* packages
-                    if (!name.Equals("") && !name[0].Equals('*'))
+                    if (!name.Equals("") && !name.Equals('*'))
                     {
                         char[] wildcardDelimiter = new char[] { '*' };
                         var tokenizedName = name.Split(wildcardDelimiter, StringSplitOptions.RemoveEmptyEntries);
+                        Console.WriteLine("tokenized name is: " + tokenizedName);
 
                         //var startsWithWildcard = name[0].Equals('*') ? true : false;
                         //var endsWithWildcard = name[name.Length-1].Equals('*') ? true : false;
@@ -1094,6 +1116,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         else if (name.StartsWith("*"))
                         {
                             // filter results
+                            Console.WriteLine("the tokenized name starts with * and is: " + tokenizedName[0]);
                             foundPackages.Add(wildcardPkgs.Where(p => p.Identity.Id.EndsWith(tokenizedName[0])));
 
                             if (foundPackages.Flatten().Any())
@@ -1124,13 +1147,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
                         }
                     }
+                    */
+
                     else
                     {
                         foundPackages.Add(wildcardPkgs);
                         pkgsLeftToFind.Remove("*");
                     }
-
-
                 }
             }
             else
