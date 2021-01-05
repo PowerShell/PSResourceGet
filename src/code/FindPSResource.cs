@@ -41,6 +41,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return x;
             });
         }
+
+        public static ParallelQuery<T> ProgressReport<T>(this ParallelQuery<T> entries, int totalCount)
+        {
+            int sharedCount = 0;
+            return entries.Select(x =>
+            {
+                int localCount = Interlocked.Increment(ref sharedCount);
+                Console.WriteLine("percentage complete: " + Math.Round((((double)localCount/totalCount) * 100), 2));
+                return x;
+            });
+        }
     }
 
     /// <summary>
@@ -258,14 +269,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string nugetV3Uri = "https://api.nuget.org/v3/index.json";
                     Stopwatch stopwatch = new Stopwatch();
                     stopwatch.Start();
-                    if(_technique == 2){
+                    if(_technique == 1){
                         ProcessCatalogReaderWithAsyncDict(_wildcardName[0], nugetV3Uri, cancellationToken).GetAwaiter().GetResult();
                     }
-                    else if(_technique == 3)
+                    else if(_technique == 2)
                     {
                         ProcessCatalogPLINQProgress(_wildcardName[0], nugetV3Uri, cancellationToken);
                     }
-                    else if(_technique == 4)
+                    else if(_technique == 3)
                     {
                         //filtering dictionary, with progress bar
                         IReadOnlyList<CatalogEntry> myList = ProcessCatalog(nugetV3Uri, cancellationToken).GetAwaiter().GetResult();
@@ -368,24 +379,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 int totalPkgsCt = allPkgs.Count();
                 WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
                 List<CatalogEntry> uniquePkgsWithLatestVersion = new List<CatalogEntry>();
-                int currentPkg = 1;
+                // int currentPkg = 1;
                 stopwatch.Start();
-                Task.Run(() =>
-                {
-                    while(currentPkg <= totalPkgsCt)
-                    {
-                        Console.WriteLine("count is: " + currentPkg + ", total count is: " + totalPkgsCt);
-                        string activity = string.Format("Installing {0}...", "replaceWithActualPkgID");
-                        string statusDescription = string.Format("{0}% Complete", Math.Round(((double)currentPkg/totalPkgsCt * 100), 2));
-                        var progressRecord = new ProgressRecord(0, activity, statusDescription);
-                        WriteProgress(progressRecord);
-                    }
-                });
+                //Note: I used this with ReportProgress()
+                // Task.Run(() =>
+                // {
+                //     while(currentPkg <= totalPkgsCt)
+                //     {
+                //         Console.WriteLine("count is: " + currentPkg + ", total count is: " + totalPkgsCt);
+                //         string activity = string.Format("Installing {0}...", "replaceWithActualPkgID");
+                //         string statusDescription = string.Format("{0}% Complete", Math.Round(((double)currentPkg/totalPkgsCt * 100), 2));
+                //         var progressRecord = new ProgressRecord(0, activity, statusDescription);
+                //         WriteProgress(progressRecord);
+                //     }
+                // });
                 uniquePkgsWithLatestVersion = allPkgs.AsParallel()
                     .Where(x => v3Pattern.IsMatch(x.Id) && !x.Version.ToNormalizedString().Contains("-"))
-                    .ReportProgress(() => Interlocked.Increment(ref currentPkg))
+                    // .ProgressReport(totalPkgsCt)
+                    // .ReportProgress(() => Interlocked.Increment(ref currentPkg))
                     .GroupBy(x => new {x.Id})
                     .Select(x => x.OrderByDescending(y => y.Version).First())
+                    .ProgressReport(totalPkgsCt)
                     .ToList();
                 WriteDebug("WildcardPattern with PLINQ, count: " + uniquePkgsWithLatestVersion.Count);
                 int count = 1;
