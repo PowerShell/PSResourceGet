@@ -395,7 +395,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // });
                 uniquePkgsWithLatestVersion = allPkgs.AsParallel()
                     .Where(x => v3Pattern.IsMatch(x.Id) && !x.Version.ToNormalizedString().Contains("-"))
-                    // .ProgressReport(totalPkgsCt)
+                    .ProgressReport(totalPkgsCt)
                     // .ReportProgress(() => Interlocked.Increment(ref currentPkg))
                     .GroupBy(x => new {x.Id})
                     .Select(x => x.OrderByDescending(y => y.Version).First())
