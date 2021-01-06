@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices.ComTypes;
+﻿// using System.Runtime.InteropServices.ComTypes;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -269,7 +269,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string nugetV3Uri = "https://api.nuget.org/v3/index.json";
                     Stopwatch stopwatch = new Stopwatch();
                     stopwatch.Start();
-                    if(_technique == 1){
+                    if(_technique == 0)
+                    {
+                        TestProgress();
+                    }
+                    else if(_technique == 1){
                         ProcessCatalogReaderWithAsyncDict(_wildcardName[0], nugetV3Uri, cancellationToken).GetAwaiter().GetResult();
                     }
                     else if(_technique == 2)
@@ -363,10 +367,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 int activityId = 0;
                 string activity = string.Format("Installing {0}...", pkgId);
                 string statusDescription = string.Format("{0}% Complete", Math.Round(((double)i/totalCt * 100), 2));
-                var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
-                WriteProgress(progressRecord);
+                WriteProgress(
+                    new ProgressRecord(activityId, activity, statusDescription)
+                    {
+                        PercentComplete = (int)(100.0 * i/totalCt),
+                    }
+                );
+                // var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
+                // progressRecord.PercentComplete = (int)((100.0 * i)/totalCt);
+                // WriteProgress(progressRecord);
             }
         }
+        public void TestProgress()
+        {
+            int totalCount = 3000000;
+            int progress = 0;
+            Enumerable.Range(0, totalCount)
+                .AsParallel()
+                .Select(x => {
+                    // Interlocked.Exchange(ref percent, (int)(100.0 * Interlocked.Increment(ref progress)/totalCount));
+                    Host.UI.WriteProgress(
+                        sourceId:1,
+                        new ProgressRecord(activityId:0, "Counting", $"Filtering packages..")
+                        {
+                        //     // Interlocked.Exchange(PercentComplete, (int)(100.0 * Interlocked.Increment(ref progress)/totalCount)),
+                            PercentComplete = (int)(100.0 * Interlocked.Increment(ref progress)/totalCount),
+                        //     // Interlocked.Exchange(ref percent, (int)(100.0 * Interlocked.Increment(ref progress)/totalCount)),
+                        //     // Interlocked.Exchange(ref percent, (100.0 * Interlocked.Increment(ref progress)/totalCount)),
+                        //     // StatusDescription = "Percent complete: " + (int)(100.0 * Interlocked.Increment(ref progress)/totalCount),
+                        }
+                    );
+                    return x;
+                })
+                .ToList();
+        }
+
 
         //technique 3
         public void ProcessCatalogPLINQProgress(string repoName, string sourceUrl, CancellationToken cancellationToken)
@@ -374,38 +409,76 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var feed = new Uri(sourceUrl);
             using(var catalog = new CatalogReader(feed))
             {
-                Stopwatch stopwatch = new Stopwatch();
+
                 IEnumerable<CatalogEntry> allPkgs = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable();
                 int totalPkgsCt = allPkgs.Count();
                 WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
                 List<CatalogEntry> uniquePkgsWithLatestVersion = new List<CatalogEntry>();
-                // int currentPkg = 1;
+                int currentPkg = 0;
+                Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
-                //Note: I used this with ReportProgress()
-                // Task.Run(() =>
-                // {
-                //     while(currentPkg <= totalPkgsCt)
-                //     {
-                //         Console.WriteLine("count is: " + currentPkg + ", total count is: " + totalPkgsCt);
-                //         string activity = string.Format("Installing {0}...", "replaceWithActualPkgID");
-                //         string statusDescription = string.Format("{0}% Complete", Math.Round(((double)currentPkg/totalPkgsCt * 100), 2));
-                //         var progressRecord = new ProgressRecord(0, activity, statusDescription);
-                //         WriteProgress(progressRecord);
-                //     }
-                // });
-                uniquePkgsWithLatestVersion = allPkgs.AsParallel()
-                    .Where(x => v3Pattern.IsMatch(x.Id) && !x.Version.ToNormalizedString().Contains("-"))
-                    .ProgressReport(totalPkgsCt)
-                    // .ReportProgress(() => Interlocked.Increment(ref currentPkg))
-                    .GroupBy(x => new {x.Id})
-                    .Select(x => x.OrderByDescending(y => y.Version).First())
-                    .ProgressReport(totalPkgsCt)
-                    .ToList();
+
+                // int currentPercent = 0;
+
+                if(!_prerelease)
+                {
+                    uniquePkgsWithLatestVersion = allPkgs.AsParallel()
+                        .Select(x => {
+                            Host.UI.WriteProgress(
+                                sourceId:1,
+                                new ProgressRecord(activityId:0, "Counting", $"Filtering at count {currentPkg}:")
+                                {
+                                    PercentComplete = (int)(100.0 * Interlocked.Increment(ref currentPkg)/totalPkgsCt),
+                                }
+                            );
+                            return x;
+                        })
+                        // .Select(x => {
+                        //     int thisPercent = (int)(100.0 * Interlocked.Increment(ref currentPkg)/totalPkgsCt);
+                        //     // Console.WriteLine("currentPkgCount: " + currentPkg + "current %: " + currentPercent + " this % is: " + thisPercent);
+                        //     if(Interlocked.Exchange(ref currentPercent, thisPercent) < thisPercent)
+                        //     {
+                        //         Host.UI.WriteProgress(
+                        //             sourceId:1,
+                        //             new ProgressRecord(activityId:0, "Counting", $"Filtering at count {currentPkg}:")
+                        //             {
+                        //                 // PercentComplete = (int)(100.0 * Interlocked.Increment(ref currentPkg)/totalPkgsCt),
+                        //                 PercentComplete = thisPercent,
+                        //             }
+                        //         );
+                        //     }
+                        //     return x;
+                        // })
+                        .Where(x => v3Pattern.IsMatch(x.Id) && !x.Version.ToNormalizedString().Contains("-"))
+                        .GroupBy(x => new {x.Id})
+                        .Select(x => x.OrderByDescending(y => y.Version).First())
+                        .ToList();
+                }
+                else if(_prerelease)
+                {
+                    uniquePkgsWithLatestVersion = allPkgs.AsParallel()
+                        .Select(x => {
+                            Host.UI.WriteProgress(
+                                sourceId:1,
+                                new ProgressRecord(activityId:0, "Counting", $"Filtering at count {currentPkg}:")
+                                {
+                                    PercentComplete = (int)(100.0 * Interlocked.Increment(ref currentPkg)/totalPkgsCt),
+                                }
+                            );
+                            return x;
+                        })
+                        .Where(x => v3Pattern.IsMatch(x.Id))
+                        .GroupBy(x => new {x.Id})
+                        .Select(x => x.OrderByDescending(y => y.Version).First())
+                        .ToList();
+                }
+
+
                 WriteDebug("WildcardPattern with PLINQ, count: " + uniquePkgsWithLatestVersion.Count);
                 int count = 1;
                 foreach(var pkg in uniquePkgsWithLatestVersion)
                 {
-                    WriteDebug("WP groupby way PLINQ- prerelease: " + _prerelease + ", pkg #" + count++ + ", name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString());
+                    WriteDebug("WP groupby way PLINQ- prerelease: " + _prerelease + ", pkg #" + count++ + ", name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString() + ", currentpkgscount: " + currentPkg);
                 }
                 stopwatch.Stop();
                 TimeSpan ts = stopwatch.Elapsed;
