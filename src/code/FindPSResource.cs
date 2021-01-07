@@ -30,30 +30,6 @@ using static System.Environment;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
 
-
-    public static class ParallelQueryExtension
-    {
-        public static ParallelQuery<T> ReportProgress<T>(this ParallelQuery<T> entries, Action add)
-        {
-            Console.WriteLine("in the report progress extension method");
-            return entries.Select(x => {
-                add?.Invoke();
-                return x;
-            });
-        }
-
-        public static ParallelQuery<T> ProgressReport<T>(this ParallelQuery<T> entries, int totalCount)
-        {
-            int sharedCount = 0;
-            return entries.Select(x =>
-            {
-                int localCount = Interlocked.Increment(ref sharedCount);
-                Console.WriteLine("percentage complete: " + Math.Round((((double)localCount/totalCount) * 100), 2));
-                return x;
-            });
-        }
-    }
-
     /// <summary>
     /// The Register-PSResourceRepository cmdlet registers the default repository for PowerShell modules.
     /// After a repository is registered, you can reference it from the Find-PSResource, Install-PSResource, and Publish-PSResource cmdlets.
@@ -261,47 +237,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var listOfRepositories = r.Read(_repository);
 
             var returnedPkgsFound = new List<IEnumerable<IPackageSearchMetadata>>();
+            var returnedV3PkgsFound = new List<CatalogEntry>();
             pkgsLeftToFind = _name.ToList();
             foreach (var repoName in listOfRepositories)
             {
-                if(_wildcardName != null && _wildcardName.Length != 0){
-                    // ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken);
-                    string nugetV3Uri = "https://api.nuget.org/v3/index.json";
-                    Stopwatch stopwatch = new Stopwatch();
-                    stopwatch.Start();
-                    if(_technique == 0)
-                    {
-                        TestProgress();
-                    }
-                    else if(_technique == 1){
-                        ProcessCatalogReaderWithAsyncDict(_wildcardName[0], nugetV3Uri, cancellationToken).GetAwaiter().GetResult();
-                    }
-                    else if(_technique == 2)
-                    {
-                        ProcessCatalogPLINQProgress(_wildcardName[0], nugetV3Uri, cancellationToken);
-                    }
-                    else if(_technique == 3)
-                    {
-                        //filtering dictionary, with progress bar
-                        IReadOnlyList<CatalogEntry> myList = ProcessCatalog(nugetV3Uri, cancellationToken).GetAwaiter().GetResult();
-                        FilterEntriesDict(myList, _wildcardName[0]);
-                    }
-                    stopwatch.Stop();
-                    TimeSpan ts = stopwatch.Elapsed;
-                    string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                        ts.Hours, ts.Minutes, ts.Seconds,
-                        ts.Milliseconds / 10);
-                    WriteDebug("Runtime total for technique: " + _technique + " is: " + elapsedTime);
-                    WriteDebug("end ProcessCatalogReader() call");
-                }
+                string nugetV3Uri = "https://api.nuget.org/v3/index.json";
+
 
                 WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
                 // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
                 // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
-                if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
-                    (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
+                // if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
+                //     (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
+                // {
+                if(_wildcardName != null && _wildcardName.Length != 0)
                 {
-                    this.WriteWarning("This functionality is not yet implemented");
+                    // this.WriteWarning("This functionality is not yet implemented");
+                    returnedV3PkgsFound.AddRange(ProcessCatalogReaderWithAsyncDict(_wildcardName[0], nugetV3Uri, cancellationToken).GetAwaiter().GetResult());
+                    var flattenedV3Packages = returnedV3PkgsFound.Flatten();
+                    if(flattenedV3Packages.Any() && flattenedV3Packages.First() != null)
+                    {
+                        foreach(CatalogEntry pkg in flattenedV3Packages)
+                        {
+                            PSObject pkgAsObject = new PSObject();
+                            pkgAsObject.Members.Add(new PSNoteProperty("Name", pkg.Id));
+                            pkgAsObject.Members.Add(new PSNoteProperty("Version", pkg.Version));
+                            pkgAsObject.Members.Add(new PSNoteProperty("Repository", "NuGet")); // Todo: remove hardcode
+                            pkgAsObject.Members.Add(new PSNoteProperty("Description", "to be fixed"));
+                            WriteObject(pkgAsObject);
+                        }
+                    }
+                    returnedV3PkgsFound.Clear();
+                    if(!pkgsLeftToFind.Any())
+                    {
+                        break;
+                    }
                     // right now you can use wildcards with an array of names, ie -name "Az*", "PS*", "*Get", will take a hit performance wise, though.
                     // TODO:  add wildcard condition here
                     //ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString());
@@ -354,56 +324,66 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        public void PrintProgressBar(int i, int totalCt, string pkgId)
-        {
-            bool quiet = false;
-            if(!quiet)
+        //technique 1
+        public async Task<List<CatalogEntry>> ProcessCatalogReaderWithAsyncDict(string repoName, string sourceUrl, CancellationToken cancellationToken){
+            var feed = new Uri(sourceUrl);
+            Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
+            List<CatalogEntry> pkgsToReturn = new List<CatalogEntry>();
+            using(var catalog = new CatalogReader(feed))
             {
+                Stopwatch stopwatch = new Stopwatch();
+                IReadOnlyList<CatalogEntry> my_list = await catalog.GetFlattenedEntriesAsync(cancellationToken);
+                int totalPkgsCount = my_list.Count;
 
-                /****************************
-                * START PACKAGE FILTERING -- start progress bar
-                *****************************/
+                stopwatch.Start();
+                WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
 
-                int activityId = 0;
-                string activity = string.Format("Installing {0}...", pkgId);
-                string statusDescription = string.Format("{0}% Complete", Math.Round(((double)i/totalCt * 100), 2));
-                WriteProgress(
-                    new ProgressRecord(activityId, activity, statusDescription)
-                    {
-                        PercentComplete = (int)(100.0 * i/totalCt),
-                    }
-                );
-                // var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
-                // progressRecord.PercentComplete = (int)((100.0 * i)/totalCt);
-                // WriteProgress(progressRecord);
-            }
-        }
-        public void TestProgress()
-        {
-            int totalCount = 3000000;
-            int progress = 0;
-            Enumerable.Range(0, totalCount)
-                .AsParallel()
-                .Select(x => {
-                    // Interlocked.Exchange(ref percent, (int)(100.0 * Interlocked.Increment(ref progress)/totalCount));
+
+                int currentPkg = 1;
+                foreach(CatalogEntry pkg in my_list)
+                {
                     Host.UI.WriteProgress(
                         sourceId:1,
-                        new ProgressRecord(activityId:0, "Counting", $"Filtering packages..")
+                        new ProgressRecord(activityId:0, "Filtering packages...",  $"Filtering through {pkg.Id} package")
                         {
-                        //     // Interlocked.Exchange(PercentComplete, (int)(100.0 * Interlocked.Increment(ref progress)/totalCount)),
-                            PercentComplete = (int)(100.0 * Interlocked.Increment(ref progress)/totalCount),
-                        //     // Interlocked.Exchange(ref percent, (int)(100.0 * Interlocked.Increment(ref progress)/totalCount)),
-                        //     // Interlocked.Exchange(ref percent, (100.0 * Interlocked.Increment(ref progress)/totalCount)),
-                        //     // StatusDescription = "Percent complete: " + (int)(100.0 * Interlocked.Increment(ref progress)/totalCount),
+                            PercentComplete = (int)(100.0 * currentPkg/totalPkgsCount),
                         }
                     );
-                    return x;
-                })
-                .ToList();
+                    if(!_prerelease)
+                    {
+
+                        bool isPrerelreaseVersion = pkg.Version.ToNormalizedString().Contains("-");
+                        if(v3Pattern.IsMatch(pkg.Id) && !isPrerelreaseVersion && ((!uniquePkgs.TryGetValue(pkg.Id, out CatalogEntry entry)) || (pkg.Version > entry.Version)))
+                        {
+                            uniquePkgs[pkg.Id] = pkg;
+                        }
+                    }
+                    else if(_prerelease)
+                    {
+                        if((v3Pattern.IsMatch(pkg.Id)) &&  ((!uniquePkgs.TryGetValue(pkg.Id, out CatalogEntry entry)) || (pkg.Version > entry.Version)))
+                        {
+                            uniquePkgs[pkg.Id] = pkg;
+                        }
+                    }
+
+                }
+
+                stopwatch.Stop();
+                TimeSpan ts = stopwatch.Elapsed;
+                string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                    ts.Hours, ts.Minutes, ts.Seconds,
+                    ts.Milliseconds / 10);
+                Console.WriteLine("Runtime for JUST FILTERING DICT way is: " + elapsedTime);
+            }
+
+            // return uniquePkgs;
+            pkgsToReturn = uniquePkgs.Values.ToList();
+            return pkgsToReturn;
         }
 
 
-        //technique 3
+
+        //technique 2
         public void ProcessCatalogPLINQProgress(string repoName, string sourceUrl, CancellationToken cancellationToken)
         {
             var feed = new Uri(sourceUrl);
@@ -489,146 +469,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        //PLINQ technique (previously technique 3) but without progress bar
-        public void ProcessCatalogReaderWithPLINQ(string repoName, string sourceUrl, CancellationToken cancellationToken)
-        {
-            var feed = new Uri(sourceUrl);
-            using(var catalog = new CatalogReader(feed))
-            {
-                Stopwatch stopwatch = new Stopwatch();
 
 
-                IEnumerable<CatalogEntry> allPkgs = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable();
-                stopwatch.Start();
-                List<CatalogEntry> uniquePkgsWithLatestVersion = new List<CatalogEntry>();
-                WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
-                if(!_prerelease)
-                {
-                    uniquePkgsWithLatestVersion = allPkgs.AsParallel()
-                    .Where(x => v3Pattern.IsMatch(x.Id) && !x.Version.ToNormalizedString().Contains("-"))
-                    .GroupBy(x => new {x.Id})
-                    .Select(x => x.OrderByDescending(y => y.Version).First())
-                    .ToList();
-                }
 
-                else if(_prerelease)
-                {
-                    uniquePkgsWithLatestVersion = allPkgs.AsParallel()
-                    .Where(x => v3Pattern.IsMatch(x.Id))
-                    .GroupBy(x => new {x.Id})
-                    .Select(x => x.OrderByDescending(y => y.Version).First())
-                    .ToList();
-                }
-                WriteDebug("WildcardPattern with PLINQ, count: " + uniquePkgsWithLatestVersion.Count);
-                int count = 1;
-                foreach(var pkg in uniquePkgsWithLatestVersion)
-                {
-                    WriteDebug("WP groupby way PLINQ- prerelease: " + _prerelease + ", pkg #" + count++ + ", name: " + pkg.Id + ", version: " + pkg.Version.ToNormalizedString());
-                }
-                stopwatch.Stop();
-                TimeSpan ts = stopwatch.Elapsed;
-                string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                    ts.Hours, ts.Minutes, ts.Seconds,
-                    ts.Milliseconds / 10);
-                Console.WriteLine("Runtime for JUST filtering PLINQ way is: " + elapsedTime);
-            }
-        }
-
-        //technique 4
-        public async Task<IReadOnlyList<CatalogEntry>> ProcessCatalog(string sourceUrl, CancellationToken cancellationToken)
-        {
-            var feed = new Uri(sourceUrl);
-            Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
-            // IReadOnlyList<CatalogEntry> my_list = new IReadOnlyList<CatalogEntry>();
-            using(var catalog = new CatalogReader(feed))
-            {
-                IReadOnlyList<CatalogEntry> my_list2 = await catalog.GetFlattenedEntriesAsync(cancellationToken);
-                return my_list2;
-            }
-        }
-        public void FilterEntriesDict(IReadOnlyList<CatalogEntry> entriesList, string repoName)
-        {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            int currentPkg = 1;
-            int totalPkgsCount = entriesList.Count;
-            WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
-            Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
-            foreach(CatalogEntry pkg in entriesList)
-            {
-                PrintProgressBar(currentPkg++, totalPkgsCount, pkg.Id);
-                if((v3Pattern.IsMatch(pkg.Id)) &&  ((!uniquePkgs.TryGetValue(pkg.Id, out CatalogEntry entry)) || (pkg.Version > entry.Version)))
-                {
-                    uniquePkgs[pkg.Id] = pkg;
-                }
-
-            }
-            WriteDebug("pkg count: " + uniquePkgs.Count);
-            int count = 1;
-            foreach(string pkgKey in uniquePkgs.Keys)
-            {
-                WriteDebug("Dictionary way SYNCH refined, prerelease: " + _prerelease + ", pkg #" + count++ + ", name: " + pkgKey + ", version: " + uniquePkgs[pkgKey].Version.ToNormalizedString());
-            }
-            stopwatch.Stop();
-            TimeSpan ts = stopwatch.Elapsed;
-            string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                ts.Hours, ts.Minutes, ts.Seconds,
-                ts.Milliseconds / 10);
-            WriteDebug("Runtime for JUST FILTERING DICT way is: " + elapsedTime);
-        }
-
-
-        //technique 2
-        public async Task<Dictionary<string, CatalogEntry>> ProcessCatalogReaderWithAsyncDict(string repoName, string sourceUrl, CancellationToken cancellationToken){
-            var feed = new Uri(sourceUrl);
-            Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
-            using(var catalog = new CatalogReader(feed))
-            {
-                Stopwatch stopwatch = new Stopwatch();
-                IReadOnlyList<CatalogEntry> my_list = await catalog.GetFlattenedEntriesAsync(cancellationToken);
-                int totalPkgsCount = my_list.Count;
-
-                stopwatch.Start();
-                WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
-                // foreach(CatalogEntry pkg in await catalog.GetFlattenedEntriesAsync(cancellationToken))
-                // {
-
-                foreach(CatalogEntry pkg in my_list)
-                {
-                    // when prerelease is false,
-                    if(!_prerelease)
-                    {
-
-                        bool isPrerelreaseVersion = pkg.Version.ToNormalizedString().Contains("-");
-                        if(v3Pattern.IsMatch(pkg.Id) && !isPrerelreaseVersion && ((!uniquePkgs.TryGetValue(pkg.Id, out CatalogEntry entry)) || (pkg.Version > entry.Version)))
-                        {
-                            uniquePkgs[pkg.Id] = pkg;
-                        }
-                    }
-                    else if(_prerelease)
-                    {
-                        if((v3Pattern.IsMatch(pkg.Id)) &&  ((!uniquePkgs.TryGetValue(pkg.Id, out CatalogEntry entry)) || (pkg.Version > entry.Version)))
-                        {
-                            uniquePkgs[pkg.Id] = pkg;
-                        }
-                    }
-
-                }
-                Console.WriteLine("pkg count: " + uniquePkgs.Count);
-                int count = 1;
-                foreach(string pkgKey in uniquePkgs.Keys)
-                {
-                    Console.WriteLine("Dictionary way, prerelease: " + _prerelease + ", pkg #" + count++ + ", name: " + pkgKey + ", version: " + uniquePkgs[pkgKey].Version.ToNormalizedString());
-                }
-                stopwatch.Stop();
-                TimeSpan ts = stopwatch.Elapsed;
-                string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                    ts.Hours, ts.Minutes, ts.Seconds,
-                    ts.Milliseconds / 10);
-                Console.WriteLine("Runtime for JUST FILTERING DICT way is: " + elapsedTime);
-            }
-            return uniquePkgs;
-        }
 
 /***
         public void ProcessCatalogReader(string repoName, string sourceUrl)
