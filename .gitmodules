@@ -1,0 +1,3 @@
+[submodule "DSC/DscResource.Tests"]
+	path = DSC/DscResource.Tests
+	url = https://github.com/PowerShell/DscResource.Tests
