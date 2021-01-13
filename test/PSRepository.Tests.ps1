@@ -1,13 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-#Testing Environment Setup
 BeforeAll {
-    Import-Module $PSScriptRoot/Shared.psm1 -Verbose
-}
+    Import-Module $PSScriptRoot/Shared.psm1 -Verbose -Force
 
-
-BeforeAll {
     $PSGalleryName = 'PSGallery'
     $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
     
@@ -40,12 +36,7 @@ BeforeAll {
     $ErrorActionPreference = "SilentlyContinue"
 }
 
-
-#####################################
-### Register-PSResourceRepository ###
-#####################################
-
-Describe 'Test Register-PSResourceRepository' -tags 'BVT' { 
+Describe 'Register-PSResourceRepository' -tags 'BVT' { 
     ### Registering the PowerShell Gallery
     Context 'PSGallery' {
         BeforeAll {
@@ -152,7 +143,6 @@ Describe 'Test Register-PSResourceRepository' -tags 'BVT' {
                 Should -Throw "The PSResource Repository '$($TestRepoName2)' already exists."
         }
     }
-
 
 	### Registering a fileshare URL
     Context 'Fileshare URL' {
