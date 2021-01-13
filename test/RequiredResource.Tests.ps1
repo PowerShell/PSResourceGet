@@ -1,52 +1,28 @@
-# This is a Pester test suite to validate Register-PSResourceRepository, Unregister-PSResourceRepository, Get-PSResourceRepository, and Set-PSResourceRepository.
-#
 # Copyright (c) Microsoft Corporation, 2019
-
-# TODO:
-Write-Warning "RequiredResource.Tests.ps1 is currently disabled."
-return
 
 #Testing Environment Setup
 BeforeAll {
     Import-Module $PSScriptRoot/Shared.psm1
+
+    $PSGalleryName = 'PSGallery'
+    $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
+
+    $TestLocalDirectory = 'TestLocalDirectory'
+    $tmpdir = Join-Path -Path $TestDrive -ChildPath $TestLocalDirectory
+    if (-not (Test-Path -LiteralPath $tmpdir)) {
+        New-Item -Path $tmpdir -ItemType Directory > $null
+    }
 }
-
-
-
-
-$psGetMod = Get-Module -Name PowerShellGet
-if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
-{
-    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
-    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
-}
-
-$PSGalleryName = 'PSGallery'
-$PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
-
-$TestLocalDirectory = 'TestLocalDirectory'
-$tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
-
-
-
-if (-not (Test-Path -LiteralPath $tmpdir)) {
-    New-Item -Path $tmpdir -ItemType Directory > $null
-}
-Write-Host $tmpdir
-
-
-############################################
-### Install-PSResource -RequiredResource ###
-############################################
 
 Describe 'Test Install-PSResource using the RequiredResource parameter set' -tags 'BVT' {
 
 	AfterEach {
-        $null = uninstall-psresource 'CertificateDsc' -ErrorAction SilentlyContinue
+        #WIP
+        #$null = uninstall-psresource 'CertificateDsc' -ErrorAction SilentlyContinue
     }
 
     ### Installing using -RequiredResource and a json argument
-    It 'Should install the resource specified in the json (with specified parameters)' {
+    It 'Should install the resource specified in the json (with specified parameters)' { Set-ItResult -Pending -Because 'WIP'
         $json = 
         "{
             'CertificateDsc': {
@@ -65,8 +41,8 @@ Describe 'Test Install-PSResource using the RequiredResource parameter set' -tag
         $pkg.Version.ToString() | Should -BeLessOrEqual 4.2.0.0
     }
 
-
-    It 'Should install multiple resources specified in the json' {
+    It 'Should install multiple resources specified in the json' { Set-ItResult -Pending -Because 'WIP'
+    $json = 
         $json = 
         "{
             'CertificateDsc': {
@@ -95,7 +71,8 @@ Describe 'Test Install-PSResource using the RequiredResource parameter set' -tag
 
 
     ### Installing using -RequiredResource and a hashtable argument
-    It 'Should install the resource specified in the hashtable' {
+    It 'Should install the resource specified in the hashtable' { Set-ItResult -Pending -Because 'WIP'
+    $json = 
         $hash = 
         @{
             name = "CertificateDsc"
@@ -114,17 +91,10 @@ Describe 'Test Install-PSResource using the RequiredResource parameter set' -tag
     }
 }
 
-
-
-
-################################################
-### Install-PSResource -RequiredResourceFile ###
-################################################
-
-Describe 'Test Install-PSResource using the RequiredResource parameter set' -tags 'BVT' {
+Describe 'Test Install-PSResource using the RequiredResource parameter set' -tags 'BVT' { 
 
     ### Installing using -RequiredResource and a json file
-    It 'Should install the resource specified in the json file' {
+    It 'Should install the resource specified in the json file' { Set-ItResult -Pending -Because 'WIP'
         $json = 
         "{
             'CertificateDsc': {

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 BeforeAll {
-    Import-Module $PSScriptRoot/Shared.psm1 -Verbose -Force
+    Import-Module $PSScriptRoot/Shared.psm1
 
     $PSGalleryName = 'PSGallery'
     $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
