@@ -27,13 +27,12 @@ Describe 'Publish-PSResource' -tags 'BVT' {
         $script:TempModulesPath = Join-Path -Path $tmpdir -ChildPath "PSGet_$(Get-Random)"
         $null = New-Item -Path $TempModulesPath -ItemType Directory -Force
 
-        $PublishModuleName = "TestPublishModule"
+        $PublishModuleName = 'TestPublishModule'
         $PublishModuleBase = Join-Path $TempModulesPath $PublishModuleName
         $null = New-Item -Path $PublishModuleBase -ItemType Directory -Force
     }
-	AfterAll { 
-        if($tmpdir -and (Test-Path $tmpdir))
-        {
+    AfterAll { 
+        if ($tmpdir -and (Test-Path $tmpdir)) {
             Remove-Item $tmpdir -Force -Recurse
         }
     }
@@ -45,19 +44,19 @@ Describe 'Publish-PSResource' -tags 'BVT' {
         $scriptFilePath = Join-Path -Path $TempModulesPath -ChildPath "$Name.ps1"
         $null = New-Item -Path $scriptFilePath -ItemType File -Force
 
-        $version = "1.0.0"
+        $version = '1.0.0'
         $params = @{
             #Path = $scriptFilePath
-            Version = $version
+            Version      = $version
             #GUID = 
-            Author = 'Jane'
-            CompanyName = 'Microsoft Corporation'
-            Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
-            Description = "Description for the $Name script"
-            LicenseUri = "https://$Name.com/license"
-            IconUri = "https://$Name.com/icon"
-            ProjectUri = "https://$Name.com"
-            Tags = @('Tag1','Tag2', "Tag-$Name-$version")
+            Author       = 'Jane'
+            CompanyName  = 'Microsoft Corporation'
+            Copyright    = '(c) 2020 Microsoft Corporation. All rights reserved.'
+            Description  = "Description for the $Name script"
+            LicenseUri   = "https://$Name.com/license"
+            IconUri      = "https://$Name.com/icon"
+            ProjectUri   = "https://$Name.com"
+            Tags         = @('Tag1','Tag2', "Tag-$Name-$version")
             ReleaseNotes = "$Name release notes"
         }
 
@@ -71,8 +70,8 @@ Describe 'Publish-PSResource' -tags 'BVT' {
     It 'Should publish a module' { Set-ItResult -Pending -Because 'WIP'
         $PublishModuleBase = Join-Path $TempModulesPath $PublishModuleName
 
-        $version = "1.0"
-        New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module"  -NestedModules "$PublishModuleName.psm1"
+        $version = '1.0'
+        New-ModuleManifest -Path (Join-Path -Path $PublishModuleBase -ChildPath "$PublishModuleName.psd1") -ModuleVersion $version -Description "$PublishModuleName module" -NestedModules "$PublishModuleName.psm1"
 
         Publish-PSResource -path $PublishModuleBase -Repository psgettestlocal
     }

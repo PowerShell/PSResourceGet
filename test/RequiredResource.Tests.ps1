@@ -16,7 +16,7 @@ BeforeAll {
 
 Describe 'Install-PSResource using the RequiredResource parameter set' -tags 'BVT' {
 
-	AfterEach {
+    AfterEach {
         #WIP
         #$null = uninstall-psresource 'CertificateDsc' -ErrorAction SilentlyContinue
     }
@@ -42,7 +42,7 @@ Describe 'Install-PSResource using the RequiredResource parameter set' -tags 'BV
     }
 
     It 'Should install multiple resources specified in the json' { Set-ItResult -Pending -Because 'WIP'
-    $json = 
+        $json = 
         $json = 
         "{
             'CertificateDsc': {
@@ -72,13 +72,13 @@ Describe 'Install-PSResource using the RequiredResource parameter set' -tags 'BV
 
     ### Installing using -RequiredResource and a hashtable argument
     It 'Should install the resource specified in the hashtable' { Set-ItResult -Pending -Because 'WIP'
-    $json = 
+        $json = 
         $hash = 
         @{
-            name = "CertificateDsc"
-            trustrepository = "true"
-            version = "[4.0.0,4.2.0]"
-            Prerelease = "true"
+            name            = 'CertificateDsc'
+            trustrepository = 'true'
+            version         = '[4.0.0,4.2.0]'
+            Prerelease      = 'true'
         }
 
         $ret = Install-PSResource -RequiredResource $hash
@@ -104,13 +104,12 @@ Describe 'Test Install-PSResource using the RequiredResource parameter set' -tag
             }
         }"
 
-        $tmpJsonFile = Join-Path -Path $tmpdir -ChildPath "TestJsonFile.json"
+        $tmpJsonFile = Join-Path -Path $tmpdir -ChildPath 'TestJsonFile.json'
 
         New-Item -Path $tmpJsonFile -ItemType File
         $json | Write-File $tmpJsonFile
 
-        if ($tmpJsonFile -ne $null)
-        {
+        if ($tmpJsonFile -ne $null) {
             $ret = Install-PSResource -RequiredResourceFile $tmpJsonFile
         }
         Remove-Item $tmpJsonFile

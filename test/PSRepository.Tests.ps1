@@ -10,7 +10,7 @@ BeforeAll {
     $TestRepoName = 'TestRepoName'
     $TestRepoURL = 'https://www.poshtestgallery.com/api/v2'
     
-    $TestRepoName2 = "NuGet"
+    $TestRepoName2 = 'NuGet'
     $TestRepoURL2 = 'https://api.nuget.org/v3/index.json'
     
     $TestRepoLocalName = 'TestLocalRepo'
@@ -20,7 +20,7 @@ BeforeAll {
     }
     $TestRepoLocalURL = $tmpdir
 
-    $TestRepoLocalName2 = "TestLocalRepoName2"
+    $TestRepoLocalName2 = 'TestLocalRepoName2'
     $tmpdir2 = Join-Path -Path $TestDrive -ChildPath $TestRepoLocalName2
     if (-not (Test-Path -LiteralPath $tmpdir2)) {
         New-Item -Path $tmpdir2 -ItemType Directory > $null
@@ -42,9 +42,9 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
         AfterAll {
             #BUG: "Already exists" exception doesn't respect EA silentlycontinue
             try {
-                if ($ExistingPSGallery) {Register-PSResourceRepository -PSGallery -ErrorAction Stop}
+                if ($ExistingPSGallery) { Register-PSResourceRepository -PSGallery -ErrorAction Stop }
             } catch {
-                if ([String]$PSItem -ne "The PSResource Repository 'PSGallery' already exists.") {throw}
+                if ([String]$PSItem -ne "The PSResource Repository 'PSGallery' already exists.") { throw }
             }
         }
         BeforeEach {
@@ -70,12 +70,12 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
         
         It 'Should fail to re-register PSGallery' {
             Register-PSResourceRepository -PSGallery
-            {Register-PSResourceRepository -PSGallery -ErrorAction Stop} | 
+            { Register-PSResourceRepository -PSGallery -ErrorAction Stop } | 
                 Should -Throw "The PSResource Repository 'PSGallery' already exists."
         }
 
         It 'Should fail to register PSGallery when manually providing URL' { Set-ItResult -Pending -Because 'Currently does not throw exception as expected but may be WIP'
-            {Register-PSResourceRepository $PSGalleryName -URL $PSGalleryLocation -ErrorAction Stop} | 
+            { Register-PSResourceRepository $PSGalleryName -URL $PSGalleryLocation -ErrorAction Stop } | 
                 Should -Throw "Use 'Register-PSResourceRepository -Default' to register the PSGallery repository."
         }
     }
@@ -87,7 +87,7 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
             try {
                 Unregister-PSResourceRepository $TestRepoName -ErrorAction Stop
             } catch {
-                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') {throw}
+                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') { throw }
             }
             
         }
@@ -95,7 +95,7 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
             try {
                 Unregister-PSResourceRepository $TestRepoName -ErrorAction Stop
             } catch {
-                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') {throw}
+                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') { throw }
             }
         }
 
@@ -129,25 +129,25 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
     
         It 'Should fail to reregister the repository when the -Name is already registered' {
             Register-PSResourceRepository $TestRepoName -URL $TestRepoURL
-            {Register-PSResourceRepository $TestRepoName -URL $TestRepoURL2} | 
+            { Register-PSResourceRepository $TestRepoName -URL $TestRepoURL2 } | 
                 Should -Throw "The PSResource Repository '$($TestRepoName)' already exists."
         }
 
         It 'Should fail to reregister the repository when the -URL is already registered' {
             Register-PSResourceRepository $TestRepoName -URL $TestRepoURL
-            {Register-PSResourceRepository $TestRepoName2 -URL $TestRepoURL -ErrorAction Stop} |
+            { Register-PSResourceRepository $TestRepoName2 -URL $TestRepoURL -ErrorAction Stop } |
                 Should -Throw "The PSResource Repository '$($TestRepoName2)' already exists."
         }
     }
 
-	### Registering a fileshare URL
+    ### Registering a fileshare URL
     Context 'Fileshare URL' {
         BeforeEach {
             #BUG: Unregister-PSResourceRepository does not respect erroraction silentlycontinue
             try {
                 Unregister-PSResourceRepository $TestRepoLocalName -ErrorAction Stop
             } catch {
-                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') {throw}
+                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') { throw }
             }
             
         }
@@ -155,7 +155,7 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
             try {
                 Unregister-PSResourceRepository $TestRepoLocalName -ErrorAction Stop
             } catch {
-                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') {throw}
+                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') { throw }
             }
         }
 
@@ -165,8 +165,8 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
             $repo = Get-PSResourceRepository $TestRepoLocalName
             $repo.Name | Should -Be $TestRepoLocalName
     
-            $repoModifiedURL = $repo.URL.replace("/","\")
-            $repoModifiedURL | Should -Be ("file:\\\" + $TestRepoLocalURL)
+            $repoModifiedURL = $repo.URL.replace('/','\')
+            $repoModifiedURL | Should -Be ('file:\\\' + $TestRepoLocalURL)
             $repo.Trusted | Should -Be false
         }
 
@@ -176,21 +176,21 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
             $repo = Get-PSResourceRepository $TestRepoLocalName
             $repo.Name | Should -Be $TestRepoLocalName
 
-            $repoModifiedURL = $repo.URL.replace("/","\")
-            $repoModifiedURL | Should -Be ("file:\\\" + $TestRepoLocalURL)
+            $repoModifiedURL = $repo.URL.replace('/','\')
+            $repoModifiedURL | Should -Be ('file:\\\' + $TestRepoLocalURL)
             $repo.Trusted | Should -Be true
             $repo.Priority | Should -Be 2
         }
     
         It 'Should fail to reregister the repository when the -Name is already registered' {
             Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL
-            {Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL2} |
+            { Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL2 } |
                 Should -Throw "The PSResource Repository '$($TestRepoLocalName)' already exists."
         }
     
         It 'Should fail to reregister the repository when the fileshare -URL is already registered' { Set-ItResult -Pending -Because "Throws correctly but error message isn't as detailed as the test, may be WIP"
             Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL
-            {Register-PSResourceRepository 'NewTestName' -URL $TestRepoLocalURL2} |
+            { Register-PSResourceRepository 'NewTestName' -URL $TestRepoLocalURL2 } |
                 Should -Throw "The repository could not be registered because there exists a registered repository with Name '$($TestRepoName)' and URL '$($TestRepoURL)'. To register another repository with Name '$($TestRepoName2)', please unregister the existing repository using the Unregister-PSResourceRepository cmdlet."
         }
     
@@ -205,21 +205,21 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
                 $repo = Get-PSResourceRepository -Name $TestRepoLocalName
                 $repo.Name | Should -Be $TestRepoLocalName
     
-                $repoModifiedURL = $repo.URL.replace("/","\")
-                $repoModifiedURL | Should -Be ("file:\\\" + $tmpdir)
+                $repoModifiedURL = $repo.URL.replace('/','\')
+                $repoModifiedURL | Should -Be ('file:\\\' + $tmpdir)
             } finally {
                 Remove-Item $tmpdir -Force
             }
         }
     }
 
-    Context "Splatting" {
+    Context 'Splatting' {
         BeforeEach {
             #BUG: Unregister-PSResourceRepository does not respect erroraction silentlycontinue
             try {
                 Unregister-PSResourceRepository $TestRepoName -ErrorAction Stop
             } catch {
-                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') {throw}
+                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') { throw }
             }
             
         }
@@ -227,7 +227,7 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
             try {
                 Unregister-PSResourceRepository $TestRepoName -ErrorAction Stop
             } catch {
-                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') {throw}
+                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') { throw }
             }
         }
 
@@ -272,8 +272,8 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
             $repo1.Priority | Should -Be 15
 
             $repo2 = Get-PSResourceRepository $TestRepoLocalName
-            $repo2ModifiedURL = $repo2.URL.replace("/","\")
-            $repo2ModifiedURL | Should -Be ("file:\\\" + $TestRepoLocalURL)
+            $repo2ModifiedURL = $repo2.URL.replace('/','\')
+            $repo2ModifiedURL | Should -Be ('file:\\\' + $TestRepoLocalURL)
             $repo2.Priority | Should -Be 50
 
             $repo3 = Get-PSResourceRepository $PSGalleryName
@@ -285,15 +285,15 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
 
 Describe 'Unregister-PSResourceRepository' -tags 'BVT' {
     BeforeEach {
-        $PSGalleryName,$TestRepoName,$TestRepoName2,$TestRepoLocalName | Foreach {
+        $PSGalleryName,$TestRepoName,$TestRepoName2,$TestRepoLocalName | ForEach-Object {
             try {
                 Unregister-PSResourceRepository -Name $PSItem
             } catch {}
         }
-		Register-PSResourceRepository $TestRepoName -URL $TestRepoURL
+        Register-PSResourceRepository $TestRepoName -URL $TestRepoURL
         Register-PSResourceRepository $TestRepoName2 -URL $TestRepoURL2 -Priority 50
-		Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL -Priority 0
-		Register-PSResourceRepository -PSGallery
+        Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL -Priority 0
+        Register-PSResourceRepository -PSGallery
     }
     ### Unregistering the PowerShell Gallery
     It 'Should unregister the default PSGallery' {
@@ -303,7 +303,7 @@ Describe 'Unregister-PSResourceRepository' -tags 'BVT' {
         $repo | Should -BeNullOrEmpty
     }
 
-	### Unregistering any repository
+    ### Unregistering any repository
     It 'Should unregister a given repository' {
         Unregister-PSResourceRepository $TestRepoName
 
@@ -347,7 +347,7 @@ Describe 'Set-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
         }
 
         It 'Should fail to set PSGallery to a different URL' { Set-ItResult -Pending -Because 'Throws but error message does not match, may be WIP'
-            {Set-PSResourceRepository $PSGalleryName -URL $TestRepoURL} | 
+            { Set-PSResourceRepository $PSGalleryName -URL $TestRepoURL } | 
                 Should -Throw "The PSGallery repository has pre-defined locations. Setting the 'URL' parameter is not allowed, try again after removing the 'URL' parameter."
         }
     }
@@ -405,8 +405,8 @@ Describe 'Set-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
             $repo1.Priority | Should -Be 9
     
             $repo2 = Get-PSResourceRepository $TestRepoLocalName
-            $repo2ModifiedURL = $repo2.URL.replace("/","\")
-            $repo2ModifiedURL | Should -Be ("file:\\\" + $TestRepoLocalURL2)
+            $repo2ModifiedURL = $repo2.URL.replace('/','\')
+            $repo2ModifiedURL | Should -Be ('file:\\\' + $TestRepoLocalURL2)
             $repo2.Trusted | Should -Be true
             $repo2.Priority | Should -Be 50
     
@@ -420,15 +420,15 @@ Describe 'Set-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
 Describe 'Get-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
 
     BeforeAll {
-        $PSGalleryName,$TestRepoName,$TestRepoName2,$TestRepoLocalName2 | Foreach-Object {
+        $PSGalleryName,$TestRepoName,$TestRepoName2,$TestRepoLocalName2 | ForEach-Object {
             try {
                 Unregister-PSResourceRepository -Name $PSItem
             } catch {}
         }
-		Register-PSResourceRepository -PSGallery -Trusted -ErrorAction SilentlyContinue
+        Register-PSResourceRepository -PSGallery -Trusted -ErrorAction SilentlyContinue
         Register-PSResourceRepository -Name $TestRepoName -URL $TestRepoURL -Trusted -Priority 2
         Register-PSResourceRepository -Name $TestRepoName2 -URL $TestRepoURL2 -Priority 15 -ErrorAction SilentlyContinue
-		Register-PSResourceRepository -Name $TestRepoLocalName2 -URL $TestRepoLocalURL2 -ErrorAction SilentlyContinue
+        Register-PSResourceRepository -Name $TestRepoLocalName2 -URL $TestRepoLocalURL2 -ErrorAction SilentlyContinue
     }
 
     It 'Should get PSGallery repository' {
@@ -449,45 +449,45 @@ Describe 'Get-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
 
         $repos.Count | Should -Be 3
 
-		$repos.Name | Should -Contain $PSGalleryName
+        $repos.Name | Should -Contain $PSGalleryName
         $repos.Name | Should -Contain $TestRepoName2
         $repos.Name | Should -Contain $TestRepoLocalName2
 
         $repos.URL | Should -Contain $PSGalleryLocation
         $repos.URL | Should -Contain $TestRepoURL2
 
-		$repoModifiedURL = "file:///" + ($TestRepoLocalURL2.replace("\", "/"));
-		$repos.URL | Should -Contain $repoModifiedURL
+        $repoModifiedURL = 'file:///' + ($TestRepoLocalURL2.replace('\', '/'));
+        $repos.URL | Should -Contain $repoModifiedURL
 
-		$repos.Priority | Should -Contain 15
-		$repos.Priority | Should -Contain 50
+        $repos.Priority | Should -Contain 15
+        $repos.Priority | Should -Contain 50
     }
 
     It 'Should get all repositories' { Set-ItResult -Pending -Because 'This is a bad test because you have to wipe the test system of all repositories, its a bad idea'
 
-		$repos = Get-PSResourceRepository
+        $repos = Get-PSResourceRepository
 
         $repos.Count | Should -Be 5		
 
-        $repos.Name | should contain $PSGalleryName
-        $repos.Name | should contain $TestRepoName
-        $repos.Name | should contain $TestRepoName2
-        $repos.Name | should contain $TestRepoLocalName
-        $repos.Name | should contain $TestRepoLocalName2
+        $repos.Name | Should contain $PSGalleryName
+        $repos.Name | Should contain $TestRepoName
+        $repos.Name | Should contain $TestRepoName2
+        $repos.Name | Should contain $TestRepoLocalName
+        $repos.Name | Should contain $TestRepoLocalName2
 
-        $repos.URL | should contain $PSGalleryLocation
-        $repos.URL | should contain $TestRepoURL
-        $repos.URL | should contain $TestRepoURL2
+        $repos.URL | Should contain $PSGalleryLocation
+        $repos.URL | Should contain $TestRepoURL
+        $repos.URL | Should contain $TestRepoURL2
 
-		$repoModifiedURL = "file:///" + ($TestRepoLocalURL.replace("\", "/"));
-		$repos.URL | should contain $repoModifiedURL
+        $repoModifiedURL = 'file:///' + ($TestRepoLocalURL.replace('\', '/'));
+        $repos.URL | Should contain $repoModifiedURL
 
-	    $repoModifiedURL2 = "file:///" + ($TestRepoLocalURL2.replace("\", "/"));
-	    $repos.URL | should contain $repoModifiedURL2
+        $repoModifiedURL2 = 'file:///' + ($TestRepoLocalURL2.replace('\', '/'));
+        $repos.URL | Should contain $repoModifiedURL2
 
-        $repos.Priority | should contain 2
-        $repos.Priority | should contain 50
-        $repos.Priority | should contain 15
+        $repos.Priority | Should contain 2
+        $repos.Priority | Should contain 50
+        $repos.Priority | Should contain 15
 
     }
 }
