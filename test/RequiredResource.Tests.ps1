@@ -14,7 +14,7 @@ BeforeAll {
     }
 }
 
-Describe 'Test Install-PSResource using the RequiredResource parameter set' -tags 'BVT' {
+Describe 'Install-PSResource using the RequiredResource parameter set' -tags 'BVT' {
 
 	AfterEach {
         #WIP
