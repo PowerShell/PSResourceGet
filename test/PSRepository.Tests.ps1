@@ -227,67 +227,79 @@ Describe 'Test Register-PSResourceRepository' -tags 'BVT' {
         }
     }
 
-}
-
-
-
-Describe 'Registering Repositories with Hashtable Parameters' -tags 'BVT', 'InnerLoop' {
-
-    BeforeEach {
-
-    }
-    It 'Should register a repository with parameters as a hashtable' { Set-ItResult -Pending
-        Unregister-PSResourceRepository -Name $TestRepoName -ErrorAction SilentlyContinue
-		
-		$paramRegisterPSResourceRepository = @{
-            Name     = $TestRepoName
-            URL      = $TestRepoURL
-            Trusted  = $False
-            Priority = 1
+    Context "Splatting" {
+        BeforeEach {
+            #BUG: Unregister-PSResourceRepository does not respect erroraction silentlycontinue
+            try {
+                Unregister-PSResourceRepository $TestRepoName -ErrorAction Stop
+            } catch {
+                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') {throw}
+            }
+            
+        }
+        AfterEach {
+            try {
+                Unregister-PSResourceRepository $TestRepoName -ErrorAction Stop
+            } catch {
+                if ([String]$PSItem -notmatch 'Unable to successfully unregister repository: Unable to find repository') {throw}
+            }
         }
 
-        { Register-PSResourceRepository @paramRegisterPSResourceRepository } | Should -Not Throw
+        It 'Should register a repository' {            
+            $paramRegisterPSResourceRepository = @{
+                Name     = $TestRepoName
+                URL      = $TestRepoURL
+                Trusted  = $False
+                Priority = 1
+            }
+            Register-PSResourceRepository @paramRegisterPSResourceRepository 
 
-        $repo = Get-PSResourceRepository -Name $TestRepoName
-        $repo.URL | Should -Be $TestRepoURL
-        $repo.Trusted | Should -Be $True
-        $repo.Priority | Should -Be 1
-    }
+            $repo = Get-PSResourceRepository -Name $TestRepoName
+            $repo.URL | Should -Be $TestRepoURL
+            $repo.Trusted | Should -Be $True
+            $repo.Priority | Should -Be 1
+        }
+    
+        It 'Should register multiple repositories' {
 
-    It 'Should register multiple repositories' { Set-ItResult -Pending
-	    Unregister-PSResourceRepository -Name $TestRepoName -ErrorAction SilentlyContinue
-		Unregister-PSResourceRepository -Name $TestRepoLocalName -ErrorAction SilentlyContinue
-		Unregister-PSResourceRepository -Name $PSGalleryName
+            #FIXME: Blackhole errors because ErrorAction isn't respected by Unregister-PSResourceRepository correctly
+            try {
+                Unregister-PSResourceRepository -Name $TestRepoName
+            } catch {}
+            try {
+                Unregister-PSResourceRepository -Name $TestRepoLocalName
+            } catch {}
+            try {
+                Unregister-PSResourceRepository -Name $PSGalleryName
+            } catch {}
+            
+            $errorActionPreference = $lastErrorActionPreference
 
-        Register-PSResourceRepository -Repositories @(
-            @{ Name = $TestRepoName; URL = $TestRepoURL; Priority = 15 }
-            @{ Name = $TestRepoLocalName; URL = $TestRepoLocalURL }
-            @{ PSGallery = $true; Trusted = $true }
-        )
+            Register-PSResourceRepository -Repositories @(
+                @{ Name = $TestRepoName; URL = $TestRepoURL; Priority = 15 }
+                @{ Name = $TestRepoLocalName; URL = $TestRepoLocalURL }
+                @{ PSGallery = $true; Trusted = $true }
+            )
+    
+            $repo1 = Get-PSResourceRepository $TestRepoName
+            $repo1.URL | Should -Be $TestRepoURL
+            $repo1.Priority | Should -Be 15
 
-        $repos = Get-PSResourceRepository
-        $repos.Count | Should -Be 3
-        $repo1 = Get-PSResourceRepository $TestRepoName
-        $repo1.URL | Should -Be $TestRepoURL
-        $repo1.Priority | Should -Be 15
+            $repo2 = Get-PSResourceRepository $TestRepoLocalName
+            $repo2ModifiedURL = $repo2.URL.replace("/","\")
+            $repo2ModifiedURL | Should -Be ("file:\\\" + $TestRepoLocalURL)
+            $repo2.Priority | Should -Be 50
 
-
-        $repo2 = Get-PSResourceRepository $TestRepoLocalName
-
-		Write-Host $repo2.URL
-		$repo2ModifiedURL = $repo2.URL.replace("/","\")
-
-		Write-Host $repo2.URL
-		Write-Host $repo2ModifiedURL
-		WRite-Host $TestRepoLocalURL
-		$repo2ModifiedURL | Should -Be ("file:\\\" + $TestRepoLocalURL)
-        $repo2.Priority | Should -Be 50
-
-        $repo3 = Get-PSResourceRepository $PSGalleryName
-        $repo3.URL | Should -Be $PSGalleryLocation
-        $repo3.Priority | Should -Be 50
+            $repo3 = Get-PSResourceRepository $PSGalleryName
+            $repo3.URL | Should -Be $PSGalleryLocation
+            $repo3.Priority | Should -Be 50
+        }
     }
 }
+
+
+
+
 
 
 
