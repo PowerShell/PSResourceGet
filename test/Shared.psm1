@@ -161,11 +161,11 @@ function Get-NewPSResourceRepositoryFile {
     }
 
     if (! (Test-Path -Path $powerShellGetPath)) {
-        $null = New-Item -Path $powerShellGetPath -ItemType Directory -Verbose
+        $null = New-Item -Path $powerShellGetPath -ItemType Directory
     }
 
     $fileToCopy = Join-Path -Path $PSScriptRoot -ChildPath "testRepositories.xml"
-    Copy-Item -Path $fileToCopy -Destination $originalXmlFilePath -Force -Verbose
+    Copy-Item -Path $fileToCopy -Destination $originalXmlFilePath -Force
 }
 
 function Get-RevertPSResourceRepositoryFile {
