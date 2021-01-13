@@ -283,6 +283,42 @@ Describe 'Register-PSResourceRepository' -tags 'BVT' {
     }
 }
 
+Describe 'Unregister-PSResourceRepository' -tags 'BVT' {
+    BeforeEach {
+        $PSGalleryName,$TestRepoName,$TestRepoName2,$TestRepoLocalName | Foreach {
+            try {
+                Unregister-PSResourceRepository -Name $PSItem
+            } catch {}
+        }
+		Register-PSResourceRepository $TestRepoName -URL $TestRepoURL
+        Register-PSResourceRepository $TestRepoName2 -URL $TestRepoURL2 -Priority 50
+		Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL -Priority 0
+		Register-PSResourceRepository -PSGallery
+    }
+    ### Unregistering the PowerShell Gallery
+    It 'Should unregister the default PSGallery' {
+        Unregister-PSResourceRepository $PSGalleryName
+
+        $repo = Get-PSResourceRepository $PSGalleryName
+        $repo | Should -BeNullOrEmpty
+    }
+
+	### Unregistering any repository
+    It 'Should unregister a given repository' {
+        Unregister-PSResourceRepository $TestRepoName
+
+        $repo = Get-PSResourceRepository $TestRepoName
+        $repo | Should -BeNullOrEmpty
+    }
+	
+    It 'Should unregister multiple repositories' {
+        Unregister-PSResourceRepository $TestRepoName, $TestRepoName2, $TestRepoLocalName
+
+        $repos = Get-PSResourceRepository $TestRepoName, $TestRepoName2, $TestRepoLocalName
+        $repos | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Set-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
     Context 'PSGallery' {
         BeforeEach {
@@ -417,7 +453,6 @@ Describe 'Get-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
         $repos.Name | Should -Contain $TestRepoName2
         $repos.Name | Should -Contain $TestRepoLocalName2
 
-		
         $repos.URL | Should -Contain $PSGalleryLocation
         $repos.URL | Should -Contain $TestRepoURL2
 
@@ -426,10 +461,9 @@ Describe 'Get-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
 
 		$repos.Priority | Should -Contain 15
 		$repos.Priority | Should -Contain 50
-   }
+    }
 
-    It 'Should get all repositories' { Set-ItResult -Pending
-		Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL
+    It 'Should get all repositories' { Set-ItResult -Pending -Because 'This is a bad test because you have to wipe the test system of all repositories, its a bad idea'
 
 		$repos = Get-PSResourceRepository
 
@@ -457,60 +491,4 @@ Describe 'Get-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
 
     }
 }
-
-
-
-
-
-
-#######################################
-### Unregister-PSResourceRepository ###
-#######################################
-
-Describe 'Test Unregister-PSResourceRepository' -tags 'BVT' {
-
-    BeforeAll {
-
-    }
-    AfterAll {
-       # Unregister-PSResourceRepository -Name $PSGalleryName -ErrorAction SilentlyContinue
-       # Unregister-PSResourceRepository -Name $TestRepoName -ErrorAction SilentlyContinue
-       # Unregister-PSResourceRepository -Name $TestRepoName2 -ErrorAction SilentlyContinue
-      #  Unregister-PSResourceRepository -Name $TestRepoLocalName -ErrorAction SilentlyContinue
-      #  Unregister-PSResourceRepository -Name $TestRepoLocalName2 -ErrorAction SilentlyContinue
-    }
-
-    BeforeEach {
-      
-    }
-
-    ### Unregistering the PowerShell Gallery
-    It 'Should unregister the default PSGallery' { Set-ItResult -Pending 
-        Unregister-PSResourceRepository $PSGalleryName -ErrorVariable ev -ErrorAction SilentlyContinue
-
-        $repo = Get-PSResourceRepository $PSGalleryName
-        $repo | Should -BeNullOrEmpty
-    }
-
-	### Unregistering any repository
-    It 'Should unregister a given repository' { Set-ItResult -Pending 
-        Unregister-PSResourceRepository $TestRepoName -ErrorVariable ev -ErrorAction SilentlyContinue
-
-        $repo = Get-PSResourceRepository $TestRepoName
-        $repo | Should -BeNullOrEmpty
-    }
-	
-    It 'Should unregister multiple repositories' { Set-ItResult -Pending
-        Unregister-PSResourceRepository $TestRepoName, $TestRepoName2, $TestRepoLocalName
-
-        $repos = Get-PSResourceRepository $TestRepoName, $TestRepoName2, $TestRepoLocalName -ErrorVariable ev -ErrorAction SilentlyContinue
-        $repos | Should -BeNullOrEmpty
-        $ev[0].FullyQualifiedErrorId | Should -Be "Unable to find repository 'PSGallery'. Use Get-PSResourceRepository to see all available repositories."
-
-    }
-
-}
-
-#>
-
 
