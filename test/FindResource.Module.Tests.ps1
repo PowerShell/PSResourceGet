@@ -1,7 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+#Testing Environment Setup
+BeforeAll {
+    Import-Module $PSScriptRoot/Shared.psm1
+}
 
 Describe 'Test Find-PSResource for Module' {
 

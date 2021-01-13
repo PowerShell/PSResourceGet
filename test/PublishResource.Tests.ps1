@@ -2,31 +2,33 @@
 #
 # Copyright (c) Microsoft Corporation, 2019
 
-# TODO:
-Write-Warning "PSRepository.Tests.ps1 is current disabled."
+write-warning 'Publish-Resource Tests are temporarily disabled'
 return
 
-$psGetMod = Get-Module -Name PowerShellGet
-if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
-{
-    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
-    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
+#Testing Environment Setup
+BeforeAll {
+    Import-Module $PSScriptRoot/Shared.psm1
 }
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -WarningAction SilentlyContinue -force
 
-$PSGalleryName = 'PSGallery'
-$PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
-
-$TestLocalDirectory = 'TestLocalDirectory'
-$tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
-
-
-
-if (-not (Test-Path -LiteralPath $tmpdir)) {
-    New-Item -Path $tmpdir -ItemType Directory > $null
+BeforeAll {
+    $psGetMod = Get-Module -Name PowerShellGet
+    if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
+    {
+        Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
+        Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
+    }
+    
+    $PSGalleryName = 'PSGallery'
+    $PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
+    
+    $TestLocalDirectory = 'TestLocalDirectory'
+    $tmpdir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $TestLocalDirectory
+    
+    if (-not (Test-Path -LiteralPath $tmpdir)) {
+        New-Item -Path $tmpdir -ItemType Directory > $null
+    }
 }
-
 
 ##########################
 ### Publish-PSResource ###
@@ -46,7 +48,7 @@ Describe 'Test Publish-PSResource' -tags 'BVT' {
         $null = New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
 
     }
-	AfterAll {
+	AfterAll { 
         if($tempdir -and (Test-Path $tempdir))
         {
             Remove-Item $tempdir -Force -Recurse -ErrorAction SilentlyContinue
@@ -54,8 +56,7 @@ Describe 'Test Publish-PSResource' -tags 'BVT' {
     }
 
     ### Publish a script
-    It 'Should publish a script'
-    {
+    It 'Should publish a script' { Set-ItResult -Pending
 
         $Name = 'TestScriptName'
         $scriptFilePath = Join-Path -Path $script:TempModulesPath -ChildPath "$Name.ps1"
@@ -77,7 +78,7 @@ Describe 'Test Publish-PSResource' -tags 'BVT' {
                     ReleaseNotes = "$Name release notes"
                     }
 
-        $scriptMetadata = Create-PSScriptMetadata @params
+        $scriptMetadata = New-PSScriptMetadata @params
         Set-Content -Path $scriptFilePath -Value $scriptMetadata
 
         Publish-PSResource -path $scriptFilePath -Repository psgettestlocal

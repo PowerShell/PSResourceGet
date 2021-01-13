@@ -3,8 +3,16 @@
 # Copyright (c) Microsoft Corporation, 2019
 
 # TODO:
-Write-Warning "PSRepository.Tests.ps1 is current disabled."
+Write-Warning "RequiredResource.Tests.ps1 is currently disabled."
 return
+
+#Testing Environment Setup
+BeforeAll {
+    Import-Module $PSScriptRoot/Shared.psm1
+}
+
+
+
 
 $psGetMod = Get-Module -Name PowerShellGet
 if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
