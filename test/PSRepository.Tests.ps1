@@ -351,69 +351,69 @@ Describe 'Set-PSResourceRepository' -tags 'BVT', 'InnerLoop' {
                 Should -Throw "The PSGallery repository has pre-defined locations. Setting the 'URL' parameter is not allowed, try again after removing the 'URL' parameter."
         }
     }
-}
 
-Context 'Splatting' -tags 'BVT', 'InnerLoop' {
-    BeforeEach {
-        #Establish the repositories to run set commands on
-        try {
-            Unregister-PSResourceRepository -Name $TestRepoName
-        } catch {}
-        try {
-            Unregister-PSResourceRepository -Name $TestRepoLocalName
-        } catch {}
-        try {
-            Unregister-PSResourceRepository -Name $PSGalleryName
-        } catch {}
-
-		Register-PSResourceRepository $TestRepoName -URL $TestRepoURL
-		Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL -Priority 0
-		Register-PSResourceRepository -PSGallery
-    }
-    It 'Should fail to set on nonexistent repository' {
-        Set-ItResult -Pending -Because WIP
-    }
-    It 'Should fail when trying to modify PSGallery Url' {
-        Set-ItResult -Pending -Because WIP
-    }
-    It 'Should set repository with given hashtable parameters' {
-
-        $paramSetPSResourceRepository = @{
-            Name     = $TestRepoName
-            URL      = $TestRepoURL2
-            Trusted  = $False
-            Priority = 1
+    Context 'Splatting' -tags 'BVT', 'InnerLoop' {
+        BeforeEach {
+            #Establish the repositories to run set commands on
+            try {
+                Unregister-PSResourceRepository -Name $TestRepoName
+            } catch {}
+            try {
+                Unregister-PSResourceRepository -Name $TestRepoLocalName
+            } catch {}
+            try {
+                Unregister-PSResourceRepository -Name $PSGalleryName
+            } catch {}
+    
+            Register-PSResourceRepository $TestRepoName -URL $TestRepoURL
+            Register-PSResourceRepository $TestRepoLocalName -URL $TestRepoLocalURL -Priority 0
+            Register-PSResourceRepository -PSGallery
         }
-        Set-PSResourceRepository @paramSetPSResourceRepository 
-
-        $repo = Get-PSResourceRepository -Name $TestRepoName
-        $repo.URL | Should -Be $TestRepoURL2
-        $repo.Trusted | Should -Be false
-        $repo.Priority | Should -Be 1
-    }
-    It 'Should set multiple repositories' {
-		$repositories = @(
-            @{ Name = $TestRepoName; URL = $TestRepoURL2; Priority = 9 },
-            @{ Name = $TestRepoLocalName; URL = $TestRepoLocalURL2; Trusted = $True }
-            @{ Name = $PSGalleryName; URL = $PSGalleryLocation; Trusted = $True; Priority = 55 }
-        )
-
-        Set-PSResourceRepository -Repositories $repositories
-
-        $repo1 = Get-PSResourceRepository $TestRepoName
-        $repo1.URL | Should -Be $TestRepoURL2
-        $repo1.Trusted | Should -Be false
-        $repo1.Priority | Should -Be 9
-
-        $repo2 = Get-PSResourceRepository $TestRepoLocalName
-		$repo2ModifiedURL = $repo2.URL.replace("/","\")
-		$repo2ModifiedURL | Should -Be ("file:\\\" + $TestRepoLocalURL2)
-        $repo2.Trusted | Should -Be true
-        $repo2.Priority | Should -Be 50
-
-        $repo3 = Get-PSResourceRepository $PSGalleryName
-        $repo3.Trusted | Should -Be true
-        $repo3.Priority | Should -Be 55
+        It 'Should fail to set on nonexistent repository' {
+            Set-ItResult -Pending -Because WIP
+        }
+        It 'Should fail when trying to modify PSGallery Url' {
+            Set-ItResult -Pending -Because WIP
+        }
+        It 'Should set repository with given hashtable parameters' {
+    
+            $paramSetPSResourceRepository = @{
+                Name     = $TestRepoName
+                URL      = $TestRepoURL2
+                Trusted  = $False
+                Priority = 1
+            }
+            Set-PSResourceRepository @paramSetPSResourceRepository 
+    
+            $repo = Get-PSResourceRepository -Name $TestRepoName
+            $repo.URL | Should -Be $TestRepoURL2
+            $repo.Trusted | Should -Be false
+            $repo.Priority | Should -Be 1
+        }
+        It 'Should set multiple repositories' {
+            $repositories = @(
+                @{ Name = $TestRepoName; URL = $TestRepoURL2; Priority = 9 },
+                @{ Name = $TestRepoLocalName; URL = $TestRepoLocalURL2; Trusted = $True }
+                @{ Name = $PSGalleryName; URL = $PSGalleryLocation; Trusted = $True; Priority = 55 }
+            )
+    
+            Set-PSResourceRepository -Repositories $repositories
+    
+            $repo1 = Get-PSResourceRepository $TestRepoName
+            $repo1.URL | Should -Be $TestRepoURL2
+            $repo1.Trusted | Should -Be false
+            $repo1.Priority | Should -Be 9
+    
+            $repo2 = Get-PSResourceRepository $TestRepoLocalName
+            $repo2ModifiedURL = $repo2.URL.replace("/","\")
+            $repo2ModifiedURL | Should -Be ("file:\\\" + $TestRepoLocalURL2)
+            $repo2.Trusted | Should -Be true
+            $repo2.Priority | Should -Be 50
+    
+            $repo3 = Get-PSResourceRepository $PSGalleryName
+            $repo3.Trusted | Should -Be true
+            $repo3.Priority | Should -Be 55
+        }
     }
 }
 
