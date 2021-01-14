@@ -353,90 +353,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-
-        //attempt to use CatalogReader methods
-        public List<PackageEntry> ProcessPackages(string repoName, string sourceUrl, CancellationToken cancellationToken)
-        {
-            var indexUri = new Uri(sourceUrl);
-            var feedToUse = new FeedReader(indexUri);
-            Console.WriteLine(feedToUse.GetServiceIndexAsync());
-            List<PackageEntry> pkgsDiscovered = new List<PackageEntry>();
-            using(feedToUse)
-            {
-                pkgsDiscovered = feedToUse.GetPackagesById(repoName, cancellationToken).GetAwaiter().GetResult();
-                Console.WriteLine(pkgsDiscovered.Count);
-                int count = 1;
-                foreach(var pkgPerhaps in pkgsDiscovered)
-                {
-                    if(count == 1)
-                    {
-                        Console.WriteLine("Id: " + pkgPerhaps.Id + ", version: " + pkgPerhaps.Version + ", description: " + pkgPerhaps.GetNuspecAsync().GetAwaiter().GetResult().GetDescription());
-                    }
-                    count++;
-
-                }
-                return pkgsDiscovered;
-            }
-            // return new List<PackageEntry>();
-
-        }
-
-        public IReadOnlyList<CatalogEntry> GetPkgs(string sourceUrl, CancellationToken cancellationToken)
-        {
-            IReadOnlyList<CatalogEntry> allPkgs = new List<CatalogEntry>();
-            var feed = new Uri(sourceUrl);
-            using(var catalog = new CatalogReader(feed))
-            {
-                allPkgs = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult();
-                // int count = 0;
-                // foreach(var entry in allPkgs)
-                // {
-                //     if(count == 0)
-                //     {
-                //         // Console.WriteLine("name: " + entry.Id + ", version: " + entry.Version + ", description: " + entry.GetNuspecAsync().GetAwaiter().GetResult().GetDescription());
-                //         count++;
-                //     }
-                // }
-
-            }
-            // // if this doesn't work it means that it needs to be form the using block
-            // int count = 0;
-            // foreach(var entry in allPkgs)
-            // {
-            //     if(count == 0)
-            //     {
-            //         Console.WriteLine("name: " + entry.Id + ", version: " + entry.Version + ", description: " + entry.GetNuspecAsync().GetAwaiter().GetResult().GetDescription());                }
-
-            // }
-            return allPkgs;
-        }
-        public List<CatalogEntry> ProcessCatalogWithAPI(string repoName, IEnumerable<CatalogEntry> allPkgs)
-        {
-            Stopwatch stoppy = new Stopwatch();
-            stoppy.Start();
-            WildcardPattern v3Pattern = new WildcardPattern(_wildcardName[0], WildcardOptions.IgnoreCase);
-            CatalogEntry[] uniquePkgsFilteredToLatestVersion = ProcessEntriesUtility.FilterToLatestPerId(_prerelease, allPkgs);
-            List<CatalogEntry> chosenOne = new List<CatalogEntry>();
-            foreach(var entry in uniquePkgsFilteredToLatestVersion)
-            {
-                if(v3Pattern.IsMatch(entry.Id))
-                {
-                    chosenOne.Add(entry);
-                }
-            }
-            stoppy.Stop();
-            TimeSpan ts = stoppy.Elapsed;
-            string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                ts.Hours, ts.Minutes, ts.Seconds,
-                ts.Milliseconds / 10);
-            WriteDebug("Runtime for JUST filtering API way is: " + elapsedTime);
-            return chosenOne;
-        }
-
-
-
-
-        //technique 1
         public async Task<List<CatalogEntry>> ProcessCatalogReaderWithAsyncDict(string repoName, string sourceUrl, CancellationToken cancellationToken){
             var feed = new Uri(sourceUrl);
             Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
@@ -502,10 +418,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
 
-
-
-
-        //technique 2
         public Dictionary<CatalogEntry, string> ProcessCatalogPLINQWithDescription(string repoName, string sourceUrl, CancellationToken cancellationToken)
         {
             Dictionary<CatalogEntry, string> entriesWithDescription = new Dictionary<CatalogEntry, string>();
