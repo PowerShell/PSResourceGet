@@ -370,6 +370,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     .Select(x => {
                         TimeSpan elapsedTime = DateTime.Now - start;
                         int currentPercent =(int)(100.0 * Interlocked.Increment(ref currentPkg)/totalPkgsCount);
+                        // I'm not 100% confident in this code being thread-safe. variables currentPkg and trackedPercent are the ones
+                        // we're locking on to ensure different threads can't modify at same time.
+                        // Could a thread update currentPkg on L 372 but before reaching L380 another thread hits line 372 and increments currentPkg?
+                        // A possible solution could be to use the commented conditional code below that nests Interlocked operations
+                        // but I'd still need to use the value of trackedPercent on L386 which I can't guarantee hasn't been modified by
+                        // another thread between L380 and L386.
                         // if(Interlocked.Exchange(ref percentTracked, ((int)(100.0 * Interlocked.Increment(ref currentPkg)/totalPkgsCt))) < ((int)(100.0 * currentPkg/totalPkgsCt)))
                         if(Interlocked.Exchange(ref trackedPercent, currentPercent) < currentPercent)
                         {
