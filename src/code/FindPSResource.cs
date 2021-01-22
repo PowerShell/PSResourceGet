@@ -62,21 +62,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string[] _name = new string[0];
 
         /// <summary>
-        /// added this for testing wildcard feature through CLI
-        /// </summary>
-        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-        [ValidateNotNullOrEmpty]
-        public string[] WildcardName
-        {
-            get
-            { return _wildcardName; }
-
-            set
-            { _wildcardName = value; }
-        }
-        private string[] _wildcardName = new string[0];
-
-        /// <summary>
         /// corresponds to which wildcard implementation technique we want to use/test out
         /// added this for testing wildcard feature thru CLI
         /// </summary>
@@ -239,45 +224,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var listOfRepositories = r.Read(_repository);
 
             var returnedPkgsFound = new List<IEnumerable<IPackageSearchMetadata>>();
-            // var returnedV3PkgsFound = new List<PackageEntry>();
             pkgsLeftToFind = _name.ToList();
             foreach (var repoName in listOfRepositories)
             {
-                // string nugetV3Uri = "https://api.nuget.org/v3/index.json";
-
-
                 WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
-                // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
-                // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
+
                 if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
-                    (_name.Length != 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
+                    (_name.Length != 0 || _name.Any(n => n.Contains("*"))))
                 {
-                // if(_wildcardName != null && _wildcardName.Length != 0)
-                // {
                     Dictionary<CatalogEntry, string> pkgsWithDescriptions = new Dictionary<CatalogEntry, string>();
-                    Stopwatch stoppy = new Stopwatch();
-                    stoppy.Start();
                     if(_technique == 1)
                     {
-
-                        // returnedV3PkgsFound.AddRange(ProcessCatalogReaderWithAsyncDict(_wildcardName[0], nugetV3Uri, cancellationToken).GetAwaiter().GetResult());
-                        pkgsWithDescriptions = ProcessCatalogReaderWithAsyncDict(_name[0], repoName.Properties["Url"].Value.ToString(), cancellationToken);
-
+                        pkgsWithDescriptions = ProcessCatalogWithDict(_name[0], repoName.Properties["Url"].Value.ToString(), cancellationToken);
                     }
-                    else if(_technique == 3)
+                    else if(_technique == 2)
                     {
-                        FindPackagesById(_name[0], repoName.Properties["Url"].Value.ToString(), cancellationToken);
+                        pkgsWithDescriptions = ProcessCatalogWithPLINQ(_name[0], repoName.Properties["Url"].Value.ToString(), cancellationToken);
                     }
-                    else if(_technique == 4)
-                    {
-                        FindAllEntries(repoName.Properties["Url"].Value.ToString(), cancellationToken);
-                    }
-
-                    else
-                    {
-                        pkgsWithDescriptions = ProcessCatalogPLINQWithDescription(_name[0], repoName.Properties["Url"].Value.ToString(), cancellationToken);
-                    }
-
 
                     if(pkgsWithDescriptions.Any())
                     {
@@ -292,12 +255,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                     }
-                    stoppy.Stop();
-                        TimeSpan ts = stoppy.Elapsed;
-                        string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                            ts.Hours, ts.Minutes, ts.Seconds,
-                            ts.Milliseconds / 10);
-                        WriteDebug("Runtime, total filtering: " + elapsedTime);
                     pkgsWithDescriptions.Clear();
                     if(!pkgsLeftToFind.Any())
                     {
@@ -305,8 +262,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
 
-                else{ // code unrelated to V3 wildcard search ------
-
+                else{
                     // if it can't find the pkg in one repository, it'll look in the next one in the list
                     // returns any pkgs found, and any pkgs that weren't found
                     returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
@@ -344,47 +300,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         break;
                     }
                 }
-            } // end of foreach
-        }
-
-        public void FindAllEntries(string sourceUrl, CancellationToken cancellationToken)
-        {
-            var feed = new Uri(sourceUrl);
-            using(var catalog = new CatalogReader(feed))
-            {
-                IReadOnlyList<CatalogEntry> allPkgs = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult();
-                CatalogEntry entry = allPkgs.First();
-                PSObject pkgAsObject = new PSObject();
-                // pkgAsObject.Members.Add(new PSNoteProperty("Description", myNusRed.GetDescription()));
-                pkgAsObject.Members.Add(new PSNoteProperty("Name", entry.Id));
-                pkgAsObject.Members.Add(new PSNoteProperty("Version", entry.Version));
-                pkgAsObject.Members.Add(new PSNoteProperty("Repository", "NuGet"));
-                pkgAsObject.Members.Add(new PSNoteProperty("Description", "some description"));
-                WriteObject(pkgAsObject);
             }
         }
 
-        public void FindPackagesById(string repoName, string sourceUrl, CancellationToken cancellation)
-        {
-            var feed = new Uri(sourceUrl);
-
-            using (var feedReader = new FeedReader(feed))
-            {
-                List<PackageEntry> entries = feedReader.GetPackagesById(repoName).GetAwaiter().GetResult();
-                foreach (var entry in entries)
-                {
-                    PSObject pkgAsObject = new PSObject();
-                    // pkgAsObject.Members.Add(new PSNoteProperty("Description", myNusRed.GetDescription()));
-                    pkgAsObject.Members.Add(new PSNoteProperty("Name", entry.Id));
-                    pkgAsObject.Members.Add(new PSNoteProperty("Version", entry.Version));
-                    pkgAsObject.Members.Add(new PSNoteProperty("Repository", "NuGet"));
-                    pkgAsObject.Members.Add(new PSNoteProperty("Description", "some description"));
-                    WriteObject(pkgAsObject);
-                }
-            }
-        }
-
-        public Dictionary<CatalogEntry, string> ProcessCatalogReaderWithAsyncDict(string repoName, string sourceUrl, CancellationToken cancellationToken){
+        public Dictionary<CatalogEntry, string> ProcessCatalogWithDict(string repoName, string sourceUrl, CancellationToken cancellationToken){
             var feed = new Uri(sourceUrl);
             Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
             Dictionary<CatalogEntry, string> pkgsWithDesc = new Dictionary<CatalogEntry, string>();
@@ -401,8 +320,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 DateTime start = DateTime.Now;
 
                 int trackedPercent = 0;
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
                 foreach(CatalogEntry pkg in my_list)
                 {
                     TimeSpan elapsedTime = DateTime.Now - start;
@@ -412,21 +329,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         trackedPercent = currentPercent;
                         Host.UI.WriteProgress(
                             sourceId:1,
-                            new ProgressRecord(activityId:0, $"Filtering packages...",  $"Filtering through {pkg.Id} package")
+                            new ProgressRecord(activityId:0, "Filtering packages...",  $"Filtering through {currentPkg} package")
                             {
                                 PercentComplete = trackedPercent,
                                 SecondsRemaining = (int) ((elapsedTime.TotalMilliseconds/currentPkg) * (totalPkgsCount - currentPkg)),
                             }
                         );
                     }
-                    // Host.UI.WriteProgress(
-                    //     sourceId:1,
-                    //     new ProgressRecord(activityId:0, "Filtering packages...",  $"Filtering through {pkg.Id} package")
-                    //     {
-                    //         PercentComplete = (int)((100.0 * (currentPkg++))/totalPkgsCount),
-                    //         SecondsRemaining = (int) ((elapsedTime.TotalMilliseconds/currentPkg) * (totalPkgsCount - currentPkg)),
-                    //     }
-                    // );
                     if(v3Pattern.IsMatch(pkg.Id) && (_prerelease || !pkg.Version.IsPrerelease) && ((!uniquePkgs.TryGetValue(pkg.Id, out CatalogEntry entry)) || (pkg.Version > entry.Version)))
                     {
                         uniquePkgs[pkg.Id] = pkg;
@@ -437,52 +346,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     CatalogEntry current = uniquePkgs[pkgName];
                     pkgsWithDesc.Add(current, current.GetNuspecAsync().GetAwaiter().GetResult().GetDescription());
                 }
-                TimeSpan ts = stopwatch.Elapsed;
-                string elapsedTime2 = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                    ts.Hours, ts.Minutes, ts.Seconds,
-                    ts.Milliseconds / 10);
-                WriteDebug("Runtime, DICT: " + elapsedTime2);
             }
             return pkgsWithDesc;
         }
 
-
-        public List<CatalogEntry> ProcessCatalogPLINQ(string repoName, string sourceUrl, CancellationToken cancellationToken)
-        {
-            List<CatalogEntry> uniquePkgsWithLatestVersion = new List<CatalogEntry>();
-
-            var feed = new Uri(sourceUrl);
-            using(var catalog = new CatalogReader(feed))
-            {
-                IEnumerable<CatalogEntry> allPkgs = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult().AsEnumerable();
-
-                WildcardPattern v3Pattern = new WildcardPattern(repoName, WildcardOptions.IgnoreCase);
-
-                int totalPkgsCt = allPkgs.Count();
-                int currentPkg = 0;
-
-                uniquePkgsWithLatestVersion = allPkgs.AsParallel()
-                    .Select(x => {
-                        Host.UI.WriteProgress(
-                            sourceId:1,
-                            new ProgressRecord(activityId:0, "Counting", $"Filtering at count {currentPkg}:")
-                            {
-                                PercentComplete = (int)(100.0 * Interlocked.Increment(ref currentPkg)/totalPkgsCt),
-                            }
-                        );
-                        return x;
-                    })
-                    .Where(x => v3Pattern.IsMatch(x.Id) && (_prerelease || !x.Version.IsPrerelease))
-                    .GroupBy(x => new {x.Id})
-                    .Select(x => x.OrderByDescending(y => y.Version).First())
-                    .ToList();
-            }
-
-            return uniquePkgsWithLatestVersion;
-        }
-
-
-        public Dictionary<CatalogEntry, string> ProcessCatalogPLINQWithDescription(string repoName, string sourceUrl, CancellationToken cancellationToken)
+        public Dictionary<CatalogEntry, string> ProcessCatalogWithPLINQ(string repoName, string sourceUrl, CancellationToken cancellationToken)
         {
             Dictionary<CatalogEntry, string> entriesWithDescription = new Dictionary<CatalogEntry, string>();
             var feed = new Uri(sourceUrl);
@@ -498,8 +366,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 DateTime start = DateTime.Now;
                 int trackedPercent = 0;
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
                 uniquePkgsWithLatestVersion = allPkgs.AsParallel()
                     .Select(x => {
                         TimeSpan elapsedTime = DateTime.Now - start;
@@ -509,7 +375,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             Host.UI.WriteProgress(
                                 sourceId:1,
-                                new ProgressRecord(activityId:0, "Counting", $"Filtering at count {currentPkg}:")
+                                new ProgressRecord(activityId:0, "Filtering packages...",  $"Filtering through {currentPkg} package")
                                 {
                                     PercentComplete = trackedPercent,
                                     SecondsRemaining = (int) ((elapsedTime.TotalMilliseconds/currentPkg) * (totalPkgsCount - currentPkg)),
@@ -528,21 +394,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     entriesWithDescription.Add(ct, ct.GetNuspecAsync().GetAwaiter().GetResult().GetDescription());
                 }
-                stopwatch.Stop();
-                TimeSpan ts = stopwatch.Elapsed;
-                string elapsedTime2 = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                    ts.Hours, ts.Minutes, ts.Seconds,
-                    ts.Milliseconds / 10);
-                WriteDebug("Runtime, PLINQ: " + elapsedTime2);
-
             }
 
             return entriesWithDescription;
         }
-
-
-
-
 
 /***
         public void ProcessCatalogReader(string repoName, string sourceUrl)
