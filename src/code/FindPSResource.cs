@@ -1,6 +1,4 @@
-﻿using System.Reflection.Emit;
-// using System.Runtime.InteropServices.ComTypes;
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 
@@ -8,11 +6,9 @@ using System;
 using System.Diagnostics;
 using System.Management.Automation;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using NuGet.CatalogReader;
 using NuGet.Configuration;
 using NuGet.Common;
-using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using System.Threading;
