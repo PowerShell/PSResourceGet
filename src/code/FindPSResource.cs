@@ -243,17 +243,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             pkgsLeftToFind = _name.ToList();
             foreach (var repoName in listOfRepositories)
             {
-                string nugetV3Uri = "https://api.nuget.org/v3/index.json";
+                // string nugetV3Uri = "https://api.nuget.org/v3/index.json";
 
 
                 WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
                 // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
                 // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
-                // if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
-                //     (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
-                // {
-                if(_wildcardName != null && _wildcardName.Length != 0)
+                if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
+                    (_name.Length != 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
                 {
+                // if(_wildcardName != null && _wildcardName.Length != 0)
+                // {
                     Dictionary<CatalogEntry, string> pkgsWithDescriptions = new Dictionary<CatalogEntry, string>();
                     Stopwatch stoppy = new Stopwatch();
                     stoppy.Start();
@@ -261,21 +261,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
 
                         // returnedV3PkgsFound.AddRange(ProcessCatalogReaderWithAsyncDict(_wildcardName[0], nugetV3Uri, cancellationToken).GetAwaiter().GetResult());
-                        pkgsWithDescriptions = ProcessCatalogReaderWithAsyncDict(_wildcardName[0], nugetV3Uri, cancellationToken);
+                        pkgsWithDescriptions = ProcessCatalogReaderWithAsyncDict(_name[0], repoName.Properties["Url"].Value.ToString(), cancellationToken);
 
                     }
                     else if(_technique == 3)
                     {
-                        FindPackagesById(_wildcardName[0], nugetV3Uri, cancellationToken);
+                        FindPackagesById(_name[0], repoName.Properties["Url"].Value.ToString(), cancellationToken);
                     }
                     else if(_technique == 4)
                     {
-                        FindAllEntries(nugetV3Uri, cancellationToken);
+                        FindAllEntries(repoName.Properties["Url"].Value.ToString(), cancellationToken);
                     }
 
                     else
                     {
-                        pkgsWithDescriptions = ProcessCatalogPLINQWithDescription(_wildcardName[0], nugetV3Uri, cancellationToken);
+                        pkgsWithDescriptions = ProcessCatalogPLINQWithDescription(_name[0], repoName.Properties["Url"].Value.ToString(), cancellationToken);
                     }
 
 
@@ -284,10 +284,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         foreach(CatalogEntry pkg in pkgsWithDescriptions.Keys)
                         {
                             PSObject pkgAsObject = new PSObject();
-                            // pkgAsObject.Members.Add(new PSNoteProperty("Description", myNusRed.GetDescription()));
                             pkgAsObject.Members.Add(new PSNoteProperty("Name", pkg.Id));
                             pkgAsObject.Members.Add(new PSNoteProperty("Version", pkg.Version));
-                            pkgAsObject.Members.Add(new PSNoteProperty("Repository", "NuGet"));
+                            pkgAsObject.Members.Add(new PSNoteProperty("Repository", repoName.Properties["Name"].Value.ToString()));
                             pkgAsObject.Members.Add(new PSNoteProperty("Description", pkgsWithDescriptions[pkg]));
                             WriteObject(pkgAsObject);
                         }
@@ -306,51 +305,46 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
 
+                else{ // code unrelated to V3 wildcard search ------
 
-                // code unrelated to V3 wildcard search ------
-                // if it can't find the pkg in one repository, it'll look in the next one in the list
-                // returns any pkgs found, and any pkgs that weren't found
-                returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
+                    // if it can't find the pkg in one repository, it'll look in the next one in the list
+                    // returns any pkgs found, and any pkgs that weren't found
+                    returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
 
 
-                // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
-                var flattenedPkgs = returnedPkgsFound.Flatten();
-                // flattenedPkgs.ToList();
+                    // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
+                    var flattenedPkgs = returnedPkgsFound.Flatten();
+                    // flattenedPkgs.ToList();
 
-                if (flattenedPkgs.Any() && flattenedPkgs.First() != null)
-                {
-                    foreach (IPackageSearchMetadata pkg in flattenedPkgs)
+                    if (flattenedPkgs.Any() && flattenedPkgs.First() != null)
                     {
-                        //WriteObject(pkg);
+                        foreach (IPackageSearchMetadata pkg in flattenedPkgs)
+                        {
+                            //WriteObject(pkg);
 
 
-                        PSObject pkgAsPSObject = new PSObject();
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Name", pkg.Identity.Id));
-                        // Version.Version ensures type is System.Version instead of type NuGetVersion
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version.Version));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repoName.Properties["Name"].Value.ToString()));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Description", pkg.Description));
+                            PSObject pkgAsPSObject = new PSObject();
+                            pkgAsPSObject.Members.Add(new PSNoteProperty("Name", pkg.Identity.Id));
+                            // Version.Version ensures type is System.Version instead of type NuGetVersion
+                            pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version.Version));
+                            pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repoName.Properties["Name"].Value.ToString()));
+                            pkgAsPSObject.Members.Add(new PSNoteProperty("Description", pkg.Description));
 
-                        WriteObject(pkgAsPSObject);
+                            WriteObject(pkgAsPSObject);
 
+                        }
+                    }
+
+                    // reset found packages
+                    returnedPkgsFound.Clear();
+
+                    // if we need to search all repositories, we'll continue, otherwise we'll just return
+                    if (!pkgsLeftToFind.Any())
+                    {
+                        break;
                     }
                 }
-
-                // reset found packages
-                returnedPkgsFound.Clear();
-
-                // if we need to search all repositories, we'll continue, otherwise we'll just return
-                if (!pkgsLeftToFind.Any())
-                {
-                    break;
-                }
-
-
-
             } // end of foreach
-
-
-
         }
 
         public void FindAllEntries(string sourceUrl, CancellationToken cancellationToken)
