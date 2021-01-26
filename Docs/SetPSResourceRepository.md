@@ -63,7 +63,7 @@ Parameter Sets: "RepositoriesParameterSet"
 
 ### -Trusted
 
-Specifies whether the repository should be trusted.
+When specified, repository will be set to trusted.
 
 ```yml
 Type: SwitchParameter
@@ -129,7 +129,7 @@ Test to verify Set-PSResourceRepository with PSGallery `-Name` and `-URL` value 
 
 ### -Repositories param
 
-- Errors: Expected Hashtable key's not found
+- Errors: Expected Hashtable keys not found
 
 ### -Priority param
 
