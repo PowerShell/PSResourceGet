@@ -3,7 +3,7 @@
 The `Set-PSResourceRepository` cmdlet replaces the `Set-PSRepository` cmdlet from V2.
 
 It sets the values for an already registered module repository. Specifically, it sets values for
-either the `-URL`, `-Trusted` and `-Priority` parameter arguments by providing the `-Name` parameter argument.
+either the `-URL`, `-Trusted` and `-Priority` parameter arguments by additionally providing the `-Name` parameter argument.
 
 The settings are persistent for the current user and apply to all versions of PowerShell installed for that user.
 
@@ -13,14 +13,12 @@ The `-URL` for the PSGallery repository, which is pre-defined for this repositor
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <string[]>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string>] [-URL <string>] [-Credential <PSCredential>] [-Trusted] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
 ``` PowerShell
-[[-CommandName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Repositories] <List[Hashtable]>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters
@@ -103,13 +101,7 @@ Parameter Sets: todo
 
 ### Outputs
 
-```json
-"PSRepositoryInfo" : {
-    "Name",
-    "Url",
-    "Trusted",
-    "Priority"
-}```
+none
 
 ## Notes
 
@@ -133,34 +125,15 @@ Test to verify Set-PSResourceRepository with PSGallery `-Name` and `-URL` value 
 ### -URL param
 
 - Errors: if URL with unsupported type Uri scheme used, or if correct scheme but value is for path/location that doesn't exist
+- Errors: if URL to be changed is used in conjuction with `-Name` parameter argument value of PSGallery
 
 ### -Repositories param
 
-- Errors: Invalid Hashtable format
+- Errors: Expected Hashtable key's not found
 
-### -Prerelease param
+### -Priority param
 
-- Validate prerelease version returned
-
-### -Tags param
-
-- Validate tag filtering on returned resources
-
-### -Repository param
-
-- All repository search
-- Single repository search
-- Multiple repository search
-- Errors: Repository not found
-
-### -Credential param
-
-- Validate credential search
-- Errors: Credential: Invalid
-
-### -IncludeDependencies param
-
-- Validate dependency inclusion in return results
+- Validate priority value supplied is in range of 0-50
 
 ## Work Items
 
@@ -169,39 +142,17 @@ Test to verify Set-PSResourceRepository with PSGallery `-Name` and `-URL` value 
 Create cmdlet class, parameters, and functional stubs
 1 day
 
-### Implement package search helpers
+### Implement repository update function
 
-Create helper functions that support all search functions
-Use existing code as starting point
-4 days
-
-### Investigate V3 API wildcard support
-
-Look into how V3 APIs can be used to reduce what is returned from the server
-7 days
-
-### Implement package filtering functions
-
-Create helper functions to provide filtering of search results
-3 days
-
-### Investigate and implement local cache
-
-Write mini-design document on local caching strategy
-Implement local cache
-10 days
+Create and implement repository update function
+1 day
 
 ### Create test support
 
 Create any test repositories and mocks for tests
-4 days
+1 day
 
 ### Write cmdlet tests
 
 Create all functional tests to validate cmdlet
-5 days
-
-### Write support function tests
-
-Create all needed tests to validate caching and search helpers
-5 days
+1 day
