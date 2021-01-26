@@ -25,7 +25,7 @@ The `-URL` for the PSGallery repository, which is pre-defined for this repositor
 
 ### -Name
 
-Name of the registered repository to be set.
+Specifies name of the registered repository to be set.
 Does not accept wildcard characters.
 
 ```yml
