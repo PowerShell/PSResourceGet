@@ -100,32 +100,7 @@ Parameter Sets: NameParameterSet, PSGalleryParameterSet
 
 ### Outputs
 
-```json
-"PSRepositoryItemInfo" : {
-    "Name",
-    "Version",
-    "Type",
-    "Description",
-    "Author",
-    "CompanyName",
-    "Copyright",
-    "PublishedDate",
-    "InstalledDate",
-    "UpdatedDate",
-    "LicenseUri",
-    "ProjectUri",
-    "IconUri",
-    "Tags",
-    "Includes",
-    "PowerShellGetFormatVersion",
-    "ReleaseNotes",
-    "Dependencies",
-    "RepositorySourceLocation",
-    "Repository",
-    "PackageManagementProvider",
-    "AdditionalMetadata"
-}
-```
+none
 
 ## Notes
 
