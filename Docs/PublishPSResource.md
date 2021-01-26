@@ -6,22 +6,27 @@ It publishes a specified resource from the local computer to an online Nuget-bas
 
 ## Syntax
 
-### ResourceNameParameterSet (Default)
+### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <string[]>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-APIKey] <string>] [-Repository <string>] [-DestinationPath <string>] [-Credential <pscredential>] [-SkipDependenciesCheck][-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### CommandNameParameterSet
+### PathParameterSet
 ``` PowerShell
-[[-CommandName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Path] <string>] [-ReleaseNotes <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
+[-ProjectUrl <string>] [-Nuspec <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### DscResourceNameParameterSet
+### PathLiteralParameterSet
 ``` PowerShell
-[[-DscResourceName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-LiteralPath] <string>] [-ReleaseNotes <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
+[-ProjectUrl <string>] [-Nuspec <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### CreateNuspecParameterSet
+``` PowerShell
+[[-ReleaseNotes] <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
+[-ProjectUrl <string>] [-Nuspec <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters
