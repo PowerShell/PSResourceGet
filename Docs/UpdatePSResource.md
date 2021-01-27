@@ -12,20 +12,14 @@ The `-ModuleName` parameter allows the command or dsc resource name search to be
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <string[]>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### RequiredResourceFileParameterSet
-``` PowerShell
-[[-CommandName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Scope <string>]
+[-Repository <string[]>] [-TrustRepository] [-Credential <pscredential>] [-Quiet] 
+[-AcceptLicense] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
 ``` PowerShell
-[[-DscResourceName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-InputObject] <object[]> [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters

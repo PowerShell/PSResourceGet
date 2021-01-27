@@ -12,20 +12,21 @@ The `-ModuleName` parameter allows the command or dsc resource name search to be
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <string[]>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Repository <string[]>] 
+[-Credential <pscredential>] [-Scope <string>] [-NoClobber] [-TrustRepository]
+[-Reinstall] [-Quiet] [-AcceptLicense] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
-
 ### InputObjectParameterSet
 ``` PowerShell
-[[-CommandName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-InputObject] <object[]>] 
 ```
-
+### RequiredResourceParameterSet
+``` PowerShell
+[[-RequiredResource] <object>] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
 ### RequiredResourceFileParameterSet
 ``` PowerShell
-[[-DscResourceName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-RequiredResourceFile] <string>] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters

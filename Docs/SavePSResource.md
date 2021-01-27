@@ -5,21 +5,17 @@ It saves from a package found on a repository (local or remote) based on the `-N
 It does not return an object.
 Other parameters allow the returned results to be filtered by item type and tags.  
 
-Alternatively, a `-CommandName` or `-DscResourceName` can be provided and resource packages having those commands or Dsc resources will be returned.
-The `-ModuleName` parameter allows the command or dsc resource name search to be limited to a subset of module packages.  
-
 ## Syntax
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <string[]>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Repository <string[]>] 
+[-Path string] [-Credential <pscredential>] [-AsNupkg] [-IncludeXML] [-TrustRepository] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
 ``` PowerShell
-[[-CommandName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-InputObject] <object[]>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters

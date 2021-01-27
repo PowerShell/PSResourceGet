@@ -9,8 +9,8 @@ Other parameters allow the returned results to be filtered by item type and tags
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <string[]>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string[]>] [-Version <string>] [-PrereleaseOnly] [-Tags <string[]>]
+[-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters
