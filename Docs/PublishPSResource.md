@@ -14,19 +14,19 @@ It publishes a specified resource from the local computer to an online Nuget-bas
 ### PathParameterSet
 ``` PowerShell
 [[-Path] <string>] [-ReleaseNotes <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
-[-ProjectUrl <string>] [-Nuspec <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
+[-ProjectUrl <string>] [-NuspecPath <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathLiteralParameterSet
 ``` PowerShell
 [[-LiteralPath] <string>] [-ReleaseNotes <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
-[-ProjectUrl <string>] [-Nuspec <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
+[-ProjectUrl <string>] [-NuspecPath <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### CreateNuspecParameterSet
 ``` PowerShell
 [[-ReleaseNotes] <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
-[-ProjectUrl <string>] [-Nuspec <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
+[-ProjectUrl <string>] [-NuspecPath <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters
