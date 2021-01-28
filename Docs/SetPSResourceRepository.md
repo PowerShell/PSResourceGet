@@ -99,9 +99,29 @@ Type: int
 Parameter Sets: todo
 ```
 
+### -PassThru
+
+When specified, displays the succcessfully set repository and its information
+
+```yml
+Type: SwitchParameter
+Parameter Sets: NameParameterSet, RepositoriesParameterSet
+```
+
 ### Outputs
 
-none
+if `-PassThru` not specified output is none
+
+if `-PassThru` is specified output is:
+
+```json
+"PSRepositoryInfo" : {
+    "Name",
+    "Url",
+    "Trusted",
+    "Priority"
+}
+```
 
 ## Notes
 
@@ -120,6 +140,7 @@ Test to verify Set-PSResourceRepository with PSGallery `-Name` and `-URL` value 
 
 - Single name search
 - Errors: Not found (single name)
+- Errors: Invalid name (i.e with wildcard character)
 - Errors: Repository: Invalid name, etc
 
 ### -URL param

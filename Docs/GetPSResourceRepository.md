@@ -55,8 +55,8 @@ Do we need to add wildcard search for compatibility with V2 sister cmdlet?
 ### -Name param
 
 - Single name search
+- wilcard search and empty value (returns all) compatibility
 - Multiple name search
-- Cancel search
 - Errors: Repository not found (single name, multiple name)
 
 ## Work Items

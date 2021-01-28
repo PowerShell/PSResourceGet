@@ -98,9 +98,29 @@ Type: int
 Parameter Sets: NameParameterSet, PSGalleryParameterSet
 ```
 
+### -PassThru
+
+When specified, displays the succcessfully set repository and its information
+
+```yml
+Type: SwitchParameter
+Parameter Sets: NameParameterSet, PSGalleryParameterSet, RepositoriesParameterSet
+```
+
 ### Outputs
 
-none
+if `-PassThru` not specified output is none
+
+if `-PassThru` is specified output is:
+
+```json
+"PSRepositoryInfo" : {
+    "Name",
+    "Url",
+    "Trusted",
+    "Priority"
+}
+```
 
 ## Notes
 
@@ -115,6 +135,7 @@ Tests added will need to register repositories to URLs with HTTPS, HTTP, file ba
 - Single name registering
 - Errors: Invalid name (i.e with wildcard character)
 - Errors: Name is null
+- Errors: Name is not unique (another repository is already registered with it)
 
 ### -URL param
 

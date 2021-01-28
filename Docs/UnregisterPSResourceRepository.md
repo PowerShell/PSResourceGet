@@ -23,9 +23,29 @@ Type: string[]
 Parameter Sets: NameParameterSet
 ```
 
+### -PassThru
+
+When specified, displays the succcessfully set repository and its information
+
+```yml
+Type: SwitchParameter
+Parameter Sets: NameParameterSet
+```
+
 ### Outputs
 
-none
+if `-PassThru` not specified output is none
+
+if `-PassThru` is specified output is:
+
+```json
+"PSRepositoryInfo" : {
+    "Name",
+    "Url",
+    "Trusted",
+    "Priority"
+}
+```
 
 ## Notes
 
