@@ -100,7 +100,7 @@ Parameter Sets: NameParameterSet, PSGalleryParameterSet
 
 ### -PassThru
 
-When specified, displays the succcessfully set repository and its information
+When specified, displays the succcessfully registered repository and its information
 
 ```yml
 Type: SwitchParameter
