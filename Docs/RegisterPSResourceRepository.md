@@ -5,7 +5,7 @@ The `Register-PSResourceRepository` cmdlet replaces the `Register-PSRepository` 
 It registers a repository for PowerShell modules. The repository is registered to the current user's scope
 and does not have a system-wide scope.
 
-The Register-PSResourceRepository cmdlet registers the default repository for PowerShell modules. After a repository is registered, you can reference it from the Find-PSResource, Install-PSResource, and Publish-PSResource cmdlets. The registered repository becomes the default repository in Find-Module and Install-Module.
+The Register-PSResourceRepository cmdlet determines which repository will be the default when searching for PowerShell modules. This is done by specifying the priority for a repository when registering it. So later when other cmdlets are used to search for/install a resource, it'll look through all registered repositories (in order of highest ranking priority and then by alphabetical order) until it finds the first match. The aforementioned compatible cmdlets that use this default repository rankings include: Find-PSResource, Install-PSResource, and Publish-PSResource cmdlets.
 
 ## Syntax
 
@@ -124,7 +124,9 @@ if `-PassThru` is specified output is:
 
 ## Notes
 
-need to ask about the default repository sentence from the documentation and upon understanding add that to Summary or Notes.
+In V2 cmdlets `Register-PSRepository` the `-SourceLocation` parameter (equivalent of `URL` parameter here) dictated uniqueness, so a repository could not be registered if one with the same `-SourceLocation` value had already been registered. However, in V3 uniqueness is dictated by the `-Name` parameter.
+
+
 
 ## Tests
 

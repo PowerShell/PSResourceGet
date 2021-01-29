@@ -1,32 +1,19 @@
-# Find-PSResource
+# Publish-PSResource
 
 The `Publish-PSResource` cmdlet combines the `Publish-Module` and `Publish-Script` cmdlets from V2.
 
-It publishes a specified resource from the local computer to an online Nuget-based gallery by using an API key, stored as part of a user's profile in the gallery. You can specify the resource to publish either by the resource's name, or by the path to the folder containing the module or script resource.
+It publishes a specified resource from the local computer to an online Nuget-based gallery by using an API key, stored as part of a user's profile in the gallery or to a local repository. You can specify the resource to publish either by the resource's name, or by the path to the folder containing the module or script resource.
 
 ## Syntax
 
-### NameParameterSet (Default)
-``` PowerShell
-[[-APIKey] <string>] [-Repository <string>] [-DestinationPath <string>] [-Credential <pscredential>] [-SkipDependenciesCheck][-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
 ### PathParameterSet
 ``` PowerShell
-[[-Path] <string>] [-ReleaseNotes <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
-[-ProjectUrl <string>] [-NuspecPath <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-APIKey] <string>] [-Repository <string>] [-DestinationPath <string>] [-Path] <string>] [-Credential <pscredential>] [-SkipDependenciesCheck] [-ReleaseNotes <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>] [-ProjectUrl <string>] [-NuspecPath <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathLiteralParameterSet
 ``` PowerShell
-[[-LiteralPath] <string>] [-ReleaseNotes <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
-[-ProjectUrl <string>] [-NuspecPath <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### CreateNuspecParameterSet
-``` PowerShell
-[[-ReleaseNotes] <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>]
-[-ProjectUrl <string>] [-NuspecPath <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-APIKey] <string>] [-Repository <string>] [-DestinationPath <string>] [-LiteralPath] <string>] [-Credential <pscredential>] [-SkipDependenciesCheck] [-ReleaseNotes <string>] [-Tags <string[]>] [-LicenseUrl <string>] [-IconUrl <string>] [-ProjectUrl <string>] [-NuspecPath <string>] [-Proxy <Uri>][-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters
@@ -34,10 +21,11 @@ It publishes a specified resource from the local computer to an online Nuget-bas
 ### -APIKey
 
 Specifies the API key that you want to use to publish a resource to the online gallery.
+Not mandatory.
 
 ```yml
 Type: string
-Parameter Sets: todo
+Parameter Sets: (All)
 ```
 
 ### -Repository
@@ -46,7 +34,7 @@ Specifies the repository to publish to.
 
 ```yml
 Type: string
-Parameter Sets: todo
+Parameter Sets: (All)
 ```
 
 ### -DestinationPath
@@ -55,7 +43,7 @@ Specifies the location to be used to publish a nupkg locally.
 
 ```yml
 Type: string
-Parameter Sets: todo
+Parameter Sets: (All)
 ```
 
 ### -Path
@@ -82,7 +70,7 @@ Specifies a user account that has rights to a specific repository (used for find
 
 ```yml
 Type: PSCredential
-Parameter Sets: todo
+Parameter Sets: (All)
 ```
 
 ### -SkipDependenciesCheck
@@ -91,7 +79,7 @@ Bypasses the default check that all dependencies are present.
 
 ```yml
 Type: SwitchParameter
-Parameter Sets: todo
+Parameter Sets: (All)
 ```
 
 ### -ReleaseNotes
@@ -100,7 +88,7 @@ Updates nuspec: specifies a string containing release notes or comments that you
 
 ```yml
 Type: string
-Parameter Sets: CreateNuspecParameterSet, PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 ```
 
 ### -Tags
@@ -109,7 +97,7 @@ Updates nuspec: adds one or more tags to the resource that you are publishing. T
 
 ```yml
 Type: string[]
-Parameter Sets: CreateNuspecParameterSet, PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 ```
 
 ### -LicenseUrl
@@ -118,7 +106,7 @@ Updates nuspec: specifies the URL of licensing terms for the resource you want t
 
 ```yml
 Type: string
-Parameter Sets: CreateNuspecParameterSet, PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 ```
 
 ### -IconUrl
@@ -127,7 +115,7 @@ Updates nuspec: specifies the URL of an icon for the resource.
 
 ```yml
 Type: string
-Parameter Sets: CreateNuspecParameterSet, PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 ```
 
 ### -ProjectUrl
@@ -136,7 +124,7 @@ Updates nuspec: specifies the URL of a webpage about this project.
 
 ```yml
 Type: string
-Parameter Sets: CreateNuspecParameterSet, PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 ```
 
 ### -Exclude
@@ -148,13 +136,13 @@ Type: string[]
 Parameter Sets: ModuleNameParameterSet
 ```
 
-### -Nuspec
+### -NuspecPath
 
-Specifies a nuspec file rather than relying on this module to produce one.
+Specifies a nuspec file by path rather than relying on this module to produce one.
 
 ```yml
 Type: string
-Parameter Sets: NuspecParameterSet, PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 ```
 
 ### -Proxy
@@ -163,7 +151,7 @@ Specifies a proxy server for the request, rather than a direct connection to the
 
 ```yml
 Type: Uri
-Parameter Sets: NuspecParameterSet, PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 ```
 
 ### -ProxyCredential
@@ -172,10 +160,23 @@ Specifies a user account that has permission to use the proxy server that is spe
 
 ```yml
 Type: PSCredential
-Parameter Sets: NuspecParameterSet, PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
+```
+
+### -PassThru
+
+When specified, displays the succcessfully published resource and its information
+
+```yml
+Type: PSCredential
+Parameter Sets: (All)
 ```
 
 ### Outputs
+
+if `-PassThru` is not specified output is none
+
+if `-PassThru` is specified output is:
 
 ```json
 "PSRepositoryItemInfo" : {
@@ -272,7 +273,7 @@ Tests should have varying levels of required and optional nuspec data to test pa
 -Validate not null or empty if paramater arguemnt provided
 -Errors: files specified do not exist
 
-### -Nuspec param
+### -NuspecPath param
 
 -Validate not null or empty if paramater arguemnt provided
 -Errors: file does not exist, not of valid format or extension.
