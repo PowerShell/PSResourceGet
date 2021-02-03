@@ -3,10 +3,7 @@
 The `Update-PSResource` cmdlet combines the `Update-Module, Update-Script` cmdlets from V2.
 It performs an upgraded installation of a package that is already installed based on the `-Name` parameter argument.
 It does not return an object.
-Other parameters allow the returned results to be filtered by item type and tags.  
-
-Alternatively, a `-CommandName` or `-DscResourceName` can be provided and resource packages having those commands or Dsc resources will be returned.
-The `-ModuleName` parameter allows the command or dsc resource name search to be limited to a subset of module packages.  
+Other parameters allow the returned results to be further filtered.
 
 ## Syntax
 
@@ -130,35 +127,12 @@ Parameter Sets: NameParameterSet
 
 ### Outputs
 
-```json
-"PSRepositoryItemInfo" : {
-    "Name",
-    "Version",
-    "Type",
-    "Description",
-    "Author",
-    "CompanyName",
-    "Copyright",
-    "PublishedDate",
-    "InstalledDate",
-    "UpdatedDate",
-    "LicenseUri",
-    "ProjectUri",
-    "IconUri",
-    "Tags",
-    "Includes",
-    "PowerShellGetFormatVersion",
-    "ReleaseNotes",
-    "Dependencies",
-    "RepositorySourceLocation",
-    "Repository",
-    "PackageManagementProvider",
-    "AdditionalMetadata"
-}
-```
+No output.
 
 ## Notes
 Input object still needs to be implemented.
+
+Should a -PassThru parameter be added?
 
 ## Tests
 

@@ -3,7 +3,7 @@
 The `Uninstall-PSResource` cmdlet combines the `Uninstall-Module, Uninstall-Script` cmdlets from V2.
 It uninstalls a package found in a module or script installation path based on the `-Name` parameter argument.
 It does not return an object.
-Other parameters allow the returned results to be filtered by item type and tags.  
+Other parameters allow the returned results to be further filtered.
 
 ## Syntax
 
@@ -44,11 +44,13 @@ Parameter Sets: NameParameterSet
 ```
 
 ### Outputs
-Nothing
+
+No output.
 
 
 ## Notes
-Is a -force parameter needed? What is the expected functionality of a -force?
+
+Should a -PassThru parameter be added?
 
 ## Tests
 

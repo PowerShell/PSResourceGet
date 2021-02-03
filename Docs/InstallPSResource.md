@@ -3,10 +3,7 @@
 The `Install-PSResource` cmdlet combines the `Install-Module, Install-Script` cmdlets from V2.
 It performs an installation from a package found on a repository (local or remote) based on the `-Name` parameter argument.
 It does not return an object.
-Other parameters allow the returned results to be filtered by item type and tags.  
-
-Alternatively, a `-CommandName` or `-DscResourceName` can be provided and resource packages having those commands or Dsc resources will be returned.
-The `-ModuleName` parameter allows the command or dsc resource name search to be limited to a subset of module packages.  
+Other parameters allow the returned results to be further filtered.  
 
 ## Syntax
 

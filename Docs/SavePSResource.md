@@ -3,7 +3,7 @@
 The `Save-PSResource` cmdlet combines the `Save-Module, Save-Script` cmdlets from V2.
 It saves from a package found on a repository (local or remote) based on the `-Name` parameter argument.
 It does not return an object.
-Other parameters allow the returned results to be filtered by item type and tags.  
+Other parameters allow the returned results to be further filtered.
 
 ## Syntax
 
