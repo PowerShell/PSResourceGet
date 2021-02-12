@@ -107,6 +107,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
         [Parameter(ParameterSetName = "PSGalleryParameterSet")]
+        [ValidateNotNullOrEmpty]
+        [ValidateRange(0, 50)]
         public int Priority
         {
             get
@@ -147,6 +149,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private PSCredential _proxycredential;
         #endregion
 
+        #region Methods
+
+        #endregion
 
 
     }
