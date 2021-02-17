@@ -16,13 +16,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         "NEWPSResourceRepository",
         DefaultParameterSetName = "NameParameterSet",
         SupportsShouldProcess = true,
-        HelpUri = "<add",
+        HelpUri = "<add>",
         RemotingCapability = RemotingCapability.None)]
     public sealed
     class NEWRegisterPSResourceRepository : PSCmdlet
     {
         private string PSGalleryRepoName = "PSGallery";
         private string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
+        private const int defaultPriority = 50;
+        private const bool defaultTrusted = false;
 
         #region Parameters
         /// <summary>
@@ -117,7 +119,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set
             { _priority = value; }
         }
-        private int _priority = 50;
+        private int _priority = defaultPriority;
 
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
@@ -147,12 +149,98 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { _proxycredential = value; }
         }
         private PSCredential _proxycredential;
+
+        /// <summary>
+        /// When specified, displays the succcessfully registered repository and its information
+        /// </summary>
+        [Parameter]
+        public SwitchParameter PassThru
+        {
+            get
+            { return _passThru; }
+
+            set
+            { _passThru = value; }
+        }
+        private SwitchParameter Pass
         #endregion
 
-        #region Methods
+        private void PSGalleryParameterSetHelper(RespositorySettings rs, int priority = 50, bool trusted = false)
+        {
+            var psGalleryUri = new Uri(PSGalleryRepoURL);
+            try
+            {
+                rs.Add(PSGalleryRepoName, psGalleryUri, priority, trusted);
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
+        }
 
-        #endregion
+        private void NameParameterSetHelper(RespositorySettings rs)
+        {
+            try
+            {
+                rs.Add(_name, _url, _priority, _trusted);
+            }
+            catch(Exception e)
+            {
+                throw new Exception(e.Message);
+            }
+        }
 
+        private void RepositoriesParameterSetHelper(RespositorySettings rs)
+        {
+            foreach(var repo in _repositories)
+            {
+                if(repo.ContainsKey(PSGalleryRepoName))
+                {
+                    PSGalleryParameterSetHelper(rs,
+                        repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
+                        repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted);
+                    continue;
+                }
 
+                // if not PSGallery, then check that sufficient keys exist for NameParameterSet style register
+                if(!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
+                {
+                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository name cannot be null"));
+                }
+                if(!repo.ContainsKey("Url") || String.IsNullOrEmpty(repo["Url"].ToString()))
+                {
+                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository url cannot be null"));
+                }
+
+                Uri _repoURL;
+                if(!(Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out _repoURL)
+                    && (_repoURL.Scheme == Uri.UriSchemeHttp || _repoURL.Scheme == Uri.UriSchemeHttps || _repoURL.Scheme == Uri.UriSchemeFtp || _repoURL.Scheme == Uri.UriSchemeFile)))
+                {
+                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Invalid Url"));
+                }
+
+                _name = repo["Name"].ToString();
+                _url = _repoURL;
+                _priority = repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority;
+                _trusted = repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted;
+
+                NameParameterSetHelper(rs);
+            }
+        }
+        protected override void ProcessRecord()
+        {
+            var r = new RespositorySettings();
+            if(ParameterSetName.Equals("PSGalleryParameterSet")){
+                PSGalleryParameterSetHelper(r);
+            }
+            else if(ParameterSetName.Equals("NameParameterSet"))
+            {
+                NameParameterSetHelper(r);
+            }
+            else if(ParameterSetName.Equals("RepositoriesParameterSet"))
+            {
+                RepositoriesParameterSetHelper(r);
+            }
+        }
     }
 }
