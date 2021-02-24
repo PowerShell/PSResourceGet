@@ -1,4 +1,4 @@
-﻿
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -10,7 +10,6 @@ using System.Management.Automation;
 using System.Xml.Linq;
 using System.Linq;
 using static System.Environment;
-using Microsoft.PowerShell.PowerShellGet.PSRepositoryItem;
 
 namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 {
@@ -79,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         /// Returns: void
         /// </summary>
         /// <param name="sectionName"></param>
-        public PSRespositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        public void Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
         {
             // Check to see if information we're trying to add to the repository is valid
             if (string.IsNullOrEmpty(repoName))
@@ -131,11 +130,6 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 
             // Close the file
             root.Save(DefaultFullRepositoryPath);
-
-            // create PSRepositoryItem object to return
-            PSRespositoryItem repoItem = new PSRespositoryItem(repoName, repoURL, repoPriority, repoTrusted);
-
-            return repoItem;
         }
 
         /// <summary>

@@ -125,4 +125,7 @@ Describe "Test Register-PSResourceRepository" {
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 20
     }
+
+    # add tests with bad URIs. Do I need code in parameter set/get for URI?
+    # add test with PassThru cmdlet
 }
