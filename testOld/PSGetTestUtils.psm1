@@ -122,10 +122,6 @@ function Get-CurrentUserScriptsPath {
     return $script:MyDocumentsScriptsPath
 }
 
-function Get-CurrentUserDocumentsPath {
-    return $script:MyDocumentsFolderPath
-}
-
 function Get-TempPath {
     return $script:TempPath
 }
