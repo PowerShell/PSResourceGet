@@ -1,11 +1,11 @@
 using System;
 using System.Management.Automation;
 
-namespace Microsoft.PowerShell.PowerShellGet.NEWPSRepositoryItem
+namespace Microsoft.PowerShell.PowerShellGet.PSRepositoryItem
 {
     /// <summary>
     /// This class contains information for a repository item.
-    public class NEWPSRespositoryItem
+    public class PSRespositoryItem
     {
         private string _name;
         private Uri _url;
@@ -13,12 +13,12 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWPSRepositoryItem
         private int _priority = 50;
 
 
-        public NEWPSRespositoryItem(string name, Uri url)
+        public PSRespositoryItem(string name, Uri url)
         {
             _name = name;
             _url = url;
         }
-        public NEWPSRespositoryItem(string name, Uri url, int priority, bool trusted)
+        public PSRespositoryItem(string name, Uri url, int priority, bool trusted)
         {
             _name = name;
             _url = url;

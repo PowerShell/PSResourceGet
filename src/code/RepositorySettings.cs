@@ -1,5 +1,4 @@
-﻿
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 
@@ -10,15 +9,15 @@ using System.Management.Automation;
 using System.Xml.Linq;
 using System.Linq;
 using static System.Environment;
-using Microsoft.PowerShell.PowerShellGet.NEWPSRepositoryItem;
+using Microsoft.PowerShell.PowerShellGet.PSRepositoryItem;
 
-namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
+namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 {
     /// <summary>
-    /// This class contains information for repository settings and methods to interact with registered repositories.
+    /// Repository settings
     /// </summary>
 
-    class NEWRespositorySettings
+    class RespositorySettings
     {
         /// <summary>
         /// Default file name for a settings file is 'psresourcerepository.config'
@@ -28,7 +27,7 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
         public static readonly string DefaultRepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
         public static readonly string DefaultFullRepositoryPath = Path.Combine(DefaultRepositoryPath, DefaultRepositoryFileName);
 
-        public NEWRespositorySettings() { }
+        public RespositorySettings() { }
 
         /// <summary>
         /// Find a repository XML
@@ -79,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
         /// Returns: void
         /// </summary>
         /// <param name="sectionName"></param>
-        public NEWPSRespositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        public PSRespositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
         {
             // Check to see if information we're trying to add to the repository is valid
             if (string.IsNullOrEmpty(repoName))
@@ -133,7 +132,7 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
             root.Save(DefaultFullRepositoryPath);
 
             // create PSRepositoryItem object to return
-            NEWPSRespositoryItem repoItem = new NEWPSRespositoryItem(repoName, repoURL, repoPriority, repoTrusted);
+            PSRespositoryItem repoItem = new PSRespositoryItem(repoName, repoURL, repoPriority, repoTrusted);
 
             return repoItem;
         }
@@ -142,7 +141,7 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
         /// Updates a repository name, URL, priority, or installation policy
         /// Returns:  void
         /// </summary>
-        public NEWPSRespositoryItem Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
+        public void Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
         {
             // Check to see if information we're trying to add to the repository is valid
             if (string.IsNullOrEmpty(repoName))
@@ -175,7 +174,6 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
             // Get root of XDocument (XElement)
             var root = doc.Root;
 
-            Console.WriteLine("url reached here and is null?: " + (repoURL == null));
             if (repoURL != null)
             {
                 node.Attribute("Url").Value = repoURL.AbsoluteUri;
@@ -196,11 +194,6 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
 
             // Close the file
             root.Save(DefaultFullRepositoryPath);
-
-            Uri urlOfSetRepo;
-            Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out urlOfSetRepo);
-            NEWPSRespositoryItem repoItem = new NEWPSRespositoryItem(node.Attribute("Name").Value, urlOfSetRepo, Int32.Parse(node.Attribute("Priority").Value), Boolean.Parse(node.Attribute("Trusted").Value));
-            return repoItem;
         }
 
         /// <summary>
@@ -211,8 +204,7 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
         public void Remove(string[] repoNames)
         {
 
-            // Check to see if information we're trying to remove from the repository is valid
-            // repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null
+            // Check to see if information we're trying to add to the repository is valid
             if (repoNames == null || repoNames.Length == 0)
             {
                 // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
@@ -232,7 +224,7 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
 
             foreach (var repo in repoNames)
             {
-                // Check if what's being removed doesn't already exist, throw an error
+                // Check if what's being added doesn't already exist, throw an error
                 var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
 
                 if (node == null)
@@ -248,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
             root.Save(DefaultFullRepositoryPath);
         }
 
-        public List<NEWPSRespositoryItem> Read(string[] repoNames)
+        public List<PSObject> Read(string[] repoNames)
         {
             // Can be null, will just retrieve all
             // Call FindRepositoryXML()  [Create will make a new xml if one doesn't already exist]
@@ -260,48 +252,49 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings
             // Open file
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
 
-            var foundRepos = new List<NEWPSRespositoryItem>();
-            if(repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
+            var foundRepos = new List<PSObject>();
+            if (repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
             {
-                // Name array or single value is null so we will list all repositories registered
+                // array is null and we will list all repositories
                 // iterate through the doc
-                foreach(var repo in doc.Descendants("Repository"))
+                foreach (var repo in doc.Descendants("Repository"))
                 {
-                    Uri thisUrl;
-                    // need more error checks for Uri scheme? ideally uri's registered should be already checked
-                    Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
-                    NEWPSRespositoryItem currentRepoItem = new NEWPSRespositoryItem(repo.Attribute("Name").Value,
-                        thisUrl,
-                        Int32.Parse(repo.Attribute("Priority").Value),
-                        Boolean.Parse(repo.Attribute("Trusted").Value));
+                    PSObject repoAsPSObject = new PSObject();
+                    repoAsPSObject.Members.Add(new PSNoteProperty("Name", repo.Attribute("Name").Value));
+                    repoAsPSObject.Members.Add(new PSNoteProperty("Url", repo.Attribute("Url").Value));
+                    repoAsPSObject.Members.Add(new PSNoteProperty("Trusted", repo.Attribute("Trusted").Value));
+                    repoAsPSObject.Members.Add(new PSNoteProperty("Priority", repo.Attribute("Priority").Value));
 
-                    foundRepos.Add(currentRepoItem);
-
+                    foundRepos.Add(repoAsPSObject);
                 }
             }
             else
             {
-                foreach(var repo in repoNames)
+                foreach (var repo in repoNames)
                 {
-                    // Check to see if the repository exists
+                    // Check to see if repository exists
+                    // need to fix the case sensitivity
                     var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-                    if(node != null)
-                    {
-                        Uri thisUrl;
-                        // need more error checks for Uri scheme? ideally uri's registered should be already checked
-                        Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
-                        NEWPSRespositoryItem currentRepoItem = new NEWPSRespositoryItem(node.Attribute("Name").Value,
-                            thisUrl,
-                            Int32.Parse(node.Attribute("Priority").Value),
-                            Boolean.Parse(node.Attribute("Trusted").Value));
 
-                        foundRepos.Add(currentRepoItem);
+                    if (node != null)
+                    {
+                        PSObject repoAsPSObject = new PSObject();
+                        repoAsPSObject.Members.Add(new PSNoteProperty("Name", node.Attribute("Name").Value));
+                        repoAsPSObject.Members.Add(new PSNoteProperty("Url", node.Attribute("Url").Value));
+                        repoAsPSObject.Members.Add(new PSNoteProperty("Trusted", node.Attribute("Trusted").Value));
+                        repoAsPSObject.Members.Add(new PSNoteProperty("Priority", node.Attribute("Priority").Value));
+
+                        foundRepos.Add(repoAsPSObject);
                     }
                 }
             }
 
+
             // Sort by priority, then by repo name
-            var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
+            // foundRepos.Sort((x, y) => ( Int32.Parse((x.Members.Where(m => m.Name.Equals("Priority"))).FirstOrDefault().Value.ToString()).CompareTo( Int32.Parse((y.Members.Where(m2 => m2.Name.Equals("Priority"))).FirstOrDefault().Value.ToString()) ) ));
+            var reposToReturn = foundRepos.OrderBy(x => (Int32.Parse((x.Members.Where(m => m.Name.Equals("Priority"))).FirstOrDefault().Value.ToString())))
+                .ThenBy(x => (x.Members.Where(m => m.Name.Equals("Name"))).FirstOrDefault().Value.ToString());
+
             return reposToReturn.ToList();
         }
     }
