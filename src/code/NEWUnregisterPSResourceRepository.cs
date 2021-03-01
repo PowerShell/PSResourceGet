@@ -1,32 +1,28 @@
-﻿
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-
-
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System;
+using System.Collections;
 using System.Management.Automation;
+using System.Globalization;
 using Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings;
 using Microsoft.PowerShell.PowerShellGet.NEWPSRepositoryItem;
-
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-
     /// <summary>
-    /// The Register-PSResourceRepository cmdlet registers the default repository for PowerShell modules.
-    /// After a repository is registered, you can reference it from the Find-PSResource, Install-PSResource, and Publish-PSResource cmdlets.
-    /// The registered repository becomes the default repository in Find-Module and Install-Module.
-    /// It returns nothing.
+    /// todo: fill
     /// </summary>
 
-    [Cmdlet(VerbsLifecycle.Unregister, "PSResourceRepository", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
-        HelpUri = "<add>", RemotingCapability = RemotingCapability.None)]
+    [Cmdlet(VerbsLifecycle.Unregister,
+        "NEWPSResourceRepository",
+        DefaultParameterSetName = "NameParameterSet",
+        SupportsShouldProcess = true,
+        HelpUri = "<add>",
+        RemotingCapability = RemotingCapability.None)]
     public sealed
-    class UnregisterPSResourceRepository : PSCmdlet
+    class NEWUnregisterPSResourceRepository : PSCmdlet
     {
-       // private string PSGalleryRepoName = "PSGallery";
-
+        #region Parameters
         /// <summary>
         /// Specifies the desired name for the repository to be registered.
         /// </summary>
@@ -43,25 +39,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { _name = value; }
         }
         private string[] _name;
+        #endregion
 
-
-
-
-        /// <summary>
-        /// </summary>
+        #region Methods
         protected override void ProcessRecord()
         {
-            var r = new RespositorySettings();
-
-            // need to check if name is null?
-            try
-            {
+            var r = new NEWRespositorySettings();
+            try{
                 r.Remove(_name);
             }
-            catch (Exception e){
+            catch(Exception e)
+            {
                 throw new Exception(string.Format("Unable to successfully unregister repository: {0}", e.Message));
             }
         }
-
+        #endregion
     }
 }

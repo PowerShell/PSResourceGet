@@ -13,12 +13,12 @@ namespace Microsoft.PowerShell.PowerShellGet.NEWPSRepositoryItem
         private int _priority = 50;
 
 
-        public PSRespositoryItem(string name, Uri url)
+        public NEWPSRespositoryItem(string name, Uri url)
         {
             _name = name;
             _url = url;
         }
-        public PSRespositoryItem(string name, Uri url, int priority, bool trusted)
+        public NEWPSRespositoryItem(string name, Uri url, int priority, bool trusted)
         {
             _name = name;
             _url = url;

@@ -173,7 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // name is the only thing that won't get updated
                     r.Update("PSGallery", galleryURL, _priority, _trustedNullable);
-                   
+
                 }
 
                 if (String.IsNullOrEmpty(_name))
@@ -206,7 +206,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var _psGalleryRepoName = "PSGallery";
                         Uri _psGalleryRepoURL = new Uri("https://www.powershellgallery.com/api/v2");
                         int _psGalleryRepoPriority = repo.ContainsKey("Priority") ? (int)repo["Priority"] : 50;
-                     
+
                         bool? _psGalleryRepoTrusted = repo.ContainsKey("Trusted") ? (bool?)repo["Trusted"] : null;
 
                         Uri galleryURL = new Uri("https://www.powershellgallery.com");
@@ -227,7 +227,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     // https://docs.microsoft.com/en-us/dotnet/api/system.uri.trycreate?view=netframework-4.8#System_Uri_TryCreate_System_Uri_System_Uri_System_Uri__
-                    // convert the string to a url and check to see if the url is formatted correctly  
+                    // convert the string to a url and check to see if the url is formatted correctly
                     /// Checked URL
                     Uri _repoURL;
                     if (!(Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out _repoURL)

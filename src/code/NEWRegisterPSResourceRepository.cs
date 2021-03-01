@@ -191,8 +191,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             WriteDebug("new cmdlet");
-            var r = new RespositorySettings();
-            List<PSRespositoryItem> items = new List<PSRespositoryItem>();
+            var r = new NEWRespositorySettings();
+            List<NEWPSRespositoryItem> items = new List<NEWPSRespositoryItem>();
 
             if(ParameterSetName.Equals("PSGalleryParameterSet")){
                 PSGalleryParameterSetHelper(r, items);
@@ -216,7 +216,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        private void PSGalleryParameterSetHelper(RespositorySettings rs, List<PSRespositoryItem> items)
+        private void PSGalleryParameterSetHelper(NEWRespositorySettings rs, List<NEWPSRespositoryItem> items)
         {
             var psGalleryUri = new Uri(PSGalleryRepoURL);
             try
@@ -229,7 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private void NameParameterSetHelper(RespositorySettings rs, List<PSRespositoryItem> items)
+        private void NameParameterSetHelper(NEWRespositorySettings rs, List<NEWPSRespositoryItem> items)
         {
             if(_name.Equals("PSGallery"))
             {
@@ -248,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        private void RepositoriesParameterSetHelper(RespositorySettings rs, List<PSRespositoryItem> items)
+        private void RepositoriesParameterSetHelper(NEWRespositorySettings rs, List<NEWPSRespositoryItem> items)
         {
             foreach(var repo in _repositories)
             {
