@@ -1,0 +1,203 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\annavied\\Documents\\PowerShellGet\\src\\code\\PowerShellGet.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\annavied\\Documents\\PowerShellGet\\src\\code\\PowerShellGet.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\annavied\\Documents\\PowerShellGet\\src\\code\\PowerShellGet.csproj",
+        "projectName": "PowerShellGet",
+        "projectPath": "C:\\Users\\annavied\\Documents\\PowerShellGet\\src\\code\\PowerShellGet.csproj",
+        "packagesPath": "C:\\Users\\annavied\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\annavied\\Documents\\PowerShellGet\\src\\code\\obj\\",
+        "projectStyle": "PackageReference",
+        "crossTargeting": true,
+        "configFilePaths": [
+          "C:\\Users\\annavied\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net472",
+          "netstandard2.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {},
+          "https://pkgs.dev.azure.com/dnceng/public/_packaging/nuget-build/nuget/v3/index.json": {},
+          "https://www.nuget.org/api/v2": {}
+        },
+        "frameworks": {
+          "net472": {
+            "targetAlias": "net472",
+            "projectReferences": {}
+          },
+          "netstandard2.0": {
+            "targetAlias": "netstandard2.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net472": {
+          "targetAlias": "net472",
+          "dependencies": {
+            "LinqKit.Core": {
+              "target": "Package",
+              "version": "[1.1.17, )"
+            },
+            "Microsoft.Extensions.Logging": {
+              "target": "Package",
+              "version": "[5.0.0-preview.7.20364.11, )"
+            },
+            "Microsoft.Extensions.Logging.Abstractions": {
+              "target": "Package",
+              "version": "[5.0.0-preview.7.20364.11, )"
+            },
+            "Newtonsoft.Json.dll": {
+              "target": "Package",
+              "version": "[1.0.0, )"
+            },
+            "NuGet.Commands": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Common": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Configuration": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Packaging": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.ProjectModel": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Protocol": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Repositories": {
+              "target": "Package",
+              "version": "[4.3.0-beta1-2418, )"
+            },
+            "PowerShellStandard.Library": {
+              "target": "Package",
+              "version": "[7.0.0-preview.1, )"
+            },
+            "System.Data.DataSetExtensions": {
+              "target": "Package",
+              "version": "[4.6.0-preview3.19128.7, )"
+            },
+            "System.Net.Http": {
+              "target": "Package",
+              "version": "[4.3.4, )"
+            },
+            "System.Security.Principal.Windows": {
+              "target": "Package",
+              "version": "[4.0.0, )"
+            },
+            "morelinq": {
+              "target": "Package",
+              "version": "[3.3.2, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.103\\RuntimeIdentifierGraph.json"
+        },
+        "netstandard2.0": {
+          "targetAlias": "netstandard2.0",
+          "dependencies": {
+            "LinqKit.Core": {
+              "target": "Package",
+              "version": "[1.1.17, )"
+            },
+            "Microsoft.Extensions.Logging": {
+              "target": "Package",
+              "version": "[5.0.0-preview.7.20364.11, )"
+            },
+            "Microsoft.Extensions.Logging.Abstractions": {
+              "target": "Package",
+              "version": "[5.0.0-preview.7.20364.11, )"
+            },
+            "Microsoft.Windows.Compatibility": {
+              "target": "Package",
+              "version": "[3.1.0, )"
+            },
+            "NETStandard.Library": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.0.3, )",
+              "autoReferenced": true
+            },
+            "NuGet.Commands": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Common": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Configuration": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Packaging": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.ProjectModel": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Protocol": {
+              "target": "Package",
+              "version": "[5.7.0-rtm.6702, )"
+            },
+            "NuGet.Repositories": {
+              "target": "Package",
+              "version": "[4.3.0-beta1-2418, )"
+            },
+            "PowerShellStandard.Library": {
+              "target": "Package",
+              "version": "[7.0.0-preview.1, )"
+            },
+            "System.Data.DataSetExtensions": {
+              "target": "Package",
+              "version": "[4.6.0-preview3.19128.7, )"
+            },
+            "System.Net.Http": {
+              "target": "Package",
+              "version": "[4.3.4, )"
+            },
+            "morelinq": {
+              "target": "Package",
+              "version": "[3.3.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.103\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
