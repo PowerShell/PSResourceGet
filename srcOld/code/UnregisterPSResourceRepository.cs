@@ -6,8 +6,6 @@
 using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
 using System;
 using System.Management.Automation;
-using Microsoft.PowerShell.PowerShellGet.NEWRepositorySettings;
-using Microsoft.PowerShell.PowerShellGet.NEWPSRepositoryItem;
 
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
