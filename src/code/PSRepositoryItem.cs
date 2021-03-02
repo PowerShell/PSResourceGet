@@ -12,7 +12,7 @@ namespace Microsoft.PowerShell.PowerShellGet.PSRepositoryItem
     {
         private string _name;
         private Uri _url;
-        private bool _trusted= false;
+        private bool _trusted;
         private int _priority = 50;
 
 

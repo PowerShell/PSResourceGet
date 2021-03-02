@@ -27,8 +27,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     public sealed
     class RegisterPSResourceRepository : PSCmdlet
     {
-        private string PSGalleryRepoName = "PSGallery";
-        private string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
+        private readonly string PSGalleryRepoName = "PSGallery";
+        private readonly string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
         private const int defaultPriority = 50;
         private const bool defaultTrusted = false;
 
@@ -44,16 +44,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             { return _name; }
 
             set
-            {
-                try
-                {
-                    _name = value;
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("perhaps you used the wrong type for the parameter" + e.GetType());
-                }
-            }
+            { _name = value; }
         }
         private string _name;
 

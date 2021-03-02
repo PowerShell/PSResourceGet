@@ -30,8 +30,7 @@ internal class RepositoryNameCompleter : IArgumentCompleter
         List<PSRepositoryItem> listOfRepositories = repositorySettings.Read(null);
 
         foreach (PSRepositoryItem repo in listOfRepositories)
-         {
-            // string repoName = repo.Properties["Name"].Value.ToString();
+        {
             string repoName = repo.Name;
             if (repoName.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
             {
