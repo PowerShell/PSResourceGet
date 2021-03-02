@@ -156,14 +156,6 @@ function Create-TempDirs {
     {
         $null = New-Item -Path $path -ItemType Directory -Verbose
     }
-    # $tmpDir1 = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir1"
-    # $null = New-Item -Path $tmpDir1 -ItemType Directory -Verbose
-
-    # $tmpDir2 = Join-Path (Get-TempPath) -ChildPath "tmpDir2"
-    # $null = New-Item -Path $tmpDir2 -ItemType Directory -Verbose
-
-    # $tmpDir3 = Join-Path (Get-TempPath) -ChildPath "tmpDir3"
-    # $null = New-Item -Path $tmpDir3 -ItemType Directory -Verbose
 }
 
 function Remove-TempDirs {
@@ -178,21 +170,6 @@ function Remove-TempDirs {
             Remove-Item -Path $path -Force -ErrorAction Ignore
         }
     }
-    # $tmpDir1 = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir1"
-    # $tmpDir2 = Join-Path (Get-TempPath) -ChildPath "tmpDir2"
-    # $tmpDir3 = Join-Path (Get-TempPath) -ChildPath "tmpDir3"
-    # if(Test-Path -Path $tmpDir1)
-    # {
-    #     Remove-Item -Path $tmpDir1 -Force -ErrorAction Ignore
-    # }
-    # if(Test-Path -Path $tmpDir2)
-    # {
-    #     Remove-Item -Path $tmpDir2 -Force -ErrorAction Ignore
-    # }
-    # if(Test-Path -Path $tmpDir3)
-    # {
-    #     Remove-Item -Path $tmpDir3 -Force -ErrorAction Ignore
-    # }
 }
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
