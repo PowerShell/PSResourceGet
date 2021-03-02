@@ -47,8 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            var r = new RepositorySettings();
-            List<PSRepositoryItem> items = r.Read(_name);
+            List<PSRepositoryItem> items = RepositorySettings.Read(_name);
 
             foreach (var repo in items)
             {

@@ -188,19 +188,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             WriteDebug("new cmdlet");
-            var r = new RepositorySettings();
             List<PSRepositoryItem> items = new List<PSRepositoryItem>();
 
             if(ParameterSetName.Equals("PSGalleryParameterSet")){
-                PSGalleryParameterSetHelper(r, items);
+                PSGalleryParameterSetHelper(items);
             }
             else if(ParameterSetName.Equals("NameParameterSet"))
             {
-                NameParameterSetHelper(r, items);
+                NameParameterSetHelper(items);
             }
             else if(ParameterSetName.Equals("RepositoriesParameterSet"))
             {
-                RepositoriesParameterSetHelper(r, items);
+                RepositoriesParameterSetHelper(items);
             }
 
             if(_passThru)
@@ -213,12 +212,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        private void PSGalleryParameterSetHelper(RepositorySettings rs, List<PSRepositoryItem> items)
+        private void PSGalleryParameterSetHelper(List<PSRepositoryItem> items)
         {
             var psGalleryUri = new Uri(PSGalleryRepoURL);
             try
             {
-                items.Add(rs.Add(PSGalleryRepoName, psGalleryUri, _priority, _trusted));
+                items.Add(RepositorySettings.Add(PSGalleryRepoName, psGalleryUri, _priority, _trusted));
             }
             catch (Exception e)
             {
@@ -226,7 +225,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private void NameParameterSetHelper(RepositorySettings rs, List<PSRepositoryItem> items)
+        private void NameParameterSetHelper(List<PSRepositoryItem> items)
         {
             if(_name.Equals("PSGallery"))
             {
@@ -235,7 +234,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else{
                 try
                 {
-                    items.Add(rs.Add(_name, _url, _priority, _trusted));
+                    items.Add(RepositorySettings.Add(_name, _url, _priority, _trusted));
                 }
                 catch(Exception e)
                 {
@@ -245,7 +244,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        private void RepositoriesParameterSetHelper(RepositorySettings rs, List<PSRepositoryItem> items)
+        private void RepositoriesParameterSetHelper(List<PSRepositoryItem> items)
         {
             foreach(var repo in _repositories)
             {
@@ -253,7 +252,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _priority = repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority;
                     _trusted = repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted;
-                    PSGalleryParameterSetHelper(rs, items);
+                    PSGalleryParameterSetHelper(items);
                     continue;
                 }
 
@@ -279,7 +278,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _priority = repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority;
                 _trusted = repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted;
 
-                NameParameterSetHelper(rs, items);
+                NameParameterSetHelper(items);
             }
         }
     }

@@ -18,7 +18,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 
     using PSRepositoryItem = Microsoft.PowerShell.PowerShellGet.PSRepositoryItem.PSRepositoryItem;
 
-    class RepositorySettings
+    static class RepositorySettings
     {
         /// <summary>
         /// Default file name for a settings file is 'psresourcerepository.config'
@@ -28,14 +28,12 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         public static readonly string DefaultRepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
         public static readonly string DefaultFullRepositoryPath = Path.Combine(DefaultRepositoryPath, DefaultRepositoryFileName);
 
-        public RepositorySettings() { }
-
         /// <summary>
         /// Find a repository XML
         /// Returns:
         /// </summary>
         /// <param name="sectionName"></param>
-        public bool FindRepositoryXML()
+        public static bool FindRepositoryXML()
         {
             // Search in the designated location for the repository XML
             if (File.Exists(DefaultFullRepositoryPath))
@@ -51,7 +49,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         /// Returns: void
         /// </summary>
         /// <param name="sectionName"></param>
-        public void CreateNewRepositoryXML()
+        public static void CreateNewRepositoryXML()
         {
             // Check to see if the file already exists; if it does return
             if (FindRepositoryXML())
@@ -79,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         /// Returns: PSRepositoryItem containing information about the repository just added
         /// </summary>
         /// <param name="sectionName"></param>
-        public PSRepositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        public static PSRepositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
         {
             // Check to see if information we're trying to add to the repository is valid
             if (string.IsNullOrEmpty(repoName))
@@ -142,7 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         /// Updates a repository name, URL, priority, or installation policy
         /// Returns:  void
         /// </summary>
-        public void Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
+        public static void Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
         {
             // Check to see if information we're trying to add to the repository is valid
             if (string.IsNullOrEmpty(repoName))
@@ -202,7 +200,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         /// Returns: void
         /// </summary>
         /// <param name="sectionName"></param>
-        public void Remove(string[] repoNames)
+        public static void Remove(string[] repoNames)
         {
 
             // Check to see if information we're trying to remove from the repository is valid
@@ -242,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             root.Save(DefaultFullRepositoryPath);
         }
 
-        public List<PSRepositoryItem> Read(string[] repoNames)
+        public static List<PSRepositoryItem> Read(string[] repoNames)
         {
             // Can be null, will just retrieve all
             // Call FindRepositoryXML()  [Create will make a new xml if one doesn't already exist]

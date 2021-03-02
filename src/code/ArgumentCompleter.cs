@@ -26,8 +26,7 @@ internal class RepositoryNameCompleter : IArgumentCompleter
     {
         List<CompletionResult> res = new List<CompletionResult>();
 
-        RepositorySettings repositorySettings = new RepositorySettings();
-        List<PSRepositoryItem> listOfRepositories = repositorySettings.Read(null);
+        List<PSRepositoryItem> listOfRepositories = RepositorySettings.Read(null);
 
         foreach (PSRepositoryItem repo in listOfRepositories)
         {

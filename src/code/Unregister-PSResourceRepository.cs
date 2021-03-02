@@ -41,9 +41,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            var r = new RepositorySettings();
             try{
-                r.Remove(_name);
+                RepositorySettings.Remove(_name);
             }
             catch(Exception e)
             {

@@ -15,12 +15,6 @@ namespace Microsoft.PowerShell.PowerShellGet.PSRepositoryItem
         private bool _trusted;
         private int _priority = 50;
 
-
-        public PSRepositoryItem(string name, Uri url)
-        {
-            _name = name;
-            _url = url;
-        }
         public PSRepositoryItem(string name, Uri url, int priority, bool trusted)
         {
             _name = name;
