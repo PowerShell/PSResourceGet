@@ -10,18 +10,14 @@
     CmdletsToExport = @(
         'Find-PSResource',
         'Get-PSResourceRepository',
-        'Get-NEWPSResourceRepository',
         'Get-PSResource',
         'Install-PSResource',
         'Register-PSResourceRepository',
-        'Register-NEWPSResourceRepository',
         'Save-PSResource',
         'Set-PSResourceRepository',
-        'Set-NEWPSResourceRepository',
         'Publish-PSResource',
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
-        'Unregister-NEWPSResourceRepository',
         'Update-PSResource')
 
     VariablesToExport = 'PSGetPath'
