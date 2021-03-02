@@ -152,7 +152,7 @@ function Get-NewPSResourceRepositoryFile {
     $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
     $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
     $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
-
+    
     if (Test-Path -Path $originalXmlFilePath) {
         Copy-Item -Path $originalXmlFilePath -Destination $tempXmlFilePath
         Remove-Item -Path $originalXmlFilePath -Force -ErrorAction Ignore
@@ -186,7 +186,7 @@ function Get-TestDriveSetUp
     Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
 
     $testResourcesFolder = Join-Path $TestDrive -ChildPath "TestLocalDirectory"
-
+    
     $script:testIndividualResourceFolder = Join-Path -Path $testResourcesFolder -ChildPath "PSGet_$(Get-Random)"
     $null = New-Item -Path $testIndividualResourceFolder -ItemType Directory -Force
 }
@@ -245,7 +245,7 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
     $params = @{
                 #Path = $scriptFilePath
                 Version = $version
-                #GUID =
+                #GUID = 
                 Author = 'Jane'
                 CompanyName = 'Microsoft Corporation'
                 Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
@@ -410,7 +410,7 @@ function Create-PSScriptMetadata
 
 .ICONURI$(if ($IconUri) {" $IconUri"})
 
-.EXTERNALMODULEDEPENDENCIES$(if ($ExternalModuleDependencies) {" $($ExternalModuleDependencies -join ',')"})
+.EXTERNALMODULEDEPENDENCIES$(if ($ExternalModuleDependencies) {" $($ExternalModuleDependencies -join ',')"}) 
 
 .REQUIREDSCRIPTS$(if ($RequiredScripts) {" $($RequiredScripts -join ',')"})
 
