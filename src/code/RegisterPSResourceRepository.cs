@@ -187,7 +187,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         protected override void ProcessRecord()
         {
-            WriteDebug("new cmdlet");
             List<PSRepositoryItem> items = new List<PSRepositoryItem>();
 
             if(ParameterSetName.Equals("PSGalleryParameterSet")){
