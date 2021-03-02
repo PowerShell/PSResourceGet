@@ -59,7 +59,7 @@ Bug Fixes
 * Fix bug related to paths in Uninstall-PSResource
 
 ### 3.0.0-beta8
-New Features
+New Features 
 * Add Type parameter to Install-PSResource
 * Add 'sudo' check for admin privileges in Unix in Install-PSResource
 
@@ -70,7 +70,7 @@ Bug Fixes
 * Change installed file paths to contain original version number instead of normalized version
 
 ### 3.0.0-beta7
-New Features
+New Features 
 * Completed functionality for Update-PSResource
 * Input-Object parameter for Install-PSResource
 
@@ -84,7 +84,7 @@ Bug Fixes
 * Fix module installation paths on Linux and MacOS
 
 ### 3.0.0-beta6
-New Feature
+New Feature 
 * Implement functionality for Publish-PSResource
 
 ### 3.0.0-beta5
@@ -92,19 +92,19 @@ New Feature
 
 ### 3.0.0-beta4
 New Feature
-* Implement -Repository '*' in Find-PSResource to search through all repositories instead of prioritized repository
+* Implement -Repository '*' in Find-PSResource to search through all repositories instead of prioritized repository 
 
 Bug Fix
 * Fix poor error handling for when repository is not accessible in Find-PSResource
 
 ### 3.0.0-beta3
 New Features
-* -RequiredResource parameter for Install-PSResource
+* -RequiredResource parameter for Install-PSResource 
 * -RequiredResourceFile parameter for Install-PSResource
 * -IncludeXML parameter in Save-PSResource
 
 Bug Fixes
-* Resolved paths in Install-PSRsource and Save-PSResource
+* Resolved paths in Install-PSRsource and Save-PSResource 
 * Resolved issues with capitalization (for unix systems) in Install-PSResource and Save-PSResource
 
 ### 3.0.0-beta2
