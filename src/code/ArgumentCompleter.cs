@@ -26,10 +26,10 @@ internal class RepositoryNameCompleter : IArgumentCompleter
     {
         List<CompletionResult> res = new List<CompletionResult>();
 
-        RespositorySettings repositorySettings = new RespositorySettings();
-        List<PSRespositoryItem> listOfRepositories = repositorySettings.Read(null);
+        RepositorySettings repositorySettings = new RepositorySettings();
+        List<PSRepositoryItem> listOfRepositories = repositorySettings.Read(null);
 
-        foreach (PSRespositoryItem repo in listOfRepositories)
+        foreach (PSRepositoryItem repo in listOfRepositories)
          {
             // string repoName = repo.Properties["Name"].Value.ToString();
             string repoName = repo.Name;
