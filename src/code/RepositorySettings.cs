@@ -8,7 +8,6 @@ using System.Management.Automation;
 using System.Xml.Linq;
 using System.Linq;
 using static System.Environment;
-using Microsoft.PowerShell.PowerShellGet.PSRepositoryItem;
 
 namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 {
@@ -17,7 +16,9 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
     /// perform CRUD operations on the repositories.
     /// </summary>
 
-    class RespositorySettings
+    using PSRepositoryItem = Microsoft.PowerShell.PowerShellGet.PSRepositoryItem.PSRepositoryItem;
+
+    class RepositorySettings
     {
         /// <summary>
         /// Default file name for a settings file is 'psresourcerepository.config'
@@ -27,7 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         public static readonly string DefaultRepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
         public static readonly string DefaultFullRepositoryPath = Path.Combine(DefaultRepositoryPath, DefaultRepositoryFileName);
 
-        public RespositorySettings() { }
+        public RepositorySettings() { }
 
         /// <summary>
         /// Find a repository XML
@@ -78,7 +79,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         /// Returns: PSRepositoryItem containing information about the repository just added
         /// </summary>
         /// <param name="sectionName"></param>
-        public PSRespositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        public PSRepositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
         {
             // Check to see if information we're trying to add to the repository is valid
             if (string.IsNullOrEmpty(repoName))
@@ -132,7 +133,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             root.Save(DefaultFullRepositoryPath);
 
             // create PSRepositoryItem object to return
-            PSRespositoryItem repoItem = new PSRespositoryItem(repoName, repoURL, repoPriority, repoTrusted);
+            PSRepositoryItem repoItem = new PSRepositoryItem(repoName, repoURL, repoPriority, repoTrusted);
 
             return repoItem;
         }
@@ -241,7 +242,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             root.Save(DefaultFullRepositoryPath);
         }
 
-        public List<PSRespositoryItem> Read(string[] repoNames)
+        public List<PSRepositoryItem> Read(string[] repoNames)
         {
             // Can be null, will just retrieve all
             // Call FindRepositoryXML()  [Create will make a new xml if one doesn't already exist]
@@ -253,7 +254,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             // Open file
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
 
-            var foundRepos = new List<PSRespositoryItem>();
+            var foundRepos = new List<PSRepositoryItem>();
             if(repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
             {
                 // Name array or single value is null so we will list all repositories registered
@@ -263,7 +264,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
                     Uri thisUrl;
                     // need more error checks for Uri scheme? ideally uri's registered should be already checked
                     Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
-                    PSRespositoryItem currentRepoItem = new PSRespositoryItem(repo.Attribute("Name").Value,
+                    PSRepositoryItem currentRepoItem = new PSRepositoryItem(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value));
@@ -283,7 +284,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
                         Uri thisUrl;
                         // need more error checks for Uri scheme? ideally uri's registered should be already checked
                         Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
-                        PSRespositoryItem currentRepoItem = new PSRespositoryItem(node.Attribute("Name").Value,
+                        PSRepositoryItem currentRepoItem = new PSRepositoryItem(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value));

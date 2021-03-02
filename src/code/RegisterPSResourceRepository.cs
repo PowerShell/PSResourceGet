@@ -5,10 +5,7 @@ using System;
 using System.Collections;
 using System.Management.Automation;
 using System.Globalization;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
-using Microsoft.PowerShell.PowerShellGet.PSRepositoryItem;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -17,6 +14,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It registers a repository for PowerShell modules.
     /// The repository is registered to the current user's scope and does not have a system-wide scope.
     /// </summary>
+
+    using RepositorySettings = Microsoft.PowerShell.PowerShellGet.RepositorySettings.RepositorySettings;
+    using PSRepositoryItem = Microsoft.PowerShell.PowerShellGet.PSRepositoryItem.PSRepositoryItem;
 
     [Cmdlet(VerbsLifecycle.Register,
         "PSResourceRepository",
@@ -197,8 +197,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             WriteDebug("new cmdlet");
-            var r = new RespositorySettings();
-            List<PSRespositoryItem> items = new List<PSRespositoryItem>();
+            var r = new RepositorySettings();
+            List<PSRepositoryItem> items = new List<PSRepositoryItem>();
 
             if(ParameterSetName.Equals("PSGalleryParameterSet")){
                 PSGalleryParameterSetHelper(r, items);
@@ -222,7 +222,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        private void PSGalleryParameterSetHelper(RespositorySettings rs, List<PSRespositoryItem> items)
+        private void PSGalleryParameterSetHelper(RepositorySettings rs, List<PSRepositoryItem> items)
         {
             var psGalleryUri = new Uri(PSGalleryRepoURL);
             try
@@ -235,7 +235,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private void NameParameterSetHelper(RespositorySettings rs, List<PSRespositoryItem> items)
+        private void NameParameterSetHelper(RepositorySettings rs, List<PSRepositoryItem> items)
         {
             if(_name.Equals("PSGallery"))
             {
@@ -254,7 +254,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        private void RepositoriesParameterSetHelper(RespositorySettings rs, List<PSRespositoryItem> items)
+        private void RepositoriesParameterSetHelper(RepositorySettings rs, List<PSRepositoryItem> items)
         {
             foreach(var repo in _repositories)
             {

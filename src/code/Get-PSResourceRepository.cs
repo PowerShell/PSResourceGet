@@ -3,8 +3,6 @@
 
 using System.Collections.Generic;
 using System.Management.Automation;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
-using Microsoft.PowerShell.PowerShellGet.PSRepositoryItem;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -14,6 +12,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// By default it will return all registered repositories, or if the -Name parameter argument is specified then it wil return the repository with that name.
     /// It returns PSRepositoryItemInfo objects which describe each resource item found.
     /// </summary>
+
+    using RepositorySettings = Microsoft.PowerShell.PowerShellGet.RepositorySettings.RepositorySettings;
+    using PSRepositoryItem = Microsoft.PowerShell.PowerShellGet.PSRepositoryItem.PSRepositoryItem;
+
     [Cmdlet(VerbsCommon.Get,
         "PSResourceRepository",
         SupportsShouldProcess = true,
@@ -45,8 +47,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            var r = new RespositorySettings();
-            List<PSRespositoryItem> items = r.Read(_name);
+            var r = new RepositorySettings();
+            List<PSRepositoryItem> items = r.Read(_name);
 
             foreach (var repo in items)
             {

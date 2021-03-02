@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using System;
 using System.Management.Automation;
 
@@ -5,7 +8,7 @@ namespace Microsoft.PowerShell.PowerShellGet.PSRepositoryItem
 {
     /// <summary>
     /// This class contains information for a repository item.
-    public class PSRespositoryItem
+    public class PSRepositoryItem
     {
         private string _name;
         private Uri _url;
@@ -13,12 +16,12 @@ namespace Microsoft.PowerShell.PowerShellGet.PSRepositoryItem
         private int _priority = 50;
 
 
-        public PSRespositoryItem(string name, Uri url)
+        public PSRepositoryItem(string name, Uri url)
         {
             _name = name;
             _url = url;
         }
-        public PSRespositoryItem(string name, Uri url, int priority, bool trusted)
+        public PSRepositoryItem(string name, Uri url, int priority, bool trusted)
         {
             _name = name;
             _url = url;
