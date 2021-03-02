@@ -12,8 +12,8 @@ using Microsoft.PowerShell.PowerShellGet.PSRepositoryItem;
 internal class RepositoryNameCompleter : IArgumentCompleter
 {
     public IEnumerable<CompletionResult> CompleteArgument(
-        string commandName,  // For cmdlets Get-PSResource, Set-PSResource, and Unregister-PSResource
-        string parameterName, // For -Name parameter
+        string commandName,
+        string parameterName,
         string wordToComplete,
         CommandAst commandAst,
         IDictionary fakeBoundParameters)
