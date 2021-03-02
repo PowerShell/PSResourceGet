@@ -208,7 +208,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
                 // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
                 // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
-                if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
+                if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") && 
                     (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
                 {
                     this.WriteWarning("This functionality is not yet implemented");
@@ -227,7 +227,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
                 var flattenedPkgs = returnedPkgsFound.Flatten();
                 // flattenedPkgs.ToList();
-
+                
                 if (flattenedPkgs.Any() && flattenedPkgs.First() != null)
                 {
                     foreach (IPackageSearchMetadata pkg in flattenedPkgs)
@@ -366,7 +366,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version));
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repoName));
                         pkgAsPSObject.Members.Add(new PSNoteProperty("Description", pkg.Description));
-
+                        
                         WriteObject(pkgAsPSObject);
                     }
 
@@ -419,7 +419,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else
             {
 
-
+               
 
                 PackageSource source = new PackageSource(repositoryUrl);
                 if (_credential != null)
@@ -428,10 +428,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, _credential.UserName, password, true, null);
                 }
 
-
+    
 
                 var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
-
+               
                 SourceRepository repository = new SourceRepository(source, provider);
 
 
@@ -932,7 +932,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this.WriteVerbose(string.Format("'{0}' could not be found in repository '{1}'", name, repoName));
                         return foundPackages;
                     }
-                    else
+                    else 
                     {
                         foundPackages.Add(retrievedPkgs);
                     }
@@ -1030,7 +1030,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // ensure that the latst version is returned first (the ordering of versions differ)
 
-                    if(_moduleName != null)
+                    if(_moduleName != null) 
                     {
                         // perform checks for PSModule before adding to filteredFoundPackages
                         filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
@@ -1040,8 +1040,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
                             .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSScript"))
                             .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
-
-                        scriptPkgsNotNeeded.RemoveAll(p => true);
+ 
+                        scriptPkgsNotNeeded.RemoveAll(p => true);  
                     }
                     else
                     { //name != null
@@ -1083,7 +1083,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     //var singlePkg = (System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), toRemove));
                     var pkgList = foundPackages.FirstOrDefault();
                     var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
-
+                    
 
                     if(singlePkg != null)
                     {
@@ -1111,7 +1111,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     int toRemove = foundPackages.First().Count() - 1;
 
                     //to prevent NullException
-                    if(toRemove >= 0)
+                    if(toRemove >= 0) 
                     {
                         var pkgList = foundPackages.FirstOrDefault();
                         var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
@@ -1123,13 +1123,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 filteredFoundPkgs.Add(singlePkg);
                             }
                         }
-                        else
+                        else 
                         { // _name != null
                             filteredFoundPkgs.Add(singlePkg);
                         }
                     }
                 }
-                else
+                else 
                 { //if name not null,but name contains * and version is null
                     filteredFoundPkgs = foundPackages;
                 }
@@ -1176,7 +1176,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-            // optimizes searcching by
+            // optimizes searcching by 
             if ((_type != null || !filteredFoundPkgs.Flatten().Any()) && pkgsLeftToFind.Any() && !_name.Contains("*"))
             {
                 //if ((_type.Contains("Module") || _type.Contains("Script")) && !_type.Contains("DscResource") && !_type.Contains("Command") && !_type.Contains("RoleCapability"))
@@ -1275,7 +1275,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-                    // choose the most recent version
+                    // choose the most recent version 
                     int toRemove = dependencies.Count() - 1;
 
                     // if no version/version range is specified the we just return the latest version
@@ -1402,7 +1402,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-
+  
 
             return pkgsFilteredByResource.DistinctBy(p => p.Identity.Id).ToList();
 

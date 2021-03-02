@@ -71,7 +71,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             this._repository = _repository;
             this._credential = _credential;
             this._includeDependencies = _includeDependencies;
-
+       
 
                 source = new CancellationTokenSource();
             cancellationToken = source.Token;
@@ -1009,7 +1009,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-            // optimizes searcching by
+            // optimizes searcching by 
             if ((_type != null || !filteredFoundPkgs.Flatten().Any()) && pkgsLeftToFind.Any() && !_name.Contains("*"))
             {
                 //if ((_type.Contains("Module") || _type.Contains("Script")) && !_type.Contains("DscResource") && !_type.Contains("Command") && !_type.Contains("RoleCapability"))

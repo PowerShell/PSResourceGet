@@ -14,8 +14,10 @@ using System.IO;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// The Register-PSResourceRepository cmdlet replaces the Register-PSRepository from V2.
-    /// It registers a repository for PowerShell modules. The repository is registered to the current user's scope and does not have a system-wide scope.
+    /// The Register-PSResourceRepository cmdlet registers the default repository for PowerShell modules.
+    /// After a repository is registered, you can reference it from the Find-PSResource, Install-PSResource, and Publish-PSResource cmdlets.
+    /// The registered repository becomes the default repository in Find-Module and Install-Module.
+    /// It returns nothing.
     /// </summary>
 
     [Cmdlet(VerbsLifecycle.Register, "PSResourceRepository", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
@@ -170,7 +172,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
-                /// collect parameters and make one call
+                /// collect parameters and make one call 
                 var psGalleryUri = new Uri(PSGalleryRepoURL);
 
                 try
@@ -204,7 +206,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
             else if (ParameterSetName.Equals("RepositoriesParameterSet"))
-            {
+            {      
                 foreach (var repo in _repositories)
                 {
                     if (repo.ContainsKey(PSGalleryRepoName)   )
@@ -228,7 +230,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     // https://docs.microsoft.com/en-us/dotnet/api/system.uri.trycreate?view=netframework-4.8#System_Uri_TryCreate_System_Uri_System_Uri_System_Uri__
-                    // convert the string to a url and check to see if the url is formatted correctly
+                    // convert the string to a url and check to see if the url is formatted correctly  
                     Uri _repoURL;
                     if (!(Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out _repoURL)
                          && (_repoURL.Scheme == Uri.UriSchemeHttp || _repoURL.Scheme == Uri.UriSchemeHttps || _repoURL.Scheme == Uri.UriSchemeFtp || _repoURL.Scheme == Uri.UriSchemeFile)))
@@ -248,8 +250,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         _repoTrusted = Convert.ToBoolean(repo["Trusted"].ToString());
                     }
 
-                    r.Add(repo["Name"].ToString(), _repoURL, _repoPriority, _repoTrusted);
-                }
+                    r.Add(repo["Name"].ToString(), _repoURL, _repoPriority, _repoTrusted);                    
+                }      
             }
             else if (_name.Equals(PSGalleryRepoName))
             {

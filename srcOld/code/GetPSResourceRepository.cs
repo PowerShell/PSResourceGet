@@ -16,7 +16,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsCommon.Get, "PSResourceRepository", SupportsShouldProcess = true,
         HelpUri = "<add>", RemotingCapability = RemotingCapability.None)]
     public sealed
-    class OLDGetPSResourceRepository : PSCmdlet
+    class GetPSResourceRepository : PSCmdlet
     {
         /// <summary>
         /// Specifies the desired name for the repository to be registered.
