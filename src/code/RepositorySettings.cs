@@ -222,7 +222,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             // Get root of XDocument (XElement)
             var root = doc.Root;
 
-            foreach (var repo in repoNames)
+            foreach (string repo in repoNames)
             {
                 // Check if what's being removed doesn't already exist, throw an error
                 var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
@@ -257,7 +257,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             {
                 // Name array or single value is null so we will list all repositories registered
                 // iterate through the doc
-                foreach(var repo in doc.Descendants("Repository"))
+                foreach(XElement repo in doc.Descendants("Repository"))
                 {
                     Uri thisUrl;
                     // need more error checks for Uri scheme? ideally uri's registered should be already checked
@@ -273,7 +273,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             }
             else
             {
-                foreach(var repo in repoNames)
+                foreach(string repo in repoNames)
                 {
                     // Check to see if the repository exists
                     var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();

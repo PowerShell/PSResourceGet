@@ -49,7 +49,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             List<PSRepositoryItem> items = RepositorySettings.Read(_name);
 
-            foreach (var repo in items)
+            foreach (PSRepositoryItem repo in items)
             {
                 WriteObject(repo);
             }

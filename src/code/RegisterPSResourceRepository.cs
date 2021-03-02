@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if(_passThru)
             {
-                foreach (var item in items)
+                foreach (PSRepositoryItem item in items)
                 {
                     WriteObject(item);
                 }
@@ -246,7 +246,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private void RepositoriesParameterSetHelper(List<PSRepositoryItem> items)
         {
-            foreach(var repo in _repositories)
+            foreach(Hashtable repo in _repositories)
             {
                 if(repo.ContainsKey(PSGalleryRepoName))
                 {
