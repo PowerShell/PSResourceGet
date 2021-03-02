@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -14,7 +13,8 @@ using Microsoft.PowerShell.PowerShellGet.PSRepositoryItem;
 namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 {
     /// <summary>
-    /// Repository settings
+    /// The class contains basic information of a repository path settings as well as methods to
+    /// perform CRUD operations on the repositories.
     /// </summary>
 
     class RespositorySettings
@@ -75,7 +75,7 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
 
         /// <summary>
         /// Add a repository to the XML
-        /// Returns: void
+        /// Returns: PSRepositoryItem containing information about the repository just added
         /// </summary>
         /// <param name="sectionName"></param>
         public PSRespositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)

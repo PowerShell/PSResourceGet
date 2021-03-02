@@ -79,7 +79,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(moduleManifestNotFound);
                     }
                 _url = url;
-            } //todo: actually set code here
+            }
         }
         private Uri _url;
 
@@ -191,6 +191,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _passThru;
         #endregion
 
+        /// <summary>
+        /// Process the repository being registered
+        /// </summary>
         protected override void ProcessRecord()
         {
             WriteDebug("new cmdlet");
