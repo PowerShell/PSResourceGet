@@ -13,8 +13,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsLifecycle.Unregister,
         "PSResourceRepository",
         SupportsShouldProcess = true,
-        HelpUri = "<add>",
-        RemotingCapability = RemotingCapability.None)]
+        HelpUri = "<add>")]
     public sealed
     class UnregisterPSResourceRepository : PSCmdlet
     {

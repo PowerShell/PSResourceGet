@@ -22,8 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         "PSResourceRepository",
         DefaultParameterSetName = NameParameterSet,
         SupportsShouldProcess = true,
-        HelpUri = "<add>",
-        RemotingCapability = RemotingCapability.None)]
+        HelpUri = "<add>")]
     public sealed
     class RegisterPSResourceRepository : PSCmdlet
     {

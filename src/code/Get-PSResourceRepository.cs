@@ -19,8 +19,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsCommon.Get,
         "PSResourceRepository",
         SupportsShouldProcess = true,
-        HelpUri = "<add>",
-        RemotingCapability = RemotingCapability.None)]
+        HelpUri = "<add>")]
     public sealed
     class GetPSResourceRepository : PSCmdlet
     {
