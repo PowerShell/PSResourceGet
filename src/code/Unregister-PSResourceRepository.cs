@@ -12,7 +12,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
     [Cmdlet(VerbsLifecycle.Unregister,
         "PSResourceRepository",
-        DefaultParameterSetName = "NameParameterSet",
         SupportsShouldProcess = true,
         HelpUri = "<add>",
         RemotingCapability = RemotingCapability.None)]
@@ -23,8 +22,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the desired name for the repository to be registered.
         /// </summary>
-        [Parameter(Mandatory= true, Position = 0, ValueFromPipeline = true,
-            ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(Mandatory= true, Position = 0,
+            ValueFromPipeline = true,
+            ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Name
