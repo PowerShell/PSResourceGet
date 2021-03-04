@@ -18,25 +18,14 @@ internal class RepositoryNameCompleter : IArgumentCompleter
         CommandAst commandAst,
         IDictionary fakeBoundParameters)
     {
-        return CompleteRepositoryName(wordToComplete);
-    }
-
-
-    private IEnumerable<CompletionResult> CompleteRepositoryName(string wordToComplete)
-    {
-        List<CompletionResult> res = new List<CompletionResult>();
-
         List<PSRepositoryItem> listOfRepositories = RepositorySettings.Read(null);
-
-        foreach (PSRepositoryItem repo in listOfRepositories)
+        foreach(PSRepositoryItem repo in listOfRepositories)
         {
             string repoName = repo.Name;
-            if (repoName.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
+            if(repoName.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
             {
-                res.Add(new CompletionResult(repoName));
+                yield return new CompletionResult(repoName);
             }
         }
-
-        return res;
     }
 }
