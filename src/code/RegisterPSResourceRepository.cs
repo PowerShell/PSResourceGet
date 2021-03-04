@@ -20,23 +20,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
     [Cmdlet(VerbsLifecycle.Register,
         "PSResourceRepository",
-        DefaultParameterSetName = "NameParameterSet",
+        DefaultParameterSetName = NameParameterSet,
         SupportsShouldProcess = true,
         HelpUri = "<add>",
         RemotingCapability = RemotingCapability.None)]
     public sealed
     class RegisterPSResourceRepository : PSCmdlet
     {
+        #region Members
         private readonly string PSGalleryRepoName = "PSGallery";
         private readonly string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
         private const int defaultPriority = 50;
         private const bool defaultTrusted = false;
+        private const string NameParameterSet = "NameParameterSet";
+        private const string PSGalleryParameterSet = "PSGalleryParameterSet";
+        private const string RepositoriesParameterSet = "RepositoriesParameterSet";
+
+        #endregion
 
         #region Parameters
         /// <summary>
         /// Specifies name for the repository to be registered.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ParameterSetName = "NameParameterSet")]
+        [Parameter(Mandatory = true, Position = 0, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Name
         {
@@ -51,7 +57,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the location of the repository to be registered.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 1, ParameterSetName = "NameParameterSet")]
+        [Parameter(Mandatory = true, Position = 1, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public Uri URL
         {
@@ -77,7 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// When specified, registers PSGallery repository.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = "PSGalleryParameterSet")]
+        [Parameter(Mandatory = true, ParameterSetName = PSGalleryParameterSet)]
         public SwitchParameter PSGallery
         {
             get
@@ -106,8 +112,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies whether the repository should be trusted.
         /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
-        [Parameter(ParameterSetName = "PSGalleryParameterSet")]
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = PSGalleryParameterSet)]
         public SwitchParameter Trusted
         {
             get
@@ -124,8 +130,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds
         /// to a higher priority ranking than a higher numeric value (i.e 40). Has default value of 50.
         /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
-        [Parameter(ParameterSetName = "PSGalleryParameterSet")]
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = PSGalleryParameterSet)]
         [ValidateNotNullOrEmpty]
         [ValidateRange(0, 50)]
         public int Priority
@@ -189,14 +195,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             List<PSRepositoryItem> items = new List<PSRepositoryItem>();
 
-            if(ParameterSetName.Equals("PSGalleryParameterSet")){
+            if(ParameterSetName.Equals(PSGalleryParameterSet)){
                 PSGalleryParameterSetHelper(items);
             }
-            else if(ParameterSetName.Equals("NameParameterSet"))
+            else if(ParameterSetName.Equals(NameParameterSet))
             {
                 NameParameterSetHelper(items);
             }
-            else if(ParameterSetName.Equals("RepositoriesParameterSet"))
+            else if(ParameterSetName.Equals(RepositoriesParameterSet))
             {
                 RepositoriesParameterSetHelper(items);
             }
