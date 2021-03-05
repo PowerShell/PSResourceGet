@@ -8,15 +8,14 @@ using System.Management.Automation;
 using System.Xml.Linq;
 using System.Linq;
 using static System.Environment;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
+namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     /// <summary>
     /// The class contains basic information of a repository path settings as well as methods to
     /// perform CRUD operations on the repositories.
     /// </summary>
-
-    using PSRepositoryItem = Microsoft.PowerShell.PowerShellGet.PSRepositoryItem.PSRepositoryItem;
 
     static class RepositorySettings
     {

@@ -6,8 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Language;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
-using Microsoft.PowerShell.PowerShellGet.PSRepositoryItem;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 internal class RepositoryNameCompleter : IArgumentCompleter
 {

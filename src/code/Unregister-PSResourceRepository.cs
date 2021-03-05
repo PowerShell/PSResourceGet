@@ -1,5 +1,6 @@
 using System;
 using System.Management.Automation;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -7,8 +8,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// The Unregister-PSResourceRepository cmdlet replaces the Unregister-PSRepository cmdlet from V2.
     /// It unregisters a repository for the current user.
     /// </summary>
-
-    using RepositorySettings = Microsoft.PowerShell.PowerShellGet.RepositorySettings.RepositorySettings;
 
     [Cmdlet(VerbsLifecycle.Unregister,
         "PSResourceRepository",

@@ -6,6 +6,7 @@ using System.Collections;
 using System.Management.Automation;
 using System.Globalization;
 using System.Collections.Generic;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -14,9 +15,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It registers a repository for PowerShell modules.
     /// The repository is registered to the current user's scope and does not have a system-wide scope.
     /// </summary>
-
-    using RepositorySettings = Microsoft.PowerShell.PowerShellGet.RepositorySettings.RepositorySettings;
-    using PSRepositoryItem = Microsoft.PowerShell.PowerShellGet.PSRepositoryItem.PSRepositoryItem;
 
     [Cmdlet(VerbsLifecycle.Register,
         "PSResourceRepository",

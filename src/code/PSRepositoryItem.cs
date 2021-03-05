@@ -4,7 +4,7 @@
 using System;
 using System.Management.Automation;
 
-namespace Microsoft.PowerShell.PowerShellGet.PSRepositoryItem
+namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     /// <summary>
     /// This class contains information for a repository item.
