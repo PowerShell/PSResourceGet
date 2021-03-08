@@ -41,15 +41,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public string Name
-        {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
-        private string _name;
+        public string Name { get; set; }
 
         /// <summary>
         /// Specifies the location of the repository to be registered.
@@ -81,45 +73,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// When specified, registers PSGallery repository.
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = PSGalleryParameterSet)]
-        public SwitchParameter PSGallery
-        {
-            get
-            { return _psgallery; }
-
-            set
-            { _psgallery = value; }
-        }
-        private SwitchParameter _psgallery;
+        public SwitchParameter PSGallery { get; set; }
 
         /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = "RepositoriesParameterSet")]
         [ValidateNotNullOrEmpty]
-        public List<Hashtable> Repositories
-        {
-            get
-            { return _repositories; }
-
-            set
-            { _repositories = value; }
-        }
-        private List<Hashtable> _repositories;
+        public List<Hashtable> Repositories { get; set; }
 
         /// <summary>
         /// Specifies whether the repository should be trusted.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = PSGalleryParameterSet)]
-        public SwitchParameter Trusted
-        {
-            get
-            { return _trusted; }
-
-            set
-            { _trusted = value; }
-        }
-        private SwitchParameter _trusted;
+        public SwitchParameter Trusted { get; set; }
 
         /// <summary>
         /// Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched
@@ -131,134 +99,105 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = PSGalleryParameterSet)]
         [ValidateNotNullOrEmpty]
         [ValidateRange(0, 50)]
-        public int Priority
-        {
-            get
-            { return _priority; }
-
-            set
-            { _priority = value; }
-        }
-        private int _priority = defaultPriority;
+        public int Priority { get; set; } = defaultPriority;
 
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
-        public Uri Proxy
-        {
-            get
-            { return _proxy; }
-
-            set
-            { _proxy = value; }
-        }
-        private Uri _proxy;
+        public Uri Proxy { get; set; }
 
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true)]
-        public PSCredential ProxyCredential
-        {
-            get
-            { return _proxycredential; }
-
-            set
-            { _proxycredential = value; }
-        }
-        private PSCredential _proxycredential;
+        public PSCredential ProxyCredential { get; set; }
 
         /// <summary>
         /// When specified, displays the succcessfully registered repository and its information
         /// </summary>
         [Parameter]
-        public SwitchParameter PassThru
-        {
-            get
-            { return _passThru; }
+        public SwitchParameter PassThru { get; set; }
 
-            set
-            { _passThru = value; }
-        }
-        private SwitchParameter _passThru;
         #endregion
 
-        /// <summary>
-        /// Process the repository being registered
-        /// </summary>
+        #region NewWay
         protected override void ProcessRecord()
         {
             List<PSRepositoryItem> items = new List<PSRepositoryItem>();
 
-            if(ParameterSetName.Equals(PSGalleryParameterSet)){
-                PSGalleryParameterSetHelper(items);
-            }
-            else if(ParameterSetName.Equals(NameParameterSet))
+            switch(ParameterSetName)
             {
-                NameParameterSetHelper(items);
-            }
-            else if(ParameterSetName.Equals(RepositoriesParameterSet))
-            {
-                RepositoriesParameterSetHelper(items);
-            }
+                case NameParameterSet:
+                    items.Add(NameParameterSetHelper(Name, URL, Priority, Trusted));
+                    break;
 
-            if(_passThru)
+                case PSGalleryParameterSet:
+                    items.Add(PSGalleryParameterSetHelper(Priority, Trusted));
+                    break;
+
+                case RepositoriesParameterSet:
+                    items = RepositoriesParameterSetHelper(); //potential problem if users are allowed to use multiple param sets at a time...?
+                    break;
+
+                default:
+                    WriteDebug("Invalid parameter set");
+                    break;
+
+            }
+            if(PassThru)
             {
-                foreach (PSRepositoryItem item in items)
+                foreach(PSRepositoryItem repo in items)
                 {
-                    WriteObject(item);
+                    WriteObject(repo);
                 }
-            }
-
-        }
-
-        private void PSGalleryParameterSetHelper(List<PSRepositoryItem> items)
-        {
-            var psGalleryUri = new Uri(PSGalleryRepoURL);
-            try
-            {
-                items.Add(RepositorySettings.Add(PSGalleryRepoName, psGalleryUri, _priority, _trusted));
-            }
-            catch (Exception e)
-            {
-                throw new Exception(e.Message);
             }
         }
 
-        private void NameParameterSetHelper(List<PSRepositoryItem> items)
+        private PSRepositoryItem NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
-            if(_name.Equals("PSGallery"))
-            {
-                throw new ArgumentException(String.Format("Use 'Register-PSResourceRepository -PSGallery' to register the PSGallery repository."));
-            }
-            else{
-                try
-                {
-                    items.Add(RepositorySettings.Add(_name, _url, _priority, _trusted));
-                }
-                catch(Exception e)
-                {
-                    throw new Exception(e.Message);
-                }
-            }
-
+            PSRepositoryItem repoItem = RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted);
+            return repoItem;
         }
 
-        private void RepositoriesParameterSetHelper(List<PSRepositoryItem> items)
+        private PSRepositoryItem PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
         {
-            foreach(Hashtable repo in _repositories)
+            Uri psGalleryUri = new Uri(PSGalleryRepoURL);
+            PSRepositoryItem repoItem = RepositorySettings.Add(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted);
+            return repoItem;
+        }
+
+        private List<PSRepositoryItem> RepositoriesParameterSetHelper()
+        {
+            List<PSRepositoryItem> reposAddedFromHashTable = new List<PSRepositoryItem>();
+            foreach(Hashtable repo in Repositories)
             {
                 if(repo.ContainsKey(PSGalleryRepoName))
                 {
-                    _priority = repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority;
-                    _trusted = repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted;
-                    PSGalleryParameterSetHelper(items);
-                    continue;
+                    // _priority = repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority;
+                    // _trusted = repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted;
+                    reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
+                        repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
+                    // continue;
                 }
+                else
+                {
+                    try{
+                        PSRepositoryItem parsedRepoAdded = NameHashTableHelper(repo);
+                        reposAddedFromHashTable.Add(parsedRepoAdded);
+                    }
+                    catch(Exception e)
+                    {
+                        WriteDebug("some error happened with repo x" + e.Message); // non terminating error?
+                    }
+                }
+            }
+            return reposAddedFromHashTable;
+        }
 
-                // if not PSGallery, then check that sufficient keys exist for NameParameterSet style register option
+        private PSRepositoryItem NameHashTableHelper(Hashtable repo)
+        {
                 if(!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
                 {
                     throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository name cannot be null"));
@@ -268,20 +207,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository url cannot be null"));
                 }
 
-                Uri _repoURL;
-                if(!(Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out _repoURL)
-                    && (_repoURL.Scheme == Uri.UriSchemeHttp || _repoURL.Scheme == Uri.UriSchemeHttps || _repoURL.Scheme == Uri.UriSchemeFtp || _repoURL.Scheme == Uri.UriSchemeFile)))
+                Uri repoURL;
+                if(!(Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out repoURL)
+                    && (repoURL.Scheme == Uri.UriSchemeHttp || repoURL.Scheme == Uri.UriSchemeHttps || repoURL.Scheme == Uri.UriSchemeFtp || repoURL.Scheme == Uri.UriSchemeFile)))
                 {
                         throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Invalid Url"));
                 }
 
-                _name = repo["Name"].ToString();
-                _url = _repoURL;
-                _priority = repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority;
-                _trusted = repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted;
-
-                NameParameterSetHelper(items);
-            }
+                return NameParameterSetHelper(repo["Name"].ToString(),
+                    repoURL,
+                    repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
+                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted);
         }
+        #endregion
+
+
     }
 }

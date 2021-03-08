@@ -22,6 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     class GetPSResourceRepository : PSCmdlet
     {
         #region Parameters
+
         /// <summary>
         /// Specifies the name(s) of a registered repository to find.
         /// Does not support wild card characters.
@@ -29,21 +30,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
-        public string[] Name
-        {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
-        private string[] _name = new string[0];
+        public string[] Name { get; set; } = new string[0];
         #endregion
 
         #region Methods
         protected override void ProcessRecord()
         {
-            List<PSRepositoryItem> items = RepositorySettings.Read(_name);
+            List<PSRepositoryItem> items = RepositorySettings.Read(Name);
 
             foreach (PSRepositoryItem repo in items)
             {

@@ -17,6 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     class UnregisterPSResourceRepository : PSCmdlet
     {
         #region Parameters
+
         /// <summary>
         /// Specifies the desired name for the repository to be registered.
         /// </summary>
@@ -25,22 +26,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
-        public string[] Name
-        {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
-        private string[] _name;
+        public string[] Name { get; set; } = new string[0];
         #endregion
 
         #region Methods
         protected override void ProcessRecord()
         {
             try{
-                RepositorySettings.Remove(_name);
+                RepositorySettings.Remove(Name);
             }
             catch(Exception e)
             {

@@ -17,7 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     /// perform CRUD operations on the repositories.
     /// </summary>
 
-    static class RepositorySettings
+    internal static class RepositorySettings
     {
         /// <summary>
         /// Default file name for a settings file is 'psresourcerepository.config'
