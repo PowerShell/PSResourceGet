@@ -175,11 +175,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if(repo.ContainsKey(PSGalleryRepoName))
                 {
-                    // _priority = repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority;
-                    // _trusted = repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted;
                     reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
                         repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
-                    // continue;
                 }
                 else
                 {
