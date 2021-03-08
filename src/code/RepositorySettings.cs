@@ -9,6 +9,7 @@ using System.Xml.Linq;
 using System.Linq;
 using static System.Environment;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -78,17 +79,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <param name="sectionName"></param>
         public static PSRepositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
         {
-            // Check to see if information we're trying to add to the repository is valid
-            if (string.IsNullOrEmpty(repoName))
-            {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
-                throw new ArgumentException("Repository name cannot be null or empty");
-            }
-            if (string.IsNullOrEmpty(repoURL.ToString()))
-            {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
-                throw new ArgumentException("Repository URL cannot be null or empty");
-            }
+            Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
+            Dbg.Assert(!string.IsNullOrEmpty(repoURL.ToString()), "Repository URL cannot be null or empty");
+
 
             // Create will make a new XML if one doesn't already exist
             try
@@ -103,10 +96,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Open file
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
 
-            // Check if what's being added already exists, if it does throw an error
-            var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repoName, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-
-            if (node != null)
+            if(Read(new []{ repoName }).Count() != 0)
             {
                 throw new ArgumentException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
             }
@@ -129,7 +119,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Close the file
             root.Save(DefaultFullRepositoryPath);
 
-            // create PSRepositoryItem object to return
             PSRepositoryItem repoItem = new PSRepositoryItem(repoName, repoURL, repoPriority, repoTrusted);
 
             return repoItem;
@@ -223,10 +212,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             foreach (string repo in repoNames)
             {
-                // Check if what's being removed doesn't already exist, throw an error
-                var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-
-                if (node == null)
+                XElement node = FindExistingRepositoryHelper(doc, repo);
+                if(node == null)
                 {
                     throw new ArgumentException(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
                 }
@@ -238,6 +225,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Close the file
             root.Save(DefaultFullRepositoryPath);
         }
+
+        private static XElement FindExistingRepositoryHelper(XDocument doc, string name)
+        {
+            XElement node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+            if(node != null)
+            {
+                return node;
+            }
+            else {
+                return null;
+            }
+        }
+
 
         public static List<PSRepositoryItem> Read(string[] repoNames)
         {
@@ -275,9 +275,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 foreach(string repo in repoNames)
                 {
                     // Check to see if the repository exists
-                    var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+                    // var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+                    // if(node != null)
+                    // {
+                    XElement node = FindExistingRepositoryHelper(doc, repo);
                     if(node != null)
-                    {
+                        {
                         Uri thisUrl;
                         // need more error checks for Uri scheme? ideally uri's registered should be already checked
                         Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
