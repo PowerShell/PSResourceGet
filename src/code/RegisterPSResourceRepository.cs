@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -130,15 +131,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch(ParameterSetName)
             {
                 case NameParameterSet:
-                    items.Add(NameParameterSetHelper(Name, URL, Priority, Trusted));
+                    try{
+                        items.Add(NameParameterSetHelper(Name, URL, Priority, Trusted));
+                    }
+                    catch(Exception e)
+                    {
+                        WriteDebug("made it here");
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorInNameParameterSet",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    }
                     break;
 
                 case PSGalleryParameterSet:
-                    items.Add(PSGalleryParameterSetHelper(Priority, Trusted));
+                    try{
+                        items.Add(PSGalleryParameterSetHelper(Priority, Trusted));
+                    }
+                    catch(Exception e)
+                    {
+                        WriteDebug("In PSGallery case");
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorInPSGalleryParameterSet",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    }
                     break;
 
                 case RepositoriesParameterSet:
-                    items = RepositoriesParameterSetHelper(); //potential problem if users are allowed to use multiple param sets at a time...?
+                    try{
+                        items = RepositoriesParameterSetHelper(); //potential problem if users are allowed to use multiple param sets at a time...?
+                    }
+                    catch (Exception e)
+                    {
+                        WriteDebug("In RepositorySet case");
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorInRepositoriesParameterSet",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    }
+
                     break;
 
                 default:
@@ -171,23 +206,42 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSRepositoryItem> RepositoriesParameterSetHelper()
         {
             List<PSRepositoryItem> reposAddedFromHashTable = new List<PSRepositoryItem>();
+            int count = 1;
             foreach(Hashtable repo in Repositories)
             {
                 if(repo.ContainsKey(PSGalleryRepoName))
                 {
-                    reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
-                        repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
-                }
-                else
-                {
                     try{
-                        PSRepositoryItem parsedRepoAdded = NameHashTableHelper(repo);
-                        reposAddedFromHashTable.Add(parsedRepoAdded);
+                        reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
+                            repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
                     }
                     catch(Exception e)
                     {
-                        WriteDebug("some error happened with repo x" + e.Message); // non terminating error?
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorParsingIndividualRepoPSGallery",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        WriteDebug("wrote an error");
                     }
+
+                }
+                else
+                {
+                    PSRepositoryItem parsedRepoAdded = NameHashTableHelper(repo);
+                    if(parsedRepoAdded != null)
+                    {
+                        reposAddedFromHashTable.Add(parsedRepoAdded);
+                    }
+                    WriteDebug("on repo #: " + count++);
+                    // try{
+                    //     PSRepositoryItem parsedRepoAdded = NameHashTableHelper(repo);
+                    //     reposAddedFromHashTable.Add(parsedRepoAdded);
+                    // }
+                    // catch(Exception e)
+                    // {
+                    //     WriteDebug("some error happened with repo x" + e.Message); // non terminating error?
+                    // }
                 }
             }
             return reposAddedFromHashTable;
@@ -197,24 +251,58 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
                 if(!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
                 {
-                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository name cannot be null"));
+                    // throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository name cannot be null"));
+                    WriteError(new ErrorRecord(
+                            new PSInvalidOperationException("Repository name cannot ne null"),
+                            "NullNameForRepositoriesParameterSetRegistration",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    WriteDebug("wrote an error");
+                    return null;
                 }
                 if(!repo.ContainsKey("Url") || String.IsNullOrEmpty(repo["Url"].ToString()))
                 {
-                    throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository url cannot be null"));
+                    // throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Repository url cannot be null"));
+                    WriteError(new ErrorRecord(
+                            new PSInvalidOperationException("Repository url cannot ne null"),
+                            "NullURLForRepositoriesParameterSetRegistration",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    WriteDebug("wrote an error");
+                    return null;
                 }
 
                 Uri repoURL;
                 if(!(Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out repoURL)
                     && (repoURL.Scheme == Uri.UriSchemeHttp || repoURL.Scheme == Uri.UriSchemeHttps || repoURL.Scheme == Uri.UriSchemeFtp || repoURL.Scheme == Uri.UriSchemeFile)))
                 {
-                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Invalid Url"));
+                        // throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Invalid Url"));
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based"),
+                            "InvalidUrlScheme",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        WriteDebug("wrote an error");
+                        return null;
+
+                }
+                try{
+                    return NameParameterSetHelper(repo["Name"].ToString(),
+                        repoURL,
+                        repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
+                        repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted);
+                }
+                catch(Exception e)
+                {
+                    WriteError(new ErrorRecord(
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorParsingIndividualRepo",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        WriteDebug("wrote an error");
+                        return null;
                 }
 
-                return NameParameterSetHelper(repo["Name"].ToString(),
-                    repoURL,
-                    repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
-                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted);
         }
         #endregion
 
