@@ -151,7 +151,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     catch(Exception e)
                     {
-                        WriteDebug("In PSGallery case");
                         ThrowTerminatingError(new ErrorRecord(
                             new PSInvalidOperationException(e.Message),
                             "ErrorInPSGalleryParameterSet",
@@ -162,11 +161,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 case RepositoriesParameterSet:
                     try{
-                        items = RepositoriesParameterSetHelper(); //potential problem if users are allowed to use multiple param sets at a time...?
+                        items = RepositoriesParameterSetHelper();
                     }
                     catch (Exception e)
                     {
-                        WriteDebug("In RepositorySet case");
                         ThrowTerminatingError(new ErrorRecord(
                             new PSInvalidOperationException(e.Message),
                             "ErrorInRepositoriesParameterSet",
@@ -206,7 +204,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSRepositoryItem> RepositoriesParameterSetHelper()
         {
             List<PSRepositoryItem> reposAddedFromHashTable = new List<PSRepositoryItem>();
-            int count = 1;
             foreach(Hashtable repo in Repositories)
             {
                 if(repo.ContainsKey(PSGalleryRepoName))
@@ -222,7 +219,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             "ErrorParsingIndividualRepoPSGallery",
                             ErrorCategory.InvalidArgument,
                             this));
-                        WriteDebug("wrote an error");
                     }
 
                 }
@@ -233,15 +229,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         reposAddedFromHashTable.Add(parsedRepoAdded);
                     }
-                    WriteDebug("on repo #: " + count++);
-                    // try{
-                    //     PSRepositoryItem parsedRepoAdded = NameHashTableHelper(repo);
-                    //     reposAddedFromHashTable.Add(parsedRepoAdded);
-                    // }
-                    // catch(Exception e)
-                    // {
-                    //     WriteDebug("some error happened with repo x" + e.Message); // non terminating error?
-                    // }
                 }
             }
             return reposAddedFromHashTable;
@@ -257,7 +244,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             "NullNameForRepositoriesParameterSetRegistration",
                             ErrorCategory.InvalidArgument,
                             this));
-                    WriteDebug("wrote an error");
                     return null;
                 }
                 if(!repo.ContainsKey("Url") || String.IsNullOrEmpty(repo["Url"].ToString()))
@@ -268,7 +254,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             "NullURLForRepositoriesParameterSetRegistration",
                             ErrorCategory.InvalidArgument,
                             this));
-                    WriteDebug("wrote an error");
                     return null;
                 }
 
@@ -282,7 +267,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             "InvalidUrlScheme",
                             ErrorCategory.InvalidArgument,
                             this));
-                        WriteDebug("wrote an error");
                         return null;
 
                 }
@@ -299,8 +283,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             "ErrorParsingIndividualRepo",
                             ErrorCategory.InvalidArgument,
                             this));
-                        WriteDebug("wrote an error");
-                        return null;
+                    return null;
                 }
 
         }
