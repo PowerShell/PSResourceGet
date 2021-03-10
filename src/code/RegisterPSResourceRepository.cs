@@ -127,6 +127,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
+            if(Proxy != null || ProxyCredential != null)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSNotImplementedException("Proxy and ProxyCredential are not yet implemented. Please rerun cmdlet with other parameters."),
+                    "ParametersNotImplementedYet",
+                    ErrorCategory.NotImplemented,
+                    this));
+            }
             List<PSRepositoryItem> items = new List<PSRepositoryItem>();
 
             switch(ParameterSetName)
