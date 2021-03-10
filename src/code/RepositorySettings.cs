@@ -73,8 +73,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// Add a repository to the XML
-        /// Returns: PSRepositoryItem containing information about the repository just added
+        /// Add a repository to the store
+        /// Returns: PSRepositoryItem containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
         public static PSRepositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
