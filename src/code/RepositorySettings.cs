@@ -36,12 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static bool FindRepositoryXML()
         {
             // Search in the designated location for the repository XML
-            if (File.Exists(DefaultFullRepositoryPath))
-            {
-                return true;
-            }
-
-            return false;
+            return File.Exists(DefaultFullRepositoryPath);
         }
 
         /// <summary>
