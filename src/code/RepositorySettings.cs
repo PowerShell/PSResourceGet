@@ -96,6 +96,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Open file
             XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
 
+            // could also call FindExistingRepoHelper()
             if(Read(new []{ repoName }).Count() != 0)
             {
                 throw new ArgumentException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
@@ -274,10 +275,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 foreach(string repo in repoNames)
                 {
-                    // Check to see if the repository exists
-                    // var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-                    // if(node != null)
-                    // {
                     XElement node = FindExistingRepositoryHelper(doc, repo);
                     if(node != null)
                         {
