@@ -41,11 +41,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if(!File.Exists(FullRepositoryPath))
             {
-                if (!Directory.Exists(RepositoryPath))
-                {
-                    Directory.CreateDirectory(RepositoryPath);
-                }
                 try{
+                    if (!Directory.Exists(RepositoryPath))
+                    {
+                        Directory.CreateDirectory(RepositoryPath);
+                    }
+
                     XDocument newRepoXML = new XDocument(
                             new XElement("configuration")
                     );
