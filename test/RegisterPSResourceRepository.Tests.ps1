@@ -138,4 +138,8 @@ Describe "Test Register-PSResourceRepository" {
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 20
     }
+
+    It "not register repository when Name is provided but URL is not" {
+        {Register-PSResourceRepository -Name "testRepository" -URL "" -ErrorAction Stop} | Should -Throw "The URL provided is not valid: "
+    }
 }

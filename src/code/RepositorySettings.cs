@@ -3,13 +3,17 @@
 
 using System;
 using System.IO;
+using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Xml.Linq;
 using System.Linq;
+using System.Globalization;
 using static System.Environment;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using Dbg = System.Diagnostics.Debug;
+using System.Management.Automation.Internal;
+
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -28,43 +32,41 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static readonly string DefaultRepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
         public static readonly string DefaultFullRepositoryPath = Path.Combine(DefaultRepositoryPath, DefaultRepositoryFileName);
 
-        /// <summary>
-        /// Find a repository XML
-        /// Returns:
-        /// </summary>
-        /// <param name="sectionName"></param>
-        public static bool FindRepositoryXML()
-        {
-            // Search in the designated location for the repository XML
-            return File.Exists(DefaultFullRepositoryPath);
-        }
 
         /// <summary>
-        /// Create a new repository XML
-        /// Returns: void
+        /// Check if repository store xml file exists, if not then create
         /// </summary>
-        /// <param name="sectionName"></param>
-        public static void CreateNewRepositoryXML()
+        public static void CheckRepositoryStore()
         {
-            // Check to see if the file already exists; if it does return
-            if (FindRepositoryXML())
+            if(!File.Exists(DefaultFullRepositoryPath))
             {
-                return;
+                // create directory if needed
+                if (!Directory.Exists(DefaultRepositoryPath))
+                {
+                    Directory.CreateDirectory(DefaultRepositoryPath);
+                }
+                try{
+                    // If the repository xml file doesn't exist yet, create one
+                    XDocument newRepoXML = new XDocument(
+                            new XElement("configuration")
+                    );
+                    // Should be saved in:
+                    newRepoXML.Save(DefaultFullRepositoryPath);
+                }
+                catch (Exception e)
+                {
+                    throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store creation failed with error: {0}.", e.Message));
+                }
             }
-
-            // create directory if needed
-            if (!Directory.Exists(DefaultRepositoryPath))
+            // At this point should be created, and not corrupted
+            // Open file, if cannot/is corrupted then throw error
+            try{
+                XDocument.Load(DefaultFullRepositoryPath);
+            }
+            catch(Exception e)
             {
-                Directory.CreateDirectory(DefaultRepositoryPath);
+                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store may be corrupted, file reading failed with error: {0}.", e.Message));
             }
-
-            // If the repository xml file doesn't exist yet, create one
-            XDocument newRepoXML = new XDocument(
-                    new XElement("configuration")
-            );
-
-            // Should be saved in:
-            newRepoXML.Save(DefaultFullRepositoryPath);
         }
 
         /// <summary>
@@ -77,43 +79,39 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
             Dbg.Assert(!string.IsNullOrEmpty(repoURL.ToString()), "Repository URL cannot be null or empty");
 
+            try{
 
-            // Create will make a new XML if one doesn't already exist
-            try
-            {
-                CreateNewRepositoryXML();
+                // Open file
+                XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
+
+                // could also call FindExistingRepoHelper()
+                if(Read(new []{ repoName }).Count() != 0)
+                {
+                    throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
+                }
+
+                // Else, keep going
+                // Get root of XDocument (XElement)
+                var root = doc.Root;
+
+                // Create new element
+                XElement newElement = new XElement(
+                    "Repository",
+                    new XAttribute("Name", repoName),
+                    new XAttribute("Url", repoURL),
+                    new XAttribute("Priority", repoPriority),
+                    new XAttribute("Trusted", repoTrusted)
+                    );
+
+                root.Add(newElement);
+
+                // Close the file
+                root.Save(DefaultFullRepositoryPath);
             }
-            catch
+            catch(Exception e)
             {
-                throw new ArgumentException("Was not able to successfully create xml");
+                throw new PSInvalidOperationException(String.Format("Adding to repository store file failed: {0}.", e.Message));
             }
-
-            // Open file
-            XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
-
-            // could also call FindExistingRepoHelper()
-            if(Read(new []{ repoName }).Count() != 0)
-            {
-                throw new ArgumentException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
-            }
-
-            // Else, keep going
-            // Get root of XDocument (XElement)
-            var root = doc.Root;
-
-            // Create new element
-            XElement newElement = new XElement(
-                "Repository",
-                new XAttribute("Name", repoName),
-                new XAttribute("Url", repoURL),
-                new XAttribute("Priority", repoPriority),
-                new XAttribute("Trusted", repoTrusted)
-                );
-
-            root.Add(newElement);
-
-            // Close the file
-            root.Save(DefaultFullRepositoryPath);
 
             PSRepositoryItem repoItem = new PSRepositoryItem(repoName, repoURL, repoPriority, repoTrusted);
 
@@ -126,21 +124,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public static void Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
         {
-            // Check to see if information we're trying to add to the repository is valid
-            if (string.IsNullOrEmpty(repoName))
-            {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
-                throw new ArgumentException("Repository name cannot be null or empty");
-            }
+            Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
 
-            // We expect the xml to exist, if it doesn't user needs to register a repository
             try
             {
-                FindRepositoryXML();
+                CheckRepositoryStore();
             }
-            catch
+            catch(Exception e)
             {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
+                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store may be corrupted, file reading failed with error: {0}.", e.Message));
             }
 
             // Open file
@@ -195,9 +187,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new ArgumentException("Repository name cannot be null or empty");
             }
 
-            if (!FindRepositoryXML())
+            try
             {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
+                CheckRepositoryStore();
+            }
+            catch (Exception e)
+            {
+                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Error with Repostitory Store {0}", e.Message));
             }
 
             // Open file
@@ -238,10 +234,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static List<PSRepositoryItem> Read(string[] repoNames)
         {
             // Can be null, will just retrieve all
-            // Call FindRepositoryXML()  [Create will make a new xml if one doesn't already exist]
-            if (!FindRepositoryXML())
+            try
             {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
+                CheckRepositoryStore();
+            }
+            catch (Exception e)
+            {
+                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Error with Repostitory Store {0}", e.Message));
             }
 
             // Open file
