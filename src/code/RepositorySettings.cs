@@ -1,19 +1,15 @@
-﻿using System.Linq.Expressions;
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
 using System.IO;
-using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Xml.Linq;
 using System.Linq;
 using System.Globalization;
 using static System.Environment;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using Dbg = System.Diagnostics.Debug;
-using System.Management.Automation.Internal;
 
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
