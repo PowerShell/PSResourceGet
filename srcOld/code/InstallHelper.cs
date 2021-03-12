@@ -315,7 +315,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var filteredFoundPkgs = FindFilteredPackages(pkgName, pkgMetadataResource, context, repositoryName, versionRange, prerelease);
 
                 if (filteredFoundPkgs == null)
-                {   
+                {
                     return pkgsLeftToInstall;
                 }
 
@@ -419,12 +419,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     pkgsToInstall.Remove(pkgsToRemove);
                                     pkgsLeftToInstall.Remove(name);
                                 }
-                                // if update, check to see if that particular version is in the path.. 
+                                // if update, check to see if that particular version is in the path..
                                 // check script version matching too
                             }
                             else if (update)
                             {
-                                // Throw module or script not installed terminating error 
+                                // Throw module or script not installed terminating error
                                 var exMessage = String.Format("Module '{0}' was not updated because no valid module was found in the module directory.Verify that the module is located in the folder specified by $env: PSModulePath.", name);
                                 var ex = new ArgumentException(exMessage);
                                 var moduleNotInstalledError = new ErrorRecord(ex, "ModuleNotInstalled", ErrorCategory.ObjectNotFound, null);
@@ -453,7 +453,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         int i = 1;
                         int j = 1;
                         /****************************
-                        * START PACKAGE INSTALLATION -- start progress bar 
+                        * START PACKAGE INSTALLATION -- start progress bar
                         *****************************/
                         // Write-Progress -Activity "Search in Progress" - Status "$i% Complete:" - PercentComplete $i
 
@@ -482,7 +482,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
                         cmdletPassedIn.WriteProgress(progressRecord);
                     }
-                    
+
                     var pkgIdentity = new PackageIdentity(p.Identity.Id, p.Identity.Version);
                     var cacheContext = new SourceCacheContext();
 
@@ -552,7 +552,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     cmdletPassedIn.WriteDebug(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
 
                     // Prompt if module requires license acceptance
-                    // Need to read from .psd1 
+                    // Need to read from .psd1
                     var newVersion = p.Identity.Version.ToString();
                     if (p.Identity.Version.IsPrerelease)
                     {
@@ -601,7 +601,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                         cmdletPassedIn.ThrowTerminatingError(acceptLicenseError);
                                     }
 
-                                    // Otherwise read LicenseFile 
+                                    // Otherwise read LicenseFile
                                     string licenseText = System.IO.File.ReadAllText(LicenseFilePath);
                                     var acceptanceLicenseQuery = $"Do you accept the license terms for module '{p.Identity.Id}'.";
                                     var message = licenseText + "`r`n" + acceptanceLicenseQuery;
@@ -630,7 +630,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
-                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString().ToLower()); 
+                    var dirNameVersion = Path.Combine(tempInstallPath, p.Identity.Id.ToLower(), p.Identity.Version.ToNormalizedString().ToLower());
                     var nupkgSHAToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg.sha512").ToLower());
                     var nuspecToDelete = Path.Combine(dirNameVersion, (p.Identity.Id + ".nuspec").ToLower());
                     var nupkgToDelete = Path.Combine(dirNameVersion, (p.Identity.ToString() + ".nupkg").ToLower());
@@ -713,10 +713,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // If NoClobber is specified, ensure command clobbering does not happen
                             if (noClobber)
                             {
-                                // This is a primitive implementation  
+                                // This is a primitive implementation
                                 // 1) get all possible paths
                                 // 2) search all modules and compare
-                                /// Cannot uninstall a module if another module is dependent on it 
+                                /// Cannot uninstall a module if another module is dependent on it
 
                                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                                 {
@@ -806,7 +806,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 File.Move(Path.Combine(dirNameVersion, scriptXML), Path.Combine(_path, scriptXML));
                             }
                         }
-                        else 
+                        else
                         {
                             var fullTempInstallpath = Path.Combine(tempInstallPath, pkgIdentity.Id, pkgIdentity.Version.ToString()); // localRepo ? Path.Combine(tempInstallPath, pkgIdentity.Version.ToString()) : Path.Combine(tempInstallPath, pkgIdentity.Id, pkgIdentity.Version.ToString());
                             var fullPermanentNewPath = localRepo ? Path.Combine(_path, pkgIdentity.Id, pkgIdentity.Version.ToString()) : Path.Combine(_path, pkgIdentity.Id);
@@ -962,13 +962,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package {0}", p.Identity.Id));
-                   
+
                     cmdletPassedIn.WriteDebug(string.Format("Attempting to delete '{0}'", tempInstallPath));
                     if (Directory.Exists(tempInstallPath))
                     {
                         Directory.Delete(tempInstallPath, true);
                     }
-                 
+
                     pkgsLeftToInstall.Remove(pkgName);
                 }
             }
@@ -1037,7 +1037,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         dependencies = pkgMetadataResource.GetMetadataAsync(pkgDependency.Id, prerelease, true, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
                     }
-                    catch 
+                    catch
                     { }
                     // b) Check if the appropriate verion range exists  (if version exists, then add it to the list to return)
                     VersionRange versionRange = null;
@@ -1059,12 +1059,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         dependencies.FirstOrDefault() :
                         dependencies.Where(v => versionRange.Satisfies(v.Identity.Version)).FirstOrDefault());
 
-                    // If the pkg already exists on the system, don't add it to the list of pkgs that need to be installed 
+                    // If the pkg already exists on the system, don't add it to the list of pkgs that need to be installed
                     var dirName = save ? cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(_path).FirstOrDefault().Path :  Path.Combine(psModulesPath, pkgDependency.Id);
                     var dependencyAlreadyInstalled = false;
 
                     // Check to see if the package dir exists in the path
-                    // If save we only check the -path passed in 
+                    // If save we only check the -path passed in
                     if (save || psModulesPathAllDirs.Contains(dirName, StringComparer.OrdinalIgnoreCase))
                     {
                         // Then check to see if the package exists in the path
