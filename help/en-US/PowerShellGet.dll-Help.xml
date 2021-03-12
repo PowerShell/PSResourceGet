@@ -353,7 +353,7 @@
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
     <command:details>
-      <command:name>Get-PSResource</command:name>
+      <command:name>Get-InstalledPSResource</command:name>
       <command:verb>Get</command:verb>
       <command:noun>PSResource</command:noun>
       <maml:description>
