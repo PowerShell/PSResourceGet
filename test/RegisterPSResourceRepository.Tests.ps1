@@ -78,9 +78,9 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable1 = @{Name = "testRepository"; URL = $tmpDir1Path}
         $hashtable2 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
         $hashtable3 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $listOfHashtables = $hashtable1, $hashtable2, $hashtable3
+        $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3
 
-        Register-PSResourceRepository -Repositories $listOfHashtables
+        Register-PSResourceRepository -Repositories $arrayOfHashtables
         $res = Get-PSResourceRepository -Name "testRepository"
         $res.URL | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be False
@@ -113,9 +113,9 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable2 = @{Name = "testRepository"; URL = $tmpDir1Path}
         $hashtable3 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
         $hashtable4 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $listOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
+        $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
-        Register-PSResourceRepository -Repositories $listOfHashtables
+        Register-PSResourceRepository -Repositories $arrayOfHashtables
 
         $res1 = Get-PSResourceRepository -Name $PSGalleryName
         $res1.URL | Should -Be $PSGalleryURL
@@ -165,10 +165,10 @@ Describe "Test Register-PSResourceRepository" {
         $correctHashtable1 = @{Name = "testRepository"; URL = $tmpDir1Path}
         $correctHashtable2 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
         $correctHashtable3 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $listOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
+        $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
 
         Unregister-PSResourceRepository -Name "PSGallery"
-        Register-PSResourceRepository -Repositories $listOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+        Register-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].Exception.Message | Should -Be $ErrorMsg
 
@@ -193,9 +193,9 @@ Describe "Test Register-PSResourceRepository" {
         $correctHashtable2 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
         $correctHashtable3 = @{PSGallery = $True; Priority = 30};
 
-        $listOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
+        $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
         Unregister-PSResourceRepository -Name "PSGallery"
-        Register-PSResourceRepository -Repositories $listOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+        Register-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].Exception.Message | Should -Be $ErrorMsg
 
