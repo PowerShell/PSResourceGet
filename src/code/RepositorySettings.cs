@@ -225,9 +225,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     foreach(string repo in repoNames)
                     {
-                        XElement node = FindExistingRepositoryHelper(doc, repo);
-                        if(node != null)
-                            {
+                        WildcardPattern nameWildCardPattern = new WildcardPattern(repo, WildcardOptions.IgnoreCase);
+
+                        foreach(var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
+                        {
                             Uri thisUrl;
                             // need more error checks for Uri scheme? ideally uri's registered should be already checked
                             Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
@@ -238,6 +239,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                             foundRepos.Add(currentRepoItem);
                         }
+
                     }
                 }
             }

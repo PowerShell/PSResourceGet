@@ -241,20 +241,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSRepositoryItem> RepositoriesParameterSetHelper()
         {
             List<PSRepositoryItem> reposAddedFromHashTable = new List<PSRepositoryItem>();
+            int count = 1;
             foreach(Hashtable repo in Repositories)
             {
+                WriteDebug("on repo: " + count++);
                 if(repo.ContainsKey(PSGalleryRepoName))
                 {
-                    // add check for Name and URL keys and WriteError ?
                     if(repo.ContainsKey("Name") || repo.ContainsKey("Url"))
                     {
                         WriteError(new ErrorRecord(
-                                new PSInvalidOperationException("Repository hashtable cannot contain PSGallery with -Name and/or -URL key value pairs"),
+                                new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name and/or -URL key value pairs"),
                                 "NullNameForRepositoriesParameterSetRegistration",
                                 ErrorCategory.InvalidArgument,
                                 this));
-                        // do we want to ignore this write error and move on (currently doing so) OR skip this hashtbale (reutrn null) ?
-                        throw new ArgumentException("Cannot register PSGallery with -URL and/or -Name parameter(s). Try Register-PSResourceRepository -PSGallery");
+                        continue;
                     }
                     try{
                         reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(
