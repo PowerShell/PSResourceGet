@@ -33,11 +33,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             try{
-                RepositorySettings.Remove(Name);
+                RepositorySettings.CheckRepositoryStore();
+            }
+            catch(PSInvalidOperationException e)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSNotImplementedException(e.Message),
+                    "RepositoryStoreException",
+                    ErrorCategory.ReadError,
+                    this));
+            }
+
+            string[] errorMsgs;
+            try{
+                RepositorySettings.Remove(Name, out errorMsgs);
             }
             catch(Exception e)
             {
-                throw new Exception(string.Format("Unable to successfully unregister repository: {0}", e.Message));
+                throw new Exception(string.Format("Unable to successfully unregister repository. {0}", e.Message));
+            }
+            foreach(string error in errorMsgs)
+            {
+                if(!String.IsNullOrEmpty(error))
+                {
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorUnregisteringSpecifiedRepo",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                }
             }
         }
         #endregion

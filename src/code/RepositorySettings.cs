@@ -163,38 +163,43 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: void
         /// </summary>
         /// <param name="sectionName"></param>
-        public static void Remove(string[] repoNames)
+        public static void Remove(string[] repoNames, out string[] errorMsgs)
         {
+            string[] temp = new string[repoNames.Length];
+            int count = 0;
             // Check to see if information we're trying to remove from the repository is valid
             if (repoNames == null || repoNames.Length == 0)
             {
                 throw new ArgumentException("Repository name cannot be null or empty");
             }
+            XDocument doc;
             try {
                 // Open file
-                XDocument doc = XDocument.Load(FullRepositoryPath);
-
-                // Get root of XDocument (XElement)
-                var root = doc.Root;
-
-                foreach (string repo in repoNames)
-                {
-                    XElement node = FindExistingRepositoryHelper(doc, repo);
-                    if(node == null)
-                    {
-                        throw new ArgumentException(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
-                    }
-
-                    // Remove item from file
-                    node.Remove();
-                }
-                // Close the file
-                root.Save(FullRepositoryPath);
+                doc = XDocument.Load(FullRepositoryPath);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                throw new PSInvalidOperationException(String.Format("Removing from repository store failed: {0}", e.Message));
+                errorMsgs = (string[]) temp.Clone();
+                throw new PSInvalidOperationException(String.Format("Loading repository store failed: {0}", e.Message));
             }
+
+            // Get root of XDocument (XElement)
+            var root = doc.Root;
+
+            foreach (string repo in repoNames)
+            {
+                XElement node = FindExistingRepositoryHelper(doc, repo);
+                if(node == null)
+                {
+                    temp[count++] = String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo);
+                    continue;
+                }
+                // Remove item from file
+                node.Remove();
+            }
+            // Close the file
+            root.Save(FullRepositoryPath);
+            errorMsgs = (string[]) temp.Clone();
         }
 
         public static List<PSRepositoryItem> Read(string[] repoNames)
