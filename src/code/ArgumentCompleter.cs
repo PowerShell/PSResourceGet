@@ -17,8 +17,8 @@ internal class RepositoryNameCompleter : IArgumentCompleter
         CommandAst commandAst,
         IDictionary fakeBoundParameters)
     {
-        string[] errorMsgs;
-        List<PSRepositoryItem> listOfRepositories = RepositorySettings.Read(null, out errorMsgs);
+        List<PSRepositoryItem> listOfRepositories = RepositorySettings.Read(null, out string[] _);
+        Console.WriteLine(listOfRepositories.Count);
         foreach(PSRepositoryItem repo in listOfRepositories)
         {
             string repoName = repo.Name;
