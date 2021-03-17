@@ -202,57 +202,69 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             errorMsgs = (string[]) temp.Clone();
         }
 
-        public static List<PSRepositoryItem> Read(string[] repoNames)
+        public static List<PSRepositoryItem> Read(string[] repoNames, out string[] errorMsgs)
         {
             var foundRepos = new List<PSRepositoryItem>();
-
-            try{
+            string[] temp = new string[repoNames.Length];
+            int count = 0;
+            XDocument doc;
+            try {
                 // Open file
-                XDocument doc = XDocument.Load(FullRepositoryPath);
-                if(repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
-                {
-                    // Name array or single value is null so we will list all repositories registered
-                    // iterate through the doc
-                    foreach(XElement repo in doc.Descendants("Repository"))
-                    {
-                        Uri thisUrl;
-                        // need more error checks for Uri scheme? ideally uri's registered should be already checked
-                        Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
-                        PSRepositoryItem currentRepoItem = new PSRepositoryItem(repo.Attribute("Name").Value,
-                            thisUrl,
-                            Int32.Parse(repo.Attribute("Priority").Value),
-                            Boolean.Parse(repo.Attribute("Trusted").Value));
-
-                        foundRepos.Add(currentRepoItem);
-                    }
-                }
-                else
-                {
-                    foreach(string repo in repoNames)
-                    {
-                        WildcardPattern nameWildCardPattern = new WildcardPattern(repo, WildcardOptions.IgnoreCase);
-
-                        foreach(var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
-                        {
-                            Uri thisUrl;
-                            // need more error checks for Uri scheme? ideally uri's registered should be already checked
-                            Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
-                            PSRepositoryItem currentRepoItem = new PSRepositoryItem(node.Attribute("Name").Value,
-                                thisUrl,
-                                Int32.Parse(node.Attribute("Priority").Value),
-                                Boolean.Parse(node.Attribute("Trusted").Value));
-
-                            foundRepos.Add(currentRepoItem);
-                        }
-
-                    }
-                }
+                doc = XDocument.Load(FullRepositoryPath);
             }
             catch (Exception e)
             {
-                throw new PSInvalidOperationException(String.Format("Reading from repository store failed: {0}", e.Message));
+                errorMsgs = (string[]) temp.Clone();
+                throw new PSInvalidOperationException(String.Format("Loading repository store failed: {0}", e.Message));
             }
 
+
+            if(repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
+            {
+                // Name array or single value is null so we will list all repositories registered
+                // iterate through the doc
+                foreach(XElement repo in doc.Descendants("Repository"))
+                {
+                    Uri thisUrl;
+                    // need more error checks for Uri scheme? ideally uri's registered should be already checked
+                    Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
+                    PSRepositoryItem currentRepoItem = new PSRepositoryItem(repo.Attribute("Name").Value,
+                        thisUrl,
+                        Int32.Parse(repo.Attribute("Priority").Value),
+                        Boolean.Parse(repo.Attribute("Trusted").Value));
+
+                    foundRepos.Add(currentRepoItem);
+                }
+            }
+            else
+            {
+                foreach(string repo in repoNames)
+                {
+                    bool repoMatch = false;
+                    WildcardPattern nameWildCardPattern = new WildcardPattern(repo, WildcardOptions.IgnoreCase);
+
+                    foreach(var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
+                    {
+                        repoMatch = true;
+                        Uri thisUrl;
+                        // need more error checks for Uri scheme? ideally uri's registered should be already checked
+                        Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
+                        PSRepositoryItem currentRepoItem = new PSRepositoryItem(node.Attribute("Name").Value,
+                            thisUrl,
+                            Int32.Parse(node.Attribute("Priority").Value),
+                            Boolean.Parse(node.Attribute("Trusted").Value));
+
+                        foundRepos.Add(currentRepoItem);
+                    }
+                    if(!repoMatch)
+                    {
+                        //then no match for repo name provided
+                        temp[count++] = String.Format("Unable to find repository matching Name '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo);
+                    }
+                }
+            }
+
+            errorMsgs = (string[]) temp.Clone();
             // Sort by priority, then by repo name
             var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
             return reposToReturn.ToList();

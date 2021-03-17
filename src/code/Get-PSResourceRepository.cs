@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-
+using System;
 using System.Collections.Generic;
 using System.Management.Automation;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
@@ -36,7 +36,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            List<PSRepositoryItem> items = RepositorySettings.Read(Name);
+            try{
+                RepositorySettings.CheckRepositoryStore();
+            }
+            catch(PSInvalidOperationException e)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSNotImplementedException(e.Message),
+                    "RepositoryStoreException",
+                    ErrorCategory.ReadError,
+                    this));
+            }
+            string[] errorMsgs;
+            List<PSRepositoryItem> items = RepositorySettings.Read(Name, out errorMsgs);
+            foreach(string error in errorMsgs)
+            {
+                if(!String.IsNullOrEmpty(error))
+                {
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorUnregisteringSpecifiedRepo",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                }
+            }
 
             foreach (PSRepositoryItem repo in items)
             {

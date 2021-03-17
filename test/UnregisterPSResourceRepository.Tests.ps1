@@ -5,8 +5,6 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe "Test Register-PSResourceRepository" {
     BeforeEach {
-        $PSGalleryName = Get-PSGalleryName
-        $PSGalleryURL = Get-PSGalleryLocation
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir2"
@@ -27,7 +25,7 @@ Describe "Test Register-PSResourceRepository" {
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
         Unregister-PSResourceRepository -Name "testRepository"
 
-        $res = Get-PSResourceRepository -Name "testRepository"
+        $res = Get-PSResourceRepository -Name "testRepository" -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -36,7 +34,7 @@ Describe "Test Register-PSResourceRepository" {
         Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
         Unregister-PSResourceRepository -Name "testRepository","testRepository2"
 
-        $res = Get-PSResourceRepository -Name "testRepository","testRepository2"
+        $res = Get-PSResourceRepository -Name "testRepository","testRepository2" -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
