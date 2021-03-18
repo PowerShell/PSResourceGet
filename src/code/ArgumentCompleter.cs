@@ -22,7 +22,7 @@ internal class RepositoryNameCompleter : IArgumentCompleter
         foreach(PSRepositoryItem repo in listOfRepositories)
         {
             string repoName = repo.Name;
-            if(repoName.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
+            if (repoName.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
             {
                 yield return new CompletionResult(repoName);
             }

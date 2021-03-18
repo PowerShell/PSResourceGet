@@ -35,7 +35,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public static void CheckRepositoryStore()
         {
-            if(!File.Exists(FullRepositoryPath))
+            if (!File.Exists(FullRepositoryPath))
             {
                 try{
                     if (!Directory.Exists(RepositoryPath))
@@ -77,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Open file
                 XDocument doc = XDocument.Load(FullRepositoryPath);
 
-                if(FindRepositoryElement(doc, repoName) != null)
+                if (FindRepositoryElement(doc, repoName) != null)
                 {
                     throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
                 }
@@ -121,7 +121,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XDocument doc = XDocument.Load(FullRepositoryPath);
 
                 XElement node = FindRepositoryElement(doc, repoName);
-                if(node == null)
+                if (node == null)
                 {
                     throw new ArgumentException("Cannot find the repository because it does not exist. Try registering the repository using 'Register-PSResourceRepository'");
                 }
@@ -188,7 +188,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             foreach (string repo in repoNames)
             {
                 XElement node = FindRepositoryElement(doc, repo);
-                if(node == null)
+                if (node == null)
                 {
                     temp.Add(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
                     continue;
@@ -217,13 +217,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Loading repository store failed: {0}", e.Message));
             }
 
-            if(repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
+            if (repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
             {
                 // Name array or single value is null so we will list all repositories registered
                 // iterate through the doc
                 foreach(XElement repo in doc.Descendants("Repository"))
                 {
-                    if(!Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                    if (!Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
                     {
                         temp.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", repo.Attribute("Name").Value));
                         continue;
@@ -246,7 +246,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     foreach(var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
                     {
                         repoMatch = true;
-                        if(!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                        if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
                         {
                             //debug statement
                             temp.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", node.Attribute("Name").Value));
@@ -259,7 +259,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                         foundRepos.Add(currentRepoItem);
                     }
-                    if(!repoMatch)
+                    if (!repoMatch)
                     {
                         temp.Add(String.Format("Unable to find repository matching Name '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
                     }

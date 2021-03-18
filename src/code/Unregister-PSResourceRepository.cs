@@ -54,7 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             foreach(string error in errorMsgs)
             {
-                if(!String.IsNullOrEmpty(error))
+                if (!String.IsNullOrEmpty(error))
                 {
                     WriteError(new ErrorRecord(
                         new PSInvalidOperationException(error),

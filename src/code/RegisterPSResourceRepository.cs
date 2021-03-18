@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set
             {
                 Uri url;
-                if(!Uri.TryCreate(value, string.Empty, out url))
+                if (!Uri.TryCreate(value, string.Empty, out url))
                     {
                         var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
                         var ex = new ArgumentException(message);
@@ -124,7 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            if(Proxy != null || ProxyCredential != null)
+            if (Proxy != null || ProxyCredential != null)
             {
                 ThrowTerminatingError(new ErrorRecord(
                     new PSNotImplementedException("Proxy and ProxyCredential are not yet implemented. Please rerun cmdlet with other parameters."),
@@ -196,7 +196,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
             }
-            if(PassThru)
+            if (PassThru)
             {
                 foreach(PSRepositoryItem repo in items)
                 {
@@ -207,11 +207,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryItem AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
-            if(String.IsNullOrEmpty(repoName) || repoName.Contains(" ") || repoName.Contains("*"))
+            if (String.IsNullOrEmpty(repoName) || repoName.Contains(" ") || repoName.Contains("*"))
             {
                 throw new ArgumentException("Name cannot be null/empty or contain whitespace or asterisk");
             }
-            if(repoUrl == null || !(repoUrl.Scheme == Uri.UriSchemeHttp || repoUrl.Scheme == Uri.UriSchemeHttps || repoUrl.Scheme == Uri.UriSchemeFtp || repoUrl.Scheme == Uri.UriSchemeFile))
+            if (repoUrl == null || !(repoUrl.Scheme == Uri.UriSchemeHttp || repoUrl.Scheme == Uri.UriSchemeHttps || repoUrl.Scheme == Uri.UriSchemeFtp || repoUrl.Scheme == Uri.UriSchemeFile))
             {
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryItem NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
-            if(repoName.Equals("PSGallery"))
+            if (repoName.Equals("PSGallery"))
             {
                 throw new ArgumentException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery");
             }
@@ -229,10 +229,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryItem PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
         {
-            // if(URL != null || !string.IsNullOrEmpty(Name))
-            // {
-            //     throw new ArgumentException("Cannot register PSGallery with -URL and/or -Name parameter(s). Try Register-PSResourceRepository -PSGallery");
-            // }
             Uri psGalleryUri = new Uri(PSGalleryRepoURL);
             // at this point name and url that will be passed in are hardcoded and thus validated, priority and trusted are validated by their Proprty validation tags.
             return AddToRepositoryStoreHelper(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted);
@@ -245,9 +241,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach(Hashtable repo in Repositories)
             {
                 WriteDebug("on repo: " + count++);
-                if(repo.ContainsKey(PSGalleryRepoName))
+                if (repo.ContainsKey(PSGalleryRepoName))
                 {
-                    if(repo.ContainsKey("Name") || repo.ContainsKey("Url"))
+                    if (repo.ContainsKey("Name") || repo.ContainsKey("Url"))
                     {
                         WriteError(new ErrorRecord(
                                 new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name and/or -URL key value pairs"),
@@ -273,7 +269,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     PSRepositoryItem parsedRepoAdded = RepoValidationHelper(repo);
-                    if(parsedRepoAdded != null)
+                    if (parsedRepoAdded != null)
                     {
                         reposAddedFromHashTable.Add(parsedRepoAdded);
                     }
@@ -284,7 +280,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryItem RepoValidationHelper(Hashtable repo)
         {
-            if(!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
+            if (!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
             {
                 WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Repository name cannot ne null"),
@@ -293,7 +289,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 return null;
             }
-            if(repo["Name"].ToString().Equals("PSGallery"))
+            if (repo["Name"].ToString().Equals("PSGallery"))
             {
                 WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery"),
@@ -302,7 +298,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 return null;
             }
-            if(!repo.ContainsKey("Url") || String.IsNullOrEmpty(repo["Url"].ToString()))
+            if (!repo.ContainsKey("Url") || String.IsNullOrEmpty(repo["Url"].ToString()))
             {
                 WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Repository url cannot ne null"),
@@ -312,8 +308,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            Uri repoURL;
-            if(!Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out repoURL))
+            if (!Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out Uri repoURL))
             {
                 WriteError(new ErrorRecord(
                     new PSInvalidOperationException("Invalid url, unable to create"),
@@ -331,7 +326,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch(Exception e)
             {
-                if(!(e is ArgumentException || e is PSInvalidOperationException))
+                if (!(e is ArgumentException || e is PSInvalidOperationException))
                 {
                     ThrowTerminatingError(new ErrorRecord(
                         new PSInvalidOperationException(e.Message),
