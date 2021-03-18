@@ -274,14 +274,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static XElement FindRepositoryElement(XDocument doc, string name)
         {
-            XElement node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-            if(node != null)
-            {
-                return node;
-            }
-            else {
-                return null;
-            }
+            return doc.Descendants("Repository").Where(
+                e => string.Equals(
+                    e.Attribute("Name").Value,
+                    name,
+                    StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
         }
     }
 }
