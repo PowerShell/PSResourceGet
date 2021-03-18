@@ -32,10 +32,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            try{
+            try
+            {
                 RepositorySettings.CheckRepositoryStore();
             }
-            catch(PSInvalidOperationException e)
+            catch (PSInvalidOperationException e)
             {
                 ThrowTerminatingError(new ErrorRecord(
                     new PSNotImplementedException(e.Message),
@@ -45,14 +46,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             string[] errorMsgs;
-            try{
+            try
+            {
                 RepositorySettings.Remove(Name, out errorMsgs);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 throw new Exception(string.Format("Unable to successfully unregister repository. {0}", e.Message));
             }
-            foreach(string error in errorMsgs)
+            foreach (string error in errorMsgs)
             {
                 if (!String.IsNullOrEmpty(error))
                 {

@@ -55,8 +55,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             set
             {
-                Uri url;
-                if (!Uri.TryCreate(value, string.Empty, out url))
+                if (!Uri.TryCreate(value, string.Empty, out Uri url))
                     {
                         var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
                         var ex = new ArgumentException(message);
@@ -133,10 +132,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
-            try{
+            try
+            {
                 RepositorySettings.CheckRepositoryStore();
             }
-            catch(PSInvalidOperationException e)
+            catch (PSInvalidOperationException e)
             {
                 ThrowTerminatingError(new ErrorRecord(
                     new PSNotImplementedException(e.Message),
@@ -147,13 +147,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             List<PSRepositoryItem> items = new List<PSRepositoryItem>();
 
-            switch(ParameterSetName)
+            switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    try{
+                    try
+                    {
                         items.Add(NameParameterSetHelper(Name, URL, Priority, Trusted));
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         ThrowTerminatingError(new ErrorRecord(
                             new PSInvalidOperationException(e.Message),
@@ -164,10 +165,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case PSGalleryParameterSet:
-                    try{
+                    try
+                    {
                         items.Add(PSGalleryParameterSetHelper(Priority, Trusted));
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         ThrowTerminatingError(new ErrorRecord(
                             new PSInvalidOperationException(e.Message),
@@ -178,7 +180,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case RepositoriesParameterSet:
-                    try{
+                    try
+                    {
                         items = RepositoriesParameterSetHelper();
                     }
                     catch (Exception e)
@@ -198,7 +201,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             if (PassThru)
             {
-                foreach(PSRepositoryItem repo in items)
+                foreach (PSRepositoryItem repo in items)
                 {
                     WriteObject(repo);
                 }
@@ -237,10 +240,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSRepositoryItem> RepositoriesParameterSetHelper()
         {
             List<PSRepositoryItem> reposAddedFromHashTable = new List<PSRepositoryItem>();
-            int count = 1;
-            foreach(Hashtable repo in Repositories)
+            foreach (Hashtable repo in Repositories)
             {
-                WriteDebug("on repo: " + count++);
                 if (repo.ContainsKey(PSGalleryRepoName))
                 {
                     if (repo.ContainsKey("Name") || repo.ContainsKey("Url"))
@@ -252,7 +253,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 this));
                         continue;
                     }
-                    try{
+                    try
+                    {
                         reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(
                             repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
                             repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
@@ -318,13 +320,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            try{
+            try
+            {
                 return NameParameterSetHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 if (!(e is ArgumentException || e is PSInvalidOperationException))
                 {

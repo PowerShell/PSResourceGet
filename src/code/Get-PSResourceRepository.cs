@@ -37,10 +37,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            try{
+            try
+            {
                 RepositorySettings.CheckRepositoryStore();
             }
-            catch(PSInvalidOperationException e)
+            catch (PSInvalidOperationException e)
             {
                 ThrowTerminatingError(new ErrorRecord(
                     new PSNotImplementedException(e.Message),
@@ -48,9 +49,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.ReadError,
                     this));
             }
-            string[] errorMsgs;
-            List<PSRepositoryItem> items = RepositorySettings.Read(Name, out errorMsgs);
-            foreach(string error in errorMsgs)
+
+            List<PSRepositoryItem> items = RepositorySettings.Read(Name, out string[] errorMsgs);
+            foreach (string error in errorMsgs)
             {
                 if (!String.IsNullOrEmpty(error))
                 {

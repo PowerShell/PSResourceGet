@@ -37,7 +37,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if (!File.Exists(FullRepositoryPath))
             {
-                try{
+                try
+                {
                     if (!Directory.Exists(RepositoryPath))
                     {
                         Directory.CreateDirectory(RepositoryPath);
@@ -54,10 +55,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
             }
             // Open file (which should exist now), if cannot/is corrupted then throw error
-            try{
+            try
+            {
                 XDocument.Load(FullRepositoryPath);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store may be corrupted, file reading failed with error: {0}.", e.Message));
             }
@@ -73,7 +75,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
             Dbg.Assert(!string.IsNullOrEmpty(repoURL.ToString()), "Repository URL cannot be null or empty");
 
-            try{
+            try
+            {
                 // Open file
                 XDocument doc = XDocument.Load(FullRepositoryPath);
 
@@ -100,7 +103,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Close the file
                 root.Save(FullRepositoryPath);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
@@ -116,7 +119,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
 
-            try{
+            try
+            {
                 // Open file
                 XDocument doc = XDocument.Load(FullRepositoryPath);
 
@@ -151,7 +155,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Close the file
                 root.Save(FullRepositoryPath);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 throw new PSInvalidOperationException(String.Format("Updating to repository store failed: {0}", e.Message));
             }
@@ -173,7 +177,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new ArgumentException("Repository name cannot be null or empty");
             }
             XDocument doc;
-            try {
+            try
+            {
                 // Open file
                 doc = XDocument.Load(FullRepositoryPath);
             }
@@ -208,7 +213,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             var foundRepos = new List<PSRepositoryItem>();
 
             XDocument doc;
-            try {
+            try
+            {
                 // Open file
                 doc = XDocument.Load(FullRepositoryPath);
             }
@@ -221,7 +227,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 // Name array or single value is null so we will list all repositories registered
                 // iterate through the doc
-                foreach(XElement repo in doc.Descendants("Repository"))
+                foreach (XElement repo in doc.Descendants("Repository"))
                 {
                     if (!Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
                     {
@@ -238,12 +244,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
             else
             {
-                foreach(string repo in repoNames)
+                foreach (string repo in repoNames)
                 {
                     bool repoMatch = false;
                     WildcardPattern nameWildCardPattern = new WildcardPattern(repo, WildcardOptions.IgnoreCase);
 
-                    foreach(var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
+                    foreach (var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
                     {
                         repoMatch = true;
                         if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
