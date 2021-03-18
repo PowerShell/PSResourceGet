@@ -77,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Open file
                 XDocument doc = XDocument.Load(FullRepositoryPath);
 
-                if(FindExistingRepositoryHelper(doc, repoName) != null)
+                if(FindRepositoryElement(doc, repoName) != null)
                 {
                     throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
                 }
@@ -105,8 +105,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            PSRepositoryItem repoItem = new PSRepositoryItem(repoName, repoURL, repoPriority, repoTrusted);
-            return repoItem;
+            return new PSRepositoryItem(repoName, repoURL, repoPriority, repoTrusted);
         }
 
         /// <summary>
@@ -121,7 +120,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Open file
                 XDocument doc = XDocument.Load(FullRepositoryPath);
 
-                XElement node = FindExistingRepositoryHelper(doc, repoName);
+                XElement node = FindRepositoryElement(doc, repoName);
                 if(node == null)
                 {
                     throw new ArgumentException("Cannot find the repository because it does not exist. Try registering the repository using 'Register-PSResourceRepository'");
@@ -188,7 +187,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             foreach (string repo in repoNames)
             {
-                XElement node = FindExistingRepositoryHelper(doc, repo);
+                XElement node = FindRepositoryElement(doc, repo);
                 if(node == null)
                 {
                     temp.Add(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
@@ -273,7 +272,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return reposToReturn.ToList();
         }
 
-        private static XElement FindExistingRepositoryHelper(XDocument doc, string name)
+        private static XElement FindRepositoryElement(XDocument doc, string name)
         {
             XElement node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
             if(node != null)
