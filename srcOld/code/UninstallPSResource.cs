@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Management.Automation;
 using System.Threading;
 using NuGet.Versioning;
@@ -9,7 +8,6 @@ using System.Linq;
 using System.Globalization;
 using System.Collections.ObjectModel;
 using static System.Environment;
-using System.Security.Principal;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -25,69 +23,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     public sealed
     class UninstallPSResource : PSCmdlet
     {
-        //  private string PSGalleryRepoName = "PSGallery";
-
         /// <summary>
-        /// Specifies the exact names of resources to install from a repository.
+        /// Specifies the exact names of resources to uninstall.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
         [ValidateNotNullOrEmpty]
-        public string[] Name
-        {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
-        private string[] _name; // = new string[0];
-
-
+        public string[] Name { get; set; }
+        
         /// <summary>
-        /// Specifies the version or version range of the package to be installed
+        /// Specifies the version or version range of the package to be uninstalled.
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
         [ValidateNotNullOrEmpty]
-        public string Version
-        {
-            get
-            { return _version; }
+        public string Version { get; set; }
 
-            set
-            { _version = value; }
-        }
-        private string _version;
-
-      
         /// <summary>
         /// Specifies to allow ONLY prerelease versions to be uninstalled
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
-        public SwitchParameter PrereleaseOnly
-        {
-            get
-            { return _prereleaseOnly; }
-
-            set
-            { _prereleaseOnly = value; }
-        }
-        private SwitchParameter _prereleaseOnly;
-       
+        public SwitchParameter IncludeDependencies { get; set; }
 
         /// <summary>
-        /// Overrides warning messages about resource installation conflicts.
-        /// If a resource with the same name already exists on the computer, Force allows for multiple versions to be installed.
-        /// If there is an existing resource with the same name and version, Force does NOT overwrite that version.
+        /// Specifies to allow ONLY prerelease versions to be uninstalled
         /// </summary>
-        [Parameter()]
-        public SwitchParameter Force
-        {
-            get { return _force; }
+        [Parameter(ParameterSetName = "NameParameterSet")]
+        public SwitchParameter Force { get; set; }
 
-            set { _force = value; }
-        }
-        private SwitchParameter _force;
+        /// <summary>
+        /// Specifies to allow ONLY prerelease versions to be uninstalled
+        /// </summary>
+        //[Parameter(ParameterSetName = "NameParameterSet")]
+        //public SwitchParameter PrereleaseOnly { get; set; }
 
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         private string programFilesPath;
@@ -99,27 +66,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         NuGetVersion nugetVersion;
         VersionRange versionRange;
-
-
-        /// <summary>
-        /// </summary>
+        
+       
         protected override void ProcessRecord()
         {
             source = new CancellationTokenSource();
             cancellationToken = source.Token;
 
-
-
-            NuGetVersion.TryParse(_version, out nugetVersion);
-
-
-            if (nugetVersion == null)
+            if (Version != null)
             {
-                VersionRange.TryParse(_version, out versionRange); 
+                NuGetVersion.TryParse(Version, out nugetVersion);
+                if (nugetVersion == null)
+                {
+                    VersionRange.TryParse(Version, out versionRange);
+                }
+
+                if (nugetVersion == null && versionRange == null)
+                {
+                    var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
+                    var ex = new ArgumentException(exMessage);
+                    var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+
+                    ThrowTerminatingError(IncorrectVersionFormat);
+                }
             }
-
+            
+            /// THIS MAY NEED TO CHANGE, CHECK ON THIS
             var consoleIsElevated = false;
-
 #if NET472
             // WindowsPS
             var id = System.Security.Principal.WindowsIdentity.GetCurrent();
@@ -148,21 +121,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 #endif
-
-
-            foreach (var pkgName in _name)
+            foreach (var pkgName in Name)
             {
-                var successfullyUninstalledPkg = UninstallPkgHelper(pkgName, cancellationToken);
+                bool successfullyUninstalledPkg = UninstallPkgHelper(pkgName, cancellationToken);
                 if (successfullyUninstalledPkg)
                 {
-                    Console.WriteLine("Successfully uninstalled {0}", pkgName);
+                    WriteVerbose("Successfully uninstalled " + pkgName);
                 }
                 else
                 {
-                    Console.WriteLine("Did not successfully uninstall {0}", pkgName);
+                    WriteVerbose("Did not successfully uninstall " + pkgName);
                 }
             }
         }
+
+
+
+
 
 
 
@@ -240,10 +215,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // If we can't find the resource, just return
             if (!foundResourceObj)
             {
+                WriteDebug("Could not find the resource: ");
                 return successfullyUninstalled;
             }
 
 
+            //// WHAT IF
+            //// IF NOT WHAT IF
             if (!isScript)
             {
                 // Try removing from my documents
@@ -289,9 +267,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             var successfullyUninstalledPkg = false;
             
-
+            // not implementing this feature yet
+            /*
             // If prereleaseOnly is specified, we'll only take into account prerelease versions of pkgs
-            if (_prereleaseOnly)
+            if (PrereleaseOnly)
             {
                 List<string> prereleaseOnlyVersionDirs = new List<string>();
                 foreach (var dir in versionDirs)
@@ -306,6 +285,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 versionDirs = prereleaseOnlyVersionDirs.ToArray();
             }
+            */
 
 
             // if the version specificed is a version range
@@ -361,48 +341,45 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     //.Select(p => (p.Properties.Match("Name"), p.Properties.Match("Version")));
 
-                    if (pkgsWithRequiredModules.Any())
+                    if (pkgsWithRequiredModules.Any() && !Force)
                     {
                         var uniquePkgNames = pkgsWithRequiredModules.Select(p => p.Properties["Name"].Value).Distinct().ToArray();
 
                         var strUniquePkgNames = string.Join(",", uniquePkgNames);
 
-                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Cannot uninstall {0}, the following package(s) take a dependency on this package: {1}", pkgName, strUniquePkgNames));
+                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Cannot uninstall {0}, the following package(s) take a dependency on this package: {1}.  If you would still like to uninstall, rerun the command with -Force", pkgName, strUniquePkgNames));
 
                     }
                 }
 
 
-                // Delete the appropriate directories
-                foreach (var dirVersion in dirsToDelete)
+                // ADD WHAT IF HERE
+                if (ShouldProcess("Uninstall-PSResource"))
                 {
-                    var dirNameVersion = Path.Combine(dirName, dirVersion);
-
-                    // we know it's installed because it has an xml
-                    if (Directory.Exists(dirNameVersion))
+                    // Delete the appropriate directories
+                    foreach (var dirVersion in dirsToDelete)
                     {
-                        var dir = new DirectoryInfo(dirNameVersion.ToString());
-                        dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
-                        // Delete recursively
-                        dir.Delete(true);
-                        successfullyUninstalledPkg = true;
+                        var dirNameVersion = Path.Combine(dirName, dirVersion);
+
+                        // we know it's installed because it has an xml
+                        if (Directory.Exists(dirNameVersion))
+                        {
+                            var dir = new DirectoryInfo(dirNameVersion.ToString());
+                            dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+                            // Delete recursively
+                            dir.Delete(true);
+                            successfullyUninstalledPkg = true;
+                        }
+                    }
+
+                    // Finally:
+                    // Check to see if there's anything left in the parent directory, if not, delete that as well
+                    if (Directory.GetDirectories(dirName).Length == 0)
+                    {
+                        Directory.Delete(dirName, true);
                     }
                 }
-
-
-
-                // Finally:
-                // Check to see if there's anything left in the parent directory, if not, delete that as well
-                if (Directory.GetDirectories(dirName).Length == 0)
-                {
-                    Directory.Delete(dirName, true);
-                }
-
             }
-
-
-          
-
             return successfullyUninstalledPkg;
         }
 
@@ -425,7 +402,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var scriptXMLPath = Path.Combine(scriptsPath, "InstalledScriptInfos", xmlFileName);
 
             ReadOnlyPSMemberInfoCollection<PSPropertyInfo> versionInfo;
-            NuGetVersion nugetVersion;
             using (StreamReader sr = new StreamReader(scriptXMLPath))
             {
 
@@ -434,14 +410,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 versionInfo = deserializedObj.Properties.Match("Version");
             };
-
             
-            NuGetVersion.TryParse(versionInfo.FirstOrDefault().Value.ToString(), out nugetVersion);
-
-
+            NuGetVersion.TryParse(versionInfo.FirstOrDefault().Value.ToString(), out NuGetVersion nugetVersion);
 
             // If prereleaseOnly is specified, we'll only take into account prerelease versions of pkgs
-            if (_prereleaseOnly)
+            /*
+            if (PrereleaseOnly)
             {
                 // If the installed script is a prerelease, we can continue processing it
                 if (nugetVersion.IsPrerelease)
@@ -453,9 +427,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return successfullyUninstalledPkg;
                 }
             }
+            */
 
-
-            if (_version == null)
+            if (Version == null)
             {
                 // if no version is specified, just delete the latest version (right now the only version)
                 dirsToDelete.Add(fullScriptPath);
@@ -465,7 +439,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // Parse the version passed in and compare it to the script version
                 NuGetVersion argNugetVersion;
-                NuGetVersion.TryParse(_version, out argNugetVersion);
+                NuGetVersion.TryParse(Version, out argNugetVersion);
 
                 VersionRange versionRange;
                 if (argNugetVersion != null)
@@ -476,20 +450,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     // check if version range
-                    versionRange = VersionRange.Parse(_version);
+                    versionRange = VersionRange.Parse(Version);
                 }
-
-
-
+                
                 if (versionRange.Satisfies(nugetVersion))
                 {
                     dirsToDelete.Add(fullScriptPath);
                 }
             }
-
-
-
-
+            
             // if dirsToDelete is empty... meaning we didn't find any scripts
             if (dirsToDelete.Any())
             {
@@ -520,12 +489,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     }
                 }
-
-
-
-
-
-
+                
                 // Delete the appropriate file
                 if (File.Exists(fullScriptPath))
                 {
@@ -540,15 +504,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     File.Delete(scriptXML);
                 }
-
-
             }
-
-
-
+            
             return successfullyUninstalledPkg;
         }
-
-
     }
 }
