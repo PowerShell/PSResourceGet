@@ -1,26 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using static System.Environment;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
+using System.Collections;
+using MoreLinq;
 using MoreLinq.Extensions;
-using Newtonsoft.Json;
-using NuGet.Common;
-using NuGet.Configuration;
-using NuGet.Packaging.Core;
-using NuGet.Protocol;
-using NuGet.Protocol.Core.Types;
+using static Microsoft.PowerShell.PowerShellGet.PSResourceInfo;
+using static Microsoft.PowerShell.PowerShellGet.PSResourceInfo.VersionInfo;
 using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -32,12 +24,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         private CancellationToken cancellationToken;
         private readonly PSCmdlet cmdletPassedIn;
-
-
-        public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-
         private string programFilesPath;
         private string myDocumentsPath;
+        public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
 
         public GetHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
         {
@@ -45,9 +34,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             this.cmdletPassedIn = cmdletPassedIn;
         }
 
-        public List<PSObject> ProcessGetParams(string[] name, string version, bool prerelease, string path)
+        public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, string version, string path)
         {
-            var dirsToSearch = new List<string>();
+            List<string> dirsToSearch = new List<string>();
 
             if (path != null)
             {
@@ -56,15 +45,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                // PSModules path
-                var psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                var modulePaths = psModulePath.Split(';');
-
-
+                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
+                string[] modulePaths = psModulePath.Split(';');
 #if NET472
                 programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
                 myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-
 #else
                 // If PS6+ on Windows
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -82,60 +67,96 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 cmdletPassedIn.WriteDebug(string.Format("Current user scope path: '{0}'", myDocumentsPath));
                 cmdletPassedIn.WriteDebug(string.Format("All users scope path: '{0}'", programFilesPath));
 
-                /*** Will search first in PSModulePath, then will search in default paths ***/
-
-                foreach (var modulePath in modulePaths)
+                // will search first in PSModulePath, then will search in default paths
+                foreach (string modulePath in modulePaths)
                 {
                     dirsToSearch.AddRange(Directory.GetDirectories(modulePath).ToList());
                 }
-
-
-                var pfModulesPath = System.IO.Path.Combine(programFilesPath, "Modules");
+                
+                string pfModulesPath = System.IO.Path.Combine(programFilesPath, "Modules");
                 if (Directory.Exists(pfModulesPath))
                 {
                     dirsToSearch.AddRange(Directory.GetDirectories(pfModulesPath).ToList());
                 }
-
-                var mdModulesPath = System.IO.Path.Combine(myDocumentsPath, "Modules");
+                string mdModulesPath = System.IO.Path.Combine(myDocumentsPath, "Modules");
                 if (Directory.Exists(mdModulesPath))
                 {
                     dirsToSearch.AddRange(Directory.GetDirectories(mdModulesPath).ToList());
                 }
-
-
-                var pfScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts", "InstalledScriptInfos");
+                string pfScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts", "InstalledScriptInfos");
                 if (Directory.Exists(pfScriptsPath))
                 {
                     dirsToSearch.AddRange(Directory.GetFiles(pfScriptsPath).ToList());
                 }
-
-                var mdScriptsPath = System.IO.Path.Combine(myDocumentsPath, "Scripts", "InstalledScriptInfos");
+                string mdScriptsPath = System.IO.Path.Combine(myDocumentsPath, "Scripts", "InstalledScriptInfos");
                 if (Directory.Exists(mdScriptsPath))
                 {
                     dirsToSearch.AddRange(Directory.GetFiles(mdScriptsPath).ToList());
                 }
-
-
-                // uniqueify 
+                
                 dirsToSearch = dirsToSearch.Distinct().ToList();
             }
 
-            foreach (var dir in dirsToSearch)
-            {
-                cmdletPassedIn.WriteDebug(string.Format("All directories to search: '{0}'", dir));
-            }
-
-            // Or a list of the passed in names
+            dirsToSearch.ForEach(dir => cmdletPassedIn.WriteDebug(string.Format("All directories to search: '{0}'", dir)));
+            
             if (name != null && !name[0].Equals("*"))
             {
-                var nameLowerCased = new List<string>();
-                var scriptXMLnames = new List<string>();
-                Array.ForEach(name, n => nameLowerCased.Add(n.ToLower()));
+                List<string> scriptXMLnames = new List<string>();
                 Array.ForEach(name, n => scriptXMLnames.Add((n + "_InstalledScriptInfo.xml").ToLower()));
+                char[] fileNameDelimiter = new char[] { '_' };
 
-                dirsToSearch = dirsToSearch.FindAll(p => (nameLowerCased.Contains(new DirectoryInfo(p).Name.ToLower())
-                    || scriptXMLnames.Contains((System.IO.Path.GetFileName(p)).ToLower())));
+                List<string> wildCardDirsToSearch = new List<string>();
+                foreach (var n in name)
+                {
+                    if (n.Contains("*"))
+                    {
+                        char[] wildcardDelimiter = new char[] { '*' };
+                        var tokenizedName = n.Split(wildcardDelimiter, StringSplitOptions.RemoveEmptyEntries);
 
+                        // 1)  *owershellge*
+                        if (n.StartsWith("*") && n.EndsWith("*"))
+                        {
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => (new DirectoryInfo(p).Name.ToLower().Contains(tokenizedName[0]))));
+                            
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p =>
+                                (System.IO.Path.GetFileName(p).Split(fileNameDelimiter, StringSplitOptions.RemoveEmptyEntries))[0].ToLower().Contains(tokenizedName[0])));
+                        }
+                        // 2)  *erShellGet
+                        else if (n.StartsWith("*"))
+                        {
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => (new DirectoryInfo(p).Name.ToLower().EndsWith(tokenizedName[0]))));
+
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p =>
+                                (System.IO.Path.GetFileName(p).Split(fileNameDelimiter, StringSplitOptions.RemoveEmptyEntries))[0].ToLower().EndsWith(tokenizedName[0])));
+                        }
+                        // 3)  PowerShellG*
+                        else if (n.EndsWith("*"))
+                        {
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => (new DirectoryInfo(p).Name.ToLower().StartsWith(tokenizedName[0]))));
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p =>
+                                (System.IO.Path.GetFileName(p).Split(fileNameDelimiter, StringSplitOptions.RemoveEmptyEntries))[0].ToLower().StartsWith(tokenizedName[0])));
+                        }
+                        // 4)  Power*Get
+                        else if (tokenizedName.Length == 2)
+                        {
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => 
+                                (new DirectoryInfo(p).Name.ToLower().StartsWith(tokenizedName[0]) 
+                                && new DirectoryInfo(p).Name.ToLower().EndsWith(tokenizedName[1]))));
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p =>
+                                (System.IO.Path.GetFileName(p).Split(fileNameDelimiter, StringSplitOptions.RemoveEmptyEntries))[0].ToLower().StartsWith(tokenizedName[0])
+                                && (System.IO.Path.GetFileName(p).Split(fileNameDelimiter, StringSplitOptions.RemoveEmptyEntries))[0].ToLower().EndsWith(tokenizedName[0])));
+                        }
+                    }
+                    else
+                    {
+                        wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => (new DirectoryInfo(p).Name.ToLower().Equals(n))));
+                        // script paths will look something like this:  InstalledScriptInfos \  <name of script>.xml
+
+                        wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => (scriptXMLnames.Contains(System.IO.Path.GetFileName(p).ToLower()))));
+                    }
+                }
+                
+                dirsToSearch = wildCardDirsToSearch;
                 cmdletPassedIn.WriteDebug(dirsToSearch.Any().ToString());
             }
 
@@ -143,76 +164,51 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             VersionRange versionRange = null;
             if (version != null)
             {
-                NuGetVersion specificVersion;
-                NuGetVersion.TryParse(version, out specificVersion);
+                NuGetVersion.TryParse(version, out NuGetVersion specificVersion);
 
                 if (specificVersion != null)
                 {
-                    // exact version
+                    // check if exact version
                     versionRange = new VersionRange(specificVersion, true, specificVersion, true, null, null);
                     cmdletPassedIn.WriteDebug(string.Format("A specific version, '{0}', is specified", versionRange.ToString()));
-
                 }
                 else
                 {
                     // check if version range
                     versionRange = VersionRange.Parse(version);
                     cmdletPassedIn.WriteDebug(string.Format("A version range, '{0}', is specified", versionRange.ToString()));
-
                 }
             }
 
-            List<string> installedPkgsToReturn = new List<string>();
-
-            //2) use above list to check 
-            // if the version specificed is a version range
+            List<string> installedPkgsToReturn = new List<string>();  // these are the xmls
+            
+            // check if the version specified is within a version range
             if (versionRange != null)
             {
-                foreach (var pkgPath in dirsToSearch)
+                foreach (string pkgPath in dirsToSearch)
                 {
+                    // this is going to happen only for modules, not for scripts 
                     cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
-                    var versionsDirs = Directory.GetDirectories(pkgPath);
+                    string[] versionsDirs = Directory.GetDirectories(pkgPath);
 
-                    foreach (var versionPath in versionsDirs)
+                    foreach (string versionPath in versionsDirs)
                     {
                         cmdletPassedIn.WriteDebug(string.Format("Searching through package version path: '{0}'", versionPath));
-                        NuGetVersion dirAsNugetVersion;
-                        var dirInfo = new DirectoryInfo(versionPath);
-                        NuGetVersion.TryParse(dirInfo.Name, out dirAsNugetVersion);
+                        DirectoryInfo dirInfo = new DirectoryInfo(versionPath);
+                        NuGetVersion.TryParse(dirInfo.Name, out NuGetVersion dirAsNugetVersion);
                         cmdletPassedIn.WriteDebug(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
 
                         if (versionRange.Satisfies(dirAsNugetVersion))
                         {
-                            // just search scripts paths
-                            if (pkgPath.ToLower().Contains("Scripts"))
+                         
+                            // This will be one version or a version range.
+                            string pkgXmlFilePath = System.IO.Path.Combine(versionPath, "PSGetModuleInfo.xml");
+                            if (File.Exists(pkgXmlFilePath))
                             {
-                                if (File.Exists(pkgPath))
-                                {
-                                    installedPkgsToReturn.Add(pkgPath);
-                                }
+                                cmdletPassedIn.WriteDebug(string.Format("Found module XML: '{0}'", pkgXmlFilePath));
+                                installedPkgsToReturn.Add(pkgXmlFilePath);
                             }
-                            else
-                            {
-                                // modules paths
-                                versionsDirs = Directory.GetDirectories(pkgPath);
-                                cmdletPassedIn.WriteDebug(string.Format("Getting sub directories from : '{0}'", pkgPath));
-
-                                // Check if the pkg path actually has version sub directories.
-                                if (versionsDirs.Length != 0)
-                                {
-                                    Array.Sort(versionsDirs, StringComparer.OrdinalIgnoreCase);
-                                    Array.Reverse(versionsDirs);
-
-                                    var pkgXmlFilePath = System.IO.Path.Combine(versionsDirs.First(), "PSGetModuleInfo.xml");
-
-                                    // TODO:  check if this xml file exists, if it doesn't check if it exists in a previous version
-                                    cmdletPassedIn.WriteDebug(string.Format("Found module XML: '{0}'", pkgXmlFilePath));
-
-                                    installedPkgsToReturn.Add(pkgXmlFilePath);
-                                }
-                            }
-
-                            installedPkgsToReturn.Add(versionPath);
+                
                         }
                     }
                 }
@@ -221,169 +217,420 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 cmdletPassedIn.WriteDebug("No version provided-- check each path for the requested package");
                 // if no version is specified, just get the latest version
-                foreach (var pkgPath in dirsToSearch)
+                foreach (string pkgPath in dirsToSearch)
                 {
                     cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
+                   
+                    // search modules paths
+                    string[] versionsDirs = new string[0];
 
-                    // just search scripts paths
-                    if (pkgPath.ToLower().Contains("scripts"))
+                    versionsDirs = Directory.GetDirectories(pkgPath);
+
+                    // Check if the pkg path actually has version sub directories.
+                    if (versionsDirs.Length != 0)
                     {
-                        if (File.Exists(pkgPath))   //check to make sure properly formatted
-                        {
-                            installedPkgsToReturn.Add(pkgPath);
-                        }
-                    }
-                    else
-                    {
-                        // modules paths
-                        string[] versionsDirs = new string[0];
+                        Array.Sort(versionsDirs, StringComparer.OrdinalIgnoreCase);
+                        Array.Reverse(versionsDirs);
 
-                        versionsDirs = Directory.GetDirectories(pkgPath);
+                        string pkgXmlFilePath = System.IO.Path.Combine(versionsDirs.First(), "PSGetModuleInfo.xml");
 
-                        // Check if the pkg path actually has version sub directories.
-                        if (versionsDirs.Length != 0)
-                        {
-                            Array.Sort(versionsDirs, StringComparer.OrdinalIgnoreCase);
-                            Array.Reverse(versionsDirs);
-
-                            var pkgXmlFilePath = System.IO.Path.Combine(versionsDirs.First(), "PSGetModuleInfo.xml");
-
-                            // TODO:  check if this xml file exists, if it doesn't check if it exists in a previous version
-                            cmdletPassedIn.WriteDebug(string.Format("Found package XML: '{0}'", pkgXmlFilePath));
-                            installedPkgsToReturn.Add(pkgXmlFilePath);
-                        }
+                        cmdletPassedIn.WriteDebug(string.Format("Found package XML: '{0}'", pkgXmlFilePath));
+                        installedPkgsToReturn.Add(pkgXmlFilePath);
                     }
                 }
             }
 
+            IEnumerable<object> flattenedPkgs =  FlattenExtension.Flatten(installedPkgsToReturn);
+            List<PSResourceInfo> foundInstalledPkgs = new List<PSResourceInfo>();
 
-            // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
-            var flattenedPkgs = installedPkgsToReturn.Flatten();
-
-
-
-            List<PSObject> foundInstalledPkgs = new List<PSObject>();
-
+            // Read metadata from XML and parse into PSResourceInfo object
             foreach (string xmlFilePath in flattenedPkgs)
             {
                 cmdletPassedIn.WriteDebug(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
 
-                // Open xml and read metadata from it     
                 if (File.Exists(xmlFilePath))
                 {
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> nameInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> versionInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> typeInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> descriptionInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> authorInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> companyNameInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> copyrightInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> publishedDateInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> installedDateInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> updatedDateInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> licenseUriInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> projectUriInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> iconUriInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> tagsInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> includesInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> powerShellGetFormatVersionInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> releaseNotesInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> dependenciesInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> repositorySourceLocationInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> repositoryInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> additionalMetadataInfo;
-                    ReadOnlyPSMemberInfoCollection<PSPropertyInfo> installedLocationInfo;
-
-
-                    //var isPrelease = false;
+                    PSObject deserializedObj = null;
                     using (StreamReader sr = new StreamReader(xmlFilePath))
                     {
-
                         string text = sr.ReadToEnd();
-                        var deserializedObj = (PSObject)PSSerializer.Deserialize(text);
-
-                        nameInfo = deserializedObj.Properties.Match("Name");
-                        versionInfo = deserializedObj.Properties.Match("Version");
-                        typeInfo = deserializedObj.Properties.Match("Type");
-                        descriptionInfo = deserializedObj.Properties.Match("Description");
-                        authorInfo = deserializedObj.Properties.Match("Author");
-                        companyNameInfo = deserializedObj.Properties.Match("CompanyName");
-                        copyrightInfo = deserializedObj.Properties.Match("Copyright");
-                        publishedDateInfo = deserializedObj.Properties.Match("PublishedDate");
-                        installedDateInfo = deserializedObj.Properties.Match("InstalledDate");
-                        updatedDateInfo = deserializedObj.Properties.Match("UpdatedDate");
-                        licenseUriInfo = deserializedObj.Properties.Match("LicenseUri");
-                        projectUriInfo = deserializedObj.Properties.Match("ProjectUri");
-                        iconUriInfo = deserializedObj.Properties.Match("IconUri");
-                        tagsInfo = deserializedObj.Properties.Match("Tags");
-                        includesInfo = deserializedObj.Properties.Match("Includes");
-                        powerShellGetFormatVersionInfo = deserializedObj.Properties.Match("PowerShellGetFormatVersion");
-                        releaseNotesInfo = deserializedObj.Properties.Match("ReleaseNotes");
-                        dependenciesInfo = deserializedObj.Properties.Match("Dependencies");
-                        repositorySourceLocationInfo = deserializedObj.Properties.Match("RepositorySourceLocation");
-                        repositoryInfo = deserializedObj.Properties.Match("Repository");
-                        additionalMetadataInfo = deserializedObj.Properties.Match("AdditionalMetadata");
-                        installedLocationInfo = deserializedObj.Properties.Match("InstalledLocation");
-
-
-                        /* // testing adding prerelease parameter
-                        additionalMetadataInfo = deserializedObj.Properties.Match("AdditionalMetadata");
-                        if (additionalMetadataInfo.Any())
-                        {
-                            isPrelease = additionalMetadataInfo.FirstOrDefault().Value.ToString().Contains("IsPrerelease=true");
-                            if ((isPrelease == true) && _prerelease) // find a stable version of the pkg {}
-                        }
-                        */
-
-
+                        deserializedObj = (PSObject) PSSerializer.Deserialize(text);
                     };
-
-                    // if -Prerelease is not passed in as a parameter, don't allow prerelease pkgs to be returned,
-                    // we still want all pkgs to be returned if -Prerelease is passed in as a param
-                    //if ((_prerelease == false && isPrelease == false) || _prerelease == true)
-                    //{
-
-                    //var foundPkgs = List<PSObject>();
                     
-                    PSObject pkgAsPSObject = new PSObject();
-                    try
+                    PSResourceInfo pkgAsPSObject = new PSResourceInfo();
+                    
+                    if (deserializedObj != null)
                     {
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Name", nameInfo.Any()? nameInfo.FirstOrDefault().Value : string.Empty)); 
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Version", versionInfo.Any()? versionInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Type", typeInfo.Any()? typeInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Description", descriptionInfo.Any()? descriptionInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Author", authorInfo.Any()? authorInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("CompanyName", companyNameInfo.Any()? companyNameInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Copyright", copyrightInfo.Any()? copyrightInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("PublishedDate", publishedDateInfo.Any()? publishedDateInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("InstalledDate", installedDateInfo.Any()? installedDateInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("UpdatedDate", updatedDateInfo.Any()? updatedDateInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("LicenseUri", licenseUriInfo.Any()? licenseUriInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("ProjectUri", projectUriInfo.Any()? projectUriInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("IconUri", iconUriInfo.Any()? iconUriInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Tags", tagsInfo.Any()? tagsInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Includes", includesInfo.Any()? includesInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("PowerShellGetFormatVersion", powerShellGetFormatVersionInfo.Any()? powerShellGetFormatVersionInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("ReleaseNotes", releaseNotesInfo.Any()? releaseNotesInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Dependencies", dependenciesInfo.Any()? dependenciesInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("RepositorySourceLocation", repositorySourceLocationInfo.Any()? repositorySourceLocationInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repositoryInfo.Any()? repositoryInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("AdditionalMetadata", additionalMetadataInfo.Any()? additionalMetadataInfo.FirstOrDefault().Value : string.Empty));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("InstalledLocation", installedLocationInfo.Any()? installedLocationInfo.FirstOrDefault().Value : string.Empty));
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["Name"] != null ? deserializedObj.Properties["Name"].Value?.ToString() : String.Empty), out string nameProp);
+                            pkgAsPSObject.Name = nameProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("NAME error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingName = new ErrorRecord(ex, "ErrorParsingName", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingName);
+                        }
+
+                        // We need to check versions specifically for scripts...
+                        try
+                        {
+                            // Since we can only determine a script version from the metadata file or the script itself,
+                            // we now need to validate that if a version parameter was passed into the cmdlet, the version of this script falls within that version range
+                            // If version range is not null and the xmlFilePath is for a script
+                            if (versionRange != null && xmlFilePath.EndsWith("_InstalledScriptInfo.xml"))
+                            {
+                                cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", xmlFilePath));
+
+                                // try to parse the version in the xml
+                                System.Version.TryParse(deserializedObj.Properties["Version"].Value?.ToString(), out System.Version versionProp);
+                                NuGetVersion.TryParse(deserializedObj.Properties["Version"].Value?.ToString(), out NuGetVersion nugetVersion);
+
+                                if (versionRange.Satisfies(nugetVersion))
+                                {
+                                    // Continue parsing the rest of the object
+                                    pkgAsPSObject.Version = versionProp;
+                                }
+                                else
+                                {
+                                    // Otherwise skip parsing the rest of this object
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                System.Version.TryParse(deserializedObj.Properties["Version"].Value?.ToString(), out System.Version versionProp);
+                                pkgAsPSObject.Version = versionProp;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            // make these debug statements 
+                            string exMessage = String.Format("VERSION error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingVersion);
+                        }
+
+                        pkgAsPSObject.Type = string.Equals(deserializedObj.Properties["Type"].Value?.ToString(), "Module", StringComparison.InvariantCultureIgnoreCase) ? ResourceType.Module : ResourceType.Script;
+                       
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["Description"] != null ? deserializedObj.Properties["Description"].Value?.ToString() : String.Empty), out string descriptionProp);
+                            pkgAsPSObject.Description = descriptionProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("DESCRIPTION error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingDescription = new ErrorRecord(ex, "ErrorParsingDescription", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingDescription);
+                        }
+                        
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["Author"] != null ? deserializedObj.Properties["Author"].Value?.ToString() : String.Empty), out string authorProp);
+                            pkgAsPSObject.Author = authorProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("AUTHOR error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingAuthor = new ErrorRecord(ex, "ErrorParsingAuthor", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingAuthor);
+                        }
+
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                    (deserializedObj.Properties["CompanyName"] != null ? deserializedObj.Properties["CompanyName"].Value?.ToString() : String.Empty), out string companyNameProp);
+                            pkgAsPSObject.CompanyName = companyNameProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("COMPANY NAME error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingCompanyName = new ErrorRecord(ex, "ErrorParsingCompanyName", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingCompanyName);
+                        }
+
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["Copyright"] != null ? deserializedObj.Properties["Copyright"].Value?.ToString() : String.Empty), out string copyrightProp);
+                            pkgAsPSObject.Copyright = copyrightProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("COPYRIGHT error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingCopyright = new ErrorRecord(ex, "ErrorParsingCopyright", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingCopyright);
+                        }
+                        
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["PublishedDate"] != null ? (DateTime?)(((deserializedObj.Properties["PublishedDate"]).Value) as PSObject).Properties["DateTime"].Value : null), out DateTime publishedDateProp);
+                            pkgAsPSObject.PublishedDate = publishedDateProp;
+                        }
+                        catch (Exception e)
+                        {
+                            try
+                            {
+                                LanguagePrimitives.TryConvertTo(
+                                    (deserializedObj.Properties["PublishedDate"] != null ? (DateTime?) deserializedObj.Properties["PublishedDate"].Value : null), out DateTime? publishedDateProp);
+                                pkgAsPSObject.PublishedDate = publishedDateProp;
+                            }
+                            catch (Exception e2)
+                            {
+                                string exMessage = String.Format("PUBLISHED DATE error: " + e.Message);
+                                ParseException ex = new ParseException(exMessage);
+                                var ErrorParsingPublishedDate = new ErrorRecord(ex, "ErrorParsingPublishedDate", ErrorCategory.ParserError, null);
+                                cmdletPassedIn.WriteError(ErrorParsingPublishedDate);
+                            }
+                        }
+
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["InstalledDate"] != null ? (DateTime?) (deserializedObj.Properties["InstalledDate"].Value as PSObject).Properties["Date"].Value : null), out DateTime? installedDateProp);
+                            pkgAsPSObject.InstalledDate = installedDateProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("INSTALLED DATE error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingInstalledDate = new ErrorRecord(ex, "ErrorParsingInstalledDate", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingInstalledDate);
+                        }
+                        
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["UpdatedDate"] != null ? (DateTime?)deserializedObj.Properties["UpdatedDate"].Value : null), out DateTime updatedDateProp);
+                            pkgAsPSObject.UpdatedDate = updatedDateProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("UPDATED DATE error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingUpdatedDate = new ErrorRecord(ex, "ErrorParsingUpdatedDate", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingUpdatedDate);
+                        }
+
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["LicenseUri"] != null ? (Uri)deserializedObj.Properties["LicenseUri"].Value : null), out Uri licenseUriProp);
+                            pkgAsPSObject.LicenseUri = licenseUriProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("LICENSE URI error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingLicenseUri = new ErrorRecord(ex, "ErrorParsingLicenseUri", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingLicenseUri);
+                        }
+                        
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["ProjectUri"] != null ? (Uri)deserializedObj.Properties["ProjectUri"].Value : null), out Uri projectUriProp);
+                            pkgAsPSObject.ProjectUri = projectUriProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("PROJECT URI error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingProjectUri = new ErrorRecord(ex, "ErrorParsingProjectUri", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingProjectUri);
+                        }
+
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                 (deserializedObj.Properties["IconUri"] != null ? (Uri)deserializedObj.Properties["IconUri"].Value : null), out Uri iconUriProp);
+                            pkgAsPSObject.IconUri = iconUriProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("ICON URI error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingIconUri = new ErrorRecord(ex, "ErrorParsingIconUri", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingIconUri);
+                        }
+
+                        try
+                        {
+                            System.Version.TryParse(
+                                (deserializedObj.Properties["PowerShellGetFormatVersion"] != null ? deserializedObj.Properties["PowerShellGetFormatVersion"].Value?.ToString() : String.Empty),
+                                out System.Version powerShellGetFormatVersionProp);
+                            pkgAsPSObject.PowerShellGetFormatVersion = powerShellGetFormatVersionProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("POWERSHELLGET FORMAT VERSION error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingPowerShellGetFormatVersion = new ErrorRecord(ex, "ErrorParsingPowerShellGetFormatVersion", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingPowerShellGetFormatVersion);
+                        }
+
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                   (deserializedObj.Properties["ReleaseNotes"] != null ? deserializedObj.Properties["ReleaseNotes"].Value?.ToString() : null), out string releaseNotesProp);
+                            pkgAsPSObject.ReleaseNotes = releaseNotesProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("RELEASE NOTES error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingReleaseNotes = new ErrorRecord(ex, "ErrorParsingReleaseNotes", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingReleaseNotes);
+                        }
+
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["Repository"] != null ? deserializedObj.Properties["Repository"].Value?.ToString() : null), out string repositoryProp);
+                            pkgAsPSObject.Repository = repositoryProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("REPOSITORY error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingRepository = new ErrorRecord(ex, "ErrorParsingRepository", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingRepository);
+                        }
+
+                        try
+                        {
+                            bool.TryParse(deserializedObj.Properties["IsPrerelease"] != null ? deserializedObj.Properties["IsPrerelease"].Value?.ToString() : null, out bool isPrerelease);
+                            pkgAsPSObject.IsPrerelease = isPrerelease;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("IS PRERELEASE error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingIsPrerelease = new ErrorRecord(ex, "ErrorParsingIsPrerelease", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingIsPrerelease);
+                        }
+                        
+                        try
+                        {
+
+                            string[] emptyArr = new string[] { };
+
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["Tags"] != null ? (string[]) (deserializedObj.Properties["Tags"].Value.ToString()).Split(' ') : emptyArr), out string[] tagsProp);
+                            pkgAsPSObject.Tags = tagsProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("TAGS error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingTags = new ErrorRecord(ex, "ErrorParsingTags", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingTags);
+                        }
+
+                        try
+                        {                       
+                            ArrayList listOfDependencies = ((deserializedObj.Properties["Dependencies"].Value as PSObject).BaseObject as ArrayList);
+                            
+                            Dictionary<string, VersionInfo> depDictionary = new Dictionary<string, VersionInfo>(); 
 
 
-                        // verify that this works, then add the object to a list and return it
-                        //WriteObject(pkgAsPSObject);
-                        foundInstalledPkgs.Add(pkgAsPSObject);
+                            foreach (PSObject dependency in listOfDependencies)
+                            {                                
+                                Hashtable depHash = dependency.BaseObject as Hashtable;
+                                VersionType versionType = VersionType.Unknown;
+                                System.Version versionNum = null;
 
+                                if (depHash["MinimumVersion"] != null)
+                                {
+                                    versionType = VersionType.MinimumVersion;
+                                    System.Version.TryParse(depHash["MinimumVersion"].ToString(), out versionNum);
+                                }
+                                if (depHash["RequiredVersion"] != null)
+                                {
+                                    versionType = VersionType.RequiredVersion;
+                                    System.Version.TryParse(depHash["RequiredVersion"].ToString(), out versionNum);
+                                }
+                                if (depHash["MaximumVersion"] != null)
+                                {
+                                    versionType = VersionType.MaximumVersion;
+                                    System.Version.TryParse(depHash["MaximumVersion"].ToString(), out versionNum);
+                                }
+                                VersionInfo versionInfo = new VersionInfo(versionType, versionNum);
+                               
+                                depDictionary.Add(depHash["Name"].ToString(), versionInfo);
+                            }
+
+                            pkgAsPSObject.Dependencies = depDictionary;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("DEPENDENCIES error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingDependencies = new ErrorRecord(ex, "ErrorParsingDependencies", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingDependencies);
+                        }
+
+                        try
+                        {
+                            Hashtable includesHash = ((deserializedObj.Properties["Includes"].Value as PSObject).BaseObject) as Hashtable;
+
+                            pkgAsPSObject.Commands = (ArrayList) (includesHash["Command"] as PSObject).BaseObject;
+                            pkgAsPSObject.DscResources = (ArrayList) (includesHash["DscResource"] as PSObject).BaseObject;
+                            pkgAsPSObject.Functions = (ArrayList) (includesHash["Function"] as PSObject).BaseObject;
+                            pkgAsPSObject.Cmdlets = (ArrayList) (includesHash["Cmdlet"] as PSObject).BaseObject;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("INCLUDES error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingIncludes = new ErrorRecord(ex, "ErrorParsingIncludes", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingIncludes);
+                        }
+                        
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["AdditionalMetadata"] != null ? (string) deserializedObj.Properties["AdditionalMetadata"].Value.ToString() : string.Empty), out string additionalMetadataProp);
+                            pkgAsPSObject.AdditionalMetadata = additionalMetadataProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("ADDITIONAL METADATA error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingAdditionalMetadata = new ErrorRecord(ex, "ErrorParsingAdditionalMetadata", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingAdditionalMetadata);
+                        }
+                        
+                        try
+                        {
+                            LanguagePrimitives.TryConvertTo(
+                                (deserializedObj.Properties["InstalledLocation"] != null ? (string)deserializedObj.Properties["InstalledLocation"].Value : string.Empty), out string installedLocationProp);
+                            pkgAsPSObject.InstalledLocation = installedLocationProp;
+                        }
+                        catch (Exception e)
+                        {
+                            string exMessage = String.Format("ADDITIONAL METADATA error: " + e.Message);
+                            ParseException ex = new ParseException(exMessage);
+                            var ErrorParsingAdditionalMetadata = new ErrorRecord(ex, "ErrorParsingAdditionalMetadata", ErrorCategory.ParserError, null);
+                            cmdletPassedIn.WriteError(ErrorParsingAdditionalMetadata);
+                        }
+
+                        yield return pkgAsPSObject;
                     }
-                    catch { }
-                    
                 }
             }
-
-            // return here 
-            return foundInstalledPkgs;
         }
     }
 }
