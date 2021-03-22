@@ -34,6 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             try
             {
+                WriteDebug("Calling API to check repository store exists in non-corrupted state");
                 RepositorySettings.CheckRepositoryStore();
             }
             catch (PSInvalidOperationException e)
@@ -48,12 +49,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string[] errorMsgs;
             try
             {
+                WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", Name));
                 RepositorySettings.Remove(Name, out errorMsgs);
             }
-            catch (Exception e)
+            catch (PSInvalidOperationException e)
             {
-                throw new Exception(string.Format("Unable to successfully unregister repository. {0}", e.Message));
+                throw new Exception(string.Format("Unable to successfully unregister repository due to issue reading repository store. {0}", e.Message));
             }
+
+            // handle non-terminating errors
             foreach (string error in errorMsgs)
             {
                 if (!String.IsNullOrEmpty(error))

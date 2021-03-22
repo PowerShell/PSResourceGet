@@ -39,6 +39,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             try
             {
+                WriteDebug("Calling API to check repository store exists in non-corrupted state");
                 RepositorySettings.CheckRepositoryStore();
             }
             catch (PSInvalidOperationException e)
@@ -50,7 +51,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
-            List<PSRepositoryItem> items = RepositorySettings.Read(Name, out string[] errorMsgs);
+            string[] errorMsgs;
+            List<PSRepositoryItem> items;
+            try
+            {
+                WriteDebug(String.Format("reading repository {0}. Calling Read() API now", Name));
+                items = RepositorySettings.Read(Name, out errorMsgs);
+            }
+            catch (PSInvalidOperationException e)
+            {
+                throw new Exception(string.Format("Unable to successfully read repository store. {0}", e.Message));
+            }
+
+            // handle non-terminating errors
             foreach (string error in errorMsgs)
             {
                 if (!String.IsNullOrEmpty(error))
@@ -62,6 +75,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 }
             }
+
 
             foreach (PSRepositoryItem repo in items)
             {
