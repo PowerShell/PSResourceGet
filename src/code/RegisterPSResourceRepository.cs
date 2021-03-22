@@ -218,6 +218,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
+            WriteDebug("All required values to add to repository provided, calling internal Add() API now");
             return RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted);
         }
 
@@ -225,6 +226,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             if (repoName.Equals("PSGallery"))
             {
+                WriteDebug("Provided Name (NameParameterSet) but with invalid value of PSGallery");
                 throw new ArgumentException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery");
             }
             return AddToRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted);
@@ -233,7 +235,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private PSRepositoryItem PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
         {
             Uri psGalleryUri = new Uri(PSGalleryRepoURL);
-            // at this point name and url that will be passed in are hardcoded and thus validated, priority and trusted are validated by their Proprty validation tags.
+            WriteDebug("(PSGallerySet) internal name and uri values for Add() API are hardcoded and validated, priority and trusted values, if passed in, also validated");
             return AddToRepositoryStoreHelper(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted);
         }
 
@@ -255,6 +257,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     try
                     {
+                        WriteDebug("(RepositoriesParameterSet): on repo: PSGallery. Registers PSGallery repository");
                         reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(
                             repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
                             repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
@@ -322,6 +325,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
+                WriteDebug(String.Format("(RepositoriesParameterSet): on repo: {0}. Registers Name based repository", repo["Name"].ToString()));
                 return NameParameterSetHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,

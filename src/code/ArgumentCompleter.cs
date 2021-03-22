@@ -1,4 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿using System.ComponentModel;
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
@@ -17,7 +18,15 @@ internal class RepositoryNameCompleter : IArgumentCompleter
         CommandAst commandAst,
         IDictionary fakeBoundParameters)
     {
-        List<PSRepositoryItem> listOfRepositories = RepositorySettings.Read(null, out string[] _);
+        List<PSRepositoryItem> listOfRepositories;
+        try{
+            listOfRepositories = RepositorySettings.Read(null, out string[] _);
+        }
+        catch(PSInvalidOperationException e)
+        {
+            throw e;
+        }
+
         foreach (PSRepositoryItem repo in listOfRepositories)
         {
             string repoName = repo.Name;
