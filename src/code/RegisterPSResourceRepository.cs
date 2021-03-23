@@ -211,7 +211,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryItem AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
-            if (String.IsNullOrEmpty(repoName) || repoName.Contains(" ") || repoName.Contains("*"))
+            if (String.IsNullOrEmpty(repoName) || String.IsNullOrWhiteSpace(repoName) || repoName.Contains(" ") || repoName.Contains("*"))
             {
                 throw new ArgumentException("Name cannot be null/empty or contain whitespace or asterisk");
             }
@@ -225,7 +225,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryItem NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
-            if (repoName.Equals("PSGallery"))
+            if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
                 WriteDebug("Provided Name (NameParameterSet) but with invalid value of PSGallery");
                 throw new ArgumentException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery");
