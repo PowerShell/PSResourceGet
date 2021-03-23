@@ -142,10 +142,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     node.Attribute("Priority").Value = repoPriority.ToString();
                 }
-                // false, setting to true
-                // true, setting to false
-                // false setting to false
-                // true setting to true
 
                 if (repoTrusted != null)
                 {
