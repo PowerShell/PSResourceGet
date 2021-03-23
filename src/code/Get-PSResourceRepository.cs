@@ -54,10 +54,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             string[] namesForDebug = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null) ? new string[] {"all"} : Name;
             WriteDebug(String.Format("reading repository: {0}. Calling Read() API now", namesForDebug));
-            List<PSRepositoryItem> items = RepositorySettings.Read(Name, out string[] errorMsgs);
+            List<PSRepositoryItem> items = RepositorySettings.Read(Name, out string[] errorList);
 
             // handle non-terminating errors
-            foreach (string error in errorMsgs)
+            foreach (string error in errorList)
             {
                 if (!String.IsNullOrEmpty(error))
                 {

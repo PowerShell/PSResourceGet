@@ -183,9 +183,9 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases @(
-        @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorMsg = "Repository name cannot ne null"},
+        @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorMsg = "Repository name cannot be null"},
         @{Type = "-Name is PSGallery";                     IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorMsg = "Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery"},
-        @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorMsg = "Repository url cannot ne null"},
+        @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorMsg = "Repository url cannot be null"},
         @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorMsg = "Invalid url, unable to create"}
     ){
 

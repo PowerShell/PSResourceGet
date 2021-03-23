@@ -162,9 +162,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: void
         /// </summary>
         /// <param name="sectionName"></param>
-        public static void Remove(string[] repoNames, out string[] errorMsgs)
+        public static void Remove(string[] repoNames, out string[] errorList)
         {
-            errorMsgs = null;
+            errorList = null;
             List<string> temp = new List<string>();
 
             // Check to see if information we're trying to remove from the repository is valid
@@ -199,12 +199,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
             // Close the file
             root.Save(FullRepositoryPath);
-            errorMsgs = temp.ToArray();
+            errorList = temp.ToArray();
         }
 
-        public static List<PSRepositoryItem> Read(string[] repoNames, out string[] errorMsgs)
+        public static List<PSRepositoryItem> Read(string[] repoNames, out string[] errorList)
         {
-            errorMsgs = null;
+            errorList = null;
             List<string> temp = new List<string>();
             var foundRepos = new List<PSRepositoryItem>();
 
@@ -268,7 +268,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
             }
 
-            errorMsgs = temp.ToArray();
+            errorList = temp.ToArray();
             // Sort by priority, then by repo name
             var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
             return reposToReturn.ToList();

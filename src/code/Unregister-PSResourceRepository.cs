@@ -47,10 +47,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", Name));
-            RepositorySettings.Remove(Name, out string[] errorMsgs);
+            RepositorySettings.Remove(Name, out string[] errorList);
 
             // handle non-terminating errors
-            foreach (string error in errorMsgs)
+            foreach (string error in errorList)
             {
                 if (!String.IsNullOrEmpty(error))
                 {
