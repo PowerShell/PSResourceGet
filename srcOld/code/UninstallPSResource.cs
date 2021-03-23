@@ -37,24 +37,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = "NameParameterSet")]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
-
+        
         /// <summary>
-        /// Specifies to allow ONLY prerelease versions to be uninstalled
-        /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
-        public SwitchParameter IncludeDependencies { get; set; }
-
-        /// <summary>
-        /// Specifies to allow ONLY prerelease versions to be uninstalled
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
         public SwitchParameter Force { get; set; }
 
-        /// <summary>
-        /// Specifies to allow ONLY prerelease versions to be uninstalled
-        /// </summary>
-        //[Parameter(ParameterSetName = "NameParameterSet")]
-        //public SwitchParameter PrereleaseOnly { get; set; }
 
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         private string programFilesPath;
@@ -91,23 +79,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
             
-            /// THIS MAY NEED TO CHANGE, CHECK ON THIS
-            var consoleIsElevated = false;
-#if NET472
-            // WindowsPS
-            var id = System.Security.Principal.WindowsIdentity.GetCurrent();
-            consoleIsElevated = (id.Owner != id.User);
-            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-#else
-            // If Windows OS (PS6+)
+            var isXPlatformPS = this.Host.Version.Major.CompareTo("6") > 1 ? true : false;
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                var id = System.Security.Principal.WindowsIdentity.GetCurrent();
-                consoleIsElevated = (id.Owner != id.User);
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+                // If PowerShell 6+
+                if (isXPlatformPS)
+                {
+                    myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+                    programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+                }
+                else
+                {
+                    myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
+                    programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
+                }
             }
             else
             {
@@ -120,7 +106,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var results = pwsh.AddCommand("id").AddParameter("u").Invoke();
                 }
             }
-#endif
             foreach (var pkgName in Name)
             {
                 bool successfullyUninstalledPkg = UninstallPkgHelper(pkgName, cancellationToken);
@@ -135,13 +120,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-
-
-
-
-
-
-        /// just uninstall module, not dependencies
+        
+        /// Just uninstall module, not dependencies
         private bool UninstallPkgHelper(string pkgName, CancellationToken cancellationToken)
         {
             var successfullyUninstalled = false;
@@ -170,9 +150,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var versionDirsProgramFiles = (Directory.Exists(dirNameProgramFiles)) ? Directory.GetDirectories(dirNameProgramFiles) : null;
             var parentDirFilesProgramFiles = (Directory.Exists(dirNameProgramFiles)) ? Directory.GetFiles(dirNameProgramFiles) : null;
 
-
-
-
+            
             /* Scripts */
             // My Documents
             var scriptPathMyDocuments = Path.Combine(psScriptPathMyDocuments, pkgName + ".ps1");
@@ -193,7 +171,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var psScriptsPathAllFiles = new List<string>();
             if (Directory.Exists(psScriptPathMyDocuments))
             {
-                psScriptsPathAllFiles.AddRange(Directory.GetFiles(psScriptPathMyDocuments).ToList());  /// may need to change this to get files
+                psScriptsPathAllFiles.AddRange(Directory.GetFiles(psScriptPathMyDocuments).ToList())
             }
             if (Directory.Exists(psModulesPathMyDocuments))
             {
@@ -219,75 +197,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return successfullyUninstalled;
             }
 
-
-            //// WHAT IF
-            //// IF NOT WHAT IF
+            
             if (!isScript)
             {
-                // Try removing from my documents
                 if (foundInMyDocuments)
                 {
                     successfullyUninstalled = UninstallModuleHelper(pkgName, dirNameMyDocuments, versionDirsMyDocuments, parentDirFilesMyDocuments, cancellationToken);
                 }
                 else if (foundInProgramFiles)
                 {
-                    // try removing from program files
                     successfullyUninstalled = UninstallModuleHelper(pkgName, dirNameProgramFiles, versionDirsProgramFiles, parentDirFilesProgramFiles, cancellationToken);
                 }
             }
             else 
             {
-                // Try removing from my documents
                 if (foundInMyDocuments)
                 {
                     successfullyUninstalled = UninstallScriptHelper(pkgName, psScriptPathMyDocuments, scriptPathMyDocuments, cancellationToken);
                 }
                 else if (foundInProgramFiles)
                 {
-                    // try removing from program files
                     successfullyUninstalled = UninstallScriptHelper(pkgName, psScriptsPathProgramFiles, scriptPathProgramFiles, cancellationToken);
                 }
             }
-
-
-
-
+            
             return successfullyUninstalled;
-
         }
-
-
-
-
-
-
+        
 
         /* Uninstall Module */
         private bool UninstallModuleHelper(string pkgName, string dirName, string[] versionDirs, string[] parentDirFiles, CancellationToken cancellationToken)
         {
             var successfullyUninstalledPkg = false;
-            
-            // not implementing this feature yet
-            /*
-            // If prereleaseOnly is specified, we'll only take into account prerelease versions of pkgs
-            if (PrereleaseOnly)
-            {
-                List<string> prereleaseOnlyVersionDirs = new List<string>();
-                foreach (var dir in versionDirs)
-                {
-                    var nameOfDir = Path.GetFileName(dir);
-                    var nugVersion = NuGetVersion.Parse(nameOfDir);
-
-                    if (nugVersion.IsPrerelease)
-                    {
-                        prereleaseOnlyVersionDirs.Add(dir);
-                    }
-                }
-                versionDirs = prereleaseOnlyVersionDirs.ToArray();
-            }
-            */
-
-
+      
             // if the version specificed is a version range
             if (versionRange != null)
             {
@@ -306,7 +248,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else if (nugetVersion != null)
             {
                 // if the version specified is a version
-
                 dirsToDelete.Add(nugetVersion.ToNormalizedString());
             }
             else
@@ -316,11 +257,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 dirsToDelete.Add(versionDirs[versionDirs.Length - 1]);
             }
-
-
-
-
-            // if dirsToDelete is empty... meaning we didn't find any modules, it's possible it's a script
+            
+            // if dirsToDelete is empty, meaning we didn't find any modules, it's possible it's a script
             if (dirsToDelete.Any())
             {
                 /// This is a primitive implementation
@@ -337,23 +275,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
                     // If we anything from the final call gets returned, there is a dependency on this pkg.
                     var pkgsWithRequiredModules = results.Where(p => ((ReadOnlyCollection<PSModuleInfo>)p.Properties["RequiredModules"].Value).Where(rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any());
-
-
                     //.Select(p => (p.Properties.Match("Name"), p.Properties.Match("Version")));
 
                     if (pkgsWithRequiredModules.Any() && !Force)
                     {
                         var uniquePkgNames = pkgsWithRequiredModules.Select(p => p.Properties["Name"].Value).Distinct().ToArray();
-
                         var strUniquePkgNames = string.Join(",", uniquePkgNames);
 
                         throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Cannot uninstall {0}, the following package(s) take a dependency on this package: {1}.  If you would still like to uninstall, rerun the command with -Force", pkgName, strUniquePkgNames));
-
                     }
                 }
 
 
-                // ADD WHAT IF HERE
                 if (ShouldProcess("Uninstall-PSResource"))
                 {
                     // Delete the appropriate directories
@@ -372,8 +305,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
-                    // Finally:
-                    // Check to see if there's anything left in the parent directory, if not, delete that as well
+                    // Finally: Check to see if there's anything left in the parent directory, if not, delete that as well
                     if (Directory.GetDirectories(dirName).Length == 0)
                     {
                         Directory.Delete(dirName, true);
@@ -382,11 +314,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             return successfullyUninstalledPkg;
         }
-
-
-
-
-
+        
 
         /* Uninstall script helper */
         private bool UninstallScriptHelper(string pkgName, string scriptsPath, string fullScriptPath, CancellationToken cancellationToken)
@@ -412,22 +340,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             };
             
             NuGetVersion.TryParse(versionInfo.FirstOrDefault().Value.ToString(), out NuGetVersion nugetVersion);
-
-            // If prereleaseOnly is specified, we'll only take into account prerelease versions of pkgs
-            /*
-            if (PrereleaseOnly)
-            {
-                // If the installed script is a prerelease, we can continue processing it
-                if (nugetVersion.IsPrerelease)
-                {
-                    dirsToDelete.Add(fullScriptPath);
-                }
-                else
-                {
-                    return successfullyUninstalledPkg;
-                }
-            }
-            */
 
             if (Version == null)
             {
@@ -497,8 +409,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     successfullyUninstalledPkg = true;
                 }
 
-                // Finally:
-                // Delete the xml from the InstalledModulesInfo directory
+                // Finally: Delete the xml from the InstalledModulesInfo directory
                 var scriptXML = Path.Combine(scriptsPath, "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
                 if (File.Exists(scriptXML))
                 {
