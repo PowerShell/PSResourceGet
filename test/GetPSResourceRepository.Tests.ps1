@@ -96,4 +96,9 @@ Describe "Test Register-PSResourceRepository" {
         $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again."
         {Get-PSResourceRepository -Name "" -ErrorAction Stop} | Should -Throw $errorMsg
     }
+
+    It "find all repositories if no Name provided" {
+        $res = Get-PSResourceRepository
+        $res.Count | Should -BeGreaterThan 0
+    }
 }

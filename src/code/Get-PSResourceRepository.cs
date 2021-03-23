@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
@@ -51,17 +52,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
-            string[] errorMsgs;
-            List<PSRepositoryItem> items;
-            try
-            {
-                WriteDebug(String.Format("reading repository {0}. Calling Read() API now", Name));
-                items = RepositorySettings.Read(Name, out errorMsgs);
-            }
-            catch (PSInvalidOperationException e)
-            {
-                throw new Exception(string.Format("Unable to successfully read repository store. {0}", e.Message));
-            }
+            string[] namesForDebug = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null) ? new string[] {"all"} : Name;
+            WriteDebug(String.Format("reading repository: {0}. Calling Read() API now", namesForDebug));
+            List<PSRepositoryItem> items = RepositorySettings.Read(Name, out string[] errorMsgs);
 
             // handle non-terminating errors
             foreach (string error in errorMsgs)
@@ -75,7 +68,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 }
             }
-
 
             foreach (PSRepositoryItem repo in items)
             {

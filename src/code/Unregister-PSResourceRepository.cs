@@ -46,16 +46,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
-            string[] errorMsgs;
-            try
-            {
-                WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", Name));
-                RepositorySettings.Remove(Name, out errorMsgs);
-            }
-            catch (PSInvalidOperationException e)
-            {
-                throw new Exception(string.Format("Unable to successfully unregister repository due to issue reading repository store. {0}", e.Message));
-            }
+            WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", Name));
+            RepositorySettings.Remove(Name, out string[] errorMsgs);
 
             // handle non-terminating errors
             foreach (string error in errorMsgs)
