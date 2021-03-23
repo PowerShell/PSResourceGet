@@ -7,6 +7,7 @@ using System.Management.Automation;
 using System.Globalization;
 using System.Collections.Generic;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -195,7 +196,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 default:
-                    WriteDebug("Invalid parameter set");
+                    Dbg.Assert(false, "Invalid parameter set");
                     break;
 
             }

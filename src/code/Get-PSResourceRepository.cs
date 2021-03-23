@@ -34,7 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Methods
-        protected override void ProcessRecord()
+        protected override void BeginProcessing()
         {
             try
             {
@@ -49,7 +49,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.ReadError,
                     this));
             }
-
+        }
+        protected override void ProcessRecord()
+        {
             string[] namesForDebug = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null) ? new string[] {"all"} : Name;
             WriteDebug(String.Format("reading repository: {0}. Calling Read() API now", namesForDebug));
             List<PSRepositoryItem> items = RepositorySettings.Read(Name, out string[] errorMsgs);
