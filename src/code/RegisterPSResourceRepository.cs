@@ -289,7 +289,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
             {
                 WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Repository name cannot ne null"),
+                        new PSInvalidOperationException("Repository name cannot be null"),
                         "NullNameForRepositoriesParameterSetRegistration",
                         ErrorCategory.InvalidArgument,
                         this));
@@ -307,7 +307,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (!repo.ContainsKey("Url") || String.IsNullOrEmpty(repo["Url"].ToString()))
             {
                 WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Repository url cannot ne null"),
+                        new PSInvalidOperationException("Repository url cannot be null"),
                         "NullURLForRepositoriesParameterSetRegistration",
                         ErrorCategory.InvalidArgument,
                         this));
