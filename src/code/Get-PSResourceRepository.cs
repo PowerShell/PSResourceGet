@@ -59,14 +59,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // handle non-terminating errors
             foreach (string error in errorList)
             {
-                if (!String.IsNullOrEmpty(error))
-                {
-                    WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(error),
-                        "ErrorUnregisteringSpecifiedRepo",
-                        ErrorCategory.InvalidOperation,
-                        this));
-                }
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorUnregisteringSpecifiedRepo",
+                    ErrorCategory.InvalidOperation,
+                    this));
             }
 
             foreach (PSRepositoryItem repo in items)

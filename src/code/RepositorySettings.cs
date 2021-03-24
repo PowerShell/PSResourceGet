@@ -164,7 +164,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <param name="sectionName"></param>
         public static void Remove(string[] repoNames, out string[] errorList)
         {
-            errorList = null;
             List<string> temp = new List<string>();
 
             // Check to see if information we're trying to remove from the repository is valid
@@ -204,7 +203,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static List<PSRepositoryItem> Read(string[] repoNames, out string[] errorList)
         {
-            errorList = null;
             List<string> temp = new List<string>();
             var foundRepos = new List<PSRepositoryItem>();
 
