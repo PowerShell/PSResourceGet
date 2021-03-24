@@ -261,9 +261,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                         foundRepos.Add(currentRepoItem);
                     }
-                    if (!repoMatch)
+                    if (!repo.Contains("*") && !repoMatch)
                     {
-                        temp.Add(String.Format("Unable to find repository matching Name '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
+                        temp.Add(String.Format("Unable to find repository with Name '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
                     }
                 }
             }

@@ -62,7 +62,7 @@ Describe "Test Register-PSResourceRepository" {
 
     It "not get repository that hasn't been registered/invalid name" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
-        $errorMsg = "Unable to find repository matching Name '$nonRegisteredRepoName'.  Use Get-PSResourceRepository to see all available repositories."
+        $errorMsg = "Unable to find repository with Name '$nonRegisteredRepoName'.  Use Get-PSResourceRepository to see all available repositories."
         $res = Get-PSResourceRepository -Name $nonRegisteredRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
@@ -71,7 +71,7 @@ Describe "Test Register-PSResourceRepository" {
 
     It "given invalid and valid Names, get valid ones and write error for non valid ones" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
-        $errorMsg = "Unable to find repository matching Name '$nonRegisteredRepoName'.  Use Get-PSResourceRepository to see all available repositories."
+        $errorMsg = "Unable to find repository with Name '$nonRegisteredRepoName'.  Use Get-PSResourceRepository to see all available repositories."
 
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
         Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
