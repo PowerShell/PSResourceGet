@@ -49,6 +49,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", Name));
+            if (!ShouldProcess("Unregister repository"))
+            {
+                return;
+            }
             RepositorySettings.Remove(Name, out string[] errorList);
 
             // handle non-terminating errors
