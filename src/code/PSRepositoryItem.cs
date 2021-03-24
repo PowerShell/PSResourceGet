@@ -8,7 +8,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     /// <summary>
     /// This class contains information for a repository item.
-    public class PSRepositoryItem
+    public sealed class PSRepositoryItem
     {
         private string _name;
         private Uri _url;

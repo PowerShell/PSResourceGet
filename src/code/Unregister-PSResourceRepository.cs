@@ -30,7 +30,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Methods
-        protected override void ProcessRecord()
+        protected override void BeginProcessing()
         {
             try
             {
@@ -45,7 +45,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.ReadError,
                     this));
             }
-
+        }
+        protected override void ProcessRecord()
+        {
             WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", Name));
             RepositorySettings.Remove(Name, out string[] errorList);
 
