@@ -48,8 +48,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         protected override void ProcessRecord()
         {
-            WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", Name));
-            if (!ShouldProcess("Unregister repository"))
+            string nameArrayAsString = string.Join(", ", Name);
+            WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", nameArrayAsString));
+            if (!ShouldProcess(nameArrayAsString, "Unregister repositories from repository store"))
             {
                 return;
             }

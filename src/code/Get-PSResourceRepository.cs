@@ -52,8 +52,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         protected override void ProcessRecord()
         {
-            string[] namesForDebug = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null) ? new string[] {"all"} : Name;
-            WriteDebug(String.Format("reading repository: {0}. Calling Read() API now", namesForDebug));
+            string nameArrayAsString = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null) ? "all" : string.Join(", ", Name);
+            WriteDebug(String.Format("reading repository: {0}. Calling Read() API now", nameArrayAsString));
             List<PSRepositoryItem> items = RepositorySettings.Read(Name, out string[] errorList);
 
             // handle non-terminating errors
