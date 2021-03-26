@@ -147,18 +147,18 @@ function Get-PoshTestGalleryLocation {
     return $script:PostTestGalleryLocation
 }
 
-function Create-TempDirs {
+function New-TestDirs {
     Param(
         [string[]]
         $listOfPaths
     )
     foreach($path in $listOfPaths)
     {
-        $null = New-Item -Path $path -ItemType Directory -Verbose
+        $null = New-Item -Path $path -ItemType Directory
     }
 }
 
-function Remove-TempDirs {
+function Remove-TestDirs {
     Param(
         [string[]]
         $listOfPaths

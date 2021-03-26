@@ -6,19 +6,19 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe "Test Register-PSResourceRepository" {
     BeforeEach {
         Get-NewPSResourceRepositoryFile
-        $tmpDir1Path = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir1"
-        $tmpDir2Path = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir2"
-        $tmpDir3Path = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir3"
+        $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
+        $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
+        $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
         $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
-        Create-TempDirs($tmpDirPaths)
+        New-TestDirs($tmpDirPaths)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
-        $tmpDir1Path = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir1"
-        $tmpDir2Path = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir2"
-        $tmpDir3Path = Join-Path -Path (Get-TempPath) -ChildPath "tmpDir3"
+        $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
+        $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
+        $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
         $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
-        Remove-TempDirs($tmpDirPaths)
+        Remove-TestDirs($tmpDirPaths)
     }
 
     It "unregister single repository previously registered" {
