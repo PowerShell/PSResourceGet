@@ -61,26 +61,23 @@ Describe "Test Register-PSResourceRepository" {
 
     It "not get repository that hasn't been registered/invalid name" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
-        $errorMsg = "Unable to find repository with Name '$nonRegisteredRepoName'.  Use Get-PSResourceRepository to see all available repositories."
         $res = Get-PSResourceRepository -Name $nonRegisteredRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].Exception.Message | Should -Be $errorMsg
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
     }
 
     It "given invalid and valid Names, get valid ones and write error for non valid ones" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
-        $errorMsg = "Unable to find repository with Name '$nonRegisteredRepoName'.  Use Get-PSResourceRepository to see all available repositories."
 
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
         Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
 
-        # should write error
         $res = Get-PSResourceRepository -Name "testRepository",$nonRegisteredRepoName,"testRepository2" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].Exception.Message | Should -Be $errorMsg
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
 
-        # and have successfully got the other valid/registered repositories with no error
+        # should have successfully got the other valid/registered repositories with no error
         foreach ($entry in $res) {
             $entry.Name | Should -BeIn "testRepository","testRepository2"
         }

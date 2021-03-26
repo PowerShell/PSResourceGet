@@ -61,7 +61,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 WriteError(new ErrorRecord(
                     new PSInvalidOperationException(error),
-                    "ErrorUnregisteringSpecifiedRepo",
+                    "ErrorGettingSpecifiedRepo",
                     ErrorCategory.InvalidOperation,
                     this));
             }

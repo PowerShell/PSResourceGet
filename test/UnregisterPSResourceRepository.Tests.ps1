@@ -47,11 +47,10 @@ Describe "Test Register-PSResourceRepository" {
 
     It "when multiple repo Names provided, if one name isn't valid unregister the rest and write error message" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
-        $errorMsg = "Unable to find repository '$nonRegisteredRepoName'.  Use Get-PSResourceRepository to see all available repositories."
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
         Unregister-PSResourceRepository -Name $nonRegisteredRepoName,"testRepository" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].Exception.Message | Should -Be $errorMsg
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
     It "throw error if Name is null or empty" {
