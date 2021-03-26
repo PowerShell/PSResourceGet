@@ -253,7 +253,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         WriteError(new ErrorRecord(
                                 new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name and/or -URL key value pairs"),
-                                "NullNameForRepositoriesParameterSetRegistration",
+                                "NotProvideNameUrlForPSGalleryRepositoriesParameterSetRegistration",
                                 ErrorCategory.InvalidArgument,
                                 this));
                         continue;

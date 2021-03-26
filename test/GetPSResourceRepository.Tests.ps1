@@ -83,14 +83,14 @@ Describe "Test Register-PSResourceRepository" {
         }
     }
 
-    It "thorw error and get no repositories when provided null Name" {
-        $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again."
-        {Get-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw $errorMsg
+    It "throw error and get no repositories when provided null Name" {
+        # $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again."
+        {Get-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
     }
 
     It "throw error and get no repositories when provided empty string Name" {
-        $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again."
-        {Get-PSResourceRepository -Name "" -ErrorAction Stop} | Should -Throw $errorMsg
+        # $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again."
+        {Get-PSResourceRepository -Name "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
     }
 
     It "find all repositories if no Name provided" {

@@ -139,28 +139,26 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "not register repository when Name is provided but URL is not" {
-        {Register-PSResourceRepository -Name "testRepository" -URL "" -ErrorAction Stop} | Should -Throw "The URL provided is not valid: "
+        {Register-PSResourceRepository -Name "testRepository" -URL "" -ErrorAction Stop} | Should -Throw -ErrorId "InvalidUrl,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name null but URL is provided" {
-        {Register-PSResourceRepository -Name "" -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw "Cannot validate argument on parameter 'Name'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again."
+        {Register-PSResourceRepository -Name "" -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register PSGallery with NameParameterSet" {
-        $errorMsg = "Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery"
-        {Register-PSResourceRepository -Name $PSGalleryName -URL $PSGalleryURL -ErrorAction Stop} | Should -Throw $errorMsg
+        {Register-PSResourceRepository -Name $PSGalleryName -URL $PSGalleryURL -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     # this error message comes from the parameter cmdlet tags (earliest point of detection)
     It "not register PSGallery when PSGallery parameter provided with Name or URL" {
-        $errorMsg = "Parameter set cannot be resolved using the specified named parameters. One or more parameters issued cannot be used together or an insufficient number of parameters were provided."
-        {Register-PSResourceRepository -PSGallery -Name $PSGalleryName -ErrorAction Stop} | Should -Throw $errorMsg
-        {Register-PSResourceRepository -PSGallery -URL $PSGalleryURL -ErrorAction Stop} | Should -Throw $errorMsg
+        {Register-PSResourceRepository -PSGallery -Name $PSGalleryName -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -PSGallery -URL $PSGalleryURL -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register incorrectly formatted PSGallery type repo among correct ones when incorrect type is <Type>" -TestCases @(
-        @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name=$PSGalleryName}; ErrorMsg = "Repository hashtable cannot contain PSGallery key with -Name and/or -URL key value pairs"},
-        @{Type = "URL key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; URL=$PSGalleryURL};   ErrorMsg = "Repository hashtable cannot contain PSGallery key with -Name and/or -URL key value pairs"}
+        @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name=$PSGalleryName}},
+        @{Type = "URL key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; URL=$PSGalleryURL}}
     ){
         $correctHashtable1 = @{Name = "testRepository"; URL = $tmpDir1Path}
         $correctHashtable2 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
@@ -170,7 +168,7 @@ Describe "Test Register-PSResourceRepository" {
         Unregister-PSResourceRepository -Name "PSGallery"
         Register-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].Exception.Message | Should -Be $ErrorMsg
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUrlForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name "testRepository"
         $res.Name | Should -Be "testRepository"
@@ -183,10 +181,10 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases @(
-        @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorMsg = "Repository name cannot be null"},
-        @{Type = "-Name is PSGallery";                     IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorMsg = "Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery"},
-        @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorMsg = "Repository url cannot be null"},
-        @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorMsg = "Invalid url, unable to create"}
+        @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+        @{Type = "-Name is PSGallery";                     IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+        @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+        @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUrlScheme,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
     ){
 
         $correctHashtable1 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
@@ -197,7 +195,7 @@ Describe "Test Register-PSResourceRepository" {
         Unregister-PSResourceRepository -Name "PSGallery"
         Register-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].Exception.Message | Should -Be $ErrorMsg
+        $err[0].FullyQualifiedErrorId | Should -BeExactly $ErrorId
 
         $res = Get-PSResourceRepository -Name "testRepository2"
         $res.Name | Should -Be "testRepository2"
