@@ -20,12 +20,17 @@ internal class RepositoryNameCompleter : IArgumentCompleter
     {
         List<PSRepositoryItem> listOfRepositories = RepositorySettings.Read(null, out string[] _);
 
+        wordToComplete = Utils.TrimQuotes(wordToComplete);
+        var wordToCompletePattern = WildcardPattern.Get(
+            pattern: string.IsNullOrWhiteSpace(wordToComplete) ? "*" : wordToComplete + "*",
+            options: WildcardOptions.IgnoreCase);
+
         foreach (PSRepositoryItem repo in listOfRepositories)
         {
             string repoName = repo.Name;
-            if (repoName.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
+            if (wordToCompletePattern.IsMatch(repoName))
             {
-                yield return new CompletionResult(repoName);
+                yield return new CompletionResult(Utils.QuoteName(repoName));
             }
         }
     }
