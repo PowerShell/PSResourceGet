@@ -77,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = "RepositoriesParameterSet")]
+        [Parameter(Mandatory = true, ParameterSetName = "RepositoriesParameterSet", ValueFromPipeline = true)]
         [ValidateNotNullOrEmpty]
         public Hashtable[] Repositories {get; set;}
 
@@ -109,7 +109,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
         /// </summary>
-        // [Parameter(ValueFromPipeline = true)]
         public PSCredential ProxyCredential { get; set; }
 
         /// <summary>
