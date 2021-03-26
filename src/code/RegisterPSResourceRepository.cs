@@ -103,14 +103,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public Uri Proxy { get; set; }
 
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true)]
+        // [Parameter(ValueFromPipeline = true)]
         public PSCredential ProxyCredential { get; set; }
 
         /// <summary>
@@ -220,7 +219,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
             WriteDebug("All required values to add to repository provided, calling internal Add() API now");
-            if (!ShouldProcess("Register repository"))
+            if (!ShouldProcess("target", "action (that what if will display"))
             {
                 return null;
             }

@@ -8,67 +8,40 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     /// <summary>
     /// This class contains information for a repository item.
+    /// </summary>
     public sealed class PSRepositoryItem
     {
-        private string _name;
-        private Uri _url;
-        private bool _trusted;
-        private int _priority = 50;
-
+        #region Constructor
         public PSRepositoryItem(string name, Uri url, int priority, bool trusted)
         {
-            _name = name;
-            _url = url;
-            _priority = priority;
-            _trusted = trusted;
+            Name = name;
+            Url = url;
+            Priority = priority;
+            Trusted = trusted;
         }
+        #endregion
 
+        #region Properties
         /// <summary>
         /// the Name of the repository
         /// </summary>
-        public string Name
-        {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
+        public string Name { get; }
 
         /// <summary>
         /// the Url for the repository
         /// </summary>
-        public Uri Url
-        {
-            get
-            { return _url; }
-
-            set
-            { _url = value; }
-        }
+        public Uri Url { get; }
 
         /// <summary>
         /// whether the repository is trusted
-        public bool Trusted
-        {
-            get
-            { return _trusted; }
-
-            set
-            { _trusted = value; }
-        }
+        public bool Trusted { get; }
 
         /// <summary>
         /// the priority of the repository
         /// </summary>
         [ValidateRange(0, 50)]
-        public int Priority
-        {
-            get
-            { return _priority; }
+        public int Priority { get; }
 
-            set
-            { _priority = value; }
-        }
+        #endregion
     }
 }
