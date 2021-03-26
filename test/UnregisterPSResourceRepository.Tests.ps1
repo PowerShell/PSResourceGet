@@ -40,8 +40,7 @@ Describe "Test Register-PSResourceRepository" {
 
     It "not unregister repo not previously registered and throw expected error message" {
         $name = "nonRegisteredRepository"
-        $errorMsg = "Unable to find repository '$name'.  Use Get-PSResourceRepository to see all available repositories."
-        {Unregister-PSResourceRepository -Name $name -ErrorAction Stop} | Should -Throw $errorMsg
+        {Unregister-PSResourceRepository -Name $name -ErrorAction Stop} | Should -Throw -ErrorId "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
 
     }
 
@@ -54,14 +53,10 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "throw error if Name is null or empty" {
-        $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again."
-        {Unregister-PSResourceRepository -Name "" -ErrorAction Stop} | Should -Throw $errorMsg
-
-        # should throw errorId
+        {Unregister-PSResourceRepository -Name "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
     It "throw error if Name is null" {
-        $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again."
-        {Unregister-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw $errorMsg
+        {Unregister-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
     }
 }
