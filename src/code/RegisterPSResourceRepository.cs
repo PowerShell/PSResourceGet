@@ -218,7 +218,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
             WriteDebug("All required values to add to repository provided, calling internal Add() API now");
-            if (!ShouldProcess("target", "action (that what if will display"))
+            if (!ShouldProcess(repoName, "Register repository to repository store"))
             {
                 return null;
             }
