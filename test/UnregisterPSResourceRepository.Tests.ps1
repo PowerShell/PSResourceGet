@@ -10,7 +10,7 @@ Describe "Test Register-PSResourceRepository" {
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
         $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
         $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
-        New-TestDirs($tmpDirPaths)
+        Get-NewTestDirs($tmpDirPaths)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -18,7 +18,7 @@ Describe "Test Register-PSResourceRepository" {
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
         $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
         $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
-        Remove-TestDirs($tmpDirPaths)
+        Get-RemoveTestDirs($tmpDirPaths)
     }
 
     It "unregister single repository previously registered" {

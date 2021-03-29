@@ -9,7 +9,7 @@
 $psGetMod = Get-Module -Name PowerShellGet
 if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
 {
-    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
+    Write-Verbose -Message "Importing PowerShellGet 3.0.0 for test" -Verbose
     Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
 }
 
@@ -147,7 +147,7 @@ function Get-PoshTestGalleryLocation {
     return $script:PostTestGalleryLocation
 }
 
-function New-TestDirs {
+function Get-NewTestDirs {
     Param(
         [string[]]
         $listOfPaths
@@ -158,7 +158,7 @@ function New-TestDirs {
     }
 }
 
-function Remove-TestDirs {
+function Get-RemoveTestDirs {
     Param(
         [string[]]
         $listOfPaths
