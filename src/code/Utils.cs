@@ -12,6 +12,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     internal static class Utils
     {
         #region Members
+
         public static string TrimQuotes(string name)
         {
             return name.Trim('\'', '"');
