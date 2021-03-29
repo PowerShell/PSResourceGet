@@ -345,7 +345,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                WriteDebug(String.Format("(RepositoriesParameterSet): on repo: {0}. Registers Name based repository", repo["Name"].ToString()));
+                WriteDebug(String.Format("(RepositoriesParameterSet): on repo: {0}. Registers Name based repository", repo["Name"]));
                 return NameParameterSetHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
