@@ -12,6 +12,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     public sealed class PSRepositoryItem
     {
         #region Constructor
+
         public PSRepositoryItem(string name, Uri url, int priority, bool trusted)
         {
             Name = name;
@@ -19,9 +20,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Priority = priority;
             Trusted = trusted;
         }
+
         #endregion
 
         #region Properties
+
         /// <summary>
         /// the Name of the repository
         /// </summary>

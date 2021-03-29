@@ -27,9 +27,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; } = new string[0];
+
         #endregion
 
         #region Methods
+
         protected override void BeginProcessing()
         {
             try
@@ -54,6 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 return;
             }
+
             RepositorySettings.Remove(Name, out string[] errorList);
 
             // handle non-terminating errors
@@ -66,6 +69,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
         }
+
         #endregion
     }
 }

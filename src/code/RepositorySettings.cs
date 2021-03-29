@@ -54,6 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store creation failed with error: {0}.", e.Message));
                 }
             }
+
             // Open file (which should exist now), if cannot/is corrupted then throw error
             try
             {
@@ -79,7 +80,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 // Open file
                 XDocument doc = XDocument.Load(FullRepositoryPath);
-
                 if (FindRepositoryElement(doc, repoName) != null)
                 {
                     throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
@@ -123,7 +123,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 // Open file
                 XDocument doc = XDocument.Load(FullRepositoryPath);
-
                 XElement node = FindRepositoryElement(doc, repoName);
                 if (node == null)
                 {
@@ -138,6 +137,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     node.Attribute("Url").Value = repoURL.AbsoluteUri;
                 }
+
                 if (repoPriority >= 0)
                 {
                     node.Attribute("Priority").Value = repoPriority.ToString();
@@ -171,6 +171,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 throw new ArgumentException("Repository name cannot be null or empty");
             }
+
             XDocument doc;
             try
             {
@@ -193,9 +194,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     temp.Add(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
                     continue;
                 }
+
                 // Remove item from file
                 node.Remove();
             }
+
             // Close the file
             root.Save(FullRepositoryPath);
             errorList = temp.ToArray();
@@ -228,6 +231,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         temp.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", repo.Attribute("Name").Value));
                         continue;
                     }
+
                     PSRepositoryItem currentRepoItem = new PSRepositoryItem(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
@@ -236,6 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     foundRepos.Add(currentRepoItem);
                 }
             }
+
             else
             {
                 foreach (string repo in repoNames)
@@ -252,6 +257,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             temp.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", node.Attribute("Name").Value));
                             continue;
                         }
+
                         PSRepositoryItem currentRepoItem = new PSRepositoryItem(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
@@ -259,6 +265,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                         foundRepos.Add(currentRepoItem);
                     }
+
                     if (!repo.Contains("*") && !repoMatch)
                     {
                         temp.Add(String.Format("Unable to find repository with Name '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));

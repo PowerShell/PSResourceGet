@@ -26,6 +26,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     class RegisterPSResourceRepository : PSCmdlet
     {
         #region Members
+
         private readonly string PSGalleryRepoName = "PSGallery";
         private readonly string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
         private const int defaultPriority = 50;
@@ -37,6 +38,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Parameters
+
         /// <summary>
         /// Specifies name for the repository to be registered.
         /// </summary>
@@ -57,12 +59,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set
             {
                 if (!Uri.TryCreate(value, string.Empty, out Uri url))
-                    {
-                        var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
-                        var ex = new ArgumentException(message);
-                        var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                        ThrowTerminatingError(moduleManifestNotFound);
-                    }
+                {
+                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
+                    var ex = new ArgumentException(message);
+                    var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+                    ThrowTerminatingError(moduleManifestNotFound);
+                }
+
                 _url = url;
             }
         }
@@ -120,6 +123,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Methods
+
         protected override void ProcessRecord()
         {
             if (Proxy != null || ProxyCredential != null)
@@ -135,6 +139,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 RepositorySettings.CheckRepositoryStore();
             }
+
             catch (PSInvalidOperationException e)
             {
                 ThrowTerminatingError(new ErrorRecord(
@@ -213,15 +218,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 throw new ArgumentException("Name cannot be null/empty or contain whitespace or asterisk");
             }
+
             if (repoUrl == null || !(repoUrl.Scheme == Uri.UriSchemeHttp || repoUrl.Scheme == Uri.UriSchemeHttps || repoUrl.Scheme == Uri.UriSchemeFtp || repoUrl.Scheme == Uri.UriSchemeFile))
             {
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
+
             WriteDebug("All required values to add to repository provided, calling internal Add() API now");
             if (!ShouldProcess(repoName, "Register repository to repository store"))
             {
                 return null;
             }
+
             return RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted);
         }
 
@@ -232,6 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteDebug("Provided Name (NameParameterSet) but with invalid value of PSGallery");
                 throw new ArgumentException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery");
             }
+
             return AddToRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted);
         }
 
@@ -258,6 +267,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 this));
                         continue;
                     }
+
                     try
                     {
                         WriteDebug("(RepositoriesParameterSet): on repo: PSGallery. Registers PSGallery repository");
@@ -265,6 +275,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
                             repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
                     }
+
                     catch (Exception e)
                     {
                         WriteError(new ErrorRecord(
@@ -274,6 +285,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this));
                     }
                 }
+
                 else
                 {
                     PSRepositoryItem parsedRepoAdded = RepoValidationHelper(repo);
@@ -297,6 +309,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 return null;
             }
+
             if (repo["Name"].ToString().Equals("PSGallery"))
             {
                 WriteError(new ErrorRecord(
@@ -306,6 +319,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 return null;
             }
+
             if (!repo.ContainsKey("Url") || String.IsNullOrEmpty(repo["Url"].ToString()))
             {
                 WriteError(new ErrorRecord(
@@ -334,6 +348,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted);
             }
+
             catch (Exception e)
             {
                 if (!(e is ArgumentException || e is PSInvalidOperationException))
@@ -344,6 +359,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ErrorCategory.InvalidArgument,
                         this));
                 }
+
                 WriteError(new ErrorRecord(
                         new PSInvalidOperationException(e.Message),
                         "ErrorParsingIndividualRepo",
@@ -352,6 +368,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
         }
+
     #endregion
     }
 }
