@@ -142,8 +142,16 @@ Describe "Test Register-PSResourceRepository" {
         {Register-PSResourceRepository -Name "testRepository" -URL "" -ErrorAction Stop} | Should -Throw -ErrorId "InvalidUrl,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
-    It "not register repository when Name null but URL is provided" {
+    It "not register repository when Name is empty but URL is provided" {
         {Register-PSResourceRepository -Name "" -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+    }
+
+    It "not register rpeository when Name is null but URL is provided" {
+        {Register-PSResourceRepository -Name $null -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+    }
+
+    It "not register repository when Name is just whitespace but URL is provided" {
+        {Register-PSResourceRepository -Name " " -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register PSGallery with NameParameterSet" {

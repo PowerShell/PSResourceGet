@@ -218,7 +218,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             repoName = repoName.Trim(' ');
             if (String.IsNullOrEmpty(repoName) || repoName.Contains("*"))
             {
-                throw new ArgumentException("Name cannot be null/empty or contain asterisk or be just whitespace");
+                throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
             }
 
 
