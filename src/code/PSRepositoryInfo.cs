@@ -9,11 +9,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     /// <summary>
     /// This class contains information for a repository item.
     /// </summary>
-    public sealed class PSRepositoryItem
+    public sealed class PSRepositoryInfo
     {
         #region Constructor
 
-        public PSRepositoryItem(string name, Uri url, int priority, bool trusted)
+        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted)
         {
             Name = name;
             Url = url;

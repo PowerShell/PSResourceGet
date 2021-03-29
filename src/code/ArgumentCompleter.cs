@@ -18,14 +18,14 @@ internal class RepositoryNameCompleter : IArgumentCompleter
         CommandAst commandAst,
         IDictionary fakeBoundParameters)
     {
-        List<PSRepositoryItem> listOfRepositories = RepositorySettings.Read(null, out string[] _);
+        List<PSRepositoryInfo> listOfRepositories = RepositorySettings.Read(null, out string[] _);
 
         wordToComplete = Utils.TrimQuotes(wordToComplete);
         var wordToCompletePattern = WildcardPattern.Get(
             pattern: string.IsNullOrWhiteSpace(wordToComplete) ? "*" : wordToComplete + "*",
             options: WildcardOptions.IgnoreCase);
 
-        foreach (PSRepositoryItem repo in listOfRepositories)
+        foreach (PSRepositoryInfo repo in listOfRepositories)
         {
             string repoName = repo.Name;
             if (wordToCompletePattern.IsMatch(repoName))

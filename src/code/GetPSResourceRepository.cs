@@ -12,7 +12,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// The Get-PSResourceRepository cmdlet replaces the Get-PSRepository cmdlet from V2.
     /// It searches for the PowerShell module repositories that are registered for the current user.
     /// By default it will return all registered repositories, or if the -Name parameter argument is specified then it wil return the repository with that name.
-    /// It returns PSRepositoryItemInfo objects which describe each resource item found.
+    /// It returns PSRepositoryInfo objects which describe each resource item found.
     /// </summary>
 
     [Cmdlet(VerbsCommon.Get,
@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             string nameArrayAsString = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null) ? "all" : string.Join(", ", Name);
             WriteDebug(String.Format("reading repository: {0}. Calling Read() API now", nameArrayAsString));
-            List<PSRepositoryItem> items = RepositorySettings.Read(Name, out string[] errorList);
+            List<PSRepositoryInfo> items = RepositorySettings.Read(Name, out string[] errorList);
 
             // handle non-terminating errors
             foreach (string error in errorList)
@@ -68,7 +68,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
-            foreach (PSRepositoryItem repo in items)
+            foreach (PSRepositoryInfo repo in items)
             {
                 WriteObject(repo);
             }

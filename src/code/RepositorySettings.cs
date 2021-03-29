@@ -68,10 +68,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Add a repository to the store
-        /// Returns: PSRepositoryItem containing information about the repository just added to the repository store
+        /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryItem Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
         {
             Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
             Dbg.Assert(!string.IsNullOrEmpty(repoURL.ToString()), "Repository URL cannot be null or empty");
@@ -108,7 +108,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            return new PSRepositoryItem(repoName, repoURL, repoPriority, repoTrusted);
+            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted);
         }
 
         /// <summary>
@@ -204,10 +204,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             errorList = temp.ToArray();
         }
 
-        public static List<PSRepositoryItem> Read(string[] repoNames, out string[] errorList)
+        public static List<PSRepositoryInfo> Read(string[] repoNames, out string[] errorList)
         {
             List<string> temp = new List<string>();
-            var foundRepos = new List<PSRepositoryItem>();
+            var foundRepos = new List<PSRepositoryInfo>();
 
             XDocument doc;
             try
@@ -232,7 +232,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         continue;
                     }
 
-                    PSRepositoryItem currentRepoItem = new PSRepositoryItem(repo.Attribute("Name").Value,
+                    PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value));
@@ -258,7 +258,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             continue;
                         }
 
-                        PSRepositoryItem currentRepoItem = new PSRepositoryItem(node.Attribute("Name").Value,
+                        PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value));

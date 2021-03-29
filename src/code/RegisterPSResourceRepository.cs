@@ -149,7 +149,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
-            List<PSRepositoryItem> items = new List<PSRepositoryItem>();
+            List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
             switch (ParameterSetName)
             {
@@ -205,14 +205,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             if (PassThru)
             {
-                foreach (PSRepositoryItem repo in items)
+                foreach (PSRepositoryInfo repo in items)
                 {
                     WriteObject(repo);
                 }
             }
         }
 
-        private PSRepositoryItem AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
+        private PSRepositoryInfo AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
             repoName = repoName.Trim(' ');
@@ -236,7 +236,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted);
         }
 
-        private PSRepositoryItem NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
+        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
@@ -247,16 +247,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return AddToRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted);
         }
 
-        private PSRepositoryItem PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
+        private PSRepositoryInfo PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
         {
             Uri psGalleryUri = new Uri(PSGalleryRepoURL);
             WriteDebug("(PSGallerySet) internal name and uri values for Add() API are hardcoded and validated, priority and trusted values, if passed in, also validated");
             return AddToRepositoryStoreHelper(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted);
         }
 
-        private List<PSRepositoryItem> RepositoriesParameterSetHelper()
+        private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
         {
-            List<PSRepositoryItem> reposAddedFromHashTable = new List<PSRepositoryItem>();
+            List<PSRepositoryInfo> reposAddedFromHashTable = new List<PSRepositoryInfo>();
             foreach (Hashtable repo in Repositories)
             {
                 if (repo.ContainsKey(PSGalleryRepoName))
@@ -291,7 +291,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 else
                 {
-                    PSRepositoryItem parsedRepoAdded = RepoValidationHelper(repo);
+                    PSRepositoryInfo parsedRepoAdded = RepoValidationHelper(repo);
                     if (parsedRepoAdded != null)
                     {
                         reposAddedFromHashTable.Add(parsedRepoAdded);
@@ -301,7 +301,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return reposAddedFromHashTable;
         }
 
-        private PSRepositoryItem RepoValidationHelper(Hashtable repo)
+        private PSRepositoryInfo RepoValidationHelper(Hashtable repo)
         {
             if (!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
             {
