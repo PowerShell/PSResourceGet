@@ -214,10 +214,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryItem AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
-            if (String.IsNullOrEmpty(repoName) || String.IsNullOrWhiteSpace(repoName) || repoName.Contains(" ") || repoName.Contains("*"))
+            // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
+            repoName = repoName.Trim(' ');
+            if (String.IsNullOrEmpty(repoName) || repoName.Contains("*"))
             {
-                throw new ArgumentException("Name cannot be null/empty or contain whitespace or asterisk");
+                throw new ArgumentException("Name cannot be null/empty or contain asterisk or be just whitespace");
             }
+
 
             if (repoUrl == null || !(repoUrl.Scheme == Uri.UriSchemeHttp || repoUrl.Scheme == Uri.UriSchemeHttps || repoUrl.Scheme == Uri.UriSchemeFtp || repoUrl.Scheme == Uri.UriSchemeFile))
             {
