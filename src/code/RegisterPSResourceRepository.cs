@@ -99,19 +99,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = PSGalleryParameterSet)]
-        [ValidateNotNullOrEmpty]
         [ValidateRange(0, 50)]
         public int Priority { get; set; } = defaultPriority;
 
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
         /// </summary>
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public Uri Proxy { get; set; }
 
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
         /// </summary>
+        [Parameter]
         public PSCredential ProxyCredential { get; set; }
 
         /// <summary>
@@ -124,7 +125,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
-        protected override void ProcessRecord()
+        protected override void BeginProcessing()
         {
             if (Proxy != null || ProxyCredential != null)
             {
@@ -139,7 +140,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 RepositorySettings.CheckRepositoryStore();
             }
-
             catch (PSInvalidOperationException e)
             {
                 ThrowTerminatingError(new ErrorRecord(
@@ -148,7 +148,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.ReadError,
                     this));
             }
-
+        }
+        protected override void ProcessRecord()
+        {
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
             switch (ParameterSetName)
@@ -203,6 +205,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
             }
+
             if (PassThru)
             {
                 foreach (PSRepositoryInfo repo in items)
@@ -220,7 +223,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
             }
-
 
             if (repoUrl == null || !(repoUrl.Scheme == Uri.UriSchemeHttp || repoUrl.Scheme == Uri.UriSchemeHttps || repoUrl.Scheme == Uri.UriSchemeFtp || repoUrl.Scheme == Uri.UriSchemeFile))
             {
@@ -278,7 +280,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
                             repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
                     }
-
                     catch (Exception e)
                     {
                         WriteError(new ErrorRecord(
@@ -288,7 +289,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this));
                     }
                 }
-
                 else
                 {
                     PSRepositoryInfo parsedRepoAdded = RepoValidationHelper(repo);
@@ -298,6 +298,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
             }
+
             return reposAddedFromHashTable;
         }
 
@@ -351,7 +352,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted);
             }
-
             catch (Exception e)
             {
                 if (!(e is ArgumentException || e is PSInvalidOperationException))
