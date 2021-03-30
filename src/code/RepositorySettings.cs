@@ -25,9 +25,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// File name for a user's repository store file is 'PSResourceRepository.xml'
         /// The repository store file's location is currently only at '%LOCALAPPDATA%\NuGet' for the user account.
         /// </summary>
-        public static readonly string RepositoryFileName = "PSResourceRepository.xml";
-        public static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
-        public static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
+        private static readonly string RepositoryFileName = "PSResourceRepository.xml";
+        private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
+        private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
 
 
         /// <summary>
