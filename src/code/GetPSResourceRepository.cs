@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Specifies the name(s) of a registered repository to find.
-        /// Does not support wild card characters.
+        /// Supports wild card characters.
         /// </summary>
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
