@@ -8,7 +8,7 @@ schema: 2.0.0
 # Register-PSResourceRepository
 
 ## SYNOPSIS
-The Register-PSResourceRepository cmdlet replaces the Register-PSRepository from V2. It registers a repository for PowerShell modules. The repository is registered to the current user's scope and does not have a system-wide scope.
+Registers a repository for PowerShell modules.
 
 ## SYNTAX
 
