@@ -164,10 +164,12 @@ Describe "Test Register-PSResourceRepository" {
         {Register-PSResourceRepository -PSGallery -URL $PSGalleryURL -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
-    It "not register incorrectly formatted PSGallery type repo among correct ones when incorrect type is <Type>" -TestCases @(
-        @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name=$PSGalleryName}},
-        @{Type = "URL key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; URL=$PSGalleryURL}}
-    ){
+    $testCases = @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name=$PSGalleryName}},
+                 @{Type = "URL key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; URL=$PSGalleryURL}}
+
+    It "not register incorrectly formatted PSGallery type repo among correct ones when incorrect type is <Type>" -TestCases $testCases {
+        param($Type, $IncorrectHashTable)
+
         $correctHashtable1 = @{Name = "testRepository"; URL = $tmpDir1Path}
         $correctHashtable2 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
         $correctHashtable3 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
@@ -188,12 +190,13 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Name | Should -Be "testRepository3"
     }
 
-    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases @(
-        @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-        @{Type = "-Name is PSGallery";                     IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-        @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-        @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUrlScheme,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
-    ){
+    $testCases2 = @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-Name is PSGallery";                     IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUrlScheme,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
+
+    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases $testCases2 {
+        param($Type, $IncorrectHashTable, $ErrorId)
 
         $correctHashtable1 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
         $correctHashtable2 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
