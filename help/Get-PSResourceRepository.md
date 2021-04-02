@@ -94,7 +94,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ### System.String[]
 ## OUTPUTS
 
-###Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo
+### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo
 ## NOTES
 If no value for Name is provided, Get-PSResourceRepository will return information for all registered repositories.
 
