@@ -17,7 +17,7 @@ Get-PSResourceRepository [[-Name] <String[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-PSResourceRepository cmdlet replaces the Get-PSRepository cmdlet from V2. It searches for the PowerShell module repositories that are registered for the current user. By default it will return all registered repositories, or if the -Name parameter argument is specified then it wil return the repository which matches that name. It returns PSRepositoryInfo objects which contain information for each repository item found.
+The Get-PSResourceRepository cmdlet searches for the PowerShell resource repositories that are registered on the machine. By default it will return all registered repositories, or if the -Name parameter argument is specified then it will return the repository which matches that name. It returns PSRepositoryInfo objects which contain information for each repository item found.
 
 ## EXAMPLES
 
@@ -29,7 +29,7 @@ PS C:\> Get-PSResourceRepository -Name "PSGallery"
         PSGallery    https://www.powershellgallery.com/api/v2     False         50
 ```
 
-This example runs the command with the 'Name' parameter being set to "PSGallery". This repository is registered for the current user so the command returns information on this repository.
+This example runs the command with the 'Name' parameter being set to "PSGallery". This repository is registered on this machine so the command returns information on this repository.
 
 ### Example 2
 ```
@@ -41,7 +41,7 @@ PS C:\> Get-PSResourceRepository -Name "*Gallery"
 
 ```
 
-This example runs the command with the 'Name' parameter being set to "*Gallery" which includes a wildcard. The following repositories are registered for the current user and match the name pattern, so the command returns information on these repositories.
+This example runs the command with the 'Name' parameter being set to "*Gallery" which includes a wildcard. The following repositories are registered on this machine and match the name pattern, so the command returns information on these repositories.
 
 ### Example 3
 ```
@@ -53,7 +53,7 @@ PS C:\> Get-PSResourceRepository -Name "PSGallery","PoshTestGallery"
 
 ```
 
-This example runs the command with the 'Name' parameter being set to an array of Strings. Both of the specified repositories are registered for the current user and match the name pattern, so the command returns information on these repositories.
+This example runs the command with the 'Name' parameter being set to an array of Strings. Both of the specified repositories are registered on this machine and match the name pattern, so the command returns information on these repositories.
 
 ### Example 4
 ```
@@ -66,7 +66,7 @@ PS C:\> Get-PSResourceRepository -Name "*"
 
 ```
 
-This example runs the command with the 'Name' parameter being set to a single wildcard character. So all the repositories registered for the current user are returned.
+This example runs the command with the 'Name' parameter being set to a single wildcard character. So all the repositories registered on this machine are returned.
 
 
 ## PARAMETERS
