@@ -23,10 +23,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         /// <summary>
         /// File name for a user's repository store file is 'PSResourceRepository.xml'
-        /// The repository store file's location is currently only at '%LOCALAPPDATA%\NuGet' for the user account.
+        /// The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
         /// </summary>
         private static readonly string RepositoryFileName = "PSResourceRepository.xml";
-        private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
+        private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet");
         private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
 
 
@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <param name="sectionName"></param>
         public static void Remove(string[] repoNames, out string[] errorList)
         {
-            List<string> temp = new List<string>();
+            List<string> tempErrorList = new List<string>();
 
             // Check to see if information we're trying to remove from the repository is valid
             if (repoNames == null || repoNames.Length == 0)
@@ -191,7 +191,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XElement node = FindRepositoryElement(doc, repo);
                 if (node == null)
                 {
-                    temp.Add(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
+                    tempErrorList.Add(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
                     continue;
                 }
 
@@ -201,12 +201,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             // Close the file
             root.Save(FullRepositoryPath);
-            errorList = temp.ToArray();
+            errorList = tempErrorList.ToArray();
         }
 
         public static List<PSRepositoryInfo> Read(string[] repoNames, out string[] errorList)
         {
-            List<string> temp = new List<string>();
+            List<string> tempErrorList = new List<string>();
             var foundRepos = new List<PSRepositoryInfo>();
 
             XDocument doc;
@@ -228,7 +228,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     if (!Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
                     {
-                        temp.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", repo.Attribute("Name").Value));
+                        tempErrorList.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", repo.Attribute("Name").Value));
                         continue;
                     }
 
@@ -254,7 +254,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
                         {
                             //debug statement
-                            temp.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", node.Attribute("Name").Value));
+                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", node.Attribute("Name").Value));
                             continue;
                         }
 
@@ -268,12 +268,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                     if (!repo.Contains("*") && !repoMatch)
                     {
-                        temp.Add(String.Format("Unable to find repository with Name '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
+                        tempErrorList.Add(String.Format("Unable to find repository with Name '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
                     }
                 }
             }
 
-            errorList = temp.ToArray();
+            errorList = tempErrorList.ToArray();
             // Sort by priority, then by repo name
             var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
             return reposToReturn.ToList();
