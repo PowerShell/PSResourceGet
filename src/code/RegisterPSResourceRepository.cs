@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections;
-using System.Management.Automation;
-using System.Globalization;
 using System.Collections.Generic;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using System.Globalization;
+using System.Management.Automation;
 using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets

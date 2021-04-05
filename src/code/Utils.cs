@@ -4,7 +4,6 @@
 using System;
 using System.Management.Automation.Language;
 
-
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     #region Utils
