@@ -8,7 +8,7 @@ schema: 2.0.0
 # Register-PSResourceRepository
 
 ## SYNOPSIS
-Registers a repository for PowerShell modules.
+Registers a repository for PowerShell resources.
 
 ## SYNTAX
 
