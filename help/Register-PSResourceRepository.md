@@ -30,10 +30,10 @@ Register-PSResourceRepository -Repositories <Hashtable[]> [-PassThru] [-WhatIf] 
 ```
 
 ## DESCRIPTION
-The Register-PSResourceRepository cmdlet replaces the Register-PSRepository from V2. It registers a repository for PowerShell modules. The repository is registered to the current user's scope and does not have a system-wide scope.
+The Register-PSResourceRepository cmdlet registers a repository for PowerShell resources.
 
 ## EXAMPLES
-These examples assume that the repository we attempt to reigster are not already registered for the current user.
+These examples assume that the repository we attempt to reigster is not already registered on the user's machine.
 ### Example 1
 ```
 PS C:\> Register-PSResourceRepository -Name "PoshTestGallery" -URL "https://www.powershellgallery.com/api/v2"
@@ -43,7 +43,7 @@ PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
         PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
 ```
 
-This example registers the repository with the 'Name' of "PoshtTestGallery" along with the associated 'URL' value for it.
+This example registers the repository with the 'Name' of "PoshTestGallery" along with the associated 'URL' value for it.
 
 ### Example 2
 ```
@@ -119,7 +119,7 @@ Accept wildcard characters: False
 ```
 
 ### -Repositories
-Specifies an array of hashtables of repositories and is used to register multiple repositories at once.
+Specifies an array of hashtables that contains repository information and is used to register multiple repositories at once.
 
 ```yaml
 Type: Hashtable[]
@@ -211,7 +211,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
