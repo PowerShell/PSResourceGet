@@ -17,7 +17,7 @@ Unregister-PSResourceRepository [-Name] <String[]> [-WhatIf] [-Confirm] [<Common
 ```
 
 ## DESCRIPTION
-The Unregister-PSResourceRepository cmdlet replaces the Unregister-PSRepository cmdlet from V2. It unregisters a repository for the current user.
+The Unregister-PSResourceRepository cmdlet unregisters a repository for the current user.
 
 ## EXAMPLES
 
@@ -30,7 +30,7 @@ PS C:\>
 
 ```
 
-In this example, we assume the repository "PoshTestGallery" has been previously registered for the current user. So when we first run the command to find "PoshTestGallery" it verifies that this repository can be found. Next, we run the command to unregister "PoshTestGallery". Finally, we again run the command to find "PoshTestGallery" but since it was successfully un-registered it cannot be found or retrieved.
+In this example, we assume the repository "PoshTestGallery" has been previously registered for the user. So when we first run the command to find "PoshTestGallery" it verifies that this repository can be found. Next, we run the command to unregister "PoshTestGallery". Finally, we again run the command to find "PoshTestGallery" but since it was successfully un-registered it cannot be found or retrieved.
 
 ### Example 2
 ```
@@ -100,7 +100,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
