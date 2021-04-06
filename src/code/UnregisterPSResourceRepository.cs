@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             catch (PSInvalidOperationException e)
             {
                 ThrowTerminatingError(new ErrorRecord(
-                    new PSNotImplementedException(e.Message),
+                    new PSInvalidOperationException(e.Message),
                     "RepositoryStoreException",
                     ErrorCategory.ReadError,
                     this));
