@@ -119,7 +119,7 @@ Accept wildcard characters: False
 ```
 
 ### -Repositories
-Specifies an array of hashtables that contains repository information and is used to register multiple repositories at once.
+Specifies an array of hashtables which contains repository information and is used to register multiple repositories at once.
 
 ```yaml
 Type: Hashtable[]
