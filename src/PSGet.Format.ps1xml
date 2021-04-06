@@ -5,21 +5,21 @@
             <Name>PSResourceInfo</Name>
             <ViewSelectedBy>
                 <TypeName>Microsoft.PowerShell.PowerShellGet.PSResourceInfo</TypeName>
-	    </ViewSelectedBy>
-    	    <TableControl>
-     		<TableHeaders>
-      		    <TableColumnHeader><Label>Name</Label></TableColumnHeader>
-         	    <TableColumnHeader><Label>Version</Label></TableColumnHeader>
-      		    <TableColumnHeader><Label>Description</Label></TableColumnHeader>
-     		</TableHeaders>
+        </ViewSelectedBy>
+            <TableControl>
+            <TableHeaders>
+                <TableColumnHeader><Label>Name</Label></TableColumnHeader>
+                <TableColumnHeader><Label>Version</Label></TableColumnHeader>
+                <TableColumnHeader><Label>Description</Label></TableColumnHeader>
+            </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
                         <TableColumnItems>
                             <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Version</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Description</PropertyName></TableColumnItem>
-      	                </TableColumnItems>
-      		    </TableRowEntry>
+                        </TableColumnItems>
+                </TableRowEntry>
                 </TableRowEntries>
             </TableControl>
         </View>
