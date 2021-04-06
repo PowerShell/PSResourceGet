@@ -5,14 +5,7 @@ Set-StrictMode -Version Latest
 
 # Summary: PowerShellGet is supported on Windows PowerShell 5.1 or later and PowerShell 6.0+
 
-$isCore = ($PSVersionTable.Keys -contains "PSEdition") -and ($PSVersionTable.PSEdition -ne 'Desktop')
-if ($isCore)
-{
-    $script:Framework = 'netstandard2.0'
-    
-} else {
-    $script:Framework = 'net472'
-}
+$script:Framework = 'netstandard2.0'
 
 # Set up some helper variables to make it easier to work with the module
 $script:PSModule = $ExecutionContext.SessionState.Module
