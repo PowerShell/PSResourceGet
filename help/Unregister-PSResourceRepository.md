@@ -8,7 +8,7 @@ schema: 2.0.0
 # Unregister-PSResourceRepository
 
 ## SYNOPSIS
-Un-registers a repository from the repository store for a current user.
+Un-registers a repository from the repository store.
 
 ## SYNTAX
 
@@ -17,7 +17,7 @@ Unregister-PSResourceRepository [-Name] <String[]> [-WhatIf] [-Confirm] [<Common
 ```
 
 ## DESCRIPTION
-The Unregister-PSResourceRepository cmdlet unregisters a repository for the current user.
+The Unregister-PSResourceRepository cmdlet unregisters a repository.
 
 ## EXAMPLES
 
@@ -30,7 +30,7 @@ PS C:\>
 
 ```
 
-In this example, we assume the repository "PoshTestGallery" has been previously registered for the user. So when we first run the command to find "PoshTestGallery" it verifies that this repository can be found. Next, we run the command to unregister "PoshTestGallery". Finally, we again run the command to find "PoshTestGallery" but since it was successfully un-registered it cannot be found or retrieved.
+In this example, we assume the repository "PoshTestGallery" has been previously registered. So when we first run the command to find "PoshTestGallery" it verifies that this repository can be found. Next, we run the command to unregister "PoshTestGallery". Finally, we again run the command to find "PoshTestGallery" but since it was successfully un-registered it cannot be found or retrieved.
 
 ### Example 2
 ```
