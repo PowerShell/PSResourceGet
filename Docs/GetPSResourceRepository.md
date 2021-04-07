@@ -2,12 +2,11 @@
 
 The `Get-PSResourceRepository` cmdlet replaces the `Get-PSRepository` cmdlet from V2.
 
-It searches for the PowerShell module repositories that are registered for the current user.
+It searches for the PowerShell resource repositories that are registered on the machine.
 By default it will return all registered repositories, or if the `-Name` parameter argument is specified
-then it wil return the repository with that name.
-It returns `Object` object.
+then it wil return the repository whose name matches the specified value.
 
-It returns `PSRepositoryItemInfo` objects which describe each resource item found.
+It returns `PSRepositoryInfo` objects which describe each resource item found.
 
 ## Syntax
 
@@ -21,7 +20,7 @@ It returns `PSRepositoryItemInfo` objects which describe each resource item foun
 ### -Name
 
 Name of a registered repository to find.
-Does not support wild card characters.
+Supports wild card characters.
 
 ```yml
 Type: string[]
@@ -41,16 +40,13 @@ Parameter Sets: NameParameterSet
 
 ## Notes
 
-Unlike V2's similar cmdlet, this V3 cmdlet does not yet support wildcard characters for the `-Name` parameter
-argument.
+Running the `Get-PSResourceRepository` cmdlet without a Name parameter specified will return all registered repositories.
 
 ## Tests
 
-Tests added will need to get repositories registered with HTTPS, HTTP, file base, and File Transfer Protocol (FTP) URI schemes.
+Tests added for terminating and non-terminating error handling.
 
-Perhaps a test on a fresh machine (with no prior registered repositories) to ensure that PSGallery is registered and able to be retrieved by default?
-
-Do we need to add wildcard search for compatibility with V2 sister cmdlet?
+Tests able to get repositories with different allowed URL URI schemes.
 
 ### -Name param
 
