@@ -2,7 +2,7 @@
 
 The `Unregister-PSResourceRepository` cmdlet replaces the `Unregister-PSRepository` cmdlet from V2.
 
-It unregisters a repository for the current user.
+It unregisters a repository that's found to be registered on the machine.
 
 ## Syntax
 
@@ -33,14 +33,16 @@ none
 
 ## Tests
 
-Tests should be performed on repositories registered with each type of URL (HTTPS, HTTP, FTP (remote) and filebase (local))
+Tests able to unregister repositories with different allowed URL URI schemas.
 
-Some tests should be performed where `-Name` contains a wildcard character and appropriate error message should be displayed.
+Tests added for terminating and non-terminating error handling.
+
+Tests to unregister multiple repositories provided to `-Name`.
 
 ### -Name param
 
-- Single name search
-- Multiple name search
+- Single name unregister
+- Multiple name unregister
 - Errors: Not found (single name,multiple name
 - Errors: Name contains wildcard which isn't supported
 
