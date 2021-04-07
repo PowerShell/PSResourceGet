@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using static System.Environment;
 using System.IO;
@@ -8,19 +9,19 @@ using System.Linq;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Collections;
 using MoreLinq;
 using MoreLinq.Extensions;
-using static Microsoft.PowerShell.PowerShellGet.PSResourceInfo;
-using static Microsoft.PowerShell.PowerShellGet.PSResourceInfo.VersionInfo;
+using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo;
+using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo.VersionInfo;
 using NuGet.Versioning;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// Find helper class
+    /// Get helper class provides the core functionality for Get-InstalledPSResource.
     /// </summary>
-    class GetHelper : PSCmdlet
+    internal class GetHelper
     {
         private CancellationToken cancellationToken;
         private readonly PSCmdlet cmdletPassedIn;
@@ -36,6 +37,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, string version, string path)
         {
+            List<string> dirsToSearch = GetPackageDirectories(path);
+
+            dirsToSearch = FilterPkgsByName(name, dirsToSearch);
+
+            List<string> installedPkgsToReturn = FilterPkgsByVersion(version, dirsToSearch, out VersionRange versionRange);
+
+            foreach (PSResourceInfo pkgObject in OutputPackageObject(installedPkgsToReturn, versionRange))
+            {
+                yield return pkgObject;
+            }
+        }
+
+        // Gather resource directories to search through
+        public List<string> GetPackageDirectories(string path)
+        {
             List<string> dirsToSearch = new List<string>();
 
             if (path != null)
@@ -47,32 +63,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
                 string[] modulePaths = psModulePath.Split(';');
-#if NET472
-                programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-#else
-                // If PS6+ on Windows
+
+                var PSVersion6 = new Version(6, 0);
+                var isCorePS = cmdletPassedIn.Host.Version >= PSVersion6;
+
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-                    programFilesPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+                    // If PowerShell 6+
+                    if (isCorePS)
+                    {
+                        myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+                        programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+                    }
+                    else
+                    {
+                        myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
+                        programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
+                    }
                 }
                 else
                 {
                     // Paths are the same for both Linux and MacOS
-                    myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
-                    programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
+                    myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
+                    programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
                 }
-#endif
-                cmdletPassedIn.WriteDebug(string.Format("Current user scope path: '{0}'", myDocumentsPath));
-                cmdletPassedIn.WriteDebug(string.Format("All users scope path: '{0}'", programFilesPath));
+
+                cmdletPassedIn.WriteVerbose(string.Format("Current user scope path: '{0}'", myDocumentsPath));
+                cmdletPassedIn.WriteVerbose(string.Format("All users scope path: '{0}'", programFilesPath));
 
                 // will search first in PSModulePath, then will search in default paths
                 foreach (string modulePath in modulePaths)
                 {
-                    dirsToSearch.AddRange(Directory.GetDirectories(modulePath).ToList());
+                    cmdletPassedIn.WriteDebug(string.Format("Retrieving directories in the '{0}' module path", modulePath));
+                    try
+                    {
+                        dirsToSearch.AddRange(Directory.GetDirectories(modulePath).ToList());
+                    }
+                    catch (Exception e)
+                    {
+                        cmdletPassedIn.WriteVerbose(string.Format("Error retrieving directories from '{0}': '{1)'", modulePath, e.Message));
+                    }
+
                 }
-                
+
                 string pfModulesPath = System.IO.Path.Combine(programFilesPath, "Modules");
                 if (Directory.Exists(pfModulesPath))
                 {
@@ -93,19 +126,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     dirsToSearch.AddRange(Directory.GetFiles(mdScriptsPath).ToList());
                 }
-                
+
                 dirsToSearch = dirsToSearch.Distinct().ToList();
             }
 
             dirsToSearch.ForEach(dir => cmdletPassedIn.WriteDebug(string.Format("All directories to search: '{0}'", dir)));
-            
+
+            return dirsToSearch;
+        }
+
+        // Filter packages by user provided name
+        public List<string> FilterPkgsByName(string[] name, List<string> dirsToSearch)
+        {
+            List<string> wildCardDirsToSearch = new List<string>();
+
             if (name != null && !name[0].Equals("*"))
             {
+
                 List<string> scriptXMLnames = new List<string>();
                 Array.ForEach(name, n => scriptXMLnames.Add((n + "_InstalledScriptInfo.xml").ToLower()));
                 char[] fileNameDelimiter = new char[] { '_' };
 
-                List<string> wildCardDirsToSearch = new List<string>();
                 foreach (var n in name)
                 {
                     if (n.Contains("*"))
@@ -117,7 +158,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (n.StartsWith("*") && n.EndsWith("*"))
                         {
                             wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => (new DirectoryInfo(p).Name.ToLower().Contains(tokenizedName[0]))));
-                            
+
                             wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p =>
                                 (System.IO.Path.GetFileName(p).Split(fileNameDelimiter, StringSplitOptions.RemoveEmptyEntries))[0].ToLower().Contains(tokenizedName[0])));
                         }
@@ -139,8 +180,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // 4)  Power*Get
                         else if (tokenizedName.Length == 2)
                         {
-                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => 
-                                (new DirectoryInfo(p).Name.ToLower().StartsWith(tokenizedName[0]) 
+                            wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p =>
+                                (new DirectoryInfo(p).Name.ToLower().StartsWith(tokenizedName[0])
                                 && new DirectoryInfo(p).Name.ToLower().EndsWith(tokenizedName[1]))));
                             wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p =>
                                 (System.IO.Path.GetFileName(p).Split(fileNameDelimiter, StringSplitOptions.RemoveEmptyEntries))[0].ToLower().StartsWith(tokenizedName[0])
@@ -155,13 +196,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(p => (scriptXMLnames.Contains(System.IO.Path.GetFileName(p).ToLower()))));
                     }
                 }
-                
-                dirsToSearch = wildCardDirsToSearch;
-                cmdletPassedIn.WriteDebug(dirsToSearch.Any().ToString());
+
+                cmdletPassedIn.WriteDebug(wildCardDirsToSearch.Any().ToString());
             }
 
+            return wildCardDirsToSearch;
+        }
+
+        // Filter by user provided version
+        public List<string> FilterPkgsByVersion(string version, List<string> dirsToSearch, out VersionRange versionRange)
+        {
+            List<string> installedPkgsToReturn = new List<string>();  // these are the xmls
+
             // try to parse into a specific NuGet version
-            VersionRange versionRange = null;
+           versionRange = null;
             if (version != null)
             {
                 NuGetVersion.TryParse(version, out NuGetVersion specificVersion);
@@ -175,12 +223,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     // check if version range
-                    versionRange = VersionRange.Parse(version);
+                    if (!VersionRange.TryParse(version, out versionRange))
+                    {
+                        cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ParseException(),
+                            "ErrorParsingVersion",
+                            ErrorCategory.ParserError,
+                            this));
+                    }
                     cmdletPassedIn.WriteDebug(string.Format("A version range, '{0}', is specified", versionRange.ToString()));
                 }
             }
 
-            List<string> installedPkgsToReturn = new List<string>();  // these are the xmls
             
             // check if the version specified is within a version range
             if (versionRange != null)
@@ -239,8 +293,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
             }
+            return installedPkgsToReturn;
+        }
 
-            IEnumerable<object> flattenedPkgs =  FlattenExtension.Flatten(installedPkgsToReturn);
+        // Create package object for each found resource directory
+        public IEnumerable<PSResourceInfo> OutputPackageObject(List<string> installedPkgsToReturn, VersionRange versionRange)
+        {
+            ///// Create package object for each found resource directory
+            /////  Read metadata from XML and parse into PSResourceInfo object           
+            IEnumerable<object> flattenedPkgs = FlattenExtension.Flatten(installedPkgsToReturn);
             List<PSResourceInfo> foundInstalledPkgs = new List<PSResourceInfo>();
 
             // Read metadata from XML and parse into PSResourceInfo object
@@ -254,11 +315,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     using (StreamReader sr = new StreamReader(xmlFilePath))
                     {
                         string text = sr.ReadToEnd();
-                        deserializedObj = (PSObject) PSSerializer.Deserialize(text);
+                        deserializedObj = (PSObject)PSSerializer.Deserialize(text);
                     };
-                    
+
                     PSResourceInfo pkgAsPSObject = new PSResourceInfo();
-                    
+
                     if (deserializedObj != null)
                     {
                         try
@@ -281,7 +342,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // Since we can only determine a script version from the metadata file or the script itself,
                             // we now need to validate that if a version parameter was passed into the cmdlet, the version of this script falls within that version range
                             // If version range is not null and the xmlFilePath is for a script
-                            if (versionRange != null && xmlFilePath.EndsWith("_InstalledScriptInfo.xml"))
+                            if (versionRange != null && xmlFilePath.EndsWith("_InstalledScriptInfo.xml", StringComparison.OrdinalIgnoreCase))
                             {
                                 cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", xmlFilePath));
 
@@ -316,7 +377,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         pkgAsPSObject.Type = string.Equals(deserializedObj.Properties["Type"].Value?.ToString(), "Module", StringComparison.InvariantCultureIgnoreCase) ? ResourceType.Module : ResourceType.Script;
-                       
+
                         try
                         {
                             LanguagePrimitives.TryConvertTo(
@@ -330,7 +391,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ErrorParsingDescription = new ErrorRecord(ex, "ErrorParsingDescription", ErrorCategory.ParserError, null);
                             cmdletPassedIn.WriteError(ErrorParsingDescription);
                         }
-                        
+
                         try
                         {
                             LanguagePrimitives.TryConvertTo(
@@ -372,7 +433,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ErrorParsingCopyright = new ErrorRecord(ex, "ErrorParsingCopyright", ErrorCategory.ParserError, null);
                             cmdletPassedIn.WriteError(ErrorParsingCopyright);
                         }
-                        
+
                         try
                         {
                             LanguagePrimitives.TryConvertTo(
@@ -384,7 +445,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             try
                             {
                                 LanguagePrimitives.TryConvertTo(
-                                    (deserializedObj.Properties["PublishedDate"] != null ? (DateTime?) deserializedObj.Properties["PublishedDate"].Value : null), out DateTime? publishedDateProp);
+                                    (deserializedObj.Properties["PublishedDate"] != null ? (DateTime?)deserializedObj.Properties["PublishedDate"].Value : null), out DateTime? publishedDateProp);
                                 pkgAsPSObject.PublishedDate = publishedDateProp;
                             }
                             catch (Exception e2)
@@ -399,7 +460,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         try
                         {
                             LanguagePrimitives.TryConvertTo(
-                                (deserializedObj.Properties["InstalledDate"] != null ? (DateTime?) (deserializedObj.Properties["InstalledDate"].Value as PSObject).Properties["Date"].Value : null), out DateTime? installedDateProp);
+                                (deserializedObj.Properties["InstalledDate"] != null ? (DateTime?)(deserializedObj.Properties["InstalledDate"].Value as PSObject).Properties["Date"].Value : null), out DateTime? installedDateProp);
                             pkgAsPSObject.InstalledDate = installedDateProp;
                         }
                         catch (Exception e)
@@ -409,7 +470,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ErrorParsingInstalledDate = new ErrorRecord(ex, "ErrorParsingInstalledDate", ErrorCategory.ParserError, null);
                             cmdletPassedIn.WriteError(ErrorParsingInstalledDate);
                         }
-                        
+
                         try
                         {
                             LanguagePrimitives.TryConvertTo(
@@ -437,7 +498,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ErrorParsingLicenseUri = new ErrorRecord(ex, "ErrorParsingLicenseUri", ErrorCategory.ParserError, null);
                             cmdletPassedIn.WriteError(ErrorParsingLicenseUri);
                         }
-                        
+
                         try
                         {
                             LanguagePrimitives.TryConvertTo(
@@ -521,14 +582,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ErrorParsingIsPrerelease = new ErrorRecord(ex, "ErrorParsingIsPrerelease", ErrorCategory.ParserError, null);
                             cmdletPassedIn.WriteError(ErrorParsingIsPrerelease);
                         }
-                        
+
                         try
                         {
 
                             string[] emptyArr = new string[] { };
 
                             LanguagePrimitives.TryConvertTo(
-                                (deserializedObj.Properties["Tags"] != null ? (string[]) (deserializedObj.Properties["Tags"].Value.ToString()).Split(' ') : emptyArr), out string[] tagsProp);
+                                (deserializedObj.Properties["Tags"] != null ? (string[])(deserializedObj.Properties["Tags"].Value.ToString()).Split(' ') : emptyArr), out string[] tagsProp);
                             pkgAsPSObject.Tags = tagsProp;
                         }
                         catch (Exception e)
@@ -540,14 +601,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         try
-                        {                       
+                        {
                             ArrayList listOfDependencies = ((deserializedObj.Properties["Dependencies"].Value as PSObject).BaseObject as ArrayList);
-                            
-                            Dictionary<string, VersionInfo> depDictionary = new Dictionary<string, VersionInfo>(); 
+
+                            Dictionary<string, VersionInfo> depDictionary = new Dictionary<string, VersionInfo>();
 
 
                             foreach (PSObject dependency in listOfDependencies)
-                            {                                
+                            {
                                 Hashtable depHash = dependency.BaseObject as Hashtable;
                                 VersionType versionType = VersionType.Unknown;
                                 System.Version versionNum = null;
@@ -568,7 +629,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     System.Version.TryParse(depHash["MaximumVersion"].ToString(), out versionNum);
                                 }
                                 VersionInfo versionInfo = new VersionInfo(versionType, versionNum);
-                               
+
                                 depDictionary.Add(depHash["Name"].ToString(), versionInfo);
                             }
 
@@ -586,10 +647,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             Hashtable includesHash = ((deserializedObj.Properties["Includes"].Value as PSObject).BaseObject) as Hashtable;
 
-                            pkgAsPSObject.Commands = (ArrayList) (includesHash["Command"] as PSObject).BaseObject;
-                            pkgAsPSObject.DscResources = (ArrayList) (includesHash["DscResource"] as PSObject).BaseObject;
-                            pkgAsPSObject.Functions = (ArrayList) (includesHash["Function"] as PSObject).BaseObject;
-                            pkgAsPSObject.Cmdlets = (ArrayList) (includesHash["Cmdlet"] as PSObject).BaseObject;
+                            pkgAsPSObject.Commands = (ArrayList)(includesHash["Command"] as PSObject).BaseObject;
+                            pkgAsPSObject.DscResources = (ArrayList)(includesHash["DscResource"] as PSObject).BaseObject;
+                            pkgAsPSObject.Functions = (ArrayList)(includesHash["Function"] as PSObject).BaseObject;
+                            pkgAsPSObject.Cmdlets = (ArrayList)(includesHash["Cmdlet"] as PSObject).BaseObject;
                         }
                         catch (Exception e)
                         {
@@ -598,11 +659,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ErrorParsingIncludes = new ErrorRecord(ex, "ErrorParsingIncludes", ErrorCategory.ParserError, null);
                             cmdletPassedIn.WriteError(ErrorParsingIncludes);
                         }
-                        
+
                         try
                         {
                             LanguagePrimitives.TryConvertTo(
-                                (deserializedObj.Properties["AdditionalMetadata"] != null ? (string) deserializedObj.Properties["AdditionalMetadata"].Value.ToString() : string.Empty), out string additionalMetadataProp);
+                                (deserializedObj.Properties["AdditionalMetadata"] != null ? (string)deserializedObj.Properties["AdditionalMetadata"].Value.ToString() : string.Empty), out string additionalMetadataProp);
                             pkgAsPSObject.AdditionalMetadata = additionalMetadataProp;
                         }
                         catch (Exception e)
@@ -612,7 +673,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ErrorParsingAdditionalMetadata = new ErrorRecord(ex, "ErrorParsingAdditionalMetadata", ErrorCategory.ParserError, null);
                             cmdletPassedIn.WriteError(ErrorParsingAdditionalMetadata);
                         }
-                        
+
                         try
                         {
                             LanguagePrimitives.TryConvertTo(

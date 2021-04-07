@@ -10,7 +10,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It retrieves a resource that was installEd with Install-PSResource
     /// Returns a single resource or multiple resource.
     /// </summary>
-    [Cmdlet(VerbsCommon.Get, "InstalledPSResource", HelpUri = "<add>", RemotingCapability = RemotingCapability.None)]
+    [Cmdlet(VerbsCommon.Get, "InstalledPSResource", HelpUri = "<add>")]
     public sealed
     class GetInstalledPSResource : PSCmdlet
     {
