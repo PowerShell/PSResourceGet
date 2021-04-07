@@ -76,7 +76,7 @@ Specifies a proxy server for the request, rather than a direct connection to the
 
 ```yml
 Type: Uri
-Parameter Sets: NameParameterSet, PSGalleryNamesSet, RepositoriesParameterSet or (All)
+Parameter Sets: NameParameterSet, PSGalleryNamesSet, RepositoriesParameterSet
 ```
 
 ### -ProxyCredential
@@ -85,7 +85,7 @@ Specifies a user account that has permission to use the proxy server that is spe
 
 ```yml
 Type: PSCredential
-Parameter Sets: NameParameterSet, PSGalleryNamesSet, RepositoriesParameterSet or (All)
+Parameter Sets: NameParameterSet, PSGalleryNamesSet, RepositoriesParameterSet
 ```
 
 ### -Priority

@@ -25,7 +25,7 @@ Not mandatory.
 
 ```yml
 Type: string
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -Repository
@@ -34,7 +34,7 @@ Specifies the repository to publish to.
 
 ```yml
 Type: string
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -DestinationPath
@@ -70,7 +70,7 @@ Specifies a user account that has rights to a specific repository (used for find
 
 ```yml
 Type: PSCredential
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -SkipDependenciesCheck
@@ -79,7 +79,7 @@ Bypasses the default check that all dependencies are present.
 
 ```yml
 Type: SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -ReleaseNotes
@@ -88,7 +88,7 @@ Updates nuspec: specifies a string containing release notes or comments that you
 
 ```yml
 Type: string
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -Tags
@@ -97,7 +97,7 @@ Updates nuspec: adds one or more tags to the resource that you are publishing. T
 
 ```yml
 Type: string[]
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -LicenseUrl
@@ -106,7 +106,7 @@ Updates nuspec: specifies the URL of licensing terms for the resource you want t
 
 ```yml
 Type: string
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -IconUrl
@@ -115,7 +115,7 @@ Updates nuspec: specifies the URL of an icon for the resource.
 
 ```yml
 Type: string
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -ProjectUrl
@@ -124,7 +124,7 @@ Updates nuspec: specifies the URL of a webpage about this project.
 
 ```yml
 Type: string
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -Exclude
@@ -142,7 +142,7 @@ Specifies a nuspec file by path rather than relying on this module to produce on
 
 ```yml
 Type: string
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -Proxy
@@ -151,7 +151,7 @@ Specifies a proxy server for the request, rather than a direct connection to the
 
 ```yml
 Type: Uri
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -ProxyCredential
@@ -160,16 +160,16 @@ Specifies a user account that has permission to use the proxy server that is spe
 
 ```yml
 Type: PSCredential
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### -PassThru
 
-When specified, displays the succcessfully published resource and its information
+When specified, displays the succcessfully published resource and its information.
 
 ```yml
 Type: PSCredential
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralSet
 ```
 
 ### Outputs
@@ -207,8 +207,6 @@ if `-PassThru` is specified output is:
 
 ## Notes
 
-todo
-
 ## Tests
 
 Some tests should be performed to publish a resource of type Module, and othersfor resource of type Script.
@@ -243,10 +241,6 @@ Tests should have varying levels of required and optional nuspec data to test pa
 ### -Credential param
 
 -Validate not null or empty if paramater arguemnt provided
-
-### -SkipDependenciesCheck param
-
--Validate not null or empty if paramater arguemnt provided (todo: ask)
 
 ### -ReleaseNotes param
 
