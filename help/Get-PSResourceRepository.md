@@ -68,7 +68,6 @@ PS C:\> Get-PSResourceRepository -Name "*"
 
 This example runs the command with the 'Name' parameter being set to a single wildcard character. So all the repositories registered on this machine are returned.
 
-
 ## PARAMETERS
 
 ### -Name
