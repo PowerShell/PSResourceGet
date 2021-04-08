@@ -5,7 +5,7 @@ The `Set-PSResourceRepository` cmdlet replaces the `Set-PSRepository` cmdlet fro
 It sets the values for an already registered module repository. Specifically, it sets values for
 either the `-URL`, `-Trusted` and `-Priority` parameter arguments by additionally providing the `-Name` parameter argument.
 
-The settings are persistent for the current user and apply to all versions of PowerShell installed for that user.
+The settings are persistent on the machine and apply to all versions of PowerShell installed for that user.
 
 The `-URL` for the PSGallery repository, which is pre-defined for this repository which is registered by default on each user's PowerShell instance, cannot be set via this cmdlet and will generate an exception.
 
@@ -54,11 +54,11 @@ Parameter Sets: NameParameterSet
 
 ### -Repositories
 
-Specifies a hashtable of repositories and is used to register multiple repositories at once.
+Specifies an array of hashtables containing information on repositories and is used to register multiple repositories at once.
 
 ```yml
-Type: List<Hashtable>
-Parameter Sets: "RepositoriesParameterSet"
+Type: Hashtable[]
+Parameter Sets: RepositoriesParameterSet
 ```
 
 ### -Trusted
@@ -76,7 +76,7 @@ Specifies a proxy server for the request, rather than a direct connection to the
 
 ```yml
 Type: Uri
-Parameter Sets: Todo
+Parameter Sets: NameParameterSet, RepositoriesParameterSet
 ```
 
 ### -ProxyCredential
@@ -85,18 +85,18 @@ Specifies a user account that has permission to use the proxy server that is spe
 
 ```yml
 Type: PSCredential
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet, RepositoriesParameterSet
 ```
 
 ### -Priority
 
 Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories.
-Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40). Has default value of -1 meaning: todo.
+Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).
 For example, if a item was being searched for across two repositories with the aforementioned ranking than the repository with priority 10 would be searched first.
 
 ```yml
 Type: int
-Parameter Sets: todo
+Parameter Sets: NameParameterSet, RepositoriesParameterSet
 ```
 
 ### -PassThru
@@ -125,14 +125,9 @@ if `-PassThru` is specified output is:
 
 ## Notes
 
-`-Priority` parameter argument example/explanation here or in Parameter section?
-Note about not being able to set PSGallery repo's URL here or in Summary?
-What should this type object should this cmdlet return?
-Some parameters are missing ParameterSetNames above?
-
 ## Tests
 
-Tests added will need to set repositories to URLs with HTTPS, HTTP, file base, and File Transfer Protocol (FTP) URI schemes.
+Tests added will need to set repositories to URLs with different allowed URI schemes.
 
 Test to verify Set-PSResourceRepository with PSGallery `-Name` and `-URL` value is not allowed, and generates error with expected error message.
 
@@ -141,12 +136,12 @@ Test to verify Set-PSResourceRepository with PSGallery `-Name` and `-URL` value 
 - Single name search
 - Errors: Not found (single name)
 - Errors: Invalid name (i.e with wildcard character)
-- Errors: Repository: Invalid name, etc
+- Errors: Repository: Repository with name not found, etc
 
 ### -URL param
 
 - Errors: if URL with unsupported type Uri scheme used, or if correct scheme but value is for path/location that doesn't exist
-- Errors: if URL to be changed is used in conjuction with `-Name` parameter argument value of PSGallery
+- Errors: if URL to be changed is used in conjuction with `-Name` parameter argument with value of PSGallery
 
 ### -Repositories param
 
