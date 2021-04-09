@@ -88,7 +88,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // make this ienumerable?
             foreach (var pkgName in Name)
             {
                 if (!UninstallPkgHelper(pkgName))
