@@ -1,24 +1,23 @@
 using System;
-using System.Management.Automation;
-using System.Threading;
-using NuGet.Versioning;
-using System.IO;
 using System.Collections.Generic;
-using System.Linq;
-using System.Globalization;
 using System.Collections.ObjectModel;
 using static System.Environment;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Management.Automation;
 using System.Runtime.InteropServices;
+using System.Threading;
+using NuGet.Versioning;
+
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-
-
     /// <summary>
-    /// Uninstall 
+    /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
 
-    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
+        [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
     HelpUri = "<add>", RemotingCapability = RemotingCapability.None)]
     public sealed
     class UninstallPSResource : PSCmdlet
@@ -45,155 +44,154 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-        private string programFilesPath;
-        private string myDocumentsPath;
-        List<string> dirsToDelete;
+        private string _programFilesPath;
+        private string _myDocumentsPath;
+        private CancellationTokenSource _source;
+        private CancellationToken _cancellationToken;
 
-        private CancellationTokenSource source;
-        private CancellationToken cancellationToken;
+        NuGetVersion _nugetVersion;
+        VersionRange _versionRange;
 
-        NuGetVersion nugetVersion;
-        VersionRange versionRange;
-        
-       
-        protected override void ProcessRecord()
+        protected override void BeginProcessing()
         {
-            source = new CancellationTokenSource();
-            cancellationToken = source.Token;
+            _source = new CancellationTokenSource();
+            _cancellationToken = _source.Token;
 
+            /////////////////////  Move this into a utility class 
             if (Version != null)
             {
-                NuGetVersion.TryParse(Version, out nugetVersion);
-                if (nugetVersion == null)
+                if (!NuGetVersion.TryParse(Version, out _nugetVersion))
                 {
-                    VersionRange.TryParse(Version, out versionRange);
-                }
-
-                if (nugetVersion == null && versionRange == null)
-                {
-                    var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
-                    var ex = new ArgumentException(exMessage);
-                    var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-
-                    ThrowTerminatingError(IncorrectVersionFormat);
+                    if (!VersionRange.TryParse(Version, out _versionRange))
+                    {
+                        var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
+                        var ex = new ArgumentException(exMessage);
+                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                        ThrowTerminatingError(IncorrectVersionFormat);
+                    }
                 }
             }
-            
-            var isXPlatformPS = this.Host.Version.Major.CompareTo("6") > 1 ? true : false;
+
+            var PSVersion6 = new Version(6, 0);
+            var isCorePS = Host.Version >= PSVersion6;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 // If PowerShell 6+
-                if (isXPlatformPS)
+                if (isCorePS)
                 {
-                    myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-                    programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
+                    _myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
+                    _programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
                 }
                 else
                 {
-                    myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-                    programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
+                    _myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
+                    _programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
                 }
             }
             else
             {
                 // Paths are the same for both Linux and MacOS
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
-
-                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
-                {
-                    var results = pwsh.AddCommand("id").AddParameter("u").Invoke();
-                }
+                _myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
+                _programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
             }
+        }
+
+
+
+        protected override void ProcessRecord()
+        {
+            // make this ienumerable?
             foreach (var pkgName in Name)
             {
-                bool successfullyUninstalledPkg = UninstallPkgHelper(pkgName, cancellationToken);
-                if (successfullyUninstalledPkg)
-                {
-                    WriteVerbose("Successfully uninstalled " + pkgName);
-                }
-                else
-                {
+                if (!UninstallPkgHelper(pkgName))
+                { 
                     WriteVerbose("Did not successfully uninstall " + pkgName);
                 }
             }
         }
 
-        
-        /// Just uninstall module, not dependencies
-        private bool UninstallPkgHelper(string pkgName, CancellationToken cancellationToken)
+
+
+        // Uninstalls a single resource
+        private bool UninstallPkgHelper(string pkgName)
         {
             var successfullyUninstalled = false;
 
-            dirsToDelete = new List<string>();
+            List<string> dirsToDelete = new List<string>();
 
             if (String.IsNullOrWhiteSpace(pkgName))
             {
                 return successfullyUninstalled;
             }
 
-            var psModulesPathMyDocuments = Path.Combine(myDocumentsPath, "Modules");
-            var psModulesPathProgramFiles = Path.Combine(programFilesPath, "Modules");
+            var psModulesPathMyDocuments = Path.Combine(_myDocumentsPath, "Modules");
+            var psModulesPathProgramFiles = Path.Combine(_programFilesPath, "Modules");
 
-            var psScriptPathMyDocuments = Path.Combine(myDocumentsPath, "Scripts");
-            var psScriptsPathProgramFiles = Path.Combine(programFilesPath, "Scripts");
+            var psScriptPathMyDocuments = Path.Combine(_myDocumentsPath, "Scripts");
+            var psScriptsPathProgramFiles = Path.Combine(_programFilesPath, "Scripts");
 
 
             /* Modules */
             // My Documents
             var dirNameMyDocuments = Path.Combine(psModulesPathMyDocuments, pkgName);
-            var versionDirsMyDocuments = (Directory.Exists(dirNameMyDocuments)) ? Directory.GetDirectories(dirNameMyDocuments) : null;
-            var parentDirFilesMyDocuments = (Directory.Exists(dirNameMyDocuments)) ? Directory.GetFiles(dirNameMyDocuments) : null;
+            string[] versionDirsMyDocuments = null;
+            /// modules can either be TestModule/m
+            if (Directory.Exists(dirNameMyDocuments))
+            {
+                // returns all the version directories
+                // eg:  TestModule/0.0.1
+                versionDirsMyDocuments = Directory.GetDirectories(dirNameMyDocuments);
+            }
             // Program Files
             var dirNameProgramFiles = Path.Combine(psModulesPathProgramFiles, pkgName);
-            var versionDirsProgramFiles = (Directory.Exists(dirNameProgramFiles)) ? Directory.GetDirectories(dirNameProgramFiles) : null;
-            var parentDirFilesProgramFiles = (Directory.Exists(dirNameProgramFiles)) ? Directory.GetFiles(dirNameProgramFiles) : null;
+            string[] versionDirsProgramFiles = null;
+            if (Directory.Exists(dirNameProgramFiles))
+            {
+                versionDirsProgramFiles = Directory.GetDirectories(dirNameProgramFiles);
+            }
 
-            
             /* Scripts */
             // My Documents
             var scriptPathMyDocuments = Path.Combine(psScriptPathMyDocuments, pkgName + ".ps1");
             // Program Files
             var scriptPathProgramFiles = Path.Combine(psScriptsPathProgramFiles, pkgName + ".ps1");
-
-
+            
             var psModulesPathAllDirs = new List<string>();
+            bool foundResourceObj = false;
+            bool isScript = false;
             if (Directory.Exists(psModulesPathMyDocuments))
             {
                 psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathMyDocuments).ToList());
+
+                // First check if module or script is installed by looking in the specified modules path and scripts path
+                foundResourceObj = versionDirsMyDocuments.Any();
+                if (File.Exists(scriptPathMyDocuments))
+                {
+                    isScript = true;
+                    foundResourceObj = true;
+                }
             }
             if (Directory.Exists(psModulesPathProgramFiles))
             {
                 psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathProgramFiles).ToList());
+                foundResourceObj = versionDirsProgramFiles.Any();
+                if (File.Exists(scriptPathProgramFiles))
+                {
+                    isScript = true;
+                    foundResourceObj = true;
+                }
             }
-
-            var psScriptsPathAllFiles = new List<string>();
-            if (Directory.Exists(psScriptPathMyDocuments))
-            {
-                psScriptsPathAllFiles.AddRange(Directory.GetFiles(psScriptPathMyDocuments).ToList())
-            }
-            if (Directory.Exists(psModulesPathMyDocuments))
-            {
-                psScriptsPathAllFiles.AddRange(Directory.GetFiles(psModulesPathMyDocuments).ToList());
-            }
-
-
-            var foundInMyDocuments = (Directory.Exists(dirNameMyDocuments) && (versionDirsMyDocuments.Any() || parentDirFilesMyDocuments.Any())) || File.Exists(scriptPathMyDocuments); // check for scripts
-            var foundInProgramFiles = (Directory.Exists(dirNameProgramFiles) && (versionDirsProgramFiles.Any() || parentDirFilesProgramFiles.Any())) || File.Exists(scriptPathProgramFiles);
-
-            // First check if module or script is installed by looking in the specified modules path and scripts path
-            var foundResourceObj = foundInMyDocuments || foundInProgramFiles || File.Exists(scriptPathMyDocuments) 
-                                    || File.Exists(scriptPathProgramFiles) ? true : false;
             
-
-            var isScript = (File.Exists(scriptPathMyDocuments) || File.Exists(scriptPathProgramFiles)) ? true : false;
-
-
-            // If we can't find the resource, just return
+            // If we can't find the resource, write non-terminating error and return
             if (!foundResourceObj)
             {
-                WriteDebug("Could not find the resource: ");
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(string.Format("Could not find the resource '{0}'", pkgName)),
+                    "ErrorRetrievingSpecifiedResource",
+                    ErrorCategory.ObjectNotFound,
+                    this));
+
                 return successfullyUninstalled;
             }
 
@@ -202,22 +200,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (foundInMyDocuments)
                 {
-                    successfullyUninstalled = UninstallModuleHelper(pkgName, dirNameMyDocuments, versionDirsMyDocuments, parentDirFilesMyDocuments, cancellationToken);
+                    successfullyUninstalled = UninstallModuleHelper(pkgName, dirNameMyDocuments, versionDirsMyDocuments, dirsToDelete);
                 }
                 else if (foundInProgramFiles)
                 {
-                    successfullyUninstalled = UninstallModuleHelper(pkgName, dirNameProgramFiles, versionDirsProgramFiles, parentDirFilesProgramFiles, cancellationToken);
+                    successfullyUninstalled = UninstallModuleHelper(pkgName, dirNameProgramFiles, versionDirsProgramFiles, dirsToDelete);
                 }
             }
             else 
             {
                 if (foundInMyDocuments)
                 {
-                    successfullyUninstalled = UninstallScriptHelper(pkgName, psScriptPathMyDocuments, scriptPathMyDocuments, cancellationToken);
+                    successfullyUninstalled = UninstallScriptHelper(pkgName, psScriptPathMyDocuments, scriptPathMyDocuments, dirsToDelete);
                 }
                 else if (foundInProgramFiles)
                 {
-                    successfullyUninstalled = UninstallScriptHelper(pkgName, psScriptsPathProgramFiles, scriptPathProgramFiles, cancellationToken);
+                    successfullyUninstalled = UninstallScriptHelper(pkgName, psScriptsPathProgramFiles, scriptPathProgramFiles, dirsToDelete);
                 }
             }
             
@@ -226,12 +224,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         
 
         /* Uninstall Module */
-        private bool UninstallModuleHelper(string pkgName, string dirName, string[] versionDirs, string[] parentDirFiles, CancellationToken cancellationToken)
+        private bool UninstallModuleHelper(string pkgName, string dirName, string[] versionDirs, List<string> dirsToDelete)
         {
             var successfullyUninstalledPkg = false;
-      
+
             // if the version specificed is a version range
-            if (versionRange != null)
+            if (_versionRange != null)
             {
 
                 foreach (var versionDirPath in versionDirs)
@@ -239,16 +237,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var nameOfDir = Path.GetFileName(versionDirPath);
                     var nugVersion = NuGetVersion.Parse(nameOfDir);
 
-                    if (versionRange.Satisfies(nugVersion))
+                    if (_versionRange.Satisfies(nugVersion))
                     {
                         dirsToDelete.Add(versionDirPath);
                     }
                 }
             }
-            else if (nugetVersion != null)
+            else if (_nugetVersion != null)
             {
                 // if the version specified is a version
-                dirsToDelete.Add(nugetVersion.ToNormalizedString());
+                dirsToDelete.Add(_nugetVersion.ToNormalizedString());
             }
             else
             {
@@ -301,6 +299,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
                             // Delete recursively
                             dir.Delete(true);
+
+                            WriteVerbose(string.Format("Successfully uninstalled '{0}' from path '{1}'", pkgName, dir.FullName));
+
+
                             successfullyUninstalledPkg = true;
                         }
                     }
@@ -317,7 +319,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         
 
         /* Uninstall script helper */
-        private bool UninstallScriptHelper(string pkgName, string scriptsPath, string fullScriptPath, CancellationToken cancellationToken)
+        private bool UninstallScriptHelper(string pkgName, string scriptsPath, string fullScriptPath, List<string> dirsToDelete)
         {
             /* Currently the way PSGet operates is that only one script can be installed at a time.
              * I think it's worth seeing if we want allow for multiple scripts to be instlled at a time,
