@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using NuGet.Versioning;
 using System;
+using System.Management.Automation;
 using System.Management.Automation.Language;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
@@ -35,6 +37,29 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             return "'" + CodeGeneration.EscapeSingleQuotedStringContent(name) + "'";
+        }
+
+        public static bool TryParseVersionOrVersionRange(string Version, out NuGetVersion nugetVersion, out VersionRange versionRange, PSCmdlet cmdletPassedIn)
+        {
+            var successfullyParsed = false;
+            nugetVersion = null;
+            versionRange = null;
+            if (Version != null)
+            {
+                successfullyParsed = NuGetVersion.TryParse(Version, out nugetVersion);
+                if (!successfullyParsed)
+                {
+                    successfullyParsed = VersionRange.TryParse(Version, out versionRange);
+                    if (!successfullyParsed)
+                    {
+                        var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
+                        var ex = new ArgumentException(exMessage);
+                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                        cmdletPassedIn.ThrowTerminatingError(IncorrectVersionFormat);
+                    }
+                }
+            }
+            return successfullyParsed;
         }
 
         #endregion

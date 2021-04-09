@@ -9,11 +9,11 @@ using System.Management.Automation;
 using System.Runtime.InteropServices;
 using System.Threading;
 using NuGet.Versioning;
-
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-    /// <summary>
+    /// <summary>   
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
 
@@ -57,21 +57,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _source = new CancellationTokenSource();
             _cancellationToken = _source.Token;
 
-            /////////////////////  Move this into a utility class 
-            if (Version != null)
-            {
-                if (!NuGetVersion.TryParse(Version, out _nugetVersion))
-                {
-                    if (!VersionRange.TryParse(Version, out _versionRange))
-                    {
-                        var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
-                        var ex = new ArgumentException(exMessage);
-                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                        ThrowTerminatingError(IncorrectVersionFormat);
-                    }
-                }
-            }
-
+            Utils.TryParseVersionOrVersionRange(Version, out NuGetVersion _nugetVersion, out VersionRange _versionRange, this);
+           
             var PSVersion6 = new Version(6, 0);
             var isCorePS = Host.Version >= PSVersion6;
 
@@ -158,31 +145,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var scriptPathProgramFiles = Path.Combine(psScriptsPathProgramFiles, pkgName + ".ps1");
             
             var psModulesPathAllDirs = new List<string>();
-            bool foundResourceObj = false;
+            bool foundInMyDocuments = false;
+            bool foundInProgramFiles = false;
             bool isScript = false;
             if (Directory.Exists(psModulesPathMyDocuments))
             {
                 psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathMyDocuments).ToList());
 
                 // First check if module or script is installed by looking in the specified modules path and scripts path
-                foundResourceObj = versionDirsMyDocuments.Any();
+                foundInMyDocuments = versionDirsMyDocuments.Any();
                 if (File.Exists(scriptPathMyDocuments))
                 {
                     isScript = true;
-                    foundResourceObj = true;
+                    foundInMyDocuments = true;
                 }
             }
             if (Directory.Exists(psModulesPathProgramFiles))
             {
                 psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathProgramFiles).ToList());
-                foundResourceObj = versionDirsProgramFiles.Any();
+                foundInProgramFiles = versionDirsProgramFiles.Any();
                 if (File.Exists(scriptPathProgramFiles))
                 {
                     isScript = true;
-                    foundResourceObj = true;
+                    foundInProgramFiles = true;
                 }
             }
-            
+            bool foundResourceObj = foundInMyDocuments || foundInProgramFiles;
+
             // If we can't find the resource, write non-terminating error and return
             if (!foundResourceObj)
             {
