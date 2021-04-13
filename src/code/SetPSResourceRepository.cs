@@ -236,14 +236,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // if none are (i.e only Name parameter was provided, write error)
             if(repoUrl == null && repoPriority == DefaultPriority && _trustedNullable == null)
             {
-                // why not throw instead? and use wrapper catch's error id in test?
                 throw new ArgumentException("Either URL, Priority or Trusted parameters must be requested to be set");
-                // WriteError(new ErrorRecord(
-                //         new PSInvalidOperationException("Either URL, Priority or Trusted parameters must be requested to be set"),
-                //         "NoValuesBeingSet",
-                //         ErrorCategory.InvalidArgument,
-                //         this));
-                // return null;
             }
 
             WriteDebug("All required values to set repository provided, calling internal Update() API now");
@@ -255,7 +248,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
         {
-            // bool? _trustedNullable = isSet ? new bool?(_trusted) : new bool?(); //could move this to update helper tbh
             return UpdateRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted);
         }
 
@@ -296,8 +288,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-
-            // bool? _repoTrusted = repo.ContainsKey("Trusted") ? (bool?)repo["Trusted"] : null;
             bool repoTrusted = false;
             isSet = false;
             if(repo.ContainsKey("Trusted"))
@@ -311,7 +301,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repoTrusted);
-                    //or just directly call Update tbh?
             }
             catch (Exception e)
             {
