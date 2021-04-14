@@ -63,13 +63,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _url = url;
             }
         }
-        private Uri _url = null;
+        private Uri _url;
 
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </sumamry>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
-        public PSCredential Credential { get; set; } = null;
+        public PSCredential Credential { get; set; }
 
         /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
         private SwitchParameter _trusted;
-        private bool isSet = false;
+        private bool isSet;
 
         /// <summary>
         /// Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched
