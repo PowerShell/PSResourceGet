@@ -249,7 +249,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<PSRepositoryInfo> reposUpdatedFromHashtable = new List<PSRepositoryInfo>();
             foreach (Hashtable repo in Repositories)
             {
-                if (!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
+                if (!repo.ContainsKey("Name") || repo["Name"] == null || String.IsNullOrEmpty(repo["Name"].ToString()))
                 {
                     WriteError(new ErrorRecord(
                             new PSInvalidOperationException("Repository hashtable must contain Name key value pair"),
