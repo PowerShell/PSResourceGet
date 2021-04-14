@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case NameParameterSet:
                     try
                     {
-                        items.Add(NameParameterSetHelper(Name, URL, Priority, _trusted));
+                        items.Add(UpdateRepositoryStoreHelper(Name, URL, Priority, Trusted));
                     }
                     catch (Exception e)
                     {
@@ -243,10 +243,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             return RepositorySettings.Update(repoName, repoUrl, repoPriority, _trustedNullable);
         }
-        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
-        {
-            return UpdateRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted);
-        }
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
         {
@@ -294,7 +290,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             try
             {
-                return NameParameterSetHelper(repo["Name"].ToString(),
+                return UpdateRepositoryStoreHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repoTrusted);
