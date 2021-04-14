@@ -8,7 +8,7 @@ schema: 2.0.0
 # Set-PSResourceRepository
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Sets information for a registered repository.
 
 ## SYNTAX
 
@@ -20,26 +20,63 @@ Set-PSResourceRepository [-Name] <String> [-URL <Uri>] [-Credential <PSCredentia
 
 ### RepositoriesParameterSet
 ```
-Set-PSResourceRepository -Repositories <System.Collections.Generic.List`1[System.Collections.Hashtable]>
- [-Proxy <Uri>] [-ProxyCredential <PSCredential>] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository -Repositories <Hashtable[]> [-Proxy <Uri>] [-ProxyCredential <PSCredential>] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+The Set-PSResourceRepository cmdlet sets information for a registered repository.
 
 ## EXAMPLES
-
+These examples are run independently of each other and assume the repositories used are already registered. The 'PassThru' parameter used with Set-PSResourceRepository is only used to display the changes made to the repository and is not mandatory.
 ### Example 1
 ```powershell
-PS C:\> {{ Add example code here }}
+PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
+        Name             Url                                          Trusted   Priority
+        ----             ---                                          -------   --------
+        PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
+PS C:\> Set-PSResourceRepository -Name "PoshTestGallery" -URL "c:/code/testdir" -PassThru
+        Name             Url                                          Trusted   Priority
+        ----             ---                                          -------   --------
+        PoshTestGallery  file:///c:/code/testdir                        False         50
 ```
 
-{{ Add example description here }}
+This example first checks if the PoshTestGallery repository has been registered. We wish to set the 'URL' value of this repository by running the Set-PSResourceRepository cmdlet with the 'URL' parameter and a valid Uri scheme url. We run the Get-PSResourceRepository cmdlet again to ensure that the 'URL' of the repository was changed. We also use the 'PassThru' parameter to see the changed repository.
+
+### Example 2
+```powershell
+PS C:\> Get-PSResourceRepository -Name "PSGallery"
+        Name             Url                                          Trusted   Priority
+        ----             ---                                          -------   --------
+        PSGallery        https://www.powershellgallery.com/api/v2       False         50
+PS C:\> Set-PSResourceRepository -Name "PSGallery" -Priority 25 -Trusted -PassThru
+        Name             Url                                          Trusted   Priority
+        ----             ---                                          -------   --------
+        PSGallery        https://www.powershellgallery.com/api/v2        True         25
+```
+
+This example first checks if the PSGallery repository has been registered. We wish to set the 'Priority' and 'Trusted' values of this repository by running the Set-PSResourceRepository cmdlet with the 'Priority' parameter set to a value between 0 and 50 and by using the 'Trusted' parameter switch. We run the Get-PSResourceRepository cmdlet again to ensure that the 'Priority' and 'Trusted' values of the repository were changed. An important note here is that just for the default PSGallery repository, the 'URL' value can't be changed/set. We also use the 'PassThru' parameter to see the changed repository.
+
+### Example 3
+```powershell
+PS C:\> Get-PSResourceRepository -Name "*"
+        Name             Url                                          Trusted   Priority
+        ----             ---                                          -------   --------
+        PSGallery        https://www.powershellgallery.com/api/v2       False         50
+        PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
+PS C:\> $arrayOfHashtables = @{Name = "PSGallery"; Trusted = $True},@{Name = "PoshTestGallery"; URL = "c:/code/testdir"}
+PS C:\> Set-PSResourceRepository -Repositories $arrayOfHashtables -PassThru
+        Name             Url                                          Trusted   Priority
+        ----             ---                                          -------   --------
+        PSGallery        https://www.powershellgallery.com/api/v2        True         50
+        PoshTestGallery  file:///c:/code/testdir                        False         50
+```
+
+This example first checks for all registered repositories. We wish to set the properties for multiple repositories at once (i.e the PSGallery and PoshTestGallery repositories), so we run Set-PSResourceRepository with the 'Repositories' parameter. This parameter takes an array of hashtables, where each hashtable contains information for a repository we wish to set information for. We also use the 'PassThru' parameter to see the changed repositories.
 
 ## PARAMETERS
 
 ### -Credential
-{{ Fill Credential Description }}
+Specifies a user account that has rights to find a resource from a specific repository.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -54,7 +91,7 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-{{ Fill Name Description }}
+Specifies the name of the repository to be set.
 
 ```yaml
 Type: System.String
@@ -69,7 +106,7 @@ Accept wildcard characters: False
 ```
 
 ### -Priority
-{{ Fill Priority Description }}
+Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).
 
 ```yaml
 Type: System.Int32
@@ -84,7 +121,7 @@ Accept wildcard characters: False
 ```
 
 ### -Proxy
-{{ Fill Proxy Description }}
+Specifies a proxy server for the request, rather than a direct connection to the internet resource.
 
 ```yaml
 Type: System.Uri
@@ -99,7 +136,7 @@ Accept wildcard characters: False
 ```
 
 ### -ProxyCredential
-{{ Fill ProxyCredential Description }}
+Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -114,10 +151,10 @@ Accept wildcard characters: False
 ```
 
 ### -Repositories
-{{ Fill Repositories Description }}
+Specifies a hashtable of repositories and is used to register multiple repositories at once.
 
 ```yaml
-Type: System.Collections.Generic.List`1[System.Collections.Hashtable]
+Type: Hashtable[]
 Parameter Sets: RepositoriesParameterSet
 Aliases:
 
@@ -129,7 +166,7 @@ Accept wildcard characters: False
 ```
 
 ### -Trusted
-{{ Fill Trusted Description }}
+Specifies whether the repository should be trusted.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -144,7 +181,7 @@ Accept wildcard characters: False
 ```
 
 ### -URL
-{{ Fill URL Description }}
+Specifies the location of the repository to be set.
 
 ```yaml
 Type: System.Uri
@@ -200,17 +237,14 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### System.Management.Automation.PSCredential
 
-### System.Collections.Generic.List`1[[System.Collections.Hashtable, System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+### System.Collections.Hashtable[]
 
 ### System.Int32
 
 ## OUTPUTS
 
-### System.Object
+### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo (if 'PassThru' parameter used)
 
 ## NOTES
 
 ## RELATED LINKS
-
-[<add>](<add>)
-
