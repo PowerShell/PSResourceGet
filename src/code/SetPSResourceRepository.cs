@@ -12,8 +12,7 @@ using Dbg = System.Diagnostics.Debug;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// The Set-PSResourceRepository cmdlet replaces the Set-PSRepository cmdlet from V2.
-    /// It is used to set information for a repository.
+    /// The Set-PSResourceRepository cmdlet is used to set information for a repository.
     /// </summary>
     [Cmdlet(VerbsCommon.Set,
         "PSResourceRepository",
@@ -55,7 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (!Uri.TryCreate(value, string.Empty, out Uri url))
                 {
-                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
+                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not a valid url: {0}", value);
                     var ex = new ArgumentException(message);
                     var urlErrorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
                     ThrowTerminatingError(urlErrorRecord);
@@ -68,8 +67,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
-        /// todo: also question: order params alphabetically? also why do we have this?
-        /// in Register we had ProxyCredential but that's it, also from pipeline ok?
         /// </sumamry>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
         public PSCredential Credential { get; set; } = null;
@@ -83,7 +80,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Specifies whether the repository should be trusted.
-        /// todo: why can't this also be passed via pipeline?
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
         public SwitchParameter Trusted
@@ -120,7 +116,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
-        /// todo, why not also validate not null or empty? bc it's not a url and PSCredential could be empty?
         /// </summary>
         [Parameter]
         public PSCredential ProxyCredential { get; set; }
