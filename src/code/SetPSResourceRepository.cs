@@ -270,6 +270,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryInfo RepoValidationHelper(Hashtable repo)
         {
+            WriteDebug(String.Format("Parsing through repository: {0}", repo["Name"]));
             Uri repoURL = null;
             if (repo.ContainsKey("Url")  && !Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out repoURL))
             {
