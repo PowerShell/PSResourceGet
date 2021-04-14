@@ -12,7 +12,8 @@ using Dbg = System.Diagnostics.Debug;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// todo
+    /// The Set-PSResourceRepository cmdlet replaces the Set-PSRepository cmdlet from V2.
+    /// It is used to set information for a repository.
     /// </summary>
     [Cmdlet(VerbsCommon.Set,
         "PSResourceRepository",
@@ -66,6 +67,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Uri _url = null;
 
         /// <summary>
+        /// Specifies a user account that has rights to find a resource from a specific repository.
         /// todo: also question: order params alphabetically? also why do we have this?
         /// in Register we had ProxyCredential but that's it, also from pipeline ok?
         /// </sumamry>
@@ -81,7 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Specifies whether the repository should be trusted.
-        /// todo: why can't this be passed via pipeline?
+        /// todo: why can't this also be passed via pipeline?
         /// </summary>
         [Parameter(ParameterSetName = "NameParameterSet")]
         public SwitchParameter Trusted
@@ -96,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
         private SwitchParameter _trusted;
-        private bool isSet = false; // todo: just default initialize? also better implem?
+        private bool isSet = false;
 
         /// <summary>
         /// Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched
@@ -118,7 +120,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
-        /// todo, why not also validate not null or empty? bc it's not a url and cred could be empty?
+        /// todo, why not also validate not null or empty? bc it's not a url and PSCredential could be empty?
         /// </summary>
         [Parameter]
         public PSCredential ProxyCredential { get; set; }
