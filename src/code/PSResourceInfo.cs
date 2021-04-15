@@ -12,10 +12,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         Module,
         Script
     }
-
-
+    
     public class PSResourceInfo
     {
+        #region Properties
         public string Name { get; set; }
         public System.Version Version { get; set; }
         public ResourceType Type { get; set; }    
@@ -26,13 +26,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public DateTime? PublishedDate { get; set; }
         public DateTime? InstalledDate { get; set; }
         public DateTime? UpdatedDate { get; set; }
-        public Uri LicenseUri { get; set; }
-        public Uri ProjectUri { get; set; }
-        public Uri IconUri { get; set; }
-        public System.Version PowerShellGetFormatVersion { get; set; }
+        public string LicenseUri { get; set; }
+        public string ProjectUri { get; set; }
+        public string IconUri { get; set; }
+        public string PowerShellGetFormatVersion { get; set; }
         public string ReleaseNotes { get; set; }
         public string Repository { get; set; }
-        public bool IsPrerelease { get; set; }
+        public string IsPrerelease { get; set; }
         public string[] Tags { get; set; }          
         public Dictionary<string, VersionInfo> Dependencies { get; set; }
         internal string AdditionalMetadata { get; set; }
@@ -42,6 +42,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public ArrayList Functions { get; set; }
         public string InstalledLocation { get; set; }
 
+        #endregion
 
         public struct VersionInfo
         {

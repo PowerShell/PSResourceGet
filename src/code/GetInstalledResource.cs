@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System.Management.Automation;
 using System.Threading;
 
@@ -14,6 +15,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     public sealed
     class GetInstalledPSResource : PSCmdlet
     {
+        #region Parameters
+
         /// <summary>
         /// Specifies the desired name for the resource to look for.
         /// </summary>
@@ -33,7 +36,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter()]
         [ValidateNotNullOrEmpty()]
         public string Path { get; set; }
-        
+
+        #endregion
+
+        #region Methods
+   
         protected override void ProcessRecord()
         {
             CancellationTokenSource source = new CancellationTokenSource();
@@ -47,5 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteObject(psObject);
             }
         }
+
+        #endregion
     }
 }

@@ -5,7 +5,6 @@ using NuGet.Versioning;
 using System;
 using System.Management.Automation;
 using System.Management.Automation.Language;
-using System.Xml;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -44,6 +43,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             // try to parse into a specific NuGet version
             versionRange = null;
+            var success = false;
             if (version != null)
             {
                 NuGetVersion.TryParse(version, out NuGetVersion specificVersion);
@@ -53,9 +53,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     // check if exact version
                     versionRange = new VersionRange(specificVersion, true, specificVersion, true, null, null);
                     cmdletPassedIn.WriteDebug(string.Format("A specific version, '{0}', is specified", versionRange.ToString()));
+                    success = true;
                 }
                 else
                 {
+                    success = true;
                     // check if version range
                     if (!VersionRange.TryParse(version, out versionRange))
                     {
@@ -64,53 +66,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             "ErrorParsingVersion",
                             ErrorCategory.ParserError,
                             cmdletPassedIn));
-                        return false;
+                        success = false;
                     }
                     cmdletPassedIn.WriteDebug(string.Format("A version range, '{0}', is specified", versionRange.ToString()));
                 }
             }
 
-            return true;
-        }
-
-        public static NuGetVersion ReadScriptVersionFromXML(string xmlPath, PSCmdlet cmdletPassedIn)
-        {
-            XmlDocument doc = new XmlDocument();
-            try
-            {
-                // open file
-                doc.Load(xmlPath);
-            }
-            catch (Exception e)
-            {
-                // throw non-terminating error 
-                throw new PSInvalidOperationException(String.Format("Loading script XML failed: {0}", e.Message));
-            }
-
-            // Find script version
-            XmlNode versionNode = doc.DocumentElement.SelectSingleNode("Version");
-            //XmlNode IPnode = doc.DocumentElement["Ip"];
-
-            string version = versionNode.InnerText;
-
-            // try to parse into a specific NuGet version
-            NuGetVersion nugetVersion = null;
-            if (string.IsNullOrEmpty(version) && NuGetVersion.TryParse(version, out nugetVersion))
-            { 
-                // exact version
-                cmdletPassedIn.WriteDebug(string.Format("Version '{0}' is parsed from the script metadata file '{1}'", nugetVersion.ToString(), xmlPath));
-            }
-            else 
-            {
-                // if unable to parse as a specific version, throw non-terminating error
-                cmdletPassedIn.WriteError(new ErrorRecord(
-                    new ParseException(),
-                    "ErrorParsingVersion",
-                    ErrorCategory.ParserError,
-                    cmdletPassedIn));
-            }
-
-            return nugetVersion;
+            return success;
         }
 
         #endregion
