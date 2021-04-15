@@ -22,6 +22,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using static System.Environment;
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -38,7 +39,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     class FindPSResource : PSCmdlet
     {
         # region Enums
-        public enum ResourceType {
+        public enum ResourceCategory {
             Module,
             Script,
             DscResource,
@@ -69,7 +70,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public ResourceType Type { get; set; }
+        public ResourceCategory Type { get; set; }
 
 
         /// <summary>
@@ -136,8 +137,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            Console.WriteLine(Type);
+            List<PSResourceInfo> items = new List<PSResourceInfo>();
+
+            switch (ParameterSetName)
+            {
+                case ResourceNameParameterSet:
+                    // todo
+                    break;
+
+                case CommandNameParameterSet:
+                    // todo
+                    break;
+
+                case DscResourceNameParameterSet:
+                    // todo
+                    break;
+
+                default:
+                    Dbg.Assert(false, "Invalid parameter set");
+                    break;
+            }
+
+            foreach (PSResourceInfo item in items)
+            {
+                WriteObject(item);
+            }
         }
+
+
         #endregion
     }
 }
