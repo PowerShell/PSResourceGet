@@ -16,7 +16,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// </summary>
     [Cmdlet(VerbsCommon.Set,
         "PSResourceRepository",
-        DefaultParameterSetName = "NameParameterSet",
+        DefaultParameterSetName = NameParameterSet,
         SupportsShouldProcess = true,
         HelpUri = "<add>")]
     public sealed
@@ -35,7 +35,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the name of the repository to be set.
         /// </sumamry>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true,
-            ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+            ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string Name { get; set; }
@@ -43,7 +43,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the location of the repository to be set.
         /// </sumamry>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public Uri URL
         {
@@ -68,20 +68,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </sumamry>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         public PSCredential Credential { get; set; }
 
         /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
         /// </summary>
-        [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "RepositoriesParameterSet")]
+        [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = RepositoriesParameterSet)]
         [ValidateNotNullOrEmpty]
         public Hashtable[] Repositories { get; set; }
 
         /// <summary>
         /// Specifies whether the repository should be trusted.
         /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = NameParameterSet)]
         public SwitchParameter Trusted
         {
             get
@@ -102,7 +102,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds
         /// to a higher priority ranking than a higher numeric value (i.e 40).
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         [ValidateRange(0, 50)]
         public int Priority { get; set; } = DefaultPriority;
