@@ -66,12 +66,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Uri _url;
 
         /// <summary>
-        /// Specifies a user account that has rights to find a resource from a specific repository.
-        /// </sumamry>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
-        public PSCredential Credential { get; set; }
-
-        /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
         /// </summary>
         [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = RepositoriesParameterSet)]
