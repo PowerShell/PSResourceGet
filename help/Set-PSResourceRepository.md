@@ -14,13 +14,12 @@ Sets information for a registered repository.
 
 ### NameParameterSet (Default)
 ```
-Set-PSResourceRepository [-Name] <String> [-URL <Uri>] [-Credential <PSCredential>] [-Trusted] [-Proxy <Uri>]
- [-ProxyCredential <PSCredential>] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository [-Name] <String> [-URL <Uri>] [-Trusted] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
 ```
-Set-PSResourceRepository -Repositories <Hashtable[]> [-Proxy <Uri>] [-ProxyCredential <PSCredential>] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository -Repositories <Hashtable[]> [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -75,21 +74,6 @@ This example first checks for all registered repositories. We wish to set the pr
 
 ## PARAMETERS
 
-### -Credential
-Specifies a user account that has rights to find a resource from a specific repository.
-
-```yaml
-Type: System.Management.Automation.PSCredential
-Parameter Sets: NameParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: True (ByPropertyName)
-Accept wildcard characters: False
-```
-
 ### -Name
 Specifies the name of the repository to be set.
 
@@ -110,36 +94,6 @@ Specifies the priority ranking of the repository, such that repositories with hi
 
 ```yaml
 Type: System.Int32
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: True (ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -Proxy
-Specifies a proxy server for the request, rather than a direct connection to the internet resource.
-
-```yaml
-Type: System.Uri
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: True (ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -ProxyCredential
-Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
-
-```yaml
-Type: System.Management.Automation.PSCredential
 Parameter Sets: (All)
 Aliases:
 
@@ -234,8 +188,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ### System.String
 
 ### System.Uri
-
-### System.Management.Automation.PSCredential
 
 ### System.Collections.Hashtable[]
 
