@@ -186,7 +186,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // check repoName can't contain * or just be whitespace
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
-            repoName = repoName.Trim(' ');
+            repoName = repoName.Trim();
             if (String.IsNullOrEmpty(repoName) || repoName.Contains("*"))
             {
                 throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
