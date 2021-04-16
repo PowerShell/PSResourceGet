@@ -102,19 +102,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public int Priority { get; set; } = DefaultPriority;
 
         /// <summary>
-        /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty]
-        public Uri Proxy { get; set; }
-
-        /// <summary>
-        /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
-        /// </summary>
-        [Parameter]
-        public PSCredential ProxyCredential { get; set; }
-
-        /// <summary>
         /// When specified, displays the succcessfully registered repository and its information
         /// </summary>
         [Parameter]
@@ -142,15 +129,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            if (Proxy != null || ProxyCredential != null)
-            {
-                ThrowTerminatingError(new ErrorRecord(
-                    new PSNotImplementedException("Proxy and ProxyCredential are not yet implemented. Please rerun cmdlet with other parameters."),
-                    "ParametersNotImplementedYet",
-                    ErrorCategory.NotImplemented,
-                    this));
-            }
-
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
             switch(ParameterSetName)
