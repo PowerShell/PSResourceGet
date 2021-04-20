@@ -1,10 +1,5 @@
-<#####################################################################################
- # File: PSGetTestUtils.psm1
- #
- # Copyright (c) Microsoft Corporation, 2020
- #####################################################################################>
-
-#."$PSScriptRoot\uiproxy.ps1"
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 $psGetMod = Get-Module -Name PowerShellGet
 if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
