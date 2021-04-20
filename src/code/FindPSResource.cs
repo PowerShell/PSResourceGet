@@ -54,6 +54,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
 
+        // This will be a list of all the repository caches
+        public static readonly List<string> RepoCacheFileName = new List<string>();
+        // Temporarily store cache in this path for testing purposes
+        public static readonly string RepositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
+        //public static readonly string RepositoryCacheDir = @"%APPDATA%/PowerShellGet/repositorycache";//@"%APPDTA%\NuGet";
+        //private readonly object p;
+
+        // Define the cancellation token.
+        CancellationTokenSource source;
+        CancellationToken cancellationToken;
+        List<string> pkgsLeftToFind;
+        private const string CursorFileName = "cursor.json";
+
         #endregion
 
         #region Parameters
@@ -143,7 +156,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case ResourceNameParameterSet:
-                    // todo
+                    WriteVerbose("in ResourceNameParameterSet");
+                    items = ProcessRecordResourcePSSet();
                     break;
 
                 case CommandNameParameterSet:
@@ -210,20 +224,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
 
-        // This will be a list of all the repository caches
-        public static readonly List<string> RepoCacheFileName = new List<string>();
-        // Temporarily store cache in this path for testing purposes
-        public static readonly string RepositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
-        //public static readonly string RepositoryCacheDir = @"%APPDATA%/PowerShellGet/repositorycache";//@"%APPDTA%\NuGet";
-        //private readonly object p;
-
-        // Define the cancellation token.
-        CancellationTokenSource source;
-        CancellationToken cancellationToken;
-        List<string> pkgsLeftToFind;
-        private const string CursorFileName = "cursor.json";
-
-        protected override void ProcessRecordResourcePSSet()
+        private List<PSResourceInfo> ProcessRecordResourcePSSet()
         {
             source = new CancellationTokenSource();
             cancellationToken = source.Token;
@@ -231,118 +232,67 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             List<PSRepositoryInfo> repositoriesToSearch = RepositorySettings.Read(Repository, out string[] errorList);
 
-            var returnedPkgsFound = new List<IEnumerable<IPackageSearchMetadata>>();
+            // var foundPkgs = new List<IEnumerable<IPackageSearchMetadata>>();
+            List<PSResourceInfo> foundPkgs = new List<PSResourceInfo>();
+
             pkgsLeftToFind = Name.ToList();
-            foreach (PSRepositoryInfo repo in repositoriesToSearch)
+
+            for (int i = 0; i < repositoriesToSearch.Count && pkgsLeftToFind.Any(); i++)
             {
-                WriteDebug(string.Format("Searching in repository '{0}'", repoName.Properties["Name"].Value.ToString()));
-                // We'll need to use the catalog reader when enumerating through all packages under v3 protocol.
-                // if using v3 endpoint and there's no exact name specified (ie no name specified or a name with a wildcard is specified)
-                if (repoName.Properties["Url"].Value.ToString().EndsWith("/v3/index.json") &&
-                    (_name.Length == 0 || _name.Any(n => n.Contains("*"))))//_name.Contains("*")))  /// TEST THIS!!!!!!!
-                {
-                    this.WriteWarning("This functionality is not yet implemented");
-                    // right now you can use wildcards with an array of names, ie -name "Az*", "PS*", "*Get", will take a hit performance wise, though.
-                    // TODO:  add wildcard condition here
-                    //ProcessCatalogReader(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString());
-                }
-
-
-
-                // if it can't find the pkg in one repository, it'll look in the next one in the list
-                // returns any pkgs found, and any pkgs that weren't found
-                returnedPkgsFound.AddRange(FindPackagesFromSource(repoName.Properties["Name"].Value.ToString(), repoName.Properties["Url"].Value.ToString(), cancellationToken));
-
-
-                // Flatten returned pkgs before displaying output returnedPkgsFound.Flatten().ToList()[0]
-                var flattenedPkgs = returnedPkgsFound.Flatten();
-                // flattenedPkgs.ToList();
-
-                if (flattenedPkgs.Any() && flattenedPkgs.First() != null)
-                {
-                    foreach (IPackageSearchMetadata pkg in flattenedPkgs)
-                    {
-                        //WriteObject(pkg);
-
-
-                        PSObject pkgAsPSObject = new PSObject();
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Name", pkg.Identity.Id));
-                        // Version.Version ensures type is System.Version instead of type NuGetVersion
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Version", pkg.Identity.Version.Version));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Repository", repoName.Properties["Name"].Value.ToString()));
-                        pkgAsPSObject.Members.Add(new PSNoteProperty("Description", pkg.Description));
-
-                        WriteObject(pkgAsPSObject);
-
-                    }
-                }
-
-                // reset found packages
-                returnedPkgsFound.Clear();
-
-                // if we need to search all repositories, we'll continue, otherwise we'll just return
-                if (!pkgsLeftToFind.Any())
-                {
-                    break;
-                }
-
-
-
-            } // end of foreach
+                WriteVerbose(String.Format("iterating through repository: {0}", repositoriesToSearch[i].Name));
+                WriteDebug(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+                foundPkgs.AddRange(FindPackagesFromSourcePSSet(repositoriesToSearch[i].Name, repositoriesToSearch[i].Url, cancellationToken));
+            }
+            return foundPkgs;
         }
 
-        public List<IEnumerable<IPackageSearchMetadata>> FindPackagesFromSourcePSSet(string repoName, string repositoryUrl, CancellationToken cancellationToken)
+
+        public List<PSResourceInfo> FindPackagesFromSourcePSSet(string repoName, Uri repositoryUrl, CancellationToken cancellationToken)
         {
-            List<IEnumerable<IPackageSearchMetadata>> returnedPkgs = new List<IEnumerable<IPackageSearchMetadata>>();
+            List<PSResourceInfo> returnedPkgs = new List<PSResourceInfo>();
 
-            if (repositoryUrl.StartsWith("file://"))
+            if (repositoryUrl.Scheme == Uri.UriSchemeFile)
             {
-
-                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryUrl);
+                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryUrl.ToString());
 
                 LocalPackageSearchResource resourceSearch = new LocalPackageSearchResource(localResource);
                 LocalPackageMetadataResource resourceMetadata = new LocalPackageMetadataResource(localResource);
 
-                SearchFilter filter = new SearchFilter(_prerelease);
+                SearchFilter filter = new SearchFilter(Prerelease);
                 SourceCacheContext context = new SourceCacheContext();
 
+                // // todo: how would Name be null since we validate [NotNullOrEmpty], how length == 0? (empty name array) or like name is ""?
+                // if ((Name == null) || (Name.Length == 0))
+                // {
+                //     returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
+                // }
 
-                if ((_name == null) || (_name.Length == 0))
+                foreach (string indivName in Name)
                 {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
-                }
-
-                foreach(string n in _name){
                     if (pkgsLeftToFind.Any())
                     {
-                        var foundPkgs = FindPackagesFromSourceHelper(repoName,repositoryUrl, n, resourceSearch, resourceMetadata, filter, context);
-                        if (foundPkgs.Any() && foundPkgs.First().Count() != 0)
+                        var foundPkgs = FindPackagesFromSourceHelperPSSet(repoName, repositoryUrl, indivName, resourceSearch, resourceMetadata, filter, context);
+                        if (foundPkgs.Any())
                         {
                             returnedPkgs.AddRange(foundPkgs);
-
-
-                            // if the repository is not specified or the repository is specified (but it's not '*'), then we can stop continuing to search for the package
-                            if (_repository == null ||  !_repository[0].Equals("*"))
-                            {
-                                pkgsLeftToFind.Remove(n);
-                            }
                         }
+                        // todo: ask Amber why this is here
+                        // if (Repository == null || !Repository[0].Equals("*"))
+                        // {
+                        //     pkgsLeftToFind.Remove(indivName);
+                        // }
                     }
                 }
             }
             else
             {
-
-
-
-                PackageSource source = new PackageSource(repositoryUrl);
-                if (_credential != null)
+                WriteVerbose("Uri is not file based");
+                PackageSource source = new PackageSource(repositoryUrl.ToString());
+                if (Credential != null)
                 {
-                    string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                    source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl, _credential.UserName, password, true, null);
+                    string password = new NetworkCredential(string.Empty, Credential.Password).Password;
+                    source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), Credential.UserName, password, true, null);
                 }
-
-
 
                 var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
 
@@ -361,37 +311,375 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return returnedPkgs;
                 }
 
-                SearchFilter filter = new SearchFilter(_prerelease);
+                SearchFilter filter = new SearchFilter(Prerelease);
                 SourceCacheContext context = new SourceCacheContext();
 
-                if ((_name == null) || (_name.Length == 0))
-                {
-                    returnedPkgs.AddRange(FindPackagesFromSourceHelper(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
-                }
 
-                foreach (string n in _name)
+                // // todo: how would Name be null since we validate [NotNullOrEmpty], how length == 0? (empty name array) or like name is ""?
+                // if ((Name == null) || (Name.Length == 0))
+                // {
+                //     returnedPkgs.AddRange(FindPackagesFromSourceHelperPSSet(repoName, repositoryUrl, null, resourceSearch, resourceMetadata, filter, context));
+                // }
+
+                foreach (string indivName in Name)
                 {
                     if (pkgsLeftToFind.Any())
                     {
-                        var foundPkgs = FindPackagesFromSourceHelper(repoName, repositoryUrl, n, resourceSearch, resourceMetadata, filter, context);
-                        if (foundPkgs.Any() && foundPkgs.First().Count() != 0)
+                        WriteVerbose(String.Format("packages left to find and currently looking for name: {0}", indivName));
+                        var foundPkgs = FindPackagesFromSourceHelperPSSet(repoName, repositoryUrl, indivName, resourceSearch, resourceMetadata, filter, context);
+                        WriteVerbose("came back from helper()");
+                        if (foundPkgs.Any())
                         {
                             returnedPkgs.AddRange(foundPkgs);
 
 
                             // if the repository is not specified or the repository is specified (but it's not '*'), then we can stop continuing to search for the package
-                            if (_repository == null ||  !_repository[0].Equals("*"))
+                            if (Repository == null ||  !Repository[0].Equals("*"))
                             {
-                                pkgsLeftToFind.Remove(n);
+                                pkgsLeftToFind.Remove(indivName);
                             }
                         }
                     }
                 }
             }
-
+            WriteVerbose("returning from findPackagesFromSource");
             return returnedPkgs;
         }
 
+        private List<PSResourceInfo> FindPackagesFromSourceHelperPSSet(string repoName, Uri repositoryUrl, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext)
+        {
+            WriteVerbose("in helper() now");
+            List<IEnumerable<IPackageSearchMetadata>> foundPackages = new List<IEnumerable<IPackageSearchMetadata>>();
+            List<IEnumerable<IPackageSearchMetadata>> filteredFoundPkgs = new List<IEnumerable<IPackageSearchMetadata>>();
+            List<IEnumerable<IPackageSearchMetadata>> scriptPkgsNotNeeded = new List<IEnumerable<IPackageSearchMetadata>>();
+
+            List<PSResourceInfo> foundResources = new List<PSResourceInfo>();
+            List<IPackageSearchMetadata> foundPkgsWithoutEnumerable = new List<IPackageSearchMetadata>();
+
+            if (!String.IsNullOrEmpty(name))
+            {
+                WriteVerbose("name not null or empty");
+                // If a resource name is specified, search for that specific pkg name
+                if (!name.Contains("*"))
+                {
+                    WriteVerbose("name doesn't contain wildcard");
+                    IEnumerable<IPackageSearchMetadata> retrievedPkgs = null;
+                    try
+                    {
+                        retrievedPkgs = pkgMetadataResource.GetMetadataAsync(name, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                        // create PSRepositoryInfo objects from EACH metadata ? holy heck that will be expensive
+                    }
+                    catch { }
+                    if (retrievedPkgs == null || retrievedPkgs.Count() == 0)
+                    {
+                        this.WriteVerbose(string.Format("'{0}' could not be found in repository '{1}'", name, repoName));
+                        return foundResources;
+                    }
+                    else
+                    {
+                        WriteVerbose("retrieved packages was not null");
+                        // foundPackages.Add(retrievedPkgs);
+                        foundPkgsWithoutEnumerable.AddRange(retrievedPkgs.ToList());
+                    }
+                }
+                // contains wildcard, so searching for range of pkgs
+                else
+                {
+                    // TODO:  follow up on this
+                    //foundPackages.Add(pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
+
+                    // name = name.Equals("*") ? "" : name;   // can't use * in v3 protocol
+                    var wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                    // can account for na*me or * or "" (last one idk?)
+                    WildcardPattern nameWildcardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
+                    // foundPackages.Add(wildcardPkgs.Where(p => nameWildcardPattern.IsMatch(p.Identity.Id)));
+                    foundPkgsWithoutEnumerable.AddRange(wildcardPkgs.Where(p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
+                    // if (foundPackages.Flatten().Any())
+                    // {
+                    //     pkgsLeftToFind.Remove(name);
+                    // }
+                    if (foundPkgsWithoutEnumerable.Any())
+                    {
+                        pkgsLeftToFind.Remove(name);
+                    }
+
+                    // // If not searching for *all* packages
+                    // if (!name.Equals("") && !name[0].Equals('*'))
+                    // {
+                    //     WildcardPattern nameWildcardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
+                    //     foundPackages.Add(wildcardPkgs.Where(p => nameWildcardPattern.IsMatch(p.Identity.Id)));
+                    //     if (foundPackages.Flatten().Any())
+                    //     {
+                    //         pkgsLeftToFind.Remove(name);
+                    //     }
+                    // }
+                    // else
+                    // {
+                    //     foundPackages.Add(wildcardPkgs);
+                    //     pkgsLeftToFind.Remove("*");
+                    // }
+
+
+                }
+            }
+
+
+            // if (Version == null)
+            // {
+            //     // if Version is null -> return latest version
+            //     foundPackages = foundPackages.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease);
+
+
+
+            //     // if Version == "*" or no  version provided --> return latest version
+            //     // specific version --> return that one
+            //     // range provided --> ?
+
+            // }
+            /***
+            // //use either ModuleName or Name (whichever not null) to prevent id error
+            // var nameVal = name == null ? _moduleName : name;
+
+            // Check version first to narrow down the number of pkgs before potentially searching through tags
+            if (_version != null && nameVal != null)
+            {
+
+                if (_version.Equals("*"))
+                {
+                    // ensure that the latst version is returned first (the ordering of versions differ)
+
+                    if(_moduleName != null)
+                    {
+                        // perform checks for PSModule before adding to filteredFoundPackages
+                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                            .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSModule"))
+                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+
+                        scriptPkgsNotNeeded.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                            .Where(p => p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries).Contains("PSScript"))
+                            .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+
+                        scriptPkgsNotNeeded.RemoveAll(p => true);
+                    }
+                    else
+                    { //name != null
+                        filteredFoundPkgs.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+                    }
+                }
+                else
+                {
+                    // try to parse into a singular NuGet version
+                    NuGetVersion specificVersion;
+                    NuGetVersion.TryParse(_version, out specificVersion);
+
+                    foundPackages.RemoveAll(p => true);
+                    VersionRange versionRange = null;
+
+                    //todo: fix! when the Version is inputted as "[2.0]" it doesnt get parsed by TryParse() returns null
+                    if (specificVersion != null)
+                    {
+                        // exact version
+                        versionRange = new VersionRange(specificVersion, true, specificVersion, true, null, null);
+                    }
+                    else
+                    {
+                        // maybe try catch this
+                        // check if version range
+                        versionRange = VersionRange.Parse(_version);
+
+                    }
+                    // Search for packages within a version range
+                    // ensure that the latst version is returned first (the ordering of versions differ
+                    // test wth  Find-PSResource 'Carbon' -Version '[,2.4.0)'
+                    foundPackages.Add(pkgMetadataResource.GetMetadataAsync(nameVal, _prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult()
+                        .Where(p => versionRange.Satisfies(p.Identity.Version))
+                        .OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease));
+
+                    // TODO:  TEST AFTER CHANGES
+                    // choose the most recent version -- it's not doing this right now
+                    //int toRemove = foundPackages.First().Count() - 1;
+                    //var singlePkg = (System.Linq.Enumerable.SkipLast(foundPackages.FirstOrDefault(), toRemove));
+                    var pkgList = foundPackages.FirstOrDefault();
+                    var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
+
+
+                    if(singlePkg != null)
+                    {
+                        if(_moduleName != null)
+                        {
+                            var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                            if(tags.Contains("PSModule"))
+                            {
+                                filteredFoundPkgs.Add(singlePkg);
+                            }
+                        }
+                        else if(_name != null)
+                        {
+                            filteredFoundPkgs.Add(singlePkg);
+                        }
+                    }
+                }
+            }
+            else // version is null
+            {
+                // if version is null, but there we want to return multiple packages (muliple names), skip over this step of removing all but the lastest package/version:
+                if ((name != null && !name.Contains("*")) || _moduleName != null)
+                {
+                    // choose the most recent version -- it's not doing this right now
+                    int toRemove = foundPackages.First().Count() - 1;
+
+                    //to prevent NullException
+                    if(toRemove >= 0)
+                    {
+                        var pkgList = foundPackages.FirstOrDefault();
+                        var singlePkg = Enumerable.Repeat(pkgList.FirstOrDefault(), 1);
+
+                        //if it was a ModuleName then check if the Tag is PSModule and only add then
+                        var tags = singlePkg.First().Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                        if(_moduleName != null){
+                            if(tags.Contains("PSModule")){
+                                filteredFoundPkgs.Add(singlePkg);
+                            }
+                        }
+                        else
+                        { // _name != null
+                            filteredFoundPkgs.Add(singlePkg);
+                        }
+                    }
+                }
+                else
+                { //if name not null,but name contains * and version is null
+                    filteredFoundPkgs = foundPackages;
+                }
+            }
+
+
+
+
+            // TAGS
+            /// should move this to the last thing that gets filtered
+            var flattenedPkgs = filteredFoundPkgs.Flatten().ToList();
+            if (_tags != null)
+            {
+                // clear filteredfoundPkgs because we'll just be adding back the pkgs we we
+                filteredFoundPkgs.RemoveAll(p => true);
+                var pkgsFilteredByTags = new List<IPackageSearchMetadata>();
+
+                foreach (IPackageSearchMetadata p in flattenedPkgs)
+                {
+                    // Enumerable.ElementAt(0)
+                    var tagArray = p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+
+                    foreach (string t in _tags)
+                    {
+                        // if the pkg contains one of the tags we're searching for
+                        if (tagArray.Contains(t, StringComparer.OrdinalIgnoreCase))
+                        {
+                            pkgsFilteredByTags.Add(p);
+                        }
+                    }
+                }
+                // make sure just adding one pkg if not * versions
+                if (_version != "*")
+                {
+                    filteredFoundPkgs.Add(pkgsFilteredByTags.DistinctBy(p => p.Identity.Id));
+                }
+                else
+                {
+                    // if we want all version, make sure there's only one package id/version in the returned list.
+                    filteredFoundPkgs.Add(pkgsFilteredByTags.DistinctBy(p => p.Identity.Version));
+                }
+            }
+
+
+
+
+            // optimizes searcching by
+            if ((_type != null || !filteredFoundPkgs.Flatten().Any()) && pkgsLeftToFind.Any() && !_name.Contains("*"))
+            {
+                //if ((_type.Contains("Module") || _type.Contains("Script")) && !_type.Contains("DscResource") && !_type.Contains("Command") && !_type.Contains("RoleCapability"))
+                if (_type == null || _type.Contains("DscResource") || _type.Contains("Command") || _type.Contains("RoleCapability"))
+                {
+
+                    if (!filteredFoundPkgs.Flatten().Any())
+                    {
+                        filteredFoundPkgs.Add(pkgSearchResource.SearchAsync("", searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
+                    }
+
+                    var tempList = (FilterPkgsByResourceType(filteredFoundPkgs));
+                    filteredFoundPkgs.RemoveAll(p => true);
+
+                    filteredFoundPkgs.Add(tempList);
+                }
+
+            }
+            // else type == null
+
+
+
+
+
+
+
+            // Search for dependencies
+            if (_includeDependencies && filteredFoundPkgs.Any())
+            {
+                List<IEnumerable<IPackageSearchMetadata>> foundDependencies = new List<IEnumerable<IPackageSearchMetadata>>();
+
+                // need to parse the depenency and version and such
+                var filteredFoundPkgsFlattened = filteredFoundPkgs.Flatten();
+                foreach (IPackageSearchMetadata pkg in filteredFoundPkgsFlattened)
+                {
+                    // need to improve this later
+                    // this function recursively finds all dependencies
+                    // change into an ieunumerable (helpful for the finddependenciesfromsource function)
+
+                    foundDependencies.AddRange(FindDependenciesFromSource(Enumerable.Repeat(pkg, 1), pkgMetadataResource, srcContext));
+                }
+
+                filteredFoundPkgs.AddRange(foundDependencies);
+            }
+            */
+
+            // return foundPackages;
+            // this returns all packages matching that name, i.e if Carbon returns ALL versions of carbon
+            WriteVerbose("going to iterate through packages found (IPackageSearchMetadata)");
+            // todo: what's a better way to iterate through an List<IEnumerable<IPackageMetadata>?
+            List<IPackageSearchMetadata> pkgMetadatas = new List<IPackageSearchMetadata>();
+            // foreach (var pkg in foundPackages)
+            // {
+            //     pkgMetadatas.AddRange(pkg.ToList());
+            // }
+            // foreach (var pkgM in pkgMetadatas)
+            // {
+            //     WriteVerbose(String.Format("extracting from IPackageSearchMetadata of pkg name: {0}", pkgM.Identity.Id));
+
+            //     PSResourceInfo currentPkg = new PSResourceInfo();
+            //     currentPkg.Name = pkgM.Identity.Id;
+            //     currentPkg.Version = pkgM.Identity.Version.Version;
+            //     currentPkg.Repository = repoName;
+            //     currentPkg.Description = pkgM.Description;
+            //     WriteVerbose("add PSResourceInfo obj to list");
+            //     foundResources.Add(currentPkg);
+            // }
+            foreach (IPackageSearchMetadata pkg in foundPkgsWithoutEnumerable)
+            {
+                WriteVerbose(String.Format("extracting from IPackageSearchMetadata of pkg name: {0}", pkg.Identity.Id));
+
+                PSResourceInfo currentPkg = new PSResourceInfo();
+                currentPkg.Name = pkg.Identity.Id;
+                currentPkg.Version = pkg.Identity.Version.Version;
+                currentPkg.Repository = repoName;
+                currentPkg.Description = pkg.Description;
+                WriteVerbose("add PSResourceInfo obj to list");
+                foundResources.Add(currentPkg);
+            }
+            // return foundPackages;
+            WriteVerbose("return list of PSResourceInfo objects");
+            return foundResources;
+
+
+        }
 
     }
 }
