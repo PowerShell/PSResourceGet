@@ -43,7 +43,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Reads a 'PSGetModuleInfo.xml' PowerShell serialized file and returns
         /// a PSGetInfo object containing the file contents.
         /// </summary>
-        public static bool TryGetPSGetInfo(
+        public static bool TryReadPSGetInfo(
             string filePath,
             out PSGetInfo psGetInfo,
             out string errorMsg)
@@ -312,7 +312,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         public static PSObject ReadPSGetInfo(string filePath)
         {
-            if (Utils.TryGetPSGetInfo(filePath, out PSGetInfo psGetInfo, out string errorMsg))
+            if (Utils.TryReadPSGetInfo(filePath, out PSGetInfo psGetInfo, out string errorMsg))
             {
                 return PSObject.AsPSObject(psGetInfo);
             }

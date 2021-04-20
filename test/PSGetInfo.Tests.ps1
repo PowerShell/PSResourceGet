@@ -35,20 +35,20 @@ Describe "Read PSGetModuleInfo xml file" -tags CI {
         $psGetInfo.IconUri | Should -BeNullOrEmpty
         $psGetInfo.Includes.Cmdlet | Should -HaveCount 10
         $psGetInfo.Includes.Cmdlet[0] | Should -BeExactly 'Register-SecretVault'
-        $psGetInfo.InstalledDate.Ticks | Should -BeExactly 637522675617662015
+        $psGetInfo.InstalledDate.Year | Should -BeExactly 2021
         $psGetInfo.InstalledLocation | Should -BeLike 'C:\Users\*'
         $psGetInfo.LicenseUri | Should -BeExactly 'https://github.com/PowerShell/SecretManagement/blob/master/LICENSE'
         $psGetInfo.Name | Should -BeExactly 'Microsoft.PowerShell.SecretManagement'
         $psGetInfo.PackageManagementProvider | Should -BeExactly 'NuGet'
         $psGetInfo.PowerShellGetFormatVersion | Should -BeNullOrEmpty
         $psGetInfo.ProjectUri | Should -BeExactly 'https://github.com/powershell/secretmanagement'
-        $psGetInfo.PublishedDate.Ticks | Should -BeExactly 637522924900000000
+        $psGetInfo.PublishedDate.Year | Should -BeExactly 2021
         $psGetInfo.ReleasedNotes | Should -BeNullOrEmpty
         $psGetInfo.Repository | Should -BeExactly 'PSGallery'
         $psGetInfo.RepositorySourceLocation | Should -BeExactly 'https://www.powershellgallery.com/api/v2'
         $psGetInfo.Tags | Should -BeExactly @('PSModule', 'PSEdition_Core')
         $psGetInfo.Type | Should -BeExactly 'Module'
-        $psGetInfo.UpdatedDate.Ticks | Should -BeExactly 0
+        $psGetInfo.UpdatedDate.Year | Should -BeExactly 1
         $psGetInfo.Version.ToString() | Should -BeExactly '1.0.0'
     }
 }
