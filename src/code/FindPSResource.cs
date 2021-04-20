@@ -424,18 +424,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
 
-            // if (Version == null)
-            // {
-            //     // if Version is null -> return latest version
-            //     foundPackages = foundPackages.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease);
+            if (Version == null)
+            {
+                // if Version is null -> return latest version
+                // foundPackages = foundPackages.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease);
+                foundPkgsWithoutEnumerable.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease);
+                foundPkgsWithoutEnumerable.RemoveRange(1, foundPkgsWithoutEnumerable.Count -1);
 
 
 
-            //     // if Version == "*" or no  version provided --> return latest version
-            //     // specific version --> return that one
-            //     // range provided --> ?
+                // if Version == "*" or no  version provided --> return latest version
+                // specific version --> return that one
+                // range provided --> ?
 
-            // }
+            }
             /***
             // //use either ModuleName or Name (whichever not null) to prevent id error
             // var nameVal = name == null ? _moduleName : name;
