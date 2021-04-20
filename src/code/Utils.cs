@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     System.IO.File.ReadAllText(
                         filePath));
 
-                psGetInfo = new PSGetInfo()
+                psGetInfo = new PSGetInfo
                 {
                     AdditionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSGetInfo.AdditionalMetadata), psObjectInfo),
                     Author = GetProperty<string>(nameof(PSGetInfo.Author), psObjectInfo),
@@ -308,7 +308,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #region Test Hooks
 
-    public sealed class TestHooks
+    public static class TestHooks
     {
         public static PSObject ReadPSGetInfo(string filePath)
         {
