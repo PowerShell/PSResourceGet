@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+
 $psGetMod = Get-Module -Name PowerShellGet
 if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
 {
@@ -8,7 +10,11 @@ if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
     Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
 }
 
-Describe "Read PSGetModuleInfo xml file" -tags CI {
+Describe "Read PSGetModuleInfo xml file" -tags 'CI' {
+
+    BeforeAll {
+        $fileToRead = Join-Path -Path $PSScriptRoot -ChildPath "PSGetModuleInfo.xml"
+    }
 
     It "Verifies expected error with null path" {
         { [Microsoft.PowerShell.PowerShellGet.UtilClasses.TestHooks]::ReadPSGetInfo($null) } | Should -Throw -ErrorId 'PSInvalidOperationException'
@@ -19,36 +25,30 @@ Describe "Read PSGetModuleInfo xml file" -tags CI {
     }
 
     It "Verifies PSGetModuleInfo.xml file is read successfully" {
-        $fileToRead = Join-Path -Path $PSScriptRoot -ChildPath "PSGetModuleInfo.xml"
         $psGetInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.TestHooks]::ReadPSGetInfo($fileToRead)
-        #
-        $psGetInfo.AdditionalMetadata.Keys | Should -HaveCount 22
-        $psGetInfo.AdditionalMetadata['copyright'] | Should -BeExactly '(c) Microsoft Corporation. All rights reserved.'
-        $psGetInfo.AdditionalMetadata['tags'] | Should -BeLike 'PSModule PSEdition_Core*'
-        $psGetInfo.AdditionalMetadata['ItemType'] | Should -BeExactly 'Module'
-        #
-        $psGetInfo.Author | Should -BeExactly 'Microsoft Corporation'
-        $psGetInfo.CompanyName | Should -BeExactly 'Microsoft Corporation'
-        $psGetInfo.Copyright | Should -BeExactly '(c) Microsoft Corporation. All rights reserved.'
-        $psGetInfo.Dependencies | Should -HaveCount 0
-        $psGetInfo.Description | Should -BeLike 'This module provides a convenient way for a user to store*'
-        $psGetInfo.IconUri | Should -BeNullOrEmpty
-        $psGetInfo.Includes.Cmdlet | Should -HaveCount 10
-        $psGetInfo.Includes.Cmdlet[0] | Should -BeExactly 'Register-SecretVault'
-        $psGetInfo.InstalledDate.Year | Should -BeExactly 2021
-        $psGetInfo.InstalledLocation | Should -BeLike 'C:\Users\*'
-        $psGetInfo.LicenseUri | Should -BeExactly 'https://github.com/PowerShell/SecretManagement/blob/master/LICENSE'
-        $psGetInfo.Name | Should -BeExactly 'Microsoft.PowerShell.SecretManagement'
-        $psGetInfo.PackageManagementProvider | Should -BeExactly 'NuGet'
-        $psGetInfo.PowerShellGetFormatVersion | Should -BeNullOrEmpty
-        $psGetInfo.ProjectUri | Should -BeExactly 'https://github.com/powershell/secretmanagement'
-        $psGetInfo.PublishedDate.Year | Should -BeExactly 2021
-        $psGetInfo.ReleasedNotes | Should -BeNullOrEmpty
-        $psGetInfo.Repository | Should -BeExactly 'PSGallery'
-        $psGetInfo.RepositorySourceLocation | Should -BeExactly 'https://www.powershellgallery.com/api/v2'
-        $psGetInfo.Tags | Should -BeExactly @('PSModule', 'PSEdition_Core')
-        $psGetInfo.Type | Should -BeExactly 'Module'
-        $psGetInfo.UpdatedDate.Year | Should -BeExactly 1
-        $psGetInfo.Version.ToString() | Should -BeExactly '1.0.0'
+        CheckForExpectedPSGetInfo $psGetInfo
+    }
+}
+
+Describe "Write PSGetModuleInfo xml file" -tags 'CI' {
+
+    BeforeAll {
+        $fileToRead = Join-Path -Path $PSScriptRoot -ChildPath "PSGetModuleInfo.xml"
+        $fileToWrite = Join-Path -Path $TestDrive -ChildPath "PSGetModuleInfo_Write.xml"
+    }
+
+    It "Verifies expected error with null path" {
+        $psGetInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.TestHooks]::ReadPSGetInfo($fileToRead)
+        { [Microsoft.PowerShell.PowerShellGet.UtilClasses.TestHooks]::WritePSGetInfo($null, $psGetInfo) } | Should -Throw -ErrorId 'PSInvalidOperationException'
+    }
+
+    It "Verifies file write is successful" {
+        $psGetInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.TestHooks]::ReadPSGetInfo($fileToRead)
+        { [Microsoft.PowerShell.PowerShellGet.UtilClasses.TestHooks]::WritePSGetInfo($fileToWrite, $psGetInfo) } | Should -Not -Throw
+    }
+
+    It "Verifes written file can be read successfully" {
+        $newGetInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.TestHooks]::ReadPSGetInfo($fileToWrite)
+        CheckForExpectedPSGetInfo $newGetInfo
     }
 }
