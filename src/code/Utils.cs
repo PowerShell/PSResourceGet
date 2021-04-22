@@ -116,7 +116,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public Hashtable ConvertToHashtable()
         {
-            var hashtable = new Hashtable()
+            var hashtable = new Hashtable
             {
                 { nameof(Cmdlet), Cmdlet },
                 { nameof(Command), Command },
