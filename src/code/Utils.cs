@@ -419,10 +419,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 return PSObject.AsPSObject(psGetInfo);
             }
-            else
-            {
-                throw new PSInvalidOperationException(errorMsg);
-            }
+
+            throw new PSInvalidOperationException(errorMsg);
         }
 
         public static void WritePSGetInfo(
@@ -435,11 +433,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     throw new PSInvalidOperationException(errorMsg);
                 }
+
+                return;
             }
-            else
-            {
-                throw new PSArgumentException("psObjectGetInfo argument is not a PSGetInfo type.");
-            }
+
+            throw new PSArgumentException("psObjectGetInfo argument is not a PSGetInfo type.");
         }
     }
 
