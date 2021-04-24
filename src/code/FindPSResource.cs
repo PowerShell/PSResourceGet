@@ -202,21 +202,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSResourceInfo> SearchFromRepository(string repoName, Uri repositoryUrl, CancellationToken cancellationToken)
         {
+            PackageSearchResource resourceSearch = null;
+            PackageMetadataResource resourceMetadata = null;
+            SearchFilter filter = null;
+            SourceCacheContext context = null;
+
+            // assign PacakgeSearchResource, PacakgeMetadata, SearchFilter and SearchContext variables based on Uri scheme
+            // file based Uri scheme
             if (repositoryUrl.Scheme == Uri.UriSchemeFile)
             {
                 FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryUrl.ToString());
+                resourceSearch = new LocalPackageSearchResource(localResource);
+                resourceMetadata = new LocalPackageMetadataResource(localResource);
+                filter = new SearchFilter(Prerelease);
+                context = new SourceCacheContext();
 
-                LocalPackageSearchResource resourceSearch = new LocalPackageSearchResource(localResource);
-                LocalPackageMetadataResource resourceMetadata = new LocalPackageMetadataResource(localResource);
-
-                SearchFilter filter = new SearchFilter(Prerelease);
-                SourceCacheContext context = new SourceCacheContext();
-
-                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, cancellationToken, resourceSearch, resourceMetadata, filter, context))
+                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, resourceSearch, resourceMetadata, filter, context, cancellationToken))
                 {
                     yield return pkg;
                 }
             }
+            // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
             else
             {
                 PackageSource source = new PackageSource(repositoryUrl.ToString());
@@ -227,11 +233,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
-
                 SourceRepository repository = new SourceRepository(source, provider);
 
-                PackageSearchResource resourceSearch = null;
-                PackageMetadataResource resourceMetadata = null;
                 try
                 {
                     resourceSearch = repository.GetResourceAsync<PackageSearchResource>().GetAwaiter().GetResult();
@@ -245,17 +248,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield break;
                 }
 
-                SearchFilter filter = new SearchFilter(Prerelease);
-                SourceCacheContext context = new SourceCacheContext();
+                filter = new SearchFilter(Prerelease);
+                context = new SourceCacheContext();
 
-                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, cancellationToken, resourceSearch, resourceMetadata, filter, context))
+                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, resourceSearch, resourceMetadata, filter, context, cancellationToken))
                 {
                     yield return pkg;
                 }
             }
         }
 
-        public IEnumerable<PSResourceInfo> SearchAcrossNamesInRepository(string repoName, CancellationToken cancellationToken, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext)
+        public IEnumerable<PSResourceInfo> SearchAcrossNamesInRepository(string repoName, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext, CancellationToken cancellationToken)
         {
             foreach (string pkgName in Name)
             {
