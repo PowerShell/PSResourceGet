@@ -43,7 +43,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the location of the repository to be set.
         /// </sumamry>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public Uri URL
         {
@@ -96,7 +96,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds
         /// to a higher priority ranking than a higher numeric value (i.e 40).
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         [ValidateRange(0, 50)]
         public int Priority { get; set; } = DefaultPriority;
