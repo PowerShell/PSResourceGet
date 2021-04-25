@@ -260,10 +260,17 @@ Describe "Test Publish-PSResource" {
         $expectedNuspecContents.Contains($tags) | Should Be $true
     }
 
-    It "Publish a module with -APIKey, should throw" {
+    It "Publish a module to PSGallery without -APIKey, should throw" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        { Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -APIKey "123456789"} | Should -Throw -ErrorId "APIKeyError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery } | Should -Throw -ErrorId "APIKeyError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+    }
+
+    It "Publish a module to PSGallery using incorrect API key, should throw" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        { Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -APIKey "123456789"} | Should -Throw -ErrorId "InvalidAPIKey,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 }
