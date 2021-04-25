@@ -845,13 +845,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
-                var message = String.Format("Response status code does not indicate success: 401 (An API key must be provided).  Please try running again with the -APIKey parameter and specific API key for the repository specified.");
-                var ex = new ArgumentException(message);
-                var APIKeyError = new ErrorRecord(ex, "APIKeyError", ErrorCategory.PermissionDenied, null);
-
-                this.ThrowTerminatingError(APIKeyError);
+                var ex = new ArgumentException(e.Message);
+                if (e.Message.Contains("401"))
+                {
+                    if (e.Message.Contains("An API key must be provided"))
+                    {
+                        var message = String.Format("Response status code does not indicate success: 401 (An API key must be provided). Please try running again with the -APIKey parameter and specific API key for the repository specified.");
+                        ex = new ArgumentException(message);
+                        var APIKeyError = new ErrorRecord(ex, "APIKeyError", ErrorCategory.AuthenticationError, null);
+                        this.ThrowTerminatingError(APIKeyError);
+                    }
+                    else
+                    {
+                        var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
+                        this.ThrowTerminatingError(Error401);
+                    }
+                }
+                else if (e.Message.Contains("403"))
+                {
+                    if (e.Message.Contains("The specified API key is invalid, has expired, or does not have permission"))
+                    {
+                        var message = String.Format("Response status code does not indicate success: 403 (The specified API key is invalid, has expired, or does not have permission to access the specified package).");
+                        ex = new ArgumentException(message);
+                        var APIKeyError = new ErrorRecord(ex, "APIKeyError", ErrorCategory.InvalidArgument, null);
+                        this.ThrowTerminatingError(APIKeyError);
+                    }
+                    else
+                    {
+                        var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                        this.ThrowTerminatingError(Error403);
+                    }
+                }
+                else if (e.Message.Contains("409"))
+                {
+                    if (e.Message.Contains("already exists and cannot be modified"))
+                    {
+                        var message = String.Format("Response status code does not indicate success: 409 (A package with id '{0}' and version '{1}' already exists and cannot be modified).", pkgName, pkgVersion);
+                        ex = new ArgumentException(message);
+                        var ResourceAlreadyExists = new ErrorRecord(ex, "ResourceAlreadyExists", ErrorCategory.ResourceExists, null);
+                        this.ThrowTerminatingError(ResourceAlreadyExists);
+                    }
+                    else
+                    {
+                        var Error409 = new ErrorRecord(ex, "409Error", ErrorCategory.PermissionDenied, null);
+                        this.ThrowTerminatingError(Error409);
+                    }
+                }
+                else {
+                    var HTTPRequestError = new ErrorRecord(ex, "HTTPRequestError", ErrorCategory.PermissionDenied, null);
+                    this.ThrowTerminatingError(HTTPRequestError);
+                }
             }
-           
         }
     }
 }
