@@ -56,19 +56,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
 
-        // This will be a list of all the repository caches
-        public static readonly List<string> RepoCacheFileName = new List<string>();
-        // Temporarily store cache in this path for testing purposes
-        public static readonly string RepositoryCacheDir = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet", "RepositoryCache");
-        //public static readonly string RepositoryCacheDir = @"%APPDATA%/PowerShellGet/repositorycache";//@"%APPDTA%\NuGet";
-        //private readonly object p;
-
-        // Define the cancellation token.
-        CancellationTokenSource source;
-        CancellationToken cancellationToken;
-        List<string> pkgsLeftToFind;
-        private const string CursorFileName = "cursor.json";
-
         #endregion
 
         #region Parameters
@@ -153,8 +140,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void ProcessRecord()
         {
-            List<PSResourceInfo> items = new List<PSResourceInfo>();
-
             switch (ParameterSetName)
             {
                 case ResourceNameParameterSet:
@@ -180,27 +165,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-
         private IEnumerable<PSResourceInfo> ResourceNameParameterSetHelper()
         {
-            source = new CancellationTokenSource();
-            cancellationToken = source.Token;
+            CancellationToken cancellationToken = new CancellationTokenSource().Token;
 
             List<PSRepositoryInfo> repositoriesToSearch = RepositorySettings.Read(Repository, out string[] errorList);
 
-            pkgsLeftToFind = Name.ToList();
+            List<string> pkgsLeftToFind = Name.ToList();
 
             for (int i = 0; i < repositoriesToSearch.Count && pkgsLeftToFind.Any(); i++)
             {
                 WriteDebug(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                foreach (var pkg in SearchFromRepository(repositoriesToSearch[i].Name, repositoriesToSearch[i].Url, cancellationToken))
+                foreach (var pkg in SearchFromRepository(repositoriesToSearch[i].Name, repositoriesToSearch[i].Url, pkgsLeftToFind, cancellationToken))
                 {
                     yield return pkg;
                 }
             }
         }
 
-        public IEnumerable<PSResourceInfo> SearchFromRepository(string repoName, Uri repositoryUrl, CancellationToken cancellationToken)
+        public IEnumerable<PSResourceInfo> SearchFromRepository(string repoName, Uri repositoryUrl, List<string> pkgsLeftToFind, CancellationToken cancellationToken)
         {
             PackageSearchResource resourceSearch = null;
             PackageMetadataResource resourceMetadata = null;
@@ -217,7 +200,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 filter = new SearchFilter(Prerelease);
                 context = new SourceCacheContext();
 
-                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, resourceSearch, resourceMetadata, filter, context, cancellationToken))
+                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, resourceSearch, resourceMetadata, filter, context, pkgsLeftToFind, cancellationToken))
                 {
                     yield return pkg;
                 }
@@ -251,14 +234,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 filter = new SearchFilter(Prerelease);
                 context = new SourceCacheContext();
 
-                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, resourceSearch, resourceMetadata, filter, context, cancellationToken))
+                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, resourceSearch, resourceMetadata, filter, context, pkgsLeftToFind, cancellationToken))
                 {
                     yield return pkg;
                 }
             }
         }
 
-        public IEnumerable<PSResourceInfo> SearchAcrossNamesInRepository(string repoName, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext, CancellationToken cancellationToken)
+        public IEnumerable<PSResourceInfo> SearchAcrossNamesInRepository(string repoName, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext, List<string> pkgsLeftToFind, CancellationToken cancellationToken)
         {
             foreach (string pkgName in Name)
             {
@@ -266,7 +249,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (!String.IsNullOrWhiteSpace(pkgName))
                     {
-                        foreach (PSResourceInfo pkg in FindFromPackageSourceSearchAPI(repoName, pkgName, pkgSearchResource, pkgMetadataResource, searchFilter, srcContext, cancellationToken))
+                        foreach (PSResourceInfo pkg in FindFromPackageSourceSearchAPI(repoName, pkgName, pkgSearchResource, pkgMetadataResource, searchFilter, srcContext, pkgsLeftToFind, cancellationToken))
                         {
                             yield return pkg;
                         }
@@ -282,7 +265,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
         }
-        private IEnumerable<PSResourceInfo> FindFromPackageSourceSearchAPI(string repoName, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext, CancellationToken cancellationToken)
+        private IEnumerable<PSResourceInfo> FindFromPackageSourceSearchAPI(string repoName, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext, List<string> pkgsLeftToFind, CancellationToken cancellationToken)
         {
             List<IPackageSearchMetadata> foundPackagesMetadata = new List<IPackageSearchMetadata>();
             Collection<PSResourceInfo> foundPackages = new Collection<PSResourceInfo>();
