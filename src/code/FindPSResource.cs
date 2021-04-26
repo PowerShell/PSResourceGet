@@ -317,10 +317,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (foundPackagesMetadata.Any())
                 {
-                    foreach(var p in foundPackagesMetadata)
-                    {
-                        WriteVerbose("pkg found's name: " + p.Identity.Id);
-                    }
                     pkgsLeftToFind.Remove(name);
                 }
             }
