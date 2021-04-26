@@ -45,10 +45,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         # region Enums
         public enum ResourceCategory {
             Module,
-            Script,
-            DscResource,
-            Command,
-            RoleCapability
+            Script
         };
         #endregion
 
@@ -283,6 +280,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             List<IPackageSearchMetadata> foundPackagesMetadata = new List<IPackageSearchMetadata>();
 
+            // filter by param: Name
             if (!name.Contains("*"))
             {
                 // case: searching for specific package name i.e "Carbon"
@@ -321,13 +319,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            // filter by Version parameter
-            // Todo: implement other cases for Version
+            // filter by param: Version
+            // Todo: implement all cases for Version
+            // case: no version provided or version == "*" (return latest version)
             if (Version == null)
             {
                 // if no Version parameter provided, return latest version
                 foundPackagesMetadata = foundPackagesMetadata.GroupBy(p => p.Identity.Id).Select(x => x.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease).FirstOrDefault()).ToList();
             }
+            // version specific
+
+            // version range
 
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
