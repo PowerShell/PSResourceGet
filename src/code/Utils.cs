@@ -58,9 +58,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
     }
 
-    #region PSGetInfo classes
+    #region PSGetResourceInfo classes
 
-    internal sealed class PSGetInclude
+    internal sealed class PSGetIncludes
     {
         #region Properties
 
@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         ///     Value: ArrayList of Workflow name strings
         /// </summary>
         /// <param name="includes">Hashtable of PSGet includes</param>
-        public PSGetInclude(Hashtable includes)
+        public PSGetIncludes(Hashtable includes)
         {
             if (includes == null) { return; }
 
@@ -149,7 +149,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
     }
 
-    internal sealed class PSGetInfo
+    internal sealed class PSGetResourceInfo
     {
         #region Properties
 
@@ -167,7 +167,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public Uri IconUri { get; set; }
 
-        public PSGetInclude Includes { get; set; }
+        public PSGetIncludes Includes { get; set; }
 
         public DateTime InstalledDate { get; set; }
 
@@ -204,11 +204,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Public static methods
 
         /// <summary>
-        /// Writes the PSGetInfo properties to the specified file path as a 
+        /// Writes the PSGetResourceInfo properties to the specified file path as a 
         /// PowerShell serialized xml file, maintaining compatibility with 
         /// PowerShellGet v2 file format.
         /// </summary>
-        public bool TryWritePSGetInfo(
+        public bool TryWrite(
             string filePath,
             out string errorMsg)
         {
@@ -244,12 +244,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// Reads a 'PSGetModuleInfo.xml' PowerShell serialized file and returns
-        /// a PSGetInfo object containing the file contents.
+        /// Reads a PSGet resource xml (PowerShell serialized) file and returns
+        /// a PSGetResourceInfo object containing the file contents.
         /// </summary>
-        public static bool TryReadPSGetInfo(
+        public static bool TryRead(
             string filePath,
-            out PSGetInfo psGetInfo,
+            out PSGetResourceInfo psGetInfo,
             out string errorMsg)
         {
             psGetInfo = null;
@@ -268,31 +268,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     System.IO.File.ReadAllText(
                         filePath));
 
-                psGetInfo = new PSGetInfo
+                psGetInfo = new PSGetResourceInfo
                 {
-                    AdditionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSGetInfo.AdditionalMetadata), psObjectInfo),
-                    Author = GetProperty<string>(nameof(PSGetInfo.Author), psObjectInfo),
-                    CompanyName = GetProperty<string>(nameof(PSGetInfo.CompanyName), psObjectInfo),
-                    Copyright = GetProperty<string>(nameof(PSGetInfo.Copyright), psObjectInfo),
-                    Dependencies = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSGetInfo.Dependencies), psObjectInfo)),
-                    Description = GetProperty<string>(nameof(PSGetInfo.Description), psObjectInfo),
-                    IconUri = GetProperty<Uri>(nameof(PSGetInfo.IconUri), psObjectInfo),
-                    Includes = new PSGetInclude(GetProperty<Hashtable>(nameof(PSGetInfo.Includes), psObjectInfo)),
-                    InstalledDate = GetProperty<DateTime>(nameof(PSGetInfo.InstalledDate), psObjectInfo),
-                    InstalledLocation = GetProperty<string>(nameof(PSGetInfo.InstalledLocation), psObjectInfo),
-                    LicenseUri = GetProperty<Uri>(nameof(PSGetInfo.LicenseUri), psObjectInfo),
-                    Name = GetProperty<string>(nameof(PSGetInfo.Name), psObjectInfo),
-                    PackageManagementProvider = GetProperty<string>(nameof(PSGetInfo.PackageManagementProvider), psObjectInfo),
-                    PowerShellGetFormatVersion = GetProperty<string>(nameof(PSGetInfo.PowerShellGetFormatVersion), psObjectInfo),
-                    ProjectUri = GetProperty<Uri>(nameof(PSGetInfo.ProjectUri), psObjectInfo),
-                    PublishedDate = GetProperty<DateTime>(nameof(PSGetInfo.PublishedDate), psObjectInfo),
-                    ReleaseNotes = GetProperty<string>(nameof(PSGetInfo.ReleaseNotes), psObjectInfo),
-                    Repository = GetProperty<string>(nameof(PSGetInfo.Repository), psObjectInfo),
-                    RepositorySourceLocation = GetProperty<string>(nameof(PSGetInfo.RepositorySourceLocation), psObjectInfo),
-                    Tags = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSGetInfo.Tags), psObjectInfo)),
-                    Type = GetProperty<string>(nameof(PSGetInfo.Type), psObjectInfo),
-                    UpdatedDate = GetProperty<DateTime>(nameof(PSGetInfo.UpdatedDate), psObjectInfo),
-                    Version = GetProperty<Version>(nameof(PSGetInfo.Version), psObjectInfo)
+                    AdditionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSGetResourceInfo.AdditionalMetadata), psObjectInfo),
+                    Author = GetProperty<string>(nameof(PSGetResourceInfo.Author), psObjectInfo),
+                    CompanyName = GetProperty<string>(nameof(PSGetResourceInfo.CompanyName), psObjectInfo),
+                    Copyright = GetProperty<string>(nameof(PSGetResourceInfo.Copyright), psObjectInfo),
+                    Dependencies = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSGetResourceInfo.Dependencies), psObjectInfo)),
+                    Description = GetProperty<string>(nameof(PSGetResourceInfo.Description), psObjectInfo),
+                    IconUri = GetProperty<Uri>(nameof(PSGetResourceInfo.IconUri), psObjectInfo),
+                    Includes = new PSGetIncludes(GetProperty<Hashtable>(nameof(PSGetResourceInfo.Includes), psObjectInfo)),
+                    InstalledDate = GetProperty<DateTime>(nameof(PSGetResourceInfo.InstalledDate), psObjectInfo),
+                    InstalledLocation = GetProperty<string>(nameof(PSGetResourceInfo.InstalledLocation), psObjectInfo),
+                    LicenseUri = GetProperty<Uri>(nameof(PSGetResourceInfo.LicenseUri), psObjectInfo),
+                    Name = GetProperty<string>(nameof(PSGetResourceInfo.Name), psObjectInfo),
+                    PackageManagementProvider = GetProperty<string>(nameof(PSGetResourceInfo.PackageManagementProvider), psObjectInfo),
+                    PowerShellGetFormatVersion = GetProperty<string>(nameof(PSGetResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
+                    ProjectUri = GetProperty<Uri>(nameof(PSGetResourceInfo.ProjectUri), psObjectInfo),
+                    PublishedDate = GetProperty<DateTime>(nameof(PSGetResourceInfo.PublishedDate), psObjectInfo),
+                    ReleaseNotes = GetProperty<string>(nameof(PSGetResourceInfo.ReleaseNotes), psObjectInfo),
+                    Repository = GetProperty<string>(nameof(PSGetResourceInfo.Repository), psObjectInfo),
+                    RepositorySourceLocation = GetProperty<string>(nameof(PSGetResourceInfo.RepositorySourceLocation), psObjectInfo),
+                    Tags = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSGetResourceInfo.Tags), psObjectInfo)),
+                    Type = GetProperty<string>(nameof(PSGetResourceInfo.Type), psObjectInfo),
+                    UpdatedDate = GetProperty<DateTime>(nameof(PSGetResourceInfo.UpdatedDate), psObjectInfo),
+                    Version = GetProperty<Version>(nameof(PSGetResourceInfo.Version), psObjectInfo)
                 };
 
                 return true;
@@ -413,9 +413,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     public static class TestHooks
     {
-        public static PSObject ReadPSGetInfo(string filePath)
+        public static PSObject ReadPSGetResourceInfo(string filePath)
         {
-            if (PSGetInfo.TryReadPSGetInfo(filePath, out PSGetInfo psGetInfo, out string errorMsg))
+            if (PSGetResourceInfo.TryRead(filePath, out PSGetResourceInfo psGetInfo, out string errorMsg))
             {
                 return PSObject.AsPSObject(psGetInfo);
             }
@@ -423,13 +423,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             throw new PSInvalidOperationException(errorMsg);
         }
 
-        public static void WritePSGetInfo(
+        public static void WritePSGetResourceInfo(
             string filePath,
             PSObject psObjectGetInfo)
         {
-            if (psObjectGetInfo.BaseObject is PSGetInfo psGetInfo)
+            if (psObjectGetInfo.BaseObject is PSGetResourceInfo psGetInfo)
             {
-                if (! psGetInfo.TryWritePSGetInfo(filePath, out string errorMsg))
+                if (! psGetInfo.TryWrite(filePath, out string errorMsg))
                 {
                     throw new PSInvalidOperationException(errorMsg);
                 }
@@ -437,7 +437,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return;
             }
 
-            throw new PSArgumentException("psObjectGetInfo argument is not a PSGetInfo type.");
+            throw new PSArgumentException("psObjectGetInfo argument is not a PSGetResourceInfo type.");
         }
     }
 
