@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Reflection.Emit;
 // Copyright (c) Microsoft Corporation. All rights reserved.
@@ -306,7 +307,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                // case: searching for name containing wildcard i.e "Ca*bon"
+                WriteVerbose("searching for name with wildcards");
+                // case: searching for name containing wildcard i.e "Carbon.*"
                 // NuGet API doesn't handle wildcards so get all packages, then filter for wilcard match
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
 
@@ -315,6 +317,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (foundPackagesMetadata.Any())
                 {
+                    foreach(var p in foundPackagesMetadata)
+                    {
+                        WriteVerbose("pkg found's name: " + p.Identity.Id);
+                    }
                     pkgsLeftToFind.Remove(name);
                 }
             }
@@ -324,8 +330,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (Version == null)
             {
                 // if no Version parameter provided, return latest version
-                foundPackagesMetadata.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease);
-                foundPackagesMetadata.RemoveRange(1, foundPackagesMetadata.Count -1);
+                foundPackagesMetadata = foundPackagesMetadata.GroupBy(p => p.Identity.Id).Select(x => x.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease).FirstOrDefault()).ToList();
             }
 
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
