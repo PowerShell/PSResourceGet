@@ -268,7 +268,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private IEnumerable<PSResourceInfo> FindFromPackageSourceSearchAPI(string repoName, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext, List<string> pkgsLeftToFind, CancellationToken cancellationToken)
         {
             List<IPackageSearchMetadata> foundPackagesMetadata = new List<IPackageSearchMetadata>();
-            Collection<PSResourceInfo> foundPackages = new Collection<PSResourceInfo>();
 
             if (!name.Contains("*"))
             {
@@ -278,7 +277,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     retrievedPkgs = pkgMetadataResource.GetMetadataAsync(name, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
                 }
-                catch { }
+                catch (Exception e)
+                {
+                    WriteDebug(String.Format("Exception retrieving package {0} due to {1}.", name, e.Message));
+                }
                 if (retrievedPkgs == null || retrievedPkgs.Count() == 0)
                 {
                     this.WriteVerbose(string.Format("'{0}' could not be found in repository '{1}'", name, repoName));
