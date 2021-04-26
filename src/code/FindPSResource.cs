@@ -61,15 +61,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Parameters
 
         /// <summary>
-        /// todo
+        /// Specifies name of a resource or resources to find. Accepts wild card characters.
         /// </summary>
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
-        // todo: Type param here
         /// <summary>
-        /// todo
+        /// Specifies one or more resource types to find. Resource types supported are: Module, Script, Command, DscResource, RoleCapability
         /// </summary>
         [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
@@ -77,7 +76,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
         /// <summary>
-        /// todo
+        /// Specifies the version of the resource to be found and returned.
         /// </summary>
         [Parameter(ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ParameterSetName = CommandNameParameterSet)]
@@ -86,7 +85,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Version { get; set; }
 
         /// <summary>
-        /// todo
+        /// When specified, includes prerelease versions in search.
         /// </summary>
         [Parameter(ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ParameterSetName = CommandNameParameterSet)]
@@ -94,7 +93,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter Prerelease { get; set; }
 
         /// <summary>
-        /// todo
+        /// Specifies a module resource package name type to search for. Wildcards are supported.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = CommandNameParameterSet)]
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = DscResourceNameParameterSet)]
@@ -102,7 +101,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string ModuleName { get; set; }
 
         /// <summary>
-        /// todo
+        /// Specifies a list of command names that searched module packages will provide. Wildcards are supported.
+        /// </summary>
+        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = CommandNameParameterSet)]
+        [ValidateNotNullOrEmpty]
+        public string[] CommandName { get; set; }
+
+        /// <summary>
+        /// Specifies a list of dsc resource names that searched module packages will provide. Wildcards are supported.
+        /// </summary>
+        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = DscResourceNameParameterSet)]
+        [ValidateNotNullOrEmpty]
+        public string[] DscResourceName { get; set; }
+
+        /// <summary>
+        /// Filters search results for resources that include one or more of the specified tags.
         /// </summary>
         [Parameter(ValueFromPipeline = true, ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ValueFromPipeline = true, ParameterSetName = CommandNameParameterSet)]
@@ -111,7 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] Tags { get; set; }
 
         /// <summary>
-        /// todo
+        /// Specifies one or more repository names to search. If not specified, search will include all currently registered repositories.
         /// </summary>
         [Parameter(ValueFromPipeline = true, ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ValueFromPipeline = true, ParameterSetName = CommandNameParameterSet)]
@@ -120,7 +133,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] Repository { get; set; }
 
         /// <summary>
-        /// todo
+        /// Specifies optional credentials to be used when accessing a repository.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = CommandNameParameterSet)]
@@ -128,7 +141,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public PSCredential Credential { get; set; }
 
         /// <summary>
-        /// todo
+        /// When specified, search will return all matched resources along with any resources the matched resources depends on.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = CommandNameParameterSet)]
