@@ -39,17 +39,30 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return "'" + CodeGeneration.EscapeSingleQuotedStringContent(name) + "'";
         }
 
-        public static bool TryParseVersionOrVersionRange(string Version, out NuGetVersion nugetVersion, out VersionRange versionRange, PSCmdlet cmdletPassedIn)
+        public static bool TryParseVersionOrVersionRange(string Version, out VersionRange versionRange, out bool allVersions, PSCmdlet cmdletPassedIn)
         {
             var successfullyParsed = false;
-            nugetVersion = null;
+            NuGetVersion nugetVersion = null;
             versionRange = null;
             if (Version != null)
             {
-                successfullyParsed = NuGetVersion.TryParse(Version, out nugetVersion);
-                if (!successfullyParsed)
+                if (Version.Trim().Equals("*"))
                 {
-                    successfullyParsed = VersionRange.TryParse(Version, out versionRange);
+                    allVersions = true;
+                    successfullyParsed = true;
+                }
+                else
+                {
+                    successfullyParsed = NuGetVersion.TryParse(Version, out nugetVersion);
+                    if (successfullyParsed)
+                    {
+                        versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
+
+                    }
+                    else
+                    {
+                        successfullyParsed = VersionRange.TryParse(Version, out versionRange);
+                    }
                 }
             }
             return successfullyParsed;
