@@ -63,11 +63,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void BeginProcessing()
         {
-            if (!ShouldProcess("Uninstall a resource from the machine."))
-            {
-                return;
-            }
-
             _source = new CancellationTokenSource();
             _cancellationToken = _source.Token;
 
@@ -113,6 +108,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case NameParameterSet:
                     foreach (var pkgName in Name)
                     {
+                        if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
+                        {
+                            return;
+                        }
+
                         if (!String.IsNullOrWhiteSpace(pkgName) && !UninstallPkgHelper(pkgName))   /// pass in version?
                         {
                             // specific errors will be displayed lower in the stack
@@ -128,6 +128,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // the for loop will use type PSObject in order to pull the properties from the pkg object
                     foreach (PSResourceInfo pkg in InputObject)
                     {
+                        if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkg.Name)))
+                        {
+                            return;
+                        }
+
                         if (pkg != null)
                         {
                             // attempt to parse version
