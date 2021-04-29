@@ -301,6 +301,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     foundPackagesMetadata.AddRange(retrievedPkgs.ToList());
+                    // foundPackagesMetadata = filterByVersion(foundPackagesMetadata, name);
                 }
             }
             else
@@ -312,6 +313,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 WildcardPattern nameWildcardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
                 foundPackagesMetadata.AddRange(wildcardPkgs.Where(p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
+                // foundPackagesMetadata = filterByVersion(foundPackagesMetadata, name);
+
 
                 if (foundPackagesMetadata.Any())
                 {
@@ -320,21 +323,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // filter by param: Version
-            // Todo: implement all cases for Version
-            // case: no version provided or version == "*" (return latest version)
             if (Version == null)
             {
                 // if no Version parameter provided, return latest version
+                // should be ok for both name with wildcard (groupby name needed) and without wildcard (groupby doesn't break it I think)
                 foundPackagesMetadata = foundPackagesMetadata.GroupBy(p => p.Identity.Id).Select(x => x.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease).FirstOrDefault()).ToList();
             }
-            // version specific
-
-            // version range
+            else
+            {
+                if (!Utils.TryParseVersionOrVersionRange(Version.ToString(), out VersionRange versionRange, out bool allVersions, this))
+                {
+                    WriteError(new ErrorRecord(
+                        new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                        "IncorrectVersionFormat",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                    yield break;
+                }
+                // at this point, version should be parsed successfully, into allVersions (null or "*") or versionRange (specific or range)
+                if (name.Contains("*"))
+                {
+                    List<IPackageSearchMetadata> temp = new List<IPackageSearchMetadata>();
+                    foreach (string n in foundPackagesMetadata.Select(p => p.Identity.Id).Distinct())
+                    {
+                        // get all versions for this package
+                        temp.AddRange(pkgMetadataResource.GetMetadataAsync(n, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().ToList());
+                    }
+                    foundPackagesMetadata = temp;
+                    if (allVersions)
+                    {
+                        foundPackagesMetadata = foundPackagesMetadata.GroupBy(p => p.Identity.Id).SelectMany(x => x.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)).ToList();
+                    }
+                    else // version range
+                    {
+                        foundPackagesMetadata = foundPackagesMetadata.Where(p => versionRange.Satisfies(p.Identity.Version)).GroupBy(p => p.Identity.Id).SelectMany(x => x.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)).ToList();
+                    }
+                }
+                else // name doesn't contain wildcards
+                {
+                    // allVersions for non-wildcard name is already ordered descending.
+                    if (!allVersions)
+                    {
+                        foundPackagesMetadata = foundPackagesMetadata.Where(p => versionRange.Satisfies(p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(p => p.Identity.Version).ToList();
+                    }
+                }
+            }
 
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
                 WriteVerbose(String.Format("extracting from IPackageSearchMetadata of pkg name: {0}", pkg.Identity.Id));
 
+                // PSResourceInfo currentPkg = ParsePackageMetadata();
                 PSResourceInfo currentPkg = new PSResourceInfo();
                 currentPkg.Name = pkg.Identity.Id;
                 currentPkg.Version = pkg.Identity.Version.Version;

@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+// using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -55,11 +57,40 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return strArray;
         }
 
+        public static bool TryParseVersionOrVersionRange(string Version, out VersionRange versionRange, out bool allVersions, PSCmdlet cmdletPassedIn)
+        {
+            var successfullyParsed = false;
+            NuGetVersion nugetVersion = null;
+            versionRange = null;
+            allVersions = false;
+            if (Version != null)
+            {
+                if (Version.Trim().Equals("*"))
+                {
+                    allVersions = true;
+                    successfullyParsed = true;
+                }
+                else
+                {
+                    successfullyParsed = NuGetVersion.TryParse(Version, out nugetVersion);
+                    if (successfullyParsed)
+                    {
+                        versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
+
+                    }
+                    else
+                    {
+                        successfullyParsed = VersionRange.TryParse(Version, out versionRange);
+                    }
+                }
+            }
+            return successfullyParsed;
+        }
+
         #endregion
     }
 
     #region PSGetResourceInfo classes
-
     internal sealed class PSGetIncludes
     {
         #region Properties
@@ -82,7 +113,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Constructor
-        /// 
+        ///
         /// Provided hashtable has form:
         ///     Key: Cmdlet
         ///     Value: ArrayList of Cmdlet name strings
@@ -204,8 +235,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Public static methods
 
         /// <summary>
-        /// Writes the PSGetResourceInfo properties to the specified file path as a 
-        /// PowerShell serialized xml file, maintaining compatibility with 
+        /// Writes the PSGetResourceInfo properties to the specified file path as a
+        /// PowerShell serialized xml file, maintaining compatibility with
         /// PowerShellGet v2 file format.
         /// </summary>
         public bool TryWrite(
