@@ -70,7 +70,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public ResourceCategory Type { get; set; }
+        public ResourceCategory? Type { get; set; }
 
 
         /// <summary>
@@ -309,8 +309,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteVerbose("searching for name with wildcards");
                 // case: searching for name containing wildcard i.e "Carbon.*"
                 // NuGet API doesn't handle wildcards so get all packages, then filter for wilcard match
+                WriteVerbose("name: " + name);
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-
+                WriteVerbose("count of all pkgs returned: " + wildcardPkgs.Count());
+                int mcount = 0;
+                int scount = 0;
+                int ocount = 0;
+                SortedSet<string> otherTags = new SortedSet<string>();
+                char[] delimiter = new char[] { ' ', ',' };
+                foreach (var p in wildcardPkgs)
+                {
+                    // WriteVerbose("pkg name maybe: " + p.Identity.Id + " and version: " + p.Identity.Version);
+                    if(p.Tags.Contains("PSScript"))
+                    {
+                        scount++;
+                        WriteVerbose("script found: " + p.Identity.Id);
+                    }
+                    if (p.Tags.Contains("PSModule"))
+                    {
+                        mcount++;
+                    }
+                    else
+                    {
+                        foreach (var st in p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            if(st.Equals("Script") || st.Equals("Module") || st.Equals("script") || st.Equals("module"))
+                            {
+                                WriteVerbose(p.Identity.Id + " has tag: " + st);
+                            }
+                            otherTags.Add(st);
+                        }
+                        ocount++;
+                    }
+                }
+                WriteVerbose("count of modules: " + mcount + "---scount: " + scount + "---ocount: " + ocount + "---other tags count: " + otherTags.Count());
+                // WriteVerbose("other tags: " + string.Join("\n", otherTags.ToArray()));
                 WildcardPattern nameWildcardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
                 foundPackagesMetadata.AddRange(wildcardPkgs.Where(p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
                 // foundPackagesMetadata = filterByVersion(foundPackagesMetadata, name);
@@ -369,18 +402,51 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
+            // filter by param: Type
+            if (Type != null)
+            {
+                foundPackagesMetadata = FilterPkgsByResourceType(foundPackagesMetadata);
+                // IEnumerable<IPackageSearchMetadata> scriptPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                // foreach (var p in scriptPkgs)
+                // {
+                //     WriteVerbose("from SearchAsync- pkg name: " + p.Identity.Id + " version: " + p.Identity.Version);
+                // }
+                // IEnumerable<IPackageSearchMetadata> scriptPkgs2 = pkgMetadataResource.GetMetadataAsync(name, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                // foreach (var p2 in scriptPkgs2)
+                // {
+                //     WriteVerbose("from GetMetadataAsync- pkg name: " + p2.Identity.Id + " version: " + p2.Identity.Version);
+                //     // IPackageSearchMetadata current = pkgMetadataResource.GetMetadataAsync(p2.Identity, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                //     // WriteVerbose(current.ToJson());
+                // }
+            }
+            // filter by param: Tags
+
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
-                WriteVerbose(String.Format("extracting from IPackageSearchMetadata of pkg name: {0}", pkg.Identity.Id));
-
-                // PSResourceInfo currentPkg = ParsePackageMetadata();
                 PSResourceInfo currentPkg = new PSResourceInfo();
-                currentPkg.Name = pkg.Identity.Id;
-                currentPkg.Version = pkg.Identity.Version.Version;
-                currentPkg.Repository = repoName;
-                currentPkg.Description = pkg.Description;
+                if(!currentPkg.TryParse(pkg, out string errorMsg)){
+                    WriteVerbose(errorMsg);
+                }
                 yield return currentPkg;
             }
+        }
+
+        private List<IPackageSearchMetadata> FilterPkgsByResourceType(List<IPackageSearchMetadata> foundPkgs)
+        {
+            List<IPackageSearchMetadata> pkgsFilteredByTags = new List<IPackageSearchMetadata>();
+            char[] delimiter = new char[] { ' ', ',' };
+            foreach (IPackageSearchMetadata pkg in foundPkgs)
+            {
+                string[] tags = pkg.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string tag in tags)
+                {
+                    if(tag == "PS" + Type)
+                    {
+                        pkgsFilteredByTags.Add(pkg);
+                    }
+                }
+            }
+            return pkgsFilteredByTags;
         }
     }
 }
