@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections;
+using System.Management.Automation;
 using System.Management.Automation.Language;
-using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
