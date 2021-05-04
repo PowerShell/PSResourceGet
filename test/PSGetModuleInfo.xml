@@ -1,0 +1,152 @@
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">
+  <Obj RefId="0">
+    <TN RefId="0">
+      <T>Microsoft.PowerShell.Commands.PSRepositoryItemInfo</T>
+      <T>System.Management.Automation.PSCustomObject</T>
+      <T>System.Object</T>
+    </TN>
+    <MS>
+      <S N="Name">Microsoft.PowerShell.SecretManagement</S>
+      <Version N="Version">1.0.0</Version>
+      <S N="Type">Module</S>
+      <S N="Description">This module provides a convenient way for a user to store and retrieve secrets. The secrets are_x000D__x000A_stored in registered extension vaults. An extension vault can store secrets locally or remotely._x000D__x000A_SecretManagement coordinates access to the secrets through the registered vaults._x000D__x000A__x000D__x000A_Go to GitHub for more information about the module and to submit issues:_x000D__x000A_https://github.com/powershell/SecretManagement</S>
+      <S N="Author">Microsoft Corporation</S>
+      <S N="CompanyName">Microsoft Corporation</S>
+      <S N="Copyright">(c) Microsoft Corporation. All rights reserved.</S>
+      <DT N="PublishedDate">2021-03-25T18:08:10-07:00</DT>
+      <Obj N="InstalledDate" RefId="1">
+        <DT>2021-03-25T11:12:41.7662015-07:00</DT>
+        <MS>
+          <Obj N="DisplayHint" RefId="2">
+            <TN RefId="1">
+              <T>Microsoft.PowerShell.Commands.DisplayHintType</T>
+              <T>System.Enum</T>
+              <T>System.ValueType</T>
+              <T>System.Object</T>
+            </TN>
+            <ToString>DateTime</ToString>
+            <I32>2</I32>
+          </Obj>
+        </MS>
+      </Obj>
+      <Nil N="UpdatedDate" />
+      <URI N="LicenseUri">https://github.com/PowerShell/SecretManagement/blob/master/LICENSE</URI>
+      <URI N="ProjectUri">https://github.com/powershell/secretmanagement</URI>
+      <Nil N="IconUri" />
+      <Obj N="Tags" RefId="3">
+        <TN RefId="2">
+          <T>System.Object[]</T>
+          <T>System.Array</T>
+          <T>System.Object</T>
+        </TN>
+        <LST>
+          <S>PSModule</S>
+          <S>PSEdition_Core</S>
+        </LST>
+      </Obj>
+      <Obj N="Includes" RefId="4">
+        <TN RefId="3">
+          <T>System.Collections.Hashtable</T>
+          <T>System.Object</T>
+        </TN>
+        <DCT>
+          <En>
+            <S N="Key">DscResource</S>
+            <Obj N="Value" RefId="5">
+              <TNRef RefId="2" />
+              <LST />
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">RoleCapability</S>
+            <Ref N="Value" RefId="5" />
+          </En>
+          <En>
+            <S N="Key">Function</S>
+            <Ref N="Value" RefId="5" />
+          </En>
+          <En>
+            <S N="Key">Cmdlet</S>
+            <Obj N="Value" RefId="6">
+              <TNRef RefId="2" />
+              <LST>
+                <S>Register-SecretVault</S>
+                <S>Unregister-SecretVault</S>
+                <S>Get-SecretVault</S>
+                <S>Set-SecretVaultDefault</S>
+                <S>Test-SecretVault</S>
+                <S>Set-Secret</S>
+                <S>Set-SecretInfo</S>
+                <S>Get-Secret</S>
+                <S>Get-SecretInfo</S>
+                <S>Remove-Secret</S>
+              </LST>
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">Command</S>
+            <Obj N="Value" RefId="7">
+              <TNRef RefId="2" />
+              <LST>
+                <S>Register-SecretVault</S>
+                <S>Unregister-SecretVault</S>
+                <S>Get-SecretVault</S>
+                <S>Set-SecretVaultDefault</S>
+                <S>Test-SecretVault</S>
+                <S>Set-Secret</S>
+                <S>Set-SecretInfo</S>
+                <S>Get-Secret</S>
+                <S>Get-SecretInfo</S>
+                <S>Remove-Secret</S>
+              </LST>
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">Workflow</S>
+            <Ref N="Value" RefId="5" />
+          </En>
+        </DCT>
+      </Obj>
+      <Nil N="PowerShellGetFormatVersion" />
+      <Nil N="ReleaseNotes" />
+      <Obj N="Dependencies" RefId="8">
+        <TNRef RefId="2" />
+        <LST />
+      </Obj>
+      <S N="RepositorySourceLocation">https://www.powershellgallery.com/api/v2</S>
+      <S N="Repository">PSGallery</S>
+      <S N="PackageManagementProvider">NuGet</S>
+      <Obj N="AdditionalMetadata" RefId="9">
+        <TN RefId="4">
+          <T>System.Management.Automation.PSCustomObject</T>
+          <T>System.Object</T>
+        </TN>
+        <MS>
+          <S N="copyright">(c) Microsoft Corporation. All rights reserved.</S>
+          <S N="description">This module provides a convenient way for a user to store and retrieve secrets. The secrets are_x000D__x000A_stored in registered extension vaults. An extension vault can store secrets locally or remotely._x000D__x000A_SecretManagement coordinates access to the secrets through the registered vaults._x000D__x000A__x000D__x000A_Go to GitHub for more information about the module and to submit issues:_x000D__x000A_https://github.com/powershell/SecretManagement</S>
+          <S N="requireLicenseAcceptance">False</S>
+          <S N="isLatestVersion">True</S>
+          <S N="isAbsoluteLatestVersion">True</S>
+          <S N="versionDownloadCount">0</S>
+          <S N="downloadCount">15034</S>
+          <S N="packageSize">55046</S>
+          <S N="published">3/25/2021 6:08:10 PM -07:00</S>
+          <S N="created">3/25/2021 6:08:10 PM -07:00</S>
+          <S N="lastUpdated">3/25/2021 6:08:10 PM -07:00</S>
+          <S N="tags">PSModule PSEdition_Core PSCmdlet_Register-SecretVault PSCommand_Register-SecretVault PSCmdlet_Unregister-SecretVault PSCommand_Unregister-SecretVault PSCmdlet_Get-SecretVault PSCommand_Get-SecretVault PSCmdlet_Set-SecretVaultDefault PSCommand_Set-SecretVaultDefault PSCmdlet_Test-SecretVault PSCommand_Test-SecretVault PSCmdlet_Set-Secret PSCommand_Set-Secret PSCmdlet_Set-SecretInfo PSCommand_Set-SecretInfo PSCmdlet_Get-Secret PSCommand_Get-Secret PSCmdlet_Get-SecretInfo PSCommand_Get-SecretInfo PSCmdlet_Remove-Secret PSCommand_Remove-Secret PSIncludes_Cmdlet</S>
+          <S N="developmentDependency">False</S>
+          <S N="updated">2021-03-25T18:08:10Z</S>
+          <S N="NormalizedVersion">1.0.0</S>
+          <S N="Authors">Microsoft Corporation</S>
+          <S N="IsPrerelease">false</S>
+          <S N="ItemType">Module</S>
+          <S N="FileList">Microsoft.PowerShell.SecretManagement.nuspec|Microsoft.PowerShell.SecretManagement.dll|Microsoft.PowerShell.SecretManagement.format.ps1xml|Microsoft.PowerShell.SecretManagement.psd1|en-US\about_Microsoft.PowerShell.SecretManagement.help.txt|en-US\Microsoft.PowerShell.SecretManagement.dll-Help.xml</S>
+          <S N="GUID">a5c858f6-4a8e-41f1-b1ee-0ff8f6ad69d3</S>
+          <S N="PowerShellVersion">5.1</S>
+          <S N="CompanyName">Microsoft Corporation</S>
+        </MS>
+      </Obj>
+      <S N="InstalledLocation">C:\Users\paulhi\OneDrive - Microsoft\Documents\PowerShell\Modules\Microsoft.PowerShell.SecretManagement\1.0.0</S>
+    </MS>
+  </Obj>
+</Objs>

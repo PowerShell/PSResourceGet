@@ -4,15 +4,14 @@
 using NuGet.Versioning;
 using System;
 using System.Management.Automation;
+using System.Collections;
 using System.Management.Automation.Language;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
-    #region Utils
-
     internal static class Utils
     {
-        #region Members
+        #region Public methods
 
         public static string TrimQuotes(string name)
         {
@@ -75,8 +74,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return success;
         }
 
+        /// <summary>
+        /// Converts an ArrayList of object types to a string array.
+        /// </summary>
+        public static string[] GetStringArray(ArrayList list)
+        {
+            if (list == null) { return null; }
+
+            var strArray = new string[list.Count];
+            for (int i=0; i<list.Count; i++)
+            {
+                strArray[i] = list[i] as string;
+            }
+
+            return strArray;
+        }
+
         #endregion
     }
-
-    #endregion
 }
