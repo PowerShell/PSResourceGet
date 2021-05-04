@@ -68,6 +68,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
             }
             return successfullyParsed;
+        }
 
         /// <summary>
         /// Converts an ArrayList of object types to a string array.

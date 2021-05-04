@@ -113,14 +113,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             return;
                         }
 
-                        if (!String.IsNullOrWhiteSpace(pkgName) && !UninstallPkgHelper(pkgName))   /// pass in version?
+                        if (!String.IsNullOrWhiteSpace(pkgName) && !UninstallPkgHelper(pkgName))
                         {
-                            // I don't think this needs to be here anymore
-                            // specific errors will be displayed lower in the stack
-                            var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", pkgName));
-                            var ex = new ArgumentException(exMessage);
-                            var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
-                            WriteError(UninstallResourceError);
+                            // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
+                            WriteDebug(string.Format("Did not successfully uninstall package {0}", pkgName));
                         }
                     }
 
@@ -191,7 +187,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         foreach (var versionDirPath in versionDirs)
                         {
-                            dirsToDelete.Add(path);
+                            dirsToDelete.Add(versionDirPath);
                         }
                     }
                     else if (_versionRange != null)
@@ -199,18 +195,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // check if the version matches
                         foreach (var versionDirPath in versionDirs)
                         {
-                            if (deleteAllVersions)
+                            string nameOfDir = Path.GetFileName(versionDirPath);
+                            NuGetVersion nugVersion = NuGetVersion.Parse(nameOfDir);
+                            if (_versionRange.Satisfies(nugVersion))
                             {
-                                dirsToDelete.Add(path);
-                            }
-                            else
-                            {
-                                string nameOfDir = Path.GetFileName(versionDirPath);
-                                NuGetVersion nugVersion = NuGetVersion.Parse(nameOfDir);
-                                if (_versionRange.Satisfies(nugVersion))
-                                {
-                                    dirsToDelete.Add(versionDirPath);
-                                }
+                                dirsToDelete.Add(versionDirPath);
                             }
                         }
                     }
@@ -221,7 +210,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         dirsToDelete.Add(versionDirs[versionDirs.Length - 1]);
                     }
-
                 }
                 else if (File.Exists(pathName))
                 {
@@ -229,7 +217,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // check if the version matches
                     if (_versionRange != null)
                     {
-                        // Use Paul's deserialization method in utils
                         var xmlFileName = string.Concat(pkgName, "_InstalledScriptInfo.xml");
                         var scriptXMLPath = Path.Combine(path, "InstalledScriptInfos", xmlFileName);
 
@@ -237,7 +224,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         using (StreamReader sr = new StreamReader(scriptXMLPath))
                         {
                             string text = sr.ReadToEnd();
-                            // use Paul's deserialization here
                             var deserializedObj = (PSObject)PSSerializer.Deserialize(text);
 
                             versionInfo = deserializedObj.Properties.Match("Version");
