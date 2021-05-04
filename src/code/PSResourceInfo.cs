@@ -29,7 +29,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     
     #region VersionInfo
 
-    public struct VersionInfo
+    public sealed class VersionInfo
     {
         public VersionInfo(
             VersionType versionType,
