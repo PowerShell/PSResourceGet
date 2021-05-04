@@ -311,6 +311,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // NuGet API doesn't handle wildcards so get all packages, then filter for wilcard match
                 WriteVerbose("name: " + name);
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+
+
+
+
+
                 WriteVerbose("count of all pkgs returned: " + wildcardPkgs.Count());
                 int mcount = 0;
                 int scount = 0;
@@ -319,27 +324,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 char[] delimiter = new char[] { ' ', ',' };
                 foreach (var p in wildcardPkgs)
                 {
-                    // WriteVerbose("pkg name maybe: " + p.Identity.Id + " and version: " + p.Identity.Version);
-                    if(p.Tags.Contains("PSScript"))
+                    foreach (var t in p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries))
                     {
-                        scount++;
-                        WriteVerbose("script found: " + p.Identity.Id);
-                    }
-                    if (p.Tags.Contains("PSModule"))
-                    {
-                        mcount++;
-                    }
-                    else
-                    {
-                        foreach (var st in p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries))
+                        if (String.Equals(t, "PSScript", StringComparison.OrdinalIgnoreCase))
                         {
-                            if(st.Equals("Script") || st.Equals("Module") || st.Equals("script") || st.Equals("module"))
-                            {
-                                WriteVerbose(p.Identity.Id + " has tag: " + st);
-                            }
-                            otherTags.Add(st);
+                            scount++;
                         }
-                        ocount++;
+                        if (String.Equals(t, "PSModule", StringComparison.OrdinalIgnoreCase))
+                        {
+                            mcount++;
+                        }
+                        else
+                        {
+                            if(String.Equals(t, "Module", StringComparison.OrdinalIgnoreCase) || String.Equals(t, "Script", StringComparison.OrdinalIgnoreCase))
+                            {
+                                WriteVerbose(p.Identity.Id + " has tag: " + t);
+                            }
+                            otherTags.Add(t);
+
+                            ocount++;
+                        }
                     }
                 }
                 WriteVerbose("count of modules: " + mcount + "---scount: " + scount + "---ocount: " + ocount + "---other tags count: " + otherTags.Count());
@@ -411,12 +415,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // {
                 //     WriteVerbose("from SearchAsync- pkg name: " + p.Identity.Id + " version: " + p.Identity.Version);
                 // }
+
                 // IEnumerable<IPackageSearchMetadata> scriptPkgs2 = pkgMetadataResource.GetMetadataAsync(name, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
                 // foreach (var p2 in scriptPkgs2)
                 // {
                 //     WriteVerbose("from GetMetadataAsync- pkg name: " + p2.Identity.Id + " version: " + p2.Identity.Version);
-                //     // IPackageSearchMetadata current = pkgMetadataResource.GetMetadataAsync(p2.Identity, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-                //     // WriteVerbose(current.ToJson());
                 // }
             }
             // filter by param: Tags
