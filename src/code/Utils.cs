@@ -44,6 +44,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             var successfullyParsed = false;
             NuGetVersion nugetVersion = null;
             versionRange = null;
+            allVersions = false;
             if (Version != null)
             {
                 if (Version.Trim().Equals("*"))

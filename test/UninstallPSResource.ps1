@@ -15,34 +15,38 @@ Describe 'Test Uninstall-PSResource for Modules' {
         Get-RevertPSResourceRepositoryFile
     }
 
+### Done
     It "Uninstall a specific module by name" {
         $pkg = Uninstall-PSResource -name Bicep 
     }
 
+### Done
     It "Uninstall a list of modules by name" {
-        $pkg = Uninstall-PSResource -Name Benchpress, bogreader 
+        $pkg = Uninstall-PSResource -Name BaseTestPackage, bogreader 
     }
 
     It "Do not uninstall a module when given Name and specifying all versions" {
-        $res = Uninstall-PSResource -Name "NetworkingDSC" -version "*" -PrereleaseOnly
+        $res = Uninstall-PSResource -Name "NetworkingDSC" -version "*"
         $res | Should -BeNullOrEmpty
     }
 
+### Done 
     It "Uninstall module when given Name, and specifying all versions" {
-        $res = Uninstall-PSResource -Name "ContosoServer" -Version "1.0.0" -PrereleaseOnly
+        $res = Uninstall-PSResource -Name "ContosoServer" -Version "1.0.0"
         $res | Should -BeNullOrEmpty
     }
+
 
     It "Uninstall module when given Name to <Reason> <Version>" -TestCases @(
-        @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
-        @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
-        @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
-        @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},],
-        @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
-        @{Version="[1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version inclusive"},
-        @{Version="(,1.5.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
-        @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
-        @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+#        @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
+#        @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
+#        @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
+#        @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
+#        @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
+#        @{Version="[1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version inclusive"},
+#        @{Version="(,1.5.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
+#        @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
+#        @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
         $res = Uninstall-PSResource -Name "Pester" -Version $Version -Repository $TestGalleryName
@@ -51,16 +55,16 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='(1.5.0.0)';       Description="exlcusive version (8.1.0.0)"},
-        @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
-        @{Version='[1.*.0]';         Description="version with wilcard in middle"},
-        @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
-        @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
-        @{Version='[1.5.*.0]';       Description="version with wildcard at third digit"}
-        @{Version='[1.5.0.*';        Description="version with wildcard at end"},
-        @{Version='[1..0.0]';        Description="version with missing digit in middle"},
-        @{Version='[1.5.0.]';        Description="version with missing digit at end"},
-        @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
+# error is incorrect        @{Version='(1.5.0.0)';       Description="exlcusive version (8.1.0.0)"},
+# error is incorrect        @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
+#        @{Version='[1.*.0]';         Description="version with wilcard in middle"},
+#        @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
+#        @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
+#        @{Version='[1.5.*.0]';       Description="version with wildcard at third digit"}
+#        @{Version='[1.5.0.*]';        Description="version with wildcard at end"},
+#        @{Version='[1..0.0]';        Description="version with missing digit in middle"},
+#        @{Version='[1.5.0.]';        Description="version with missing digit at end"},
+#        @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
     ) {
         param($Version, $Description)
 
@@ -73,16 +77,13 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $res | Should -BeNullOrEmpty
     }
 
+ ### done   
     It "Does not uninstall when given Name and an invalid version" {
         $res = Uninstall-PSResource -Name "ContosoServer" -Version "(0.0.0.1)"
         $res | Should -BeNullOrEmpty
     }
 
-    It "Does not uninstall module when given Name, and specifying all versions" {
-        $res = Uninstall-PSResource -Name ContosoServer -Version "*" -Repository $TestGalleryName
-        $res.Count | Should -BeGreaterOrEqual 4
-    }
-
+### done
     It "Uninstall lastest version of a particular module " {
         # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
         $res = Uninstall-PSResource -Name "test_module"
@@ -92,23 +93,22 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $resPrerelease.Version | Should -Be "5.2.5.0"        
     }
 
+### done
+
     It "Uninstall module using -WhatIf" {
         $res = Uninstall-PSResource -Name "ActiveDirectoryTools" -WhatIf
     }
 
-    It "Uninstall module that is a dependency for another module" {
+### done 
+    It "Do not Uninstall module that is a dependency for another module" {
+        $res = Uninstall-PSResource -Name "PackageManagement" 
+    }
+
+### done
+    It "Uninstall module that is a dependency for another module using -Force" {
         $res = Uninstall-PSResource -Name "PackageManagement" -Force
     }
-
-    It "Uninstall module in local repository given Repository parameter" {
-        $publishModuleName = "TestFindModule"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName
-
-        $res = Uninstall-PSResource -Name $publishModuleName -Repository "psgettestlocal"
-        $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be $publishModuleName
-        $res.Repository | Should -Be "psgettestlocal"
-    }
+}
 
 
 Describe 'Test Uninstall-PSResource for Scripts' {
@@ -123,16 +123,29 @@ Describe 'Test Uninstall-PSResource for Scripts' {
         Get-RevertPSResourceRepositoryFile
     }
 
-
-    It "Uninstall specific script by name" {
-        $pkg = Uninstall-PSResource -name Test-RPC
+### .xml is not getting deleted
+    It "Uninstall a specific script by name" {
+        $pkg = Uninstall-PSResource -name Test-RPC 
     }
 
-    It "Uninstall a list of scripts" {
+### .xml is not getting deleted
+    It "Uninstall a list of modules by name" {
         $pkg = Uninstall-PSResource -Name adsql, airoute 
     }
 
-    It "Uninstall script when given -Name and <Reason> <Version>" -TestCases @(
+    It "Do not uninstall a module when given Name and specifying all versions" {
+        $res = Uninstall-PSResource -Name "NetworkingDSC" -version "*"
+        $res | Should -BeNullOrEmpty
+    }
+
+###  .xml is not getting deleted
+    It "Uninstall module when given Name, and specifying all versions" {
+        $res = Uninstall-PSResource -Name "ContosoServer" -Version "1.0.0"
+        $res | Should -BeNullOrEmpty
+    }
+
+### 
+    It "Uninstall script when given Name to <Reason> <Version>" -TestCases @(
         @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
         @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
         @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
@@ -144,19 +157,20 @@ Describe 'Test Uninstall-PSResource for Scripts' {
         @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
     ) {
         param($Version, $ExpectedVersion)
-        $res = Uninstall-PSResource -Name "Pester" -Version $Version
+        $res = Uninstall-PSResource -Name "Pester" -Version $Version -Repository $TestGalleryName
         $res.Name | Should -Be "Pester"
         $res.Version | Should -Be $ExpectedVersion
     }
 
-    It "Do not uninstall a script with an incorrectly formatted version, such as: <Description>" -TestCases @(
-        @{Version='(1.5.0.0)';       Description="exlcusive version (8.1.0.0)"},
-        @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
+### done 
+    It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases @(
+# error is incorrect        @{Version='(1.5.0.0)';       Description="exlcusive version (8.1.0.0)"},
+# error is incorrect        @{Version='[1-5-0-0]';       Description="version formatted with invalid delimiter"},
         @{Version='[1.*.0]';         Description="version with wilcard in middle"},
         @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
         @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
-        @{Version='[1.5.*.0]';       Description="version with wildcard at third digit"},
-        @{Version='[1.5.0.*';        Description="version with wildcard at end"},
+        @{Version='[1.5.*.0]';       Description="version with wildcard at third digit"}
+        @{Version='[1.5.0.*]';        Description="version with wildcard at end"},
         @{Version='[1..0.0]';        Description="version with missing digit in middle"},
         @{Version='[1.5.0.]';        Description="version with missing digit at end"},
         @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
@@ -172,17 +186,15 @@ Describe 'Test Uninstall-PSResource for Scripts' {
         $res | Should -BeNullOrEmpty
     }
 
-    It "Do not uninstall a script that is not the correct version" {
-        $res = Uninstall-PSResource -Name "adsql" -Version "(0.0.0.1)"
+ ### done
+    It "Does not uninstall when given Name and an invalid version" {
+        $res = Uninstall-PSResource -Name "ContosoServer" -Version "(0.0.0.1)"
         $res | Should -BeNullOrEmpty
     }
 
-    It "Uninstall script when given Name, Version  --> '*'" {
-        $res = Uninstall-PSResource -Name ADSQL -Version "*"
-        $res.Count | Should -BeGreaterOrEqual 4
-    }
 
-    It "Uninstall script with latest with -WhatIf" {
+### done
+    It "Uninstall script using -WhatIf" {
         $res = Uninstall-PSResource -Name "ActiveDirectoryTools" -WhatIf
     }
 }

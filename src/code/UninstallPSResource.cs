@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private CancellationTokenSource _source;
         private CancellationToken _cancellationToken;
         VersionRange _versionRange;
-        List<string> _pathsToSearch;
+        List<string> _pathsToSearch = new List<string>();
         bool deleteAllVersions;
         #endregion
 
@@ -68,7 +68,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange, out deleteAllVersions, this))
+            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange, out deleteAllVersions, this))
             {
                 var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
                 var ex = new ArgumentException(exMessage);
@@ -115,6 +115,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         if (!String.IsNullOrWhiteSpace(pkgName) && !UninstallPkgHelper(pkgName))   /// pass in version?
                         {
+                            // I don't think this needs to be here anymore
                             // specific errors will be displayed lower in the stack
                             var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", pkgName));
                             var ex = new ArgumentException(exMessage);
@@ -186,9 +187,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // eg:  TestModule/0.0.1, TestModule/0.0.2
                     versionDirs = Directory.GetDirectories(dirName);
 
-                    // check if the version matches
-                    if (_versionRange != null)
+                    if (deleteAllVersions)
                     {
+                        foreach (var versionDirPath in versionDirs)
+                        {
+                            dirsToDelete.Add(path);
+                        }
+                    }
+                    else if (_versionRange != null)
+                    {
+                        // check if the version matches
                         foreach (var versionDirPath in versionDirs)
                         {
                             if (deleteAllVersions)
@@ -197,8 +205,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
                             else
                             {
-                                var nameOfDir = Path.GetFileName(versionDirPath);
-                                var nugVersion = NuGetVersion.Parse(nameOfDir);
+                                string nameOfDir = Path.GetFileName(versionDirPath);
+                                NuGetVersion nugVersion = NuGetVersion.Parse(nameOfDir);
                                 if (_versionRange.Satisfies(nugVersion))
                                 {
                                     dirsToDelete.Add(versionDirPath);
@@ -287,8 +295,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (var pathToDelete in dirsToDelete)
             {
-                var dir = new DirectoryInfo(pathToDelete.ToString());
-                var parent = dir.Parent;
+                DirectoryInfo dir = new DirectoryInfo(pathToDelete.ToString());
+                DirectoryInfo parent = dir.Parent;
                 dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
 
                 try
@@ -351,7 +359,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     try
                     {
                         // finally: Delete the xml from the InstalledModulesInfo directory
-                        scriptXML = Path.Combine(scriptPath, "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
+                        DirectoryInfo dir = new DirectoryInfo(scriptPath);
+                        DirectoryInfo parentDir = dir.Parent;
+                        scriptXML = Path.Combine(parentDir.FullName, "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
                         if (File.Exists(scriptXML))
                         {
                             File.Delete(scriptXML);
