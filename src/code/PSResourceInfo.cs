@@ -1,3 +1,4 @@
+using System.Data.Common;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -6,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Management.Automation;
+using NuGet.Protocol.Core.Types;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -279,6 +281,61 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        public static bool TryParse(
+            IPackageSearchMetadata metadataToParse,
+            out PSResourceInfo psGetInfo,
+            out string errorMsg)
+        {
+            psGetInfo = null;
+            errorMsg = String.Empty;
+
+            if (metadataToParse == null)
+            {
+                errorMsg = "TryParsePSResourceInfo: Invalid IPackageSearchMetadata object. Object cannot be null.";
+                return false;
+            }
+
+            try
+            {
+                psGetInfo = new PSResourceInfo
+                {
+                    // AdditionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo),
+                    Author = ParseMetadataAuthor(metadataToParse),
+                    // CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
+                    // Copyright = GetProperty<string>(nameof(PSResourceInfo.Copyright), psObjectInfo),
+                    Dependencies = ParseMetadataDependenies(metadataToParse),
+                    Description = ParseMetadataDescription(metadataToParse),
+                    IconUri = ParseMetadataIconUri(metadataToParse),
+                    // Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
+                    // InstalledDate = GetProperty<DateTime>(nameof(PSResourceInfo.InstalledDate), psObjectInfo),
+                    // InstalledLocation = GetProperty<string>(nameof(PSResourceInfo.InstalledLocation), psObjectInfo),
+                    LicenseUri = ParseMetadataLicenseUri(metadataToParse),
+                    Name = ParseMetadataName(metadataToParse),
+                    // PackageManagementProvider = GetProperty<string>(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
+                    // PowerShellGetFormatVersion = GetProperty<string>(nameof(PSResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
+                    ProjectUri = ParseMetadataProjectUri(metadataToParse),
+                    PublishedDate = ParseMetadataPublishedDate(metadataToParse),
+                    // ReleaseNotes = GetProperty<string>(nameof(PSResourceInfo.ReleaseNotes), psObjectInfo),
+                    // Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
+                    // RepositorySourceLocation = GetProperty<string>(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
+                    Tags = ParseMetadataTags(metadataToParse),
+                    Type = ParseMetadataType(metadataToParse),
+                    // UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
+                    Version = ParseMetadataVersion(metadataToParse)
+                };
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryReadPSGetInfo: Cannot parse PSResourceInfo from IPackageSearchMetadata with error: {0}",
+                    ex.Message);
+                return false;
+            }
+        }
+
         #endregion
 
         #region Private static methods
@@ -334,6 +391,101 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     return default(T);
             }
         }
+
+        #region Parse Metadata private static methods
+
+        private static string ParseMetadataAuthor(IPackageSearchMetadata pkg)
+        {
+            return pkg.Authors;
+        }
+
+        private static string[] ParseMetadataDependenies(IPackageSearchMetadata pkg)
+        {
+            List<string> deps = new List<string>();
+            foreach(var r in pkg.DependencySets)
+            {
+                foreach (var pkgDependencyItem in r.Packages)
+                {
+                    deps.Add(pkgDependencyItem.Id);
+                }
+            }
+            return deps.ToArray();
+        }
+
+        private static string ParseMetadataDescription(IPackageSearchMetadata pkg)
+        {
+            return pkg.Description;
+        }
+
+        private static Uri ParseMetadataIconUri(IPackageSearchMetadata pkg)
+        {
+            return pkg.IconUrl;
+        }
+
+        private static Uri ParseMetadataLicenseUri(IPackageSearchMetadata pkg)
+        {
+            return pkg.LicenseUrl;
+        }
+
+        private static string ParseMetadataName(IPackageSearchMetadata pkg)
+        {
+            if (pkg.Identity != null)
+            {
+                return pkg.Identity.Id;
+            }
+            return String.Empty;
+        }
+
+        private static Uri ParseMetadataProjectUri(IPackageSearchMetadata pkg)
+        {
+            return pkg.ProjectUrl;
+        }
+
+        private static DateTime? ParseMetadataPublishedDate(IPackageSearchMetadata pkg)
+        {
+            DateTime? publishDate = null;
+            DateTimeOffset? pkgPublishedDate = pkg.Published;
+            if (pkgPublishedDate.HasValue)
+            {
+                publishDate = pkgPublishedDate.Value.DateTime;
+            }
+            return publishDate;
+        }
+
+        private static string[] ParseMetadataTags(IPackageSearchMetadata pkg)
+        {
+            char[] delimeter = new char[]{' ', ','};
+            return pkg.Tags.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        private static string ParseMetadataType(IPackageSearchMetadata pkg)
+        {
+            string[] tags = ParseMetadataTags(pkg);
+            foreach(string tag in tags)
+            {
+                if(String.Equals(tag, "PSScript", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Script";
+                }
+                // else if(String.Equals(tag, "PSModule", StringComparison.OrdinalIgnoreCase))
+                // {
+                //     return "Module";
+                // }
+            }
+            // todo: or do we want to have additional type "undefined" which is returned here, esp for Galleries that don't have Type (i.e NuGet)
+            return "Module";
+        }
+
+        private static Version ParseMetadataVersion(IPackageSearchMetadata pkg)
+        {
+            if (pkg.Identity != null)
+            {
+                return pkg.Identity.Version.Version;
+            }
+            return null;
+        }
+
+        #endregion
 
         #endregion
 

@@ -161,11 +161,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case CommandNameParameterSet:
-                    // todo
                     break;
 
                 case DscResourceNameParameterSet:
-                    // todo
                     break;
 
                 default:
@@ -426,9 +424,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
+                WriteVerbose(pkg.ToJson());
                 PSResourceInfo currentPkg = new PSResourceInfo();
-                if(!currentPkg.TryParse(pkg, out string errorMsg)){
+                // currentPkg.Name = pkg.Identity.Id;
+                // currentPkg.Version = pkg.Identity.Version.Version;
+                // currentPkg.Description = pkg.Description;
+                if(!PSResourceInfo.TryParse(pkg, out currentPkg, out string errorMsg)){
+                    // todo: have better WriteError method here
                     WriteVerbose(errorMsg);
+                    yield break;
                 }
                 yield return currentPkg;
             }
