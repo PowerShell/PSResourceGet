@@ -38,40 +38,34 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return "'" + CodeGeneration.EscapeSingleQuotedStringContent(name) + "'";
         }
 
-        public static bool TryParseToNuGetVersionRange(string version, PSCmdlet cmdletPassedIn, out VersionRange versionRange)
+        public static bool TryParseVersionOrVersionRange(string Version, out VersionRange versionRange, out bool allVersions)
         {
-            // try to parse into a specific NuGet version
+            var successfullyParsed = false;
+            NuGetVersion nugetVersion = null;
             versionRange = null;
-            var success = false;
-            if (version != null)
+            allVersions = false;
+            if (Version != null)
             {
-                NuGetVersion.TryParse(version, out NuGetVersion specificVersion);
-
-                if (specificVersion != null)
+                if (Version.Trim().Equals("*"))
                 {
-                    // check if exact version
-                    versionRange = new VersionRange(specificVersion, true, specificVersion, true, null, null);
-                    cmdletPassedIn.WriteDebug(string.Format("A specific version, '{0}', is specified", versionRange.ToString()));
-                    success = true;
+                    allVersions = true;
+                    successfullyParsed = true;
                 }
                 else
                 {
-                    success = true;
-                    // check if version range
-                    if (!VersionRange.TryParse(version, out versionRange))
+                    successfullyParsed = NuGetVersion.TryParse(Version, out nugetVersion);
+                    if (successfullyParsed)
                     {
-                        cmdletPassedIn.WriteError(new ErrorRecord(
-                            new ParseException(),
-                            "ErrorParsingVersion",
-                            ErrorCategory.ParserError,
-                            cmdletPassedIn));
-                        success = false;
+                        versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
+
                     }
-                    cmdletPassedIn.WriteDebug(string.Format("A version range, '{0}', is specified", versionRange.ToString()));
+                    else
+                    {
+                        successfullyParsed = VersionRange.TryParse(Version, out versionRange);
+                    }
                 }
             }
-
-            return success;
+            return successfullyParsed;
         }
 
         /// <summary>

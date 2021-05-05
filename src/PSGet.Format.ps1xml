@@ -4,7 +4,7 @@
         <View>
             <Name>PSResourceInfo</Name>
             <ViewSelectedBy>
-                <TypeName>Microsoft.PowerShell.PowerShellGet.PSResourceInfo</TypeName>
+                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</TypeName>
         </ViewSelectedBy>
             <TableControl>
             <TableHeaders>
