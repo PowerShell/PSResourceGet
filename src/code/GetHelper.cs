@@ -1,19 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using static System.Environment;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Runtime.InteropServices;
 using System.Threading;
 using MoreLinq;
 using MoreLinq.Extensions;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo;
 using NuGet.Versioning;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -24,9 +21,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         private CancellationToken cancellationToken;
         private readonly PSCmdlet cmdletPassedIn;
-        private string programFilesPath;
-        private string myDocumentsPath;
-        public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
 
         public GetHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
         {
@@ -34,116 +28,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             this.cmdletPassedIn = cmdletPassedIn;
         }
 
-        public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, string version, string path)
+        public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, VersionRange versionRange, bool returnAllVersions, List<string>pathsToSearch)
         {
-            List<string> dirsToSearch = GetPackageDirectories(path);
+            List<string> filteredPathsToSearch = FilterPkgsByName(name, pathsToSearch);
+            filteredPathsToSearch = GetResourceMetadataFiles(versionRange, returnAllVersions, filteredPathsToSearch);
 
-            dirsToSearch = FilterPkgsByName(name, dirsToSearch);
-            dirsToSearch = GetResourceMetadataFiles(version, dirsToSearch, out VersionRange versionRange);
-
-            foreach (PSResourceInfo pkgObject in OutputPackageObject(dirsToSearch, versionRange))
+            foreach (PSResourceInfo pkgObject in OutputPackageObject(filteredPathsToSearch, versionRange))
             {
                 yield return pkgObject;
             }
         }
        
-        // Gather resource directories to search through
-        public List<string> GetPackageDirectories(string path)
-        {
-            List<string> dirsToSearch = new List<string>();
-
-            if (path != null)
-            {
-                cmdletPassedIn.WriteDebug(string.Format("Provided path is: '{0}'", path));
-                dirsToSearch.AddRange(Directory.GetDirectories(path).ToList());
-            }
-            else
-            {
-                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                string[] modulePaths = psModulePath.Split(';');
-
-                var PSVersion6 = new Version(6, 0);
-                var isCorePS = cmdletPassedIn.Host.Version >= PSVersion6;
-
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    // If PowerShell 6+
-                    if (isCorePS)
-                    {
-                        myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-                        programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-                    }
-                    else
-                    {
-                        myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-                        programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-                    }
-                }
-                else
-                {
-                    // Paths are the same for both Linux and MacOS
-                    myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                    programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
-                }
-
-                cmdletPassedIn.WriteVerbose(string.Format("Current user scope path: '{0}'", myDocumentsPath));
-                cmdletPassedIn.WriteVerbose(string.Format("All users scope path: '{0}'", programFilesPath));
-
-                // will search first in PSModulePath, then will search in default paths
-                foreach (string modulePath in modulePaths)
-                {
-                    cmdletPassedIn.WriteDebug(string.Format("Retrieving directories in the '{0}' module path", modulePath));
-                    try
-                    {
-                        dirsToSearch.AddRange(Directory.GetDirectories(modulePath).ToList());
-                    }
-                    catch (Exception e)
-                    {
-                        cmdletPassedIn.WriteVerbose(string.Format("Error retrieving directories from '{0}': '{1)'", modulePath, e.Message));
-                    }
-                }
-
-                string pfModulesPath = System.IO.Path.Combine(programFilesPath, "Modules");
-                if (Directory.Exists(pfModulesPath))
-                {
-                    dirsToSearch.AddRange(Directory.GetDirectories(pfModulesPath).ToList());
-                }
-                string mdModulesPath = System.IO.Path.Combine(myDocumentsPath, "Modules");
-                if (Directory.Exists(mdModulesPath))
-                {
-                    dirsToSearch.AddRange(Directory.GetDirectories(mdModulesPath).ToList());
-                }
-
-                string pfScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts");
-                if (Directory.Exists(pfScriptsPath))
-                {
-                    dirsToSearch.AddRange(Directory.GetFiles(pfScriptsPath).ToList());
-                }
-                string mdScriptsPath = System.IO.Path.Combine(myDocumentsPath, "Scripts");
-                if (Directory.Exists(mdScriptsPath))
-                {
-                    dirsToSearch.AddRange(Directory.GetFiles(mdScriptsPath).ToList());
-                }
-
-                string pfInstalledScriptsPath = System.IO.Path.Combine(programFilesPath, "Scripts", "InstalledScriptInfos");
-                if (Directory.Exists(pfScriptsPath))
-                {
-                    dirsToSearch.AddRange(Directory.GetFiles(pfScriptsPath).ToList());
-                }
-                string mdInstalledScriptsPath = System.IO.Path.Combine(myDocumentsPath, "Scripts", "InstalledScriptInfos");
-                if (Directory.Exists(mdScriptsPath))
-                {
-                    dirsToSearch.AddRange(Directory.GetFiles(mdScriptsPath).ToList());
-                }
-
-                dirsToSearch = dirsToSearch.Distinct().ToList();
-            }
-
-            dirsToSearch.ForEach(dir => cmdletPassedIn.WriteDebug(string.Format("All directories to search: '{0}'", dir)));
-
-            return dirsToSearch;
-        }
-
+       
+        
         // Filter packages by user provided name
         public List<string> FilterPkgsByName(string[] name, List<string> dirsToSearch)
         {
@@ -183,12 +80,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Filter by user provided version
-        public List<string> GetResourceMetadataFiles(string version, List<string> dirsToSearch, out VersionRange versionRange)
+        public List<string> GetResourceMetadataFiles(VersionRange versionRange, bool returnAllVersions, List<string> dirsToSearch)
         {
             List<string> installedPkgsToReturn = new List<string>();  // these are the xmls
-            versionRange = null;
 
-            if (version == null)
+            if (versionRange == null)
             {
                 cmdletPassedIn.WriteDebug("No version provided-- check each path for the requested package");
                 // if no version is specified, just get the latest version
@@ -227,10 +123,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
             }
-            else if (Utils.TryParseVersionOrVersionRange(version, out versionRange, out bool allVersions))
-            {
+            else {
                 // check if the version specified is within a version range
-
                 foreach (string pkgPath in dirsToSearch)
                 {
                     // check if this path is a script or a module
@@ -249,7 +143,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             NuGetVersion.TryParse(dirInfo.Name, out NuGetVersion dirAsNugetVersion);
                             cmdletPassedIn.WriteDebug(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
 
-                            if (dirAsNugetVersion != null && versionRange.Satisfies(dirAsNugetVersion))
+                            if (dirAsNugetVersion != null && (returnAllVersions || versionRange.Satisfies(dirAsNugetVersion)))
                             {
                                 // This will be one version or a version range.
                                 string pkgXmlFilePath = System.IO.Path.Combine(versionPath, "PSGetModuleInfo.xml");
@@ -262,14 +156,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
                 }
-            }
-            else {
-                versionRange = null;
-                // invalid version
-                var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
-                var ex = new ArgumentException(exMessage);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                cmdletPassedIn.ThrowTerminatingError(IncorrectVersionFormat);
             }
 
             return installedPkgsToReturn;
