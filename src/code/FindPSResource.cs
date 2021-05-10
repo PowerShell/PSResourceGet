@@ -1,6 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Security.AccessControl;
-using System.Reflection.Emit;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -13,20 +10,15 @@ using NuGet.Common;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using System.Threading;
-using LinqKit;
 using MoreLinq.Extensions;
 using NuGet.Versioning;
 using System.Data;
 using System.Linq;
 using System.Net;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using System.Net.Http;
-using System.IO;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
 using static System.Environment;
 using Dbg = System.Diagnostics.Debug;
-using System.Collections.ObjectModel;
+using NuGet.CatalogReader;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -184,6 +176,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             for (int i = 0; i < repositoriesToSearch.Count && pkgsLeftToFind.Any(); i++)
             {
+                if (String.Equals(repositoriesToSearch[i].Name, "PSGallery", StringComparison.OrdinalIgnoreCase))
+                {
+                    Uri psGalleryScriptsUrl = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
+                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo("PSGalleryScripts", psGalleryScriptsUrl, 50, false);
+                    if (Type == null)
+                    {
+                        WriteDebug("Null Type provided, so add PSGalleryScripts repository");
+                        repositoriesToSearch.Add(psGalleryScripts);
+                    }
+                    else if (Type != null && Type == ResourceCategory.Script)
+                    {
+                        WriteDebug("Type Script provided, so add PSGalleryScripts and remove PSGallery (Modules only)");
+                        repositoriesToSearch.Add(psGalleryScripts);
+                        continue;
+                    }
+                }
                 WriteDebug(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
                 foreach (var pkg in SearchFromRepository(repositoriesToSearch[i].Name, repositoriesToSearch[i].Url, pkgsLeftToFind, cancellationToken))
                 {
@@ -194,12 +202,42 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSResourceInfo> SearchFromRepository(string repoName, Uri repositoryUrl, List<string> pkgsLeftToFind, CancellationToken cancellationToken)
         {
+            // if repositoryUrl ends with V3 endpoint and either of the names in Name is CatalogReader
+            // each V3 repository must have a service index resource: https://docs.microsoft.com/en-us/nuget/api/service-index
+            if (repositoryUrl.AbsoluteUri.EndsWith("index.json")) {
+                bool isNameAsterisk = false;
+                foreach (string name in Name)
+                {
+                    if (String.Equals(name, "*"))
+                    {
+                        isNameAsterisk = true;
+                    }
+                }
+                if (isNameAsterisk){
+                    // Name.Length should not be 0 (validated by parameter binding)
+                    if (Name.Length > 1)
+                    {
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException("Name array cannot contain additional elements if one is '*'."),
+                            "NameCannotBeNullOrWhitespace",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    }
+                    else
+                    {
+                        foreach(PSResourceInfo pkg in SearchFromCatalogReader(repoName))
+                        {
+                            yield return pkg;
+                        }
+                    }
+                }
+
+            }
             PackageSearchResource resourceSearch = null;
             PackageMetadataResource resourceMetadata = null;
             SearchFilter filter = null;
             SourceCacheContext context = null;
 
-            // assign PacakgeSearchResource, PacakgeMetadata, SearchFilter and SearchContext variables based on Uri scheme
             // file based Uri scheme
             if (repositoryUrl.Scheme == Uri.UriSchemeFile)
             {
@@ -247,6 +285,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     yield return pkg;
                 }
+                // or optionally create a whole other packageSource object conditionally and have a foreach like above in that condition
             }
         }
 
@@ -299,7 +338,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     foundPackagesMetadata.AddRange(retrievedPkgs.ToList());
-                    // foundPackagesMetadata = filterByVersion(foundPackagesMetadata, name);
+                    if (foundPackagesMetadata.Any())
+                    {
+                        pkgsLeftToFind.Remove(name);
+                    }
                 }
             }
             else
@@ -310,48 +352,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteVerbose("name: " + name);
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
 
-
-
-
-
-                WriteVerbose("count of all pkgs returned: " + wildcardPkgs.Count());
-                int mcount = 0;
-                int scount = 0;
-                int ocount = 0;
-                SortedSet<string> otherTags = new SortedSet<string>();
-                char[] delimiter = new char[] { ' ', ',' };
-                foreach (var p in wildcardPkgs)
-                {
-                    foreach (var t in p.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        if (String.Equals(t, "PSScript", StringComparison.OrdinalIgnoreCase))
-                        {
-                            scount++;
-                        }
-                        if (String.Equals(t, "PSModule", StringComparison.OrdinalIgnoreCase))
-                        {
-                            mcount++;
-                        }
-                        else
-                        {
-                            if(String.Equals(t, "Module", StringComparison.OrdinalIgnoreCase) || String.Equals(t, "Script", StringComparison.OrdinalIgnoreCase))
-                            {
-                                WriteVerbose(p.Identity.Id + " has tag: " + t);
-                            }
-                            otherTags.Add(t);
-
-                            ocount++;
-                        }
-                    }
-                }
-                WriteVerbose("count of modules: " + mcount + "---scount: " + scount + "---ocount: " + ocount + "---other tags count: " + otherTags.Count());
-                // WriteVerbose("other tags: " + string.Join("\n", otherTags.ToArray()));
                 WildcardPattern nameWildcardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
                 foundPackagesMetadata.AddRange(wildcardPkgs.Where(p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
-                // foundPackagesMetadata = filterByVersion(foundPackagesMetadata, name);
 
-
-                if (foundPackagesMetadata.Any())
+                bool needToCheckPSGalleryScriptsRepo = String.Equals(repoName, "PSGallery", StringComparison.OrdinalIgnoreCase) && Type == null;
+                if (foundPackagesMetadata.Any() && !needToCheckPSGalleryScriptsRepo)
                 {
                     pkgsLeftToFind.Remove(name);
                 }
@@ -408,27 +413,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (Type != null)
             {
                 foundPackagesMetadata = FilterPkgsByResourceType(foundPackagesMetadata);
-                // IEnumerable<IPackageSearchMetadata> scriptPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-                // foreach (var p in scriptPkgs)
-                // {
-                //     WriteVerbose("from SearchAsync- pkg name: " + p.Identity.Id + " version: " + p.Identity.Version);
-                // }
-
-                // IEnumerable<IPackageSearchMetadata> scriptPkgs2 = pkgMetadataResource.GetMetadataAsync(name, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-                // foreach (var p2 in scriptPkgs2)
-                // {
-                //     WriteVerbose("from GetMetadataAsync- pkg name: " + p2.Identity.Id + " version: " + p2.Identity.Version);
-                // }
             }
             // filter by param: Tags
 
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
-                WriteVerbose(pkg.ToJson());
                 PSResourceInfo currentPkg = new PSResourceInfo();
-                // currentPkg.Name = pkg.Identity.Id;
-                // currentPkg.Version = pkg.Identity.Version.Version;
-                // currentPkg.Description = pkg.Description;
                 if(!PSResourceInfo.TryParse(pkg, out currentPkg, out string errorMsg)){
                     // todo: have better WriteError method here
                     WriteVerbose(errorMsg);
@@ -451,9 +441,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         pkgsFilteredByTags.Add(pkg);
                     }
+                    else if (Enum.TryParse(tag, out ResourceCategory parsedType) && parsedType == ResourceCategory.Module)
+                    {
+                        WriteVerbose("added here");
+                        pkgsFilteredByTags.Add(pkg);
+                    }
                 }
             }
             return pkgsFilteredByTags;
+        }
+
+        private IEnumerable<PSResourceInfo> SearchFromCatalogReader(string repoName, Uri repositoryUrl, CancellationToken cancellationToken)
+        {
+            using (var catalog = new CatalogReader(repositoryUrl))
+            {
+
+            }
+        }
+        {
+
         }
     }
 }
