@@ -225,7 +225,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        foreach(PSResourceInfo pkg in SearchFromCatalogReader(repoName))
+                        foreach(PSResourceInfo pkg in SearchFromCatalogReader(repoName, repositoryUrl, cancellationToken))
                         {
                             yield return pkg;
                         }
@@ -453,13 +453,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> SearchFromCatalogReader(string repoName, Uri repositoryUrl, CancellationToken cancellationToken)
         {
+
             using (var catalog = new CatalogReader(repositoryUrl))
             {
-
+                IReadOnlyList<CatalogEntry> allPkgs = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult();
+                foreach(CatalogEntry pkg in allPkgs)
+                {
+                    PSResourceInfo currentPkg = new PSResourceInfo();
+                    if(!PSResourceInfo.TryParseCatalogEntry(pkg, out currentPkg, out string errorMsg)){
+                        // todo: have better WriteError method here
+                        WriteVerbose(errorMsg);
+                        yield break;
+                    }
+                    yield return currentPkg;
+                }
             }
-        }
-        {
-
         }
     }
 }

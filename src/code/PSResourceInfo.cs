@@ -7,6 +7,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Management.Automation;
+using NuGet.CatalogReader;
+using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
@@ -303,7 +305,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Author = ParseMetadataAuthor(metadataToParse),
                     // CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
                     // Copyright = GetProperty<string>(nameof(PSResourceInfo.Copyright), psObjectInfo),
-                    Dependencies = ParseMetadataDependenies(metadataToParse),
+                    Dependencies = ParseMetadataDependencies(metadataToParse),
                     Description = ParseMetadataDescription(metadataToParse),
                     IconUri = ParseMetadataIconUri(metadataToParse),
                     // Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
@@ -331,6 +333,59 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
                     @"TryReadPSGetInfo: Cannot parse PSResourceInfo from IPackageSearchMetadata with error: {0}",
+                    ex.Message);
+                return false;
+            }
+        }
+
+        public static bool TryParseCatalogEntry(CatalogEntry objToParse,
+            out PSResourceInfo psGetInfo,
+            out string errorMsg)
+        {
+            psGetInfo = null;
+            errorMsg = String.Empty;
+
+            if (objToParse == null)
+            {
+                errorMsg = "TryParseCatalogEntry: Invalid CatalogEntry object. Object cannot be null.";
+                return false;
+            }
+            try
+            {
+                NuspecReader pkgNuspec = objToParse.GetNuspecAsync().GetAwaiter().GetResult();
+                psGetInfo = new PSResourceInfo
+                {
+                    // // AdditionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo),
+                    // Author = pkgNuspec.GetAuthors(),
+                    // // CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
+                    // Copyright = pkgNuspec.GetCopyright(),
+                    // Dependencies = ParseCatalogEntryDependencies(pkgNuspec),
+                    // Description = pkgNuspec.GetDescription(),
+                    // IconUri = ParseCatalogEntryIconUri(pkgNuspec),
+                    // // Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
+                    // // InstalledDate = GetProperty<DateTime>(nameof(PSResourceInfo.InstalledDate), psObjectInfo),
+                    // // InstalledLocation = GetProperty<string>(nameof(PSResourceInfo.InstalledLocation), psObjectInfo),
+                    // LicenseUri = ParseCatalogEntryLicenseUri(pkgNuspec),
+                    Name = objToParse.Id,
+                    // // PackageManagementProvider = GetProperty<string>(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
+                    // // PowerShellGetFormatVersion = pkgNuspec.GetRepositoryMetadata.PowerShellGetFormatVersion,
+                    // ProjectUri = ParseCatalogEntryProjectUri(pkgNuspec),
+                    // PublishedDate = ParseCatalogEntryPublishedDate(objToParse),
+                    // ReleaseNotes = pkgNuspec.GetReleaseNotes(),
+                    // // Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
+                    // RepositorySourceLocation = pkgNuspec.GetRepositoryMetadata().Url,
+                    // Tags = pkgNuspec.GetTags().Split(new char[]{' ', ','}, StringSplitOptions.RemoveEmptyEntries),
+                    // Type = pkgNuspec.GetType().ToString(), //possibly need to change!
+                    // // UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
+                    // Version = objToParse.Version.Version,
+                };
+                return true;
+            }
+            catch (Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryParseCatalogEntry: Cannot parse PSResourceInfo from CatalogEntry with error: {0}",
                     ex.Message);
                 return false;
             }
@@ -399,7 +454,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pkg.Authors;
         }
 
-        private static string[] ParseMetadataDependenies(IPackageSearchMetadata pkg)
+        private static string[] ParseMetadataDependencies(IPackageSearchMetadata pkg)
         {
             List<string> deps = new List<string>();
             foreach(var r in pkg.DependencySets)
@@ -487,6 +542,59 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
+        #endregion
+
+        #region Parse CatalogEntry private static methods
+        private static string[] ParseCatalogEntryDependencies(NuspecReader pkgNuspec)
+        {
+            List<string> deps = new List<string>();
+            foreach(var r in pkgNuspec.GetDependencyGroups())
+            {
+                foreach (var pkgDependencyItem in r.Packages)
+                {
+                    deps.Add(pkgDependencyItem.Id);
+                }
+            }
+            return deps.ToArray();
+        }
+
+        private static DateTime? ParseCatalogEntryPublishedDate(CatalogEntry pkg)
+        {
+            DateTime? publishDate = null;
+            DateTimeOffset? pkgPublishedDate = pkg.CommitTimeStamp;
+            if (pkgPublishedDate.HasValue)
+            {
+                publishDate = pkgPublishedDate.Value.DateTime;
+            }
+            return publishDate;
+        }
+
+        private static Uri ParseCatalogEntryIconUri(NuspecReader pkgNuspec)
+        {
+            if(Uri.TryCreate(pkgNuspec.GetIconUrl(), 0, out Uri url))
+            {
+                return url;
+            }
+            return null;
+        }
+
+        private static Uri ParseCatalogEntryLicenseUri(NuspecReader pkgNuspec)
+        {
+            if(Uri.TryCreate(pkgNuspec.GetLicenseUrl(), 0, out Uri url))
+            {
+                return url;
+            }
+            return null;
+        }
+
+        private static Uri ParseCatalogEntryProjectUri(NuspecReader pkgNuspec)
+        {
+            if(Uri.TryCreate(pkgNuspec.GetProjectUrl(), 0, out Uri url))
+            {
+                return url;
+            }
+            return null;
+        }
         #endregion
 
         #region Private methods
