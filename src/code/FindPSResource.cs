@@ -225,7 +225,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         yield return pkg;
                     }
                 }
-                else if (wildcardIndex > 0 || Name.Length > 1)
+                else if (wildcardIndex > 0 || (wildcardIndex == 0 && Name.Length > 1))
                 {
                     // todo: ask- here do we want to just write the error and not do any search. OR discard other names, write error and search "*" still?
                     WriteError(new ErrorRecord(
