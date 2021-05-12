@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+<# // Temporarily commenting out until Install-PSResource is complete 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Get-InstalledPSResource for Module' {
@@ -26,7 +27,7 @@ Describe 'Test Get-InstalledPSResource for Module' {
         $pkg = Get-InstalledPSResource -Name ContosoServer
         $pkg.Name | Should -Be "ContosoServer"
     }
-
+ 
     It "Get specific script resource by name" {
         $pkg = Get-InstalledPSResource -Name adsql
         $pkg.Name | Should -Be "adsql"
@@ -98,8 +99,9 @@ Describe 'Test Get-InstalledPSResource for Module' {
         $res | Should -BeNullOrEmpty
     }
 
-    It "Get resources when given Name,  and Version is '*'" {
+    It "Get resources when given Name, and Version is '*'" {
         $pkgs = Get-InstalledPSResource -Name Carbon -Version "*"
         $pkgs.Count | Should -BeGreaterOrEqual 2
     }
 }
+#>
