@@ -45,7 +45,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private CancellationTokenSource _source;
         private CancellationToken _cancellationToken;
-        private bool _returnAllVersions;
         private VersionRange _versionRange;
         List<string> _pathsToSearch;
 
@@ -56,17 +55,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _source = new CancellationTokenSource();
             _cancellationToken = _source.Token;
 
-
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            if (Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange, out _returnAllVersions))
+            if (Version == null || Version.Trim().Equals("*"))
+            {
+                _versionRange = VersionRange.All;
+            }
+            else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
                 var ex = new ArgumentException(exMessage);
                 var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
-
+            
             if (Path != null)
             {
                 // parse version
@@ -77,7 +79,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // retrieve all possible paths
                 _pathsToSearch = Utils.GetAllResourcePaths(this);
-
+            }
+            
+            // if '*' is passed in as an argument for -Name with other -Name arguments, 
+            // ignore all arguments except for '*' since it is the most inclusive
+            // eg:  -Name ["TestModule, Test*, *"]  will become -Name ["*"]
+            if (Name != null && Name.Length > 1)
+            {
+                foreach (var pkgName in Name)
+                {
+                    if (pkgName.Trim().Equals("*"))
+                    {
+                        Name = new string[] {"*"};
+                        break;
+                    }
+                }
             }
         }
 
@@ -89,7 +105,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             WriteDebug("Entering GetInstalledPSResource");
 
             GetHelper getHelper = new GetHelper(cancellationToken, this);
-            foreach (PSResourceInfo pkg in getHelper.ProcessGetParams(Name, _versionRange, _returnAllVersions, _pathsToSearch))
+            foreach (PSResourceInfo pkg in getHelper.ProcessGetParams(Name, _versionRange, _pathsToSearch))
             {
                 WriteObject(pkg);
             }
