@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
@@ -138,6 +138,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = DscResourceNameParameterSet)]
         public SwitchParameter IncludeDependencies { get; set; }
 
+        [Parameter]
+        public int Technique { get; set; }
+
         #endregion
 
         #region Methods
@@ -204,35 +207,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // if repositoryUrl ends with V3 endpoint and either of the names in Name is CatalogReader
             // each V3 repository must have a service index resource: https://docs.microsoft.com/en-us/nuget/api/service-index
-            if (repositoryUrl.AbsoluteUri.EndsWith("index.json")) {
-                bool isNameAsterisk = false;
-                foreach (string name in Name)
-                {
-                    if (String.Equals(name, "*"))
-                    {
-                        isNameAsterisk = true;
-                    }
-                }
-                if (isNameAsterisk){
-                    // Name.Length should not be 0 (validated by parameter binding)
-                    if (Name.Length > 1)
-                    {
-                        WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Name array cannot contain additional elements if one is '*'."),
-                            "NameCannotBeNullOrWhitespace",
-                            ErrorCategory.InvalidArgument,
-                            this));
-                    }
-                    else
-                    {
-                        foreach(PSResourceInfo pkg in SearchFromCatalogReader(repoName, repositoryUrl, cancellationToken))
-                        {
-                            yield return pkg;
-                        }
-                    }
-                }
 
+            if (repositoryUrl.AbsoluteUri.EndsWith("index.json")) {
+                int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "*", StringComparison.OrdinalIgnoreCase));
+                // -1 -> continue on (like outside this if condition above and then below get flagged for URL online cond)
+                // 0  -> CreateCatalogReader and yield at end
+                // 1 or more -> write error and yield back. or strip other elements and handle as case 2?
+                // "*" -> ok
+                // "*", "Carbon" -> not ok, doesn't generate error
+                // "Carbon", "*" -> not ok, generates error tho
+
+
+                if (wildcardIndex == 0 && Name.Length == 1)
+                {
+                    foreach(PSResourceInfo pkg in SearchFromCatalogReader(repoName, repositoryUrl, cancellationToken))
+                    {
+                        yield return pkg;
+                    }
+                }
+                else if (wildcardIndex > 0 || Name.Length > 1)
+                {
+                    // todo: ask- here do we want to just write the error and not do any search. OR discard other names, write error and search "*" still?
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException("Name array cannot contain additional elements if one is '*'."),
+                        "NameCannotBeNullOrWhitespace",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                    yield break;
+                }
             }
+
             PackageSearchResource resourceSearch = null;
             PackageMetadataResource resourceMetadata = null;
             SearchFilter filter = null;
@@ -255,6 +259,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
             else
             {
+                WriteVerbose("made it here");
                 PackageSource source = new PackageSource(repositoryUrl.ToString());
                 if (Credential != null)
                 {
@@ -451,21 +456,97 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return pkgsFilteredByTags;
         }
 
+        // private IEnumerable<PSResourceInfo> SearchFromCatalogReader(string repoName, Uri repositoryUrl, CancellationToken cancellationToken)
+        // {
+
+        //     using (var catalog = new CatalogReader(repositoryUrl))
+        //     {
+        //         IReadOnlyList<CatalogEntry> allPkgs = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult();
+        //         WriteVerbose("count of all pkgs: " + allPkgs.Count);
+        //         Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
+        //         foreach (CatalogEntry pkg in allPkgs)
+        //         {
+        //             if((Prerelease || !pkg.Version.IsPrerelease) && ((!uniquePkgs.TryGetValue(pkg.Id.ToLower(), out CatalogEntry entry)) || (pkg.Version > entry.Version)))
+        //             {
+        //                 uniquePkgs[pkg.Id.ToLower()] = pkg;
+        //             }
+        //         }
+        //         WriteVerbose("unique pkgs count: " + uniquePkgs.Count);
+
+        //         foreach (CatalogEntry pkg in uniquePkgs.Values)
+        //         {
+        //         PSResourceInfo currentPkg = new PSResourceInfo();
+        //         if(!PSResourceInfo.TryParseCatalogEntry(pkg, out currentPkg, out string errorMsg)){
+        //             // todo: have better WriteError method here
+        //             WriteVerbose(errorMsg);
+        //             yield break;
+        //         }
+        //         yield return currentPkg;
+        //     }
+        // }
+
         private IEnumerable<PSResourceInfo> SearchFromCatalogReader(string repoName, Uri repositoryUrl, CancellationToken cancellationToken)
         {
+            using (var feedReader = new FeedReader(repositoryUrl))
+            {
+                bool hasCatalog = false;
+                try
+                {
+                    hasCatalog = feedReader.HasCatalog().GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException("Error creating or accessing feed: " + ex.Message),
+                        "CantCreateFeedForV3Repository",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                    yield break;
+                }
+                if (!hasCatalog)
+                {
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException("This V3 package feed source does not contain a catalog resource. Searching for all packages is not supported at the moment."),
+                        "PackageSourceFeedDoesNotImplementCatalog",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                    yield break;
+                }
 
+            }
+
+            // at this point, we should be able to access feed and it's known catalog resource
+            Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
+            foreach (CatalogEntry pkg in GetPkgsWithYielding(repositoryUrl, cancellationToken))
+            {
+                if((Prerelease || !pkg.Version.IsPrerelease) && ((!uniquePkgs.TryGetValue(pkg.Id.ToLower(), out CatalogEntry entry)) || (pkg.Version > entry.Version)))
+                {
+                    uniquePkgs[pkg.Id.ToLower()] = pkg;
+                }
+            }
+            foreach (CatalogEntry entry in uniquePkgs.Values)
+            {
+                if (!PSResourceInfo.TryParseCatalogEntry(entry, out PSResourceInfo currentPkg, out string errorMsg))
+                {
+                    WriteVerbose(errorMsg);
+                    yield break;
+                }
+                yield return currentPkg;
+            }
+            WriteVerbose("unique pkgs count: " + uniquePkgs.Count);
+        }
+
+        private IEnumerable<CatalogEntry> GetPkgsWithYielding(Uri repositoryUrl, CancellationToken cancellationToken)
+        {
             using (var catalog = new CatalogReader(repositoryUrl))
             {
-                IReadOnlyList<CatalogEntry> allPkgs = catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult();
-                foreach(CatalogEntry pkg in allPkgs)
+                if (catalog == null)
                 {
-                    PSResourceInfo currentPkg = new PSResourceInfo();
-                    if(!PSResourceInfo.TryParseCatalogEntry(pkg, out currentPkg, out string errorMsg)){
-                        // todo: have better WriteError method here
-                        WriteVerbose(errorMsg);
-                        yield break;
-                    }
-                    yield return currentPkg;
+                    WriteVerbose("some error");
+                }
+                foreach(CatalogEntry p in catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult())
+                {
+                    yield return p;
                 }
             }
         }
