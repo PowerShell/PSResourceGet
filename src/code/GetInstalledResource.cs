@@ -57,7 +57,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            if (Version == null || Version.Trim().Equals("*"))
+            if (Version == null)
             {
                 _versionRange = VersionRange.All;
             }

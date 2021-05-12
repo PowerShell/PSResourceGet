@@ -55,6 +55,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 if (Version.Trim().Equals("*"))
                 {
                     successfullyParsed = true;
+                    versionRange = VersionRange.All;
                 }
                 else
                 {
@@ -76,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static List<string> GetAllResourcePaths(PSCmdlet psCmdlet)
         {
             string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-            string[] modulePaths = psModulePath.Split(';');
+            List<string> resourcePaths = psModulePath.Split(';').ToList();
             List<string> pathsToSearch = new List<string>();
             var PSVersion6 = new Version(6, 0);
             var isCorePS = psCmdlet.Host.Version >= PSVersion6;
@@ -98,28 +99,44 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 programFilesPath = System.IO.Path.Combine("usr", "local", "share", "Powershell");
             }
 
-            // add all potential resource paths 
             // will search first in PSModulePath, then will search in default paths
-            foreach (string modulePath in modulePaths)
+            resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
+            resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
+            resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+            resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+
+            // add all module or script paths 
+            foreach (string path in resourcePaths)
             {
-                psCmdlet.WriteDebug(string.Format("Retrieving directories in the '{0}' module path", modulePath));
-                try
+                psCmdlet.WriteDebug(string.Format("Retrieving directories in the path '{0}'", path));
+
+                if (path.EndsWith("Scripts"))
                 {
-                    pathsToSearch.AddRange(Directory.GetDirectories(modulePath));
+                    try
+                    {
+                        pathsToSearch.AddRange(Directory.GetFiles(path));
+                    }
+                    catch (Exception e)
+                    {
+                        psCmdlet.WriteDebug(string.Format("Error retrieving files from '{0}': '{1)'", path, e.Message));
+                    }
                 }
-                catch (Exception e)
+                else
                 {
-                    psCmdlet.WriteDebug(string.Format("Error retrieving directories from '{0}': '{1)'", modulePath, e.Message));
+                    try
+                    {
+                        pathsToSearch.AddRange(Directory.GetDirectories(path));
+                    }
+                    catch (Exception e)
+                    {
+                        psCmdlet.WriteDebug(string.Format("Error retrieving directories from '{0}': '{1)'", path, e.Message));
+                    }
                 }
             }
-            pathsToSearch.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-            pathsToSearch.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-            pathsToSearch.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
-            pathsToSearch.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
 
             // need to use .ToList() to cast the IEnumerable<string> to type List<string>
             pathsToSearch = pathsToSearch.Distinct().ToList();
-            pathsToSearch.ForEach(dir => psCmdlet.WriteDebug(string.Format("All directories to search: '{0}'", dir)));
+            pathsToSearch.ForEach(dir => psCmdlet.WriteDebug(string.Format("All paths to search: '{0}'", dir)));
 
             return pathsToSearch;
         }
