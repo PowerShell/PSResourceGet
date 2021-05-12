@@ -57,7 +57,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private CancellationToken _cancellationToken;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
-        bool deleteAllVersions;
         #endregion
 
         #region Methods
@@ -68,7 +67,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange, out deleteAllVersions, this))
+            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
                 var ex = new ArgumentException(exMessage);
@@ -76,29 +75,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
-            var PSVersion6 = new Version(6, 0);
-            var isCorePS = Host.Version >= PSVersion6;
-            string myDocumentsPath;
-            string programFilesPath;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
-                
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
-            }
-            else
-            {
-                // paths are the same for both Linux and MacOS
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
-            }
-
-            //// at this point we have all potential resource paths
-            _pathsToSearch.Add(Path.Combine(myDocumentsPath, "Modules"));
-            _pathsToSearch.Add(Path.Combine(programFilesPath, "Modules"));
-            _pathsToSearch.Add(Path.Combine(myDocumentsPath, "Scripts"));
-            _pathsToSearch.Add(Path.Combine(programFilesPath, "Scripts"));
+            _pathsToSearch = Utils.GetAllResourcePaths(this);
         }
 
         protected override void ProcessRecord()
@@ -133,7 +110,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (pkg != null)
                         {
                             // attempt to parse version
-                            if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange, out bool deleteAllVersions, this))
+                            if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange))
                             {
                                 var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
                                 var ex = new ArgumentException(exMessage);
@@ -183,14 +160,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // eg:  TestModule/0.0.1, TestModule/0.0.2
                     versionDirs = Directory.GetDirectories(dirName);
 
-                    if (deleteAllVersions)
-                    {
-                        foreach (var versionDirPath in versionDirs)
-                        {
-                            dirsToDelete.Add(versionDirPath);
-                        }
-                    }
-                    else if (_versionRange != null)
+                    if (_versionRange != null)
                     {
                         // check if the version matches
                         foreach (var versionDirPath in versionDirs)
