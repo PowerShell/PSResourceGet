@@ -57,7 +57,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private CancellationToken _cancellationToken;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
-        bool deleteAllVersions;
         #endregion
 
         #region Methods
@@ -68,7 +67,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange, out deleteAllVersions, this))
+            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
                 var ex = new ArgumentException(exMessage);
@@ -76,29 +75,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
-            var PSVersion6 = new Version(6, 0);
-            var isCorePS = Host.Version >= PSVersion6;
-            string myDocumentsPath;
-            string programFilesPath;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
-                
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
-            }
-            else
-            {
-                // paths are the same for both Linux and MacOS
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
-            }
-
-            //// at this point we have all potential resource paths
-            _pathsToSearch.Add(Path.Combine(myDocumentsPath, "Modules"));
-            _pathsToSearch.Add(Path.Combine(programFilesPath, "Modules"));
-            _pathsToSearch.Add(Path.Combine(myDocumentsPath, "Scripts"));
-            _pathsToSearch.Add(Path.Combine(programFilesPath, "Scripts"));
+            _pathsToSearch = Utils.GetAllResourcePaths(this);
         }
 
         protected override void ProcessRecord()
@@ -133,7 +110,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (pkg != null)
                         {
                             // attempt to parse version
-                            if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange, out bool deleteAllVersions, this))
+                            if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange))
                             {
                                 var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
                                 var ex = new ArgumentException(exMessage);
@@ -174,29 +151,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
             foreach (var path in _pathsToSearch)
             {
-                var dirName = Path.Combine(path, pkgName);
-                var pathName = Path.Combine(path, pkgName + ".ps1");
+                var moduleName = pkgName;
+                var scriptName = string.Concat(pkgName, ".ps1");
                 string[] versionDirs = null;
-                if (Directory.Exists(dirName))
+
+                // if this is a module path, eg: ./PowerShell/TestModule
+                if (path.EndsWith(pkgName, StringComparison.OrdinalIgnoreCase))
                 {
                     // returns all the version directories
                     // eg:  TestModule/0.0.1, TestModule/0.0.2
-                    versionDirs = Directory.GetDirectories(dirName);
+                    versionDirs = Directory.GetDirectories(path);
 
-                    if (deleteAllVersions)
-                    {
-                        foreach (var versionDirPath in versionDirs)
-                        {
-                            dirsToDelete.Add(versionDirPath);
-                        }
-                    }
-                    else if (_versionRange != null)
+                    if (_versionRange != null)
                     {
                         // check if the version matches
                         foreach (var versionDirPath in versionDirs)
                         {
-                            string nameOfDir = Path.GetFileName(versionDirPath);
-                            NuGetVersion nugVersion = NuGetVersion.Parse(nameOfDir);
+                            string versionLeaf = Path.GetFileName(versionDirPath);
+                            if (!NuGetVersion.TryParse(versionLeaf, out NuGetVersion nugVersion))
+                            {
+                                WriteDebug(string.Format("Unable to parse '{0}' from the path '{1}' into a version.", versionLeaf, versionDirPath));
+                                break;
+                            }
                             if (_versionRange.Satisfies(nugVersion))
                             {
                                 dirsToDelete.Add(versionDirPath);
@@ -211,34 +187,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         dirsToDelete.Add(versionDirs[versionDirs.Length - 1]);
                     }
                 }
-                else if (File.Exists(pathName))
+                // if this is a script path eg: ./PowerShell/Scripts/Test-Script.ps1
+                else if (path.EndsWith(scriptName, StringComparison.OrdinalIgnoreCase))
                 {
                     isScript = true;
                     // check if the version matches
                     if (_versionRange != null)
                     {
                         var xmlFileName = string.Concat(pkgName, "_InstalledScriptInfo.xml");
-                        var scriptXMLPath = Path.Combine(path, "InstalledScriptInfos", xmlFileName);
+                        var scriptXMLPath = Path.Combine(new DirectoryInfo(path).Parent.ToString(), "InstalledScriptInfos", xmlFileName);
 
-                        ReadOnlyPSMemberInfoCollection<PSPropertyInfo> versionInfo;
+                        string versionInfo;
                         using (StreamReader sr = new StreamReader(scriptXMLPath))
                         {
                             string text = sr.ReadToEnd();
                             var deserializedObj = (PSObject)PSSerializer.Deserialize(text);
 
-                            versionInfo = deserializedObj.Properties.Match("Version");
+                            versionInfo = deserializedObj.Properties.Match("Version").First().Value.ToString();
                         };
 
-                        if (NuGetVersion.TryParse(Version, out NuGetVersion scriptVersion) &&
+                        if (NuGetVersion.TryParse(versionInfo, out NuGetVersion scriptVersion) &&
                             _versionRange.Satisfies(scriptVersion))
                         {
                             // if version satisfies the condition, add it to the list
-                            dirsToDelete.Add(pathName);
+                            dirsToDelete.Add(path);
                         }
                     }
                     else {
                         // otherwise just delete whatever version the script is
-                        dirsToDelete.Add(pathName);
+                        dirsToDelete.Add(path);
                     }
                 }
             }
@@ -246,8 +223,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // if we can't find the resource, write non-terminating error and return
             if (!dirsToDelete.Any())
             {
+                string message = Version == null || Version.Trim().Equals("*") ?
+                    string.Format("Could not find any version of the resource '{0}' in any path", pkgName) :
+                    string.Format("Could not find verison '{0}' of the resource '{1}' in any path", Version, pkgName);
+                
                 WriteError(new ErrorRecord(
-                    new PSInvalidOperationException(string.Format("Could not find the resource '{0}' in any path", pkgName)),
+                    new PSInvalidOperationException(message),
                     "ErrorRetrievingSpecifiedResource",
                     ErrorCategory.ObjectNotFound,
                     this));
