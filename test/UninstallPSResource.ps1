@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+<# Temporarily comment out tests until Install-PSResource is complete
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Uninstall-PSResource for Modules' {
@@ -23,12 +24,12 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg = Uninstall-PSResource -Name BaseTestPackage, bogreader 
     }
 
-    It "Do not uninstall a module when given Name and specifying all versions" {
-        $res = Uninstall-PSResource -Name "NetworkingDSC" -version "*"
+    It "Uninstall a module when given name and specifying all versions" {
+        $res = Uninstall-PSResource -Name "Carbon" -version "*"
         $res | Should -BeNullOrEmpty
     }
 
-    It "Uninstall module when given Name, and specifying all versions" {
+    It "Uninstall module when given Name and specifying exact version" {
         $res = Uninstall-PSResource -Name "ContosoServer" -Version "1.0.0"
         $res | Should -BeNullOrEmpty
     }
@@ -72,7 +73,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         
         $res | Should -BeNullOrEmpty
     }
-
+    
     It "Does not uninstall when given Name and an invalid version" {
         $res = Uninstall-PSResource -Name "ContosoServer" -Version "(0.0.0.1)"
         $res | Should -BeNullOrEmpty
@@ -87,7 +88,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $resPrerelease.Version | Should -Be "5.2.5.0"        
     }
 
-    It "Uninstall module using -WhatIf" {
+    It "Uninstall module using -WhatIf, should not uninstall the module" {
         $res = Uninstall-PSResource -Name "ActiveDirectoryTools" -WhatIf
     }
 
@@ -117,17 +118,22 @@ Describe 'Test Uninstall-PSResource for Scripts' {
         $pkg = Uninstall-PSResource -name Test-RPC 
     }
 
-    It "Uninstall a list of modules by name" {
+    It "Uninstall a list of scripts by name" {
         $pkg = Uninstall-PSResource -Name adsql, airoute 
     }
 
-    It "Do not uninstall a module when given Name and specifying all versions" {
+    It "Uninstall a script when given name and specifying all versions" {
         $res = Uninstall-PSResource -Name "NetworkingDSC" -version "*"
         $res | Should -BeNullOrEmpty
     }
 
-    It "Uninstall module when given Name, and specifying all versions" {
+    It "Uninstall script when given Name and specifying exact version" {
         $res = Uninstall-PSResource -Name "ContosoServer" -Version "1.0.0"
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Does not uninstall a script when given Name and a version that does not exist" {
+        $res = Uninstall-PSResource -Name "ContosoServer" -Version "3.0.0"
         $res | Should -BeNullOrEmpty
     }
 
@@ -180,3 +186,4 @@ Describe 'Test Uninstall-PSResource for Scripts' {
         $res = Uninstall-PSResource -Name "ActiveDirectoryTools" -WhatIf
     }
 }
+#>
