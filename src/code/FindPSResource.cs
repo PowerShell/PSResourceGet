@@ -327,11 +327,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         foreach (PSResourceInfo pkg in FindFromPackageSourceSearchAPI(repoName, pkgName, pkgSearchResource, pkgMetadataResource, searchFilter, srcContext, pkgsLeftToFind, cancellationToken))
                         {
-                            if (Tag == null)
-                            {
-                                yield return pkg;
-                            }
-                            else if (Tag != null && IsTagMatch(pkg))
+                            if (Tag == null || (Tag != null && IsTagMatch(pkg)))
                             {
                                 yield return pkg;
                             }
