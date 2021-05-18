@@ -15,10 +15,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     #region Enums
 
+    // flag attribute?
     public enum ResourceType
     {
         Module,
-        Script
+        Script,
+        DscResource,
+        Command
     }
 
     public enum VersionType
@@ -374,7 +377,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     // ReleaseNotes = pkgNuspec.GetReleaseNotes(),
                     // // Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
                     // RepositorySourceLocation = pkgNuspec.GetRepositoryMetadata().Url,
-                    // Tags = pkgNuspec.GetTags().Split(new char[]{' ', ','}, StringSplitOptions.RemoveEmptyEntries),
+                    Tags = pkgNuspec.GetTags().Split(new char[]{' ', ','}, StringSplitOptions.RemoveEmptyEntries),
                     // Type = pkgNuspec.GetType().ToString(), //possibly need to change!
                     // // UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
                     // Version = objToParse.Version.Version,
