@@ -314,32 +314,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             WriteVerbose("made it here 3");
             foreach (string pkgName in Name)
             {
-                // TODO:
-                // if (nullwhitespace)
-                // write error + yield break/continue ? (even better: check each name element in preprocessing of Name)
-
-                // if (not pakcages left to find)
-                // yield break?
-
-                if (pkgsLeftToFind.Any())
+                if (!pkgsLeftToFind.Any())
                 {
-                    if (!String.IsNullOrWhiteSpace(pkgName))
+                    yield break;
+                }
+
+                if (String.IsNullOrWhiteSpace(pkgName))
+                {
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException("Name array cannot contain names which are null or whitespace"),
+                        "NameCannotBeNullOrWhitespace",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                    continue;
+                }
+
+                foreach (PSResourceInfo pkg in FindFromPackageSourceSearchAPI(repoName, pkgName, pkgSearchResource, pkgMetadataResource, searchFilter, srcContext, pkgsLeftToFind, cancellationToken))
+                {
+                    if (Tag == null || (Tag != null && IsTagMatch(pkg)))
                     {
-                        foreach (PSResourceInfo pkg in FindFromPackageSourceSearchAPI(repoName, pkgName, pkgSearchResource, pkgMetadataResource, searchFilter, srcContext, pkgsLeftToFind, cancellationToken))
-                        {
-                            if (Tag == null || (Tag != null && IsTagMatch(pkg)))
-                            {
-                                yield return pkg;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Name array cannot contain names which are null or whitespace"),
-                            "NameCannotBeNullOrWhitespace",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                        yield return pkg;
                     }
                 }
             }
