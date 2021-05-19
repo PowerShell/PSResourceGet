@@ -83,7 +83,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             var isCorePS = psCmdlet.Host.Version >= PSVersion6;
             string myDocumentsPath;
             string programFilesPath;
-
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -105,7 +104,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
             resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
 
-            // add all module or script paths 
+            // resourcePaths should now contain, eg:
+            // ./PowerShell/Scripts
+            // ./PowerShell/Modules
+            // add all module directories or script files 
             foreach (string path in resourcePaths)
             {
                 psCmdlet.WriteDebug(string.Format("Retrieving directories in the path '{0}'", path));
@@ -118,7 +120,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                     catch (Exception e)
                     {
-                        psCmdlet.WriteDebug(string.Format("Error retrieving files from '{0}': '{1)'", path, e.Message));
+                        psCmdlet.WriteVerbose(string.Format("Error retrieving files from '{0}': '{1)'", path, e.Message));
                     }
                 }
                 else
@@ -129,13 +131,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                     catch (Exception e)
                     {
-                        psCmdlet.WriteDebug(string.Format("Error retrieving directories from '{0}': '{1)'", path, e.Message));
+                        psCmdlet.WriteVerbose(string.Format("Error retrieving directories from '{0}': '{1)'", path, e.Message));
                     }
                 }
             }
 
+            // resourcePaths should now contain eg:
+            // ./PowerShell/Scripts/Test-Script.ps1
+            // ./PowerShell/Modules/TestModule
             // need to use .ToList() to cast the IEnumerable<string> to type List<string>
-            pathsToSearch = pathsToSearch.Distinct().ToList();
+            pathsToSearch = pathsToSearch.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
             pathsToSearch.ForEach(dir => psCmdlet.WriteDebug(string.Format("All paths to search: '{0}'", dir)));
 
             return pathsToSearch;

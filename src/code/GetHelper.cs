@@ -29,33 +29,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, VersionRange versionRange, List<string>pathsToSearch)
         {
-            List<string> filteredPathsToSearch = FilterPkgsByName(name, pathsToSearch);
-            filteredPathsToSearch = GetResourceMetadataFiles(versionRange, filteredPathsToSearch);
+            List<string> filteredPathsToSearch = FilterPkgPathsByName(name, pathsToSearch);
 
-            foreach (PSResourceInfo pkgObject in OutputPackageObject(filteredPathsToSearch, versionRange))
+            foreach (PSResourceInfo pkgObject in GetResourceMetadataFiles(versionRange, filteredPathsToSearch))
             {
                 yield return pkgObject;
             }
         }
 
         // Filter packages by user provided name
-        public List<string> FilterPkgsByName(string[] names, List<string> dirsToSearch)
+        public List<string> FilterPkgPathsByName(string[] names, List<string> dirsToSearch)
         {
             List<string> wildCardDirsToSearch = new List<string>();
 
             if (names == null)
             {
-                names = new string[] { "*" };
+                cmdletPassedIn.WriteVerbose("No names were provided.");
+                return wildCardDirsToSearch;
             }
-
-            foreach (string n in names)
+            
+            foreach (string name in names)
             {
-                WildcardPattern nameWildCardPattern = new WildcardPattern(n, WildcardOptions.IgnoreCase);
+                WildcardPattern nameWildCardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
                 
                 // ./Modules/Test-Module
                 // ./Scripts/Test-Script.ps1
-                // Where vs FindAll
-                wildCardDirsToSearch.AddRange(dirsToSearch.Where(
+                wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(
                     p => nameWildCardPattern.IsMatch(
                         System.IO.Path.GetFileNameWithoutExtension((new DirectoryInfo(p).Name)))));
             }
@@ -65,14 +64,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Filter by user provided version
-        public List<string> GetResourceMetadataFiles(VersionRange versionRange, List<string> dirsToSearch)
+        public IEnumerable<PSResourceInfo> GetResourceMetadataFiles(VersionRange versionRange, List<string> dirsToSearch)
         {
-            List<string> installedPkgsToReturn = new List<string>();  // these are the xmls
+            // This will contain the metadata xmls
+            List<string> installedPkgsToReturn = new List<string>();
 
             if (versionRange == null)
             {
-                // if version is not specified, return all versions
-                versionRange = VersionRange.All;
+                cmdletPassedIn.WriteVerbose("Version should not be null.");
             }
 
             // if no version is specified, just get the latest version
@@ -84,28 +83,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (Directory.Exists(pkgPath))
                 {
                     // search modules paths
-                    // ./Modules/Test-Module
                     // ./Modules/Test-Module/1.0.0
                     // ./Modules/Test-Module/2.0.0
                     cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
-                    string[] versionsDirs = Directory.GetDirectories(pkgPath);  // ERROR HANDLING
+
+                    string[] versionsDirs = new string[]{};
+                    try
+                    {
+                        versionsDirs = Directory.GetDirectories(pkgPath);
+                    }
+                    catch (Exception e){
+                        cmdletPassedIn.WriteVerbose(string.Format("Error retreiving directories from path '{0}': '{1}'", pkgPath, e.Message));
+                    }
 
                     foreach (string versionPath in versionsDirs)
                     {
                         cmdletPassedIn.WriteDebug(string.Format("Searching through package version path: '{0}'", versionPath));
                         DirectoryInfo dirInfo = new DirectoryInfo(versionPath);
-                        NuGetVersion.TryParse(dirInfo.Name, out NuGetVersion dirAsNugetVersion);
-                        cmdletPassedIn.WriteDebug(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
 
-                        if (dirAsNugetVersion != null && versionRange.Satisfies(dirAsNugetVersion))
+                        // if the version is not valid, we'll just skip it and output a debug message
+                        if (!NuGetVersion.TryParse(dirInfo.Name, out NuGetVersion dirAsNugetVersion))
+                        {
+                            cmdletPassedIn.WriteVerbose(string.Format("Leaf directory in path '{0}' cannot be parsed into a version.", versionPath));
+                            continue;
+                        }
+                        cmdletPassedIn.WriteDebug(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
+                        
+                        if (versionRange.Satisfies(dirAsNugetVersion))
                         {
                             // This will be one version or a version range.
                             string pkgXmlFilePath = System.IO.Path.Combine(versionPath, "PSGetModuleInfo.xml");
-                            if (File.Exists(pkgXmlFilePath))
-                            {
-                                cmdletPassedIn.WriteDebug(string.Format("Found module XML: '{0}'", pkgXmlFilePath));
-                                installedPkgsToReturn.Add(pkgXmlFilePath);
-                            }
+                     
+                            yield return OutputPackageObject(dirInfo.Parent.ToString(), pkgXmlFilePath);
                         }
                     }
                 }
@@ -121,57 +130,54 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     cmdletPassedIn.WriteDebug(string.Format("Adding package XML: '{0}'", scriptXmlFilePath));
 
+                    if (!File.Exists(scriptXmlFilePath))
+                    {
+                        cmdletPassedIn.WriteVerbose(string.Format("Resource metadata file for resource '{0}' does not exist at '{1}'", scriptName, scriptXmlFilePath));
+                        continue;
+                    }
+
                     if (versionRange == VersionRange.All)
                     {
-                        installedPkgsToReturn.Add(scriptXmlFilePath);
+                        yield return OutputPackageObject(scriptName, scriptXmlFilePath);
+                        continue;
                     }
-                    else
+
+                    // check to make sure it's within the version range.
+                    // script versions will be parsed from the script xml file
+                    PSResourceInfo script = OutputPackageObject(scriptName, scriptXmlFilePath);
+                    if (!NuGetVersion.TryParse(script.Version.ToString(), out NuGetVersion scriptVersion))
                     {
-                        // check to make sure it's within the version range.
-                        // script versions will be parsed from the script xml file
-                        ReadOnlyPSMemberInfoCollection<PSPropertyInfo> versionInfo;
-                        using (StreamReader sr = new StreamReader(scriptXmlFilePath))
-                        {
-                            string text = sr.ReadToEnd();
-                            var deserializedObj = (PSObject)PSSerializer.Deserialize(text);
-
-                            versionInfo = deserializedObj.Properties.Match("Version");
-                        };
-
-                        if (NuGetVersion.TryParse(versionInfo.ToString(), out NuGetVersion scriptVersion) &&
-                            versionRange.Satisfies(scriptVersion))
-                        {
-                            // if version satisfies the condition, add it to the list
-                            installedPkgsToReturn.Add(scriptXmlFilePath);
-                        }
+                        cmdletPassedIn.WriteVerbose(string.Format("Version '{0}' could not be properly parsed from the script metadata file '{1}'", script.Version.ToString(), scriptXmlFilePath));
+                    }
+                    if (versionRange.Satisfies(scriptVersion))
+                    {
+                        yield return script;
                     }
                 }
             }
-
-            return installedPkgsToReturn;
         }
         
         // Create package object for each found resource directory
-        public IEnumerable<PSResourceInfo> OutputPackageObject(List<string> installedPkgsToReturn, VersionRange versionRange)
+        public PSResourceInfo OutputPackageObject(string pkgName, string xmlFilePath)
         {
-            IEnumerable<object> flattenedPkgs = FlattenExtension.Flatten(installedPkgsToReturn);
-            List<PSResourceInfo> foundInstalledPkgs = new List<PSResourceInfo>();
-
             // Read metadata from XML and parse into PSResourceInfo object
-            foreach (string xmlFilePath in flattenedPkgs)
+            if (File.Exists(xmlFilePath))
             {
                 cmdletPassedIn.WriteDebug(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
-                
-                if (File.Exists(xmlFilePath))
+                if (!TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
                 {
-                    if (!TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
-                    {
-                        cmdletPassedIn.WriteVerbose(errorMsg);
-                        yield break;
-                    }
-                    yield return psGetInfo;
+                    cmdletPassedIn.WriteVerbose(errorMsg);
+                }
+                else
+                {
+                    cmdletPassedIn.WriteDebug(string.Format("Found module XML: '{0}'", xmlFilePath));
+                    return psGetInfo;
                 }
             }
+            else {
+                cmdletPassedIn.WriteVerbose(string.Format("Resource metadata file for resource '{0}' does not exist at path '{1}'", pkgName, xmlFilePath));
+            }
+            return null;
         }
     }
 }

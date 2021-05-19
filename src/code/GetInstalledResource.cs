@@ -71,16 +71,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             if (Path != null)
             {
-                // parse version
                 this.WriteDebug(string.Format("Provided path is: '{0}'", Path));
-                _pathsToSearch.AddRange(Directory.GetDirectories(Path));
+
+                var resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).ToString();
+
+                try
+                {
+                    _pathsToSearch.AddRange(Directory.GetDirectories(resolvedPath));
+                }
+                catch (Exception e)
+                {
+                    var exMessage = String.Format("Error retrieving directories from provided path '{0}': '{1}'.", Path, e.Message);
+                    var ex = new ArgumentException(exMessage);
+                    var ErrorRetrievingDirectories = new ErrorRecord(ex, "ErrorRetrievingDirectories", ErrorCategory.ResourceUnavailable, null);
+                    ThrowTerminatingError(ErrorRetrievingDirectories);
+                }
             }
             else
             {
                 // retrieve all possible paths
                 _pathsToSearch = Utils.GetAllResourcePaths(this);
             }
-            
+
+            if (Name == null)
+            {
+                Name = new string[] { "*" };
+            }
             // if '*' is passed in as an argument for -Name with other -Name arguments, 
             // ignore all arguments except for '*' since it is the most inclusive
             // eg:  -Name ["TestModule, Test*, *"]  will become -Name ["*"]
