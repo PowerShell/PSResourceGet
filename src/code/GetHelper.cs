@@ -20,11 +20,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         private CancellationToken cancellationToken;
         private readonly PSCmdlet cmdletPassedIn;
+        private readonly string cmdletName;
 
-        public GetHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
+        public GetHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn, string cmdletName)
         {
             this.cancellationToken = cancellationToken;
             this.cmdletPassedIn = cmdletPassedIn;
+            this.cmdletName = cmdletName;
         }
 
         public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, VersionRange versionRange, List<string>pathsToSearch)
@@ -69,7 +71,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This will contain the metadata xmls
             List<string> installedPkgsToReturn = new List<string>();
             
-            if (versionRange == null)
+            if (versionRange == null && cmdletName.Equals("Get-InstalledPSResource"))
             {
                 System.Diagnostics.Debug.Assert(false, "FilterPkgPathsByName: version argument should not be null.");
                 cmdletPassedIn.WriteVerbose("FilterPkgPathsByName: version argument should not be null.");
@@ -98,7 +100,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     catch (Exception e){
                         cmdletPassedIn.WriteVerbose(string.Format("Error retreiving directories from path '{0}': '{1}'", pkgPath, e.Message));
 
-                        yield break;
+                        // skip to next iteration of the loop
+                        continue;
                     }
 
                     foreach (string versionPath in versionsDirs)
@@ -110,6 +113,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (!NuGetVersion.TryParse(dirInfo.Name, out NuGetVersion dirAsNugetVersion))
                         {
                             cmdletPassedIn.WriteVerbose(string.Format("Leaf directory in path '{0}' cannot be parsed into a version.", versionPath));
+
+                            // skip to next iteration of the loop
                             continue;
                         }
                         cmdletPassedIn.WriteVerbose(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
@@ -118,7 +123,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             // This will be one version or a version range.
                             string pkgXmlFilePath = System.IO.Path.Combine(versionPath, "PSGetModuleInfo.xml");
-                     
+
+                            // yield results then continue with this iteration of the loop
                             yield return OutputPackageObject(dirInfo.Parent.ToString(), pkgXmlFilePath);
                         }
                     }
@@ -140,31 +146,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         PSResourceInfo scriptInfoAllVersions = OutputPackageObject(scriptName, scriptXmlFilePath);
                         if (scriptInfoAllVersions != null)
                         {
+                            // yield results then continue with this iteration of the loop
                             yield return scriptInfoAllVersions;
-
-                            // TODO:  break or continue?
-
                         }
-                        
-                        // TODO: clean up -- complete with the current iteration of the for loop because this version meets the requirement
-                        continue;
-                    }
 
-                    // check to make sure it's within the version range.
-                    // script versions will be parsed from the script xml file
-                    PSResourceInfo scriptInfo = OutputPackageObject(scriptName, scriptXmlFilePath);
-                    if (scriptInfo == null)
-                    {
-                        yield break;
+                        // We are now done with the current iteration of the for loop because
+                        // only one script version can be installed in a particular script path at a time.
+                        // if looking for all versions and one was found, then we have found all possible versions at that ./Scripts path
+                        // and do not need to parse and check for the version number in the metadata file.
                     }
+                    else
+                    {
+                        // check to make sure it's within the version range.
+                        // script versions will be parsed from the script xml file
+                        PSResourceInfo scriptInfo = OutputPackageObject(scriptName, scriptXmlFilePath);
+                        if (scriptInfo == null)
+                        {
+                            // if script was not found skip to the next iteration of the loop
+                            continue;
+                        }
 
-                    if (!NuGetVersion.TryParse(scriptInfo.Version.ToString(), out NuGetVersion scriptVersion))
-                    {
-                        cmdletPassedIn.WriteVerbose(string.Format("Version '{0}' could not be properly parsed from the script metadata file '{1}'", scriptInfo.Version.ToString(), scriptXmlFilePath));
-                    }
-                    if (versionRange.Satisfies(scriptVersion))
-                    {
-                        yield return scriptInfo;
+                        if (!NuGetVersion.TryParse(scriptInfo.Version.ToString(), out NuGetVersion scriptVersion))
+                        {
+                            cmdletPassedIn.WriteVerbose(string.Format("Version '{0}' could not be properly parsed from the script metadata file '{1}'", scriptInfo.Version.ToString(), scriptXmlFilePath));
+                        }
+                        else if (versionRange.Satisfies(scriptVersion))
+                        {
+                            yield return scriptInfo;
+                        }
                     }
                 }
             }
