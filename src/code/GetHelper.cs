@@ -33,9 +33,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             List<string> filteredPathsToSearch = FilterPkgPathsByName(name, pathsToSearch);
 
-            foreach (PSResourceInfo pkgObject in GetResourceMetadataFiles(versionRange, filteredPathsToSearch))
+            foreach (string pkgPath in GetResourceMetadataFiles(versionRange, filteredPathsToSearch))
             {
-                yield return pkgObject;
+                yield return OutputPackageObject(pkgPath);
             }
         }
 
@@ -66,7 +66,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Filter by user provided version
-        public IEnumerable<PSResourceInfo> GetResourceMetadataFiles(VersionRange versionRange, List<string> dirsToSearch)
+        public IEnumerable<String> GetResourceMetadataFiles(VersionRange versionRange, List<string> dirsToSearch)
         {
             // This will contain the metadata xmls
             List<string> installedPkgsToReturn = new List<string>();
@@ -125,7 +125,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             string pkgXmlFilePath = System.IO.Path.Combine(versionPath, "PSGetModuleInfo.xml");
 
                             // yield results then continue with this iteration of the loop
-                            yield return OutputPackageObject(dirInfo.Parent.ToString(), pkgXmlFilePath);
+                            yield return pkgXmlFilePath;
                         }
                     }
                 }
@@ -143,12 +143,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (versionRange == VersionRange.All)
                     {
-                        PSResourceInfo scriptInfoAllVersions = OutputPackageObject(scriptName, scriptXmlFilePath);
-                        if (scriptInfoAllVersions != null)
-                        {
-                            // yield results then continue with this iteration of the loop
-                            yield return scriptInfoAllVersions;
-                        }
+                        // yield results then continue with this iteration of the loop
+                        yield return scriptXmlFilePath;
 
                         // We are now done with the current iteration of the for loop because
                         // only one script version can be installed in a particular script path at a time.
@@ -159,7 +155,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // check to make sure it's within the version range.
                         // script versions will be parsed from the script xml file
-                        PSResourceInfo scriptInfo = OutputPackageObject(scriptName, scriptXmlFilePath);
+                        PSResourceInfo scriptInfo = OutputPackageObject(scriptXmlFilePath);
                         if (scriptInfo == null)
                         {
                             // if script was not found skip to the next iteration of the loop
@@ -172,7 +168,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         else if (versionRange.Satisfies(scriptVersion))
                         {
-                            yield return scriptInfo;
+                            yield return scriptXmlFilePath;
                         }
                     }
                 }
@@ -180,7 +176,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         
         // Create package object for each found resource directory
-        public PSResourceInfo OutputPackageObject(string pkgName, string xmlFilePath)
+        public PSResourceInfo OutputPackageObject(string xmlFilePath)
         {
             // Read metadata from XML and parse into PSResourceInfo object
             cmdletPassedIn.WriteVerbose(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
