@@ -39,6 +39,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string ResourceNameParameterSet = "ResourceNameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
+        private CancellationToken cancellationToken;
 
         #endregion
 
@@ -135,6 +136,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
+        protected override void BeginProcessing()
+        {
+            cancellationToken = new CancellationTokenSource().Token;
+
+            int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "/", StringComparison.CurrentCultureIgnoreCase));
+            if (wildcardIndex != -1)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("-Name '*' is not supported for Find-PSResource. Please use the TODO-cmdlet"),
+                    "NameStarNotSupported",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                Name = Name.Where(p => !String.Equals(p, "*", StringComparison.CurrentCultureIgnoreCase)).ToArray();
+            }
+        }
+
         protected override void ProcessRecord()
         {
             switch (ParameterSetName)
@@ -174,15 +191,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> ResourceNameParameterSetHelper()
         {
-            WriteVerbose("made it here 1");
-            // TODO: class variable
-            CancellationToken cancellationToken = new CancellationTokenSource().Token;
-
-            List<PSRepositoryInfo> repositoriesToSearch = RepositorySettings.Read(Repository, out string[] errorList);
-
-            // TODO: if errorList write errors
+            if (Name.Length == 0)
+            {
+                yield break;
+            }
 
             List<string> pkgsLeftToFind = Name.ToList();
+            List<PSRepositoryInfo> repositoriesToSearch = new List<PSRepositoryInfo>();
+
+            try
+            {
+                repositoriesToSearch = RepositorySettings.Read(Repository, out string[] errorList);
+
+                foreach (string error in errorList)
+                {
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorGettingSpecifiedRepo",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                }
+            }
+            catch (Exception e)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorLoadingRepositoryStoreFile",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                yield break;
+            }
 
             for (int i = 0; i < repositoriesToSearch.Count && pkgsLeftToFind.Any(); i++)
             {
@@ -192,7 +230,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // note about how Scripts and Modules have different endpoints, to use NuGet APIs need to search across both for PSGallery
                     Uri psGalleryScriptsUrl = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
                     PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo("PSGalleryScripts", psGalleryScriptsUrl, 50, false);
-                    if (Type == null) //Type != MOdule && Type != Script
+
+                    if (Type == null)
                     {
                         WriteDebug("Null Type provided, so add PSGalleryScripts repository");
                         repositoriesToSearch.Add(psGalleryScripts);
@@ -201,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         WriteDebug("Type Script provided, so add PSGalleryScripts and remove PSGallery (Modules only)");
                         repositoriesToSearch.Add(psGalleryScripts);
-                        // skip current Modules repository (PSGallery) since Module Type not specified
+                        // skip current repository PSGallery (Modules) since Module Type not specified
                         continue;
                     }
                 }
@@ -215,42 +254,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSResourceInfo> SearchFromRepository(string repoName, Uri repositoryUrl, List<string> pkgsLeftToFind, CancellationToken cancellationToken)
         {
-            WriteVerbose("made it here 2");
-            // if repositoryUrl ends with V3 endpoint and either of the names in Name is CatalogReader
-            // each V3 repository must have a service index resource: https://docs.microsoft.com/en-us/nuget/api/service-index
-
-            if (repositoryUrl.AbsoluteUri.EndsWith("index.json")) {
-                int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "*", StringComparison.OrdinalIgnoreCase));
-                // -1 -> continue on (like outside this if condition above and then below get flagged for URL online cond)
-                // 0  -> CreateCatalogReader and yield at end
-                // 1 or more -> write error and yield back. or strip other elements and handle as case 2?
-                // "*" -> ok
-                // "*", "Carbon" -> not ok, doesn't generate error
-                // "Carbon", "*" -> not ok, generates error tho
-
-                // Carbon*, PowerShellGet
-
-
-                if (wildcardIndex == 0 && Name.Length == 1)
-                {
-                    foreach(PSResourceInfo pkg in SearchFromCatalogReader(repoName, repositoryUrl, cancellationToken))
-                    {
-                        // pkg.Type = repositoryUrl or null if PSGallery
-                        yield return pkg;
-                    }
-                }
-                else if (wildcardIndex > 0 || (wildcardIndex == 0 && Name.Length > 1))
-                {
-                    // TODO: ask- here do we want to just write the error and not do any search. OR discard other names, write error and search "*" still?
-                    WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Name array cannot contain additional elements if one is '*'."),
-                        "NameCannotBeNullOrWhitespace",
-                        ErrorCategory.InvalidArgument,
-                        this));
-                    yield break;
-                }
-            }
-
             PackageSearchResource resourceSearch = null;
             PackageMetadataResource resourceMetadata = null;
             SearchFilter filter = null;
@@ -303,7 +306,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(repoName, resourceSearch, resourceMetadata, filter, context, pkgsLeftToFind, cancellationToken))
                 {
-                    WriteVerbose("in caller method");
                     yield return pkg;
                 }
             }
@@ -311,7 +313,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSResourceInfo> SearchAcrossNamesInRepository(string repoName, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext, List<string> pkgsLeftToFind, CancellationToken cancellationToken)
         {
-            WriteVerbose("made it here 3");
             foreach (string pkgName in Name)
             {
                 if (!pkgsLeftToFind.Any())
@@ -340,7 +341,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private IEnumerable<PSResourceInfo> FindFromPackageSourceSearchAPI(string repoName, string name, PackageSearchResource pkgSearchResource, PackageMetadataResource pkgMetadataResource, SearchFilter searchFilter, SourceCacheContext srcContext, List<string> pkgsLeftToFind, CancellationToken cancellationToken)
         {
-            WriteVerbose("made it here 4");
             List<IPackageSearchMetadata> foundPackagesMetadata = new List<IPackageSearchMetadata>();
 
             // filter by param: Name
@@ -352,7 +352,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // GetMetadataAsync() API returns all versions for a specific non-wildcard package name
                     // For PSGallery GetMetadataAsync() API returns both Script and Module resources by checking only the Modules endpoint
+
                     // TODO: check if filter by Type here, for PSGallery resource OR maybe do it after this method returns
+
                     retrievedPkgs = pkgMetadataResource.GetMetadataAsync(name, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
                     // if (repoName == PSGallery)
                     // iterate through retrievedPkgs and check each one's Tag's if equals PSScript && Type != Script --> Type assign as Module
@@ -375,8 +377,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // case: searching for name containing wildcard i.e "Carbon.*"
                 // SearchAsync() returns the latest version only for all packages that match the wild-card name
+                // TODO: try with OData query instead, to see if similar or expected number of pkgs returned
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-
+                if (wildcardPkgs.Count() > 5990)
+                {
+                    // then we need to get the rest of the packages
+                    IEnumerable<IPackageSearchMetadata>  wildcardPkgs2 = pkgSearchResource.SearchAsync(name, searchFilter, 6000, 9000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
+                    WriteVerbose("count of wildcardpkgs for name: " + name + " in repo: " + repoName + " pre-filtering #2: " + wildcardPkgs2.Count());
+                    wildcardPkgs = wildcardPkgs.Concat(wildcardPkgs2);
+                }
+                WriteVerbose("count of wildcardpkgs for name: " + name + " in repo: " + repoName + " pre-filtering: " + wildcardPkgs.Count());
                 // TODO: if wildcardPackages.Count == 6000 (verify!) ->  to call SearchAsync(6000, 8000) again to get rest of packages
 
                 WildcardPattern nameWildcardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
@@ -463,7 +473,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
                 PSResourceInfo currentPkg = new PSResourceInfo();
-                if(!PSResourceInfo.TryParse(pkg, out currentPkg, out string errorMsg)){
+                if (!PSResourceInfo.TryParse(pkg, out currentPkg, out string errorMsg)){
                     WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Error parsing IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
                         "IPackageSearchMetadataToPSResourceInfoParsingError",
@@ -471,8 +481,84 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                     yield break;
                 }
+                if (String.Equals("PSGallery", repoName, StringComparison.InvariantCultureIgnoreCase) || String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    currentPkg.Type = CheckType(currentPkg, name, repoName).ToString();
+                    // TODO: remove ToString() and use appropriate type for Type in PSResourceInfo, move this CheckType code to PSResourceInfo and
+                    // pass in name, repoName to that there.
+                }
                 yield return currentPkg;
             }
+        }
+
+
+        private ResourceType CheckType(PSResourceInfo pkg, string name, string repoName)
+        {
+            if (!String.Equals("PSGallery", repoName, StringComparison.InvariantCultureIgnoreCase) && !String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase))
+            {
+                // TODO: confirm if this is default ResourceType (i.e for non-PSGallery resources)
+                return ResourceType.Module;
+            }
+
+            if (!name.Contains("*"))
+            {
+                // NuGet GetMetadataAsync() API will be used. This can succesfully find resource from
+                // PSGallery (Modules) endpoint, regardless of pkg's Type
+                // if Type == null, we need to check pkg Tags to determine Type
+                if (Type == null)
+                {
+                    if (pkg.Tags.Contains("PSScript")) // can it take StringComparator
+                    {
+                        return ResourceType.Script;
+                    }
+                    if (pkg.Tags.Contains("PSCommand_"))
+                    {
+                        return ResourceType.Command;
+                    }
+                    if (pkg.Tags.Contains("PSDsc_"))
+                    {
+                        return ResourceType.DscResource;
+                    }
+                    return ResourceType.Module;
+                    // check for ResourceType.Module, ResourceType.Command, ResourceType.DscResource
+                }
+                else
+                {
+                    // if Type not null, we can rely on Type to determine pkg's Type
+                    return Type.Value;
+                }
+            }
+            else
+            {
+                // name contains wildcard - so NuGet SearchAsync() API will be used
+                // this has to use the correct Type associated PSGallery endpoint
+                // i.e PSGallery (Modules) endpoint will only be able to find pkgs of Module, Command, DscResource Type
+                // i.e PSGalleryScripts (Scripts) endpoint will only be able to find pkgs of Script Type
+                if (Type == null)
+                {
+                    if (String.Equals("PSGallery", repoName, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        if (pkg.Tags.Contains("PSCommand_"))
+                        {
+                            return ResourceType.Command;
+                        }
+                        if (pkg.Tags.Contains("PSDsc_"))
+                        {
+                            return ResourceType.DscResource;
+                        }
+                        return ResourceType.Module;
+                    }
+                    else if (String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        return ResourceType.Script;
+                    }
+                }
+                else
+                {
+                    return Type.Value;
+                }
+            }
+            return ResourceType.Module;
         }
 
 
@@ -483,62 +569,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TODO: resolve case sensitivty + look at Intersect takes StringComparator
             return Tag.Intersect(pkg.Tags).ToList().Count > 0;
         }
-
-        // private void FilterByTypeAtm(PSResourceInfo pkg, HashSet<string> otherTags, List<string> otherNames)
-        // {
-        //     // HashSet<string> otherTags = new HashSet<string>();
-
-        //     bool hasPSModule = false;
-        //     bool hasPSScript = false;
-        //     bool hasModule = false;
-        //     foreach (string t in pkg.Tags)
-        //     {
-        //         if (String.Equals("PSModule", t, StringComparison.OrdinalIgnoreCase))
-        //         {
-        //             hasPSModule = true;
-        //         }
-        //         if (String.Equals("PSScript", t, StringComparison.OrdinalIgnoreCase))
-        //         {
-        //             hasPSScript = true;
-        //         }
-        //         if (String.Equals("Module", t, StringComparison.OrdinalIgnoreCase))
-        //         {
-        //             hasModule = true;
-        //         }
-        //     }
-        //     if (!(hasPSModule || hasPSScript || hasModule))
-        //     {
-        //         foreach (string t in pkg.Tags)
-        //         {
-        //             otherTags.Add(t);
-        //         }
-        //         // WriteVerbose("NAME: " + pkg.Name + " tags: " + otherTags.ToString());
-        //         otherNames.Add(pkg.Name);
-        //     }
-        //     if (hasModule && !(hasPSModule || hasPSScript))
-        //     {
-        //         otherNames.Add("JUSTMODULE-" + pkg.Name);
-        //     }
-        // }
-
-        // private List<PSResourceInfo> FilterByResourceType(List<PSResourceInfo> pkgs)
-        // {
-        //     List<PSResourceInfo> filteredPkgs = new List<PSResourceInfo>();
-        //     foreach (PSResourceInfo p in pkgs)
-        //     {
-        //         // Type tags:
-        //         // PSScript -> def script
-        //         // Script -> this resource would be tagged as Module on PSGallery but just have Script tag
-        //         // PSModule -> def Module
-        //         // Module -> could there be resources with PSScript + Module tags?
-        //         // others -> did these PSModule/PSScript && Module/Script?
-        //         if (p.Type == Type.ToString())
-        //         {
-        //             filteredPkgs.Add(p);
-        //         }
-        //     }
-        //     return filteredPkgs;
-        // }
 
         // private List<IPackageSearchMetadata> FilterPkgsByResourceType(List<IPackageSearchMetadata> foundPkgs)
         // {
