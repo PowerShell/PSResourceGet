@@ -12,7 +12,7 @@ using NuGet.Versioning;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// It retrieves a resource that was installEd with Install-PSResource
+    /// It retrieves a resource that was installed with Install-PSResource
     /// Returns a single resource or multiple resource.
     /// </summary>
     [Cmdlet(VerbsCommon.Get, "InstalledPSResource", HelpUri = "<add>")]

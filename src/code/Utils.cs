@@ -19,6 +19,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Public methods
 
+        public static string GetInstalledPackageName(string pkgPath)
+        {
+            if (string.IsNullOrEmpty(pkgPath))
+            {
+                return string.Empty;
+            }
+            if (File.Exists(pkgPath))
+            {
+                return System.IO.Path.GetFileNameWithoutExtension(pkgPath);
+            }
+            else
+            {
+                return new DirectoryInfo(pkgPath).Parent.ToString();
+            }
+        }
+
         public static string TrimQuotes(string name)
         {
             return name.Trim('\'', '"');
