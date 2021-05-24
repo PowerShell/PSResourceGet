@@ -83,18 +83,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    foreach (var pkgName in Name)
+                    if (!UninstallPkgHelper())
                     {
-                        if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
-                        {
-                            return;
-                        }
-
-                        if (!String.IsNullOrWhiteSpace(pkgName) && !UninstallPkgHelper(pkgName))
-                        {
-                            // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
-                            WriteDebug(string.Format("Did not successfully uninstall package {0}", pkgName));
-                        }
+                        // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
+                        WriteDebug(string.Format("Did not successfully uninstall all packages"));
                     }
 
                     break;
@@ -118,7 +110,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 WriteError(ErrorParsingVersion);
                             }
 
-                            if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper(pkg.Name))
+                            Name = new string[] { pkg.Name };
+                            if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper())
                             {
                                 // specific errors will be displayed lower in the stack
                                 var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", pkg.Name));
@@ -136,11 +129,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         
         /* uninstalls a single resource */
-        private bool UninstallPkgHelper(string pkgName)
+        private bool UninstallPkgHelper()
         {
             var successfullyUninstalled = false;
             List<string> dirsToDelete = new List<string>();
-            var isScript = false;
+
+            GetHelper getHelper = new GetHelper(_cancellationToken, this);
+            dirsToDelete = getHelper.FilterPkgPathsByName(Name, dirsToDelete);
 
             // Checking if module or script
             // a module path will look like:
@@ -149,100 +144,37 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // a script path will look like:
             // ./Scripts/TestScript.ps1
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
-            foreach (var path in _pathsToSearch)
-            {
-                var moduleName = pkgName;
-                var scriptName = string.Concat(pkgName, ".ps1");
-                string[] versionDirs = null;
 
-                // if this is a module path, eg: ./PowerShell/TestModule
-                if (path.EndsWith(pkgName, StringComparison.OrdinalIgnoreCase))
+            string pkgName = string.Empty;
+
+            foreach (string pkgPath in getHelper.GetResourceMetadataFiles(_versionRange, dirsToDelete, out Dictionary<string, PSResourceInfo> scriptDict))
+            {
+                if (pkgPath.EndsWith(".ps1"))
                 {
-                    // returns all the version directories
-                    // eg:  TestModule/0.0.1, TestModule/0.0.2
-                    versionDirs = Directory.GetDirectories(path);
+                    pkgName = System.IO.Path.GetFileNameWithoutExtension(pkgPath);
 
-                    if (_versionRange != null)
-                    {
-                        // check if the version matches
-                        foreach (var versionDirPath in versionDirs)
-                        {
-                            string versionLeaf = Path.GetFileName(versionDirPath);
-                            if (!NuGetVersion.TryParse(versionLeaf, out NuGetVersion nugVersion))
-                            {
-                                WriteDebug(string.Format("Unable to parse '{0}' from the path '{1}' into a version.", versionLeaf, versionDirPath));
-                                break;
-                            }
-                            if (_versionRange.Satisfies(nugVersion))
-                            {
-                                dirsToDelete.Add(versionDirPath);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // if no version is specified, just delete the latest version
-                        Array.Sort(versionDirs);
-
-                        dirsToDelete.Add(versionDirs[versionDirs.Length - 1]);
-                    }
+                    successfullyUninstalled = UninstallScriptHelper(pkgName, dirsToDelete);
                 }
-                // if this is a script path eg: ./PowerShell/Scripts/Test-Script.ps1
-                else if (path.EndsWith(scriptName, StringComparison.OrdinalIgnoreCase))
+                else
                 {
-                    isScript = true;
-                    // check if the version matches
-                    if (_versionRange != null)
-                    {
-                        var xmlFileName = string.Concat(pkgName, "_InstalledScriptInfo.xml");
-                        var scriptXMLPath = Path.Combine(new DirectoryInfo(path).Parent.ToString(), "InstalledScriptInfos", xmlFileName);
+                    pkgName = System.IO.Path.GetDirectoryName(pkgPath);
 
-                        string versionInfo;
-                        using (StreamReader sr = new StreamReader(scriptXMLPath))
-                        {
-                            string text = sr.ReadToEnd();
-                            var deserializedObj = (PSObject)PSSerializer.Deserialize(text);
-
-                            versionInfo = deserializedObj.Properties.Match("Version").First().Value.ToString();
-                        };
-
-                        if (NuGetVersion.TryParse(versionInfo, out NuGetVersion scriptVersion) &&
-                            _versionRange.Satisfies(scriptVersion))
-                        {
-                            // if version satisfies the condition, add it to the list
-                            dirsToDelete.Add(path);
-                        }
-                    }
-                    else {
-                        // otherwise just delete whatever version the script is
-                        dirsToDelete.Add(path);
-                    }
+                    successfullyUninstalled = UninstallModuleHelper(pkgName, dirsToDelete);
                 }
-            }
 
-            // if we can't find the resource, write non-terminating error and return
-            if (!dirsToDelete.Any())
-            {
-                string message = Version == null || Version.Trim().Equals("*") ?
-                    string.Format("Could not find any version of the resource '{0}' in any path", pkgName) :
-                    string.Format("Could not find verison '{0}' of the resource '{1}' in any path", Version, pkgName);
-                
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException(message),
-                    "ErrorRetrievingSpecifiedResource",
-                    ErrorCategory.ObjectNotFound,
-                    this));
+                // if we can't find the resource, write non-terminating error and return
+                if (!successfullyUninstalled)
+                {
+                    string message = Version == null || Version.Trim().Equals("*") ?
+                        string.Format("Could not find any version of the resource '{0}' in any path", pkgName) :
+                        string.Format("Could not find verison '{0}' of the resource '{1}' in any path", Version, pkgName);
 
-                return successfullyUninstalled;
-            }
-
-            if (isScript)
-            {
-                successfullyUninstalled = UninstallScriptHelper(pkgName, dirsToDelete);
-            }
-            else 
-            {
-                successfullyUninstalled = UninstallModuleHelper(pkgName, dirsToDelete);
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(message),
+                        "ErrorRetrievingSpecifiedResource",
+                        ErrorCategory.ObjectNotFound,
+                        this));
+                }
             }
 
             return successfullyUninstalled;
@@ -306,14 +238,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool UninstallScriptHelper(string pkgName, List<string> dirsToDelete)
         {
             var successfullyUninstalledPkg = false;
-
-            // if -Force is not specified and the pkg is a dependency for another package, 
-            // an error will be written and we return false
-            if (!Force && CheckIfDependency(pkgName))
-            {
-                return false;
-            }
-
+            
             foreach (var scriptPath in dirsToDelete)
             {
                 // delete the appropriate file
