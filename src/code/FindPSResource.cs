@@ -140,7 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             cancellationToken = new CancellationTokenSource().Token;
 
-            int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "/", StringComparison.CurrentCultureIgnoreCase));
+            int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "*", StringComparison.CurrentCultureIgnoreCase));
             if (wildcardIndex != -1)
             {
                 WriteError(new ErrorRecord(
@@ -473,7 +473,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
                 PSResourceInfo currentPkg = new PSResourceInfo();
-                if (!PSResourceInfo.TryParse(pkg, out currentPkg, out string errorMsg)){
+                if (!PSResourceInfo.TryParse(pkg, out currentPkg, name, repoName, Type, out string errorMsg)){
                     WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Error parsing IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
                         "IPackageSearchMetadataToPSResourceInfoParsingError",
@@ -481,12 +481,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                     yield break;
                 }
-                if (String.Equals("PSGallery", repoName, StringComparison.InvariantCultureIgnoreCase) || String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase))
+                WriteVerbose("current pkg types: " + currentPkg.Type);
+                if (Type != null)
                 {
-                    currentPkg.Type = CheckType(currentPkg, name, repoName).ToString();
-                    // TODO: remove ToString() and use appropriate type for Type in PSResourceInfo, move this CheckType code to PSResourceInfo and
-                    // pass in name, repoName to that there.
+                    if (Type == ResourceType.Command && !currentPkg.Type.HasFlag(ResourceType.Command))
+                    {
+                        continue;
+                    }
+                    if (Type == ResourceType.DscResource && !currentPkg.Type.HasFlag(ResourceType.DscResource))
+                    {
+                        continue;
+                    }
                 }
+                // if (String.Equals("PSGallery", repoName, StringComparison.InvariantCultureIgnoreCase) || String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase))
+                // {
+                //     // currentPkg.Type = CheckType(currentPkg, name, repoName);
+                //     // TODO: remove ToString() and use appropriate type for Type in PSResourceInfo, move this CheckType code to PSResourceInfo and
+                //     // pass in name, repoName to that there.
+                // }
                 yield return currentPkg;
             }
         }
@@ -564,7 +576,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private bool IsTagMatch(PSResourceInfo pkg)
         {
-            WriteVerbose("made it here 5");
+            WriteVerbose("made it here 3000");
+            WriteVerbose(String.Join("\n", pkg.Tags));
             // TODO: check if Tag null here, so cleaner in caller method
             // TODO: resolve case sensitivty + look at Intersect takes StringComparator
             return Tag.Intersect(pkg.Tags).ToList().Count > 0;

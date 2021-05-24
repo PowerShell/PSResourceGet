@@ -15,13 +15,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     #region Enums
 
-    // flag attribute?
+    // todo: add Flag attribute
+    [Flags]
     public enum ResourceType
     {
-        Module,
-        Script,
-        DscResource,
-        Command
+        Module = 0x1,
+        Script = 0x2,
+        Command = 0x4,
+        DscResource = 0x8
     }
 
     public enum VersionType
@@ -173,7 +174,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Repository { get; set; }
         public string RepositorySourceLocation { get; set; }
         public string[] Tags { get; set; }
-        public string Type { get; set; }
+        public ResourceType Type { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public Version Version { get; set; }
 
@@ -268,7 +269,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
                     RepositorySourceLocation = GetProperty<string>(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
                     Tags = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSResourceInfo.Tags), psObjectInfo)),
-                    Type = GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo),
+                    Type = Enum.TryParse(GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo), out ResourceType currentReadType) ? currentReadType : ResourceType.Module,
                     UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
                     Version = GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo)
                 };
@@ -289,6 +290,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static bool TryParse(
             IPackageSearchMetadata metadataToParse,
             out PSResourceInfo psGetInfo,
+            string pkgName,
+            string repoName,
+            ResourceType? type,
             out string errorMsg)
         {
             psGetInfo = null;
@@ -324,7 +328,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     // Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
                     // RepositorySourceLocation = GetProperty<string>(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
                     Tags = ParseMetadataTags(metadataToParse),
-                    Type = ParseMetadataType(metadataToParse),
+                    Type = ParseMetadataType(metadataToParse, pkgName, repoName, type),
                     // UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
                     Version = ParseMetadataVersion(metadataToParse)
                 };
@@ -516,22 +520,53 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pkg.Tags.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
         }
 
-        private static string ParseMetadataType(IPackageSearchMetadata pkg)
+        private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg, string pkgName, string repoName, ResourceType? pkgType)
         {
             string[] tags = ParseMetadataTags(pkg);
+            ResourceType currentPkgType = ResourceType.Module;
+
+            // do repoName based check to determine Type
+            // this accounts for names with wildcard, which were obtained from SearchAsync() API call
+
+            //if (pkgName.Contains("*")) //means SearchAsync() searched a distinct repo
+            //{
+            if ((pkgType == null && String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase)) || (pkgType != null && pkgType == ResourceType.Script))
+            {
+                // it's a Script resource, so clear default Module tag because a Script resource cannot also be a Module resource
+                currentPkgType &= ~ResourceType.Module;
+                currentPkgType |= ResourceType.Script;
+            }
+            //}
+
+            // if Name contains wc, atm Script and Module tags should be set properly, but need to account for Command and DscResource types too
+            // if Name does not contain wc, GetMetadataAsync() was used, PSGallery only is searched (and pkg will successfully be found
+            // and returned from there) before PSGalleryScripts can be searched
             foreach(string tag in tags)
             {
-                if(String.Equals(tag, "PSScript", StringComparison.OrdinalIgnoreCase))
+                if(String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    return "Script";
+                    // clear default Module tag, because a Script resource cannot be a Module resource also
+                    currentPkgType &= ~ResourceType.Module;
+                    currentPkgType |= ResourceType.Script;
                 }
-                // else if(String.Equals(tag, "PSModule", StringComparison.OrdinalIgnoreCase))
+                if (tag.StartsWith("PSCommand_"))
+                {
+                    Console.WriteLine("Set Command flag");
+                    currentPkgType |= ResourceType.Command;
+                }
+                if (tag.StartsWith("PSDscResource_"))
+                {
+                    currentPkgType |= ResourceType.DscResource;
+                }
+                // if (String.Equals(tag, "PSModule", StringComparison.InvariantCultureIgnoreCase))
                 // {
-                //     return "Module";
+                //     Console.WriteLine("Set Module flag");
+                //     currentPkgType |= ResourceType.Module;
                 // }
             }
+            Console.WriteLine("Current Types flagged: " + currentPkgType);
             // todo: or do we want to have additional type "undefined" which is returned here, esp for Galleries that don't have Type (i.e NuGet)
-            return "Module";
+            return currentPkgType;
         }
 
         private static Version ParseMetadataVersion(IPackageSearchMetadata pkg)
