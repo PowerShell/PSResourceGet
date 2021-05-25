@@ -26,7 +26,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             _cancellationToken = cancellationToken;
             _cmdletPassedIn = cmdletPassedIn;
-            _scriptDictionary = new Dictionary<string, PSResourceInfo>();
+            _scriptDictionary = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
         }
 
         public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, VersionRange versionRange, List<string> pathsToSearch)
@@ -60,6 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     p => nameWildCardPattern.IsMatch(
                         System.IO.Path.GetFileNameWithoutExtension((new DirectoryInfo(p).Name)))));
             }
+
             _cmdletPassedIn.WriteDebug(wildCardDirsToSearch.Any().ToString());
 
             return wildCardDirsToSearch;
@@ -119,6 +120,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // skip to next iteration of the loop
                             continue;
                         }
+
                         _cmdletPassedIn.WriteVerbose(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
 
                         if (versionRange.Satisfies(dirAsNugetVersion))
@@ -175,7 +177,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // find package name
             string pkgName = Utils.GetInstalledPackageName(pkgPath);
+
             _cmdletPassedIn.WriteDebug(string.Format("OutputPackageObject:: package name is {0}.", pkgName));
+
             // Find xml file
             // if the package path is in the deserialized script dictionary, just return that 
             if (scriptDictionary.ContainsKey(pkgPath))
@@ -195,6 +199,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             // Read metadata from XML and parse into PSResourceInfo object
             _cmdletPassedIn.WriteVerbose(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
+
             if (!TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
             {
                 _cmdletPassedIn.WriteVerbose(errorMsg);

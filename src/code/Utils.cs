@@ -25,12 +25,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 return string.Empty;
             }
+
             if (File.Exists(pkgPath))
             {
+                // ex: ./PowerShell/Scripts/TestScript.ps1
                 return System.IO.Path.GetFileNameWithoutExtension(pkgPath);
             }
             else
-            {
+            { 
+                // expecting the full version module path
+                // ex:  ./PowerShell/Modules/TestModule/1.0.0
                 return new DirectoryInfo(pkgPath).Parent.ToString();
             }
         }
