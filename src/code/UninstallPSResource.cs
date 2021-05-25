@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using static System.Environment;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Runtime.InteropServices;
 using System.Threading;
 using NuGet.Versioning;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
@@ -88,47 +85,45 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
                         WriteDebug(string.Format("Did not successfully uninstall all packages"));
                     }
-
                     break;
+
                 case InputObjectSet:
                     // the for loop will use type PSObject in order to pull the properties from the pkg object
                     foreach (PSResourceInfo pkg in InputObject)
                     {
-                        if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkg.Name)))
+                        if (pkg == null)
                         {
-                            return;
+                            continue;
                         }
 
-                        if (pkg != null)
+                        // attempt to parse version
+                        if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange))
                         {
-                            // attempt to parse version
-                            if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange))
-                            {
-                                var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
-                                var ex = new ArgumentException(exMessage);
-                                var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
-                                WriteError(ErrorParsingVersion);
-                            }
+                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
+                            var ex = new ArgumentException(exMessage);
+                            var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
+                            WriteError(ErrorParsingVersion);
+                        }
 
-                            Name = new string[] { pkg.Name };
-                            if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper())
-                            {
-                                // specific errors will be displayed lower in the stack
-                                var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", pkg.Name));
-                                var ex = new ArgumentException(exMessage);
-                                var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
-                                    WriteError(UninstallResourceError);
-                            }
+                        Name = new string[] { pkg.Name };
+                        if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper())
+                        {
+                            // specific errors will be displayed lower in the stack
+                            var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", pkg.Name));
+                            var ex = new ArgumentException(exMessage);
+                            var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
+                                WriteError(UninstallResourceError);
                         }
                     }
                     break;
+
                 default:
                     WriteDebug("Invalid parameter set");
                     break;
             }
         }
         
-        /* uninstalls a single resource */
+
         private bool UninstallPkgHelper()
         {
             var successfullyUninstalled = false;
@@ -151,13 +146,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
+                if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
+                {
+                    this.WriteDebug("ShouldProcess is set to false.");
+                    continue;
+                }
+
                 if (pkgPath.EndsWith(".ps1"))
                 {
-                    successfullyUninstalled = UninstallScriptHelper(pkgPath);
+                    successfullyUninstalled = UninstallScriptHelper(pkgPath, pkgName);
                 }
                 else
                 {
-                    successfullyUninstalled = UninstallModuleHelper(pkgPath);
+                    successfullyUninstalled = UninstallModuleHelper(pkgPath, pkgName);
                 }
 
                 // if we can't find the resource, write non-terminating error and return
@@ -179,11 +180,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /* uninstalls a module */
-        private bool UninstallModuleHelper(string pkgPath)
+        private bool UninstallModuleHelper(string pkgPath, string pkgName)
         {
             var successfullyUninstalledPkg = false;
-
-            string pkgName = Utils.GetInstalledPackageName(pkgPath);
 
             // if -Force is not specified and the pkg is a dependency for another package, 
             // an error will be written and we return false
@@ -232,11 +231,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /* uninstalls a script */
-        private bool UninstallScriptHelper(string pkgPath)
+        private bool UninstallScriptHelper(string pkgPath, string pkgName)
         {
             var successfullyUninstalledPkg = false;
-            string pkgName = Utils.GetInstalledPackageName(pkgPath);
-            
+
             // delete the appropriate file
             try
             {
@@ -290,7 +288,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 IEnumerable<PSObject> pkgsWithRequiredModules = new List<PSObject>();
                 try
                 {
-                    pkgsWithRequiredModules = results.Where(p => ((ReadOnlyCollection<PSModuleInfo>)p.Properties["RequiredModules"].Value).Where(rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any());
+                    pkgsWithRequiredModules = results.Where(
+                        p => ((ReadOnlyCollection<PSModuleInfo>)p.Properties["RequiredModules"].Value).Where(
+                            rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any());
                 }
                 catch (Exception e) {
                     var exMessage = String.Format("Error checking if resource is a dependency: {0}. If you would still like to uninstall, rerun the command with -Force", e.Message);
