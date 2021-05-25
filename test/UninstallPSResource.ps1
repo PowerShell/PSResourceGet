@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-<# Temporarily comment out tests until Install-PSResource is complete
+// Temporarily comment out tests until Install-PSResource is complete
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Uninstall-PSResource for Modules' {
@@ -16,14 +16,16 @@ Describe 'Test Uninstall-PSResource for Modules' {
         Get-RevertPSResourceRepositoryFile
     }
 
+### done
     It "Uninstall a specific module by name" {
         $pkg = Uninstall-PSResource -name Bicep 
     }
-
+### done
     It "Uninstall a list of modules by name" {
-        $pkg = Uninstall-PSResource -Name BaseTestPackage, bogreader 
+        $pkg = Uninstall-PSResource -Name BaseTestPackage, bicep 
     }
 
+### done
     It "Uninstall a module when given name and specifying all versions" {
         $res = Uninstall-PSResource -Name "Carbon" -version "*"
         $res | Should -BeNullOrEmpty
