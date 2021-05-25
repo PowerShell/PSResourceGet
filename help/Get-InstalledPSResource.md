@@ -13,7 +13,7 @@ Returns resources (modules and scripts) installed on the machine via PowerShellG
 ## SYNTAX
 
 ```
-Get-InstalledPSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-WhatIf] [<CommonParameters>]
+Get-InstalledPSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,7 +26,28 @@ The Get-InstalledPSResource cmdlet combines the Get-InstalledModule, Get-Install
 PS C:\> Get-InstalledPSResource Az
 ```
 
-This will return instances of the Az module installed via PowerShellGet.
+This will return versions of the Az module installed via PowerShellGet.
+
+### Example 2
+```powershell
+PS C:\> Get-InstalledPSResource Az -version "1.0.0"
+```
+
+This will return version 1.0.0 of the Az module.
+
+### Example 3
+```powershell
+PS C:\> Get-InstalledPSResource Az -version "(1.0.0, 3.0.0)"
+```
+
+This will return all versions of the Az module within the specified range.
+
+### Example 4
+```powershell
+PS C:\> Get-InstalledPSResource Az -Path .
+```
+
+This will return all versions of the Az module that have been installed in the current directory.
 
 ## PARAMETERS
 
@@ -75,28 +96,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WhatIf
-Shows what would happen if the cmdlet runs.
-The cmdlet is not run.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases: wi
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
-
-## INPUTS
-
-### System.String[]
 
 ## OUTPUTS
 
