@@ -35,7 +35,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             { 
                 // expecting the full version module path
                 // ex:  ./PowerShell/Modules/TestModule/1.0.0
-                return new DirectoryInfo(pkgPath).Parent.ToString();
+                return new DirectoryInfo(pkgPath).Parent.Name;
             }
         }
 
