@@ -20,13 +20,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
-        private readonly string _cmdletName;
         private Dictionary<string, PSResourceInfo> _scriptDictionary;
 
         public GetHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
         {
             _cancellationToken = cancellationToken;
             _cmdletPassedIn = cmdletPassedIn;
+            _scriptDictionary = new Dictionary<string, PSResourceInfo>();
         }
 
         public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, VersionRange versionRange, List<string> pathsToSearch)
@@ -190,7 +190,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // else we assume it's a module, and look for the xml path that way 
             else
             {
-                xmlFilePath = System.IO.Path.Combine(parentDir.ToString(), "PSModuleInfo.xml");
+                xmlFilePath = System.IO.Path.Combine(pkgPath, "PSGetModuleInfo.xml");
             }
             
             // Read metadata from XML and parse into PSResourceInfo object

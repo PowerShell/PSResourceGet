@@ -27,7 +27,7 @@ Describe 'Test Get-InstalledPSResource for Module' {
         $pkg = Get-InstalledPSResource -Name ContosoServer
         $pkg.Name | Should -Be "ContosoServer"
     }
- 
+
     It "Get specific script resource by name" {
         $pkg = Get-InstalledPSResource -Name adsql
         $pkg.Name | Should -Be "adsql"
