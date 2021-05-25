@@ -1,38 +1,37 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-online version: <add>
+online version:
 schema: 2.0.0
 ---
 
 # Get-InstalledPSResource
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Returns resources (modules and scripts) installed on the machine via PowerShellGet.
 
 ## SYNTAX
 
 ```
-Get-InstalledPSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+Get-InstalledPSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-WhatIf] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+The Get-InstalledPSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript cmdlets from V2. It performs a search within module or script installation paths based on the -Name parameter argument. It returns PSResourceInfo objects which describe each resource item found. Other parameters allow the returned results to be filtered by version and path.
 
 ## EXAMPLES
 
 ### Example 1
 ```powershell
-PS C:\> {{ Add example code here }}
+PS C:\> Get-InstalledPSResource Az
 ```
 
-{{ Add example description here }}
+This will return instances of the Az module installed via PowerShellGet.
 
 ## PARAMETERS
 
 ### -Name
-{{ Fill Name Description }}
+Name of a resource or resources to find. Accepts wild card characters.
 
 ```yaml
 Type: System.String[]
@@ -43,11 +42,11 @@ Required: False
 Position: 0
 Default value: None
 Accept pipeline input: True (ByPropertyName, ByValue)
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Path
-{{ Fill Path Description }}
+Specifies the path to search in.
 
 ```yaml
 Type: System.String
@@ -62,27 +61,12 @@ Accept wildcard characters: False
 ```
 
 ### -Version
-{{ Fill Version Description }}
+Specifies the version of the resource to be returned. Can be an exact version or a version range.
 
 ```yaml
 Type: System.String
 Parameter Sets: (All)
 Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Confirm
-Prompts you for confirmation before running the cmdlet.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases: cf
 
 Required: False
 Position: Named
@@ -116,10 +100,36 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-### System.Object
+### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
+```
+PSRepositoryItemInfo : {
+    AdditionalMetadata
+    Author
+    CompanyName
+    Copyright
+    Dependencies
+    Description
+    IconUri
+    Includes
+    InstalledDate
+    InstalledLocation
+    IsPrerelease
+    LicenseUri
+    Name
+    PackageManagementProvider
+    PowerShellGetFormatVersion
+    ProjectUri
+    PublishedDate
+    ReleaseNotes
+    Repository
+    RepositorySourceLocation
+    Tags
+    Type
+    UpdatedDate
+    Version
+}
+```
 
 ## NOTES
 
 ## RELATED LINKS
-
-[<add>](<add>)
