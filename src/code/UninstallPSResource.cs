@@ -135,7 +135,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> dirsToDelete = new List<string>();
 
             GetHelper getHelper = new GetHelper(_cancellationToken, this);
-            dirsToDelete = getHelper.FilterPkgPathsByName(Name, dirsToDelete);
+            dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
 
             // Checking if module or script
             // a module path will look like:
@@ -147,19 +147,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             string pkgName = string.Empty;
 
-            foreach (string pkgPath in getHelper.GetResourceMetadataFiles(_versionRange, dirsToDelete, out Dictionary<string, PSResourceInfo> scriptDict))
+            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
             {
+                pkgName = Utils.GetInstalledPackageName(pkgPath);
+
                 if (pkgPath.EndsWith(".ps1"))
                 {
-                    pkgName = System.IO.Path.GetFileNameWithoutExtension(pkgPath);
-
-                    successfullyUninstalled = UninstallScriptHelper(pkgName, dirsToDelete);
+                    successfullyUninstalled = UninstallScriptHelper(pkgPath);
                 }
                 else
                 {
-                    pkgName = System.IO.Path.GetDirectoryName(pkgPath);
-
-                    successfullyUninstalled = UninstallModuleHelper(pkgName, dirsToDelete);
+                    successfullyUninstalled = UninstallModuleHelper(pkgPath);
                 }
 
                 // if we can't find the resource, write non-terminating error and return
@@ -181,9 +179,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /* uninstalls a module */
-        private bool UninstallModuleHelper(string pkgName, List<string> dirsToDelete)
+        private bool UninstallModuleHelper(string pkgPath)
         {
             var successfullyUninstalledPkg = false;
+
+            string pkgName = Utils.GetInstalledPackageName(pkgPath);
 
             // if -Force is not specified and the pkg is a dependency for another package, 
             // an error will be written and we return false
@@ -191,88 +191,83 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 return false;
             }
+            
+            DirectoryInfo dir = new DirectoryInfo(pkgPath.ToString());
+            DirectoryInfo parent = dir.Parent;
+            dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
 
-            foreach (var pathToDelete in dirsToDelete)
+            try
             {
-                DirectoryInfo dir = new DirectoryInfo(pathToDelete.ToString());
-                DirectoryInfo parent = dir.Parent;
-                dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+                // delete recursively
+                dir.Delete(true);
+                WriteVerbose(string.Format("Successfully uninstalled '{0}' from path '{1}'", pkgName, dir.FullName));
 
+                successfullyUninstalledPkg = true;
+
+                // finally: check to see if there's anything left in the parent directory, if not, delete that as well
                 try
                 {
-                    // delete recursively
-                    dir.Delete(true);
-                    WriteVerbose(string.Format("Successfully uninstalled '{0}' from path '{1}'", pkgName, dir.FullName));
-
-                    successfullyUninstalledPkg = true;
-
-                    // finally: check to see if there's anything left in the parent directory, if not, delete that as well
-                    try
+                    if (Directory.GetDirectories(dir.Parent.FullName).Length == 0)
                     {
-                        if (Directory.GetDirectories(dir.Parent.FullName).Length == 0)
-                        {
-                            Directory.Delete(dir.Parent.FullName, true);
-                        }
-                    }
-                    catch (Exception e) {
-                        // write error
-                        var exMessage = String.Format("Parent directory '{0}' could not be deleted: {1}", dir.Parent.FullName, e.Message);
-                        var ex = new ArgumentException(exMessage);
-                        var ErrorDeletingParentDirectory = new ErrorRecord(ex, "ErrorDeletingParentDirectory", ErrorCategory.InvalidArgument, null);
-                        WriteError(ErrorDeletingParentDirectory);
+                        Directory.Delete(dir.Parent.FullName, true);
                     }
                 }
-                catch (Exception err) {
+                catch (Exception e) {
                     // write error
-                    var exMessage = String.Format("Directory '{0}' could not be deleted: {1}", dir.FullName, err.Message);
+                    var exMessage = String.Format("Parent directory '{0}' could not be deleted: {1}", dir.Parent.FullName, e.Message);
                     var ex = new ArgumentException(exMessage);
-                    var ErrorDeletingDirectory = new ErrorRecord(ex, "ErrorDeletingDirectory", ErrorCategory.PermissionDenied, null);
-                    WriteError(ErrorDeletingDirectory);
+                    var ErrorDeletingParentDirectory = new ErrorRecord(ex, "ErrorDeletingParentDirectory", ErrorCategory.InvalidArgument, null);
+                    WriteError(ErrorDeletingParentDirectory);
                 }
             }
-                 
+            catch (Exception err) {
+                // write error
+                var exMessage = String.Format("Directory '{0}' could not be deleted: {1}", dir.FullName, err.Message);
+                var ex = new ArgumentException(exMessage);
+                var ErrorDeletingDirectory = new ErrorRecord(ex, "ErrorDeletingDirectory", ErrorCategory.PermissionDenied, null);
+                WriteError(ErrorDeletingDirectory);
+            }
+            
             return successfullyUninstalledPkg;
         }
 
         /* uninstalls a script */
-        private bool UninstallScriptHelper(string pkgName, List<string> dirsToDelete)
+        private bool UninstallScriptHelper(string pkgPath)
         {
             var successfullyUninstalledPkg = false;
+            string pkgName = Utils.GetInstalledPackageName(pkgPath);
             
-            foreach (var scriptPath in dirsToDelete)
+            // delete the appropriate file
+            try
             {
-                // delete the appropriate file
+                File.Delete(pkgPath);
+                successfullyUninstalledPkg = true;
+
+                string scriptXML = string.Empty;
                 try
                 {
-                    File.Delete(scriptPath);
-                    successfullyUninstalledPkg = true;
-
-                    string scriptXML = string.Empty;
-                    try
+                    // finally: Delete the xml from the InstalledModulesInfo directory
+                    DirectoryInfo dir = new DirectoryInfo(pkgPath);
+                    DirectoryInfo parentDir = dir.Parent;
+                    scriptXML = Path.Combine(parentDir.FullName, "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
+                    if (File.Exists(scriptXML))
                     {
-                        // finally: Delete the xml from the InstalledModulesInfo directory
-                        DirectoryInfo dir = new DirectoryInfo(scriptPath);
-                        DirectoryInfo parentDir = dir.Parent;
-                        scriptXML = Path.Combine(parentDir.FullName, "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
-                        if (File.Exists(scriptXML))
-                        {
-                            File.Delete(scriptXML);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        var exMessage = String.Format("Script metadata file '{0}' could not be deleted: {1}", scriptXML, e.Message);
-                        var ex = new ArgumentException(exMessage);
-                        var ErrorDeletingScriptMetadataFile = new ErrorRecord(ex, "ErrorDeletingScriptMetadataFile", ErrorCategory.PermissionDenied, null);
-                        WriteError(ErrorDeletingScriptMetadataFile);
+                        File.Delete(scriptXML);
                     }
                 }
-                catch (Exception err){
-                    var exMessage = String.Format("Script '{0}' could not be deleted: {1}", scriptPath, err.Message);
+                catch (Exception e)
+                {
+                    var exMessage = String.Format("Script metadata file '{0}' could not be deleted: {1}", scriptXML, e.Message);
                     var ex = new ArgumentException(exMessage);
-                    var ErrorDeletingScript = new ErrorRecord(ex, "ErrorDeletingScript", ErrorCategory.PermissionDenied, null);
-                    WriteError(ErrorDeletingScript);
+                    var ErrorDeletingScriptMetadataFile = new ErrorRecord(ex, "ErrorDeletingScriptMetadataFile", ErrorCategory.PermissionDenied, null);
+                    WriteError(ErrorDeletingScriptMetadataFile);
                 }
+            }
+            catch (Exception err){
+                var exMessage = String.Format("Script '{0}' could not be deleted: {1}", pkgPath, err.Message);
+                var ex = new ArgumentException(exMessage);
+                var ErrorDeletingScript = new ErrorRecord(ex, "ErrorDeletingScript", ErrorCategory.PermissionDenied, null);
+                WriteError(ErrorDeletingScript);
             }
 
             return successfullyUninstalledPkg;
