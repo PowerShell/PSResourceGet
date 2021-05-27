@@ -10,7 +10,6 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Net.Http;
 using System.Xml;
-using System.Xml.Linq;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Commands;
 using NuGet.Common;
@@ -224,15 +223,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Returns the name of the file or the name of the directory, depending on path
             var pkgFileOrDir = new DirectoryInfo(_path);
             string moduleManifestOrScriptPath;
+            FileInfo moduleFileInfo;
+            Hashtable parsedMetadataHash = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
             if (isScript)
             {
                 moduleManifestOrScriptPath = pkgFileOrDir.FullName;
+                moduleFileInfo = new FileInfo(moduleManifestOrScriptPath);
+
+                // check that script metadata is valid
+                // ParseScriptMetadata will throw terminating error if it's unsucessfull in parsing
+                ParseScriptMetadata(moduleFileInfo, parsedMetadataHash);
+
+                if (!parsedMetadataHash.ContainsKey("Version") || !parsedMetadataHash.ContainsKey("GUID") || !parsedMetadataHash.ContainsKey("Author"))
+                {
+                    var exMessage = "Script metadata must specify a Version, GUID, and Author";
+                    var ex = new ArgumentException(exMessage);
+                    var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
+                    this.ThrowTerminatingError(InvalidScriptMetadata);
+                }
+
                 // remove '.ps1' extension from file name 
                 pkgName = pkgFileOrDir.Name.Remove(pkgFileOrDir.Name.Length - 4);
             }
             else {
                 pkgName = pkgFileOrDir.Name;
                 moduleManifestOrScriptPath = System.IO.Path.Combine(_path, pkgName + ".psd1");
+                moduleFileInfo = new FileInfo(moduleManifestOrScriptPath);
+
                 // Validate that there's a module manifest 
                 if (!File.Exists(moduleManifestOrScriptPath))
                 {
@@ -242,10 +260,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     this.ThrowTerminatingError(moduleManifestNotFound);
                 }
-            }
 
-            FileInfo moduleFileInfo;
-            moduleFileInfo = new FileInfo(moduleManifestOrScriptPath);
+                // validate that the module manifest has correct data 
+                // throws terminating error if module manifest is invalid
+                IsValidModuleManifest(moduleManifestOrScriptPath);
+            }
 
             // Create a temp folder to push the nupkg to and delete it later
             string outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -258,7 +277,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable dependencies = new Hashtable ();
             if (string.IsNullOrEmpty(Nuspec))
             {
-                Nuspec = createNuspec(outputDir, moduleFileInfo, out dependencies);
+                // right now parsedMetadataHash will be empty for modules and will contain metadata for scripts
+                Nuspec = createNuspec(outputDir, moduleFileInfo, out dependencies, parsedMetadataHash);
             }
             else
             {
@@ -338,7 +358,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         System.IO.File.Copy(fileNamePath, newFilePath);
                     }
-
                 }
             }
 
@@ -359,10 +378,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PushNupkg(outputDirectory, repositoryUrl);
         }
 
-        private string createNuspec(string outputDir, FileInfo moduleFileInfo, out Hashtable requiredModules)
+        private bool IsValidModuleManifest(string moduleManifestPath)
+        {
+            var isValid = false;
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+            {
+                // use PowerShell cmdlet Test-ModuleManifest
+                // TODO:  can invoke throw?
+                var results = pwsh.AddCommand("Test-ModuleManifest").AddParameter("Path", moduleManifestPath).Invoke();
+
+                if (pwsh.HadErrors)
+                { 
+                    var error = pwsh.Streams.Error;
+                    var exMessage = error[0].ToString();
+                    var ex = new ArgumentException(exMessage);
+                    var InvalidModuleManifest = new ErrorRecord(ex, "InvalidModuleManifest", ErrorCategory.InvalidData, null);
+                    WriteError(InvalidModuleManifest);
+                }
+                isValid = true;
+            }
+
+            return isValid;
+        }
+
+        private string createNuspec(string outputDir, FileInfo moduleFileInfo, out Hashtable requiredModules, Hashtable parsedMetadataHash)
         {
             WriteVerbose("Creating new nuspec file.");
-            Hashtable parsedMetadataHash = new Hashtable();
             
             if (moduleFileInfo.Extension.Equals(".psd1", StringComparison.OrdinalIgnoreCase))
             {
@@ -395,10 +436,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this.ThrowTerminatingError(psdataParseError);
                     }
                 }
-            }
-            else if (moduleFileInfo.Extension.Equals(".ps1", StringComparison.OrdinalIgnoreCase))
-            {
-                ParseScriptMetadata(parsedMetadataHash, moduleFileInfo);
             }
 
             /// now we have parsedMetadatahash to fill out the nuspec information
@@ -604,7 +641,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return dependenciesHash;
         }
 
-        private void ParseScriptMetadata(Hashtable parsedMetadataHash, FileInfo moduleFileInfo)
+        private void ParseScriptMetadata(FileInfo moduleFileInfo, Hashtable parsedMetadataHash)
         {
             // parse .ps1 - example .ps1 metadata:
             /* <#PSScriptInfo
