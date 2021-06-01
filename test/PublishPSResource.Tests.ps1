@@ -30,7 +30,7 @@ Describe "Test Publish-PSResource" {
         }
 
         #Create dependency module
-        $script:DependencyModuleName = "PSGetTestDependencyModule"
+        $script:DependencyModuleName = "PackageManagement"
         $script:DependencyModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:DependencyModuleName
         if(!(Test-Path $script:DependencyModuleBase))
         {
@@ -42,21 +42,21 @@ Describe "Test Publish-PSResource" {
         New-Item $script:destinationPath -ItemType directory -Force
     }
     AfterAll {
-        Get-RevertPSResourceRepositoryFile
+    #    Get-RevertPSResourceRepositoryFile
     }
     AfterEach {
       # Delete all contents of the repository without deleting the repository directory itself
-      $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"
-      Remove-Item $pkgsToDelete -Recurse
+     # $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"
+     # Remove-Item $pkgsToDelete -Recurse
 
-      $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
-      Remove-Item $pkgsToDelete -Recurse
+     # $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
+     # Remove-Item $pkgsToDelete -Recurse
     }
 
 
     It "Publish a module with -Path to the highest priority repo" {
         $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         Publish-PSResource -Path $script:PublishModuleBase
 
@@ -66,7 +66,7 @@ Describe "Test Publish-PSResource" {
 
     It "Publish a module with -Path and -Repository" {
         $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
 
@@ -76,7 +76,7 @@ Describe "Test Publish-PSResource" {
 
     It "Publish a module with -Path and -DestinationPath" {
         $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         Publish-PSResource -Path $script:PublishModuleBase -DestinationPath $script:destinationPath
 
@@ -86,7 +86,7 @@ Describe "Test Publish-PSResource" {
 
     It "Publish a module with -LiteralPath" {
         $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         Publish-PSResource -LiteralPath $script:PublishModuleBase
 
@@ -94,7 +94,7 @@ Describe "Test Publish-PSResource" {
         Get-ChildItem $script:repositoryPath | Should -Be $expectedPath 
     }
 
-    <# Temporarily comment this test out until Find Helper is complete and code within PublishPSResource is uncommented 
+<# Temporarily comment this test out until Find Helper is complete and code within PublishPSResource is uncommented 
     It "Publish a module with dependencies" {
         # Create dependency module
         $dependencyVersion = "2.0.0"
@@ -112,19 +112,24 @@ Describe "Test Publish-PSResource" {
         Get-ChildItem $script:repositoryPath | select-object -Last 1 | Should -Be $expectedPath 
     }
 #>
+
     It "Publish a module with a dependency that is not published, should throw" {
         $version = "1.0.0"
         $dependencyVersion = "2.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -NestedModules "$script:PublishModuleName.psm1" -RequiredModules @{ModuleName = "$script:DependencyModuleName"; ModuleVersion = "$dependencyVersion" }
+        write-host ($script:PublishModuleBase)
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName="PackageManagement"; ModuleVersion="$dependencyVersion"})
 
-        { Publish-PSResource -Path $script:PublishModuleBase } | Should -Throw -ErrorId "DependencyNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        Publish-PSResource -Path $script:PublishModuleBase -ErrorAction SilentlyContinue
+
+        $Error[0].FullyQualifiedErrorId | Should -be "DependencyNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
     }
 
 
     It "Publish a module with -SkipDependenciesCheck" {
         $version = "1.0.0"
         $dependencyVersion = "2.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -NestedModules "$script:PublishModuleName.psm1" -RequiredModules @{ModuleName = "$script:DependencyModuleName"; ModuleVersion = "$dependencyVersion" }
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @{ModuleName = "$script:DependencyModuleName"; ModuleVersion = "$dependencyVersion" }
 
         Publish-PSResource -Path $script:PublishModuleBase -SkipDependenciesCheck
 
@@ -132,6 +137,8 @@ Describe "Test Publish-PSResource" {
         Get-ChildItem $script:repositoryPath | select-object -Last 1 | Should -Be $expectedPath 
     }
 
+    <# The following tests are related to passing in parameters to customize a nuspec.
+     # These parameters are not going in the current release, but is open for discussion to include in the future.
     It "Publish a module with -Nuspec" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
@@ -163,7 +170,6 @@ Describe "Test Publish-PSResource" {
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
         Get-ChildItem $script:repositoryPath | Should -Be $expectedPath 
     }
-
 
     It "Publish a module with -ReleaseNotes" {
         $version = "1.0.0"
@@ -259,18 +265,22 @@ Describe "Test Publish-PSResource" {
         $expectedNuspecContents =  Get-Content -Path $expectedNuspec -Raw
         $expectedNuspecContents.Contains($tags) | Should Be $true
     }
-
+#>
     It "Publish a module to PSGallery without -APIKey, should throw" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        { Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery } | Should -Throw -ErrorId "APIKeyError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -ErrorAction SilentlyContinue
+
+        $Error[0].FullyQualifiedErrorId | Should -be "APIKeyError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a module to PSGallery using incorrect API key, should throw" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        { Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -APIKey "123456789"} | Should -Throw -ErrorId "InvalidAPIKey,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -APIKey "123456789" -ErrorAction SilentlyContinue
+
+        $Error[0].FullyQualifiedErrorId | Should -be "403Error,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 }
