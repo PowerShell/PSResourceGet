@@ -174,7 +174,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
         #endregion
 
-        protected override void ProcessRecord()
+        protected override void EndProcessing()
         {
             string moduleManifestOrScriptPath;
             FileInfo moduleFileInfo;
