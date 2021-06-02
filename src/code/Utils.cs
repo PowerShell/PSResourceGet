@@ -54,18 +54,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return strArray;
         }
 
-        public static bool TryParseVersionOrVersionRange(string Version, out VersionRange versionRange, out bool allVersions, PSCmdlet cmdletPassedIn)
+        public static bool TryParseVersionOrVersionRange(string Version, out VersionRange versionRange)
         {
             var successfullyParsed = false;
             NuGetVersion nugetVersion = null;
             versionRange = null;
-            allVersions = false;
+
             if (Version != null)
             {
                 if (Version.Trim().Equals("*"))
                 {
-                    allVersions = true;
                     successfullyParsed = true;
+                    versionRange = VersionRange.All;
                 }
                 else
                 {
@@ -83,6 +83,36 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
             return successfullyParsed;
         }
+
+        // public static bool TryParseVersionOrVersionRange(string Version, out VersionRange versionRange, out bool allVersions, PSCmdlet cmdletPassedIn)
+        // {
+        //     var successfullyParsed = false;
+        //     NuGetVersion nugetVersion = null;
+        //     versionRange = null;
+        //     allVersions = false;
+        //     if (Version != null)
+        //     {
+        //         if (Version.Trim().Equals("*"))
+        //         {
+        //             allVersions = true;
+        //             successfullyParsed = true;
+        //         }
+        //         else
+        //         {
+        //             successfullyParsed = NuGetVersion.TryParse(Version, out nugetVersion);
+        //             if (successfullyParsed)
+        //             {
+        //                 versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
+
+        //             }
+        //             else
+        //             {
+        //                 successfullyParsed = VersionRange.TryParse(Version, out versionRange);
+        //             }
+        //         }
+        //     }
+        //     return successfullyParsed;
+        // }
 
         #endregion
     }

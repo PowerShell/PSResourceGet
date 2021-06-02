@@ -525,21 +525,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string[] tags = ParseMetadataTags(pkg);
             ResourceType currentPkgType = ResourceType.Module;
 
-            // do repoName based check to determine Type
-            // this accounts for names with wildcard, which were obtained from SearchAsync() API call
-
-            //if (pkgName.Contains("*")) //means SearchAsync() searched a distinct repo
-            //{
+            // Check if package came from PSGalleryScripts repo- this indicates that it should have a PSScript tag
+            // (however some packages that had a wildcard in their name are missing PSScript or PSModule tags)
+            // but we were able to get the packages by using SearchAsync() with the appropriate Script or Module repository endpoint
+            // and can check repository endpoint to determine Type.
+            // Module packages missing tags are accounted for as the default case, and we account for scripts with the following check:
             if ((pkgType == null && String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase)) || (pkgType != null && pkgType == ResourceType.Script))
             {
                 // it's a Script resource, so clear default Module tag because a Script resource cannot also be a Module resource
                 currentPkgType &= ~ResourceType.Module;
                 currentPkgType |= ResourceType.Script;
             }
-            //}
 
-            // if Name contains wc, atm Script and Module tags should be set properly, but need to account for Command and DscResource types too
-            // if Name does not contain wc, GetMetadataAsync() was used, PSGallery only is searched (and pkg will successfully be found
+            // if Name contains wildcard, atm Script and Module tags should be set properly, but need to account for Command and DscResource types too
+            // if Name does not contain wildcard, GetMetadataAsync() was used, PSGallery only is searched (and pkg will successfully be found
             // and returned from there) before PSGalleryScripts can be searched
             foreach(string tag in tags)
             {
@@ -551,21 +550,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
                 if (tag.StartsWith("PSCommand_"))
                 {
-                    Console.WriteLine("Set Command flag");
                     currentPkgType |= ResourceType.Command;
                 }
                 if (tag.StartsWith("PSDscResource_"))
                 {
                     currentPkgType |= ResourceType.DscResource;
                 }
-                // if (String.Equals(tag, "PSModule", StringComparison.InvariantCultureIgnoreCase))
-                // {
-                //     Console.WriteLine("Set Module flag");
-                //     currentPkgType |= ResourceType.Module;
-                // }
             }
-            Console.WriteLine("Current Types flagged: " + currentPkgType);
-            // todo: or do we want to have additional type "undefined" which is returned here, esp for Galleries that don't have Type (i.e NuGet)
             return currentPkgType;
         }
 

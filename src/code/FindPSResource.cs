@@ -1,4 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿using System.Text.RegularExpressions;
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
@@ -24,7 +25,10 @@ using System.IO;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// todo:
+    /// The Find-PSResource cmdlet combines the Find-Module, Find-Script, Find-DscResource, Find-Command cmdlets from V2.
+    /// It performs a search on a repository (local or remote) based on the -Name parameter argument.
+    /// It returns PSResourceInfo objects which describe each resource item found.
+    /// Other parameters allow the returned results to be filtered by item Type and Tag.
     /// </summary>
 
     [Cmdlet(VerbsCommon.Find,
@@ -40,6 +44,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
         private CancellationToken cancellationToken;
+        // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
+        // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
+        private int searchAsyncMaxReturned = 5990;
 
         #endregion
 
@@ -140,7 +147,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             cancellationToken = new CancellationTokenSource().Token;
 
-            int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "*", StringComparison.CurrentCultureIgnoreCase));
+            int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "/", StringComparison.CurrentCultureIgnoreCase));
             if (wildcardIndex != -1)
             {
                 WriteError(new ErrorRecord(
@@ -151,6 +158,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 Name = Name.Where(p => !String.Equals(p, "*", StringComparison.CurrentCultureIgnoreCase)).ToArray();
             }
         }
+
 
         protected override void ProcessRecord()
         {
@@ -226,8 +234,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (String.Equals(repositoriesToSearch[i].Name, "PSGallery", StringComparison.OrdinalIgnoreCase))
                 {
+                    // for PowerShellGallery, Modules and Scripts have different endpoints so separate repositories have to be registered
+                    // with those endpoints in order for the NuGet APIs to search across both (in the case where name includes *)
+
                     // detect if Scripts repository needs to be added and/or Modules repository needs to be skipped
-                    // note about how Scripts and Modules have different endpoints, to use NuGet APIs need to search across both for PSGallery
                     Uri psGalleryScriptsUrl = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
                     PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo("PSGalleryScripts", psGalleryScriptsUrl, 50, false);
 
@@ -332,10 +342,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach (PSResourceInfo pkg in FindFromPackageSourceSearchAPI(repoName, pkgName, pkgSearchResource, pkgMetadataResource, searchFilter, srcContext, pkgsLeftToFind, cancellationToken))
                 {
-                    if (Tag == null || (Tag != null && IsTagMatch(pkg)))
-                    {
-                        yield return pkg;
-                    }
+                    yield return pkg;
                 }
             }
         }
@@ -352,12 +359,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // GetMetadataAsync() API returns all versions for a specific non-wildcard package name
                     // For PSGallery GetMetadataAsync() API returns both Script and Module resources by checking only the Modules endpoint
-
-                    // TODO: check if filter by Type here, for PSGallery resource OR maybe do it after this method returns
-
                     retrievedPkgs = pkgMetadataResource.GetMetadataAsync(name, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-                    // if (repoName == PSGallery)
-                    // iterate through retrievedPkgs and check each one's Tag's if equals PSScript && Type != Script --> Type assign as Module
                 }
                 catch (Exception e)
                 {
@@ -377,44 +379,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // case: searching for name containing wildcard i.e "Carbon.*"
                 // SearchAsync() returns the latest version only for all packages that match the wild-card name
-                // TODO: try with OData query instead, to see if similar or expected number of pkgs returned
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-                if (wildcardPkgs.Count() > 5990)
+                if (wildcardPkgs.Count() > searchAsyncMaxReturned)
                 {
-                    // then we need to get the rest of the packages
-                    IEnumerable<IPackageSearchMetadata>  wildcardPkgs2 = pkgSearchResource.SearchAsync(name, searchFilter, 6000, 9000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-                    WriteVerbose("count of wildcardpkgs for name: " + name + " in repo: " + repoName + " pre-filtering #2: " + wildcardPkgs2.Count());
-                    wildcardPkgs = wildcardPkgs.Concat(wildcardPkgs2);
+                    // get the rest of the packages
+                    wildcardPkgs = wildcardPkgs.Concat(pkgSearchResource.SearchAsync(name, searchFilter, 6000, 9000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
                 }
-                WriteVerbose("count of wildcardpkgs for name: " + name + " in repo: " + repoName + " pre-filtering: " + wildcardPkgs.Count());
-                // TODO: if wildcardPackages.Count == 6000 (verify!) ->  to call SearchAsync(6000, 8000) again to get rest of packages
 
+                // filter additionally because NuGet wildcard search API returns more than we need
                 WildcardPattern nameWildcardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
-                // filter additionally because NuGet wildcard returns more than we need
                 foundPackagesMetadata.AddRange(wildcardPkgs.Where(p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
 
                 // if the Script Uri endpoint still needs to be searched, don't remove the wildcard name from pkgsLeftToFind
-                // TODO: change condition to Type == Module too
-                bool needToCheckPSGalleryScriptsRepo = String.Equals(repoName, "PSGallery", StringComparison.OrdinalIgnoreCase) && Type == null;
+                // PSGallery + Type == null -> M, S
+                // PSGallery + Type == M    -> M
+                // PSGallery + Type == S    -> S (but PSGallery would be skipped early on, only PSGalleryScripts would be checked)
+                // PSGallery + Type == C    -> M
+                // PSGallery + Type == D    -> M
+                bool needToCheckPSGalleryScriptsRepo = String.Equals(repoName, "PSGallery", StringComparison.InvariantCultureIgnoreCase) && Type == null;
                 if (foundPackagesMetadata.Any() && !needToCheckPSGalleryScriptsRepo)
                 {
                     pkgsLeftToFind.Remove(name);
                 }
             }
 
-            // check if foundPackagesMetadata not empty
+            if (foundPackagesMetadata.Count == 0)
+            {
+                // no need to attempt to filter
+                yield break;
+            }
 
             // filter by param: Version
             if (Version == null)
             {
-                // if no Version parameter provided, return latest version for each package
-                // TODO: case insensitive grouping, can GroupBy take case insensitive string comparison
-                foundPackagesMetadata = foundPackagesMetadata.GroupBy(p => p.Identity.Id).Select(x => x.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease).FirstOrDefault()).ToList();
+                // return latest version for each package
+                foundPackagesMetadata = foundPackagesMetadata.GroupBy(
+                    p => p.Identity.Id, StringComparer.InvariantCultureIgnoreCase).Select(
+                        x => x.OrderByDescending(
+                            p => p.Identity.Version, VersionComparer.VersionRelease).FirstOrDefault()).ToList();
             }
             else
             {
                 // TODO: PR comments
-                if (!Utils.TryParseVersionOrVersionRange(Version, out VersionRange versionRange, out bool allVersions, this))
+                if (!Utils.TryParseVersionOrVersionRange(Version, out VersionRange versionRange))
                 {
                     WriteError(new ErrorRecord(
                         new ArgumentException("Argument for -Version parameter is not in the proper format"),
@@ -427,45 +434,42 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // at this point, version should be parsed successfully, into allVersions (null or "*") or versionRange (specific or range)
                 if (name.Contains("*"))
                 {
-                    if (String.Equals(name, "*"))
-                    {
-                        // TODO: high impact warning and ShouldProcess here! if not ShouldProcess then break, otherwise continue
-                        // version could either be * (allVersions), specific, range (are last two also high impact)?
-                        // TODO: have message to tell user if you'd like to Find XYZ, use different parameter set or different cmdlet: ask Sydney
-                        yield break;
-                    }
-
                     // -Name containing wc with Version "*", or specific range
                     // at this point foundPackagesMetadata contains latest version for each package, get list of distinct
                     // package names and get all versions for each name, this is due to the SearchAsync and GetMetadataAsync() API restrictions !
-                    List<IPackageSearchMetadata> temp = new List<IPackageSearchMetadata>();
-                    foreach (string n in foundPackagesMetadata.Select(p => p.Identity.Id).Distinct())
+                    List<IPackageSearchMetadata> allPkgsAllVersions = new List<IPackageSearchMetadata>();
+                    foreach (string n in foundPackagesMetadata.Select(p => p.Identity.Id).Distinct(StringComparer.InvariantCultureIgnoreCase))
                     {
                         // get all versions for this package
-                        temp.AddRange(pkgMetadataResource.GetMetadataAsync(n, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().ToList());
+                        allPkgsAllVersions.AddRange(pkgMetadataResource.GetMetadataAsync(n, Prerelease, false, srcContext, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult().ToList());
                     }
-                    foundPackagesMetadata = temp;
-                    if (allVersions) // Version = "*"
+
+                    foundPackagesMetadata = allPkgsAllVersions;
+                    if (versionRange == VersionRange.All) // Version = "*"
                     {
                         foundPackagesMetadata = foundPackagesMetadata.GroupBy(
-                            p => p.Identity.Id).SelectMany(
+                            p => p.Identity.Id, StringComparer.InvariantCultureIgnoreCase).SelectMany(
                                 x => x.OrderByDescending(
                                     p => p.Identity.Version, VersionComparer.VersionRelease)).ToList();
                     }
                     else // Version range
                     {
-                        foundPackagesMetadata = foundPackagesMetadata.Where(p => versionRange.Satisfies(p.Identity.Version)).GroupBy(p => p.Identity.Id).SelectMany(x => x.OrderByDescending(p => p.Identity.Version, VersionComparer.VersionRelease)).ToList();
+                        foundPackagesMetadata = foundPackagesMetadata.Where(
+                            p => versionRange.Satisfies(p.Identity.Version)).GroupBy(
+                                p => p.Identity.Id, StringComparer.InvariantCultureIgnoreCase).SelectMany(
+                                    x => x.OrderByDescending(
+                                    p => p.Identity.Version, VersionComparer.VersionRelease)).ToList();
                     }
                 }
                 else // name doesn't contain wildcards
                 {
-                    // allVersions for non-wildcard name is all versions (bc SearchAsync() was used) and is already ordered descending.
-                    // TODO: tie it back to GetMetadataAsync() API about how we already have all versions bc of this API
-
-
-                    if (!allVersions) // Version range
+                    // for non wildcard names, NuGet GetMetadataAsync() API is which returns all versions for that package ordered descendingly
+                    if (versionRange != VersionRange.All) // Version range
                     {
-                        foundPackagesMetadata = foundPackagesMetadata.Where(p => versionRange.Satisfies(p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(p => p.Identity.Version).ToList();
+                        foundPackagesMetadata = foundPackagesMetadata.Where(
+                            p => versionRange.Satisfies(
+                                p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(
+                                    p => p.Identity.Version).ToList();
                     }
                 }
             }
@@ -481,7 +485,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                     yield break;
                 }
-                WriteVerbose("current pkg types: " + currentPkg.Type);
+
                 if (Type != null)
                 {
                     if (Type == ResourceType.Command && !currentPkg.Type.HasFlag(ResourceType.Command))
@@ -493,199 +497,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         continue;
                     }
                 }
-                // if (String.Equals("PSGallery", repoName, StringComparison.InvariantCultureIgnoreCase) || String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase))
-                // {
-                //     // currentPkg.Type = CheckType(currentPkg, name, repoName);
-                //     // TODO: remove ToString() and use appropriate type for Type in PSResourceInfo, move this CheckType code to PSResourceInfo and
-                //     // pass in name, repoName to that there.
-                // }
-                yield return currentPkg;
+
+                if (Tag == null || (Tag != null && IsTagMatch(currentPkg)))
+                {
+                    yield return currentPkg;
+                }
             }
         }
-
-
-        private ResourceType CheckType(PSResourceInfo pkg, string name, string repoName)
-        {
-            if (!String.Equals("PSGallery", repoName, StringComparison.InvariantCultureIgnoreCase) && !String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase))
-            {
-                // TODO: confirm if this is default ResourceType (i.e for non-PSGallery resources)
-                return ResourceType.Module;
-            }
-
-            if (!name.Contains("*"))
-            {
-                // NuGet GetMetadataAsync() API will be used. This can succesfully find resource from
-                // PSGallery (Modules) endpoint, regardless of pkg's Type
-                // if Type == null, we need to check pkg Tags to determine Type
-                if (Type == null)
-                {
-                    if (pkg.Tags.Contains("PSScript")) // can it take StringComparator
-                    {
-                        return ResourceType.Script;
-                    }
-                    if (pkg.Tags.Contains("PSCommand_"))
-                    {
-                        return ResourceType.Command;
-                    }
-                    if (pkg.Tags.Contains("PSDsc_"))
-                    {
-                        return ResourceType.DscResource;
-                    }
-                    return ResourceType.Module;
-                    // check for ResourceType.Module, ResourceType.Command, ResourceType.DscResource
-                }
-                else
-                {
-                    // if Type not null, we can rely on Type to determine pkg's Type
-                    return Type.Value;
-                }
-            }
-            else
-            {
-                // name contains wildcard - so NuGet SearchAsync() API will be used
-                // this has to use the correct Type associated PSGallery endpoint
-                // i.e PSGallery (Modules) endpoint will only be able to find pkgs of Module, Command, DscResource Type
-                // i.e PSGalleryScripts (Scripts) endpoint will only be able to find pkgs of Script Type
-                if (Type == null)
-                {
-                    if (String.Equals("PSGallery", repoName, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        if (pkg.Tags.Contains("PSCommand_"))
-                        {
-                            return ResourceType.Command;
-                        }
-                        if (pkg.Tags.Contains("PSDsc_"))
-                        {
-                            return ResourceType.DscResource;
-                        }
-                        return ResourceType.Module;
-                    }
-                    else if (String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        return ResourceType.Script;
-                    }
-                }
-                else
-                {
-                    return Type.Value;
-                }
-            }
-            return ResourceType.Module;
-        }
-
 
         private bool IsTagMatch(PSResourceInfo pkg)
         {
-            WriteVerbose("made it here 3000");
-            WriteVerbose(String.Join("\n", pkg.Tags));
-            // TODO: check if Tag null here, so cleaner in caller method
-            // TODO: resolve case sensitivty + look at Intersect takes StringComparator
-            return Tag.Intersect(pkg.Tags).ToList().Count > 0;
+            return Tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList().Count > 0;
         }
-
-        // private List<IPackageSearchMetadata> FilterPkgsByResourceType(List<IPackageSearchMetadata> foundPkgs)
-        // {
-        //     List<IPackageSearchMetadata> pkgsFilteredByTags = new List<IPackageSearchMetadata>();
-        //     char[] delimiter = new char[] { ' ', ',' };
-        //     foreach (IPackageSearchMetadata pkg in foundPkgs)
-        //     {
-        //         string[] tags = pkg.Tags.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
-        //         foreach (string tag in tags)
-        //         {
-        //             if(tag == "PS" + Type)
-        //             {
-        //                 pkgsFilteredByTags.Add(pkg);
-        //             }
-        //             else if (Enum.TryParse(tag, out ResourceCategory parsedType) && parsedType == ResourceCategory.Module)
-        //             {
-        //                 pkgsFilteredByTags.Add(pkg);
-        //             }
-        //         }
-        //     }
-        //     return pkgsFilteredByTags;
-        // }
-
-        #region CatalogReader Helper Methods
-        private IEnumerable<PSResourceInfo> SearchFromCatalogReader(string repoName, Uri repositoryUrl, CancellationToken cancellationToken)
-        {
-            WriteVerbose("made it here 6");
-            using (var feedReader = new FeedReader(repositoryUrl))
-            {
-                bool hasCatalog = false;
-                try
-                {
-                    hasCatalog = feedReader.HasCatalog().GetAwaiter().GetResult();
-                }
-                catch (Exception ex)
-                {
-                    WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Error creating or accessing feed: " + ex.Message),
-                        "CantCreateFeedForV3Repository",
-                        ErrorCategory.InvalidOperation,
-                        this));
-                    yield break;
-                }
-                if (!hasCatalog)
-                {
-                    // use SearchAsync() to return upto 6000 packages, ADO feeds
-                    // if # of packages returned == 6000, writeDebug("there may be more packages. Search by name specifically");
-                    WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("This V3 package feed source does not contain a catalog resource. Searching for all packages is not supported at the moment."),
-                        "PackageSourceFeedDoesNotImplementCatalog",
-                        ErrorCategory.InvalidOperation,
-                        this));
-                    yield break;
-                }
-
-            }
-
-            // at this point, we should be able to access feed and it's known catalog resource
-            Dictionary<string, CatalogEntry> uniquePkgs = new Dictionary<string, CatalogEntry>();
-            foreach (CatalogEntry pkg in YieldCatalogEntriesAsFound(repositoryUrl, cancellationToken))
-            {
-                if((Prerelease || !pkg.Version.IsPrerelease) && ((!uniquePkgs.TryGetValue(pkg.Id.ToLower(), out CatalogEntry entry)) || (pkg.Version > entry.Version)))
-                {
-                    uniquePkgs[pkg.Id.ToLower()] = pkg;
-                }
-            }
-            foreach (CatalogEntry entry in uniquePkgs.Values)
-            {
-                if (!PSResourceInfo.TryParseCatalogEntry(entry, out PSResourceInfo currentPkg, out string errorMsg))
-                {
-                    WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Error parsing CatalogEntry to PSResourceInfo with message: " + errorMsg),
-                        "CatalogEntryToPSResourceInfoParsingError",
-                        ErrorCategory.InvalidResult,
-                        this));
-                    yield break;
-                }
-                yield return currentPkg;
-            }
-        }
-
-        private IEnumerable<CatalogEntry> YieldCatalogEntriesAsFound(Uri repositoryUrl, CancellationToken cancellationToken)
-        {
-            WriteVerbose("made it here 7");
-            using (var catalog = new CatalogReader(repositoryUrl))
-            {
-                if (catalog == null)
-                {
-                    WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Catalog expected to be not null"),
-                        "NullCatalogReader",
-                        ErrorCategory.InvalidResult,
-                        this));
-                    yield break;
-                }
-                foreach(CatalogEntry p in catalog.GetFlattenedEntriesAsync(cancellationToken).GetAwaiter().GetResult())
-                {
-                    // TODO: ask Jim about denoting infinite progress (can't tell out of how many packages yet)
-                    yield return p;
-                }
-            }
-        }
-        #endregion
-
-
     }
 }
