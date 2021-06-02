@@ -174,7 +174,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
         #endregion
 
-        protected override void EndProcessing()
+        protected override void ProcessRecord()
         {
             string moduleManifestOrScriptPath;
             FileInfo moduleFileInfo;
@@ -186,6 +186,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var pkgFileOrDir = new DirectoryInfo(_path);
             bool isScript = _path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase);
 
+            if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine.", _path)))
+            {
+                this.WriteDebug("ShouldProcess is set to false.");
+                return;
+            }
+            
             if (isScript)
             {
                 // Get the .psd1 file or .ps1 file
