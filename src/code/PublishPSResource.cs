@@ -186,6 +186,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var pkgFileOrDir = new DirectoryInfo(_path);
             bool isScript = _path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase);
 
+            // TODO: think about including the repository the resource is being published to
             if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine.", _path)))
             {
                 this.WriteDebug("ShouldProcess is set to false.");
@@ -199,12 +200,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 moduleFileInfo = new FileInfo(moduleManifestOrScriptPath);
 
                 // Check that script metadata is valid
-                // ParseScriptMetadata will throw non-terminating error if it's unsucessful in parsing
+                // ParseScriptMetadata will write non-terminating error if it's unsucessful in parsing
                 parsedMetadataHash = ParseScriptMetadata(moduleFileInfo);
 
                 var message = string.Empty;
                 // Check that the value is valid input
-                // If it does not contain 'Version' or the Version empty or whitespace, throw error
+                // If it does not contain 'Version' or the Version empty or whitespace, write error
                 if (!parsedMetadataHash.ContainsKey("Version") || String.IsNullOrWhiteSpace(parsedMetadataHash["Version"].ToString()))
                 {
                     message = "No version was provided in the script metadata. Script metadata must specify a version, author and description.";
@@ -377,6 +378,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
             {
                 // use PowerShell cmdlet Test-ModuleManifest
+                // TODO: Test-ModuleManifest will throw an error if RequiredModules specifies a module that does not exist
+                // locally on the machine. Consider adding a -Syntax param to Test-ModuleManifest so that it only checks that 
+                // the syntax is correct. In build/release pipelines for example, the modules listed under RequiredModules may
+                // not be locally available, but we still want to allow the user to publish.
                 var results = pwsh.AddCommand("Test-ModuleManifest").AddParameter("Path", moduleManifestPath).Invoke();
 
                 if (pwsh.HadErrors)
@@ -666,7 +671,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  Example cmdlet here
                 #>
             */
-
+            // We're retrieving all the comments within a script and grabbing all the key/value pairs
+            // because there's no standard way to create metadata for a script.
             Hashtable parsedMetadataHash = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
             
             // parse comments out           
