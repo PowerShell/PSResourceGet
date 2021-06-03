@@ -35,7 +35,7 @@ PS C:\> Uninstall-PSResource -name Az -version "1.0.0"
 
 Uninstalls version 1.0.0 of the Az module.
 
-### Example 2
+### Example 3
 ```powershell
 PS C:\> Uninstall-PSResource -name Az -version "(1.0.0, 3.0.0)"
 
@@ -116,5 +116,3 @@ None
 ## NOTES
 
 ## RELATED LINKS
-
-

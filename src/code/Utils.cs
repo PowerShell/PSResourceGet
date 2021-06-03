@@ -136,7 +136,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                     catch (Exception e)
                     {
-                        psCmdlet.WriteVerbose(string.Format("Error retrieving files from '{0}': '{1)'", path, e.Message));
+                        psCmdlet.WriteVerbose(string.Format("Error retrieving files from '{0}': '{1}'", path, e.Message));
                     }
                 }
                 else
@@ -147,7 +147,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                     catch (Exception e)
                     {
-                        psCmdlet.WriteVerbose(string.Format("Error retrieving directories from '{0}': '{1)'", path, e.Message));
+                        psCmdlet.WriteVerbose(string.Format("Error retrieving directories from '{0}': '{1}'", path, e.Message));
                     }
                 }
             }

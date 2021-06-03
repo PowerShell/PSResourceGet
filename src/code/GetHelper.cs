@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
 using System.Collections.Generic;
@@ -68,9 +68,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // Filter by user provided version
         public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch)
         {
-            // This will contain the metadata xmls
-            List<string> installedPkgsToReturn = new List<string>();
-
             // if no version is specified, just get the latest version
             foreach (string pkgPath in dirsToSearch)
             {

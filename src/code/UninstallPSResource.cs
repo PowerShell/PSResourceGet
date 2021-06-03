@@ -66,7 +66,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // an exact version will be formatted into a version range.
             if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
-                var exMessage = String.Format("Argument for -Version parameter is not in the proper format.");
+                var exMessage = "Argument for -Version parameter is not in the proper format.";
                 var ex = new ArgumentException(exMessage);
                 var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(IncorrectVersionFormat);
@@ -83,7 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!UninstallPkgHelper())
                     {
                         // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
-                        WriteDebug(string.Format("Did not successfully uninstall all packages"));
+                        WriteDebug("Did not successfully uninstall all packages");
                     }
                     break;
 
@@ -127,10 +127,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool UninstallPkgHelper()
         {
             var successfullyUninstalled = false;
-            List<string> dirsToDelete = new List<string>();
 
             GetHelper getHelper = new GetHelper(_cancellationToken, this);
-            dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
+            List<string>  dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
 
             // Checking if module or script
             // a module path will look like:
@@ -191,8 +190,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return false;
             }
             
-            DirectoryInfo dir = new DirectoryInfo(pkgPath.ToString());
-            DirectoryInfo parent = dir.Parent;
+            DirectoryInfo dir = new DirectoryInfo(pkgPath);
             dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
 
             try
