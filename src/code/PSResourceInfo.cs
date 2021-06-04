@@ -15,10 +15,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     #region Enums
 
-    // todo: add Flag attribute
     [Flags]
     public enum ResourceType
     {
+        // 00001 -> M
+        // 00100 -> C
+        // 00101 -> M, C
         Module = 0x1,
         Script = 0x2,
         Command = 0x4,
@@ -269,7 +271,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
                     RepositorySourceLocation = GetProperty<string>(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
                     Tags = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSResourceInfo.Tags), psObjectInfo)),
-                    Type = Enum.TryParse(GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo), out ResourceType currentReadType) ? currentReadType : ResourceType.Module,
+                    // TODO: leave a comment explaining what's going on here
+                    // try to get the value of PSResourceInfo.Type property, if the value is null use ResourceType.Module as value
+                    // this value will be used in Enum.TryParse. If Enum.TryParse returns false, use ResourceType.Module to set Type instead.
+                    // Type = Enum.TryParse(GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo) ?? nameof(ResourceType.Module),
+                    //      out ResourceType currentReadType) ? currentReadType : ResourceType.Module,
+                    Type = Enum.TryParse(GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo) ?? ResourceType.Module.ToString(),
+                         out ResourceType currentReadType) ? currentReadType : ResourceType.Module,
                     UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
                     Version = GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo)
                 };
@@ -291,7 +299,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             IPackageSearchMetadata metadataToParse,
             out PSResourceInfo psGetInfo,
             string pkgName,
-            string repoName,
+            string repositoryName,
             ResourceType? type,
             out string errorMsg)
         {
@@ -328,7 +336,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     // Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
                     // RepositorySourceLocation = GetProperty<string>(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
                     Tags = ParseMetadataTags(metadataToParse),
-                    Type = ParseMetadataType(metadataToParse, pkgName, repoName, type),
+                    Type = ParseMetadataType(metadataToParse, pkgName, repositoryName, type),
                     // UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
                     Version = ParseMetadataVersion(metadataToParse)
                 };
@@ -537,7 +545,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 currentPkgType |= ResourceType.Script;
             }
 
-            // if Name contains wildcard, atm Script and Module tags should be set properly, but need to account for Command and DscResource types too
+            // if Name contains wildcard, currently Script and Module tags should be set properly, but need to account for Command and DscResource types too
             // if Name does not contain wildcard, GetMetadataAsync() was used, PSGallery only is searched (and pkg will successfully be found
             // and returned from there) before PSGalleryScripts can be searched
             foreach(string tag in tags)

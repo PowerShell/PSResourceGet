@@ -43,10 +43,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string ResourceNameParameterSet = "ResourceNameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
-        private CancellationToken cancellationToken;
+        // TODO: look into whether cancellationtoken needed for
+        private CancellationToken _cancellationToken;
         // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
         // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
-        private int searchAsyncMaxReturned = 5990;
+        private const int SearchAsyncMaxReturned = 5990;
 
         #endregion
 
@@ -145,9 +146,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            cancellationToken = new CancellationTokenSource().Token;
+            _cancellationToken = new CancellationTokenSource().Token;
 
-            int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "/", StringComparison.CurrentCultureIgnoreCase));
+            // TODO: Write error and don't handle other cases: -Name "a", "*", "b*"
+            int wildcardIndex = Array.FindIndex(Name, p => String.Equals(p, "*", StringComparison.CurrentCultureIgnoreCase));
             if (wildcardIndex != -1)
             {
                 WriteError(new ErrorRecord(
@@ -155,8 +157,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     "NameStarNotSupported",
                     ErrorCategory.InvalidArgument,
                     this));
+
                 Name = Name.Where(p => !String.Equals(p, "*", StringComparison.CurrentCultureIgnoreCase)).ToArray();
             }
+
+            // ThrowTerminatingError()
+        }
+
+        protected override void StopProcessing()
+        {
+            // TODO:
+            // CancellationTokenSource.Cancel
+            // useful for cmdlet handling pipeline input
+            // check that when this cancels, it doesn't throw or handle if it does
         }
 
 
@@ -165,7 +178,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case ResourceNameParameterSet:
-                    foreach (PSResourceInfo pkgObj in ResourceNameParameterSetHelper())
+                    FindHelper findHelper = new FindHelper(_cancellationToken, this);
+                    foreach (PSResourceInfo pkgObj in findHelper.FindByResourceName(Name, Type, Version, Prerelease, Tag, Repository, Credential))
                     {
                         WriteObject(pkgObj);
                     }
@@ -193,10 +207,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        // TODO: implememt StopProcessing()
+
+
 
         #endregion
 
+        #region HelperMethods
         private IEnumerable<PSResourceInfo> ResourceNameParameterSetHelper()
         {
             if (Name.Length == 0)
@@ -255,7 +271,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
                 WriteDebug(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                foreach (var pkg in SearchFromRepository(repositoriesToSearch[i].Name, repositoriesToSearch[i].Url, pkgsLeftToFind, cancellationToken))
+                foreach (var pkg in SearchFromRepository(repositoriesToSearch[i].Name, repositoriesToSearch[i].Url, pkgsLeftToFind, _cancellationToken))
                 {
                     yield return pkg;
                 }
@@ -380,7 +396,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // case: searching for name containing wildcard i.e "Carbon.*"
                 // SearchAsync() returns the latest version only for all packages that match the wild-card name
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = pkgSearchResource.SearchAsync(name, searchFilter, 0, 6000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult();
-                if (wildcardPkgs.Count() > searchAsyncMaxReturned)
+                if (wildcardPkgs.Count() > SearchAsyncMaxReturned)
                 {
                     // get the rest of the packages
                     wildcardPkgs = wildcardPkgs.Concat(pkgSearchResource.SearchAsync(name, searchFilter, 6000, 9000, NullLogger.Instance, cancellationToken).GetAwaiter().GetResult());
@@ -509,5 +525,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             return Tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList().Count > 0;
         }
+        #endregion
     }
 }
