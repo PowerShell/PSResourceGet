@@ -54,65 +54,36 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return strArray;
         }
 
-        public static bool TryParseVersionOrVersionRange(string Version, out VersionRange versionRange)
+        public static bool TryParseVersionOrVersionRange(
+            string version,
+            out VersionRange versionRange)
         {
-            var successfullyParsed = false;
-            NuGetVersion nugetVersion = null;
             versionRange = null;
 
-            if (Version != null)
+            if (version == null) { return false; }
+
+
+            if (version.Trim().Equals("*"))
             {
-                if (Version.Trim().Equals("*"))
-                {
-                    successfullyParsed = true;
-                    versionRange = VersionRange.All;
-                }
-                else
-                {
-                    successfullyParsed = NuGetVersion.TryParse(Version, out nugetVersion);
-                    if (successfullyParsed)
-                    {
-                        versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
-
-                    }
-                    else
-                    {
-                        successfullyParsed = VersionRange.TryParse(Version, out versionRange);
-                    }
-                }
+                versionRange = VersionRange.All;
+                return true;
             }
-            return successfullyParsed;
+
+            // parse as NuGetVersion
+            if (NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
+            {
+                versionRange = new VersionRange(
+                    minVersion: nugetVersion,
+                    includeMinVersion: true,
+                    maxVersion: nugetVersion,
+                    includeMaxVersion: true,
+                    floatRange: null,
+                    originalString: null);
+                return true;
+            }
+
+            return VersionRange.TryParse(version, out versionRange);
         }
-
-        // public static bool TryParseVersionOrVersionRange(string Version, out VersionRange versionRange, out bool allVersions, PSCmdlet cmdletPassedIn)
-        // {
-        //     var successfullyParsed = false;
-        //     NuGetVersion nugetVersion = null;
-        //     versionRange = null;
-        //     allVersions = false;
-        //     if (Version != null)
-        //     {
-        //         if (Version.Trim().Equals("*"))
-        //         {
-        //             allVersions = true;
-        //             successfullyParsed = true;
-        //         }
-        //         else
-        //         {
-        //             successfullyParsed = NuGetVersion.TryParse(Version, out nugetVersion);
-        //             if (successfullyParsed)
-        //             {
-        //                 versionRange = new VersionRange(nugetVersion, true, nugetVersion, true, null, null);
-
-        //             }
-        //             else
-        //             {
-        //                 successfullyParsed = VersionRange.TryParse(Version, out versionRange);
-        //             }
-        //         }
-        //     }
-        //     return successfullyParsed;
-        // }
 
         #endregion
     }
