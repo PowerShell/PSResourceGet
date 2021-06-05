@@ -920,9 +920,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else
             {
                 WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUrl));
-            }
-            
-            return;
+            }            
         }
     }
 }
