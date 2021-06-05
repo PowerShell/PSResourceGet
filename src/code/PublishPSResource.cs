@@ -144,7 +144,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     var ex = new ArgumentException("Not yet implemented.");
                     var ProxyNotImplemented = new ErrorRecord(ex, "ProxyNotImplemented", ErrorCategory.InvalidData, null);
-                    this.WriteError(ProxyNotImplemented);
+                    WriteError(ProxyNotImplemented);
                 }
             }
         }
@@ -161,7 +161,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     var ex = new ArgumentException("Not yet implemented.");
                     var ProxyCredentialNotImplemented = new ErrorRecord(ex, "ProxyCredentialNotImplemented", ErrorCategory.InvalidData, null);
-                    this.WriteError(ProxyCredentialNotImplemented);
+                    WriteError(ProxyCredentialNotImplemented);
                 }
             }
         }
@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region members
-        private NuGetVersion _pkgVersion = null;
+        private NuGetVersion _pkgVersion;
         private string _pkgName;
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
         #endregion
@@ -189,7 +189,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TODO: think about including the repository the resource is being published to
             if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine.", _path)))
             {
-                this.WriteDebug("ShouldProcess is set to false.");
+                WriteDebug("ShouldProcess is set to false.");
                 return;
             }
             
@@ -211,7 +211,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     message = "No version was provided in the script metadata. Script metadata must specify a version, author and description.";
                     var ex = new ArgumentException(message);
                     var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
-                    this.WriteError(InvalidScriptMetadata);
+                    WriteError(InvalidScriptMetadata);
 
                     return;
                 }
@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     message = "No author was provided in the script metadata. Script metadata must specify a version, author and description.";
                     var ex = new ArgumentException(message);
                     var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
-                    this.WriteError(InvalidScriptMetadata);
+                    WriteError(InvalidScriptMetadata);
 
                     return;
                 }
@@ -229,7 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     message = "No description was provided in the script metadata. Script metadata must specify a version, author and description.";
                     var ex = new ArgumentException(message);
                     var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
-                    this.WriteError(InvalidScriptMetadata);
+                    WriteError(InvalidScriptMetadata);
 
                     return;
                 }
@@ -248,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", moduleManifestOrScriptPath);
                     var ex = new ArgumentException(message);
                     var moduleManifestNotFound = new ErrorRecord(ex, "moduleManifestNotFound", ErrorCategory.ObjectNotFound, null);
-                    this.WriteError(moduleManifestNotFound);
+                    WriteError(moduleManifestNotFound);
 
                     return;
                 }
@@ -271,7 +271,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 catch (Exception e) {
                     var ex = new ArgumentException(e.Message);
                     var ErrorCreatingTempDir = new ErrorRecord(ex, "ErrorCreatingTempDir", ErrorCategory.InvalidData, null);
-                    this.WriteError(ErrorCreatingTempDir);
+                    WriteError(ErrorCreatingTempDir);
 
                     return;
                 }  
@@ -279,14 +279,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                Hashtable dependencies = new Hashtable();
+                Hashtable dependencies;
 
                 // Create a nuspec
                 // Right now parsedMetadataHash will be empty for modules and will contain metadata for scripts
-                var nuspec = CreateNuspec(outputDir, moduleFileInfo, out dependencies, parsedMetadataHash);
+                string nuspec = string.Empty;
+                try
+                {
+                    nuspec = CreateNuspec(outputDir, moduleFileInfo, out dependencies, parsedMetadataHash);
+                }
+                catch {
+                    var message = "Nuspec creation failed.";
+                    var ex = new ArgumentException(message);
+                    var nuspecCreationFailed = new ErrorRecord(ex, "NuspecCreationFailed", ErrorCategory.ObjectNotFound, null);
+                    WriteError(nuspecCreationFailed);
+
+                    return;
+                }
+
                 if (string.IsNullOrEmpty(nuspec))
                 {
                     // nuspec creation failed.
+                    WriteDebug("Nuspec creation failed.");
                     return;
                 }
 
@@ -297,7 +311,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var message = String.Format("The resource repository '{0}' is not a registered. Please run 'Register-PSResourceRepository' in order to publish to this repository.", Repository);
                     var ex = new ArgumentException(message);
                     var repositoryNotFound = new ErrorRecord(ex, "repositoryNotFound", ErrorCategory.ObjectNotFound, null);
-                    this.WriteError(repositoryNotFound);
+                    WriteError(repositoryNotFound);
 
                     return;
                 }
@@ -352,22 +366,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // pack into a nupkg
                 try
                 {
-                    PackNupkg(outputDir, outputNupkgDir, nuspec);
+                     if(!PackNupkg(outputDir, outputNupkgDir, nuspec))
+                     {
+                        return;
+                     }
                 }
                 catch (Exception e)
                 {
-                    // throw error, unable to pack
                     var message =  string.Format("Error packing into .nupkg: '{0}'.", e.Message);
                     var ex = new ArgumentException(message);
                     var ErrorPackingIntoNupkg = new ErrorRecord(ex, "ErrorPackingIntoNupkg", ErrorCategory.NotSpecified, null);
-                    this.WriteError(ErrorPackingIntoNupkg);
+                    WriteError(ErrorPackingIntoNupkg);
 
                     // exit process record
                     return;
                 }
-                PushNupkg(outputNupkgDir, repositoryUrl);
+
+                 PushNupkg(outputNupkgDir, repositoryUrl);
             }
             finally {
+                WriteDebug(string.Format("Deleting temporary directory '{0}'", outputDir));
                 Directory.Delete(outputDir, recursive:true);
             }
         }
@@ -397,6 +415,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
+                        // This will handle version errors
                         var error = pwsh.Streams.Error;
                         message = error[0].ToString();
                     }
@@ -413,11 +432,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return isValid;
         }
 
-        private string CreateNuspec(string outputDir, FileInfo moduleFileInfo, out Hashtable requiredModules, Hashtable parsedMetadataHash)
+        private string CreateNuspec(
+            string outputDir, 
+            FileInfo moduleFileInfo, 
+            out Hashtable requiredModules, 
+            Hashtable parsedMetadataHash)
         {
             WriteVerbose("Creating new nuspec file.");
             requiredModules = new Hashtable();
 
+            // A script will already  have the metadata parsed into the parsedMetadatahash,
+            // a module will still need the module manifest to be parsed.
             if (moduleFileInfo.Extension.Equals(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the module manifest 
@@ -430,7 +455,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo.FullName);
                     var ex = new ArgumentException(message);
                     var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                    this.WriteError(psdataParseError);
+                    WriteError(psdataParseError);
 
                     return string.Empty;
                 }
@@ -446,7 +471,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var message = String.Format("Could not parse as PowerShell data file-- no hashtable root for file '{0}'", moduleFileInfo.FullName);
                         var ex = new ArgumentException(message);
                         var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                        this.WriteError(psdataParseError);
+                        WriteError(psdataParseError);
 
                         return string.Empty;
                     }
@@ -486,7 +511,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var message = "There is no package version specified. Please specify a version before publishing.";
                 var ex = new ArgumentException(message);  
                 var NoVersionFound = new ErrorRecord(ex, "NoVersionFound", ErrorCategory.InvalidArgument, null);
-                this.WriteError(NoVersionFound);
+                WriteError(NoVersionFound);
 
                 return string.Empty;
             }
@@ -568,16 +593,45 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 metadataElementsDictionary.Add("iconUrl", parsedMetadataHash["iconurl"].ToString().Trim());
             }
 
-
+            // Example nuspec:
+            /*
+            <?xml version="1.0" encoding="utf-8"?>
+            <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+              <metadata>
+                <id>System.Management.Automation</id>
+                <version>1.0.0</version>
+                <authors>Microsoft</authors>
+                <owners>Microsoft,PowerShell</owners>
+                <requireLicenseAcceptance>false</requireLicenseAcceptance>
+                <license type="expression">MIT</license>
+                <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+                <icon>Powershell_black_64.png</icon>
+                <projectUrl>https://github.com/PowerShell/PowerShell</projectUrl>
+                <description>Example description here</description>
+                <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+                <language>en-US</language>
+                <tags>PowerShell</tags>
+                <dependencies>
+                  <group targetFramework="net5.0">
+                    <dependency id="Microsoft.PowerShell.CoreCLR.Eventing" version="7.1.3" />
+                    <dependency id="Microsoft.PowerShell.Native" version="7.1.0" />
+                  </group>
+                </dependencies>
+              </ metadata >
+            </ package >
+            */
+            
             foreach (var key in metadataElementsDictionary.Keys)
             {
-                XmlElement element = doc.CreateElement(key, nameSpaceUri);
-
-                string elementInnerText;
-                metadataElementsDictionary.TryGetValue(key, out elementInnerText);
-                element.InnerText = elementInnerText;
-
-                metadataElement.AppendChild(element);
+                if (metadataElementsDictionary.TryGetValue(key, out string elementInnerText))
+                {
+                    XmlElement element = doc.CreateElement(key, nameSpaceUri);
+                    element.InnerText = elementInnerText;
+                    metadataElement.AppendChild(element);
+                }
+                else {
+                    WriteDebug(string.Format("Creating XML element failed. Unable to get value from key '{0}'.", key));
+                }
             }
 
             requiredModules = ParseRequiredModules(parsedMetadataHash);
@@ -607,7 +661,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var nuspecFullName = System.IO.Path.Combine(outputDir, _pkgName + ".nuspec");
             doc.Save(nuspecFullName);
 
-            this.WriteVerbose("The newly created nuspec is: " + nuspecFullName);
+            WriteVerbose("The newly created nuspec is: " + nuspecFullName);
 
             return nuspecFullName;
         }
@@ -631,7 +685,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (LanguagePrimitives.TryConvertTo<Hashtable[]>(requiredModules, out Hashtable[] moduleList))
             {
                 // instead of returning an array of hashtables, 
-                //loop through the array and add each element of 
+                // loop through the array and add each element of 
                 foreach (Hashtable hash in moduleList)
                 {
                     dependenciesHash.Add(hash["ModuleName"], hash["ModuleVersion"]);
@@ -639,10 +693,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else if (LanguagePrimitives.TryConvertTo<string[]>(requiredModules, out string[] moduleNames))
             {
-                var listHashtable = new Hashtable();
                 foreach (var modName in moduleNames)
                 {
-                    listHashtable.Add(modName, string.Empty);
+                    dependenciesHash.Add(modName, string.Empty);
                 }
             }
 
@@ -678,14 +731,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // parse comments out           
             System.Management.Automation.Language.Token[] tokens;
             ParseError[] errors;
-            var ast = Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
+            Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
 
             if (errors.Length > 0)
             {
                 var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo.FullName);
                 var ex = new ArgumentException(message);
                 var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                this.WriteError(psdataParseError);
+                WriteError(psdataParseError);
             }
             else
             {
@@ -697,7 +750,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // expecting only one or two comments 
                         var commentText = token.Text;
-                        parsedComments.AddRange(commentText.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries));
+                        parsedComments.AddRange(commentText.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries) );
                     }
                 }
                 
@@ -732,8 +785,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var repository = new[] { repositoryUrl };
 
                 // Search for and return the dependency if it's in the repository.
-                // TODO: When find is complete, uncomment beginFindHelper method below
+                // TODO: When find is complete, uncomment beginFindHelper method below  (resourceNameParameterHelper)
                 //var dependencyFound = findHelper.beginFindHelper(depName, type, depVersion, true, null, null, repository, Credential, false, false);
+                // TODO: update the type from PSObject to PSResourceInfo
                 List<PSObject> dependencyFound = null;
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
@@ -741,14 +795,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
                     var dependencyNotFound = new ErrorRecord(ex, "DependencyNotFound", ErrorCategory.ObjectNotFound, null);
 
-                    this.WriteError(dependencyNotFound);
+                    WriteError(dependencyNotFound);
                     return false;
                 }
             }
             return true;
         }
 
-        private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspec)
+        private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile)
         {
             // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
@@ -757,7 +811,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         CurrentDirectory = outputDir,
                         OutputDirectory = outputNupkgDir,
-                        Path = nuspec,
+                        Path = nuspecFile,
                         Exclude = System.Array.Empty<string>(),
                         Symbols = false,
                         Logger = NullLogger.Instance
@@ -765,14 +819,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     MSBuildProjectFactory.ProjectCreator,
                     builder);
 
-            return runner.RunPackageBuild();
+            bool success = runner.RunPackageBuild();
+            if (success)
+            {
+                WriteDebug("Successfully packed the resource into a .nupkg");
+            }
+            else
+            {
+                WriteDebug("Successfully packed the resource into a .nupkg");
+            }
+
+            return success;
         }
 
-        private bool PushNupkg(string outputNupkgDir, string repoUrl)
+        private void PushNupkg(string outputNupkgDir, string repoUrl)
         {
             // Push the nupkg to the appropriate repository 
             // Pkg version is parsed from .ps1 file or .psd1 file 
-            var fullNupkgPath = System.IO.Path.Combine(outputNupkgDir, _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg");
+            var fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg");
 
             // The PSGallery uses the v2 protocol still and publishes to a slightly different endpoint:
             // "https://www.powershellgallery.com/api/v2/package" 
@@ -788,7 +852,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 PushRunner.Run(
                         settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
                         sourceProvider: new PackageSourceProvider(settings),
-                        packagePath: fullNupkgPath,
+                        packagePath: fullNupkgFile,
                         source: publishLocation,
                         apiKey: APIKey,
                         symbolSource: null,
@@ -805,7 +869,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 //  look in PS repo for how httpRequestExceptions are handled
 
-                // Unfortunately there is no response message  are no status codes provided with the exception and 
+                // Unfortunately there is no response message  are no status codes provided with the exception and no 
                 var ex = new ArgumentException(e.Message);
                 if (e.Message.Contains("401"))
                 {
@@ -814,28 +878,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var message = String.Format("{0} Please try running again with the -APIKey parameter and specific API key for the repository specified.", e.Message);
                         ex = new ArgumentException(message);
                         var APIKeyError = new ErrorRecord(ex, "APIKeyError", ErrorCategory.AuthenticationError, null);
-                        this.WriteError(APIKeyError);
+                        WriteError(APIKeyError);
                     }
                     else
                     {
                         var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
-                        this.WriteError(Error401);
+                        WriteError(Error401);
                     }
                 }
                 else if (e.Message.Contains("403"))
                 {
                     var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
-                    this.WriteError(Error403);
+                    WriteError(Error403);
                 }
                 else if (e.Message.Contains("409"))
                 {
                     var Error409 = new ErrorRecord(ex, "409Error", ErrorCategory.PermissionDenied, null);
-                    this.WriteError(Error409);
+                    WriteError(Error409);
                 }
                 else
                 {
                     var HTTPRequestError = new ErrorRecord(ex, "HTTPRequestError", ErrorCategory.PermissionDenied, null);
-                    this.WriteError(HTTPRequestError);
+                    WriteError(HTTPRequestError);
                 }
 
                 success = false;
@@ -844,12 +908,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 var ex = new ArgumentException(e.Message);
                 var PushNupkgError = new ErrorRecord(ex, "PushNupkgError", ErrorCategory.InvalidResult, null);
-                this.WriteError(PushNupkgError);
+                WriteError(PushNupkgError);
 
                 success = false;
             }
 
-            return success;
+            if (success)
+            {
+                WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUrl));
+            }
+            else
+            {
+                WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUrl));
+            }
+            
+            return;
         }
     }
 }
