@@ -61,7 +61,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath 
     }
 
     It "Publish a module with -Path and -Repository" {
@@ -71,7 +71,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
 
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath2 | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
     }
 
     It "Publish a module with -Path and -DestinationPath" {
@@ -81,7 +81,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -DestinationPath $script:destinationPath
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath 
     }
 
     It "Publish a module with -LiteralPath" {
@@ -91,7 +91,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -LiteralPath $script:PublishModuleBase
 
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath 
     }
 
 <# Temporarily comment this test out until Find Helper is complete and code within PublishPSResource is uncommented 
@@ -116,13 +116,11 @@ Describe "Test Publish-PSResource" {
     It "Publish a module with a dependency that is not published, should throw" {
         $version = "1.0.0"
         $dependencyVersion = "2.0.0"
-        write-host ($script:PublishModuleBase)
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName="PackageManagement"; ModuleVersion="$dependencyVersion"})
 
         Publish-PSResource -Path $script:PublishModuleBase -ErrorAction SilentlyContinue
 
         $Error[0].FullyQualifiedErrorId | Should -be "DependencyNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
-
     }
 
 
@@ -134,7 +132,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -SkipDependenciesCheck
 
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | select-object -Last 1 | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath).FullName | select-object -Last 1 | Should -Be $expectedPath 
     }
 
     <# The following tests are related to passing in parameters to customize a nuspec.
