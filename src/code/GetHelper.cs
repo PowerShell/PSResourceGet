@@ -60,7 +60,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     p => nameWildCardPattern.IsMatch(
                         System.IO.Path.GetFileNameWithoutExtension((new DirectoryInfo(p).Name)))));
             }
-
             _cmdletPassedIn.WriteDebug(wildCardDirsToSearch.Any().ToString());
 
             return wildCardDirsToSearch;
@@ -120,7 +119,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // skip to next iteration of the loop
                             continue;
                         }
-
                         _cmdletPassedIn.WriteVerbose(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
 
                         if (versionRange.Satisfies(dirAsNugetVersion))
@@ -199,7 +197,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             // Read metadata from XML and parse into PSResourceInfo object
             _cmdletPassedIn.WriteVerbose(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
-
             if (!TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
             {
                 _cmdletPassedIn.WriteVerbose(errorMsg);

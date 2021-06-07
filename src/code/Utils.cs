@@ -174,7 +174,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (list == null) { return null; }
 
             var strArray = new string[list.Count];
-            for (int i=0; i<list.Count; i++)
+            for (int i=0; i < list.Count; i++)
             {
                 strArray[i] = list[i] as string;
             }
