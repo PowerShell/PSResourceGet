@@ -114,10 +114,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Updates a repository name, URL, priority, or installation policy
         /// Returns:  void
         /// </summary>
-        public static void Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
+        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
         {
             Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
 
+            PSRepositoryInfo updatedRepo;
             try
             {
                 // Open file
@@ -132,20 +133,37 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Get root of XDocument (XElement)
                 var root = doc.Root;
 
+                // A null URL value passed in signifies the URL was not attempted to be set.
+                // So only set Url attribute if non-null value passed in for repoUrl
                 if (repoURL != null)
                 {
                     node.Attribute("Url").Value = repoURL.AbsoluteUri;
                 }
 
+                // A negative Priority value passed in signifies the Priority value was not attempted to be set.
+                // So only set Priority attribute if non-null value passed in for repoPriority
                 if (repoPriority >= 0)
                 {
                     node.Attribute("Priority").Value = repoPriority.ToString();
                 }
 
+                // A null Trusted value passed in signifies the Trusted value was not attempted to be set.
+                // So only set Trusted attribute if non-null value passed in for repoTrusted.
                 if (repoTrusted != null)
                 {
                     node.Attribute("Trusted").Value = repoTrusted.ToString();
                 }
+
+                // Create Uri from node Url attribute to create PSRepositoryInfo item to return.
+                if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                {
+                    throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted URL for repo {0}", repoName));
+                }
+
+                updatedRepo = new PSRepositoryInfo(repoName,
+                    thisUrl,
+                    Int32.Parse(node.Attribute("Priority").Value),
+                    Boolean.Parse(node.Attribute("Trusted").Value));
 
                 // Close the file
                 root.Save(FullRepositoryPath);
@@ -154,6 +172,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 throw new PSInvalidOperationException(String.Format("Updating to repository store failed: {0}", e.Message));
             }
+
+            return updatedRepo;
         }
 
         /// <summary>
