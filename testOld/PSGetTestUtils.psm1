@@ -1,10 +1,15 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+<#####################################################################################
+ # File: PSGetTestUtils.psm1
+ #
+ # Copyright (c) Microsoft Corporation, 2020
+ #####################################################################################>
+
+#."$PSScriptRoot\uiproxy.ps1"
 
 $psGetMod = Get-Module -Name PowerShellGet
 if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
 {
-    Write-Verbose -Message "Importing PowerShellGet 3.0.0 for test" -Verbose
+    Write-Verbose -Verbose "Importing PowerShellGet 3.0.0 for test"
     Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
 }
 
@@ -142,36 +147,12 @@ function Get-PoshTestGalleryLocation {
     return $script:PostTestGalleryLocation
 }
 
-function Get-NewTestDirs {
-    Param(
-        [string[]]
-        $listOfPaths
-    )
-    foreach($path in $listOfPaths)
-    {
-        $null = New-Item -Path $path -ItemType Directory
-    }
-}
-
-function Get-RemoveTestDirs {
-    Param(
-        [string[]]
-        $listOfPaths
-    )
-    foreach($path in $listOfPaths)
-    {
-        if(Test-Path -Path $path)
-        {
-            Remove-Item -Path $path -Force -ErrorAction Ignore
-        }
-    }
-}
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
     $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
     $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
     $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
-
+    
     if (Test-Path -Path $originalXmlFilePath) {
         Copy-Item -Path $originalXmlFilePath -Destination $tempXmlFilePath
         Remove-Item -Path $originalXmlFilePath -Force -ErrorAction Ignore
@@ -205,7 +186,7 @@ function Get-TestDriveSetUp
     Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
 
     $testResourcesFolder = Join-Path $TestDrive -ChildPath "TestLocalDirectory"
-
+    
     $script:testIndividualResourceFolder = Join-Path -Path $testResourcesFolder -ChildPath "PSGet_$(Get-Random)"
     $null = New-Item -Path $testIndividualResourceFolder -ItemType Directory -Force
 }
@@ -264,7 +245,7 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
     $params = @{
                 #Path = $scriptFilePath
                 Version = $version
-                #GUID =
+                #GUID = 
                 Author = 'Jane'
                 CompanyName = 'Microsoft Corporation'
                 Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
@@ -429,7 +410,7 @@ function Create-PSScriptMetadata
 
 .ICONURI$(if ($IconUri) {" $IconUri"})
 
-.EXTERNALMODULEDEPENDENCIES$(if ($ExternalModuleDependencies) {" $($ExternalModuleDependencies -join ',')"})
+.EXTERNALMODULEDEPENDENCIES$(if ($ExternalModuleDependencies) {" $($ExternalModuleDependencies -join ',')"}) 
 
 .REQUIREDSCRIPTS$(if ($RequiredScripts) {" $($RequiredScripts -join ',')"})
 
@@ -444,61 +425,4 @@ $($ReleaseNotes -join "`r`n")
 "@
         return $PSScriptInfoString
     }
-}
-
-<#
-Checks that provided PSGetInfo object contents match the expected data
-from the test information file: PSGetModuleInfo.xml
-#>
-function CheckForExpectedPSGetInfo
-{
-    param ($psGetInfo)
-
-    $psGetInfo.AdditionalMetadata.Keys | Should -HaveCount 22
-    $psGetInfo.AdditionalMetadata['copyright'] | Should -BeExactly '(c) Microsoft Corporation. All rights reserved.'
-    $psGetInfo.AdditionalMetadata['description'] | Should -BeLike 'This module provides a convenient way for a user to store and retrieve secrets*'
-    $psGetInfo.AdditionalMetadata['requireLicenseAcceptance'] | Should -BeExactly 'False'
-    $psGetInfo.AdditionalMetadata['isLatestVersion'] | Should -BeExactly 'True'
-    $psGetInfo.AdditionalMetadata['isAbsoluteLatestVersion'] | Should -BeExactly 'True'
-    $psGetInfo.AdditionalMetadata['versionDownloadCount'] | Should -BeExactly '0'
-    $psGetInfo.AdditionalMetadata['downloadCount'] | Should -BeExactly '15034'
-    $psGetInfo.AdditionalMetadata['packageSize'] | Should -BeExactly '55046'
-    $psGetInfo.AdditionalMetadata['published'] | Should -BeExactly '3/25/2021 6:08:10 PM -07:00'
-    $psGetInfo.AdditionalMetadata['created'] | Should -BeExactly '3/25/2021 6:08:10 PM -07:00'
-    $psGetInfo.AdditionalMetadata['lastUpdated'] | Should -BeExactly '3/25/2021 6:08:10 PM -07:00'
-    $psGetInfo.AdditionalMetadata['tags'] | Should -BeLike 'PSModule PSEdition_Core PSCmdlet_Register-SecretVault*'
-    $psGetInfo.AdditionalMetadata['developmentDependency'] | Should -BeExactly 'False'
-    $psGetInfo.AdditionalMetadata['updated'] | Should -BeExactly '2021-03-25T18:08:10Z'
-    $psGetInfo.AdditionalMetadata['NormalizedVersion'] | Should -BeExactly '1.0.0'
-    $psGetInfo.AdditionalMetadata['Authors'] | Should -BeExactly 'Microsoft Corporation'
-    $psGetInfo.AdditionalMetadata['IsPrerelease'] | Should -BeExactly 'false'
-    $psGetInfo.AdditionalMetadata['ItemType'] | Should -BeExactly 'Module'
-    $psGetInfo.AdditionalMetadata['FileList'] | Should -BeLike 'Microsoft.PowerShell.SecretManagement.nuspec|Microsoft.PowerShell.SecretManagement.dll*'
-    $psGetInfo.AdditionalMetadata['GUID'] | Should -BeExactly 'a5c858f6-4a8e-41f1-b1ee-0ff8f6ad69d3'
-    $psGetInfo.AdditionalMetadata['PowerShellVersion'] | Should -BeExactly '5.1'
-    $psGetInfo.AdditionalMetadata['CompanyName'] | Should -BeExactly 'Microsoft Corporation'
-    #
-    $psGetInfo.Author | Should -BeExactly 'Microsoft Corporation'
-    $psGetInfo.CompanyName | Should -BeExactly 'Microsoft Corporation'
-    $psGetInfo.Copyright | Should -BeExactly '(c) Microsoft Corporation. All rights reserved.'
-    $psGetInfo.Dependencies | Should -HaveCount 0
-    $psGetInfo.Description | Should -BeLike 'This module provides a convenient way for a user to store*'
-    $psGetInfo.IconUri | Should -BeNullOrEmpty
-    $psGetInfo.Includes.Cmdlet | Should -HaveCount 10
-    $psGetInfo.Includes.Cmdlet[0] | Should -BeExactly 'Register-SecretVault'
-    $psGetInfo.InstalledDate.Year | Should -BeExactly 2021
-    $psGetInfo.InstalledLocation | Should -BeLike 'C:\Users\*'
-    $psGetInfo.LicenseUri | Should -BeExactly 'https://github.com/PowerShell/SecretManagement/blob/master/LICENSE'
-    $psGetInfo.Name | Should -BeExactly 'Microsoft.PowerShell.SecretManagement'
-    $psGetInfo.PackageManagementProvider | Should -BeExactly 'NuGet'
-    $psGetInfo.PowerShellGetFormatVersion | Should -BeNullOrEmpty
-    $psGetInfo.ProjectUri | Should -BeExactly 'https://github.com/powershell/secretmanagement'
-    $psGetInfo.PublishedDate.Year | Should -BeExactly 2021
-    $psGetInfo.ReleasedNotes | Should -BeNullOrEmpty
-    $psGetInfo.Repository | Should -BeExactly 'PSGallery'
-    $psGetInfo.RepositorySourceLocation | Should -BeExactly 'https://www.powershellgallery.com/api/v2'
-    $psGetInfo.Tags | Should -BeExactly @('PSModule', 'PSEdition_Core')
-    $psGetInfo.Type | Should -BeExactly 'Module'
-    $psGetInfo.UpdatedDate.Year | Should -BeExactly 1
-    $psGetInfo.Version.ToString() | Should -BeExactly '1.0.0'
 }

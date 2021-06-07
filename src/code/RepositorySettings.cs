@@ -1,194 +1,179 @@
-﻿
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using System.Xml.Linq;
-using System.Linq;
 using static System.Environment;
+using Dbg = System.Diagnostics.Debug;
 
-namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
+namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     /// <summary>
-    /// Repository settings
+    /// The class contains basic information of a repository path settings as well as methods to
+    /// perform CRUD operations on the repository store file.
     /// </summary>
 
-    class RespositorySettings
+    internal static class RepositorySettings
     {
         /// <summary>
-        /// Default file name for a settings file is 'psresourcerepository.config'
-        /// Also, the user level setting file at '%APPDATA%\NuGet' always uses this name
+        /// File name for a user's repository store file is 'PSResourceRepository.xml'
+        /// The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
         /// </summary>
-        public static readonly string DefaultRepositoryFileName = "PSResourceRepository.xml";
-        public static readonly string DefaultRepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet"); //"%APPDATA%/PowerShellGet";  // c:\code\temp\repositorycache
-        public static readonly string DefaultFullRepositoryPath = Path.Combine(DefaultRepositoryPath, DefaultRepositoryFileName);
+        private static readonly string RepositoryFileName = "PSResourceRepository.xml";
+        private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet");
+        private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
 
-        public RespositorySettings() { }
 
         /// <summary>
-        /// Find a repository XML
-        /// Returns:
+        /// Check if repository store xml file exists, if not then create
         /// </summary>
-        /// <param name="sectionName"></param>
-        public bool FindRepositoryXML()
+        public static void CheckRepositoryStore()
         {
-            // Search in the designated location for the repository XML
-            if (File.Exists(DefaultFullRepositoryPath))
+            if (!File.Exists(FullRepositoryPath))
             {
-                return true;
+                try
+                {
+                    if (!Directory.Exists(RepositoryPath))
+                    {
+                        Directory.CreateDirectory(RepositoryPath);
+                    }
+
+                    XDocument newRepoXML = new XDocument(
+                            new XElement("configuration")
+                    );
+                    newRepoXML.Save(FullRepositoryPath);
+                }
+                catch (Exception e)
+                {
+                    throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store creation failed with error: {0}.", e.Message));
+                }
             }
 
-            return false;
-        }
-
-        /// <summary>
-        /// Create a new repository XML
-        /// Returns: void
-        /// </summary>
-        /// <param name="sectionName"></param>
-        public void CreateNewRepositoryXML()
-        {
-            // Check to see if the file already exists; if it does return
-            if (FindRepositoryXML())
-            {
-                return;
-            }
-
-            // create directory if needed
-            if (!Directory.Exists(DefaultRepositoryPath))
-            {
-                Directory.CreateDirectory(DefaultRepositoryPath);
-            }
-
-            // If the repository xml file doesn't exist yet, create one
-            XDocument newRepoXML = new XDocument(
-                    new XElement("configuration")
-            );
-
-            // Should be saved in:
-            newRepoXML.Save(DefaultFullRepositoryPath);
-        }
-
-        /// <summary>
-        /// Add a repository to the XML
-        /// Returns: void
-        /// </summary>
-        /// <param name="sectionName"></param>
-        public void Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
-        {
-            // Check to see if information we're trying to add to the repository is valid
-            if (string.IsNullOrEmpty(repoName))
-            {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
-                throw new ArgumentException("Repository name cannot be null or empty");
-            }
-            if (string.IsNullOrEmpty(repoURL.ToString()))
-            {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
-                throw new ArgumentException("Repository URL cannot be null or empty");
-            }
-
-            // Create will make a new XML if one doesn't already exist
+            // Open file (which should exist now), if cannot/is corrupted then throw error
             try
             {
-                CreateNewRepositoryXML();
+                XDocument.Load(FullRepositoryPath);
             }
-            catch
+            catch (Exception e)
             {
-                throw new ArgumentException("Was not able to successfully create xml");
+                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store may be corrupted, file reading failed with error: {0}.", e.Message));
             }
+        }
 
-            // Open file
-            XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
+        /// <summary>
+        /// Add a repository to the store
+        /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
+        /// </summary>
+        /// <param name="sectionName"></param>
+        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        {
+            Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
+            Dbg.Assert(!string.IsNullOrEmpty(repoURL.ToString()), "Repository URL cannot be null or empty");
 
-            // Check if what's being added already exists, if it does throw an error
-            var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repoName, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-
-            if (node != null)
+            try
             {
-                throw new ArgumentException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
+                // Open file
+                XDocument doc = XDocument.Load(FullRepositoryPath);
+                if (FindRepositoryElement(doc, repoName) != null)
+                {
+                    throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
+                }
+
+                // Else, keep going
+                // Get root of XDocument (XElement)
+                var root = doc.Root;
+
+                // Create new element
+                XElement newElement = new XElement(
+                    "Repository",
+                    new XAttribute("Name", repoName),
+                    new XAttribute("Url", repoURL),
+                    new XAttribute("Priority", repoPriority),
+                    new XAttribute("Trusted", repoTrusted)
+                    );
+
+                root.Add(newElement);
+
+                // Close the file
+                root.Save(FullRepositoryPath);
+            }
+            catch (Exception e)
+            {
+                throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            // Else, keep going
-            // Get root of XDocument (XElement)
-            var root = doc.Root;
-
-            // Create new element
-            XElement newElement = new XElement(
-                "Repository",
-                new XAttribute("Name", repoName),
-                new XAttribute("Url", repoURL),
-                new XAttribute("Priority", repoPriority),
-                new XAttribute("Trusted", repoTrusted)
-                );
-
-            root.Add(newElement);
-
-            // Close the file
-            root.Save(DefaultFullRepositoryPath);
+            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted);
         }
 
         /// <summary>
         /// Updates a repository name, URL, priority, or installation policy
         /// Returns:  void
         /// </summary>
-        public void Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
+        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
         {
-            // Check to see if information we're trying to add to the repository is valid
-            if (string.IsNullOrEmpty(repoName))
-            {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
-                throw new ArgumentException("Repository name cannot be null or empty");
-            }
+            Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
 
-            // We expect the xml to exist, if it doesn't user needs to register a repository
+            PSRepositoryInfo updatedRepo;
             try
             {
-                FindRepositoryXML();
+                // Open file
+                XDocument doc = XDocument.Load(FullRepositoryPath);
+                XElement node = FindRepositoryElement(doc, repoName);
+                if (node == null)
+                {
+                    throw new ArgumentException("Cannot find the repository because it does not exist. Try registering the repository using 'Register-PSResourceRepository'");
+                }
+
+                // Else, keep going
+                // Get root of XDocument (XElement)
+                var root = doc.Root;
+
+                // A null URL value passed in signifies the URL was not attempted to be set.
+                // So only set Url attribute if non-null value passed in for repoUrl
+                if (repoURL != null)
+                {
+                    node.Attribute("Url").Value = repoURL.AbsoluteUri;
+                }
+
+                // A negative Priority value passed in signifies the Priority value was not attempted to be set.
+                // So only set Priority attribute if non-null value passed in for repoPriority
+                if (repoPriority >= 0)
+                {
+                    node.Attribute("Priority").Value = repoPriority.ToString();
+                }
+
+                // A null Trusted value passed in signifies the Trusted value was not attempted to be set.
+                // So only set Trusted attribute if non-null value passed in for repoTrusted.
+                if (repoTrusted != null)
+                {
+                    node.Attribute("Trusted").Value = repoTrusted.ToString();
+                }
+
+                // Create Uri from node Url attribute to create PSRepositoryInfo item to return.
+                if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                {
+                    throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted URL for repo {0}", repoName));
+                }
+
+                updatedRepo = new PSRepositoryInfo(repoName,
+                    thisUrl,
+                    Int32.Parse(node.Attribute("Priority").Value),
+                    Boolean.Parse(node.Attribute("Trusted").Value));
+
+                // Close the file
+                root.Save(FullRepositoryPath);
             }
-            catch
+            catch (Exception e)
             {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
+                throw new PSInvalidOperationException(String.Format("Updating to repository store failed: {0}", e.Message));
             }
 
-            // Open file
-            XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
-
-            // Check if what's being updated is actually there first
-            var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repoName, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-            if (node == null)
-            {
-                throw new ArgumentException("Cannot find the repository because it does not exist. Try registering the repository using 'Register-PSResourceRepository'");
-            }
-
-            // Else, keep going
-            // Get root of XDocument (XElement)
-            var root = doc.Root;
-
-            if (repoURL != null)
-            {
-                node.Attribute("Url").Value = repoURL.AbsoluteUri;
-            }
-            if (repoPriority >= 0)
-            {
-                node.Attribute("Priority").Value = repoPriority.ToString();
-            }
-            // false, setting to true
-            // true, setting to false
-            // false setting to false
-            // true setting to true
-
-            if (repoTrusted != null)
-            {
-                node.Attribute("Trusted").Value = repoTrusted.ToString();
-            }
-
-            // Close the file
-            root.Save(DefaultFullRepositoryPath);
+            return updatedRepo;
         }
 
         /// <summary>
@@ -196,35 +181,37 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
         /// Returns: void
         /// </summary>
         /// <param name="sectionName"></param>
-        public void Remove(string[] repoNames)
+        public static void Remove(string[] repoNames, out string[] errorList)
         {
+            List<string> tempErrorList = new List<string>();
 
-            // Check to see if information we're trying to add to the repository is valid
+            // Check to see if information we're trying to remove from the repository is valid
             if (repoNames == null || repoNames.Length == 0)
             {
-                // throw new ArgumentException(Resources.Argument_Cannot_Be_Null_Or_Empty, nameof(sectionName));
                 throw new ArgumentException("Repository name cannot be null or empty");
             }
 
-            if (!FindRepositoryXML())
+            XDocument doc;
+            try
             {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
+                // Open file
+                doc = XDocument.Load(FullRepositoryPath);
             }
-
-            // Open file
-            XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
+            catch (Exception e)
+            {
+                throw new PSInvalidOperationException(String.Format("Loading repository store failed: {0}", e.Message));
+            }
 
             // Get root of XDocument (XElement)
             var root = doc.Root;
 
-            foreach (var repo in repoNames)
+            foreach (string repo in repoNames)
             {
-                // Check if what's being added doesn't already exist, throw an error
-                var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-
+                XElement node = FindRepositoryElement(doc, repo);
                 if (node == null)
                 {
-                    throw new ArgumentException(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
+                    tempErrorList.Add(String.Format("Unable to find repository '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
+                    continue;
                 }
 
                 // Remove item from file
@@ -232,65 +219,92 @@ namespace Microsoft.PowerShell.PowerShellGet.RepositorySettings
             }
 
             // Close the file
-            root.Save(DefaultFullRepositoryPath);
+            root.Save(FullRepositoryPath);
+            errorList = tempErrorList.ToArray();
         }
 
-        public List<PSObject> Read(string[] repoNames)
+        public static List<PSRepositoryInfo> Read(string[] repoNames, out string[] errorList)
         {
-            // Can be null, will just retrieve all
-            // Call FindRepositoryXML()  [Create will make a new xml if one doesn't already exist]
-            if (!FindRepositoryXML())
+            List<string> tempErrorList = new List<string>();
+            var foundRepos = new List<PSRepositoryInfo>();
+
+            XDocument doc;
+            try
             {
-                throw new ArgumentException("Was not able to successfully find xml. Try running 'Register-PSResourceRepository -PSGallery'");
+                // Open file
+                doc = XDocument.Load(FullRepositoryPath);
+            }
+            catch (Exception e)
+            {
+                throw new PSInvalidOperationException(String.Format("Loading repository store failed: {0}", e.Message));
             }
 
-            // Open file
-            XDocument doc = XDocument.Load(DefaultFullRepositoryPath);
-
-            var foundRepos = new List<PSObject>();
             if (repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
             {
-                // array is null and we will list all repositories
+                // Name array or single value is null so we will list all repositories registered
                 // iterate through the doc
-                foreach (var repo in doc.Descendants("Repository"))
+                foreach (XElement repo in doc.Descendants("Repository"))
                 {
-                    PSObject repoAsPSObject = new PSObject();
-                    repoAsPSObject.Members.Add(new PSNoteProperty("Name", repo.Attribute("Name").Value));
-                    repoAsPSObject.Members.Add(new PSNoteProperty("Url", repo.Attribute("Url").Value));
-                    repoAsPSObject.Members.Add(new PSNoteProperty("Trusted", repo.Attribute("Trusted").Value));
-                    repoAsPSObject.Members.Add(new PSNoteProperty("Priority", repo.Attribute("Priority").Value));
+                    if (!Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                    {
+                        tempErrorList.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", repo.Attribute("Name").Value));
+                        continue;
+                    }
 
-                    foundRepos.Add(repoAsPSObject);
+                    PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
+                        thisUrl,
+                        Int32.Parse(repo.Attribute("Priority").Value),
+                        Boolean.Parse(repo.Attribute("Trusted").Value));
+
+                    foundRepos.Add(currentRepoItem);
                 }
             }
+
             else
             {
-                foreach (var repo in repoNames)
+                foreach (string repo in repoNames)
                 {
-                    // Check to see if repository exists
-                    // need to fix the case sensitivity
-                    var node = doc.Descendants("Repository").Where(e => string.Equals(e.Attribute("Name").Value, repo, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+                    bool repoMatch = false;
+                    WildcardPattern nameWildCardPattern = new WildcardPattern(repo, WildcardOptions.IgnoreCase);
 
-                    if (node != null)
+                    foreach (var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
                     {
-                        PSObject repoAsPSObject = new PSObject();
-                        repoAsPSObject.Members.Add(new PSNoteProperty("Name", node.Attribute("Name").Value));
-                        repoAsPSObject.Members.Add(new PSNoteProperty("Url", node.Attribute("Url").Value));
-                        repoAsPSObject.Members.Add(new PSNoteProperty("Trusted", node.Attribute("Trusted").Value));
-                        repoAsPSObject.Members.Add(new PSNoteProperty("Priority", node.Attribute("Priority").Value));
+                        repoMatch = true;
+                        if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                        {
+                            //debug statement
+                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", node.Attribute("Name").Value));
+                            continue;
+                        }
 
-                        foundRepos.Add(repoAsPSObject);
+                        PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
+                            thisUrl,
+                            Int32.Parse(node.Attribute("Priority").Value),
+                            Boolean.Parse(node.Attribute("Trusted").Value));
+
+                        foundRepos.Add(currentRepoItem);
+                    }
+
+                    if (!repo.Contains("*") && !repoMatch)
+                    {
+                        tempErrorList.Add(String.Format("Unable to find repository with Name '{0}'.  Use Get-PSResourceRepository to see all available repositories.", repo));
                     }
                 }
             }
 
-
+            errorList = tempErrorList.ToArray();
             // Sort by priority, then by repo name
-            // foundRepos.Sort((x, y) => ( Int32.Parse((x.Members.Where(m => m.Name.Equals("Priority"))).FirstOrDefault().Value.ToString()).CompareTo( Int32.Parse((y.Members.Where(m2 => m2.Name.Equals("Priority"))).FirstOrDefault().Value.ToString()) ) ));
-            var reposToReturn = foundRepos.OrderBy(x => (Int32.Parse((x.Members.Where(m => m.Name.Equals("Priority"))).FirstOrDefault().Value.ToString())))
-                .ThenBy(x => (x.Members.Where(m => m.Name.Equals("Name"))).FirstOrDefault().Value.ToString());
-
+            var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
             return reposToReturn.ToList();
+        }
+
+        private static XElement FindRepositoryElement(XDocument doc, string name)
+        {
+            return doc.Descendants("Repository").Where(
+                e => string.Equals(
+                    e.Attribute("Name").Value,
+                    name,
+                    StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
         }
     }
 }

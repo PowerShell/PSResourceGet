@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>PowerShellGet</RootNamespace>
+    <AssemblyName>PowerShellGet</AssemblyName>
+    <AssemblyVersion>3.0.0.0</AssemblyVersion>
+    <FileVersion>3.0.0</FileVersion>
+    <InformationalVersion>3.0.0</InformationalVersion>
+    <TargetFrameworks>netstandard2.0;net472;</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LinqKit.Core" Version="1.1.17" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0-preview.7.20364.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0-preview.7.20364.11" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="3.1.0"  Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <PackageReference Include="morelinq" Version="3.3.2" />
+    <PackageReference Include="Newtonsoft.Json.dll" Version="1.0.0" Condition="'$(TargetFramework)' == 'net472'" />
+    <PackageReference Include="NuGet.Commands" Version="5.7.0-rtm.6702" />
+    <PackageReference Include="NuGet.Common" Version="5.7.0-rtm.6702" />
+    <PackageReference Include="NuGet.Configuration" Version="5.7.0-rtm.6702" />
+    <PackageReference Include="NuGet.Packaging" Version="5.7.0-rtm.6702" />
+    <PackageReference Include="NuGet.ProjectModel" Version="5.7.0-rtm.6702" />
+    <PackageReference Include="NuGet.Protocol" Version="5.7.0-rtm.6702" />
+    <PackageReference Include="NuGet.Repositories" Version="4.3.0-beta1-2418" />
+    <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
+    <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="4.0.0" Condition="'$(TargetFramework)' == 'net472'" />
+  </ItemGroup>
+
+  <Target Name="CoreTypes" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
+    <ItemGroup>
+      <ReferencePath Condition="'%(FileName)' == 'NuGet.Protocol.Core.Types'">
+        <Aliases>CoreTypes</Aliases>
+      </ReferencePath>
+    </ItemGroup>
+  </Target>
+
+</Project>

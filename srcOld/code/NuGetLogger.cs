@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using NuGet.Common;
 
-// This class is needed for 
+
 public class NuGetLogger : ILogger
 {
     private readonly ITestOutputHelper _output;
@@ -175,22 +175,22 @@ public class NuGetLogger : ILogger
     }
 }
 
-// Summary:
-//     Represents a class which can be used to provide test output.
-public interface ITestOutputHelper
-{
     // Summary:
-    //     Adds a line of text to the output.
-    // Parameters:
-    //   message:
-    //     The message
-    void WriteLine(string message);
-    // Summary:
-    //     Formats a line of text and adds it to the output.
-    // Parameters:
-    //   format:
-    //     The message format
-    //   args:
-    //     The format arguments
-    void WriteLine(string format, params object[] args);
-}
+    //     Represents a class which can be used to provide test output.
+    public interface ITestOutputHelper
+    {
+        // Summary:
+        //     Adds a line of text to the output.
+        // Parameters:
+        //   message:
+        //     The message
+        void WriteLine(string message);
+        // Summary:
+        //     Formats a line of text and adds it to the output.
+        // Parameters:
+        //   format:
+        //     The message format
+        //   args:
+        //     The format arguments
+        void WriteLine(string format, params object[] args);
+    }

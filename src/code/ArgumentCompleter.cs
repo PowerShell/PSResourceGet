@@ -1,5 +1,8 @@
-﻿using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
-using System;
+﻿using System.ComponentModel;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
@@ -8,32 +11,26 @@ using System.Management.Automation.Language;
 internal class RepositoryNameCompleter : IArgumentCompleter
 {
     public IEnumerable<CompletionResult> CompleteArgument(
-        string commandName,  // For cmdlets Get-PSResource, Set-PSResource, and Unregister-PSResource
-        string parameterName, // For -Name parameter
+        string commandName,
+        string parameterName,
         string wordToComplete,
         CommandAst commandAst,
         IDictionary fakeBoundParameters)
     {
-        return CompleteRepositoryName(wordToComplete);
-    }
+        List<PSRepositoryInfo> listOfRepositories = RepositorySettings.Read(null, out string[] _);
 
+        wordToComplete = Utils.TrimQuotes(wordToComplete);
+        var wordToCompletePattern = WildcardPattern.Get(
+            pattern: string.IsNullOrWhiteSpace(wordToComplete) ? "*" : wordToComplete + "*",
+            options: WildcardOptions.IgnoreCase);
 
-    private IEnumerable<CompletionResult> CompleteRepositoryName(string wordToComplete)
-    {
-        List<CompletionResult> res = new List<CompletionResult>();
-
-        RespositorySettings repositorySettings = new RespositorySettings();
-        IReadOnlyList<PSObject> listOfRepositories = repositorySettings.Read(null);
-
-        foreach (PSObject repo in listOfRepositories)
-         {
-            string repoName = repo.Properties["Name"].Value.ToString();
-            if (repoName.StartsWith(wordToComplete, StringComparison.OrdinalIgnoreCase))
+        foreach (PSRepositoryInfo repo in listOfRepositories)
+        {
+            string repoName = repo.Name;
+            if (wordToCompletePattern.IsMatch(repoName))
             {
-                res.Add(new CompletionResult(repoName));
+                yield return new CompletionResult(Utils.QuoteName(repoName));
             }
         }
-
-        return res;
     }
 }

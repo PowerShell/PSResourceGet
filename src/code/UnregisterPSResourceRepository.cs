@@ -1,65 +1,78 @@
-﻿
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
-using Microsoft.PowerShell.PowerShellGet.RepositorySettings;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Management.Automation;
 
-
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-
     /// <summary>
-    /// The Register-PSResourceRepository cmdlet registers the default repository for PowerShell modules.
-    /// After a repository is registered, you can reference it from the Find-PSResource, Install-PSResource, and Publish-PSResource cmdlets.
-    /// The registered repository becomes the default repository in Find-Module and Install-Module.
-    /// It returns nothing.
+    /// The Unregister-PSResourceRepository cmdlet replaces the Unregister-PSRepository cmdlet from V2.
+    /// It unregisters a repository for the current user.
     /// </summary>
 
-    [Cmdlet(VerbsLifecycle.Unregister, "PSResourceRepository", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
-        HelpUri = "<add>", RemotingCapability = RemotingCapability.None)]
+    [Cmdlet(VerbsLifecycle.Unregister,
+        "PSResourceRepository",
+        SupportsShouldProcess = true,
+        HelpUri = "<add>")]
     public sealed
     class UnregisterPSResourceRepository : PSCmdlet
     {
-       // private string PSGalleryRepoName = "PSGallery";
+        #region Parameters
 
         /// <summary>
         /// Specifies the desired name for the repository to be registered.
         /// </summary>
-        [Parameter(Mandatory= true, Position = 0, ValueFromPipeline = true,
-            ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(Mandatory= true, Position = 0,
+            ValueFromPipeline = true,
+            ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
-        public string[] Name
+        public string[] Name { get; set; } = new string[0];
+
+        #endregion
+
+        #region Methods
+
+        protected override void BeginProcessing()
         {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
-        private string[] _name;
-
-
-
-
-        /// <summary>
-        /// </summary>
-        protected override void ProcessRecord()
-        {
-            var r = new RespositorySettings();
-
-            // need to check if name is null?
             try
             {
-                r.Remove(_name);
+                WriteDebug("Calling API to check repository store exists in non-corrupted state");
+                RepositorySettings.CheckRepositoryStore();
             }
-            catch (Exception e){
-                throw new Exception(string.Format("Unable to successfully unregister repository: {0}", e.Message));
+            catch (PSInvalidOperationException e)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException(e.Message),
+                    "RepositoryStoreException",
+                    ErrorCategory.ReadError,
+                    this));
+            }
+        }
+        protected override void ProcessRecord()
+        {
+            string nameArrayAsString = string.Join(", ", Name);
+            WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", nameArrayAsString));
+            if (!ShouldProcess(nameArrayAsString, "Unregister repositories from repository store"))
+            {
+                return;
+            }
+
+            RepositorySettings.Remove(Name, out string[] errorList);
+
+            // handle non-terminating errors
+            foreach (string error in errorList)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorUnregisteringSpecifiedRepo",
+                    ErrorCategory.InvalidOperation,
+                    this));
             }
         }
 
+        #endregion
     }
 }

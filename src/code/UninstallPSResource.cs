@@ -1,554 +1,316 @@
-﻿
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using System.Threading;
 using NuGet.Versioning;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
-using System.Globalization;
-using System.Collections.ObjectModel;
-using static System.Environment;
-using System.Security.Principal;
-using System.Runtime.InteropServices;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-
-
-    /// <summary>
-    /// Uninstall 
+    /// <summary>   
+    /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
-
-    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true,
-    HelpUri = "<add>", RemotingCapability = RemotingCapability.None)]
-    public sealed
-    class UninstallPSResource : PSCmdlet
+    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true, HelpUri = "<add>")]
+    public sealed class UninstallPSResource : PSCmdlet
     {
-        //  private string PSGalleryRepoName = "PSGallery";
-
+        #region Parameters
         /// <summary>
-        /// Specifies the exact names of resources to install from a repository.
+        /// Specifies the exact names of resources to uninstall.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public string[] Name
-        {
-            get
-            { return _name; }
-
-            set
-            { _name = value; }
-        }
-        private string[] _name; // = new string[0];
-
-
+        public string[] Name { get; set; }
+        
         /// <summary>
-        /// Specifies the version or version range of the package to be installed
+        /// Specifies the version or version range of the package to be uninstalled.
         /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public string Version
-        {
-            get
-            { return _version; }
-
-            set
-            { _version = value; }
-        }
-        private string _version;
-
-      
-        /// <summary>
-        /// Specifies to allow ONLY prerelease versions to be uninstalled
-        /// </summary>
-        [Parameter(ParameterSetName = "NameParameterSet")]
-        public SwitchParameter PrereleaseOnly
-        {
-            get
-            { return _prereleaseOnly; }
-
-            set
-            { _prereleaseOnly = value; }
-        }
-        private SwitchParameter _prereleaseOnly;
-       
+        public string Version { get; set; }
 
         /// <summary>
-        /// Overrides warning messages about resource installation conflicts.
-        /// If a resource with the same name already exists on the computer, Force allows for multiple versions to be installed.
-        /// If there is an existing resource with the same name and version, Force does NOT overwrite that version.
+        /// Used for pipeline input.
         /// </summary>
-        [Parameter()]
-        public SwitchParameter Force
-        {
-            get { return _force; }
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = InputObjectSet)]
+        [ValidateNotNullOrEmpty]
+        public PSResourceInfo[] InputObject { get; set; }
 
-            set { _force = value; }
-        }
-        private SwitchParameter _force;
+        /// <summary>
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public SwitchParameter Force { get; set; }
+        #endregion
 
+        #region Members
+        private const string NameParameterSet = "NameParameterSet";
+        private const string InputObjectSet = "InputObjectSet";
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-        private string programFilesPath;
-        private string myDocumentsPath;
-        List<string> dirsToDelete;
+        private CancellationTokenSource _source;
+        private CancellationToken _cancellationToken;
+        VersionRange _versionRange;
+        List<string> _pathsToSearch = new List<string>();
+        #endregion
 
-        private CancellationTokenSource source;
-        private CancellationToken cancellationToken;
+        #region Methods
+        protected override void BeginProcessing()
+        {
+            _source = new CancellationTokenSource();
+            _cancellationToken = _source.Token;
 
-        NuGetVersion nugetVersion;
-        VersionRange versionRange;
+            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+            // an exact version will be formatted into a version range.
+            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            {
+                var exMessage = "Argument for -Version parameter is not in the proper format.";
+                var ex = new ArgumentException(exMessage);
+                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(IncorrectVersionFormat);
+            }
 
+            _pathsToSearch = Utils.GetAllResourcePaths(this);
+        }
 
-        /// <summary>
-        /// </summary>
         protected override void ProcessRecord()
         {
-            source = new CancellationTokenSource();
-            cancellationToken = source.Token;
-
-
-
-            NuGetVersion.TryParse(_version, out nugetVersion);
-
-
-            if (nugetVersion == null)
+            switch (ParameterSetName)
             {
-                VersionRange.TryParse(_version, out versionRange); 
-            }
+                case NameParameterSet:
+                    if (!UninstallPkgHelper())
+                    {
+                        // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
+                        WriteDebug("Did not successfully uninstall all packages");
+                    }
+                    break;
 
-            var consoleIsElevated = false;
+                case InputObjectSet:
+                    // the for loop will use type PSObject in order to pull the properties from the pkg object
+                    foreach (PSResourceInfo pkg in InputObject)
+                    {
+                        if (pkg == null)
+                        {
+                            continue;
+                        }
 
-#if NET472
-            // WindowsPS
-            var id = System.Security.Principal.WindowsIdentity.GetCurrent();
-            consoleIsElevated = (id.Owner != id.User);
-            myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "WindowsPowerShell");
-            programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "WindowsPowerShell");
-#else
-            // If Windows OS (PS6+)
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                var id = System.Security.Principal.WindowsIdentity.GetCurrent();
-                consoleIsElevated = (id.Owner != id.User);
+                        // attempt to parse version
+                        if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange))
+                        {
+                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
+                            var ex = new ArgumentException(exMessage);
+                            var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
+                            WriteError(ErrorParsingVersion);
+                        }
 
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), "PowerShell");
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), "PowerShell");
-            }
-            else
-            {
-                // Paths are the same for both Linux and MacOS
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = Path.Combine("usr", "local", "share", "Powershell");
+                        Name = new string[] { pkg.Name };
+                        if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper())
+                        {
+                            // specific errors will be displayed lower in the stack
+                            var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", pkg.Name));
+                            var ex = new ArgumentException(exMessage);
+                            var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
+                                WriteError(UninstallResourceError);
+                        }
+                    }
+                    break;
 
-                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
-                {
-                    var results = pwsh.AddCommand("id").AddParameter("u").Invoke();
-                }
-            }
-#endif
-
-
-            foreach (var pkgName in _name)
-            {
-                var successfullyUninstalledPkg = UninstallPkgHelper(pkgName, cancellationToken);
-                if (successfullyUninstalledPkg)
-                {
-                    Console.WriteLine("Successfully uninstalled {0}", pkgName);
-                }
-                else
-                {
-                    Console.WriteLine("Did not successfully uninstall {0}", pkgName);
-                }
+                default:
+                    WriteDebug("Invalid parameter set");
+                    break;
             }
         }
+        
 
-
-
-        /// just uninstall module, not dependencies
-        private bool UninstallPkgHelper(string pkgName, CancellationToken cancellationToken)
+        private bool UninstallPkgHelper()
         {
             var successfullyUninstalled = false;
 
-            dirsToDelete = new List<string>();
+            GetHelper getHelper = new GetHelper(_cancellationToken, this);
+            List<string>  dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
 
-            if (String.IsNullOrWhiteSpace(pkgName))
+            // Checking if module or script
+            // a module path will look like:
+            // ./Modules/TestModule/0.0.1
+            // note that the xml file is located in this path, eg: ./Modules/TestModule/0.0.1/PSModuleInfo.xml 
+            // a script path will look like:
+            // ./Scripts/TestScript.ps1
+            // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
+
+            string pkgName = string.Empty;
+
+            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
             {
-                return successfullyUninstalled;
-            }
+                pkgName = Utils.GetInstalledPackageName(pkgPath);
 
-            var psModulesPathMyDocuments = Path.Combine(myDocumentsPath, "Modules");
-            var psModulesPathProgramFiles = Path.Combine(programFilesPath, "Modules");
-
-            var psScriptPathMyDocuments = Path.Combine(myDocumentsPath, "Scripts");
-            var psScriptsPathProgramFiles = Path.Combine(programFilesPath, "Scripts");
-
-
-            /* Modules */
-            // My Documents
-            var dirNameMyDocuments = Path.Combine(psModulesPathMyDocuments, pkgName);
-            var versionDirsMyDocuments = (Directory.Exists(dirNameMyDocuments)) ? Directory.GetDirectories(dirNameMyDocuments) : null;
-            var parentDirFilesMyDocuments = (Directory.Exists(dirNameMyDocuments)) ? Directory.GetFiles(dirNameMyDocuments) : null;
-            // Program Files
-            var dirNameProgramFiles = Path.Combine(psModulesPathProgramFiles, pkgName);
-            var versionDirsProgramFiles = (Directory.Exists(dirNameProgramFiles)) ? Directory.GetDirectories(dirNameProgramFiles) : null;
-            var parentDirFilesProgramFiles = (Directory.Exists(dirNameProgramFiles)) ? Directory.GetFiles(dirNameProgramFiles) : null;
-
-
-
-
-            /* Scripts */
-            // My Documents
-            var scriptPathMyDocuments = Path.Combine(psScriptPathMyDocuments, pkgName + ".ps1");
-            // Program Files
-            var scriptPathProgramFiles = Path.Combine(psScriptsPathProgramFiles, pkgName + ".ps1");
-
-
-            var psModulesPathAllDirs = new List<string>();
-            if (Directory.Exists(psModulesPathMyDocuments))
-            {
-                psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathMyDocuments).ToList());
-            }
-            if (Directory.Exists(psModulesPathProgramFiles))
-            {
-                psModulesPathAllDirs.AddRange(Directory.GetDirectories(psModulesPathProgramFiles).ToList());
-            }
-
-            var psScriptsPathAllFiles = new List<string>();
-            if (Directory.Exists(psScriptPathMyDocuments))
-            {
-                psScriptsPathAllFiles.AddRange(Directory.GetFiles(psScriptPathMyDocuments).ToList());  /// may need to change this to get files
-            }
-            if (Directory.Exists(psModulesPathMyDocuments))
-            {
-                psScriptsPathAllFiles.AddRange(Directory.GetFiles(psModulesPathMyDocuments).ToList());
-            }
-
-
-            var foundInMyDocuments = (Directory.Exists(dirNameMyDocuments) && (versionDirsMyDocuments.Any() || parentDirFilesMyDocuments.Any())) || File.Exists(scriptPathMyDocuments); // check for scripts
-            var foundInProgramFiles = (Directory.Exists(dirNameProgramFiles) && (versionDirsProgramFiles.Any() || parentDirFilesProgramFiles.Any())) || File.Exists(scriptPathProgramFiles);
-
-            // First check if module or script is installed by looking in the specified modules path and scripts path
-            var foundResourceObj = foundInMyDocuments || foundInProgramFiles || File.Exists(scriptPathMyDocuments) 
-                                    || File.Exists(scriptPathProgramFiles) ? true : false;
-            
-
-            var isScript = (File.Exists(scriptPathMyDocuments) || File.Exists(scriptPathProgramFiles)) ? true : false;
-
-
-            // If we can't find the resource, just return
-            if (!foundResourceObj)
-            {
-                return successfullyUninstalled;
-            }
-
-
-            if (!isScript)
-            {
-                // Try removing from my documents
-                if (foundInMyDocuments)
+                if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
                 {
-                    successfullyUninstalled = UninstallModuleHelper(pkgName, dirNameMyDocuments, versionDirsMyDocuments, parentDirFilesMyDocuments, cancellationToken);
+                    this.WriteDebug("ShouldProcess is set to false.");
+                    continue;
                 }
-                else if (foundInProgramFiles)
+
+                if (pkgPath.EndsWith(".ps1"))
                 {
-                    // try removing from program files
-                    successfullyUninstalled = UninstallModuleHelper(pkgName, dirNameProgramFiles, versionDirsProgramFiles, parentDirFilesProgramFiles, cancellationToken);
+                    successfullyUninstalled = UninstallScriptHelper(pkgPath, pkgName);
+                }
+                else
+                {
+                    successfullyUninstalled = UninstallModuleHelper(pkgPath, pkgName);
+                }
+
+                // if we can't find the resource, write non-terminating error and return
+                if (!successfullyUninstalled)
+                {
+                    string message = Version == null || Version.Trim().Equals("*") ?
+                        string.Format("Could not find any version of the resource '{0}' in any path", pkgName) :
+                        string.Format("Could not find verison '{0}' of the resource '{1}' in any path", Version, pkgName);
+
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(message),
+                        "ErrorRetrievingSpecifiedResource",
+                        ErrorCategory.ObjectNotFound,
+                        this));
                 }
             }
-            else 
-            {
-                // Try removing from my documents
-                if (foundInMyDocuments)
-                {
-                    successfullyUninstalled = UninstallScriptHelper(pkgName, psScriptPathMyDocuments, scriptPathMyDocuments, cancellationToken);
-                }
-                else if (foundInProgramFiles)
-                {
-                    // try removing from program files
-                    successfullyUninstalled = UninstallScriptHelper(pkgName, psScriptsPathProgramFiles, scriptPathProgramFiles, cancellationToken);
-                }
-            }
-
-
-
 
             return successfullyUninstalled;
-
         }
 
-
-
-
-
-
-
-        /* Uninstall Module */
-        private bool UninstallModuleHelper(string pkgName, string dirName, string[] versionDirs, string[] parentDirFiles, CancellationToken cancellationToken)
+        /* uninstalls a module */
+        private bool UninstallModuleHelper(string pkgPath, string pkgName)
         {
             var successfullyUninstalledPkg = false;
+
+            // if -Force is not specified and the pkg is a dependency for another package, 
+            // an error will be written and we return false
+            if (!Force && CheckIfDependency(pkgName))
+            {
+                return false;
+            }
             
+            DirectoryInfo dir = new DirectoryInfo(pkgPath);
+            dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
 
-            // If prereleaseOnly is specified, we'll only take into account prerelease versions of pkgs
-            if (_prereleaseOnly)
+            try
             {
-                List<string> prereleaseOnlyVersionDirs = new List<string>();
-                foreach (var dir in versionDirs)
-                {
-                    var nameOfDir = Path.GetFileName(dir);
-                    var nugVersion = NuGetVersion.Parse(nameOfDir);
+                // delete recursively
+                dir.Delete(true);
+                WriteVerbose(string.Format("Successfully uninstalled '{0}' from path '{1}'", pkgName, dir.FullName));
 
-                    if (nugVersion.IsPrerelease)
+                successfullyUninstalledPkg = true;
+
+                // finally: check to see if there's anything left in the parent directory, if not, delete that as well
+                try
+                {
+                    if (Directory.GetDirectories(dir.Parent.FullName).Length == 0)
                     {
-                        prereleaseOnlyVersionDirs.Add(dir);
+                        Directory.Delete(dir.Parent.FullName, true);
                     }
                 }
-                versionDirs = prereleaseOnlyVersionDirs.ToArray();
+                catch (Exception e) {
+                    // write error
+                    var exMessage = String.Format("Parent directory '{0}' could not be deleted: {1}", dir.Parent.FullName, e.Message);
+                    var ex = new ArgumentException(exMessage);
+                    var ErrorDeletingParentDirectory = new ErrorRecord(ex, "ErrorDeletingParentDirectory", ErrorCategory.InvalidArgument, null);
+                    WriteError(ErrorDeletingParentDirectory);
+                }
             }
+            catch (Exception err) {
+                // write error
+                var exMessage = String.Format("Directory '{0}' could not be deleted: {1}", dir.FullName, err.Message);
+                var ex = new ArgumentException(exMessage);
+                var ErrorDeletingDirectory = new ErrorRecord(ex, "ErrorDeletingDirectory", ErrorCategory.PermissionDenied, null);
+                WriteError(ErrorDeletingDirectory);
+            }
+            
+            return successfullyUninstalledPkg;
+        }
 
+        /* uninstalls a script */
+        private bool UninstallScriptHelper(string pkgPath, string pkgName)
+        {
+            var successfullyUninstalledPkg = false;
 
-            // if the version specificed is a version range
-            if (versionRange != null)
+            // delete the appropriate file
+            try
             {
+                File.Delete(pkgPath);
+                successfullyUninstalledPkg = true;
 
-                foreach (var versionDirPath in versionDirs)
+                string scriptXML = string.Empty;
+                try
                 {
-                    var nameOfDir = Path.GetFileName(versionDirPath);
-                    var nugVersion = NuGetVersion.Parse(nameOfDir);
-
-                    if (versionRange.Satisfies(nugVersion))
+                    // finally: Delete the xml from the InstalledModulesInfo directory
+                    DirectoryInfo dir = new DirectoryInfo(pkgPath);
+                    DirectoryInfo parentDir = dir.Parent;
+                    scriptXML = Path.Combine(parentDir.FullName, "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
+                    if (File.Exists(scriptXML))
                     {
-                        dirsToDelete.Add(versionDirPath);
+                        File.Delete(scriptXML);
                     }
                 }
-            }
-            else if (nugetVersion != null)
-            {
-                // if the version specified is a version
-
-                dirsToDelete.Add(nugetVersion.ToNormalizedString());
-            }
-            else
-            {
-                // if no version is specified, just delete the latest version
-                Array.Sort(versionDirs);
-
-                dirsToDelete.Add(versionDirs[versionDirs.Length - 1]);
-            }
-
-
-
-
-            // if dirsToDelete is empty... meaning we didn't find any modules, it's possible it's a script
-            if (dirsToDelete.Any())
-            {
-                /// This is a primitive implementation
-                /// TODO:  implement a dependencies database for querying dependency info
-                /// Cannot uninstall a module if another module is dependent on it 
-
-                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                catch (Exception e)
                 {
-                    // Check all modules for dependencies
-                    var results = pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke();
-
-                    // Structure of LINQ call:
-                    // Results is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
-                    // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
-                    // If we anything from the final call gets returned, there is a dependency on this pkg.
-                    var pkgsWithRequiredModules = results.Where(p => ((ReadOnlyCollection<PSModuleInfo>)p.Properties["RequiredModules"].Value).Where(rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any());
-
-
-                    //.Select(p => (p.Properties.Match("Name"), p.Properties.Match("Version")));
-
-                    if (pkgsWithRequiredModules.Any())
-                    {
-                        var uniquePkgNames = pkgsWithRequiredModules.Select(p => p.Properties["Name"].Value).Distinct().ToArray();
-
-                        var strUniquePkgNames = string.Join(",", uniquePkgNames);
-
-                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Cannot uninstall {0}, the following package(s) take a dependency on this package: {1}", pkgName, strUniquePkgNames));
-
-                    }
+                    var exMessage = String.Format("Script metadata file '{0}' could not be deleted: {1}", scriptXML, e.Message);
+                    var ex = new ArgumentException(exMessage);
+                    var ErrorDeletingScriptMetadataFile = new ErrorRecord(ex, "ErrorDeletingScriptMetadataFile", ErrorCategory.PermissionDenied, null);
+                    WriteError(ErrorDeletingScriptMetadataFile);
                 }
-
-
-                // Delete the appropriate directories
-                foreach (var dirVersion in dirsToDelete)
-                {
-                    var dirNameVersion = Path.Combine(dirName, dirVersion);
-
-                    // we know it's installed because it has an xml
-                    if (Directory.Exists(dirNameVersion))
-                    {
-                        var dir = new DirectoryInfo(dirNameVersion.ToString());
-                        dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
-                        // Delete recursively
-                        dir.Delete(true);
-                        successfullyUninstalledPkg = true;
-                    }
-                }
-
-
-
-                // Finally:
-                // Check to see if there's anything left in the parent directory, if not, delete that as well
-                if (Directory.GetDirectories(dirName).Length == 0)
-                {
-                    Directory.Delete(dirName, true);
-                }
-
             }
-
-
-          
+            catch (Exception err){
+                var exMessage = String.Format("Script '{0}' could not be deleted: {1}", pkgPath, err.Message);
+                var ex = new ArgumentException(exMessage);
+                var ErrorDeletingScript = new ErrorRecord(ex, "ErrorDeletingScript", ErrorCategory.PermissionDenied, null);
+                WriteError(ErrorDeletingScript);
+            }
 
             return successfullyUninstalledPkg;
         }
 
-
-
-
-
-
-        /* Uninstall script helper */
-        private bool UninstallScriptHelper(string pkgName, string scriptsPath, string fullScriptPath, CancellationToken cancellationToken)
+        private bool CheckIfDependency(string pkgName)
         {
-            /* Currently the way PSGet operates is that only one script can be installed at a time.
-             * I think it's worth seeing if we want allow for multiple scripts to be instlled at a time,
-             * and if so, we need to rethink the architecture of the scripts installation path. */
-             
-            var successfullyUninstalledPkg = false;
-
-            // TODO:  open xml and read from it 
-            var xmlFileName = string.Concat(pkgName, "_InstalledScriptInfo.xml");
-            var scriptXMLPath = Path.Combine(scriptsPath, "InstalledScriptInfos", xmlFileName);
-
-            ReadOnlyPSMemberInfoCollection<PSPropertyInfo> versionInfo;
-            NuGetVersion nugetVersion;
-            using (StreamReader sr = new StreamReader(scriptXMLPath))
+            // this is a primitive implementation
+            // TODO:  implement a dependencies database for querying dependency info
+            // cannot uninstall a module if another module is dependent on it 
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
             {
+                // Check all modules for dependencies
+                var results = pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke();
 
-                string text = sr.ReadToEnd();
-                var deserializedObj = (PSObject)PSSerializer.Deserialize(text);
-
-                versionInfo = deserializedObj.Properties.Match("Version");
-            };
-
-            
-            NuGetVersion.TryParse(versionInfo.FirstOrDefault().Value.ToString(), out nugetVersion);
-
-
-
-            // If prereleaseOnly is specified, we'll only take into account prerelease versions of pkgs
-            if (_prereleaseOnly)
-            {
-                // If the installed script is a prerelease, we can continue processing it
-                if (nugetVersion.IsPrerelease)
+                // Structure of LINQ call:
+                // Results is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
+                // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
+                // If we anything from the final call gets returned, there is a dependency on this pkg.
+                IEnumerable<PSObject> pkgsWithRequiredModules = new List<PSObject>();
+                try
                 {
-                    dirsToDelete.Add(fullScriptPath);
+                    pkgsWithRequiredModules = results.Where(
+                        p => ((ReadOnlyCollection<PSModuleInfo>)p.Properties["RequiredModules"].Value).Where(
+                            rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any());
                 }
-                else
+                catch (Exception e) {
+                    var exMessage = String.Format("Error checking if resource is a dependency: {0}. If you would still like to uninstall, rerun the command with -Force", e.Message);
+                    var ex = new ArgumentException(exMessage);
+                    var DependencyCheckError = new ErrorRecord(ex, "DependencyCheckError", ErrorCategory.OperationStopped, null);
+                    WriteError(DependencyCheckError);
+                }
+
+                if (pkgsWithRequiredModules.Any())
                 {
-                    return successfullyUninstalledPkg;
+                    var uniquePkgNames = pkgsWithRequiredModules.Select(p => p.Properties["Name"].Value).Distinct().ToArray();
+                    var strUniquePkgNames = string.Join(",", uniquePkgNames);
+
+                    var exMessage = String.Format("Cannot uninstall '{0}', the following package(s) take a dependency on this package: {1}. If you would still like to uninstall, rerun the command with -Force", pkgName, strUniquePkgNames);
+                    var ex = new ArgumentException(exMessage);
+                    var PackageIsaDependency = new ErrorRecord(ex, "PackageIsaDependency", ErrorCategory.OperationStopped, null);
+                    WriteError(PackageIsaDependency);
+                    return true;
                 }
             }
-
-
-            if (_version == null)
-            {
-                // if no version is specified, just delete the latest version (right now the only version)
-                dirsToDelete.Add(fullScriptPath);
-            }
-            // if the version specificed is a version range
-            else 
-            {
-                // Parse the version passed in and compare it to the script version
-                NuGetVersion argNugetVersion;
-                NuGetVersion.TryParse(_version, out argNugetVersion);
-
-                VersionRange versionRange;
-                if (argNugetVersion != null)
-                {
-                    // exact version
-                    versionRange = new VersionRange(argNugetVersion, true, argNugetVersion, true, null, null);
-                }
-                else
-                {
-                    // check if version range
-                    versionRange = VersionRange.Parse(_version);
-                }
-
-
-
-                if (versionRange.Satisfies(nugetVersion))
-                {
-                    dirsToDelete.Add(fullScriptPath);
-                }
-            }
-
-
-
-
-            // if dirsToDelete is empty... meaning we didn't find any scripts
-            if (dirsToDelete.Any())
-            {
-                /// This is a primitive implementation
-                /// TODO:  implement a dependencies database for querying dependency info
-                /// Cannot uninstall a package if another module is dependent on it 
-
-                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
-                {
-                    // Check all modules for dependencies
-                    var results = pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke();
-
-                    // Structure of LINQ call:
-                    // Results is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
-                    // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
-                    // If we anything from the final call gets returned, there is a dependency on this pkg.
-
-                    // check for nested modules as well
-                    var pkgsWithRequiredModules = results.Where(p => ((ReadOnlyCollection<PSModuleInfo>)p.Properties["RequiredModules"].Value).Where(rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any());
-
-                    if (pkgsWithRequiredModules.Any())
-                    {
-                        var uniquePkgNames = pkgsWithRequiredModules.Select(p => p.Properties["Name"].Value).Distinct().ToArray();
-
-                        var strUniquePkgNames = string.Join(",", uniquePkgNames);
-
-                        throw new System.ArgumentException(string.Format(CultureInfo.InvariantCulture, "Cannot uninstall {0}, the following package(s) take a dependency on this package: {1}", pkgName, strUniquePkgNames));
-
-                    }
-                }
-
-
-
-
-
-
-                // Delete the appropriate file
-                if (File.Exists(fullScriptPath))
-                {
-                    File.Delete(fullScriptPath);
-                    successfullyUninstalledPkg = true;
-                }
-
-                // Finally:
-                // Delete the xml from the InstalledModulesInfo directory
-                var scriptXML = Path.Combine(scriptsPath, "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
-                if (File.Exists(scriptXML))
-                {
-                    File.Delete(scriptXML);
-                }
-
-
-            }
-
-
-
-            return successfullyUninstalledPkg;
+            return false;
         }
-
-
+        #endregion
     }
 }
