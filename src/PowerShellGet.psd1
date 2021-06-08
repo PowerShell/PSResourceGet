@@ -7,7 +7,6 @@
     Copyright         = '(c) Microsoft Corporation. All rights reserved.'
     Description       = 'PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, Scripts, and DSC Resources.'
     PowerShellVersion = '3.0'
-    FormatsToProcess  = 'PSGet.Format.ps1xml'
     CmdletsToExport = @(
         'Find-PSResource',
         'Get-PSResourceRepository',
