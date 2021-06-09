@@ -15,7 +15,7 @@ schedules:
 
 resources:
   repositories:
-    - repository: PowerShellGetV3
+    - repository: PowerShellGet
       type: git
       name: PowerShellGetV3
       ref: master
