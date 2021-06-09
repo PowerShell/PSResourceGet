@@ -8,64 +8,49 @@ schema: 2.0.0
 # Publish-PSResource
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Publishes a specified module from the local computer to PSResource repository.
 
 ## SYNTAX
 
 ### PathParameterSet
 ```
 Publish-PSResource [-APIKey <String>] [-Repository <String>] [-DestinationPath <String>] [-Path] <String>
- [-Credential <PSCredential>] [-SkipDependenciesCheck] [-ReleaseNotes <String>] [-Tags <String[]>]
- [-LicenseUrl <String>] [-IconUrl <String>] [-ProjectUrl <String>] [-Exclude <String[]>] [-Nuspec <String>]
+ [-Credential <PSCredential>] [-SkipDependenciesCheck]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathLiteralParameterSet
 ```
 Publish-PSResource [-APIKey <String>] [-Repository <String>] [-DestinationPath <String>] -LiteralPath <String>
- [-Credential <PSCredential>] [-SkipDependenciesCheck] [-ReleaseNotes <String>] [-Tags <String[]>]
- [-LicenseUrl <String>] [-IconUrl <String>] [-ProjectUrl <String>] [-Exclude <String[]>] [-Nuspec <String>]
+ [-Credential <PSCredential>] [-SkipDependenciesCheck]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### CreateNuspecParameterSet
-```
-Publish-PSResource [-APIKey <String>] [-Repository <String>] [-DestinationPath <String>]
- [-Credential <PSCredential>] [-SkipDependenciesCheck] [-ReleaseNotes <String>] [-Tags <String[]>]
- [-LicenseUrl <String>] [-IconUrl <String>] [-ProjectUrl <String>] [-Exclude <String[]>] [-WhatIf] [-Confirm]
- [<CommonParameters>]
-```
-
-### ModuleNameParameterSet
-```
-Publish-PSResource [-APIKey <String>] [-Repository <String>] [-DestinationPath <String>]
- [-Credential <PSCredential>] [-SkipDependenciesCheck] [-Exclude <String[]>] [-WhatIf] [-Confirm]
- [<CommonParameters>]
-```
-
-### NuspecParameterSet
-```
-Publish-PSResource [-APIKey <String>] [-Repository <String>] [-DestinationPath <String>]
- [-Credential <PSCredential>] [-SkipDependenciesCheck] [-Exclude <String[]>] [-Nuspec <String>] [-WhatIf]
- [-Confirm] [<CommonParameters>]
-```
-
 ## DESCRIPTION
-{{ Fill in the Description }}
+The Publish-PSResource cmdlet combines the Publish-Module and Publish-Script cmdlets from V2.
+
+It publishes a specified resource from the local computer to an online Nuget-based gallery by using an API key, stored as part of a user's profile in the gallery or to a local repository. You can specify the resource to publish either by the resource's name, or by the path to the folder containing the module or script resource.
 
 ## EXAMPLES
 
 ### Example 1
 ```powershell
-PS C:\> {{ Add example code here }}
+PS C:\> Publish-PSResource -Path c:\Test-Module
 ```
 
-{{ Add example description here }}
+This will publish the module 'Test-Module' to the highest priority repository
+
+### Example 2
+```powershell
+PS C:\> Publish-PSResource -Path c:\Test-Module -Repository PSGallery -APIKey '1234567'
+```
+
+This will publish the module 'Test-Module' to the PowerShellGallery.  Note that the API key is a secret that is generated for a user from the website itself.
 
 ## PARAMETERS
 
 ### -APIKey
-{{ Fill APIKey Description }}
+Specifies the API key that you want to use to publish a resource to the online gallery.
 
 ```yaml
 Type: System.String
@@ -80,7 +65,7 @@ Accept wildcard characters: False
 ```
 
 ### -Credential
-{{ Fill Credential Description }}
+Specifies a user account that has rights to a specific repository (used for finding dependencies).
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -95,56 +80,11 @@ Accept wildcard characters: False
 ```
 
 ### -DestinationPath
-{{ Fill DestinationPath Description }}
+Specifies the location to be used to publish a nupkg locally.
 
 ```yaml
 Type: System.String
 Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Exclude
-{{ Fill Exclude Description }}
-
-```yaml
-Type: System.String[]
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IconUrl
-{{ Fill IconUrl Description }}
-
-```yaml
-Type: System.String
-Parameter Sets: PathParameterSet, PathLiteralParameterSet, CreateNuspecParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LicenseUrl
-{{ Fill LicenseUrl Description }}
-
-```yaml
-Type: System.String
-Parameter Sets: PathParameterSet, PathLiteralParameterSet, CreateNuspecParameterSet
 Aliases:
 
 Required: False
@@ -155,7 +95,7 @@ Accept wildcard characters: False
 ```
 
 ### -LiteralPath
-{{ Fill LiteralPath Description }}
+Specifies a path to one or more locations. Unlike the Path parameter, the value of the LiteralPath parameter is used exactly as entered. No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks. Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
 
 ```yaml
 Type: System.String
@@ -169,23 +109,8 @@ Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
-### -Nuspec
-{{ Fill Nuspec Description }}
-
-```yaml
-Type: System.String
-Parameter Sets: PathParameterSet, PathLiteralParameterSet, NuspecParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Path
-{{ Fill Path Description }}
+When specified, includes prerelease versions in search.
 
 ```yaml
 Type: System.String
@@ -199,38 +124,8 @@ Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
-### -ProjectUrl
-{{ Fill ProjectUrl Description }}
-
-```yaml
-Type: System.String
-Parameter Sets: PathParameterSet, PathLiteralParameterSet, CreateNuspecParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ReleaseNotes
-{{ Fill ReleaseNotes Description }}
-
-```yaml
-Type: System.String
-Parameter Sets: PathParameterSet, PathLiteralParameterSet, CreateNuspecParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Repository
-{{ Fill Repository Description }}
+Specifies the repository to publish to.
 
 ```yaml
 Type: System.String
@@ -245,26 +140,11 @@ Accept wildcard characters: False
 ```
 
 ### -SkipDependenciesCheck
-{{ Fill SkipDependenciesCheck Description }}
+Bypasses the default check that all dependencies are present.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Tags
-{{ Fill Tags Description }}
-
-```yaml
-Type: System.String[]
-Parameter Sets: PathParameterSet, PathLiteralParameterSet, CreateNuspecParameterSet
 Aliases:
 
 Required: False
@@ -308,17 +188,12 @@ Accept wildcard characters: False
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
 
-## INPUTS
-
-### System.String
 
 ## OUTPUTS
 
-### System.Object
+### None
 
 ## NOTES
 
 ## RELATED LINKS
-
-[<add>](<add>)
 

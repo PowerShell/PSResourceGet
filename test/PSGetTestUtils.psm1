@@ -1,10 +1,5 @@
-<#####################################################################################
- # File: PSGetTestUtils.psm1
- #
- # Copyright (c) Microsoft Corporation, 2020
- #####################################################################################>
-
-#."$PSScriptRoot\uiproxy.ps1"
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 $psGetMod = Get-Module -Name PowerShellGet
 if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
@@ -449,4 +444,61 @@ $($ReleaseNotes -join "`r`n")
 "@
         return $PSScriptInfoString
     }
+}
+
+<#
+Checks that provided PSGetInfo object contents match the expected data
+from the test information file: PSGetModuleInfo.xml
+#>
+function CheckForExpectedPSGetInfo
+{
+    param ($psGetInfo)
+
+    $psGetInfo.AdditionalMetadata.Keys | Should -HaveCount 22
+    $psGetInfo.AdditionalMetadata['copyright'] | Should -BeExactly '(c) Microsoft Corporation. All rights reserved.'
+    $psGetInfo.AdditionalMetadata['description'] | Should -BeLike 'This module provides a convenient way for a user to store and retrieve secrets*'
+    $psGetInfo.AdditionalMetadata['requireLicenseAcceptance'] | Should -BeExactly 'False'
+    $psGetInfo.AdditionalMetadata['isLatestVersion'] | Should -BeExactly 'True'
+    $psGetInfo.AdditionalMetadata['isAbsoluteLatestVersion'] | Should -BeExactly 'True'
+    $psGetInfo.AdditionalMetadata['versionDownloadCount'] | Should -BeExactly '0'
+    $psGetInfo.AdditionalMetadata['downloadCount'] | Should -BeExactly '15034'
+    $psGetInfo.AdditionalMetadata['packageSize'] | Should -BeExactly '55046'
+    $psGetInfo.AdditionalMetadata['published'] | Should -BeExactly '3/25/2021 6:08:10 PM -07:00'
+    $psGetInfo.AdditionalMetadata['created'] | Should -BeExactly '3/25/2021 6:08:10 PM -07:00'
+    $psGetInfo.AdditionalMetadata['lastUpdated'] | Should -BeExactly '3/25/2021 6:08:10 PM -07:00'
+    $psGetInfo.AdditionalMetadata['tags'] | Should -BeLike 'PSModule PSEdition_Core PSCmdlet_Register-SecretVault*'
+    $psGetInfo.AdditionalMetadata['developmentDependency'] | Should -BeExactly 'False'
+    $psGetInfo.AdditionalMetadata['updated'] | Should -BeExactly '2021-03-25T18:08:10Z'
+    $psGetInfo.AdditionalMetadata['NormalizedVersion'] | Should -BeExactly '1.0.0'
+    $psGetInfo.AdditionalMetadata['Authors'] | Should -BeExactly 'Microsoft Corporation'
+    $psGetInfo.AdditionalMetadata['IsPrerelease'] | Should -BeExactly 'false'
+    $psGetInfo.AdditionalMetadata['ItemType'] | Should -BeExactly 'Module'
+    $psGetInfo.AdditionalMetadata['FileList'] | Should -BeLike 'Microsoft.PowerShell.SecretManagement.nuspec|Microsoft.PowerShell.SecretManagement.dll*'
+    $psGetInfo.AdditionalMetadata['GUID'] | Should -BeExactly 'a5c858f6-4a8e-41f1-b1ee-0ff8f6ad69d3'
+    $psGetInfo.AdditionalMetadata['PowerShellVersion'] | Should -BeExactly '5.1'
+    $psGetInfo.AdditionalMetadata['CompanyName'] | Should -BeExactly 'Microsoft Corporation'
+    #
+    $psGetInfo.Author | Should -BeExactly 'Microsoft Corporation'
+    $psGetInfo.CompanyName | Should -BeExactly 'Microsoft Corporation'
+    $psGetInfo.Copyright | Should -BeExactly '(c) Microsoft Corporation. All rights reserved.'
+    $psGetInfo.Dependencies | Should -HaveCount 0
+    $psGetInfo.Description | Should -BeLike 'This module provides a convenient way for a user to store*'
+    $psGetInfo.IconUri | Should -BeNullOrEmpty
+    $psGetInfo.Includes.Cmdlet | Should -HaveCount 10
+    $psGetInfo.Includes.Cmdlet[0] | Should -BeExactly 'Register-SecretVault'
+    $psGetInfo.InstalledDate.Year | Should -BeExactly 2021
+    $psGetInfo.InstalledLocation | Should -BeLike 'C:\Users\*'
+    $psGetInfo.LicenseUri | Should -BeExactly 'https://github.com/PowerShell/SecretManagement/blob/master/LICENSE'
+    $psGetInfo.Name | Should -BeExactly 'Microsoft.PowerShell.SecretManagement'
+    $psGetInfo.PackageManagementProvider | Should -BeExactly 'NuGet'
+    $psGetInfo.PowerShellGetFormatVersion | Should -BeNullOrEmpty
+    $psGetInfo.ProjectUri | Should -BeExactly 'https://github.com/powershell/secretmanagement'
+    $psGetInfo.PublishedDate.Year | Should -BeExactly 2021
+    $psGetInfo.ReleasedNotes | Should -BeNullOrEmpty
+    $psGetInfo.Repository | Should -BeExactly 'PSGallery'
+    $psGetInfo.RepositorySourceLocation | Should -BeExactly 'https://www.powershellgallery.com/api/v2'
+    $psGetInfo.Tags | Should -BeExactly @('PSModule', 'PSEdition_Core')
+    $psGetInfo.Type | Should -BeExactly 'Module'
+    $psGetInfo.UpdatedDate.Year | Should -BeExactly 1
+    $psGetInfo.Version.ToString() | Should -BeExactly '1.0.0'
 }

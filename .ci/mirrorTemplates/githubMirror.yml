@@ -1,0 +1,107 @@
+parameters:
+  - name: repoName
+    default: ''
+  - name: organization
+    default: powershell
+
+stages:
+  - stage: Mirror_${{ replace(parameters.reponame,'-','_') }}
+    displayName: Mirror ${{ parameters.reponame }}
+    jobs:
+    - job: Mirror_${{ replace(parameters.reponame,'-','_') }}
+      displayName: Mirror ${{ parameters.reponame }}
+      cancelTimeoutInMinutes: 1
+
+      pool:
+        name: 1ES
+        demands:
+        - ImageOverride -equals MMS2019
+
+      variables:
+        # AzDO intercepts some git cli calls and turns them into API calls
+        # prefer git says to always use the cli
+        - name: system.prefergit
+          value: true
+        # We are only mirroring and not building, so ignore nuget
+        - name: NugetSecurityAnalysisWarningLevel
+          value: none
+        - name: repoFolder
+          value: ${{ parameters.reponame }}
+        - name: ghRepoFolder
+          value: ${{ parameters.reponame }}-gh
+        - name: repoPath
+          value: $(Agent.BuildDirectory)\$(repoFolder)
+        - name: ghRepoPath
+          value: $(Agent.BuildDirectory)\$(ghRepoFolder)
+
+      steps:
+      - checkout: ${{ parameters.reponame }}
+        clean: true
+        path: $(repoFolder)
+        # We need the credentials to push back to the AzDO repo
+        persistCredentials: True
+
+      # using multi checkout because sometimes the GitHub repo is private
+      # this makes the template the same,
+      # even if a private repo requires authentication
+      - checkout: ${{ parameters.reponame }}-gh
+        clean: true
+        path: $(ghRepoFolder)
+
+      - pwsh: |
+            $commitId = git rev-parse --verify HEAD
+
+            $vstsCommandString = "vso[task.setvariable variable=CommitId]$commitId"
+
+            Write-Host "sending " + $vstsCommandString
+
+            Write-Host "##$vstsCommandString"
+        displayName: Saving AzDO commitid
+        workingDirectory: '$(repoPath)'
+
+      - pwsh: |
+            Write-verbose -message 'creating master from HEAD' -verbose
+            git branch master
+
+            Write-verbose -message 'checking out master' -verbose
+            git checkout master
+
+            Write-verbose -message 'getting git status' -verbose
+            git status
+        displayName: Set branch to master on GitHub repo
+        workingDirectory: '$(ghRepoPath)'
+
+      - pwsh: |
+            Write-verbose -message 'adding github remote' -verbose
+            git remote add github $(ghRepoPath)
+
+            Write-verbose -message 'listing remotes' -verbose
+            git remote -v
+
+            Write-verbose -message 'fetching github master' -verbose
+            git fetch --quiet github master
+
+            Write-verbose -message 'Checkout master branch as github master' -verbose
+            git checkout --quiet -b master github/master
+        displayName: Checkout GitHub master branch as master
+        workingDirectory: '$(repoPath)'
+
+      - pwsh: |
+            $commitId = git rev-parse --verify HEAD
+
+            Write-verbose -message "$commitId -ne $env:commitId" -verbose
+
+            if ($commitId -ne $env:commitId)
+            {
+                Write-verbose -message 'pushing (quiet)...' -verbose
+                git branch
+                git push --quiet origin master
+            }
+            else
+            {
+                Write-verbose -message 'Nothing to update' -verbose
+            }
+        displayName: Push to AzDO if needed
+        workingDirectory: '$(repoPath)'
+        env:
+          MY_ACCESS_TOKEN: $(System.AccessToken)
