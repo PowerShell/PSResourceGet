@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using NuGet.Versioning;
@@ -11,6 +12,42 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     internal static class Utils
     {
+        public static string[] FilterOutWildcardNames(
+            string[] pkgNames,
+            out string[] errorMsgs)
+        {
+            List<string> temp = new List<string>();
+            List<string> errorMsgList = new List<string>();
+
+            foreach (string n in pkgNames)
+            {
+                bool isNameErrorProne = false;
+                if (WildcardPattern.ContainsWildcardCharacters(n))
+                {
+                    if (String.Equals(n, "*", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        errorMsgList = new List<string>(); // clear prior error messages
+                        errorMsgList.Add("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded. Please use the TODO-cmdlet");
+                        temp = new List<string>();
+                        break;
+                    }
+                    else if (n.Contains("?") || n.Contains("["))
+                    {
+                        errorMsgList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for Find-PSResource so Name entry: {0} will be discarded.", n));
+                        isNameErrorProne = true;
+                    }
+                }
+
+                if (!isNameErrorProne)
+                {
+                    temp.Add(n);
+                }
+            }
+
+            errorMsgs = errorMsgList.ToArray();
+            return temp.ToArray();
+        }
+
         #region Public methods
 
         public static string TrimQuotes(string name)
@@ -82,6 +119,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
+            // parse as Version range
             return VersionRange.TryParse(version, out versionRange);
         }
 

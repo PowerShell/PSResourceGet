@@ -19,7 +19,6 @@ using System.Data;
 using System.Net;
 using static System.Environment;
 using Dbg = System.Diagnostics.Debug;
-using NuGet.CatalogReader;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -32,13 +31,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pkgsLeftToFind;
         private string[] _name;
-        private ResourceType? _type;
+        // TODO: if None field added to Enum, rmeove nullable here!
+        private ResourceType _type;
         private string _version;
         private SwitchParameter _prerelease = false;
         private PSCredential _credential;
         private string[] _tag;
         private string[] _repository;
-        private string _psGalleryRepoName = "PSGallery";
+        private SwitchParameter _includeDependencies = false;
+        private readonly string _psGalleryRepoName = "PSGallery";
+
+        // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
+        // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
         private const int SearchAsyncMaxReturned = 5990;
         private const int GalleryMax = 12000;
 
@@ -51,14 +55,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSResourceInfo> FindByResourceName(
             string[] name,
-            ResourceType? type,
+            ResourceType type,
             string version,
             SwitchParameter prerelease,
             string[] tag,
             string[] repository,
-            PSCredential credential)
+            PSCredential credential,
+            SwitchParameter includeDependencies)
         {
-            // TODO: Ctrl F and check _name is used instead of name, and such for rest of fields
             _name = name;
             _type = type;
             _version = version;
@@ -66,6 +70,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _tag = tag;
             _repository = repository;
             _credential = credential;
+            _includeDependencies = includeDependencies;
 
             Dbg.Assert(_name.Length != 0, "Name length cannot be 0");
 
@@ -108,12 +113,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // detect if Scripts repository needs to be added and/or Modules repository needs to be skipped
                     Uri psGalleryScriptsUrl = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
                     PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo("PSGalleryScripts", psGalleryScriptsUrl, repositoriesToSearch[i].Priority, false);
-                    if (_type == null)
+                    if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteDebug("Null Type provided, so add PSGalleryScripts repository");
                         repositoriesToSearch.Insert(i + 1, psGalleryScripts);
                     }
-                    else if (_type != null && _type == ResourceType.Script)
+                    else if (_type != ResourceType.None && _type == ResourceType.Script)
                     {
                         _cmdletPassedIn.WriteDebug("Type Script provided, so add PSGalleryScripts and remove PSGallery (Modules only)");
                         repositoriesToSearch.Insert(i + 1, psGalleryScripts);
@@ -301,6 +306,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // filter additionally because NuGet wildcard search API returns more than we need
                 // TODO: filter out names including OTHER wildcards allowed by the API but which we don't support
+                // perhaps validate in Find-PSResource, and use debugassert here?
                 WildcardPattern nameWildcardPattern = new WildcardPattern(pkgName, WildcardOptions.IgnoreCase);
                 foundPackagesMetadata.AddRange(wildcardPkgs.Where(
                     p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
@@ -312,7 +318,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // PSGallery + Type == C    -> M
                 // PSGallery + Type == D    -> M
 
-                bool needToCheckPSGalleryScriptsRepo = String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) && _type == null;
+                bool needToCheckPSGalleryScriptsRepo = String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) && _type == ResourceType.None;
                 if (foundPackagesMetadata.Any() && !needToCheckPSGalleryScriptsRepo)
                 {
                     _pkgsLeftToFind.Remove(pkgName);
@@ -336,7 +342,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                // TODO: PR comments
                 if (!Utils.TryParseVersionOrVersionRange(_version, out VersionRange versionRange))
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -390,6 +395,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
+            // if (_includeDependencies)
+            // {
+            //     // need to add dependency pkgs
+            //     foundPackagesMetadata.AddRange(FindDependencyPackages(foundPackagesMetadata, pkgSearchResource, searchFilter));
+            // }
+
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
                 if (!PSResourceInfo.TryParse(
@@ -408,7 +419,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield break;
                 }
 
-                if (_type != null)
+                if (_type != ResourceType.None)
                 {
                     if (_type == ResourceType.Command && !currentPkg.Type.HasFlag(ResourceType.Command))
                     {
@@ -420,9 +431,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
 
+                // todo: only going to go in here for the main package and check its dependencies if Type and Tag requirements are met
                 if (_tag == null || (_tag != null && IsTagMatch(currentPkg)))
                 {
                     yield return currentPkg;
+
+                    if (_includeDependencies)
+                    {
+                        foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentPkg, pkgMetadataResource, sourceContext))
+                        {
+                            yield return pkgDep;
+                        }
+                    }
                 }
             }
         }
@@ -430,6 +450,126 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool IsTagMatch(PSResourceInfo pkg)
         {
             return _tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList().Count > 0;
+        }
+
+        // #region Dependencies - Old Implementation
+        // private List<IPackageSearchMetadata> FindDependencyPackages(
+        //     List<IPackageSearchMetadata> packagesToFindDependenciesOf,
+        //     PackageSearchResource pkgSearchResource,
+        //     SearchFilter searchFilter)
+        // {
+        //     List<IPackageSearchMetadata> thoseToAdd = new List<IPackageSearchMetadata>();
+
+        //     foreach (IPackageSearchMetadata pkg in packagesToFindDependenciesOf)
+        //     {
+        //         _cmdletPassedIn.WriteVerbose("call FindDepsHelper() for: " + pkg.Identity.Id);
+        //         FindDepsHelper(pkg, thoseToAdd, pkgSearchResource, searchFilter);
+        //         // find deps for this package
+        //         // and also for all of it's packages
+        //     }
+        //     return thoseToAdd;
+        // }
+
+        // private void FindDepsHelper(
+        //     IPackageSearchMetadata currentPkg,
+        //     List<IPackageSearchMetadata> thoseToAdd,
+        //     PackageSearchResource pkgSearchResource,
+        //     SearchFilter searchFilter)
+        // {
+        //     _cmdletPassedIn.WriteVerbose("in FindDepsHelper() for: " + currentPkg.Identity.Id);
+        //     foreach (var depGroup in currentPkg.DependencySets)
+        //     {
+        //         foreach (var item in depGroup.Packages)
+        //         {
+        //             _cmdletPassedIn.WriteVerbose(item.VersionRange.ToString());
+        //             // todo: GetMetadataAsync() get all versions and filter for max in range or latest if none
+        //             IEnumerable<IPackageSearchMetadata> depPkg = pkgSearchResource.SearchAsync(
+        //             searchTerm: item.Id,
+        //             filters: searchFilter,
+        //             skip: 0,
+        //             take: 6000,
+        //             log: NullLogger.Instance,
+        //             cancellationToken: _cancellationToken).GetAwaiter().GetResult();
+
+        //             if (depPkg.Count() > 0)
+        //             {
+        //                 IPackageSearchMetadata depPkgLatestVersion = depPkg.First();
+        //                 if (depPkgLatestVersion != null)
+        //                 {
+        //                     thoseToAdd.Add(depPkgLatestVersion);
+        //                     FindDepsHelper(depPkgLatestVersion, thoseToAdd, pkgSearchResource, searchFilter);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        // #endregion
+
+        // TODO: rename after it works
+        private List<PSResourceInfo> FindDependencyPackages(
+            PSResourceInfo currentPkg,
+            PackageMetadataResource packageMetadataResource,
+            SourceCacheContext sourceCacheContext
+        )
+        {
+            List<PSResourceInfo> thoseToAdd = new List<PSResourceInfo>();
+            FindDependencyPackagesHelper(currentPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
+            return thoseToAdd;
+        }
+
+        private void FindDependencyPackagesHelper(
+            PSResourceInfo currentPkg,
+            List<PSResourceInfo> thoseToAdd,
+            PackageMetadataResource packageMetadataResource,
+            SourceCacheContext sourceCacheContext
+        )
+        {
+            _cmdletPassedIn.WriteVerbose("in FindDepsHelper() for: " + currentPkg.Name);
+            foreach(var dep in currentPkg.Dependencies)
+            {
+                _cmdletPassedIn.WriteVerbose("Im iterating through dependencies");
+
+                IEnumerable<IPackageSearchMetadata> depPkgs = packageMetadataResource.GetMetadataAsync(
+                    packageId: dep.Name,
+                    includePrerelease: _prerelease,
+                    includeUnlisted: false,
+                    sourceCacheContext: sourceCacheContext,
+                    log: NullLogger.Instance,
+                    token: _cancellationToken).GetAwaiter().GetResult();
+
+                if (depPkgs.Count() > 0)
+                {
+                    if (dep.VersionRange == VersionRange.All)
+                    {
+                        // return latest version
+                        IPackageSearchMetadata depPkgLatestVersion = depPkgs.First();
+                        // todo: add error handling onr eturned bool
+                        PSResourceInfo.TryParse(depPkgLatestVersion, out PSResourceInfo depPSResourceInfoPkg, currentPkg.Name, currentPkg.Repository, currentPkg.Type, out string errorMsg);
+                        thoseToAdd.Add(depPSResourceInfoPkg);
+                        FindDependencyPackagesHelper(depPSResourceInfoPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
+                    }
+                    else
+                    {
+                        List<IPackageSearchMetadata> pkgVersionsInRange = depPkgs.Where(
+                            p => dep.VersionRange.Satisfies(
+                                p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(
+                                    p => p.Identity.Version).ToList();
+
+                        // TODO: this errorhandling needed?
+                        if (pkgVersionsInRange.Count() > 0)
+                        {
+                            IPackageSearchMetadata depPkgLatestInRange = pkgVersionsInRange.First();
+                            if (depPkgLatestInRange != null)
+                            {
+                                // TODO: error handling for TryParse
+                                PSResourceInfo.TryParse(depPkgLatestInRange, out PSResourceInfo depPSResourceInfoPkg, currentPkg.Name, currentPkg.Repository, currentPkg.Type, out string errorMsg);
+                                thoseToAdd.Add(depPSResourceInfoPkg);
+                                FindDependencyPackagesHelper(depPSResourceInfoPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -10,6 +10,7 @@ using System.Management.Automation;
 using NuGet.CatalogReader;
 using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -21,6 +22,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // 00001 -> M
         // 00100 -> C
         // 00101 -> M, C
+        // TODO: add default value of None = 0x0, and then see if we can pass in multiple values via cmdline
+        None = 0x0,
         Module = 0x1,
         Script = 0x2,
         Command = 0x4,
@@ -150,6 +153,36 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #endregion
 
+
+    #region Dependency
+
+    public sealed class Dependency
+    {
+        #region Properties
+
+        public string Name { get; }
+
+        public VersionRange VersionRange { get; }
+
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        ///
+        /// </summary>
+        /// <param name="includes">Hashtable of PSGet includes</param>
+        public Dependency(string dependencyName, VersionRange dependencyVersionRange)
+        {
+            Name = dependencyName;
+            VersionRange = dependencyVersionRange;
+        }
+        #endregion
+    }
+
+    #endregion
+
     #region PSResourceInfo
 
     public sealed class PSResourceInfo
@@ -160,7 +193,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Author { get; set; }
         public string CompanyName { get; set; }
         public string Copyright { get; set; }
-        public string[] Dependencies { get; set; }
+        // public string[] Dependencies { get; set; }
+        public Dependency[] Dependencies { get; set; }
         public string Description { get; set; }
         public Uri IconUri { get; set; }
         public ResourceIncludes Includes { get; set; }
@@ -255,7 +289,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Author = GetProperty<string>(nameof(PSResourceInfo.Author), psObjectInfo),
                     CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
                     Copyright = GetProperty<string>(nameof(PSResourceInfo.Copyright), psObjectInfo),
-                    Dependencies = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSResourceInfo.Dependencies), psObjectInfo)),
+                    // Dependencies = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSResourceInfo.Dependencies), psObjectInfo)),
+
+                    Dependencies = GetDependencies(GetProperty<ArrayList>(nameof(PSResourceInfo.Dependencies), psObjectInfo)),
+
                     Description = GetProperty<string>(nameof(PSResourceInfo.Description), psObjectInfo),
                     IconUri = GetProperty<Uri>(nameof(PSResourceInfo.IconUri), psObjectInfo),
                     Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
@@ -271,13 +308,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
                     RepositorySourceLocation = GetProperty<string>(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
                     Tags = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSResourceInfo.Tags), psObjectInfo)),
-                    // TODO: leave a comment explaining what's going on here
                     // try to get the value of PSResourceInfo.Type property, if the value is null use ResourceType.Module as value
                     // this value will be used in Enum.TryParse. If Enum.TryParse returns false, use ResourceType.Module to set Type instead.
-                    // Type = Enum.TryParse(GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo) ?? nameof(ResourceType.Module),
-                    //      out ResourceType currentReadType) ? currentReadType : ResourceType.Module,
-                    Type = Enum.TryParse(GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo) ?? ResourceType.Module.ToString(),
-                         out ResourceType currentReadType) ? currentReadType : ResourceType.Module,
+                    Type = Enum.TryParse(
+                        GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo) ?? nameof(ResourceType.Module),
+                        out ResourceType currentReadType)
+                            ? currentReadType : ResourceType.Module,
                     UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
                     Version = GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo)
                 };
@@ -316,28 +352,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 psGetInfo = new PSResourceInfo
                 {
-                    // AdditionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo),
+                    // not all of the properties of PSResourceInfo are filled as they are not there in metadata returned for Find-PSResource.
                     Author = ParseMetadataAuthor(metadataToParse),
-                    // CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
-                    // Copyright = GetProperty<string>(nameof(PSResourceInfo.Copyright), psObjectInfo),
                     Dependencies = ParseMetadataDependencies(metadataToParse),
                     Description = ParseMetadataDescription(metadataToParse),
                     IconUri = ParseMetadataIconUri(metadataToParse),
-                    // Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
-                    // InstalledDate = GetProperty<DateTime>(nameof(PSResourceInfo.InstalledDate), psObjectInfo),
-                    // InstalledLocation = GetProperty<string>(nameof(PSResourceInfo.InstalledLocation), psObjectInfo),
                     LicenseUri = ParseMetadataLicenseUri(metadataToParse),
                     Name = ParseMetadataName(metadataToParse),
-                    // PackageManagementProvider = GetProperty<string>(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
-                    // PowerShellGetFormatVersion = GetProperty<string>(nameof(PSResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
                     ProjectUri = ParseMetadataProjectUri(metadataToParse),
                     PublishedDate = ParseMetadataPublishedDate(metadataToParse),
-                    // ReleaseNotes = GetProperty<string>(nameof(PSResourceInfo.ReleaseNotes), psObjectInfo),
-                    // Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
-                    // RepositorySourceLocation = GetProperty<string>(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
+                    Repository = repositoryName,
                     Tags = ParseMetadataTags(metadataToParse),
                     Type = ParseMetadataType(metadataToParse, pkgName, repositoryName, type),
-                    // UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
                     Version = ParseMetadataVersion(metadataToParse)
                 };
 
@@ -353,6 +379,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        // TODO: remove this code!
         public static bool TryParseCatalogEntry(CatalogEntry objToParse,
             out PSResourceInfo psGetInfo,
             out string errorMsg)
@@ -462,6 +489,85 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+
+        private static Dependency[] GetDependencies(ArrayList dependencyInfos)
+        {
+            List<Dependency> dependenciesFound = new List<Dependency>();
+            if (dependencyInfos == null) { return dependenciesFound.ToArray(); }
+
+            foreach(Hashtable dependencyInfo in dependencyInfos)
+            {
+                if (!dependencyInfo.ContainsKey("Name"))
+                {
+                    // TODO: add dbg assert
+                    continue;
+                }
+                string dependencyName = (string) dependencyInfo["Name"];
+                // TODO: dbg assert name not null or empty
+
+                if (dependencyInfo.ContainsKey("RequiredVersion"))
+                {
+                    if (!Utils.TryParseVersionOrVersionRange((string) dependencyInfo["RequiredVersion"], out VersionRange dependencyVersion))
+                    {
+                        // dbg assert
+                        continue; // TODO: ask Amber, use all version version instead?
+                    }
+
+                    dependenciesFound.Add(new Dependency(dependencyName, dependencyVersion));
+                    continue;
+                }
+
+                if (dependencyInfo.ContainsKey("MinimumVersion") || dependencyInfo.ContainsKey("MaximumVersion"))
+                {
+                    NuGetVersion minimumVersion = null;
+                    NuGetVersion maximumVersion = null;
+                    bool includeMin = false;
+                    bool includeMax = false;
+
+                    if (dependencyInfo.ContainsKey("MinimumVersion") &&
+                        !NuGetVersion.TryParse((string) dependencyInfo["MinimumVersion"], out minimumVersion))
+                    {
+                        // "(" + versionString + ","
+                        // dbg assert
+                        continue;
+                    }
+
+                    if (dependencyInfo.ContainsKey("MaximumVersion") &&
+                        !NuGetVersion.TryParse((string) dependencyInfo["MaximumVersion"], out maximumVersion))
+                    {
+                        // dbg assert- say this is invalid range entry
+                        continue;
+                    }
+
+                    if (minimumVersion != null)
+                    {
+                        includeMin = true;
+                    }
+
+                    if (maximumVersion != null)
+                    {
+                        includeMax = true;
+                    }
+
+                    VersionRange dependencyVersionRange = new VersionRange(
+                        minVersion: minimumVersion,
+                        includeMinVersion: includeMin,
+                        maxVersion: maximumVersion,
+                        includeMaxVersion: includeMax);
+
+                    dependenciesFound.Add(new Dependency(dependencyName, dependencyVersionRange));
+                    continue;
+                }
+
+                // neither Required, Minimum or Maximum Version provided
+                VersionRange dependencyVersionRangeAll = VersionRange.All;
+                dependenciesFound.Add(new Dependency(dependencyName, dependencyVersionRangeAll));
+            }
+
+            return dependenciesFound.ToArray();
+        }
+
+
         #region Parse Metadata private static methods
 
         private static string ParseMetadataAuthor(IPackageSearchMetadata pkg)
@@ -469,17 +575,34 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pkg.Authors;
         }
 
-        private static string[] ParseMetadataDependencies(IPackageSearchMetadata pkg)
+        // private static string[] ParseMetadataDependencies(IPackageSearchMetadata pkg)
+        // {
+        //     List<string> deps = new List<string>();
+        //     foreach(var r in pkg.DependencySets)
+        //     {
+        //         foreach (var pkgDependencyItem in r.Packages)
+        //         {
+        //             string depInfo = pkgDependencyItem.Id + "-" + pkgDependencyItem.VersionRange.ToString();
+        //             deps.Add(depInfo);
+        //             // deps.Add(pkgDependencyItem.Id);
+        //         }
+        //     }
+        //     return deps.ToArray();
+        // }
+
+        private static Dependency[] ParseMetadataDependencies(IPackageSearchMetadata pkg)
         {
-            List<string> deps = new List<string>();
-            foreach(var r in pkg.DependencySets)
+            List<Dependency> dependencies = new List<Dependency>();
+            foreach(var pkgDependencyGroup in pkg.DependencySets)
             {
-                foreach (var pkgDependencyItem in r.Packages)
+                foreach(var pkgDependencyItem in pkgDependencyGroup.Packages)
                 {
-                    deps.Add(pkgDependencyItem.Id);
+                    // do I have to check version range is not null? can we have package with dependency but no version?
+                    Dependency currentDependency = new Dependency(pkgDependencyItem.Id, pkgDependencyItem.VersionRange);
+                    dependencies.Add(currentDependency);
                 }
             }
-            return deps.ToArray();
+            return dependencies.ToArray();
         }
 
         private static string ParseMetadataDescription(IPackageSearchMetadata pkg)
@@ -530,6 +653,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg, string pkgName, string repoName, ResourceType? pkgType)
         {
+            // M, C
+            // M, D
+            // M
+            // S
+
             string[] tags = ParseMetadataTags(pkg);
             ResourceType currentPkgType = ResourceType.Module;
 
@@ -538,7 +666,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // but we were able to get the packages by using SearchAsync() with the appropriate Script or Module repository endpoint
             // and can check repository endpoint to determine Type.
             // Module packages missing tags are accounted for as the default case, and we account for scripts with the following check:
-            if ((pkgType == null && String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase)) || (pkgType != null && pkgType == ResourceType.Script))
+            if ((pkgType == null && String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase)) ||
+                (pkgType != null && pkgType == ResourceType.Script))
             {
                 // it's a Script resource, so clear default Module tag because a Script resource cannot also be a Module resource
                 currentPkgType &= ~ResourceType.Module;
@@ -560,7 +689,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     currentPkgType |= ResourceType.Command;
                 }
-                if (tag.StartsWith("PSDscResource_"))
+                if (String.Equals(tag, "PSIncludes_DscResource", StringComparison.InvariantCultureIgnoreCase))
                 {
                     currentPkgType |= ResourceType.DscResource;
                 }
