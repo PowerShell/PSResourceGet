@@ -1,4 +1,3 @@
-using System.Data.Common;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -289,10 +288,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Author = GetProperty<string>(nameof(PSResourceInfo.Author), psObjectInfo),
                     CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
                     Copyright = GetProperty<string>(nameof(PSResourceInfo.Copyright), psObjectInfo),
-                    // Dependencies = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSResourceInfo.Dependencies), psObjectInfo)),
-
                     Dependencies = GetDependencies(GetProperty<ArrayList>(nameof(PSResourceInfo.Dependencies), psObjectInfo)),
-
                     Description = GetProperty<string>(nameof(PSResourceInfo.Description), psObjectInfo),
                     IconUri = GetProperty<Uri>(nameof(PSResourceInfo.IconUri), psObjectInfo),
                     Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
@@ -379,60 +375,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-        // TODO: remove this code!
-        public static bool TryParseCatalogEntry(CatalogEntry objToParse,
-            out PSResourceInfo psGetInfo,
-            out string errorMsg)
-        {
-            psGetInfo = null;
-            errorMsg = String.Empty;
-
-            if (objToParse == null)
-            {
-                errorMsg = "TryParseCatalogEntry: Invalid CatalogEntry object. Object cannot be null.";
-                return false;
-            }
-            try
-            {
-                NuspecReader pkgNuspec = objToParse.GetNuspecAsync().GetAwaiter().GetResult();
-                psGetInfo = new PSResourceInfo
-                {
-                    // // AdditionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo),
-                    // Author = pkgNuspec.GetAuthors(),
-                    // // CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
-                    // Copyright = pkgNuspec.GetCopyright(),
-                    // Dependencies = ParseCatalogEntryDependencies(pkgNuspec),
-                    // Description = pkgNuspec.GetDescription(),
-                    // IconUri = ParseCatalogEntryIconUri(pkgNuspec),
-                    // // Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
-                    // // InstalledDate = GetProperty<DateTime>(nameof(PSResourceInfo.InstalledDate), psObjectInfo),
-                    // // InstalledLocation = GetProperty<string>(nameof(PSResourceInfo.InstalledLocation), psObjectInfo),
-                    // LicenseUri = ParseCatalogEntryLicenseUri(pkgNuspec),
-                    Name = objToParse.Id,
-                    // // PackageManagementProvider = GetProperty<string>(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
-                    // // PowerShellGetFormatVersion = pkgNuspec.GetRepositoryMetadata.PowerShellGetFormatVersion,
-                    // ProjectUri = ParseCatalogEntryProjectUri(pkgNuspec),
-                    // PublishedDate = ParseCatalogEntryPublishedDate(objToParse),
-                    // ReleaseNotes = pkgNuspec.GetReleaseNotes(),
-                    // // Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
-                    // RepositorySourceLocation = pkgNuspec.GetRepositoryMetadata().Url,
-                    Tags = pkgNuspec.GetTags().Split(new char[]{' ', ','}, StringSplitOptions.RemoveEmptyEntries),
-                    // Type = pkgNuspec.GetType().ToString(), //possibly need to change!
-                    // // UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
-                    // Version = objToParse.Version.Version,
-                };
-                return true;
-            }
-            catch (Exception ex)
-            {
-                errorMsg = string.Format(
-                    CultureInfo.InvariantCulture,
-                    @"TryParseCatalogEntry: Cannot parse PSResourceInfo from CatalogEntry with error: {0}",
-                    ex.Message);
-                return false;
-            }
-        }
-
         #endregion
 
         #region Private static methods
@@ -495,8 +437,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<Dependency> dependenciesFound = new List<Dependency>();
             if (dependencyInfos == null) { return dependenciesFound.ToArray(); }
 
-            foreach(Hashtable dependencyInfo in dependencyInfos)
+
+            foreach(PSObject dependencyObj in dependencyInfos)
             {
+                if (!(dependencyObj.BaseObject is Hashtable dependencyInfo))
+                {
+                    // dbg assert
+                    continue;
+                }
+
                 if (!dependencyInfo.ContainsKey("Name"))
                 {
                     // TODO: add dbg assert

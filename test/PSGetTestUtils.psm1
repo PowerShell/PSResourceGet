@@ -142,30 +142,31 @@ function Get-PoshTestGalleryLocation {
     return $script:PostTestGalleryLocation
 }
 
-function Get-NewTestDirs {
-    Param(
-        [string[]]
-        $listOfPaths
-    )
-    foreach($path in $listOfPaths)
-    {
-        $null = New-Item -Path $path -ItemType Directory
-    }
-}
+# function Get-NewTestDirs {
+#     Param(
+#         [string[]]
+#         $listOfPaths
+#     )
+#     foreach($path in $listOfPaths)
+#     {
+#         $null = New-Item -Path $path -ItemType Directory
+#     }
+# }
 
-function Get-RemoveTestDirs {
-    Param(
-        [string[]]
-        $listOfPaths
-    )
-    foreach($path in $listOfPaths)
-    {
-        if(Test-Path -Path $path)
-        {
-            Remove-Item -Path $path -Force -ErrorAction Ignore
-        }
-    }
-}
+# function Get-RemoveTestDirs {
+#     Param(
+#         [string[]]
+#         $listOfPaths
+#     )
+#     foreach($path in $listOfPaths)
+#     {
+#         if(Test-Path -Path $path)
+#         {
+#             Remove-Item -Path $path -Force -ErrorAction Ignore
+#         }
+#     }
+# }
+
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
     $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
@@ -197,13 +198,39 @@ function Get-RevertPSResourceRepositoryFile {
     }
 }
 
-function Get-TestDriveSetUp
-{
+function Register-LocalRepos {
     $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
     $null = New-Item $repoURLAddress -ItemType Directory -Force
+    $localRepoParams = @{
+        Name = "psgettestlocal"
+        URL = $repoURLAddress
+        Priority = 40
+        Trusted = $false
+    }
+    Register-PSResourceRepository @localRepoParams
 
-    Set-PSResourceRepository -Name "psgettestlocal" -URL $repoURLAddress
+    $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
+    $null = New-Item $repoURLAddress2 -ItemType Directory -Force
+    $localRepoParams2 = @{
+        Name = "psgettestlocal2"
+        URL = $repoURLAddress2
+        Priority = 50
+        Trusted = $false
+    }
+    Register-PSResourceRepository @localRepoParams2
+    Write-Verbose("registered psgettestlocal, psgettestlocal2")
+}
 
+function Unregister-LocalRepos {
+    if(Get-PSResourceRepository -Name "psgettestlocal"){
+        Unregister-PSResourceRepository -Name "psgettestlocal"
+    }
+    if(Get-PSResourceRepository -Name "psgettestlocal2"){
+        Unregister-PSResourceRepository -Name "psgettestlocal2"
+    }
+}
+function Get-TestDriveSetUp
+{
     $testResourcesFolder = Join-Path $TestDrive -ChildPath "TestLocalDirectory"
 
     $script:testIndividualResourceFolder = Join-Path -Path $testResourcesFolder -ChildPath "PSGet_$(Get-Random)"
