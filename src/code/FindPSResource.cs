@@ -3,9 +3,8 @@
 
 using System.Management.Automation;
 using System.Threading;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using Dbg = System.Diagnostics.Debug;
-using NuGet.Versioning;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -174,7 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case CommandNameParameterSet:
                     ThrowTerminatingError(new ErrorRecord(
                         new PSNotImplementedException("CommandNameParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                        "ParameterSetNotImplementedYet",
+                        "CommandParameterSetNotImplementedYet",
                         ErrorCategory.NotImplemented,
                         this));
                     break;
@@ -187,11 +186,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                     break;
 
-                // TODO: for TagParameterSet + TypeParameterSet throw not yet implemented errors
                 case TagParameterSet:
                     ThrowTerminatingError(new ErrorRecord(
                         new PSNotImplementedException("DscResourceNameParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                        "TagNotImplementedYet",
+                        "TagParameterSetNotImplementedYet",
                         ErrorCategory.NotImplemented,
                         this));
                     break;

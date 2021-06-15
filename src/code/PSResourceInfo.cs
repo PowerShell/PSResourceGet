@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Dbg = System.Diagnostics.Debug;
 using System.Globalization;
 using System.Management.Automation;
 using NuGet.CatalogReader;
@@ -21,7 +22,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // 00001 -> M
         // 00100 -> C
         // 00101 -> M, C
-        // TODO: add default value of None = 0x0, and then see if we can pass in multiple values via cmdline
         None = 0x0,
         Module = 0x1,
         Script = 0x2,
@@ -177,6 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Name = dependencyName;
             VersionRange = dependencyVersionRange;
         }
+
         #endregion
     }
 
@@ -192,7 +193,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Author { get; set; }
         public string CompanyName { get; set; }
         public string Copyright { get; set; }
-        // public string[] Dependencies { get; set; }
         public Dependency[] Dependencies { get; set; }
         public string Description { get; set; }
         public Uri IconUri { get; set; }
@@ -259,7 +259,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Reads a PSGet resource xml (PowerShell serialized) file and returns
-        /// a PSGetResourceInfo object containing the file contents.
+        /// a PSResourceInfo object containing the file contents.
         /// </summary>
         public static bool TryRead(
             string filePath,
@@ -442,24 +442,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 if (!(dependencyObj.BaseObject is Hashtable dependencyInfo))
                 {
-                    // dbg assert
+                    Dbg.Assert(false, "Dependencies BaseObject must be a Hashtable");
                     continue;
                 }
 
                 if (!dependencyInfo.ContainsKey("Name"))
                 {
-                    // TODO: add dbg assert
+                    Dbg.Assert(false, "Derived dependencies Hashtable must contain a Name key");
                     continue;
                 }
+
                 string dependencyName = (string) dependencyInfo["Name"];
-                // TODO: dbg assert name not null or empty
+                if (String.IsNullOrEmpty(dependencyName))
+                {
+                    Dbg.Assert(false, "Dependency Name must not be null or empty");
+                    continue;
+                }
 
                 if (dependencyInfo.ContainsKey("RequiredVersion"))
                 {
                     if (!Utils.TryParseVersionOrVersionRange((string) dependencyInfo["RequiredVersion"], out VersionRange dependencyVersion))
                     {
-                        // dbg assert
-                        continue; // TODO: ask Amber, use all version version instead?
+                        dependencyVersion = VersionRange.All;
+
+                        // Dbg.Assert(false, "Dependency contained RequiredVersion key but value is not able to be parsed into VersionRange or Version");
+                        // continue; // TODO: use all version version instead?
                     }
 
                     dependenciesFound.Add(new Dependency(dependencyName, dependencyVersion));
@@ -476,15 +483,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     if (dependencyInfo.ContainsKey("MinimumVersion") &&
                         !NuGetVersion.TryParse((string) dependencyInfo["MinimumVersion"], out minimumVersion))
                     {
-                        // "(" + versionString + ","
-                        // dbg assert
+                        VersionRange dependencyAll = VersionRange.All;
+                        dependenciesFound.Add(new Dependency(dependencyName, dependencyAll));
                         continue;
                     }
 
                     if (dependencyInfo.ContainsKey("MaximumVersion") &&
                         !NuGetVersion.TryParse((string) dependencyInfo["MaximumVersion"], out maximumVersion))
                     {
-                        // dbg assert- say this is invalid range entry
+                        VersionRange dependencyAll = VersionRange.All;
+                        dependenciesFound.Add(new Dependency(dependencyName, dependencyAll));
                         continue;
                     }
 
@@ -523,21 +531,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             return pkg.Authors;
         }
-
-        // private static string[] ParseMetadataDependencies(IPackageSearchMetadata pkg)
-        // {
-        //     List<string> deps = new List<string>();
-        //     foreach(var r in pkg.DependencySets)
-        //     {
-        //         foreach (var pkgDependencyItem in r.Packages)
-        //         {
-        //             string depInfo = pkgDependencyItem.Id + "-" + pkgDependencyItem.VersionRange.ToString();
-        //             deps.Add(depInfo);
-        //             // deps.Add(pkgDependencyItem.Id);
-        //         }
-        //     }
-        //     return deps.ToArray();
-        // }
 
         private static Dependency[] ParseMetadataDependencies(IPackageSearchMetadata pkg)
         {

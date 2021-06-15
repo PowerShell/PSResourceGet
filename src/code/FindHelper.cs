@@ -1,8 +1,9 @@
+using System.Net.Http;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Threading;
@@ -12,12 +13,10 @@ using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
-using System.Diagnostics;
 using NuGet.Configuration;
 using NuGet.Common;
 using System.Data;
 using System.Net;
-using static System.Environment;
 using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -39,12 +38,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string[] _repository;
         private SwitchParameter _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
+        private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
 
         // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
         // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
+        private const int SearchAsyncMaxTake = 6000;
         private const int SearchAsyncMaxReturned = 5990;
         private const int GalleryMax = 12000;
-
 
         public FindHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
         {
@@ -105,12 +105,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (String.Equals(repositoriesToSearch[i].Name, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    // for PowerShellGallery, Modules and Scripts have different endpoints so separate repositories have to be registered
-                    // with those endpoints in order for the NuGet APIs to search across both (in the case where name includes *)
+                    // for PowerShellGallery, Module and Script resources have different endpoints so separate repositories have to be registered
+                    // with those endpoints in order for the NuGet APIs to search across both in the case where name includes '*'
 
-                    // detect if Scripts repository needs to be added and/or Modules repository needs to be skipped
+                    // detect if Script repository needs to be added and/or Module repository needs to be skipped
                     Uri psGalleryScriptsUrl = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo("PSGalleryScripts", psGalleryScriptsUrl, repositoriesToSearch[i].Priority, false);
+                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUrl, repositoriesToSearch[i].Priority, false);
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteDebug("Null Type provided, so add PSGalleryScripts repository");
@@ -136,7 +136,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
         }
-
 
         public IEnumerable<PSResourceInfo> SearchFromRepository(
             string repositoryName,
@@ -167,8 +166,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 yield break;
             }
-            // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
 
+            // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
             PackageSource source = new PackageSource(repositoryUrl.ToString());
             if (_credential != null)
             {
@@ -221,7 +220,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (String.IsNullOrWhiteSpace(pkgName))
                 {
-                    _cmdletPassedIn.WriteDebug(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.", pkgName == null ? "null string" : pkgName));
+                    _cmdletPassedIn.WriteDebug(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.",
+                        pkgName == null ? "null string" : pkgName));
                     continue;
                 }
 
@@ -265,11 +265,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         log: NullLogger.Instance,
                         token: _cancellationToken).GetAwaiter().GetResult();
                 }
+                catch (HttpRequestException ex)
+                {
+                    if ((String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) ||
+                        String.Equals(repositoryName, _psGalleryScriptsRepoName, StringComparison.InvariantCultureIgnoreCase)))
+                    {
+                        _cmdletPassedIn.WriteDebug(String.Format("Error receiving package from PSGallery. To check if this is due to a PSGallery outage check: https://aka.ms/psgallerystatus . Specific error: {0}", ex.Message));
+                        yield break;
+                    }
+                }
                 catch (Exception e)
                 {
-                    // check if PSGallery and e.Status == 400
-                    // output error message to check aka.ms/psgallerystatus
-                    // write error and return
                     _cmdletPassedIn.WriteDebug(String.Format("Exception retrieving package {0} due to {1}.", pkgName, e.Message));
                 }
 
@@ -285,24 +291,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else
             {
                 // case: searching for name containing wildcard i.e "Carbon.*"
-                // SearchAsync() returns the latest version only for all packages that match the wild-card name
-                IEnumerable<IPackageSearchMetadata> wildcardPkgs = pkgSearchResource.SearchAsync(
-                    searchTerm: pkgName,
-                    filters: searchFilter,
-                    skip: 0,
-                    take: 6000,
-                    log: NullLogger.Instance,
-                    cancellationToken: _cancellationToken).GetAwaiter().GetResult();
-                if (wildcardPkgs.Count() > SearchAsyncMaxReturned)
+                IEnumerable<IPackageSearchMetadata> wildcardPkgs = null;
+                try
                 {
-                    // get the rest of the packages
-                    wildcardPkgs = wildcardPkgs.Concat(pkgSearchResource.SearchAsync(
+                    // SearchAsync() API returns the latest version only for all packages that match the wild-card name
+                    wildcardPkgs = pkgSearchResource.SearchAsync(
                         searchTerm: pkgName,
                         filters: searchFilter,
-                        skip: 6000,
-                        take: GalleryMax,
+                        skip: 0,
+                        take: SearchAsyncMaxTake,
                         log: NullLogger.Instance,
-                        cancellationToken: _cancellationToken).GetAwaiter().GetResult());
+                        cancellationToken: _cancellationToken).GetAwaiter().GetResult();
+                    if (wildcardPkgs.Count() > SearchAsyncMaxReturned)
+                    {
+                        // get the rest of the packages
+                        wildcardPkgs = wildcardPkgs.Concat(pkgSearchResource.SearchAsync(
+                            searchTerm: pkgName,
+                            filters: searchFilter,
+                            skip: SearchAsyncMaxTake,
+                            take: GalleryMax,
+                            log: NullLogger.Instance,
+                            cancellationToken: _cancellationToken).GetAwaiter().GetResult());
+                    }
+                }
+                catch (HttpRequestException ex)
+                {
+                    if ((String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) ||
+                        String.Equals(repositoryName, _psGalleryScriptsRepoName, StringComparison.InvariantCultureIgnoreCase)))
+                    {
+                        _cmdletPassedIn.WriteDebug(String.Format("Error receiving package from PSGallery. To check if this is due to a PSGallery outage check: https://aka.ms/psgallerystatus . Specific error: {0}", ex.Message));
+                        yield break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteDebug(String.Format("Exception retrieving package {0} due to {1}.", pkgName, e.Message));
                 }
 
                 // filter additionally because NuGet wildcard search API returns more than we need
@@ -327,7 +350,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (foundPackagesMetadata.Count == 0)
             {
-                // no need to attempt to filter
+                // no need to attempt to filter further
                 yield break;
             }
 
@@ -394,12 +417,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
             }
-
-            // if (_includeDependencies)
-            // {
-            //     // need to add dependency pkgs
-            //     foundPackagesMetadata.AddRange(FindDependencyPackages(foundPackagesMetadata, pkgSearchResource, searchFilter));
-            // }
 
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
@@ -470,11 +487,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceCacheContext sourceCacheContext
         )
         {
-            _cmdletPassedIn.WriteVerbose("in FindDepsHelper() for: " + currentPkg.Name);
             foreach(var dep in currentPkg.Dependencies)
             {
-                _cmdletPassedIn.WriteVerbose("Im iterating through dependencies");
-
                 IEnumerable<IPackageSearchMetadata> depPkgs = packageMetadataResource.GetMetadataAsync(
                     packageId: dep.Name,
                     includePrerelease: _prerelease,
@@ -489,8 +503,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // return latest version
                         IPackageSearchMetadata depPkgLatestVersion = depPkgs.First();
-                        // todo: add error handling onr eturned bool
-                        PSResourceInfo.TryParse(depPkgLatestVersion, out PSResourceInfo depPSResourceInfoPkg, currentPkg.Name, currentPkg.Repository, currentPkg.Type, out string errorMsg);
+
+                        if (!PSResourceInfo.TryParse(
+                            metadataToParse: depPkgLatestVersion,
+                            psGetInfo: out PSResourceInfo depPSResourceInfoPkg,
+                            pkgName: currentPkg.Name,
+                            repositoryName: currentPkg.Repository,
+                            type: currentPkg.Type,
+                            errorMsg: out string errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new PSInvalidOperationException("Error parsing dependency IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
+                                "DependencyIPackageSearchMetadataToPSResourceInfoParsingError",
+                                ErrorCategory.InvalidResult,
+                                this));
+                        }
+
                         thoseToAdd.Add(depPSResourceInfoPkg);
                         FindDependencyPackagesHelper(depPSResourceInfoPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
                     }
@@ -501,14 +529,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(
                                     p => p.Identity.Version).ToList();
 
-                        // TODO: this errorhandling needed?
                         if (pkgVersionsInRange.Count() > 0)
                         {
                             IPackageSearchMetadata depPkgLatestInRange = pkgVersionsInRange.First();
                             if (depPkgLatestInRange != null)
                             {
-                                // TODO: error handling for TryParse
-                                PSResourceInfo.TryParse(depPkgLatestInRange, out PSResourceInfo depPSResourceInfoPkg, currentPkg.Name, currentPkg.Repository, currentPkg.Type, out string errorMsg);
+                                if (!PSResourceInfo.TryParse(
+                                    metadataToParse: depPkgLatestInRange,
+                                    psGetInfo: out PSResourceInfo depPSResourceInfoPkg,
+                                    pkgName: currentPkg.Name,
+                                    repositoryName: currentPkg.Repository,
+                                    type: currentPkg.Type,
+                                    errorMsg: out string errorMsg))
+                                {
+                                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                                        new PSInvalidOperationException("Error parsing dependency range IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
+                                        "DependencyRangeIPackageSearchMetadataToPSResourceInfoParsingError",
+                                        ErrorCategory.InvalidResult,
+                                        this));
+                                }
+
                                 thoseToAdd.Add(depPSResourceInfoPkg);
                                 FindDependencyPackagesHelper(depPSResourceInfoPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
                             }
