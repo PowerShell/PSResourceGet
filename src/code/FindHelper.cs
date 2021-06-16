@@ -420,10 +420,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (IPackageSearchMetadata pkg in foundPackagesMetadata)
             {
-                if (!PSResourceInfo.TryParse(
+                if (!PSResourceInfo.TryConvert(
                     metadataToParse: pkg,
                     psGetInfo: out PSResourceInfo currentPkg,
-                    pkgName: pkgName,
                     repositoryName: repositoryName,
                     type: _type,
                     errorMsg: out string errorMsg))
@@ -504,10 +503,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // return latest version
                         IPackageSearchMetadata depPkgLatestVersion = depPkgs.First();
 
-                        if (!PSResourceInfo.TryParse(
+                        if (!PSResourceInfo.TryConvert(
                             metadataToParse: depPkgLatestVersion,
                             psGetInfo: out PSResourceInfo depPSResourceInfoPkg,
-                            pkgName: currentPkg.Name,
                             repositoryName: currentPkg.Repository,
                             type: currentPkg.Type,
                             errorMsg: out string errorMsg))
@@ -534,10 +532,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             IPackageSearchMetadata depPkgLatestInRange = pkgVersionsInRange.First();
                             if (depPkgLatestInRange != null)
                             {
-                                if (!PSResourceInfo.TryParse(
+                                if (!PSResourceInfo.TryConvert(
                                     metadataToParse: depPkgLatestInRange,
                                     psGetInfo: out PSResourceInfo depPSResourceInfoPkg,
-                                    pkgName: currentPkg.Name,
                                     repositoryName: currentPkg.Repository,
                                     type: currentPkg.Type,
                                     errorMsg: out string errorMsg))

@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
 using System.Globalization;
 using System.Management.Automation;
-using NuGet.CatalogReader;
 using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
@@ -327,10 +326,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-        public static bool TryParse(
+        public static bool TryConvert(
             IPackageSearchMetadata metadataToParse,
             out PSResourceInfo psGetInfo,
-            string pkgName,
             string repositoryName,
             ResourceType? type,
             out string errorMsg)
@@ -340,7 +338,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             if (metadataToParse == null)
             {
-                errorMsg = "TryParsePSResourceInfo: Invalid IPackageSearchMetadata object. Object cannot be null.";
+                errorMsg = "TryConvertPSResourceInfo: Invalid IPackageSearchMetadata object. Object cannot be null.";
                 return false;
             }
 
@@ -359,7 +357,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     PublishedDate = ParseMetadataPublishedDate(metadataToParse),
                     Repository = repositoryName,
                     Tags = ParseMetadataTags(metadataToParse),
-                    Type = ParseMetadataType(metadataToParse, pkgName, repositoryName, type),
+                    Type = ParseMetadataType(metadataToParse, repositoryName, type),
                     Version = ParseMetadataVersion(metadataToParse)
                 };
 
@@ -564,11 +562,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static string ParseMetadataName(IPackageSearchMetadata pkg)
         {
-            if (pkg.Identity != null)
-            {
-                return pkg.Identity.Id;
-            }
-            return String.Empty;
+            return pkg.Identity?.Id ?? string.Empty;
         }
 
         private static Uri ParseMetadataProjectUri(IPackageSearchMetadata pkg)
@@ -593,7 +587,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pkg.Tags.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
         }
 
-        private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg, string pkgName, string repoName, ResourceType? pkgType)
+        private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg, string repoName, ResourceType? pkgType)
         {
             // M, C
             // M, D
@@ -652,58 +646,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-        #region Parse CatalogEntry private static methods
-        private static string[] ParseCatalogEntryDependencies(NuspecReader pkgNuspec)
-        {
-            List<string> deps = new List<string>();
-            foreach(var r in pkgNuspec.GetDependencyGroups())
-            {
-                foreach (var pkgDependencyItem in r.Packages)
-                {
-                    deps.Add(pkgDependencyItem.Id);
-                }
-            }
-            return deps.ToArray();
-        }
-
-        private static DateTime? ParseCatalogEntryPublishedDate(CatalogEntry pkg)
-        {
-            DateTime? publishDate = null;
-            DateTimeOffset? pkgPublishedDate = pkg.CommitTimeStamp;
-            if (pkgPublishedDate.HasValue)
-            {
-                publishDate = pkgPublishedDate.Value.DateTime;
-            }
-            return publishDate;
-        }
-
-        private static Uri ParseCatalogEntryIconUri(NuspecReader pkgNuspec)
-        {
-            if(Uri.TryCreate(pkgNuspec.GetIconUrl(), 0, out Uri url))
-            {
-                return url;
-            }
-            return null;
-        }
-
-        private static Uri ParseCatalogEntryLicenseUri(NuspecReader pkgNuspec)
-        {
-            if(Uri.TryCreate(pkgNuspec.GetLicenseUrl(), 0, out Uri url))
-            {
-                return url;
-            }
-            return null;
-        }
-
-        private static Uri ParseCatalogEntryProjectUri(NuspecReader pkgNuspec)
-        {
-            if(Uri.TryCreate(pkgNuspec.GetProjectUrl(), 0, out Uri url))
-            {
-                return url;
-            }
-            return null;
-        }
-        #endregion
 
         #region Private methods
 
