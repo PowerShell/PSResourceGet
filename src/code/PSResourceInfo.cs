@@ -198,6 +198,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public ResourceIncludes Includes { get; set; }
         public DateTime? InstalledDate { get; set; }
         public string InstalledLocation { get; set; }
+        public bool IsPrerelease { get; set; }
         public Uri LicenseUri { get; set; }
         public string Name { get; set; }
         public string PackageManagementProvider { get; set; }
@@ -293,6 +294,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
                     InstalledDate = GetProperty<DateTime>(nameof(PSResourceInfo.InstalledDate), psObjectInfo),
                     InstalledLocation = GetProperty<string>(nameof(PSResourceInfo.InstalledLocation), psObjectInfo),
+                    IsPrerelease = GetProperty<bool>(nameof(PSResourceInfo.IsPrerelease), psObjectInfo),
                     LicenseUri = GetProperty<Uri>(nameof(PSResourceInfo.LicenseUri), psObjectInfo),
                     Name = GetProperty<string>(nameof(PSResourceInfo.Name), psObjectInfo),
                     PackageManagementProvider = GetProperty<string>(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
