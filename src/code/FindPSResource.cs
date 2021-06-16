@@ -1,6 +1,9 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿using System.Collections.ObjectModel;
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 using System.Threading;
 using Dbg = System.Diagnostics.Debug;
@@ -164,10 +167,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case ResourceNameParameterSet:
                     FindHelper findHelper = new FindHelper(_cancellationToken, this);
-                    foreach (PSResourceInfo pkgObj in findHelper.FindByResourceName(Name, Type, Version, Prerelease, Tag, Repository, Credential, IncludeDependencies))
+                    List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
+
+                    foreach (PSResourceInfo package in findHelper.FindByResourceName(Name, Type, Version, Prerelease, Tag, Repository, Credential, IncludeDependencies))
                     {
-                        WriteObject(pkgObj);
+                        foundPackages.Add(package);
                     }
+
+                    foreach (var uniquePackageVersion in foundPackages.GroupBy(
+                        m => new {m.Name, m.Version}).Select(
+                            group => group.First()).ToList())
+                    {
+                        WriteObject(uniquePackageVersion);
+                    }
+
                     break;
 
                 case CommandNameParameterSet:
