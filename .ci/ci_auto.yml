@@ -1,14 +1,15 @@
 name: $(BuildDefinitionName)-$(date:yyMM).$(date:dd)$(rev:rrr)
-trigger:
-  # Batch merge builds together while a merge build is running
-  batch: true
+trigger: none
+pr: none
+
+schedules:
+# Use https://crontab.guru/#0_8_*_*_* to compute crontab expression
+# Run signed build, with limited signing cert, every day at 9 am
+- cron: 0 9 * * *
   branches:
     include:
-    - master
-pr:
-  branches:
-    include:
-    - master
+    - refs/heads/master
+  always: true
 
 variables:
   - group: ESRP
@@ -89,7 +90,7 @@ stages:
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
       displayName: Create fake source and output variables for signing template and no signing
-      condition: and(succeeded(), eq(variables['SkipSigning'], 'True'))
+      condition: succeeded()
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -143,7 +144,7 @@ stages:
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
       displayName: Set up for module created files code signing
-      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
+      condition: succeeded()
 
     - pwsh: |
         Get-ChildItem -Path env:
@@ -155,7 +156,8 @@ stages:
       parameters:
         buildOutputPath: $(signSrcPath)
         signOutputPath: $(signOutPath)
-        certificateId: "CP-230012"
+        certificateId: "CP-460906"
+        shouldSign: $(ShouldSign)
         pattern: |
           **\*.dll
           **\*.psd1
@@ -225,7 +227,7 @@ stages:
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
       displayName: Set up for module third party files code signing
-      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
+      condition: succeeded()
 
     - template: EsrpSign.yml@ComplianceRepo
       parameters:
@@ -284,7 +286,7 @@ stages:
           }
         }
       displayName: Copy already properly signed third party files
-      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
+      condition: succeeded()
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -295,23 +297,12 @@ stages:
         #
         $config = Get-PSPackageProjectConfiguration
         $artifactName = "$($config.ModuleName)"
-        if ($env:SkipSigning -eq 'True')
-        {
-          $srcModulePath = Resolve-Path -Path "$($config.BuildOutputPath)/$($config.ModuleName)"
-          Get-ChildItem $srcModulePath
-          Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$srcModulePath"
-          #
-          $(Build.SourcesDirectory)/build.ps1 -Publish
-        }
-        else
-        {
-          $srcModulePath = Resolve-Path -Path "$($config.SignedOutputPath)/$($config.ModuleName)"
-          Get-ChildItem $srcModulePath
-          Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$srcModulePath"
-          #
-          $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
-        }
-      displayName: Create module artifact
+        $srcModulePath = Resolve-Path -Path "$($config.SignedOutputPath)/$($config.ModuleName)"
+        Get-ChildItem $srcModulePath
+        Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$srcModulePath"
+        #
+        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+      displayName: Create signed module artifact
 
 - stage: Compliance
   displayName: Compliance
@@ -375,9 +366,3 @@ stages:
 #      jobName: TestPkgWinMacOS
 #      displayName: PowerShell Core on macOS
 #      imageName: macOS-10.14
-
-- stage: Release
-  displayName: Release Package
-  condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), eq(variables['Publish'], 'True'))
-  jobs:
-  - template: release.yml
