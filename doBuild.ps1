@@ -23,6 +23,10 @@ function DoBuild
     Write-Verbose -Verbose "Copy Item ${SrcPath}/PSModule.psm1 to $BuildOutPath"
     Copy-Item -Path "${SrcPath}/PSModule.psm1" -Dest "$BuildOutPath" -Force
 
+    #Copy module format ps1xml file
+    Write-Verbose -Verbose "Copy-Item ${SrcPath}/${FormatFileName}.ps1xml to $BuildOutPath"
+    Copy-Item -Path "${SrcPath}/${FormatFileName}.ps1xml" -Dest "$BuildOutPath" -Force
+
     # Create BuildFramework directory for binary location
     $BuildOutputBin = Join-Path -Path $BuildOutPath -ChildPath $BuildFramework
     if (! (Test-Path -Path $BuildOutputBin)) {

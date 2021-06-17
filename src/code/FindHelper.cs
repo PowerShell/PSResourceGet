@@ -173,6 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 string password = new NetworkCredential(string.Empty, _credential.Password).Password;
                 source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), _credential.UserName, password, true, null);
+                _cmdletPassedIn.WriteVerbose("credential successfully set for repository:" + repositoryName);
             }
 
             // GetCoreV3() API is able to handle V2 and V3 repository endpoints
@@ -302,6 +303,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         take: SearchAsyncMaxTake,
                         log: NullLogger.Instance,
                         cancellationToken: _cancellationToken).GetAwaiter().GetResult();
+                        _cmdletPassedIn.WriteVerbose("first SearchAsync() call made");
                     if (wildcardPkgs.Count() > SearchAsyncMaxReturned)
                     {
                         // get the rest of the packages
@@ -351,6 +353,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (foundPackagesMetadata.Count == 0)
             {
                 // no need to attempt to filter further
+                _cmdletPassedIn.WriteVerbose("no packages found");
                 yield break;
             }
 
