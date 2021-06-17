@@ -9,10 +9,12 @@ Describe 'Test Find-PSResource for Module' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         Get-NewPSResourceRepositoryFile
+        Register-LocalRepos
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
+        # Unregister-LocalRepos
     }
 
     It "find Specific Module Resource by Name" {
@@ -148,29 +150,29 @@ Describe 'Test Find-PSResource for Module' {
         $isDependencyVersionCorrect | Should -BeTrue
     }
 
-    # It "find resource in local repository given Repository parameter" {
-    #     $publishModuleName = "TestFindModule"
-    #     $repoName = "psgettestlocal"
-    #     Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
+    It "find resource in local repository given Repository parameter" {
+        $publishModuleName = "TestFindModule"
+        $repoName = "psgettestlocal"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
 
-    #     $res = Find-PSResource -Name $publishModuleName -Repository $repoName
-    #     $res | Should -Not -BeNullOrEmpty
-    #     $res.Name | Should -Be $publishModuleName
-    #     $res.Repository | Should -Be $repoName
-    # }
+        $res = Find-PSResource -Name $publishModuleName -Repository $repoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $publishModuleName
+        $res.Repository | Should -Be $repoName
+    }
 
-    # It "find Resource given repository parameter, where resource exists in multiple LOCAL repos" {
-    #     $moduleName = "test_local_mod"
-    #     $repoHigherPriorityRanking = "psgettestlocal"
-    #     $repoLowerPriorityRanking = "psgettestlocal2"
+    It "find Resource given repository parameter, where resource exists in multiple local repos" {
+        $moduleName = "test_local_mod"
+        $repoHigherPriorityRanking = "psgettestlocal"
+        $repoLowerPriorityRanking = "psgettestlocal2"
 
-    #     Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoHigherPriorityRanking
-    #     Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoLowerPriorityRanking
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoHigherPriorityRanking
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoLowerPriorityRanking
 
-    #     $res = Find-PSResource -Name $moduleName
-    #     $res.Repository | Should -Be $repoHigherPriorityRanking
+        $res = Find-PSResource -Name $moduleName
+        $res.Repository | Should -Be $repoHigherPriorityRanking
 
-    #     $resNonDefault = Find-PSResource -Name $moduleName -Repository $repoLowerPriorityRanking
-    #     $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
-    # }
+        $resNonDefault = Find-PSResource -Name $moduleName -Repository $repoLowerPriorityRanking
+        $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
+    }
 }

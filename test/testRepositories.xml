@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
-  <Repository Name="psgettestlocal"  Url="file:///c:/code/testdir"                  Priority="50" Trusted="false" />
   <Repository Name="PSGallery"       Url="https://www.powershellgallery.com/api/v2" Priority="50" Trusted="false" />
   <Repository Name="PoshTestGallery" Url="https://www.poshtestgallery.com/api/v2"   Priority="10" Trusted="true"  />
 </configuration>

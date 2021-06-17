@@ -331,7 +331,10 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
-        $moduleName
+        $moduleName,
+
+        [string]
+        $repoName
     )
     Get-TestDriveSetUp
 
@@ -340,9 +343,42 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
     $version = "1.0"
-    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -NestedModules "$publishModuleName.psm1"
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
 
-    Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
+    Publish-PSResource -Path $publishModuleBase -Repository $repoName
+}
+
+function Register-LocalRepos {
+    $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+    $null = New-Item $repoURLAddress -ItemType Directory -Force
+    $localRepoParams = @{
+        Name = "psgettestlocal"
+        URL = $repoURLAddress
+        Priority = 40
+        Trusted = $false
+    }
+
+    Register-PSResourceRepository @localRepoParams
+
+    $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
+    $null = New-Item $repoURLAddress2 -ItemType Directory -Force
+    $localRepoParams2 = @{
+        Name = "psgettestlocal2"
+        URL = $repoURLAddress2
+        Priority = 50
+        Trusted = $false
+    }
+
+    Register-PSResourceRepository @localRepoParams2
+}
+
+function Unregister-LocalRepos {
+    if(Get-PSResourceRepository "psgettestlocal"){
+        Unregister-PSResourceRepository -Name "psgettestlocal"
+    }
+    if(Get-PSResourceRepository "psgettestlocal2"){
+        Unregister-PSResourceRepository -Name "psgettestlocal2"
+    }
 }
 
 function RemoveItem

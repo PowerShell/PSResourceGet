@@ -4,20 +4,20 @@ using System.Net.Http;
 
 using System;
 using System.Collections.Generic;
+using System.Data;
+using Dbg = System.Diagnostics.Debug;
 using System.Linq;
 using System.Management.Automation;
+using System.Net;
 using System.Threading;
 using MoreLinq.Extensions;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo;
+using NuGet.Common;
+using NuGet.Configuration;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
-using NuGet.Configuration;
-using NuGet.Common;
-using System.Data;
-using System.Net;
-using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -303,7 +303,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         take: SearchAsyncMaxTake,
                         log: NullLogger.Instance,
                         cancellationToken: _cancellationToken).GetAwaiter().GetResult();
-                        _cmdletPassedIn.WriteVerbose("first SearchAsync() call made");
                     if (wildcardPkgs.Count() > SearchAsyncMaxReturned)
                     {
                         // get the rest of the packages
