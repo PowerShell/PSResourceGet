@@ -2,29 +2,40 @@
 
 The `Find-PSResource` cmdlet combines the `Find-Module, Find-Script, Find-DscResource, Find-Command` cmdlets from V2.
 It performs a search on a repository (local or remote) based on the `-Name` parameter argument.
-It returns `PSRepositoryItemInfo` objects which describe each resource item found.
-Other parameters allow the returned results to be filtered by item type and tags.  
+It returns `PSResourceInfo` objects which describe each resource item found (with Name, Version, Prerelease and Description information displayed, but other properties available too).
+Other parameters allow the returned results to be filtered by item Type, Tag, Version and IncludeDependencies.
 
-Alternatively, a `-CommandName` or `-DscResourceName` can be provided and resource packages having those commands or Dsc resources will be returned.
-The `-ModuleName` parameter allows the command or dsc resource name search to be limited to a subset of module packages.  
+Alternatively, a `-CommandName` or `-DscResourceName` can be provided and resource packages having those commands or Dsc resources will be returned. This has not been implemented yet.
+The `-ModuleName` parameter allows the command or dsc resource name search to be limited to a subset of module packages. This has not been implemented yet.
 
 ## Syntax
 
 ### ResourceNameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <string[]>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
+[[-Name] <string[]>] [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
 [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
 ``` PowerShell
-[[-CommandName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
+[[-CommandName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
 [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### DscResourceNameParameterSet
 ``` PowerShell
-[[-DscResourceName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tags <string[]>]
+[[-DscResourceName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
+[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+### TagParameterSet
+``` PowerShell
+[[-Name <string>][-Tag <string[]>] [-Prerelease]
+[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### TypeParameterSet
+``` PowerShell
+[[Name <string>] [-Prerelease]  [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>]
 [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -33,7 +44,7 @@ The `-ModuleName` parameter allows the command or dsc resource name search to be
 ### -Name
 
 Name of a resource or resources to find.
-Accepts wild card characters.
+Accepts wild card character '*'.
 
 ```yml
 Type: string[]
@@ -43,10 +54,10 @@ Parameter Sets: ResourceNameParameterSet
 ### -Type
 
 Specifies one or more resource types to find.
-Two resource types are supported: Module and Script.
+Resource types supported are: Module, Script, Command, DscResource.
 
 ```yml
-Type: string[]
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]
 Parameter Sets: ResourceNameParameterSet
 AllowedValues: 'Module','Script','DscResource','Command'
 ```
@@ -62,14 +73,14 @@ Parameter Sets: (All)
 
 ### -Prerelease
 
-When specified, includes prerelease versions in search.
+When specified, includes prerelease versions in search results returned.
 
 ```yml
 Type: SwitchParameter
 Parameter Sets: (All)
 ```
 
-### -Tags
+### -Tag
 
 Filters search results for resources that include one or more of the specified tags.
 
@@ -81,7 +92,7 @@ Parameter Sets: (All)
 ### -Repository
 
 Specifies one or more repository names to search.
-If not specified, search will include all currently registered repositories.
+If not specified, search will include all currently registered repositories, in order of highest priority, til first repository package is found in.
 
 ```yml
 Type: string[]
@@ -100,6 +111,7 @@ Parameter Sets: (All)
 ### -IncludeDependencies
 
 When specified, search will return all matched resources along with any resources the matched resources depends on.
+Dependencies are deduplicated.
 
 ```yml
 Type: SwitchParameter
@@ -109,7 +121,8 @@ Parameter Sets: (All)
 ### -CommandName
 
 Specifies a list of command names that searched module packages will provide.
-Wildcards are supported.  
+Wildcards are supported.
+Not yet implemented.
 
 ```yml
 Type: string[]
@@ -119,7 +132,8 @@ Parameter Sets: CommandNameParameterSet
 ### -DscResourceName
 
 Specifies a list of dsc resource names that searched module packages will provide.
-Wildcards are supported.  
+Wildcards are supported.
+Not yet implemented.
 
 ```yml
 Type: string[]
@@ -129,7 +143,8 @@ Parameter Sets: DscResourceNameParameterSet
 ### -ModuleName
 
 Specifies a module resource package name type to search for.
-Wildcards are supported.  
+Wildcards are supported.
+Not yet implemented.
 
 ```yml
 Type: string
@@ -139,29 +154,31 @@ Parameter Sets: CommandNameParameterSet, DscResourceParameterSet
 ### Outputs
 
 ```json
-"PSRepositoryItemInfo" : {
-    "Name",
-    "Version",
-    "Type",
-    "Description",
+"PSResourceInfo" : {
     "Author",
     "CompanyName",
     "Copyright",
-    "PublishedDate",
-    "InstalledDate",
-    "UpdatedDate",
-    "LicenseUri",
-    "ProjectUri",
-    "IconUri",
-    "Tags",
-    "Includes",
-    "PowerShellGetFormatVersion",
-    "ReleaseNotes",
     "Dependencies",
-    "RepositorySourceLocation",
-    "Repository",
+    "Description",
+    "IconUri",
+    "Includes",
+    "InstalledDate",
+    "InstalledLocation",
+    "IsPrerelease",
+    "LicenseUri",
+    "Name",
     "PackageManagementProvider",
-    "AdditionalMetadata"
+    "PowerShellGetFormatVersion",
+    "PrereleaseLabel",
+    "ProjectUri",
+    "PublishedDate",
+    "ReleaseNotes",
+    "Repository",
+    "RepositorySourceLocation",
+    "Tags",
+    "Type",
+    "UpdatedDate",
+    "Version"
 }
 ```
 
@@ -171,33 +188,33 @@ Search strategy will depend on what NuGet APIs support on the server.
 PowerShell has its own wildcard behavior that may not be compatible with the NuGet APIs.
 The V2 APIs do provide property filtering and some limited wildcard support.
 It is not yet clear if V2 or V3 APIs should be used.
-Need benefit cost analysis.  
+Need benefit cost analysis.
 
-Search can be performed on remote or local (file based) repositories, depending on the repository Url.  
+Search can be performed on remote or local (file based) repositories, depending on the repository Url.
 
 Does the `-Credential` parameter apply to all repositories being searched?
 If so, can that result in an error for repositories that do not require credentials?
 How are multiple repository searches that require different credentials handled?
-Should searches with credential be limited to a single repository?  
+Should searches with credential be limited to a single repository?
 
 Should search results be cached locally on the client machine?
 If so, should the cache be per PowerShell session or file based?
 At what point should the local cache be updated from the server?
 Should there be a parameter switch that forces the search to go directly to the server and skip the local cache?
-Should the cache be used if a specific repository is specified?  
-We should assume that a specific resource package version is identical over any repository from which it is retrieved.  
+Should the cache be used if a specific repository is specified?
+We should assume that a specific resource package version is identical over any repository from which it is retrieved.
 
 Should a search with no name or 'all' wildcard result in all repository items returned?
-Should there be a default limit for number of items returned, and if so can it be bypassed?  
+Should there be a default limit for number of items returned, and if so can it be bypassed?
 
 The V2 `Find-Command, Find-DscResource` will be combined into `Find-PSResource`.
-The `Find-RoleCapability` cmdlet will be dropped for the first release of V3.  
+The `Find-RoleCapability` cmdlet will be dropped for the first release of V3.
 
 ## Tests
 
-Most search tests can be performed on a local repository.  
+Most search tests can be performed on a local repository.
 
-Some tests should be performed on remote repository (PSGallery) to verify remote operation, but can be limited.  
+Some tests should be performed on remote repository (PSGallery) to verify remote operation, but can be limited.
 
 ### -Name param
 
@@ -247,42 +264,42 @@ Some tests should be performed on remote repository (PSGallery) to verify remote
 
 ### Create cmdlet and parameter sets
 
-Create cmdlet class, parameters, and functional stubs  
+Create cmdlet class, parameters, and functional stubs
 1 day
 
 ### Implement package search helpers
 
-Create helper functions that support all search functions  
-Use existing code as starting point  
+Create helper functions that support all search functions
+Use existing code as starting point
 4 days
 
 ### Investigate V3 API wildcard support
 
-Look into how V3 APIs can be used to reduce what is returned from the server  
+Look into how V3 APIs can be used to reduce what is returned from the server
 7 days
 
 ### Implement package filtering functions
 
-Create helper functions to provide filtering of search results  
+Create helper functions to provide filtering of search results
 3 days
 
 ### Investigate and implement local cache
 
-Write mini-design document on local caching strategy  
-Implement local cache  
+Write mini-design document on local caching strategy
+Implement local cache
 10 days
 
 ### Create test support
 
-Create any test repositories and mocks for tests  
+Create any test repositories and mocks for tests
 4 days
 
 ### Write cmdlet tests
 
-Create all functional tests to validate cmdlet  
+Create all functional tests to validate cmdlet
 5 days
 
 ### Write support function tests
 
-Create all needed tests to validate caching and search helpers  
+Create all needed tests to validate caching and search helpers
 5 days
