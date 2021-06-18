@@ -25,6 +25,8 @@ $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $script:PoshTestGalleryName = 'PoshTestGallery'
 $script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
 
+$script:NuGetGalleryName = 'NuGetGallery'
+
 if($script:IsInbox)
 {
     $script:ProgramFilesPSPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramFiles -ChildPath "WindowsPowerShell"
@@ -125,6 +127,10 @@ function Get-PSGetLocalAppDataPath {
     return $script:PSGetAppLocalPath
 }
 
+function Get-NuGetGalleryName
+{
+    return $script:NuGetGalleryName
+}
 function Get-PSGalleryName
 {
     return $script:PSGalleryName
@@ -371,16 +377,6 @@ function Register-LocalRepos {
 
     Register-PSResourceRepository @localRepoParams2
 }
-
-function Unregister-LocalRepos {
-    if(Get-PSResourceRepository "psgettestlocal"){
-        Unregister-PSResourceRepository -Name "psgettestlocal"
-    }
-    if(Get-PSResourceRepository "psgettestlocal2"){
-        Unregister-PSResourceRepository -Name "psgettestlocal2"
-    }
-}
-
 function RemoveItem
 {
     Param(

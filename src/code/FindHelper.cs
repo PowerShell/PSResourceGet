@@ -39,6 +39,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
+        private bool _isADOFeedRepository = false;
 
         // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
         // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
@@ -167,6 +168,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
 
+            // check if ADOFeed- for which searching for Name with wildcard has a different logic flow
+            if (repositoryUrl.ToString().Contains("pkgs.visualstudio.com"))
+            {
+                _isADOFeedRepository = true;
+                // change repositoryUrl to current v2 endpoint from it's v3 endpoint one and iterate names and check if contains * i guess
+
+            }
+
             // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
             PackageSource source = new PackageSource(repositoryUrl.ToString());
             if (_credential != null)
@@ -291,10 +300,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
+                if (_isADOFeedRepository || true)
+                {
+                    _cmdletPassedIn.WriteVerbose("searching through ADOFeed with wildcard in name");
+                }
                 // case: searching for name containing wildcard i.e "Carbon.*"
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = null;
                 try
                 {
+                    _cmdletPassedIn.WriteVerbose("searching with name: " + pkgName);
                     // SearchAsync() API returns the latest version only for all packages that match the wild-card name
                     wildcardPkgs = pkgSearchResource.SearchAsync(
                         searchTerm: pkgName,

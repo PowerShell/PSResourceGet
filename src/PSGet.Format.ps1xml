@@ -10,6 +10,7 @@
             <TableHeaders>
                 <TableColumnHeader><Label>Name</Label></TableColumnHeader>
                 <TableColumnHeader><Label>Version</Label></TableColumnHeader>
+                <TableColumnHeader><Label>Prerelease</Label></TableColumnHeader>
                 <TableColumnHeader><Label>Description</Label></TableColumnHeader>
             </TableHeaders>
                 <TableRowEntries>
@@ -17,6 +18,7 @@
                         <TableColumnItems>
                             <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Version</PropertyName></TableColumnItem>
+                            <TableColumnItem><PropertyName>PrereleaseLabel</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Description</PropertyName></TableColumnItem>
                         </TableColumnItems>
                 </TableRowEntry>

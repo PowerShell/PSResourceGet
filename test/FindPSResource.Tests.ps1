@@ -8,13 +8,13 @@ Describe 'Test Find-PSResource for Module' {
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        $NuGetGalleryName = Get-NuGetGalleryName
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
-        # Unregister-LocalRepos
     }
 
     It "find Specific Module Resource by Name" {
@@ -25,6 +25,33 @@ Describe 'Test Find-PSResource for Module' {
     It "should not find resource given nonexistant name" {
         $res = Find-PSResource -Name NonExistantModule
         $res | Should -BeNullOrEmpty
+    }
+
+    It "find resources when Name contains * from V2 endpoint repository (PowerShellGallery))" {
+        $foundScript = $False
+        $res = Find-PSResource -Name "AzureS*" -Repository $PSGalleryName
+        $res.Count | Should -BeGreaterThan 1
+        # should find Module and Script resources
+        foreach ($item in $res) {
+            if ($item.Type -eq "Script")
+            {
+                $foundScript = $true
+            }
+        }
+
+        $foundScript | Should -BeTrue
+    }
+
+    It "find resource given Name from V3 endpoint repository (NuGetGallery)" {
+        $res = Find-PSResource -Name "Serilog" -Repository $NuGetGalleryName
+        $res.Count | Should -Be 1
+        $res.Name | Should -Be "Serilog"
+        $res.Repository | Should -Be $NuGetGalleryName
+    }
+
+    It "find resources when Name contains wildcard * from V3 endpoint repository" {
+        $res = Find-PSResource -Name "Serilog*" -Repository $NuGetGalleryName
+        $res.Count | Should -BeGreaterThan 1
     }
 
     It "find resource when given Name to <Reason> <Version>" -TestCases @(

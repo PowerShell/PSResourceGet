@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using System.Linq;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -203,6 +205,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Name { get; set; }
         public string PackageManagementProvider { get; set; }
         public string PowerShellGetFormatVersion { get; set; }
+        public string PrereleaseLabel { get; set; }
         public Uri ProjectUri { get; set; }
         public DateTime? PublishedDate { get; set; }
         public string ReleaseNotes { get; set; }
@@ -282,9 +285,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     System.IO.File.ReadAllText(
                         filePath));
 
+
+                var additionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo);
+                Version version = GetVersionInfo(psObjectInfo, additionalMetadata, out string prereleaseLabel);
+
                 psGetInfo = new PSResourceInfo
                 {
-                    AdditionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo),
+                    AdditionalMetadata = additionalMetadata,
                     Author = GetProperty<string>(nameof(PSResourceInfo.Author), psObjectInfo),
                     CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
                     Copyright = GetProperty<string>(nameof(PSResourceInfo.Copyright), psObjectInfo),
@@ -299,6 +306,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Name = GetProperty<string>(nameof(PSResourceInfo.Name), psObjectInfo),
                     PackageManagementProvider = GetProperty<string>(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
                     PowerShellGetFormatVersion = GetProperty<string>(nameof(PSResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
+                    PrereleaseLabel = prereleaseLabel,
                     ProjectUri = GetProperty<Uri>(nameof(PSResourceInfo.ProjectUri), psObjectInfo),
                     PublishedDate = GetProperty<DateTime>(nameof(PSResourceInfo.PublishedDate), psObjectInfo),
                     ReleaseNotes = GetProperty<string>(nameof(PSResourceInfo.ReleaseNotes), psObjectInfo),
@@ -312,8 +320,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         out ResourceType currentReadType)
                             ? currentReadType : ResourceType.Module,
                     UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
-                    Version = GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo)
+                    Version = version
                 };
+
 
                 return true;
             }
@@ -327,6 +336,49 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
         }
+
+        private static Version GetVersionInfo(
+            PSObject psObjectInfo,
+            Dictionary<string, string> additionalMetadata,
+            out string prereleaseLabel)
+        {
+            string versionString = GetProperty<string>(nameof(PSResourceInfo.Version), psObjectInfo);
+            prereleaseLabel = String.Empty;
+
+            if (!String.IsNullOrEmpty(versionString) ||
+                additionalMetadata.TryGetValue("NormalizedVersion", out versionString))
+            {
+                string pkgVersion = versionString;
+                if (versionString.Contains("-"))
+                {
+                    string[] versionStringParsed = versionString.Split('-');
+                    if (versionStringParsed.Length == 1)
+                    {
+                        pkgVersion = versionStringParsed[0];
+                    }
+                    else
+                    {
+                        // versionStringParsed.Length > 1 (because string contained '-' so couldn't be 0)
+                        pkgVersion = versionStringParsed[0];
+                        prereleaseLabel = versionStringParsed[1];
+                    }
+                }
+
+                if (!Version.TryParse(pkgVersion, out Version parsedVersion))
+                {
+                    prereleaseLabel = String.Empty;
+                    return null;
+                }
+                else
+                {
+                    return parsedVersion;
+                }
+            }
+
+            prereleaseLabel = String.Empty;
+            return (Version) GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo);
+        }
+
 
         public static bool TryConvert(
             IPackageSearchMetadata metadataToParse,
@@ -355,6 +407,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     IconUri = ParseMetadataIconUri(metadataToParse),
                     LicenseUri = ParseMetadataLicenseUri(metadataToParse),
                     Name = ParseMetadataName(metadataToParse),
+                    PrereleaseLabel = ParsePrerelease(metadataToParse),
                     ProjectUri = ParseMetadataProjectUri(metadataToParse),
                     PublishedDate = ParseMetadataPublishedDate(metadataToParse),
                     Repository = repositoryName,
@@ -431,6 +484,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        private static string GetPrereleaseLabel(Version version)
+        {
+            string versionAsString = version.ToString();
+
+            if (!versionAsString.Contains("-"))
+            {
+                // no prerelease label present
+                return String.Empty;
+            }
+
+            string[] prereleaseParsed = versionAsString.Split('-');
+            if (prereleaseParsed.Length <= 1)
+            {
+                return String.Empty;
+            }
+
+            string prereleaseString = prereleaseParsed[1];
+            Regex prereleasePattern = new Regex("^[a-zA-Z0-9]+$");
+            if (!prereleasePattern.IsMatch(prereleaseString))
+            {
+                return String.Empty;
+            }
+
+            return prereleaseString;
+        }
 
         private static Dependency[] GetDependencies(ArrayList dependencyInfos)
         {
@@ -464,9 +542,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     if (!Utils.TryParseVersionOrVersionRange((string) dependencyInfo["RequiredVersion"], out VersionRange dependencyVersion))
                     {
                         dependencyVersion = VersionRange.All;
-
-                        // Dbg.Assert(false, "Dependency contained RequiredVersion key but value is not able to be parsed into VersionRange or Version");
-                        // continue; // TODO: use all version version instead?
                     }
 
                     dependenciesFound.Add(new Dependency(dependencyName, dependencyVersion));
@@ -524,6 +599,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return dependenciesFound.ToArray();
         }
 
+        private static string ConcatenateVersionWithPrerelease(string version, string prerelease)
+        {
+            // if no prerelease, just version suffices
+            if (String.IsNullOrEmpty(prerelease))
+            {
+                return version;
+            }
+
+            int numVersionDigits = version.ToString().Split('.').Count();
+            if (numVersionDigits == 3)
+            {
+                // 0.5.3 -> version string , preview4 -> prerelease string , return: 5.3.0-preview4
+                return version + "-" + prerelease;
+            }
+
+
+            // number of digits not equivalent to 3 was not supported in V2
+            // Dbg.Assert(false, "version: " + version + "-" + prerelease + " contains an invalid number of digits while also containing prerelease");
+            return version;
+        }
+
 
         #region Parse Metadata private static methods
 
@@ -539,8 +635,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 foreach(var pkgDependencyItem in pkgDependencyGroup.Packages)
                 {
-                    // do I have to check version range is not null? can we have package with dependency but no version?
-                    Dependency currentDependency = new Dependency(pkgDependencyItem.Id, pkgDependencyItem.VersionRange);
+                    // check if version range is not null. In case we have package with dependency but no version specified
+                    VersionRange depVersionRange;
+                    if (pkgDependencyItem.VersionRange == null)
+                    {
+                        depVersionRange = VersionRange.All;
+                    }
+                    else
+                    {
+                        depVersionRange = pkgDependencyItem.VersionRange;
+                    }
+
+                    Dependency currentDependency = new Dependency(pkgDependencyItem.Id, depVersionRange);
                     dependencies.Add(currentDependency);
                 }
             }
@@ -565,6 +671,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         private static string ParseMetadataName(IPackageSearchMetadata pkg)
         {
             return pkg.Identity?.Id ?? string.Empty;
+        }
+
+        private static string ParsePrerelease(IPackageSearchMetadata pkg)
+        {
+            return pkg.Identity.Version.ReleaseLabels.Count() == 0 ?
+                String.Empty :
+                pkg.Identity.Version.ReleaseLabels.FirstOrDefault();
         }
 
         private static Uri ParseMetadataProjectUri(IPackageSearchMetadata pkg)
@@ -660,29 +773,29 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             var psObject = new PSObject();
-            psObject.Properties.Add(new PSNoteProperty(nameof(AdditionalMetadata), additionalMetadata));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Version), ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel)));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Type), Type));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Description), Description));
             psObject.Properties.Add(new PSNoteProperty(nameof(Author), Author));
             psObject.Properties.Add(new PSNoteProperty(nameof(CompanyName), CompanyName));
             psObject.Properties.Add(new PSNoteProperty(nameof(Copyright), Copyright));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Description), Description));
-            psObject.Properties.Add(new PSNoteProperty(nameof(IconUri), IconUri));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes.ConvertToHashtable()));
-            psObject.Properties.Add(new PSNoteProperty(nameof(InstalledDate), InstalledDate));
-            psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation));
-            psObject.Properties.Add(new PSNoteProperty(nameof(LicenseUri), LicenseUri));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name));
-            psObject.Properties.Add(new PSNoteProperty(nameof(PackageManagementProvider), PackageManagementProvider));
-            psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion));
-            psObject.Properties.Add(new PSNoteProperty(nameof(ProjectUri), ProjectUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(PublishedDate), PublishedDate));
-            psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Repository), Repository));
-            psObject.Properties.Add(new PSNoteProperty(nameof(RepositorySourceLocation), RepositorySourceLocation));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Tags), Tags));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Type), Type));
+            psObject.Properties.Add(new PSNoteProperty(nameof(InstalledDate), InstalledDate));
             psObject.Properties.Add(new PSNoteProperty(nameof(UpdatedDate), UpdatedDate));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Version), Version));
+            psObject.Properties.Add(new PSNoteProperty(nameof(LicenseUri), LicenseUri));
+            psObject.Properties.Add(new PSNoteProperty(nameof(ProjectUri), ProjectUri));
+            psObject.Properties.Add(new PSNoteProperty(nameof(IconUri), IconUri));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Tags), Tags));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes.ConvertToHashtable()));
+            psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion));
+            psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));
+            psObject.Properties.Add(new PSNoteProperty(nameof(RepositorySourceLocation), RepositorySourceLocation));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Repository), Repository));
+            psObject.Properties.Add(new PSNoteProperty(nameof(PackageManagementProvider), PackageManagementProvider));
+            psObject.Properties.Add(new PSNoteProperty(nameof(AdditionalMetadata), additionalMetadata));
+            psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation));
 
             return psObject;
         }
