@@ -148,30 +148,30 @@ function Get-PoshTestGalleryLocation {
     return $script:PostTestGalleryLocation
 }
 
-# function Get-NewTestDirs {
-#     Param(
-#         [string[]]
-#         $listOfPaths
-#     )
-#     foreach($path in $listOfPaths)
-#     {
-#         $null = New-Item -Path $path -ItemType Directory
-#     }
-# }
+function Get-NewTestDirs {
+    Param(
+        [string[]]
+        $listOfPaths
+    )
+    foreach($path in $listOfPaths)
+    {
+        $null = New-Item -Path $path -ItemType Directory
+    }
+}
 
-# function Get-RemoveTestDirs {
-#     Param(
-#         [string[]]
-#         $listOfPaths
-#     )
-#     foreach($path in $listOfPaths)
-#     {
-#         if(Test-Path -Path $path)
-#         {
-#             Remove-Item -Path $path -Force -ErrorAction Ignore
-#         }
-#     }
-# }
+function Get-RemoveTestDirs {
+    Param(
+        [string[]]
+        $listOfPaths
+    )
+    foreach($path in $listOfPaths)
+    {
+        if(Test-Path -Path $path)
+        {
+            Remove-Item -Path $path -Force -ErrorAction Ignore
+        }
+    }
+}
 
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
