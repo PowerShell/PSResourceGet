@@ -13,7 +13,7 @@ The `-URL` for the PSGallery repository, which is pre-defined for this repositor
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string>] [-URL <string>] [-Credential <PSCredential>] [-Trusted] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string>] [-URL <string>] [-Trusted] [-Priority <int>] [-Authentication <Hashtable>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
@@ -43,15 +43,6 @@ Type: Uri
 Parameter Sets: NameParameterSet
 ```
 
-### -Credential
-
-Specifies a user account that has rights to find a resource from a specific repository.
-
-```yml
-Type: PSCredential
-Parameter Sets: NameParameterSet
-```
-
 ### -Repositories
 
 Specifies an array of hashtables containing information on repositories and is used to register multiple repositories at once.
@@ -67,6 +58,24 @@ When specified, repository will be set to trusted.
 
 ```yml
 Type: SwitchParameter
+Parameter Sets: NameParameterSet
+```
+
+### -Priority
+
+Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).
+
+```yml
+Type: int
+Parameter Sets: NameParameterSet
+```
+
+### -Authentication
+
+Specifies a hashtable of vault and secret names as Authentication information for the repository.
+
+```yml
+Type: Hashtable
 Parameter Sets: NameParameterSet
 ```
 

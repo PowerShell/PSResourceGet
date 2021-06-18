@@ -3,3 +3,4 @@ src/code/obj
 srcOld/code/bin
 srcOld/code/obj
 out
+result.pester.xml

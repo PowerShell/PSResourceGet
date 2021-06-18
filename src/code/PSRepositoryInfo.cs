@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
+using System.Collections;
 using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
@@ -12,12 +13,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted)
+        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted, Hashtable authentication)
         {
             Name = name;
             Url = url;
             Priority = priority;
             Trusted = trusted;
+            Authentication = authentication;
         }
 
         #endregion
@@ -43,6 +45,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         [ValidateRange(0, 50)]
         public int Priority { get; }
+
+        /// <summary>
+        /// the Authentication for the repository
+        /// </summary>
+        public Hashtable Authentication { get; }
 
         #endregion
     }

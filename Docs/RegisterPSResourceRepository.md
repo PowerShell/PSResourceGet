@@ -10,7 +10,7 @@ The Register-PSResourceRepository cmdlet determines which repository will be the
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string>] [-URL <string>] [-Priority <int>] [-Trusted] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string>] [-URL <string>] [-Priority <int>] [-Trusted] [-Authentication] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PSGalleryParameterSet
@@ -68,6 +68,15 @@ Specifies whether the repository should be trusted.
 ```yml
 Type: SwitchParameter
 Parameter Sets: NameParameterSet, PSGalleryParameterSet
+```
+
+### -Authentication
+
+Specifies a hashtable of vault and secret names as Authentication information for the repository.
+
+```yml
+Type: Hashtable
+Parameter Sets: NameParameterSet
 ```
 
 ### -Proxy

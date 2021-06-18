@@ -28,6 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
         private const int DefaultPriority = -1;
         private Uri _url;
+
         #endregion
 
         #region Parameters
@@ -85,7 +86,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public int Priority { get; set; } = DefaultPriority;
 
         /// <summary>
-        /// When specified, displays the succcessfully registered repository and its information
+        /// Specifies a hashtable of vault and secret names as Authentication information for the repository.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [ValidateNotNullOrEmpty]
+        public Hashtable Authentication {get; set;}
+
+        /// <summary>
+        /// When specified, displays the successfully registered repository and its information
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }
@@ -116,7 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case NameParameterSet:
                     try
                     {
-                        items.Add(UpdateRepositoryStoreHelper(Name, _url, Priority, Trusted));
+                        items.Add(UpdateRepositoryStoreHelper(Name, _url, Priority, Trusted, Authentication));
                     }
                     catch (Exception e)
                     {
@@ -157,7 +165,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private PSRepositoryInfo UpdateRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
+        private PSRepositoryInfo UpdateRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, Hashtable repoAuthentication)
         {
             if (repoUrl != null && !(repoUrl.Scheme == Uri.UriSchemeHttp || repoUrl.Scheme == Uri.UriSchemeHttps || repoUrl.Scheme == Uri.UriSchemeFtp || repoUrl.Scheme == Uri.UriSchemeFile))
             {
@@ -175,17 +183,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // check PSGallery URL is not trying to be set
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) && repoUrl != null)
             {
-                throw new ArgumentException("The PSGallery repository has a pre-defined URL.  Setting the -URL parmeter for this repository is not allowed, instead try running 'Register-PSResourceRepository -PSGallery'.");
+                throw new ArgumentException("The PSGallery repository has a pre-defined URL.  Setting the -URL parameter for this repository is not allowed, instead try running 'Register-PSResourceRepository -PSGallery'.");
+            }
+
+            // check PSGallery Authentication is not trying to be set
+            if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) && repoAuthentication != null)
+            {
+                throw new ArgumentException("The PSGallery repository does not require authentication.  Setting the -Authentication parameter for this repository is not allowed, instead try running 'Register-PSResourceRepository -PSGallery'.");
             }
 
             // determine trusted value to pass in (true/false if set, null otherwise, hence the nullable bool variable)
             bool? _trustedNullable = isSet ? new bool?(repoTrusted) : new bool?();
 
-            // determine if either 1 of 3 values are attempting to be set: URL, Priority, Trusted.
-            // if none are (i.e only Name parameter was provided, write error)
-            if(repoUrl == null && repoPriority == DefaultPriority && _trustedNullable == null)
+            if (repoAuthentication != null)
             {
-                throw new ArgumentException("Either URL, Priority or Trusted parameters must be requested to be set");
+                 if (!repoAuthentication.ContainsKey(AuthenticationHelper.VaultNameAttribute) || string.IsNullOrEmpty(repoAuthentication[AuthenticationHelper.VaultNameAttribute].ToString())
+                    || !repoAuthentication.ContainsKey(AuthenticationHelper.SecretAttribute) || string.IsNullOrEmpty(repoAuthentication[AuthenticationHelper.SecretAttribute].ToString()))
+                {
+                    throw new ArgumentException($"Invalid Authentication, must include {AuthenticationHelper.VaultNameAttribute} and {AuthenticationHelper.SecretAttribute} key/(non-empty) value pairs");
+                }
+            }
+
+            // determine if either 1 of 4 values are attempting to be set: URL, Priority, Trusted, Authentication.
+            // if none are (i.e only Name parameter was provided, write error)
+            if(repoUrl == null && repoPriority == DefaultPriority && _trustedNullable == null && repoAuthentication == null)
+            {
+                throw new ArgumentException("Either URL, Priority, Trusted or Authentication parameters must be requested to be set");
             }
 
             WriteVerbose("All required values to set repository provided, calling internal Update() API now");
@@ -193,7 +216,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 return null;
             }
-            return RepositorySettings.Update(repoName, repoUrl, repoPriority, _trustedNullable);
+            return RepositorySettings.Update(repoName, repoUrl, repoPriority, _trustedNullable, repoAuthentication);
         }
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
@@ -254,12 +277,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 repoTrusted = (bool) repo["Trusted"];
                 isSet = true;
             }
+
             try
             {
                 return UpdateRepositoryStoreHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
-                    repoTrusted);
+                    repoTrusted,
+                    repo["Authentication"] as Hashtable);
             }
             catch (Exception e)
             {

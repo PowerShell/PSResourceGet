@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -32,6 +33,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet");
         private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
 
+        private static readonly string VaultNameAttribute = "VaultName";
+        private static readonly string SecretAttribute = "Secret";
+
         /// <summary>
         /// Check if repository store xml file exists, if not then create
         /// </summary>
@@ -58,7 +62,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoURL);
-                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted);
+                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted, null);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -77,7 +81,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted, Hashtable repoAuthentication)
         {
             Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
             Dbg.Assert(!string.IsNullOrEmpty(repoURL.ToString()), "Repository URL cannot be null or empty");
@@ -104,6 +108,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     new XAttribute("Trusted", repoTrusted)
                     );
 
+                if(repoAuthentication != null) {
+                    Dbg.Assert(repoAuthentication.ContainsKey(VaultNameAttribute), "Authentication has to contain Vault Name");
+                    Dbg.Assert(!string.IsNullOrEmpty(repoAuthentication[VaultNameAttribute].ToString()), "Vault Name cannot be null or empty");
+                    Dbg.Assert(repoAuthentication.ContainsKey(SecretAttribute), "Authentication has to contain Secret");
+                    Dbg.Assert(!string.IsNullOrEmpty(repoAuthentication[SecretAttribute].ToString()), "Secret cannot be null or empty");
+
+                    newElement.Add(new XAttribute(VaultNameAttribute, repoAuthentication[VaultNameAttribute]));
+                    newElement.Add(new XAttribute(SecretAttribute, repoAuthentication[SecretAttribute]));
+                }
+
                 root.Add(newElement);
 
                 // Close the file
@@ -114,14 +128,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted);
+            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted, repoAuthentication);
         }
 
         /// <summary>
         /// Updates a repository name, URL, priority, or installation policy
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
+        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted, Hashtable repoAuthentication)
         {
             Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
 
@@ -161,16 +175,49 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     node.Attribute("Trusted").Value = repoTrusted.ToString();
                 }
 
+                // A null Authentication value passed in signifies that Authentication information was not attempted to be set.
+                // So only set VaultName and Secret attributes if non-null value passed in for repoAuthentication
+                if (repoAuthentication != null)
+                {
+                    Dbg.Assert(repoAuthentication.ContainsKey(VaultNameAttribute), "Authentication has to contain Vault Name");
+                    Dbg.Assert(!string.IsNullOrEmpty(repoAuthentication[VaultNameAttribute].ToString()), "Vault Name cannot be null or empty");
+                    Dbg.Assert(repoAuthentication.ContainsKey(SecretAttribute), "Authentication has to contain Secret");
+                    Dbg.Assert(!string.IsNullOrEmpty(repoAuthentication[SecretAttribute].ToString()), "Secret cannot be null or empty");
+
+                    if (node.Attribute(VaultNameAttribute) == null) {
+                        node.Add(new XAttribute(VaultNameAttribute, repoAuthentication[VaultNameAttribute]));
+                    }
+                    else {
+                        node.Attribute(VaultNameAttribute).Value = repoAuthentication[VaultNameAttribute].ToString();
+                    }
+
+                    if (node.Attribute(SecretAttribute) == null) {
+                        node.Add(new XAttribute(SecretAttribute, repoAuthentication[SecretAttribute]));
+                    }
+                    else {
+                        node.Attribute(SecretAttribute).Value = repoAuthentication[SecretAttribute].ToString();
+                    }
+                }
+
                 // Create Uri from node Url attribute to create PSRepositoryInfo item to return.
                 if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
                 {
                     throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted URL for repo {0}", repoName));
                 }
 
+                // Create Authentication based on new values or whether it was empty to begin with
+                Hashtable thisAuthentication = !string.IsNullOrEmpty(node.Attribute(VaultNameAttribute)?.Value) && !string.IsNullOrEmpty(node.Attribute(SecretAttribute)?.Value)
+                    ? new Hashtable() {
+                        { VaultNameAttribute, node.Attribute(VaultNameAttribute).Value },
+                        { SecretAttribute, node.Attribute(SecretAttribute).Value }
+                    }
+                    : null;
+
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
-                    Boolean.Parse(node.Attribute("Trusted").Value));
+                    Boolean.Parse(node.Attribute("Trusted").Value),
+                    thisAuthentication);
 
                 // Close the file
                 root.Save(FullRepositoryPath);
@@ -258,15 +305,42 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         continue;
                     }
 
+                    Hashtable thisAuthentication = null;
+                    string authErrorMessage = $"Repository {repo.Attribute("Name")} has invalid Authentication information. {VaultNameAttribute} and {SecretAttribute} should both be present and non-empty";
+                    // both keys present
+                    if (repo.Attribute(VaultNameAttribute) != null && repo.Attribute(SecretAttribute) != null) {
+                        // both values non-empty
+                        // = valid authentication
+                        if (!string.IsNullOrEmpty(repo.Attribute(VaultNameAttribute).Value) && !string.IsNullOrEmpty(repo.Attribute(SecretAttribute).Value)) {
+                            thisAuthentication = new Hashtable() {
+                                { VaultNameAttribute, repo.Attribute(VaultNameAttribute).Value },
+                                { SecretAttribute, repo.Attribute(SecretAttribute).Value }
+                            };
+                        }
+                        else {
+                            tempErrorList.Add(authErrorMessage);
+                            continue;
+                        }
+                    }
+                    // both keys are missing
+                    else if (repo.Attribute(VaultNameAttribute) == null && repo.Attribute(SecretAttribute) == null) {
+                        // = valid authentication, do nothing
+                    }
+                    // one of the keys is missing
+                    else {
+                        tempErrorList.Add(authErrorMessage);
+                        continue;
+                    }
+
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
-                        Boolean.Parse(repo.Attribute("Trusted").Value));
+                        Boolean.Parse(repo.Attribute("Trusted").Value),
+                        thisAuthentication);
 
                     foundRepos.Add(currentRepoItem);
                 }
             }
-
             else
             {
                 foreach (string repo in repoNames)
@@ -284,10 +358,38 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             continue;
                         }
 
+                        Hashtable thisAuthentication = null;
+                        string authErrorMessage = $"Repository {node.Attribute("Name")} has invalid Authentication information. {VaultNameAttribute} and {SecretAttribute} should both be present and non-empty";
+                        // both keys present
+                        if (node.Attribute(VaultNameAttribute) != null && node.Attribute(SecretAttribute) != null) {
+                            // both values non-empty
+                            // = valid authentication
+                            if (!string.IsNullOrEmpty(node.Attribute(VaultNameAttribute).Value) && !string.IsNullOrEmpty(node.Attribute(SecretAttribute).Value)) {
+                                thisAuthentication = new Hashtable() {
+                                    { VaultNameAttribute, node.Attribute(VaultNameAttribute).Value },
+                                    { SecretAttribute, node.Attribute(SecretAttribute).Value }
+                                };
+                            }
+                            else {
+                                tempErrorList.Add(authErrorMessage);
+                                continue;
+                            }
+                        }
+                        // both keys are missing
+                        else if (node.Attribute(VaultNameAttribute) == null && node.Attribute(SecretAttribute) == null) {
+                            // = valid authentication, do nothing
+                        }
+                        // one of the keys is missing
+                        else {
+                            tempErrorList.Add(authErrorMessage);
+                            continue;
+                        }
+
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
-                            Boolean.Parse(node.Attribute("Trusted").Value));
+                            Boolean.Parse(node.Attribute("Trusted").Value),
+                            thisAuthentication);
 
                         foundRepos.Add(currentRepoItem);
                     }

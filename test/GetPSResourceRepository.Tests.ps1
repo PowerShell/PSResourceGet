@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test Register-PSResourceRepository" {
+Describe "Test Get-PSResourceRepository" {
     BeforeEach {
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
@@ -80,6 +80,19 @@ Describe "Test Register-PSResourceRepository" {
         # should have successfully got the other valid/registered repositories with no error
         foreach ($entry in $res) {
             $entry.Name | Should -BeIn "testRepository","testRepository2"
+        }
+    }
+
+    It "given invalid and valid Authentication information, get valid ones and write error for non valid ones" {
+        Get-NewPSResourceRepositoryFileWithAuthentication
+
+        $res = Get-PSResourceRepository -Name "localtestrepo*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
+
+        # should have successfully got the other valid/registered repositories with no error
+        foreach ($entry in $res) {
+            $entry.Name | Should -BeIn "localtestrepo1","localtestrepo2"
         }
     }
 

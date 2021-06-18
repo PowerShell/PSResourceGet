@@ -11,14 +11,14 @@ Describe "Test Publish-PSResource" {
         $tmpRepoPath = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath"
         New-Item $tmpRepoPath -Itemtype directory -Force
         $testRepository = "testRepository"
-        Register-PSResourceRepository -Name $testRepository -URL $tmpRepoPath -Priority 1 -ErrorAction SilentlyContinue        
-        $script:repositoryPath = (get-psresourcerepository "testRepository").Url.AbsolutePath 
+        Register-PSResourceRepository -Name $testRepository -URL $tmpRepoPath -Priority 1 -ErrorAction SilentlyContinue
+        $script:repositoryPath = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository").Url.AbsolutePath)
 
         $tmpRepoPath2 = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath2"
         New-Item $tmpRepoPath2 -Itemtype directory -Force
         $testRepository2 = "testRepository2"
         Register-PSResourceRepository -Name $testRepository2 -URL $tmpRepoPath2 -ErrorAction SilentlyContinue
-        $script:repositoryPath2 = (get-psresourcerepository "testRepository2").Url.AbsolutePath 
+        $script:repositoryPath2 = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository2").Url.AbsolutePath)
 
         # Create module 
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
@@ -122,7 +122,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -SkipDependenciesCheck
 
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:repositoryPath).FullName | select-object -Last 1 | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath).FullName | select-object -Last 1 | Should -Be $expectedPath
     }
 
     <# The following tests are related to passing in parameters to customize a nuspec.

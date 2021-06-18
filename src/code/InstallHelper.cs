@@ -199,7 +199,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         continue;
                     }
 
-                    List<string> pkgsInstalled = InstallPackage(pkgsFromRepoToInstall, repoName, repo.Url.AbsoluteUri, credential, isLocalRepo);
+                    List<string> pkgsInstalled = InstallPackage(pkgsFromRepoToInstall, repoName, repo.Url.AbsoluteUri, repo.Authentication, credential, isLocalRepo);
 
                     foreach (string name in pkgsInstalled)
                     {
@@ -249,7 +249,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return packagesToInstall;
         }
 
-        private List<string> InstallPackage(IEnumerable<PSResourceInfo> pkgsToInstall, string repoName, string repoUrl, PSCredential credential, bool isLocalRepo)
+        private List<string> InstallPackage(IEnumerable<PSResourceInfo> pkgsToInstall, string repoName, string repoUrl, Hashtable repositoryAuthentication, PSCredential credential, bool isLocalRepo)
         {
             List<string> pkgsSuccessfullyInstalled = new List<string>();
             foreach (PSResourceInfo p in pkgsToInstall)
@@ -328,10 +328,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         /* Download from a non-local repository */
                         // Set up NuGet API resource for download
                         PackageSource source = new PackageSource(repoUrl);
+
+                        // Explicitly passed in Credential takes precedence over repository Authentication
                         if (credential != null)
                         {
                             string password = new NetworkCredential(string.Empty, credential.Password).Password;
                             source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, credential.UserName, password, true, null);
+                        }
+                        else if (repositoryAuthentication != null)
+                        {
+                            var authHelper = new AuthenticationHelper(_cmdletPassedIn);
+                            string password = authHelper.GetRepositoryAuthenticationPassword(
+                                repoName,
+                                repositoryAuthentication[AuthenticationHelper.VaultNameAttribute].ToString(),
+                                repositoryAuthentication[AuthenticationHelper.SecretAttribute].ToString());
+
+                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repositoryAuthentication[AuthenticationHelper.SecretAttribute].ToString(), password, true, null);
                         }
                         var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
                         SourceRepository repository = new SourceRepository(source, provider);

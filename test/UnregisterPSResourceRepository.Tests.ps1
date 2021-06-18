@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test Register-PSResourceRepository" {
+Describe "Test Unregister-PSResourceRepository" {
     BeforeEach {
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
