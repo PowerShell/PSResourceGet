@@ -616,7 +616,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
 
             // number of digits not equivalent to 3 was not supported in V2
-            // Dbg.Assert(false, "version: " + version + "-" + prerelease + " contains an invalid number of digits while also containing prerelease");
             return version;
         }
 
