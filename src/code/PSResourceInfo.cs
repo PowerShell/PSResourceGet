@@ -703,6 +703,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg, string repoName, ResourceType? pkgType)
         {
+            // possible type combinations:
             // M, C
             // M, D
             // M
