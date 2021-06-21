@@ -607,7 +607,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return version;
             }
 
-            int numVersionDigits = version.ToString().Split('.').Count();
+            int numVersionDigits = version.Split('.').Count();
             if (numVersionDigits == 3)
             {
                 // 0.5.3 -> version string , preview4 -> prerelease string , return: 5.3.0-preview4
