@@ -218,6 +218,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
+        #region Private fields
+        private static char[] Delimeter = new char[]{' ', ','};
+
+        #endregion
+
         #region Public static methods
 
         /// <summary>
@@ -697,8 +702,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static string[] ParseMetadataTags(IPackageSearchMetadata pkg)
         {
-            char[] delimeter = new char[]{' ', ','};
-            return pkg.Tags.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
+            return pkg.Tags.Split(Delimeter, StringSplitOptions.RemoveEmptyEntries);
         }
 
         private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg, string repoName, ResourceType? pkgType)

@@ -52,7 +52,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = ResourceNameParameterSet)]
         [Parameter(Mandatory = true, ParameterSetName = TypeParameterSet)]
-        // TODO: look at DebugMode, how multiple types are being passed in via cmd line
         public ResourceType Type { get; set; }
 
         /// <summary>

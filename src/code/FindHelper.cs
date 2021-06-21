@@ -172,8 +172,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (repositoryUrl.ToString().Contains("pkgs.visualstudio.com"))
             {
                 _isADOFeedRepository = true;
-                // change repositoryUrl to current v2 endpoint from it's v3 endpoint one and iterate names and check if contains * i guess
-
             }
 
             // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
@@ -182,7 +180,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 string password = new NetworkCredential(string.Empty, _credential.Password).Password;
                 source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), _credential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully set for repository:" + repositoryName);
+                _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryName);
             }
 
             // GetCoreV3() API is able to handle V2 and V3 repository endpoints
@@ -300,9 +298,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                if (_isADOFeedRepository || true)
+                if (_isADOFeedRepository)
                 {
-                    _cmdletPassedIn.WriteVerbose("searching through ADOFeed with wildcard in name");
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new ArgumentException(String.Format("Searching through ADOFeed with wildcard in Name is not supported, so {0} repository will be skipped.", repositoryName)),
+                        "CannotSearchADOFeedWithWildcardName",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                    yield break;
                 }
                 // case: searching for name containing wildcard i.e "Carbon.*"
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = null;
