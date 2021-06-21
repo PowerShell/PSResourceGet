@@ -1,4 +1,3 @@
-using System.Net.Http;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -9,6 +8,7 @@ using Dbg = System.Diagnostics.Debug;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using MoreLinq.Extensions;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;

@@ -20,7 +20,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string[] pkgNames,
             out string[] errorMsgs)
         {
-            List<string> temp = new List<string>();
+            List<string> errorFreeNames = new List<string>();
             List<string> errorMsgList = new List<string>();
 
             foreach (string n in pkgNames)
@@ -31,8 +31,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     if (String.Equals(n, "*", StringComparison.InvariantCultureIgnoreCase))
                     {
                         errorMsgList = new List<string>(); // clear prior error messages
-                        errorMsgList.Add("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded. Please use the TODO-cmdlet");
-                        temp = new List<string>();
+                        errorMsgList.Add("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded.");
+                        errorFreeNames = new List<string>();
                         break;
                     }
                     else if (n.Contains("?") || n.Contains("["))
@@ -44,12 +44,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 if (!isNameErrorProne)
                 {
-                    temp.Add(n);
+                    errorFreeNames.Add(n);
                 }
             }
 
             errorMsgs = errorMsgList.ToArray();
-            return temp.ToArray();
+            return errorFreeNames.ToArray();
         }
 
         #region Public methods

@@ -219,7 +219,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Private fields
-        private static char[] Delimeter = new char[]{' ', ','};
+        private static char[] Delimeter = {' ', ','};
 
         #endregion
 
