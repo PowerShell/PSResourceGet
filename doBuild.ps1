@@ -24,7 +24,7 @@ function DoBuild
     Copy-Item -Path "${SrcPath}/PSModule.psm1" -Dest "$BuildOutPath" -Force
 
     #Copy module format ps1xml file
-    Write-Verbose -Verbose "Copy-Item ${SrcPath}/${FormatFileName}.ps1xml to $BuildOutPath"
+    Write-Verbose -Verbose -Message "Copy-Item ${SrcPath}/${FormatFileName}.ps1xml to $BuildOutPath"
     Copy-Item -Path "${SrcPath}/${FormatFileName}.ps1xml" -Dest "$BuildOutPath" -Force
 
     # Create BuildFramework directory for binary location
