@@ -381,7 +381,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             prereleaseLabel = String.Empty;
-            return (Version) GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo);
+            return GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo);
         }
 
 

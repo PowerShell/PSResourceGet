@@ -29,13 +29,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pkgsLeftToFind;
-        private string[] _name;
         private ResourceType _type;
         private string _version;
         private SwitchParameter _prerelease = false;
         private PSCredential _credential;
         private string[] _tag;
-        private string[] _repository;
         private SwitchParameter _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
@@ -63,24 +61,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PSCredential credential,
             SwitchParameter includeDependencies)
         {
-            _name = name;
             _type = type;
             _version = version;
             _prerelease = prerelease;
             _tag = tag;
-            _repository = repository;
             _credential = credential;
             _includeDependencies = includeDependencies;
 
-            Dbg.Assert(_name.Length != 0, "Name length cannot be 0");
+            Dbg.Assert(name.Length != 0, "Name length cannot be 0");
 
-            _pkgsLeftToFind = _name.ToList();
+            _pkgsLeftToFind = name.ToList();
 
             List<PSRepositoryInfo> repositoriesToSearch;
 
             try
             {
-                repositoriesToSearch = RepositorySettings.Read(_repository, out string[] errorList);
+                repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
 
                 foreach (string error in errorList)
                 {
