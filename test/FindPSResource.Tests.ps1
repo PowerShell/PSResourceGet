@@ -54,19 +54,19 @@ Describe 'Test Find-PSResource for Module' {
         $res.Count | Should -BeGreaterThan 1
     }
 
-    It "find resource when given Name to <Reason> <Version>" -TestCases @(
-        @{Version="[2.10.0.0]";          ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match"},
-        @{Version="2.10.0.0";            ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match without bracket syntax"},
-        @{Version="[2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, exact range inclusive"},
-        @{Version="(2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0"); Reason="validate version, exact range exclusive"},
-        @{Version="(2.9.4.0,)";          ExpectedVersions=@("2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version exclusive"},
-        @{Version="[2.9.4.0,)";          ExpectedVersions=@("2.9.4.0", "2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version inclusive"},
-        @{Version="(,2.0.0.0)";          ExpectedVersions=@("1.9.0.0"); Reason="validate version, maximum version exclusive"},
-        @{Version="(,2.0.0.0]";          ExpectedVersions=@("1.9.0.0", "2.0.0.0"); Reason="validate version, maximum version inclusive"},
-        @{Version="[2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-        @{Version="(2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
-    ) {
-        param($Version, $ExpectedVersion)
+    $testCases2 = @{Version="[2.10.0.0]";          ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match"},
+                  @{Version="2.10.0.0";            ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, exact range inclusive"},
+                  @{Version="(2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0"); Reason="validate version, exact range exclusive"},
+                  @{Version="(2.9.4.0,)";          ExpectedVersions=@("2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version exclusive"},
+                  @{Version="[2.9.4.0,)";          ExpectedVersions=@("2.9.4.0", "2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version inclusive"},
+                  @{Version="(,2.0.0.0)";          ExpectedVersions=@("1.9.0.0"); Reason="validate version, maximum version exclusive"},
+                  @{Version="(,2.0.0.0]";          ExpectedVersions=@("1.9.0.0", "2.0.0.0"); Reason="validate version, maximum version inclusive"},
+                  @{Version="[2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+
+    It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+        param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name "Carbon" -Version $Version -Repository $PSGalleryName
         foreach ($item in $res) {
             $item.Name | Should -Be "Carbon"
@@ -84,16 +84,17 @@ Describe 'Test Find-PSResource for Module' {
         $res | Should -BeNullOrEmpty
     }
 
-    It "not find resource and throw exception with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='[2.*.0.0]';       Description="version with wilcard in middle"},
-        @{Version='[*.10.0.0]';      Description="version with wilcard at start"},
-        @{Version='[2.10.*.0]';      Description="version with wildcard at third digit"}
-        @{Version='[1.5.0.*';        Description="version with wildcard at end"},
-        @{Version='[1..0.0]';        Description="version with missing digit in middle"},
-        @{Version='[1.5.0.]';        Description="version with missing digit at end"},
-        @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
-    ) {
+    $testCases = @{Version='[2.*.0.0]';       Description="version with wilcard in middle"},
+                 @{Version='[*.10.0.0]';      Description="version with wilcard at start"},
+                 @{Version='[2.10.*.0]';      Description="version with wildcard at third digit"}
+                 @{Version='[1.5.0.*';        Description="version with wildcard at end"},
+                 @{Version='[1..0.0]';        Description="version with missing digit in middle"},
+                 @{Version='[1.5.0.]';        Description="version with missing digit at end"},
+                 @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
+
+    It "not find resource and throw exception with incorrectly formatted version such as <Description>" -TestCases $testCases {
         param($Version, $Description)
+
         Find-PSResource -Name "Carbon" -Version $Version -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
