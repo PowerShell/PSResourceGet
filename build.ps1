@@ -47,6 +47,7 @@ if ( ! ( Get-Module -ErrorAction SilentlyContinue PSPackageProject) ) {
 $config = Get-PSPackageProjectConfiguration -ConfigPath $PSScriptRoot
 
 $script:ModuleName = $config.ModuleName
+$script:FormatFileName = $config.FormatFileName
 $script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
 $script:SignedDirectory = $config.SignedOutputPath

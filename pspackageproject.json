@@ -1,5 +1,6 @@
 {
   "ModuleName": "PowerShellGet",
+  "FormatFileName": "PSGet.Format",
   "Culture": "en-US",
   "BuildOutputPath": "out",
   "SignedOutputPath": "signed",
