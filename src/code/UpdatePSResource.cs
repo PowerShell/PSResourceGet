@@ -63,10 +63,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the scope of the resource to update.
         /// </summary>
-        // TODO: make enum with allowedValues: 'CurrentUser', 'AllUsers'
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public string Scope { get; set; }
+        public ScopeType Scope { get; set; }
 
         /// <summary>
         /// When specified, supresses being prompted for untrusted sources.
