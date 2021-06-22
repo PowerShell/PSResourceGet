@@ -4,13 +4,11 @@ trigger:
   batch: true
   branches:
     include:
-    #- master
-    - development
+    - master
 pr:
   branches:
     include:
-    #- master
-    - development
+    - master
 
 resources:
   repositories:
