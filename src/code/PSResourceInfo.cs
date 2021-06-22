@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-using System.Linq;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -8,9 +6,11 @@ using System.Collections;
 using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
 using System.Globalization;
+using System.Linq;
 using System.Management.Automation;
 using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
+using System.Text.RegularExpressions;
 using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
@@ -36,6 +36,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         MinimumVersion,
         RequiredVersion,
         MaximumVersion
+    }
+
+    public enum ScopeType
+    {
+        None,
+        AllUsers,
+        CurrentUser
     }
 
     #endregion
