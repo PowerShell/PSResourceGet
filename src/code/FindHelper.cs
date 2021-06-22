@@ -334,12 +334,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         String.Equals(repositoryName, _psGalleryScriptsRepoName, StringComparison.InvariantCultureIgnoreCase)))
                     {
                         _cmdletPassedIn.WriteDebug(String.Format("Error receiving package from PSGallery. To check if this is due to a PSGallery outage check: https://aka.ms/psgallerystatus . Specific error: {0}", ex.Message));
-                        yield break;
                     }
+                    yield break;
                 }
                 catch (Exception e)
                 {
                     _cmdletPassedIn.WriteDebug(String.Format("Exception retrieving package {0} due to {1}.", pkgName, e.Message));
+                    yield break;
                 }
 
                 // filter additionally because NuGet wildcard search API returns more than we need

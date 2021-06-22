@@ -81,6 +81,7 @@ function DoBuild
                     'NuGet.Protocol'
                     'NuGet.Repositories'
                     'NuGet.Versioning'
+                    'Newtonsoft.Json'
                 )
             } elseif ($BuildFramework -eq 'net472') {
                 $assemblyNames = @(
