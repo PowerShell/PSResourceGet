@@ -9,13 +9,14 @@
     <FileVersion>3.0.0</FileVersion>
     <InformationalVersion>3.0.0</InformationalVersion>
     <TargetFrameworks>netstandard2.0;net472;</TargetFrameworks>
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="LinqKit.Core" Version="1.1.17" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0-preview.7.20364.11" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0-preview.7.20364.11" />
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="3.1.0"  Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="3.1.0" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
     <PackageReference Include="morelinq" Version="3.3.2" />
     <PackageReference Include="Newtonsoft.Json.dll" Version="1.0.0" Condition="'$(TargetFramework)' == 'net472'" />
     <PackageReference Include="NuGet.Commands" Version="5.7.0-rtm.6702" />

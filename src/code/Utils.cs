@@ -166,6 +166,64 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pathsToSearch;
         }
 
+        // Find all potential installation paths given a scope
+        public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, string scope)
+        {
+            List<string> installationPaths = new List<string>();
+            var PSVersion6 = new Version(6, 0);
+            var isCorePS = psCmdlet.Host.Version >= PSVersion6;
+            string myDocumentsPath;
+            string programFilesPath;
+            scope = String.IsNullOrEmpty(scope) ? string.Empty : scope;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
+
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
+                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
+            }
+            else
+            {
+                // paths are the same for both Linux and MacOS
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
+                programFilesPath = System.IO.Path.Combine("usr", "local", "share", "Powershell");
+            }
+
+
+            // If no explicit specification, will return PSModulePath, and then CurrentUser paths
+            // Installation will search for a /Modules or /Scripts directory 
+            // If they are not available within one of the paths in PSModulePath, the CurrentUser path will be used.
+            if (string.IsNullOrEmpty(scope))
+            {
+                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
+                installationPaths = psModulePath.Split(';').ToList();
+                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
+                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+            }
+            // If user explicitly specifies AllUsers
+            if (scope.Equals("AllUsers"))
+            {
+                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
+                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+            }
+            // If user explicitly specifies CurrentUser
+            else if (scope.Equals("CurrentUser"))
+            {
+                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
+                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+            }
+            else
+            {
+                psCmdlet.WriteDebug(string.Format("Invalid scope provided: '{0}'", scope));
+            }
+
+            installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
+            installationPaths.ForEach(dir => psCmdlet.WriteDebug(string.Format("All paths to search: '{0}'", dir)));
+
+            return installationPaths;
+        }
+
         /// <summary>
         /// Converts an ArrayList of object types to a string array.
         /// </summary>
