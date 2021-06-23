@@ -9,7 +9,7 @@ Other parameters allow the returned results to be further filtered.
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Repository <string[]>] 
+[[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Repository <string[]>]
 [-Path string] [-Credential <pscredential>] [-AsNupkg] [-IncludeXML] [-TrustRepository] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -51,7 +51,7 @@ Parameter Sets: NameParameterSet
 ### -Repository
 
 Specifies one or more repository names to search.
-If not specified, search will only search the highest priority repository.
+If not specified, search will search through all repositories, in order of highest priority, til found in the first repository.
 
 ```yml
 Type: string[]
@@ -78,7 +78,7 @@ Parameter Sets: NameParameterSet
 
 ### -IncludeXML
 
-Saves the metadata XML file with the resource. 
+Saves the metadata XML file with the resource.
 
 ```yml
 Type: string[]
@@ -185,21 +185,21 @@ Most search tests can be performed on a local repository.
 
 ### Create cmdlet and parameter sets
 
-Create cmdlet class, parameters, and functional stubs  
+Create cmdlet class, parameters, and functional stubs
 1 day
 
 ### Implement uninstall helpers
 
-Create helper functions that support all search functions  
-Use existing code as starting point  
+Create helper functions that support all search functions
+Use existing code as starting point
 2 days
 
 ### Create test support
 
-Create any test repositories and mocks for tests  
+Create any test repositories and mocks for tests
 4 days
 
 ### Write cmdlet tests
 
-Create all functional tests to validate cmdlet  
+Create all functional tests to validate cmdlet
 5 days
