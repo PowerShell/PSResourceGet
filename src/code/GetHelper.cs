@@ -60,7 +60,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     p => nameWildCardPattern.IsMatch(
                         System.IO.Path.GetFileNameWithoutExtension((new DirectoryInfo(p).Name)))));
             }
-            _cmdletPassedIn.WriteDebug(wildCardDirsToSearch.Any().ToString());
 
             return wildCardDirsToSearch;
         }
