@@ -101,7 +101,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             versionRange = null;
 
-            if (version == null) { return false; }
+            if (version == null) {
+                versionRange = new VersionRange(
+                    minVersion: NuGetVersion.Parse("0"));
+                    
+                return true;
+            }
 
 
             if (version.Trim().Equals("*"))
@@ -276,23 +281,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             return installationPaths;
         }
-
-        /// <summary>
-        /// Converts an ArrayList of object types to a string array.
-        /// </summary>
-        public static string[] GetStringArray(ArrayList list)
-        {
-            if (list == null) { return null; }
-
-            var strArray = new string[list.Count];
-            for (int i=0; i < list.Count; i++)
-            {
-                strArray[i] = list[i] as string;
-            }
-
-            return strArray;
-        }
-
         #endregion
     }
 }
