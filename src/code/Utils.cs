@@ -21,7 +21,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string message)
         {
             cmdlet.InvokeCommand.InvokeScript(
-                script: $"Write-Verbose -Verbose -Message {message}",
+                script: $"Write-Verbose -Verbose -Message '{message}'",
                 useNewScope: true,
                 writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
                 input: null,
