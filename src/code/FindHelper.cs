@@ -271,7 +271,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (HttpRequestException ex)
                 {
-                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper MetadataAsync()- error receiving package: " + ex.Message);
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper MetadataAsync: error receiving package: " + ex.Message);
                     if ((String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) ||
                         String.Equals(repositoryName, _psGalleryScriptsRepoName, StringComparison.InvariantCultureIgnoreCase)))
                     {
@@ -280,7 +280,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper MetadataAsync()- error receiving package: " + e.Message);
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper MetadataAsync: error receiving package: " + e.Message);
                 }
 
                 if (retrievedPkgs == null || retrievedPkgs.Count() == 0)
@@ -330,7 +330,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (HttpRequestException ex)
                 {
-                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper SearchAsync()- error receiving package: " + ex.Message);
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper SearchAsync: error receiving package: " + ex.Message);
                     if ((String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) ||
                         String.Equals(repositoryName, _psGalleryScriptsRepoName, StringComparison.InvariantCultureIgnoreCase)))
                     {
@@ -340,7 +340,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper SearchAsync()- error receiving package: " + e.Message);
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper SearchAsync: error receiving package: " + e.Message);
                     yield break;
                 }
 
