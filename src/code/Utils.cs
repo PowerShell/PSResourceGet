@@ -16,6 +16,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     internal static class Utils
     {
+        public static void WriteVerboseOnCmdlet(
+            PSCmdlet cmdlet,
+            string message)
+        {
+            cmdlet.InvokeCommand.InvokeScript(
+                script: $"Write-Verbose -Verbose -Message {message}",
+                useNewScope: true,
+                writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                input: null,
+                args: null);
+        }
+
         public static string[] FilterOutWildcardNames(
             string[] pkgNames,
             out string[] errorMsgs)
