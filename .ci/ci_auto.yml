@@ -4,10 +4,10 @@ pr: none
 
 schedules:
 # Use https://crontab.guru/#0_8_*_*_* to compute crontab expression
-# Run signed build, with limited signing cert, every day at 9 am
-# - cron: 0 9 * * *
 # Temporary schedule to run every 30 minutes, to investigate test failures
-- cron: "*/30 * * * *"
+# - cron: "*/30 * * * *"
+# Run signed build, with limited signing cert, every day at 9 am
+- cron: 0 9 * * *
   branches:
     include:
     - refs/heads/master
