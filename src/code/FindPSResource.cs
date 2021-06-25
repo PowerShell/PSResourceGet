@@ -109,6 +109,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ParameterSetName = CommandNameParameterSet)]
         [Parameter(ParameterSetName = DscResourceNameParameterSet)]
+        [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
 
