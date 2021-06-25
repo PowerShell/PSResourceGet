@@ -20,12 +20,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PSCmdlet cmdlet,
             string message)
         {
-            cmdlet.InvokeCommand.InvokeScript(
-                script: $"Write-Verbose -Verbose -Message '{message}'",
-                useNewScope: true,
-                writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                input: null,
-                args: null);
+            try
+            {
+                cmdlet.InvokeCommand.InvokeScript(
+                    script: $"param ([string] $message) Write-Verbose -Verbose -Message $message",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { message });
+            }
+            catch { }
         }
 
         public static string[] FilterOutWildcardNames(
