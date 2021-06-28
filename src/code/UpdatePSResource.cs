@@ -184,10 +184,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         requiredResourceHash: null,
                         specifiedPath: null, // todo: confirm
                         asNupkg: false, // todo: confirm
-                        includeXML: false, // todo confirm!
-                        pathsToInstallPkg: null // todo: confirm!
-
-                    );
+                        includeXML: false, // todo: confirm!
+                        pathsToInstallPkg: null); // todo: confirm!
                     break;
 
                 case InputObjectParameterSet:
