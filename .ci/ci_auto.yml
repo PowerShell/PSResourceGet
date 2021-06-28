@@ -213,6 +213,7 @@ stages:
         buildOutputPath: $(signSrcPath)
         signOutputPath: $(signOutPath)
         certificateId: "CP-231522"
+        shouldSign: $(ShouldSign)
         pattern: |
           **\*.dll
         useMinimatch: true
