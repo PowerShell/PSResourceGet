@@ -156,7 +156,6 @@ Specifies the scope of the resource to update.
 Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType
 Parameter Sets: (All)
 Aliases:
-Accepted values: CurrentUser, AllUsers
 
 Required: False
 Position: Named
