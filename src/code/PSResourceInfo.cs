@@ -769,7 +769,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-
         #region Private methods
 
         private PSObject ConvertToCustomObject()
@@ -781,13 +780,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             var psObject = new PSObject();
-            psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Version), ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel)));
             psObject.Properties.Add(new PSNoteProperty(nameof(Type), Type));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Description), Description));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Author), Author));
-            psObject.Properties.Add(new PSNoteProperty(nameof(CompanyName), CompanyName));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Copyright), Copyright));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Description), Description ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Author), Author ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(CompanyName), CompanyName ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Copyright), Copyright ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(PublishedDate), PublishedDate));
             psObject.Properties.Add(new PSNoteProperty(nameof(InstalledDate), InstalledDate));
             psObject.Properties.Add(new PSNoteProperty(nameof(UpdatedDate), UpdatedDate));
@@ -796,14 +795,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(IconUri), IconUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(Tags), Tags));
             psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes.ConvertToHashtable()));
-            psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion));
-            psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes));
+            psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));
-            psObject.Properties.Add(new PSNoteProperty(nameof(RepositorySourceLocation), RepositorySourceLocation));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Repository), Repository));
-            psObject.Properties.Add(new PSNoteProperty(nameof(PackageManagementProvider), PackageManagementProvider));
+            psObject.Properties.Add(new PSNoteProperty(nameof(RepositorySourceLocation), RepositorySourceLocation ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Repository), Repository ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(PackageManagementProvider), PackageManagementProvider ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(AdditionalMetadata), additionalMetadata));
-            psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation));
+            psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation ?? string.Empty));
 
             return psObject;
         }
