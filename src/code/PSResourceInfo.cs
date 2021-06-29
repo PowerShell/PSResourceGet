@@ -410,6 +410,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     Dependencies = ParseMetadataDependencies(metadataToParse),
                     Description = ParseMetadataDescription(metadataToParse),
                     IconUri = ParseMetadataIconUri(metadataToParse),
+                    IsPrerelease = ParseMetadataIsPrerelease(metadataToParse),
                     LicenseUri = ParseMetadataLicenseUri(metadataToParse),
                     Name = ParseMetadataName(metadataToParse),
                     PrereleaseLabel = ParsePrerelease(metadataToParse),
@@ -667,6 +668,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pkg.IconUrl;
         }
 
+        private static bool ParseMetadataIsPrerelease(IPackageSearchMetadata pkg)
+        {
+            return pkg.Identity.Version.IsPrerelease;
+        }
+
         private static Uri ParseMetadataLicenseUri(IPackageSearchMetadata pkg)
         {
             return pkg.LicenseUrl;
@@ -771,11 +777,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         private PSObject ConvertToCustomObject()
         {
             var additionalMetadata = new PSObject();
-            foreach (var item in AdditionalMetadata)
-            {
-                additionalMetadata.Properties.Add(new PSNoteProperty(item.Key, item.Value));
-            }
 
+            // Need to add a null check here due to null ref exception getting thrown
+            if (AdditionalMetadata != null)
+            {
+                foreach (var item in AdditionalMetadata)
+                {
+                    additionalMetadata.Properties.Add(new PSNoteProperty(item.Key, item.Value));
+                }
+
+            }
             var psObject = new PSObject();
             psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name));
             psObject.Properties.Add(new PSNoteProperty(nameof(Version), ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel)));
@@ -791,7 +802,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(ProjectUri), ProjectUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(IconUri), IconUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(Tags), Tags));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes.ConvertToHashtable()));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes != null ? Includes.ConvertToHashtable() : null));
             psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion));
             psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes));
             psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));

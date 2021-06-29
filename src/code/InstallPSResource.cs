@@ -255,7 +255,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 default:
-                    // TODO: throw some kind of terminating error
+                    // TODO: throw some kind of terminating error (unrecognized parameter set)
                     // TODO: change to debug assert
                     WriteDebug("Invalid parameter set");
                     break;

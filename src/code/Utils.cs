@@ -101,12 +101,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             versionRange = null;
 
+            /*
             if (version == null) {
                 versionRange = new VersionRange(
-                    minVersion: NuGetVersion.Parse("0"));
+                    minVersion: NuGetVersion.Parse("0"),
+                    originalString: "No version passed in.");
                     
                 return true;
-            }
+            }*/
 
 
             if (version.Trim().Equals("*"))
@@ -124,7 +126,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     maxVersion: nugetVersion,
                     includeMaxVersion: true,
                     floatRange: null,
-                    originalString: null);
+                    originalString: version);
                 return true;
             }
 
@@ -260,7 +262,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
             }
             // If user explicitly specifies AllUsers
-            if (scope.Equals("AllUsers"))
+            else if (scope.Equals("AllUsers"))
             {
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
