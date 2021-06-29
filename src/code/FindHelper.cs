@@ -191,7 +191,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
             }
             catch (Exception e){
-                _cmdletPassedIn.WriteDebug("Error retrieving resource from repository: " + e.Message);
+                Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Error retrieving resource from repository: " + e.Message);
             }
 
             if (resourceSearch == null || resourceMetadata == null)
@@ -271,16 +271,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (HttpRequestException ex)
                 {
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper MetadataAsync: error receiving package: " + ex.Message);
                     if ((String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) ||
                         String.Equals(repositoryName, _psGalleryScriptsRepoName, StringComparison.InvariantCultureIgnoreCase)))
                     {
-                        _cmdletPassedIn.WriteDebug(String.Format("Error receiving package from PSGallery. To check if this is due to a PSGallery outage check: https://aka.ms/psgallerystatus . Specific error: {0}", ex.Message));
-                        yield break;
+                        _cmdletPassedIn.WriteWarning(String.Format("Error receiving package from PSGallery. To check if this is due to a PSGallery outage check: https://aka.ms/psgallerystatus . Specific error: {0}", ex.Message));
                     }
                 }
                 catch (Exception e)
                 {
-                    _cmdletPassedIn.WriteDebug(String.Format("Exception retrieving package {0} due to {1}.", pkgName, e.Message));
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper MetadataAsync: error receiving package: " + e.Message);
                 }
 
                 if (retrievedPkgs == null || retrievedPkgs.Count() == 0)
@@ -330,16 +330,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (HttpRequestException ex)
                 {
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper SearchAsync: error receiving package: " + ex.Message);
                     if ((String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) ||
                         String.Equals(repositoryName, _psGalleryScriptsRepoName, StringComparison.InvariantCultureIgnoreCase)))
                     {
-                        _cmdletPassedIn.WriteDebug(String.Format("Error receiving package from PSGallery. To check if this is due to a PSGallery outage check: https://aka.ms/psgallerystatus . Specific error: {0}", ex.Message));
-                        yield break;
+                        _cmdletPassedIn.WriteWarning(String.Format("Error receiving package from PSGallery. To check if this is due to a PSGallery outage check: https://aka.ms/psgallerystatus . Specific error: {0}", ex.Message));
                     }
+                    yield break;
                 }
                 catch (Exception e)
                 {
-                    _cmdletPassedIn.WriteDebug(String.Format("Exception retrieving package {0} due to {1}.", pkgName, e.Message));
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper SearchAsync: error receiving package: " + e.Message);
+                    yield break;
                 }
 
                 // filter additionally because NuGet wildcard search API returns more than we need

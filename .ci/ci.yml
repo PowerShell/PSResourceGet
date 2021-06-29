@@ -4,13 +4,11 @@ trigger:
   batch: true
   branches:
     include:
-    #- master
-    - development
+    - master
 pr:
   branches:
     include:
-    #- master
-    - development
+    - master
 
 resources:
   repositories:
@@ -69,10 +67,8 @@ stages:
         Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
         Import-Module -Name $modPath -Force
         #
-        # First build for netstandard2.0 framework
+        # Build for netstandard2.0 framework
         $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'netstandard2.0'
-        # Next build for net472 framework
-        $(Build.SourcesDirectory)/build.ps1 -Build -BuildConfiguration Release -BuildFramework 'net472'
       displayName: Build and publish artifact
 
     - pwsh: |

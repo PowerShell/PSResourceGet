@@ -1,13 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-$psGetMod = Get-Module -Name PowerShellGet
-if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
-{
-    Write-Verbose -Message "Importing PowerShellGet 3.0.0 for test" -Verbose
-    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
-}
-
 $script:DotnetCommandPath = @()
 $script:EnvironmentVariableTarget = @{ Process = 0; User = 1; Machine = 2 }
 $script:EnvPATHValueBackup = $null

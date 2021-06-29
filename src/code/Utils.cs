@@ -16,6 +16,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     internal static class Utils
     {
+        public static void WriteVerboseOnCmdlet(
+            PSCmdlet cmdlet,
+            string message)
+        {
+            try
+            {
+                cmdlet.InvokeCommand.InvokeScript(
+                    script: $"param ([string] $message) Write-Verbose -Verbose -Message $message",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { message });
+            }
+            catch { }
+        }
+
         public static string[] FilterOutWildcardNames(
             string[] pkgNames,
             out string[] errorMsgs)
@@ -101,14 +117,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             versionRange = null;
 
-            /*
-            if (version == null) {
-                versionRange = new VersionRange(
-                    minVersion: NuGetVersion.Parse("0"),
-                    originalString: "No version passed in.");
-                    
-                return true;
-            }*/
+            if (version == null) { return false; }
 
 
             if (version.Trim().Equals("*"))
@@ -126,7 +135,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     maxVersion: nugetVersion,
                     includeMaxVersion: true,
                     floatRange: null,
-                    originalString: version);
+                    originalString: null);
                 return true;
             }
 
@@ -226,63 +235,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pathsToSearch;
         }
 
-        // Find all potential installation paths given a scope
-        public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, string scope)
-        {
-            List<string> installationPaths = new List<string>();
-            var PSVersion6 = new Version(6, 0);
-            var isCorePS = psCmdlet.Host.Version >= PSVersion6;
-            string myDocumentsPath;
-            string programFilesPath;
-            scope = String.IsNullOrEmpty(scope) ? string.Empty : scope;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
-            }
-            else
-            {
-                // paths are the same for both Linux and MacOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = System.IO.Path.Combine("usr", "local", "share", "Powershell");
-            }
-
-
-            // If no explicit specification, will return PSModulePath, and then CurrentUser paths
-            // Installation will search for a /Modules or /Scripts directory 
-            // If they are not available within one of the paths in PSModulePath, the CurrentUser path will be used.
-            if (string.IsNullOrEmpty(scope))
-            {
-                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                installationPaths = psModulePath.Split(';').ToList();
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
-            }
-            // If user explicitly specifies AllUsers
-            else if (scope.Equals("AllUsers"))
-            {
-                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
-            }
-            // If user explicitly specifies CurrentUser
-            else if (scope.Equals("CurrentUser"))
-            {
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
-            }
-            else
-            {
-                psCmdlet.WriteDebug(string.Format("Invalid scope provided: '{0}'", scope));
-            }
-
-            installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
-            installationPaths.ForEach(dir => psCmdlet.WriteDebug(string.Format("All paths to search: '{0}'", dir)));
-
-            return installationPaths;
-        }
         #endregion
     }
 }

@@ -3,13 +3,6 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-$psGetMod = Get-Module -Name PowerShellGet
-if ((! $psGetMod) -or (($psGetMod | Select-Object Version) -lt 3.0.0))
-{
-    Write-Verbose -Message "Importing PowerShellGet 3.0.0 for test" -Verbose
-    Import-Module -Name PowerShellGet -MinimumVersion 3.0.0 -Force
-}
-
 Describe "Read PSGetModuleInfo xml file" -tags 'CI' {
 
     BeforeAll {
