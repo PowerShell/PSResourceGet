@@ -20,18 +20,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsCommon.Find,
         "PSResource",
         DefaultParameterSetName = ResourceNameParameterSet,
-        SupportsShouldProcess = true,
-        HelpUri = "<add>")]
+        SupportsShouldProcess = true)]
     [OutputType(typeof(PSResourceInfo))]
-    public sealed
-    class FindPSResource : PSCmdlet
+    public sealed class FindPSResource : PSCmdlet
     {
         #region Members
         private const string ResourceNameParameterSet = "ResourceNameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
-        private const string TagParameterSet = "TagParameterSet";
-        private const string TypeParameterSet = "TypeParameterSet";
         private CancellationTokenSource _source;
         private CancellationToken _cancellationToken;
 
@@ -42,7 +38,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies name of a resource or resources to find. Accepts wild card characters.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ResourceNameParameterSet)]
+        [Parameter(Position = 0, 
+                   ValueFromPipeline = true,
+                   ValueFromPipelineByPropertyName = true,
+                   ParameterSetName = ResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
@@ -51,7 +50,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Resource types supported are: Module, Script, Command, DscResource
         /// </summary>
         [Parameter(ParameterSetName = ResourceNameParameterSet)]
-        [Parameter(Mandatory = true, ParameterSetName = TypeParameterSet)]
         public ResourceType Type { get; set; }
 
         /// <summary>
@@ -82,14 +80,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a list of command names that searched module packages will provide. Wildcards are supported.
         /// </summary>
-        [Parameter(ParameterSetName = CommandNameParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = CommandNameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] CommandName { get; set; }
 
         /// <summary>
         /// Specifies a list of dsc resource names that searched module packages will provide. Wildcards are supported.
         /// </summary>
-        [Parameter(ParameterSetName = DscResourceNameParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = DscResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] DscResourceName { get; set; }
 
@@ -99,7 +97,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ParameterSetName = CommandNameParameterSet)]
         [Parameter(ParameterSetName = DscResourceNameParameterSet)]
-        [Parameter(Mandatory = true, ParameterSetName = TagParameterSet)]
         [ValidateNotNull]
         public string[] Tag { get; set; }
 
@@ -131,7 +128,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Method overrides
 
         protected override void BeginProcessing()
         {
@@ -146,40 +143,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            Name = Utils.FilterOutWildcardNames(Name, out string[] errorMsgs);
-
-            foreach (string error in errorMsgs)
-            {
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException(error),
-                    "ErrorFilteringNamesForUnsupportedWildcards",
-                    ErrorCategory.InvalidArgument,
-                    this));
-            }
-
-            if (Name.Length == 0)
-            {
-                 return;
-            }
-
             switch (ParameterSetName)
             {
                 case ResourceNameParameterSet:
-                    FindHelper findHelper = new FindHelper(_cancellationToken, this);
-                    List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
-
-                    foreach (PSResourceInfo package in findHelper.FindByResourceName(Name, Type, Version, Prerelease, Tag, Repository, Credential, IncludeDependencies))
-                    {
-                        foundPackages.Add(package);
-                    }
-
-                    foreach (var uniquePackageVersion in foundPackages.GroupBy(
-                        m => new {m.Name, m.Version}).Select(
-                            group => group.First()).ToList())
-                    {
-                        WriteObject(uniquePackageVersion);
-                    }
-
+                    ProcessResourceNameParameterSet();
                     break;
 
                 case CommandNameParameterSet:
@@ -198,25 +165,75 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                     break;
 
-                case TagParameterSet:
-                    ThrowTerminatingError(new ErrorRecord(
-                        new PSNotImplementedException("DscResourceNameParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                        "TagParameterSetNotImplementedYet",
-                        ErrorCategory.NotImplemented,
-                        this));
-                    break;
-
-                case TypeParameterSet:
-                    ThrowTerminatingError(new ErrorRecord(
-                        new PSNotImplementedException("TypeParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                        "TypeParameterSetNotImplementedYet",
-                        ErrorCategory.NotImplemented,
-                        this));
-                    break;
-
                 default:
                     Dbg.Assert(false, "Invalid parameter set");
                     break;
+            }
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private void ProcessResourceNameParameterSet()
+        {
+            if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
+            {
+                // TODO: Add support for Tag and Type parameters without Name parameter being specified.
+                if (MyInvocation.BoundParameters.ContainsKey(nameof(Type)) || MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
+                {
+                    ThrowTerminatingError(
+                        new ErrorRecord(
+                            new PSNotImplementedException("Search by Tag or Type parameter is not yet implemented."),
+                            "TagTypeSearchNotYetImplemented",
+                            ErrorCategory.NotImplemented,
+                            this));
+                }
+
+                ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException("Name parameter must be provided."),
+                        "NameParameterNotProvided",
+                        ErrorCategory.InvalidOperation,
+                        this));
+            }
+            
+            Name = Utils.FilterOutWildcardNames(Name, out string[] errorMsgs);
+            foreach (string error in errorMsgs)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
+
+            if (Name.Length == 0)
+            {
+                return;
+            }
+
+            FindHelper findHelper = new FindHelper(_cancellationToken, this);
+            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
+
+            foreach (PSResourceInfo package in findHelper.FindByResourceName(
+                Name,
+                Type,
+                Version,
+                Prerelease,
+                Tag,
+                Repository,
+                Credential,
+                IncludeDependencies))
+            {
+                foundPackages.Add(package);
+            }
+
+            foreach (var uniquePackageVersion in foundPackages.GroupBy(
+                m => new {m.Name, m.Version}).Select(
+                    group => group.First()).ToList())
+            {
+                WriteObject(uniquePackageVersion);
             }
         }
 
