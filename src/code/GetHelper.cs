@@ -194,6 +194,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 xmlFilePath = System.IO.Path.Combine(pkgPath, "PSGetModuleInfo.xml");
             }
 
+
             // Read metadata from XML and parse into PSResourceInfo object
             _cmdletPassedIn.WriteVerbose(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
             if (!TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
