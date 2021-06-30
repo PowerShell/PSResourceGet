@@ -35,7 +35,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, filteredPathsToSearch))
             {
-                yield return OutputPackageObject(pkgPath, _scriptDictionary);
+                PSResourceInfo pkg = OutputPackageObject(pkgPath, _scriptDictionary);
+                if (pkg != null)
+                {
+                    yield return pkg;
+                }
             }
         }
 
@@ -174,7 +178,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string pkgName = Utils.GetInstalledPackageName(pkgPath);
             _cmdletPassedIn.WriteDebug(string.Format("OutputPackageObject:: package name is {0}.", pkgName));
             // Find xml file
-            // if the package path is in the deserialized script dictionary, just return that 
+            // if the package path is in the deserialized script dictionary, just return that
             if (scriptDictionary.ContainsKey(pkgPath))
             {
                 return scriptDictionary[pkgPath];
@@ -184,12 +188,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 xmlFilePath = System.IO.Path.Combine(parentDir.ToString(), "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
             }
-            // else we assume it's a module, and look for the xml path that way 
+            // else we assume it's a module, and look for the xml path that way
             else
             {
                 xmlFilePath = System.IO.Path.Combine(pkgPath, "PSGetModuleInfo.xml");
             }
-            
+
             // Read metadata from XML and parse into PSResourceInfo object
             _cmdletPassedIn.WriteVerbose(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
             if (!TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
