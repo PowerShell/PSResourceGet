@@ -50,8 +50,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string NameParameterSet = "NameParameterSet";
         private const string InputObjectSet = "InputObjectSet";
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-        private CancellationTokenSource _source;
-        private CancellationToken _cancellationToken;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
         #endregion
@@ -59,9 +57,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void BeginProcessing()
         {
-            _source = new CancellationTokenSource();
-            _cancellationToken = _source.Token;
-
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
             if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
@@ -128,7 +123,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             var successfullyUninstalled = false;
 
-            GetHelper getHelper = new GetHelper(_cancellationToken, this);
+            GetHelper getHelper = new GetHelper(this);
             List<string>  dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
 
             // Checking if module or script
