@@ -15,10 +15,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It retrieves a resource that was installed with Install-PSResource
     /// Returns a single resource or multiple resource.
     /// </summary>
-    [Cmdlet(VerbsCommon.Get, "InstalledPSResource", HelpUri = "<add>")]
-    public sealed
-    class GetInstalledPSResource : PSCmdlet
+    [Cmdlet(VerbsCommon.Get, "InstalledPSResource")]
+    public sealed class GetInstalledPSResource : PSCmdlet
     {
+        #region Members
+
+        private VersionRange _versionRange;
+        private List<string> _pathsToSearch;
+
+        #endregion
+
         #region Parameters
 
         /// <summary>
@@ -43,19 +49,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        private CancellationTokenSource _source;
-        private CancellationToken _cancellationToken;
-        private VersionRange _versionRange;
-        List<string> _pathsToSearch;
-
         #region Methods
 
         protected override void BeginProcessing()
         {
-            _source = new CancellationTokenSource();
-            _cancellationToken = _source.Token;
-
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+            // Validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
             if (Version == null)
             {
@@ -69,11 +67,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
+            // Determine paths to search.
+            _pathsToSearch = new List<string>();
             if (Path != null)
             {
-                this.WriteDebug(string.Format("Provided path is: '{0}'", Path));
+                WriteDebug(string.Format("Provided path is: '{0}'", Path));
 
-                var resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).ToString();
+                var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
+                if (resolvedPaths.Count != 1)
+                {
+                    ThrowTerminatingError(
+                        new ErrorRecord(
+                            new PSArgumentException("Error: Could not resolve provided Path argument into a single path."),
+                            "ErrorInvalidPathArgument",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                }
+
+                var resolvedPath = resolvedPaths[0].Path;
+                WriteDebug(string.Format("Provided resolved path is '{0}'", resolvedPath));
 
                 try
                 {
@@ -115,13 +127,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            CancellationTokenSource source = new CancellationTokenSource();
-            CancellationToken cancellationToken = source.Token;
-
             WriteDebug("Entering GetInstalledPSResource");
 
-            GetHelper getHelper = new GetHelper(cancellationToken, this);
-            foreach (PSResourceInfo pkg in getHelper.ProcessGetParams(Name, _versionRange, _pathsToSearch))
+            GetHelper getHelper = new GetHelper(this);
+            foreach (PSResourceInfo pkg in getHelper.FilterPkgPaths(Name, _versionRange, _pathsToSearch))
             {
                 WriteObject(pkg);
             }
