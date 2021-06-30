@@ -32,6 +32,78 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             catch { }
         }
 
+            // if (Name == null)
+            // {
+            //     Name = new string[] { "*" };
+            // }
+            // // if '*' is passed in as an argument for -Name with other -Name arguments,
+            // // ignore all arguments except for '*' since it is the most inclusive
+            // // eg:  -Name ["TestModule, Test*, *"]  will become -Name ["*"]
+            // if (Name != null && Name.Length > 1)
+            // {
+            //     foreach (var pkgName in Name)
+            //     {
+            //         if (pkgName.Trim().Equals("*"))
+            //         {
+            //             Name = new string[] { "*" };
+            //             break;
+            //         }
+            //     }
+            // }
+
+        // this helper method will be used by:
+        // Find-PSResource ->         * (not supported), pkg*name (supported), pkg?name or pkg[name (not supported, so write error and remove)
+        // Get-InstalledPSResource -> * (supported)    , pkg*name (supported), pkg?name or pkg[name (not supported, so write error and remove)
+        // Update-PSResource ->       * (supported)    , pkg*name (supported), pkg?name or pkg[name (not supported, so write error and remove)
+
+        public static string[] FilterWildcards(
+            string[] pkgNames,
+            out string[] errorMsgs,
+            out bool isContainWildcard)
+        {
+            List<string> namesWithSupportedWildcards = new List<string>();
+            List<string> errorMsgsList = new List<string>();
+
+            if (pkgNames == null)
+            {
+                isContainWildcard = true;
+                errorMsgs = errorMsgsList.ToArray();
+                return new string[] {"*"};
+            }
+
+            isContainWildcard = false;
+            foreach (string name in pkgNames)
+            {
+                if (WildcardPattern.ContainsWildcardCharacters(name))
+                {
+                    if (String.Equals(name, "*", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        isContainWildcard = true;
+                        errorMsgs = new string[] {};
+                        return new string[] {"*"};
+                    }
+
+                    if (name.Contains("?") || name.Contains("["))
+                    {
+                        errorMsgsList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for Find-PSResource so Name entry: {0} will be discarded.", name));
+                    }
+                    else
+                    {
+                        isContainWildcard = true;
+                        namesWithSupportedWildcards.Add(name);
+                    }
+                }
+                else
+                {
+                    namesWithSupportedWildcards.Add(name);
+                }
+
+            }
+
+            errorMsgs = errorMsgsList.ToArray();
+            return namesWithSupportedWildcards.ToArray();
+        }
+
         public static string[] FilterOutWildcardNames(
             string[] pkgNames,
             out string[] errorMsgs)

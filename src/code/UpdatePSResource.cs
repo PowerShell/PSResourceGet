@@ -1,6 +1,10 @@
+using System;
+using System.Linq;
+using System.IO;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
 using System.Management.Automation;
 using System.Threading;
@@ -42,6 +46,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
+        // create a default string with "*"
 
         /// <summary>
         /// Specifies the version the resource is to be updated to.
@@ -99,6 +104,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter AcceptLicense { get; set; }
 
         /// <summary>
+        /// When specified, bypasses checks for TrustRepository and AcceptLicense and updates the package.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        public SwitchParameter Force { get; set; }
+
+        /// <summary>
         /// Prevents updating modules that have the same cmdlets as a differently named module already.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
@@ -128,8 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // wildcard is supported for Update, but only *, other wildcards should be stripped
-            Name = Utils.FilterOutWildcardNames(Name, out string[] errorMsgs);
+            Name = Utils.FilterWildcards(Name, out string[] errorMsgs, out bool isContainWildcard);
 
             foreach (string error in errorMsgs)
             {
@@ -140,6 +151,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
+            if (Name.Length == 1 && String.Equals(Name[0], "*", StringComparison.InvariantCultureIgnoreCase))
+            {
+                WriteVerbose("Name was detected to be (or contain an element equal to): '*', so all packages will be updated");
+            }
+
+            // this catches the case where Name wasn't input as null or empty,
+            // but after filtering out unsupported wildcard names there were no elements left in Name
             if (Name.Length == 0)
             {
                  return;
@@ -147,6 +165,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             VersionRange versionRange = new VersionRange();
 
+            // TODO: discuss with Paul
             if (Version !=null && !Utils.TryParseVersionOrVersionRange(Version, out versionRange))
             {
                 WriteError(new ErrorRecord(
@@ -155,6 +174,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.InvalidArgument,
                     this));
                 versionRange = VersionRange.All; // or should I return here instead?
+            }
+
+            if (isContainWildcard)
+            {
+                // any of the Name entries contains a supported wildcard
+                // then we need to use GetHelper (Get-InstalledPSResource logic) to find which packages are installed that match
+                // the wildcard pattern name for each package name with wildcard
+
+                GetHelper getHelper = new GetHelper(
+                    cancellationToken: _cancellationToken,
+                    cmdletPassedIn: this);
+
+                WriteVerbose("Name before GetHelper is: " + String.Join(", ", Name));
+
+                List<string> finalNames = new List<string>();
+                foreach (PSResourceInfo pkg in getHelper.ProcessGetParams(
+                    name: Name,
+                    versionRange: versionRange,
+                    pathsToSearch: Utils.GetAllResourcePaths(this)))
+                {
+                    WriteObject(pkg);
+                    // finalNames.Add(pkg.Name);
+                    // WriteVerbose(pkg.Name);
+                }
+                // Name = getHelper.ProcessGetParams(
+                //     name: Name,
+                //     versionRange: versionRange,
+                //     pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
+                WriteVerbose("Name after GetHelper is: " + String.Join(", ", Name));
             }
 
             InstallHelper installHelper = new InstallHelper(
@@ -166,26 +214,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    installHelper.ProcessInstallParams(
-                        names: Name,
-                        versionRange: versionRange,
-                        prerelease: Prerelease,
-                        repository: Repository,
-                        scope: Scope.ToString(),
-                        acceptLicense: AcceptLicense,
-                        quiet: Quiet,
-                        reinstall: false,
-                        force: false, // todo: confirm!
-                        trustRepository: TrustRepository,
-                        noClobber: NoClobber,
-                        credential: Credential,
-                        requiredResourceFile: null,
-                        requiredResourceJson: null,
-                        requiredResourceHash: null,
-                        specifiedPath: null, // todo: confirm
-                        asNupkg: false, // todo: confirm
-                        includeXML: false, // todo: confirm!
-                        pathsToInstallPkg: null); // todo: confirm!
+                    WriteVerbose("Name: " + String.Join(", ", Name));
+                    // installHelper.ProcessInstallParams(
+                    //     names: Name,
+                    //     versionRange: versionRange,
+                    //     prerelease: Prerelease,
+                    //     repository: Repository,
+                    //     scope: Scope.ToString(),
+                    //     acceptLicense: AcceptLicense,
+                    //     quiet: Quiet,
+                    //     reinstall: false,
+                    //     force: Force,
+                    //     trustRepository: TrustRepository,
+                    //     noClobber: NoClobber,
+                    //     credential: Credential,
+                    //     requiredResourceFile: null,
+                    //     requiredResourceJson: null,
+                    //     requiredResourceHash: null,
+                    //     specifiedPath: null, // todo: confirm
+                    //     asNupkg: false, // todo: confirm
+                    //     includeXML: false, // todo: confirm!
+                    //     pathsToInstallPkg: null); // todo: confirm!
                     break;
 
                 case InputObjectParameterSet:
@@ -193,6 +242,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 default:
+                    // TODO: the case where no name was specified so we update all packages?
                     Dbg.Assert(false, "Invalid parameter set");
                     break;
             }
