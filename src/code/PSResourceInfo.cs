@@ -160,7 +160,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #endregion
 
-
     #region Dependency
 
     public sealed class Dependency
@@ -297,44 +296,42 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     System.IO.File.ReadAllText(
                         filePath));
 
-
                 var additionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo);
                 Version version = GetVersionInfo(psObjectInfo, additionalMetadata, out string prereleaseLabel);
 
                 psGetInfo = new PSResourceInfo
                 {
                     AdditionalMetadata = additionalMetadata,
-                    Author = GetProperty<string>(nameof(PSResourceInfo.Author), psObjectInfo),
-                    CompanyName = GetProperty<string>(nameof(PSResourceInfo.CompanyName), psObjectInfo),
-                    Copyright = GetProperty<string>(nameof(PSResourceInfo.Copyright), psObjectInfo),
+                    Author = GetStringProperty(nameof(PSResourceInfo.Author), psObjectInfo),
+                    CompanyName = GetStringProperty(nameof(PSResourceInfo.CompanyName), psObjectInfo),
+                    Copyright = GetStringProperty(nameof(PSResourceInfo.Copyright), psObjectInfo),
                     Dependencies = GetDependencies(GetProperty<ArrayList>(nameof(PSResourceInfo.Dependencies), psObjectInfo)),
-                    Description = GetProperty<string>(nameof(PSResourceInfo.Description), psObjectInfo),
+                    Description = GetStringProperty(nameof(PSResourceInfo.Description), psObjectInfo),
                     IconUri = GetProperty<Uri>(nameof(PSResourceInfo.IconUri), psObjectInfo),
                     Includes = new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
                     InstalledDate = GetProperty<DateTime>(nameof(PSResourceInfo.InstalledDate), psObjectInfo),
-                    InstalledLocation = GetProperty<string>(nameof(PSResourceInfo.InstalledLocation), psObjectInfo),
+                    InstalledLocation = GetStringProperty(nameof(PSResourceInfo.InstalledLocation), psObjectInfo),
                     IsPrerelease = GetProperty<bool>(nameof(PSResourceInfo.IsPrerelease), psObjectInfo),
                     LicenseUri = GetProperty<Uri>(nameof(PSResourceInfo.LicenseUri), psObjectInfo),
-                    Name = GetProperty<string>(nameof(PSResourceInfo.Name), psObjectInfo),
-                    PackageManagementProvider = GetProperty<string>(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
-                    PowerShellGetFormatVersion = GetProperty<string>(nameof(PSResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
+                    Name = GetStringProperty(nameof(PSResourceInfo.Name), psObjectInfo),
+                    PackageManagementProvider = GetStringProperty(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
+                    PowerShellGetFormatVersion = GetStringProperty(nameof(PSResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
                     PrereleaseLabel = prereleaseLabel,
                     ProjectUri = GetProperty<Uri>(nameof(PSResourceInfo.ProjectUri), psObjectInfo),
                     PublishedDate = GetProperty<DateTime>(nameof(PSResourceInfo.PublishedDate), psObjectInfo),
-                    ReleaseNotes = GetProperty<string>(nameof(PSResourceInfo.ReleaseNotes), psObjectInfo),
-                    Repository = GetProperty<string>(nameof(PSResourceInfo.Repository), psObjectInfo),
-                    RepositorySourceLocation = GetProperty<string>(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
+                    ReleaseNotes = GetStringProperty(nameof(PSResourceInfo.ReleaseNotes), psObjectInfo),
+                    Repository = GetStringProperty(nameof(PSResourceInfo.Repository), psObjectInfo),
+                    RepositorySourceLocation = GetStringProperty(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
                     Tags = Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSResourceInfo.Tags), psObjectInfo)),
                     // try to get the value of PSResourceInfo.Type property, if the value is null use ResourceType.Module as value
                     // this value will be used in Enum.TryParse. If Enum.TryParse returns false, use ResourceType.Module to set Type instead.
                     Type = Enum.TryParse(
                         GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo) ?? nameof(ResourceType.Module),
-                        out ResourceType currentReadType)
-                            ? currentReadType : ResourceType.Module,
+                            out ResourceType currentReadType)
+                                ? currentReadType : ResourceType.Module,
                     UpdatedDate = GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
                     Version = version
                 };
-
 
                 return true;
             }
@@ -347,6 +344,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 return false;
             }
+        }
+
+        private static string GetStringProperty(
+            string name,
+            PSObject psObjectInfo)
+        {
+            return GetProperty<string>(name, psObjectInfo) ?? string.Empty;
         }
 
         private static Version GetVersionInfo(
@@ -772,7 +776,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-
         #region Private methods
 
         private PSObject ConvertToCustomObject()
@@ -784,13 +787,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             var psObject = new PSObject();
-            psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Version), ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel)));
             psObject.Properties.Add(new PSNoteProperty(nameof(Type), Type));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Description), Description));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Author), Author));
-            psObject.Properties.Add(new PSNoteProperty(nameof(CompanyName), CompanyName));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Copyright), Copyright));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Description), Description ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Author), Author ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(CompanyName), CompanyName ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Copyright), Copyright ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(PublishedDate), PublishedDate));
             psObject.Properties.Add(new PSNoteProperty(nameof(InstalledDate), InstalledDate));
             psObject.Properties.Add(new PSNoteProperty(nameof(UpdatedDate), UpdatedDate));
@@ -799,14 +802,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(IconUri), IconUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(Tags), Tags));
             psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes.ConvertToHashtable()));
-            psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion));
-            psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes));
+            psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));
-            psObject.Properties.Add(new PSNoteProperty(nameof(RepositorySourceLocation), RepositorySourceLocation));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Repository), Repository));
-            psObject.Properties.Add(new PSNoteProperty(nameof(PackageManagementProvider), PackageManagementProvider));
+            psObject.Properties.Add(new PSNoteProperty(nameof(RepositorySourceLocation), RepositorySourceLocation ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Repository), Repository ?? string.Empty));
+            psObject.Properties.Add(new PSNoteProperty(nameof(PackageManagementProvider), PackageManagementProvider ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(AdditionalMetadata), additionalMetadata));
-            psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation));
+            psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation ?? string.Empty));
 
             return psObject;
         }
