@@ -805,7 +805,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(ProjectUri), ProjectUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(IconUri), IconUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(Tags), Tags));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes.ConvertToHashtable()));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes != null ? Includes.ConvertToHashtable() : null));
             psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));

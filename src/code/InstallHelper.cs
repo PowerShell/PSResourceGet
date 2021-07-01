@@ -330,7 +330,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 downloadContext: new PackageDownloadContext(cacheContext),
                                 globalPackagesFolder: tempInstallPath,
                                 logger: NullLogger.Instance,
-                                CancellationToken.None).GetAwaiter().GetResult();
+                                token: CancellationToken.None).GetAwaiter().GetResult();
                         }
                         catch (Exception e)
                         {
@@ -364,37 +364,48 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // Prompt if module requires license acceptance (need to read info license acceptance info from the module manifest)
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.
-                    string newVersion; 
+
+                    string newVersion = pkgIdentity.Version.ToNormalizedString();
+                    string modulePath;
+                    string version3digitNoPrerelease = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
                     {
-                        newVersion = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
+                        modulePath = Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
+                        version3digitNoPrerelease = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
+
                     }
                     else {
-                        newVersion = pkgIdentity.Version.ToNormalizedString();
+                        modulePath = Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     }
-
-                    var versionWithoutPrereleaseTag = pkgIdentity.Version.Version.ToString();
-                    var modulePath = Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
+                    
+                    var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
                     var moduleManifest = Path.Combine(modulePath, pkgIdentity.Id + ".psd1");
+
+
+                    var parsedMetadataHashtable = Utils.ParseModuleManifest(moduleManifest, this);
+
+                    string moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
+
+
 
                     // Accept License verification
                     if (!save) CallAcceptLicense(p, moduleManifest, tempInstallPath, newVersion);
                     
-                    string dirNameVersion = Path.Combine(tempInstallPath, p.Name.ToLower(), newVersion);
+                    string tempDirNameVersion = Path.Combine(tempInstallPath, p.Name.ToLower(), newVersion);
 
                     // Delete the extra nupkg related files that are not needed and not part of the module/script
-                    DeleteExtraneousFiles(tempInstallPath, pkgIdentity, dirNameVersion);
+                    DeleteExtraneousFiles(tempInstallPath, pkgIdentity, tempDirNameVersion);
 
-                    if (!Directory.Exists(dirNameVersion))
+                    if (!Directory.Exists(tempDirNameVersion))
                     {
-                        cmdletPassedIn.WriteDebug(string.Format("Directory does not exist, creating directory: '{0}'", dirNameVersion));
-                        Directory.CreateDirectory(dirNameVersion);
+                        cmdletPassedIn.WriteDebug(string.Format("Directory does not exist, creating directory: '{0}'", tempDirNameVersion));
+                        Directory.CreateDirectory(tempDirNameVersion);
                     }
 
-                    var scriptPath = Path.Combine(dirNameVersion, (p.Name + ".ps1"));
+                    var scriptPath = Path.Combine(tempDirNameVersion, (p.Name + ".ps1"));
                     var isScript = File.Exists(scriptPath) ? true : false;
 
-                    if (_includeXML) CreateMetadataXMLFile(dirNameVersion, repoName, p, isScript);
+                    if (_includeXML) CreateMetadataXMLFile(tempDirNameVersion, repoName, p, isScript);
 
                     if (save)
                     {
@@ -402,7 +413,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        MoveFilesIntoInstallPath(p, isScript, dirNameVersion, tempInstallPath, newVersion, versionWithoutPrereleaseTag, scriptPath);
+                        MoveFilesIntoInstallPath(p, isScript, tempDirNameVersion, tempInstallPath, newVersion, moduleManifestVersion, version3digitNoPrerelease, version4digitNoPrerelease, scriptPath);
                     }
 
 
@@ -426,8 +437,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return pkgsSuccessfullyInstalled;
         }
-
-
 
 
         // IGNORE FOR INSTALL
@@ -689,7 +698,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-        private void MoveFilesIntoInstallPath(PSResourceInfo p, bool isScript, string dirNameVersion, string tempInstallPath, string newVersion, string versionWithoutPrereleaseTag, string scriptPath)
+        private void MoveFilesIntoInstallPath(PSResourceInfo p, bool isScript, string dirNameVersion, string tempInstallPath, string newVersion, string moduleManifestVersion, string nupkgVersion, string versionWithoutPrereleaseTag, string scriptPath)
         {
             // PSModules: 
             /// ./Modules
@@ -700,7 +709,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Creating the proper installation path depending on whether pkg is a module or script
             var newPathParent = isScript ? installPath : Path.Combine(installPath, p.Name);
-            var newPath = isScript ? installPath : Path.Combine(installPath, p.Name, newVersion);
+            var newPath = isScript ? installPath : Path.Combine(installPath, p.Name, moduleManifestVersion);
             cmdletPassedIn.WriteDebug(string.Format("Installation path is: '{0}'", newPath));
 
             // If script, just move the files over, if module, move the version directory over
