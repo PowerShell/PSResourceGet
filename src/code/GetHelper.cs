@@ -18,24 +18,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// </summary>
     internal class GetHelper
     {
-        private CancellationToken _cancellationToken;
-        private readonly PSCmdlet _cmdletPassedIn;
-        private Dictionary<string, PSResourceInfo> _scriptDictionary;
+        #region Members
 
-        public GetHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
+        private readonly PSCmdlet _cmdletPassedIn;
+        private readonly Dictionary<string, PSResourceInfo> _scriptDictionary;
+
+        #endregion
+
+        #region Constructors
+
+        public GetHelper(PSCmdlet cmdletPassedIn)
         {
-            _cancellationToken = cancellationToken;
             _cmdletPassedIn = cmdletPassedIn;
             _scriptDictionary = new Dictionary<string, PSResourceInfo>();
         }
 
-        public IEnumerable<PSResourceInfo> ProcessGetParams(string[] name, VersionRange versionRange, List<string> pathsToSearch)
-        {
-            List<string> filteredPathsToSearch = FilterPkgPathsByName(name, pathsToSearch);
+        #endregion
 
-            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, filteredPathsToSearch))
+        #region Public methods
+
+        public IEnumerable<PSResourceInfo> FilterPkgPaths(
+            string[] name,
+            VersionRange versionRange,
+            List<string> pathsToSearch)
+        {
+            List<string> pgkPathsByName = FilterPkgPathsByName(name, pathsToSearch);
+
+            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pgkPathsByName))
             {
-                yield return OutputPackageObject(pkgPath, _scriptDictionary);
+                PSResourceInfo pkg = OutputPackageObject(pkgPath, _scriptDictionary);
+                if (pkg != null)
+                {
+                    yield return pkg;
+                }
             }
         }
 
@@ -54,11 +69,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 WildcardPattern nameWildCardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
 
-                // ./Modules/Test-Module
-                // ./Scripts/Test-Script.ps1
                 wildCardDirsToSearch.AddRange(dirsToSearch.FindAll(
-                    p => nameWildCardPattern.IsMatch(
-                        System.IO.Path.GetFileNameWithoutExtension((new DirectoryInfo(p).Name)))));
+                    path => nameWildCardPattern.IsMatch(
+                        GetResourceNameFromPath(path))));
             }
 
             return wildCardDirsToSearch;
@@ -166,14 +179,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // Create package object for each found resource directory
         public PSResourceInfo OutputPackageObject(string pkgPath, Dictionary<string,PSResourceInfo> scriptDictionary)
         {
-            string xmlFilePath = string.Empty;
+            string xmlFilePath;
             var parentDir = new DirectoryInfo(pkgPath).Parent;
 
             // find package name
             string pkgName = Utils.GetInstalledPackageName(pkgPath);
             _cmdletPassedIn.WriteDebug(string.Format("OutputPackageObject:: package name is {0}.", pkgName));
             // Find xml file
-            // if the package path is in the deserialized script dictionary, just return that 
+            // if the package path is in the deserialized script dictionary, just return that
             if (scriptDictionary.ContainsKey(pkgPath))
             {
                 return scriptDictionary[pkgPath];
@@ -183,12 +196,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 xmlFilePath = System.IO.Path.Combine(parentDir.ToString(), "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
             }
-            // else we assume it's a module, and look for the xml path that way 
+            // else we assume it's a module, and look for the xml path that way
             else
             {
                 xmlFilePath = System.IO.Path.Combine(pkgPath, "PSGetModuleInfo.xml");
             }
-            
+
             // Read metadata from XML and parse into PSResourceInfo object
             _cmdletPassedIn.WriteVerbose(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
             if (!TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
@@ -203,5 +216,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return null;
         }
+
+        #endregion
+    
+        #region Private methods
+
+        private static string GetResourceNameFromPath(string path)
+        {
+            // Resource paths may end in a directory or script file name.
+            // Directory name is the same as the resource name.
+            // Script file name is the resource name without the file extension.
+            // ./Modules/Microsoft.PowerShell.Test-Module     : Microsoft.PowerShell.Test-Module
+            // ./Scripts/Microsoft.PowerShell.Test-Script.ps1 : Microsoft.PowerShell.Test-Script
+            var resourceName = Path.GetFileName(path);
+            return Path.GetExtension(resourceName).Equals(".ps1", StringComparison.OrdinalIgnoreCase) 
+                ? Path.GetFileNameWithoutExtension(resourceName) : resourceName;
+        }
+
+        #endregion
     }
 }
