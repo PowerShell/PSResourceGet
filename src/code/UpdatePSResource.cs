@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.IO;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -157,7 +156,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // this catches the case where Name wasn't input as null or empty,
-            // but after filtering out unsupported wildcard names there were no elements left in Name
+            // but after filtering out unsupported wildcard names there are no elements left in Name
             if (Name.Length == 0)
             {
                  return;
@@ -186,24 +185,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     cancellationToken: _cancellationToken,
                     cmdletPassedIn: this);
 
-                WriteVerbose("Name before GetHelper is: " + String.Join(", ", Name));
-
-                List<string> finalNames = new List<string>();
-                foreach (PSResourceInfo pkg in getHelper.ProcessGetParams(
-                    name: Name,
-                    versionRange: versionRange,
-                    pathsToSearch: Utils.GetAllResourcePaths(this)))
-                {
-                    WriteObject(pkg);
-                    // finalNames.Add(pkg.Name);
-                    // WriteVerbose(pkg.Name);
-                }
-                // Name = getHelper.ProcessGetParams(
+                // List<string> finalNames = new List<string>();
+                // foreach (PSResourceInfo pkg in getHelper.ProcessGetParams(
                 //     name: Name,
                 //     versionRange: versionRange,
-                //     pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
-                WriteVerbose("Name after GetHelper is: " + String.Join(", ", Name));
+                //     pathsToSearch: Utils.GetAllResourcePaths(this)))
+                // {
+                //     finalNames.Add(pkg.Name);
+                // }
+                Name = getHelper.ProcessGetParams(
+                    name: Name,
+                    versionRange: versionRange,
+                    pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
             }
+            WriteVerbose("names after GetHelper.ProcessGetParams: " + String.Join(", ", Name));
 
             InstallHelper installHelper = new InstallHelper(
                 update: true,
@@ -214,27 +209,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    WriteVerbose("Name: " + String.Join(", ", Name));
-                    // installHelper.ProcessInstallParams(
-                    //     names: Name,
-                    //     versionRange: versionRange,
-                    //     prerelease: Prerelease,
-                    //     repository: Repository,
-                    //     scope: Scope.ToString(),
-                    //     acceptLicense: AcceptLicense,
-                    //     quiet: Quiet,
-                    //     reinstall: false,
-                    //     force: Force,
-                    //     trustRepository: TrustRepository,
-                    //     noClobber: NoClobber,
-                    //     credential: Credential,
-                    //     requiredResourceFile: null,
-                    //     requiredResourceJson: null,
-                    //     requiredResourceHash: null,
-                    //     specifiedPath: null, // todo: confirm
-                    //     asNupkg: false, // todo: confirm
-                    //     includeXML: false, // todo: confirm!
-                    //     pathsToInstallPkg: null); // todo: confirm!
+                    installHelper.ProcessInstallParams(
+                        names: Name,
+                        versionRange: versionRange,
+                        prerelease: Prerelease,
+                        repository: Repository,
+                        scope: Scope.ToString(),
+                        acceptLicense: AcceptLicense,
+                        quiet: Quiet,
+                        reinstall: false,
+                        force: Force,
+                        trustRepository: TrustRepository,
+                        noClobber: NoClobber,
+                        credential: Credential,
+                        requiredResourceFile: null,
+                        requiredResourceJson: null,
+                        requiredResourceHash: null,
+                        specifiedPath: null, // todo: confirm
+                        asNupkg: false, // todo: confirm
+                        includeXML: false, // todo: confirm!
+                        pathsToInstallPkg: null); // todo: confirm!
                     break;
 
                 case InputObjectParameterSet:

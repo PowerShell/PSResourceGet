@@ -97,6 +97,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
 
+            _cmdletPassedIn.WriteVerbose("callED findHelper with: " + String.Join(", ", name) + " and repository: " + String.Join(", ", repository));
             // loop through repositoriesToSearch and if PSGallery add it to list with same priority as PSGallery repo
             for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
@@ -125,10 +126,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
                 _cmdletPassedIn.WriteDebug(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+                _cmdletPassedIn.WriteVerbose("in findbyresourcename() for reponame: " +  repositoriesToSearch[i].Name + " where repo count is: " + i);
                 foreach (var pkg in SearchFromRepository(
                     repositoryName: repositoriesToSearch[i].Name,
                     repositoryUrl: repositoriesToSearch[i].Url))
                 {
+                    _cmdletPassedIn.WriteVerbose("in findbyresourcename() for reponame: " +  repositoriesToSearch[i].Name + " and pkg reurned == null: "
+                    + (pkg == null));
                     yield return pkg;
                 }
             }
@@ -237,6 +241,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     searchFilter: searchFilter,
                     sourceContext: sourceContext))
                 {
+                    _cmdletPassedIn.WriteVerbose("in searchacrossnames() for: " + pkgName + " and pkg == null: "
+                    + (pkg == null));
                     yield return pkg;
                 }
             }
@@ -259,6 +265,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 IEnumerable<IPackageSearchMetadata> retrievedPkgs = null;
                 try
                 {
+                    _cmdletPassedIn.WriteVerbose("calling GetMetadata() for pkgName: " + pkgName + " with repoName: " + repositoryName);
                     // GetMetadataAsync() API returns all versions for a specific non-wildcard package name
                     // For PSGallery GetMetadataAsync() API returns both Script and Module resources by checking only the Modules endpoint
                     retrievedPkgs = pkgMetadataResource.GetMetadataAsync(

@@ -116,6 +116,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var repositoryIsNotTrusted = "Untrusted repository";
             var queryInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
 
+            foreach (var repoName in listOfRepositories)
+            {
+                cmdletPassedIn.WriteVerbose("repo name: " + repoName.Name);
+            }
             foreach (var repo in listOfRepositories)
             {
                 var sourceTrusted = false;
@@ -150,6 +154,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var cancellationToken = new CancellationToken();
                     var findHelper = new FindHelper(cancellationToken, cmdletPassedIn);
                     // Finds parent packages and dependencies
+                    cmdletPassedIn.WriteVerbose("calling findHelper with: " + String.Join(", ", packageNames) + " and repository: " + String.Join(", ", new string[] {repoName}));
                     IEnumerable<PSResourceInfo> pkgsToInstall = findHelper.FindByResourceName(
                         name: packageNames,
                         type: ResourceType.None,
