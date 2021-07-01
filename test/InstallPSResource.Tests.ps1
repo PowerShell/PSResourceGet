@@ -30,12 +30,14 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "1.3.0"
     }
 
+    <#
     It "Install specific script resource by name" {
         Install-PSResource -Name "TestTestScript" -Repository $TestGalleryName  
-        $pkg = Get-InstalledPSResource "TestModule" -ListAvailable
+        $pkg = Get-InstalledPSResource "TestModule"
         $pkg.Name | Should -Be "TestModule" 
         $pkg.Version | Should -Be "1.3.0"
     }
+#>
 
     It "Install multiple resources by name" {
         $pkgNames = @("TestModule","TestModule99")
@@ -113,6 +115,32 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "1.3.0"
     }
 
+    # Windows only
+    It "Install resource under CurrentUser scope" {
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
+        $pkg = Get-Module "TestModule" -ListAvailable
+        $pkg.Name | Should -Be "TestModule" 
+        $pkg.Path.Contains("Documents") | Should -Be $true
+
+    }
+
+    # Windows only
+    It "Install resource under AllUsers scope" {
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
+        $pkg = Get-Module "TestModule" -ListAvailable
+        $pkg.Name | Should -Be "TestModule" 
+        $pkg.Path.Contains("Program Files") | Should -Be $true
+    }
+
+    # Windows only
+    It "Install resource under no specified scope" {
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName
+        $pkg = Get-Module "TestModule" -ListAvailable
+        $pkg.Name | Should -Be "TestModule" 
+        $pkg.Path.Contains("Documents") | Should -Be $true
+    }
+
+    
 <#
     It "Install resource from local repository given Repository parameter" {
         $publishModuleName = "TestFindModule"
