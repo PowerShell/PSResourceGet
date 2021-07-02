@@ -209,16 +209,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pkgNames.Add(pkg.Name);
             }
 
-            GetHelper getHelper = new GetHelper(cancellationToken, this);
+            GetHelper getHelper = new GetHelper(cmdletPassedIn);
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.ProcessGetParams(pkgNames.ToArray(), _versionRange, _pathsToInstallPkg);
+            List<string> pathsToSearch = new List<string>();
+            foreach (var path in _pathsToInstallPkg)
+            {
+                pathsToSearch.AddRange(Directory.GetDirectories(path));
+            }
+                
+            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.FilterPkgPaths(pkgNames.ToArray(), _versionRange, pathsToSearch);
 
             // If any pkg versions are already installed, write a message saying it is already installed and continue processing other pkg names
             if (pkgsAlreadyInstalled.Any())
             {
                 foreach (PSResourceInfo pkg in pkgsAlreadyInstalled)
                 {
-                    this.WriteWarning(string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter", pkg.Name, pkg.Version));
+                    cmdletPassedIn.WriteWarning(string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter", pkg.Name, pkg.Version));
 
                     // remove this pkg from the list of pkg names install
                     packagesToInstall.ToList().Remove(pkg);
