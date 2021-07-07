@@ -38,6 +38,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         MaximumVersion
     }
 
+    public enum ScopeType
+    {
+        None,
+        AllUsers,
+        CurrentUser
+    }
+
     #endregion
 
     #region VersionInfo

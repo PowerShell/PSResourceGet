@@ -14,14 +14,14 @@
         'Find-PSResource',
         'Get-InstalledPSResource',
         'Get-PSResourceRepository',
-        # 'Install-PSResource',
+        'Install-PSResource',
         'Register-PSResourceRepository',
         # 'Save-PSResource',
         'Set-PSResourceRepository',
         'Publish-PSResource',
         'Uninstall-PSResource',
-        'Unregister-PSResourceRepository')
-        # 'Update-PSResource')
+        'Unregister-PSResourceRepository',
+        'Update-PSResource')
 
     VariablesToExport = 'PSGetPath'
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')

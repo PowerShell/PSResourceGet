@@ -16,7 +16,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     internal static class Utils
     {
-                public static void WriteVerboseOnCmdlet(
+        public static void WriteVerboseOnCmdlet(
             PSCmdlet cmdlet,
             string message)
         {
@@ -30,6 +30,54 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     args: new object[] { message });
             }
             catch { }
+        }
+
+        public static string[] FilterWildcards(
+            string[] pkgNames,
+            out string[] errorMsgs,
+            out bool isContainWildcard)
+        {
+            List<string> namesWithSupportedWildcards = new List<string>();
+            List<string> errorMsgsList = new List<string>();
+
+            if (pkgNames == null)
+            {
+                isContainWildcard = true;
+                errorMsgs = errorMsgsList.ToArray();
+                return new string[] {"*"};
+            }
+
+            isContainWildcard = false;
+            foreach (string name in pkgNames)
+            {
+                if (WildcardPattern.ContainsWildcardCharacters(name))
+                {
+                    if (String.Equals(name, "*", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        isContainWildcard = true;
+                        errorMsgs = new string[] {};
+                        return new string[] {"*"};
+                    }
+
+                    if (name.Contains("?") || name.Contains("["))
+                    {
+                        errorMsgsList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for Find-PSResource so Name entry: {0} will be discarded.", name));
+                    }
+                    else
+                    {
+                        isContainWildcard = true;
+                        namesWithSupportedWildcards.Add(name);
+                    }
+                }
+                else
+                {
+                    namesWithSupportedWildcards.Add(name);
+                }
+
+            }
+
+            errorMsgs = errorMsgsList.ToArray();
+            return namesWithSupportedWildcards.ToArray();
         }
 
         public static string[] FilterOutWildcardNames(
@@ -261,7 +309,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
 
             // If no explicit specification, will return PSModulePath, and then CurrentUser paths
-            // Installation will search for a /Modules or /Scripts directory 
+            // Installation will search for a /Modules or /Scripts directory
             // If they are not available within one of the paths in PSModulePath, the CurrentUser path will be used.
             if (string.IsNullOrEmpty(scope))
             {
@@ -312,7 +360,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // a module will still need the module manifest to be parsed.
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
-                // Parse the module manifest 
+                // Parse the module manifest
                 System.Management.Automation.Language.Token[] tokens;
                 ParseError[] errors;
                 var ast = Parser.ParseFile(moduleFileInfo, out tokens, out errors);
