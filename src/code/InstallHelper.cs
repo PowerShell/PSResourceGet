@@ -426,9 +426,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        cmdletPassedIn.WriteDebug("ANAM- temp installPath passed in to MoveFilesIntoInstallPath() exists?: " + Directory.Exists(tempInstallPath) + " and is: " + tempInstallPath);
-                        cmdletPassedIn.WriteDebug("ANAM- temp dirNameVersion passed in to MoveFilesIntoInstallPath() exists?: " + Directory.Exists(tempDirNameVersion) + " and is: " + tempDirNameVersion);
-
                         MoveFilesIntoInstallPath(p, isScript, tempDirNameVersion, tempInstallPath, newVersion, moduleManifestVersion, version3digitNoPrerelease, version4digitNoPrerelease, scriptPath);
                     }
 
@@ -792,16 +789,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Delete the directory path before replacing it with the new module
                         cmdletPassedIn.WriteDebug(string.Format("Attempting to delete '{0}'", finalModuleVersionDir));
                         Directory.Delete(finalModuleVersionDir, true);
-                    }
-
-                    if (!Directory.Exists(tempModuleVersionDir))
-                    {
-                        cmdletPassedIn.WriteDebug("ANAM: " + tempModuleVersionDir + " does not exist");
-                    }
-
-                    if (!Directory.Exists(finalModuleVersionDir))
-                    {
-                        cmdletPassedIn.WriteDebug("ANAM: " + finalModuleVersionDir + " does not exist");
                     }
 
                     cmdletPassedIn.WriteDebug(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
