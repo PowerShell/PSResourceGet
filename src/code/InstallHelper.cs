@@ -385,17 +385,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
-                    var moduleManifest = Path.Combine(modulePath, pkgIdentity.Id + ".psd1");
+                    string moduleManifestVersion = string.Empty;
+                    var scriptPath = Path.Combine(modulePath, (p.Name + ".ps1"));
+                    var isScript = File.Exists(scriptPath) ? true : false;
 
+                    if (!isScript)
+                    {
+                        var moduleManifest = Path.Combine(modulePath, pkgIdentity.Id + ".psd1");
 
-                    var parsedMetadataHashtable = Utils.ParseModuleManifest(moduleManifest, this);
+                        var parsedMetadataHashtable = Utils.ParseModuleManifest(moduleManifest, this);
 
-                    string moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
+                        moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
 
+                        // Accept License verification
+                        if (!save && !CallAcceptLicense(p, moduleManifest, tempInstallPath, newVersion))
+                        {
+                            continue;
+                        }
+                    }
 
-
-                    // Accept License verification
-                    if (!save) CallAcceptLicense(p, moduleManifest, tempInstallPath, newVersion);
 
                     string tempDirNameVersion = Path.Combine(tempInstallPath, p.Name.ToLower(), newVersion);
 
@@ -408,8 +416,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         Directory.CreateDirectory(tempDirNameVersion);
                     }
 
-                    var scriptPath = Path.Combine(tempDirNameVersion, (p.Name + ".ps1"));
-                    var isScript = File.Exists(scriptPath) ? true : false;
+
 
                     if (_includeXML) CreateMetadataXMLFile(tempDirNameVersion, repoName, p, isScript);
 
@@ -538,9 +545,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             cmdletPassedIn.WriteProgress(progressRecord);
         }
 
-        private void CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion)
+        private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion)
         {
             var requireLicenseAcceptance = false;
+            var success = true;
 
             if (File.Exists(moduleManifest))
             {
@@ -553,8 +561,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var patternToSkip2 = "\\*\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
 
                     Regex rgx = new Regex(pattern);
-
-                    if (rgx.IsMatch(pattern) && !rgx.IsMatch(patternToSkip1) && !rgx.IsMatch(patternToSkip2))
+                    Regex rgxComment1 = new Regex(patternToSkip1);
+                    Regex rgxComment2 = new Regex(patternToSkip2);
+                    if (rgx.IsMatch(text) && !rgxComment1.IsMatch(text) && !rgxComment2.IsMatch(text))
                     {
                         requireLicenseAcceptance = true;
                     }
@@ -575,8 +584,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ex = new ArgumentException(exMessage);  // System.ArgumentException vs PSArgumentException
                             var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
 
-                            // TODO: update this to write error
-                            cmdletPassedIn.ThrowTerminatingError(acceptLicenseError);
+                            cmdletPassedIn.WriteError(acceptLicenseError);
+                            success = false;
                         }
 
                         // Otherwise read LicenseFile
@@ -587,9 +596,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var title = "License Acceptance";
                         var yesToAll = false;
                         var noToAll = false;
-                        var shouldContinueResult = ShouldContinue(message, title, true, ref yesToAll, ref noToAll);
+                        var shouldContinueResult = cmdletPassedIn.ShouldContinue(message, title, true, ref yesToAll, ref noToAll);
 
-                        if (yesToAll)
+                        if (shouldContinueResult || yesToAll)
                         {
                             _acceptLicense = true;
                         }
@@ -602,11 +611,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var ex = new ArgumentException(message);  // System.ArgumentException vs PSArgumentException
                         var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
 
-                        // TODO: update to write error
-                        cmdletPassedIn.ThrowTerminatingError(acceptLicenseError);
+                        cmdletPassedIn.WriteError(acceptLicenseError);
+                        success = false;
                     }
                 }
             }
+
+            return success;
         }
 
         private void CreateMetadataXMLFile(string dirNameVersion, string repoName, PSResourceInfo pkg, bool isScript)
@@ -724,11 +735,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             cmdletPassedIn.WriteVerbose(" installPath: " + installPath);
             // Creating the proper installation path depending on whether pkg is a module or script
             var newPathParent = isScript ? installPath : Path.Combine(installPath, p.Name);
-            var newPath = isScript ? installPath : Path.Combine(installPath, p.Name, moduleManifestVersion);
-            cmdletPassedIn.WriteDebug(string.Format("Installation path is: '{0}'", newPath));
+            var finalModuleVersionDir = isScript ? installPath : Path.Combine(installPath, p.Name, moduleManifestVersion);  // versionWithoutPrereleaseTag
+            cmdletPassedIn.WriteDebug(string.Format("Installation path is: '{0}'", finalModuleVersionDir));
 
             // If script, just move the files over, if module, move the version directory over
-            var tempModuleVersionDir = isScript ? dirNameVersion   //Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToNormalizedString())
+            var tempModuleVersionDir = isScript ? dirNameVersion
                 : Path.Combine(tempInstallPath, p.Name.ToLower(), newVersion);
             cmdletPassedIn.WriteVerbose(string.Format("Full installation path is: '{0}'", tempModuleVersionDir));
 
@@ -747,42 +758,40 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 File.Move(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
 
                 // Need to delete old script file, if that exists
-                cmdletPassedIn.WriteDebug(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(newPath, p.Name + ".ps1"))));
-                if (File.Exists(Path.Combine(newPath, p.Name + ".ps1")))
+                cmdletPassedIn.WriteDebug(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, p.Name + ".ps1"))));
+                if (File.Exists(Path.Combine(finalModuleVersionDir, p.Name + ".ps1")))
                 {
                     cmdletPassedIn.WriteDebug(string.Format("Deleting script file"));
-                    File.Delete(Path.Combine(newPath, p.Name + ".ps1"));
+                    File.Delete(Path.Combine(finalModuleVersionDir, p.Name + ".ps1"));
                 }
 
-                cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(newPath, p.Name + ".ps1")));
-                File.Move(scriptPath, Path.Combine(newPath, p.Name + ".ps1"));
+                cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1")));
+                File.Move(scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1"));
             }
             else
             {
                 // If new path does not exist
                 if (!Directory.Exists(newPathParent))
                 {
-                    cmdletPassedIn.WriteDebug(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, newPath));
+                    cmdletPassedIn.WriteDebug(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
                     Directory.CreateDirectory(newPathParent);
-                    Directory.Move(tempModuleVersionDir, newPath);
+                    Directory.Move(tempModuleVersionDir, finalModuleVersionDir);
                 }
                 else
                 {
-                    // tempModuleVersionDir = Path.Combine(tempModuleVersionDir, newVersion); ANAM: this messes up tempModuleVersionDir (src)
-                    // var finalModuleVersionDir = Path.Combine(newPath, versionWithoutPrereleaseTag); ANAM: this messes up the finalModuleVersionDir (dest)
-                    var finalModuleVersionDir = newPath;
+                    //tempModuleVersionDir = Path.Combine(tempModuleVersionDir, newVersion);
+                    //var finalModuleVersionDir = Path.Combine(newPath, versionWithoutPrereleaseTag);
                     cmdletPassedIn.WriteDebug(string.Format("Temporary module version directory is: '{0}'", tempModuleVersionDir));
 
-                    // var newVersionPath = Path.Combine(newPath, newVersion); ANAM: this messes up the check
-                    var newVersionPath = newPath;
-                    cmdletPassedIn.WriteDebug(string.Format("Path for module version directory installation is: '{0}'", newVersionPath));
+                    //var newVersionPath = Path.Combine(newPath, newVersion);
+                    //cmdletPassedIn.WriteDebug(string.Format("Path for module version directory installation is: '{0}'", newVersionPath));
 
-
-                    if (Directory.Exists(newVersionPath))
+                    // At this point if
+                    if (Directory.Exists(finalModuleVersionDir))
                     {
                         // Delete the directory path before replacing it with the new module
-                        cmdletPassedIn.WriteDebug(string.Format("Attempting to delete '{0}'", newVersionPath));
-                        Directory.Delete(newVersionPath, true);
+                        cmdletPassedIn.WriteDebug(string.Format("Attempting to delete '{0}'", finalModuleVersionDir));
+                        Directory.Delete(finalModuleVersionDir, true);
                     }
 
                     if (!Directory.Exists(tempModuleVersionDir))
