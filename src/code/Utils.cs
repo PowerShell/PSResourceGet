@@ -270,7 +270,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
             }
             // If user explicitly specifies AllUsers
-            if (scope == ScopeType.AllUsers)
+            else if (scope == ScopeType.AllUsers)
             {
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));

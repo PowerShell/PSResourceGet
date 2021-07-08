@@ -76,9 +76,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> pathsToInstallPkg)
         {
             cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7}'; TrustRepository: '{8}'; NoClobber: '{9}';", 
-                string.Join(",", names), (_versionRange != null ? _versionRange.OriginalString : string.Empty), prerelease.ToString(), repository != null ? string.Join(",", repository) : string.Empty,
-                acceptLicense.ToString(), quiet.ToString(), reinstall.ToString(), trustRepository.ToString(), noClobber.ToString()));
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';", 
+                string.Join(",", names), 
+                (_versionRange != null ? _versionRange.OriginalString : string.Empty), 
+                prerelease.ToString(), 
+                repository != null ? string.Join(",", repository) : string.Empty,
+                acceptLicense.ToString(), 
+                quiet.ToString(), 
+                reinstall.ToString(), 
+                trustRepository.ToString(),
+                noClobber.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;

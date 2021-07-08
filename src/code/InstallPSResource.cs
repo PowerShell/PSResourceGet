@@ -180,7 +180,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    installHelper.ProcessInstallParams(Name, _versionRange, Prerelease, Repository, Scope, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
+                    installHelper.ProcessInstallParams(Name, _versionRange, Prerelease, Repository, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
                     break;
 
                 // TODO: make sure InputObject types are correct
@@ -216,7 +216,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 ThrowTerminatingError(InputObjIncorrectVersionFormat);
                             }
 
-                            installHelper.ProcessInstallParams(new[] { pkg.Name }, inputObjVersionRange, prerelease, Repository, Scope, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
+                            installHelper.ProcessInstallParams(new[] { pkg.Name }, inputObjVersionRange, prerelease, Repository, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
                         }
                     }
                     else if (InputObject[0].GetType().Name.Equals("PSModuleInfo"))
@@ -238,7 +238,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     ThrowTerminatingError(InputObjIncorrectVersionFormat);
                                 }
 
-                                installHelper.ProcessInstallParams(new[] { name }, inputObjVersionRange, prerelease, Repository, Scope, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
+                                installHelper.ProcessInstallParams(new[] { name }, inputObjVersionRange, prerelease, Repository, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
                             }
                         } 
                     }

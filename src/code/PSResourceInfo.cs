@@ -42,8 +42,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     public enum ScopeType
     {
         None,
-        AllUsers,
-        CurrentUser
+        CurrentUser,
+        AllUsers
     }
 
     #endregion
