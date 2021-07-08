@@ -5,23 +5,17 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Install-PSResource for Module' {
 
-
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
-        Get-PSResourceRepository
     }
 
     AfterEach {
-        Uninstall-PSResource "TestModule"
-        Uninstall-PSResource "TestModule99"
-
-        Uninstall-PSResource "myTestModule"
-        Uninstall-PSResource "myTestModule2"
-        uninstall-PSResource "testModuleWithlicense"
+        Uninstall-PSResource "TestModule", "TestModule99", "myTestModule", "myTestModule2", "testModulePrerelease", 
+            "testModuleWithlicense","PSGetTestModule", "PSGetTestDependency1", "TestFindModule"
     }
 
     AfterAll {
@@ -29,15 +23,12 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install specific module resource by name" {
-        Get-PSResourceRepository
-
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName  
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
         $pkg.Version | Should -Be "1.3.0"
     }
 
-    
     It "Install specific script resource by name" {
         Install-PSResource -Name "TestTestScript" -Repository $TestGalleryName  
         $pkg = Get-InstalledPSResource "TestTestScript"
@@ -52,6 +43,7 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Name | Should -Be $pkgNames
     }
 
+
     It "Should not install resource given nonexistant name" {
         Install-PSResource -Name NonExistantModule -Repository $TestGalleryName  
         $pkg = Get-Module "NonExistantModule" -ListAvailable
@@ -65,7 +57,6 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Name | Should -Be "TestModule"
         $pkg.Version | Should -Be "1.2.0"
     }
-
 
     It "Should install resource given name and exact version with bracket syntax" {
         Install-PSResource -Name "TestModule" -Version "[1.2.0]" -Repository $TestGalleryName  
@@ -107,24 +98,24 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
         $pkg = Install-PSResource -Name "TestModulePrerelease" -Prerelease -Repository $TestGalleryName 
         $pkg = Get-Module "TestModulePrerelease" -ListAvailable
+        $pkg.Name | Should -Be "TestModulePrerelease"
         $pkg.Version | Should -Be "0.0.1"
         $pkg.PrivateData.PSData.Prerelease | Should -Be "preview"
     }
 
-
-
-    
     It "Install a module with a dependency" {
-        # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
         $pkg = Install-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName 
         $pkg = Get-Module "PSGetTestModule" -ListAvailable
+        $pkg.Name | Should -Be "PSGetTestModule"
         $pkg.Version | Should -Be "2.0.2"
         $pkg.PrivateData.PSData.Prerelease | Should -Be "-alpha1"
-    }
 
+        $pkg = Get-Module "PSGetTestDependency1" -ListAvailable
+        $pkg.Name | Should -Be "PSGetTestDependency1"
+        $pkg.Version | Should -Be "1.0.0"
+    }
 
     It "Install resource via InputObject by piping from Find-PSresource" {
         Find-PSResource -Name "TestModule" -Repository $TestGalleryName | Install-PSResource
@@ -139,7 +130,6 @@ Describe 'Test Install-PSResource for Module' {
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
         $pkg.Path.Contains("Documents") | Should -Be $true
-
     }
 
     # Windows only
@@ -147,7 +137,6 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
-        write-host $pkg.Path
         $pkg.Path.Contains("Program Files") | Should -Be $true
     }
 
@@ -159,24 +148,13 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Path.Contains("Documents") | Should -Be $true
     }
 
-
-
-
-<#
     It "Should not install resource that is already installed" {
-        $a = (Get-PSResourceRepository)
-        write-host $a.Name
-        write-host $a.Priority
-        write-host $a.Trusted
-
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -WarningVariable WarningVar -warningaction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
     }
-#>
-
 
     It "Reinstall resource that is already installed with -Reinstall parameter" {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName
@@ -219,38 +197,28 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "0.0.1.0"
     }
 
-<#
-    ############ FAILING
-    It "Install resource with -NoClobber flag (should not clobber)" {
-        Install-PSResource -Name "myTestModule" -Repository $TestGalleryName  
-        $pkg = Get-InstalledPSResource "myTestModule"
-        $pkg.Name | Should -Be "myTestModule" 
-        $pkg.Version | Should -Be "0.0.3.0"
+    It "Install resource from local repository given Repository parameter" {
+        $publishModuleName = "TestFindModule"
+        $repoName = "psgettestlocal"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
+        Set-PSResourceRepository "psgettestlocal" -Trusted:$true
 
-        Install-PSResource -Name "myTestModule2" -Repository $TestGalleryName -NoClobber #-WarningVariable WarningVar -warningaction SilentlyContinue
-        $WarningVar | Should -Not -BeNullOrEmpty
-        $pkg = Get-InstalledPSResource "myTestModule2"
-        $pkg.Name | Should -Be "myTestModule2" 
-        $pkg.Version | Should -Be "0.0.1.0"
+        Install-PSResource -Name $publishModuleName -Repository $repoName
+        $pkg = Get-Module $publishModuleName -ListAvailable
+        $pkg | Should -Not -BeNullOrEmpty
+        $pkg.Name | Should -Be $publishModuleName
     }
-#>
 
-    ### This needs to be manually tested due to prompt
 <#
+    # This needs to be manually tested due to prompt
     It "Install resource that requires accept license without -AcceptLicense flag" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName
         $pkg = Get-InstalledPSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
         $pkg.Version | Should -Be "0.0.1.0"
     }
-#>
 
-    ### PoshTestGallery psgettestlocal NuGetGallery PSGallery psgettestlocal2
-    ### 10 40 50 50 50
-    ### True False True False False
-
-    <#
-    ### This needs to be manually tested due to prompt
+    # This needs to be manually tested due to prompt
     It "Install resource should prompt 'trust repository' if repository is not trusted" {
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
@@ -262,35 +230,4 @@ Describe 'Test Install-PSResource for Module' {
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
 #>
-<#
-    It "Install resource from local repository given Repository parameter" {
-        $publishModuleName = "TestFindModule"
-        $repoName = "psgettestlocal"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
-
-        Install-PSResource -Name $publishModuleName -Repository $repoName
-        $pkg = Get-Module $publishModuleName -ListAvailable
-        $pkg | Should -Not -BeNullOrEmpty
-        $pkg.Name | Should -Be $publishModuleName
-        #$pkg.Repository | Should -Be $repoName
-    }
-
-
-
-
-    It "Install resource given repository parameter, where resource exists in multiple local repos" {
-        $moduleName = "test_local_mod"
-        $repoHigherPriorityRanking = "psgettestlocal"
-        $repoLowerPriorityRanking = "psgettestlocal2"
-
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoHigherPriorityRanking
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoLowerPriorityRanking
-
-        $res = Find-PSResource -Name $moduleName
-        $res.Repository | Should -Be $repoHigherPriorityRanking
-
-        $resNonDefault = Find-PSResource -Name $moduleName -Repository $repoLowerPriorityRanking
-        $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
-    }
-    #>
 }
