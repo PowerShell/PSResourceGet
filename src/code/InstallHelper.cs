@@ -35,7 +35,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         List<string> _pathsToInstallPkg;
         VersionRange _versionRange;
         bool _prerelease;
-        string _scope;
         bool _acceptLicense;
         bool _quiet;
         bool _reinstall;
@@ -60,8 +59,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string[] names, 
             VersionRange versionRange, 
             bool prerelease, 
-            string[] repository, 
-            string scope, 
+            string[] repository,
             bool acceptLicense, 
             bool quiet, 
             bool reinstall, 
@@ -77,14 +75,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool includeXML,
             List<string> pathsToInstallPkg)
         {
-            cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; Scope: '{4}'; " +
+            cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7}'; TrustRepository: '{8}'; NoClobber: '{9}';", 
                 string.Join(",", names), (_versionRange != null ? _versionRange.OriginalString : string.Empty), prerelease.ToString(), repository != null ? string.Join(",", repository) : string.Empty,
-                scope != null ? scope : string.Empty, acceptLicense.ToString(), quiet.ToString(), reinstall.ToString(), trustRepository.ToString(), noClobber.ToString()));
+                acceptLicense.ToString(), quiet.ToString(), reinstall.ToString(), trustRepository.ToString(), noClobber.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
-            _scope = scope;
             _acceptLicense = acceptLicense;
             _quiet = quiet;
             _reinstall = reinstall;

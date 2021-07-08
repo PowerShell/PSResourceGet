@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateSet("CurrentUser", "AllUsers")]
         [Parameter(ParameterSetName = NameParameterSet)]
         //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
-        public string Scope { get; set; }
+        public ScopeType Scope { get; set; }
 
         /// <summary>
         /// Overrides warning messages about installation conflicts about existing commands on a computer.
