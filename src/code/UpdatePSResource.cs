@@ -1,10 +1,10 @@
-using System;
-using System.Linq;
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Collections.Generic;
+using System;
 using Dbg = System.Diagnostics.Debug;
+using System.Linq;
 using System.Management.Automation;
 using System.Threading;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
-        // create a default string with "*"
+        // TODO: create a default string with "*"
 
         /// <summary>
         /// Specifies the version the resource is to be updated to.
