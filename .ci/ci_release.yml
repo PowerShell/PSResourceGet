@@ -1,7 +1,7 @@
 name: $(BuildDefinitionName)-$(date:yyMM).$(date:dd)$(rev:rrr)
 trigger:
   # Batch merge builds together while a merge build is running
-  batch: true
+  batch: false
   branches:
     include:
     - master
