@@ -1,7 +1,7 @@
 name: $(BuildDefinitionName)-$(date:yyMM).$(date:dd)$(rev:rrr)
 trigger:
   # Batch merge builds together while a merge build is running
-  batch: true
+  batch: false
   branches:
     include:
     - master
@@ -339,7 +339,7 @@ stages:
 #      imageName: macOS-10.14
 
 - stage: Release
-  displayName: Release Package
+  displayName: Publish Package to PSGallery
   condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), eq(variables['Publish'], 'True'))
   jobs:
   - template: release.yml
