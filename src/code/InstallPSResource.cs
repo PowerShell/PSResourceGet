@@ -1,12 +1,12 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Management.Automation;
 using System.Threading;
-using static System.Environment;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -50,11 +50,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter Prerelease { get; set; }
 
         /// <summary>
-        /// Specifies a user account that has rights to find a resource from a specific repository.
+        /// Specifies the repositories from which to search for the resource to be installed.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        // todo: add tab completion (look at get-psresourcerepository at the name parameter)
         //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
+        [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
 
@@ -66,22 +66,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public PSCredential Credential { get; set; }
 
         /// <summary>
-        /// Specifies to return any dependency packages.
-        /// Currently only used when name param is specified.
+        /// Specifies the scope of installation.
         /// </summary>
         [ValidateSet("CurrentUser", "AllUsers")]
         [Parameter(ParameterSetName = NameParameterSet)]
         //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public ScopeType Scope { get; set; }
-
-        /// <summary>
-        /// Overrides warning messages about installation conflicts about existing commands on a computer.
-        /// Overwrites existing commands that have the same name as commands being installed by a module. AllowClobber and Force can be used together in an Install-Module command.
-        /// Prevents installing modules that have the same cmdlets as a differently named module already
-        /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
-        public SwitchParameter NoClobber { get; set; }
 
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
@@ -111,14 +101,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public SwitchParameter AcceptLicense { get; set; }
 
+        /*
         /// <summary>
-        ///  
+        /// Prevents installation conflicts with modules that contain existing commands on a computer.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
+        public SwitchParameter NoClobber { get; set; }
+        */
+           
+        /*
+        /// <summary>
         /// </summary>
         [Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public String RequiredResourceFile { get; set; }
+        */
 
-        /// <summary>
-        ///  
+        /*
+        /// <summary> 
         /// </summary>
         [Parameter(ParameterSetName = RequiredResourceParameterSet)]
         public Object RequiredResource  // takes either string (json) or hashtable
@@ -142,6 +142,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _requiredResourceJson;
         private Hashtable _requiredResourceHash;
+        */
         #endregion
 
         #region members
@@ -175,12 +176,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             CancellationTokenSource source = new CancellationTokenSource();
             CancellationToken cancellationToken = source.Token;
 
-            var installHelper = new InstallHelper(update: false, save: false, cancellationToken, this);
+            var installHelper = new InstallHelper(update: false, save: false, cancellationToken: cancellationToken, this);
 
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    installHelper.ProcessInstallParams(Name, _versionRange, Prerelease, Repository, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
+                    installHelper.ProcessInstallParams(
+                        names: Name,
+                        versionRange: _versionRange,
+                        prerelease: Prerelease,
+                        repository: Repository,
+                        acceptLicense: AcceptLicense,
+                        quiet: Quiet,
+                        reinstall: Reinstall,
+                        force: false,
+                        trustRepository: TrustRepository,
+                        noClobber: false,
+                        credential: Credential,
+                        requiredResourceFile: null, 
+                        requiredResourceJson: null, 
+                        requiredResourceHash: null, 
+                        specifiedPath: null, 
+                        asNupkg: false, 
+                        includeXML: true, 
+                        pathsToInstallPkg: _pathsToInstallPkg);
                     break;
 
                 // TODO: make sure InputObject types are correct
@@ -216,7 +235,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 ThrowTerminatingError(InputObjIncorrectVersionFormat);
                             }
 
-                            installHelper.ProcessInstallParams(new[] { pkg.Name }, inputObjVersionRange, prerelease, Repository, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
+                            installHelper.ProcessInstallParams(
+                                names:  new[] { pkg.Name }, 
+                                versionRange: inputObjVersionRange, 
+                                prerelease: prerelease, 
+                                repository: Repository, 
+                                acceptLicense: AcceptLicense, 
+                                quiet: Quiet, 
+                                reinstall: Reinstall, 
+                                force: false, 
+                                trustRepository: TrustRepository, 
+                                noClobber: false, 
+                                credential: Credential, 
+                                requiredResourceFile: null, 
+                                requiredResourceJson: null, 
+                                requiredResourceHash: null, 
+                                specifiedPath: null, 
+                                asNupkg: false, 
+                                includeXML: true, 
+                                pathsToInstallPkg: _pathsToInstallPkg);
                         }
                     }
                     else if (InputObject[0].GetType().Name.Equals("PSModuleInfo"))
@@ -238,7 +275,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     ThrowTerminatingError(InputObjIncorrectVersionFormat);
                                 }
 
-                                installHelper.ProcessInstallParams(new[] { name }, inputObjVersionRange, prerelease, Repository, AcceptLicense, Quiet, Reinstall, force: false, TrustRepository, NoClobber, Credential, RequiredResourceFile, _requiredResourceJson, _requiredResourceHash, specifiedPath: null, asNupkg: false, includeXML: true, _pathsToInstallPkg);
+                                installHelper.ProcessInstallParams(
+                                    names: new[] { name }, 
+                                    versionRange: inputObjVersionRange, 
+                                    prerelease: prerelease, 
+                                    repository: Repository, 
+                                    acceptLicense: AcceptLicense, 
+                                    quiet: Quiet, 
+                                    reinstall: Reinstall, 
+                                    force: false, 
+                                    trustRepository: TrustRepository, 
+                                    noClobber: false, 
+                                    credential: Credential, 
+                                    requiredResourceFile: null, 
+                                    requiredResourceJson: null, 
+                                    requiredResourceHash: null, 
+                                    specifiedPath: null, 
+                                    asNupkg: false, 
+                                    includeXML: true, 
+                                    pathsToInstallPkg: _pathsToInstallPkg);
                             }
                         } 
                     }
