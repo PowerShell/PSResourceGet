@@ -148,7 +148,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     cmdletPassedIn.WriteDebug("Untrusted repository accepted as trusted source.");
 
                     // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
-                    var isLocalRepo = repo.Url.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter);
+                    var isLocalRepo = repo.Url.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
+
 
                     var cancellationToken = new CancellationToken();
                     var findHelper = new FindHelper(cancellationToken, cmdletPassedIn);
