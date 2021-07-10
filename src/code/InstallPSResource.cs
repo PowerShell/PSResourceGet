@@ -29,16 +29,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] Name { get; set; }
 
         /// <summary>
-        /// Used for pipeline input.
-        /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectSet)]
-        [ValidateNotNullOrEmpty]
-        public object[] InputObject { get; set; }
-        
-        /// <summary>
         /// Specifies the version or version range of the package to be installed
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
         
@@ -147,7 +140,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region members
         private const string NameParameterSet = "NameParameterSet";
-        private const string InputObjectSet = "InputObjectSet";
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
         List<string> _pathsToInstallPkg;
@@ -158,7 +150,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void BeginProcessing()
         {
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // an exact version will be formatted into a version range.
+            // An exact version will be formatted into a version range.
             if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";
@@ -176,7 +168,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             CancellationTokenSource source = new CancellationTokenSource();
             CancellationToken cancellationToken = source.Token;
 
-            var installHelper = new InstallHelper(update: false, save: false, cancellationToken: cancellationToken, this);
+            var installHelper = new InstallHelper(update: false, save: false, cancellationToken: cancellationToken, cmdletPassedIn: this);
 
             switch (ParameterSetName)
             {
@@ -201,117 +193,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         includeXML: true, 
                         pathsToInstallPkg: _pathsToInstallPkg);
                     break;
-
-                // TODO: make sure InputObject types are correct
-                // TODO: Consider switch statement of object type to clean up a bit
-                case InputObjectSet:
-                    if (InputObject[0].GetType().Name.Equals("PSModuleInfo"))
-                    {
-                        foreach (PSModuleInfo pkg in InputObject)
-                        {
-                            var prerelease = false;
-
-                            if (pkg.PrivateData != null)
-                            {
-                                Hashtable privateData = (Hashtable)pkg.PrivateData;
-                                if (privateData.ContainsKey("PSData"))
-                                {
-                                    Hashtable psData = (Hashtable)privateData["PSData"];
-
-                                    if (psData.ContainsKey("Prerelease") && !string.IsNullOrEmpty((string)psData["Prerelease"]))
-                                    {
-                                        prerelease = true;
-                                    }
-                                }
-                            }
-
-                            // Need to explicitly assign inputObjVersionRange in order to pass to ProcessInstallParams
-                            VersionRange inputObjVersionRange = new VersionRange();
-                            if (pkg.Version != null && !Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out inputObjVersionRange))
-                            {
-                                var exMessage = "Argument for version parameter is not in the proper format.";
-                                var ex = new ArgumentException(exMessage);
-                                var InputObjIncorrectVersionFormat = new ErrorRecord(ex, "InputObjIncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                                ThrowTerminatingError(InputObjIncorrectVersionFormat);
-                            }
-
-                            installHelper.ProcessInstallParams(
-                                names:  new[] { pkg.Name }, 
-                                versionRange: inputObjVersionRange, 
-                                prerelease: prerelease, 
-                                repository: Repository, 
-                                acceptLicense: AcceptLicense, 
-                                quiet: Quiet, 
-                                reinstall: Reinstall, 
-                                force: false, 
-                                trustRepository: TrustRepository, 
-                                noClobber: false, 
-                                credential: Credential, 
-                                requiredResourceFile: null, 
-                                requiredResourceJson: null, 
-                                requiredResourceHash: null, 
-                                specifiedPath: null, 
-                                asNupkg: false, 
-                                includeXML: true, 
-                                pathsToInstallPkg: _pathsToInstallPkg);
-                        }
-                    }
-                    else if (InputObject[0].GetType().Name.Equals("PSModuleInfo"))
-                    {
-                        foreach (PSObject pkg in InputObject)
-                        {
-                            if (pkg != null)
-                            {
-                                var name = (string)pkg.Properties["Name"].Value;
-                                var version = (NuGetVersion)pkg.Properties["Version"].Value;
-                                var prerelease = version.IsPrerelease;
-
-                                VersionRange inputObjVersionRange = new VersionRange();
-                                if (version != null && !Utils.TryParseVersionOrVersionRange(version.ToString(), out inputObjVersionRange))
-                                {
-                                    var exMessage = "Argument for version parameter is not in the proper format.";
-                                    var ex = new ArgumentException(exMessage);
-                                    var InputObjIncorrectVersionFormat = new ErrorRecord(ex, "InputObjIncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                                    ThrowTerminatingError(InputObjIncorrectVersionFormat);
-                                }
-
-                                installHelper.ProcessInstallParams(
-                                    names: new[] { name }, 
-                                    versionRange: inputObjVersionRange, 
-                                    prerelease: prerelease, 
-                                    repository: Repository, 
-                                    acceptLicense: AcceptLicense, 
-                                    quiet: Quiet, 
-                                    reinstall: Reinstall, 
-                                    force: false, 
-                                    trustRepository: TrustRepository, 
-                                    noClobber: false, 
-                                    credential: Credential, 
-                                    requiredResourceFile: null, 
-                                    requiredResourceJson: null, 
-                                    requiredResourceHash: null, 
-                                    specifiedPath: null, 
-                                    asNupkg: false, 
-                                    includeXML: true, 
-                                    pathsToInstallPkg: _pathsToInstallPkg);
-                            }
-                        } 
-                    }
-                    break;
-
+                    
                 case RequiredResourceFileParameterSet:
-                    // TODO: throw PSNotImplementedException
                     WriteDebug("Not yet implemented");
                     break;
 
                 case RequiredResourceParameterSet:
-                    // TODO: throw PSNotImplementedException
                     WriteDebug("Not yet implemented");
                     break;
 
                 default:
-                    // TODO: throw some kind of terminating error (unrecognized parameter set)
-                    // TODO: change to debug assert
                     WriteDebug("Invalid parameter set");
                     break;
             }
