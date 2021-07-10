@@ -695,7 +695,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static bool ParseMetadataIsPrerelease(IPackageSearchMetadata pkg)
         {
-            return pkg.Identity.Version.IsPrerelease;
+            return pkg.Identity?.Version?.IsPrerelease ?? false;
         }
 
         private static Uri ParseMetadataLicenseUri(IPackageSearchMetadata pkg)
