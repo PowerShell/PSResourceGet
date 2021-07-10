@@ -168,12 +168,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             CancellationTokenSource source = new CancellationTokenSource();
             CancellationToken cancellationToken = source.Token;
 
-            var installHelper = new InstallHelper(update: false, save: false, cancellationToken: cancellationToken, cmdletPassedIn: this);
+            var installHelper = new InstallHelper(updatePkg: false, savePkg: false, cancellationToken: cancellationToken, cmdletPassedIn: this);
 
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    installHelper.ProcessInstallParams(
+                    installHelper.InstallPackages(
                         names: Name,
                         versionRange: _versionRange,
                         prerelease: Prerelease,
