@@ -16,9 +16,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     internal static class Utils
     {
-                public static void WriteVerboseOnCmdlet(
-            PSCmdlet cmdlet,
-            string message)
+        public static void WriteVerboseOnCmdlet(
+        PSCmdlet cmdlet, string message)
         {
             try
             {
@@ -163,6 +162,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        // Returns paths to all installed resources, for example: 'c:\users\johndoe\Documents\PowerShell\Modules\TestModule'
         public static List<string> GetAllResourcePaths(PSCmdlet psCmdlet)
         {
             string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
@@ -235,7 +235,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pathsToSearch;
         }
 
-        // Find all potential installation paths given a scope
+        // Returns all potential installation paths given a scope, for example: 'c:\users\johndoe\Documents\PowerShell\Modules'
         public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
         {
             List<string> installationPaths = new List<string>();

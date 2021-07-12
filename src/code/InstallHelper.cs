@@ -45,7 +45,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         string _specifiedPath;
         bool _asNupkg;
         bool _includeXML;
-        List<string> _pathsToSearch;
 
         public InstallHelper(bool updatePkg, bool savePkg, CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
         {
@@ -185,16 +184,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
                     }
 
-                    if (!pkgsFromRepoToInstall.Any()) continue;
+                    if (!pkgsFromRepoToInstall.Any())
+                    {
+                        continue;
+                    }
 
                     List<string> pkgsInstalled = InstallPackage(pkgsFromRepoToInstall, repoName, repo.Url.AbsoluteUri, credential, isLocalRepo);
 
                     foreach (string name in pkgsInstalled)
                     {
-                        if (packagesToInstall.Contains(name))
-                        {
-                            packagesToInstall.Remove(name);
-                        }
+                        packagesToInstall.Remove(name);
                     }
                 }
             }
@@ -209,7 +208,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pkgNames.Add(pkg.Name);
             }
 
-            _pathsToSearch = new List<string>();
+            List<string> _pathsToSearch = new List<string>();
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
             foreach (var path in _pathsToInstallPkg)
@@ -294,24 +293,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             continue;
                         }
-                        else
-                        {
-                            // Create the package extraction context
-                            PackageExtractionContext packageExtractionContext = new PackageExtractionContext(
-                                 packageSaveMode: PackageSaveMode.Nupkg,
-                                 xmlDocFileSaveMode: PackageExtractionBehavior.XmlDocFileSaveMode,
-                                 clientPolicyContext: null,
-                                 logger: NullLogger.Instance);
+                        
+                        // Create the package extraction context
+                        PackageExtractionContext packageExtractionContext = new PackageExtractionContext(
+                                packageSaveMode: PackageSaveMode.Nupkg,
+                                xmlDocFileSaveMode: PackageExtractionBehavior.XmlDocFileSaveMode,
+                                clientPolicyContext: null,
+                                logger: NullLogger.Instance);
 
-                            // Extracting from .nupkg and placing files into tempInstallPath
-                            result.PackageReader.CopyFiles(
-                                destination: tempInstallPath,
-                                packageFiles: result.PackageReader.GetFiles(),
-                                extractFile: (new PackageFileExtractor(result.PackageReader.GetFiles(), packageExtractionContext.XmlDocFileSaveMode)).ExtractPackageFile,
-                                logger: NullLogger.Instance,
-                                token: _cancellationToken);
-                            result.Dispose();
-                        }
+                        // Extracting from .nupkg and placing files into tempInstallPath
+                        result.PackageReader.CopyFiles(
+                            destination: tempInstallPath,
+                            packageFiles: result.PackageReader.GetFiles(),
+                            extractFile: (new PackageFileExtractor(result.PackageReader.GetFiles(), packageExtractionContext.XmlDocFileSaveMode)).ExtractPackageFile,
+                            logger: NullLogger.Instance,
+                            token: _cancellationToken);
+                        result.Dispose();
                     }
                     else
                     {
@@ -347,21 +344,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             if (result != null) result.Dispose();
                         }
 
-                        if (_asNupkg)  // Save functionality
+                        // Save functionality
+                        if (_asNupkg)
                         {
-                            /*
-                            // Simply move the .nupkg from the temp installation path to the specified path (the path passed in via param value)
-                            var tempPkgIdPath = System.IO.Path.Combine(tempInstallPath, p.Identity.Id, p.Identity.Version.ToString());
-                            var tempPkgVersionPath = System.IO.Path.Combine(tempPkgIdPath, p.Identity.Id.ToLower() + "." + p.Identity.Version + ".nupkg");
-                            var newSavePath = System.IO.Path.Combine(_specifiedPath, p.Identity.Id + "." + p.Identity.Version + ".nupkg");
-
-                            // TODO: path should be preprocessed/resolved
-                            File.Move(tempPkgVersionPath, _specifiedPath);
-
-                            //packagesToInstall.Remove(pkgName);
-
-                            continue;
-                            */
                         }
                     }
 
@@ -407,8 +392,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var installPath = isScript ? _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase))
                             : _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
 
-                    if (_includeXML) CreateMetadataXMLFile(tempDirNameVersion, installPath, repoName, p, isScript);
-                    
+                    if (_includeXML)
+                    {
+                        CreateMetadataXMLFile(tempDirNameVersion, installPath, repoName, p, isScript);
+                    }
+
                     if (_savePkg)
                     {
                         //TODO:  SavePackage
