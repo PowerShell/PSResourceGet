@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             VersionRange versionRange = new VersionRange();
 
-            // TODO: discuss with Paul
+            // TODO: discuss with Paul + then update test for incorrectly formatted version
             if (Version !=null && !Utils.TryParseVersionOrVersionRange(Version, out versionRange))
             {
                 WriteError(new ErrorRecord(
@@ -184,20 +184,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 GetHelper getHelper = new GetHelper(
                     cmdletPassedIn: this);
 
-                // List<string> finalNames = new List<string>();
-                // foreach (PSResourceInfo pkg in getHelper.ProcessGetParams(
-                //     name: Name,
-                //     versionRange: versionRange,
-                //     pathsToSearch: Utils.GetAllResourcePaths(this)))
-                // {
-                //     finalNames.Add(pkg.Name);
-                // }
                 Name = getHelper.FilterPkgPaths(
                     name: Name,
                     versionRange: versionRange,
                     pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
             }
-            WriteVerbose("names after GetHelper.ProcessGetParams: " + String.Join(", ", Name));
+            WriteVerbose("names after GetHelper.ProcessGetParams: " + String.Join(", ", Name)); // TODO: remove this!
 
             InstallHelper installHelper = new InstallHelper(
                 update: true,
@@ -224,9 +216,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         requiredResourceFile: null,
                         requiredResourceJson: null,
                         requiredResourceHash: null,
-                        specifiedPath: null, // todo: confirm
-                        asNupkg: false, // todo: confirm
-                        includeXML: true, // todo: confirm!
+                        specifiedPath: null,
+                        asNupkg: false,
+                        includeXML: true,
                         pathsToInstallPkg: Utils.GetAllInstallationPaths(this, String.Equals(Scope.ToString(), "None", StringComparison.InvariantCultureIgnoreCase) ? "" : Scope.ToString()));
                     break;
 
