@@ -1,47 +1,36 @@
 parameters:
   jobName: release
-  imageName: windows-latest
-  displayName: 'Release PowerShellGet to NuGet'
+  displayName: 'Release PowerShellGet to PSGallery'
 
 jobs:
 - job: ${{ parameters.jobName }}
   pool:
-    vmImage: ${{ parameters.imageName }}
+    name: 1ES
+    demands:
+    - ImageOverride -equals MMS2019
   displayName: ${{ parameters.displayName }}
 
   steps:
-  - task: NuGetToolInstaller@1
-    displayName: 'Install NuGet 5.6.0'
-    inputs:
-      checkLatest: false
-      version: 5.6.0
-
-  - task: DownloadBuildArtifacts@0
+  
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download PowerShellGet module artifacts'
     inputs:
-      buildType: current
-      downloadType: specific
-      artifactName: '**/*.nupkg'
-      downloadPath: '$(System.ArtifactsDirectory)'
+      artifact: nupkg
+      patterns: '**/*.nupkg'
+      downloadPath: '$(Pipeline.Workspace)/nuget'
 
   - powershell: |
-      Get-ChildItem '$(System.ArtifactsDirectory)/nupkg/PowerShellGet.*.nupkg' -ErrorAction SilentlyContinue
-      # Get-ChildItem '$(System.ArtifactsDirectory)' -Recurse
-    displayName: 'Capture PowerShellGet module NuGet package'
+      $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/PowerShellGet.*.nupkg').FullName
+      $package
+      $vstsCommandString = "vso[task.setvariable variable=NugetPkgPath]${package}"
+      Write-Host "sending " + $vstsCommandString
+      Write-Host "##$vstsCommandString"
+    displayName: 'Capture PowerShellGet module NuGet package path and set environment variable'
 
-  # TODO: Need to create NuGet service connection
-  #- task: NuGetCommand@2
-  #  displayName: 'Push Microsoft.PowerShell.Store module artifacts to AzArtifactsFeed'
-  #  inputs:
-  #    command: push
-  #    packagesToPush: '$(System.ArtifactsDirectory)/nupkg/PowerShellGet.*.nupkg'
-  #    nuGetFeedType: external
-  #    publishFeedCredentials: AzArtifactFeed
-
-  #- task: NuGetCommand@2
-    #  displayName: 'Push Microsoft.PowerShell.Store module artifacts to PSGallery feed'
-    #  inputs:
-    #    command: push
-    #    packagesToPush: '$(System.ArtifactsDirectory)/nupkg/PowerShellGet.*.nupkg'
-    #    nuGetFeedType: external
-    #    publishFeedCredentials: PHPowerShellGalleryFeed
+  - task: NuGetCommand@2
+    displayName: 'Push Microsoft.PowerShell.Store module artifacts to PSGallery feed'
+    inputs:
+      command: push
+      packagesToPush: '$(NugetPkgPath)'
+      nuGetFeedType: external
+      publishFeedCredentials: PSGalleryPush
