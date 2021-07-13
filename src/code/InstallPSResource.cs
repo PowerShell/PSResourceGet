@@ -151,7 +151,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // An exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            if (ParameterSetName.Equals(NameParameterSet) && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";
                 var ex = new ArgumentException(exMessage);
