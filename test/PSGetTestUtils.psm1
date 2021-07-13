@@ -166,6 +166,13 @@ function Get-RemoveTestDirs {
     }
 }
 
+function Create-TemporaryDirectory {
+    $path = [System.IO.Path]::GetTempPath()
+    $child = [System.Guid]::NewGuid()
+
+    return New-Item -ItemType Directory -Path (Join-Path $path $child) 
+}
+
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
     $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"

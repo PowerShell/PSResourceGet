@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
 using System.Linq;
 using System.Management.Automation;
@@ -33,6 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         private CancellationTokenSource _source;
         private CancellationToken _cancellationToken;
+        private List<string> _pathsToInstallPkg;
 
         #endregion
 
@@ -122,6 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             _source = new CancellationTokenSource();
             _cancellationToken = _source.Token;
+            _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
         }
 
         protected override void StopProcessing()
@@ -182,20 +185,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             InstallHelper installHelper = new InstallHelper(
-                update: true,
-                save: false,
+                updatePkg: true,
+                savePkg: false,
                 cancellationToken: _cancellationToken,
                 cmdletPassedIn: this);
 
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    installHelper.ProcessInstallParams(
+                    installHelper.InstallPackages(
                         names: Name,
                         versionRange: versionRange,
                         prerelease: Prerelease,
                         repository: Repository,
-                        scope: String.Equals(Scope.ToString(), "None", StringComparison.InvariantCultureIgnoreCase) ? "" : Scope.ToString(),
                         acceptLicense: AcceptLicense,
                         quiet: Quiet,
                         reinstall: false,
@@ -209,9 +211,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         specifiedPath: null,
                         asNupkg: false,
                         includeXML: true,
-                        pathsToInstallPkg: Utils.GetAllInstallationPaths(
-                            psCmdlet: this,
-                            scope: String.Equals(Scope.ToString(), "None", StringComparison.InvariantCultureIgnoreCase) ? "" : Scope.ToString()));
+                        pathsToInstallPkg: _pathsToInstallPkg);
                     break;
 
                 case InputObjectParameterSet:

@@ -42,8 +42,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     public enum ScopeType
     {
         None,
-        AllUsers,
-        CurrentUser
+        CurrentUser,
+        AllUsers
     }
 
     #endregion
@@ -533,7 +533,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<Dependency> dependenciesFound = new List<Dependency>();
             if (dependencyInfos == null) { return dependenciesFound.ToArray(); }
 
-            
+
             foreach(PSObject dependencyObj in dependencyInfos)
             {
                 // can be an array or hashtable
@@ -695,7 +695,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static bool ParseMetadataIsPrerelease(IPackageSearchMetadata pkg)
         {
-            return pkg.Identity.Version.IsPrerelease;
+            return pkg.Identity?.Version?.IsPrerelease ?? false;
         }
 
         private static Uri ParseMetadataLicenseUri(IPackageSearchMetadata pkg)

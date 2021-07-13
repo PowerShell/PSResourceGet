@@ -17,8 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     internal static class Utils
     {
         public static void WriteVerboseOnCmdlet(
-            PSCmdlet cmdlet,
-            string message)
+        PSCmdlet cmdlet, string message)
         {
             try
             {
@@ -211,6 +210,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        // Returns paths to all installed resources, for example: 'c:\users\johndoe\Documents\PowerShell\Modules\TestModule'
         public static List<string> GetAllResourcePaths(PSCmdlet psCmdlet)
         {
             string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
@@ -283,15 +283,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pathsToSearch;
         }
 
-        // Find all potential installation paths given a scope
-        public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, string scope)
+        // Returns all potential installation paths given a scope, for example: 'c:\users\johndoe\Documents\PowerShell\Modules'
+        public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
         {
             List<string> installationPaths = new List<string>();
             var PSVersion6 = new Version(6, 0);
             var isCorePS = psCmdlet.Host.Version >= PSVersion6;
             string myDocumentsPath;
             string programFilesPath;
-            scope = String.IsNullOrEmpty(scope) ? string.Empty : scope;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -311,7 +310,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // If no explicit specification, will return PSModulePath, and then CurrentUser paths
             // Installation will search for a /Modules or /Scripts directory
             // If they are not available within one of the paths in PSModulePath, the CurrentUser path will be used.
-            if (string.IsNullOrEmpty(scope))
+            if (scope == ScopeType.None)
             {
                 string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
                 installationPaths = psModulePath.Split(';').ToList();
@@ -319,13 +318,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
             }
             // If user explicitly specifies AllUsers
-            if (scope.Equals("AllUsers"))
+            else if (scope == ScopeType.AllUsers)
             {
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
             }
             // If user explicitly specifies CurrentUser
-            else if (scope.Equals("CurrentUser"))
+            else if (scope == ScopeType.CurrentUser)
             {
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
