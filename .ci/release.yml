@@ -15,7 +15,7 @@ jobs:
   - task: DownloadPipelineArtifact@2
     displayName: 'Download PowerShellGet module artifacts'
     inputs:
-      artifact: nugetpkg
+      artifact: nupkg
       patterns: '**/*.nupkg'
       downloadPath: '$(Pipeline.Workspace)/nuget'
 
