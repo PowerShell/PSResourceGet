@@ -16,11 +16,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     AfterEach {
-        Uninstall-PSResource "TestModule"
-        Uninstall-PSResource "TestModule99"
-        Uninstall-PSResource "TestModuleWithLicense"
-        Uninstall-PSResource "PSGetTestModule"
-
+        Uninstall-PSResource "TestModule", "TestModule99", "TestModuleWithLicense", "PSGetTestModule"
     }
 
     AfterAll {
@@ -32,16 +28,17 @@ Describe 'Test Install-PSResource for Module' {
 
         Update-PSResource -Name "TestModule" -Repository $TestGalleryName
         $res = Get-InstalledPSResource -Name "TestModule"
+
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
             {
                 $isPkgUpdated = $true
             }
         }
 
-        $isPkgUpdated | Should -BeTrue
+        $isPkgUpdated | Should -Be $true
     }
 
     It "update resources installed given Name (with wildcard) parameter" {
@@ -71,16 +68,7 @@ Describe 'Test Install-PSResource for Module' {
 
         $isTestModuleUpdated | Should -BeTrue
         $isTestModule99Updated | Should -BeTrue
-
     }
-
-    # It "update resources installed given Name (with wildcard) and Version (specific -supported? and with wildcard -supported?) " {
-    #     # TODO: determine support!
-    #     # Name (wc) + Version (specific) -> unsupported or update which ones have that version but say/write error if that version doesn't exist for that pkg
-    #     # Name (wc) + Version ("*") -> is perhaps what's supported by default/happening by default
-    #     # NAme (wc) + Version ("1.0.0.*") -> supported?
-
-    # }
 
     It "update resource installed given Name and Version (specific) parameters" {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
@@ -99,9 +87,53 @@ Describe 'Test Install-PSResource for Module' {
         $isPkgUpdated | Should -BeTrue
     }
 
-    # It "update resource when given Name and incorrectly formatted version" {
+    $testCases2 = @{Version="[2.10.0.0]";          ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match"},
+                  @{Version="2.10.0.0";            ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, exact range inclusive"},
+                  @{Version="(2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0"); Reason="validate version, exact range exclusive"},
+                  @{Version="(2.9.4.0,)";          ExpectedVersions=@("2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version exclusive"},
+                  @{Version="[2.9.4.0,)";          ExpectedVersions=@("2.9.4.0", "2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version inclusive"},
+                  @{Version="(,2.0.0.0)";          ExpectedVersions=@("1.9.0.0"); Reason="validate version, maximum version exclusive"},
+                  @{Version="(,2.0.0.0]";          ExpectedVersions=@("1.9.0.0", "2.0.0.0"); Reason="validate version, maximum version inclusive"},
+                  @{Version="[2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
-    # }
+    It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+        param($Version, $ExpectedVersions)
+
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
+        Update-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName
+
+        $res = Get-InstalledPSResource -Name "TestModule"
+
+        foreach ($item in $res) {
+            $item.Name | Should -Be "TestModule"
+            $ExpectedVersions | Should -Contain $item.Version
+        }
+    }
+
+    $testCases = @(
+        @{Version='(1.2.0.0)';       Description="exclusive version (2.10.0.0)"},
+        @{Version='[1-2-0-0]';       Description="version formatted with invalid delimiter [1-2-0-0]"}
+    )
+    It "Should not update resource with incorrectly formatted version such as <Description>" -TestCases $testCases{
+        param($Version, $Description)
+
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
+        Update-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName
+
+        $res = Get-InstalledPSResource -Name "TestModule"
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            {
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -Be $false
+    }
 
     It "update resource with latest (including prerelease) version given Prerelease parameter" {
         # PSGetTestModule resource's latest version is a prerelease version, before that it has a non-prerelease version
@@ -115,7 +147,7 @@ Describe 'Test Install-PSResource for Module' {
         {
             if ([System.Version]$pkg.Version -gt [System.Version]"1.0.2.0")
             {
-                Write-Host $pkg.Version" and prerelease data is:"$pkg.PrivateData.PSData.Prerelease"yep that it"
+                Write-Host $pkg.Version" and prerelease data is:"$pkg.PrivateData.PSData.Prerelease"."
                 # $pkg.PrereleaseLabel | Should -Be "-alpha1" (todo: for some reason get-installedpsresource doesn't get this!)
                 $isPkgUpdated = $true
             }
@@ -237,20 +269,6 @@ Describe 'Test Install-PSResource for Module' {
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
 
-    # TODO: slightly confused about NoClobber parameter for Update...if I had already installed
-    # myTestModule and wanted to update it would NoClobber not allow it to update (bc this new updated version contains the same cmdlets
-    # as the older installed version)?
-    # It "update resource with cmdlet names from a module already installed (should clobber)" {
-    #     Install-PSResource -Name "myTestModule" -Repository $TestGalleryName
-    #     $pkg = Get-InstalledPSResource "myTestModule"
-    #     $pkg.Name | Should -Be "myTestModule"
-    #     $pkg.Version | Should -Be "0.0.3.0"
-
-    #     Install-PSResource -Name "myTestModule2" -Repository $TestGalleryName
-    #     $pkg = Get-InstalledPSResource "myTestModule2"
-    #     $pkg.Name | Should -Be "myTestModule2"
-    #     $pkg.Version | Should -Be "0.0.1.0"
-    # }
 
     # update script resource
     # Name
@@ -260,7 +278,6 @@ Describe 'Test Install-PSResource for Module' {
     # AcceptLicense
     # TrustRepository
     # Credential
-    # NoClobber
     # InputObject
 
 

@@ -44,8 +44,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public string[] Name { get; set; }
-        // TODO: create a default string with "*"
+        public string[] Name { get; set ; } = new string[] {"*"};
 
         /// <summary>
         /// Specifies the version the resource is to be updated to.
@@ -110,13 +109,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter Force { get; set; }
 
         /// <summary>
-        /// Prevents updating modules that have the same cmdlets as a differently named module already.
-        /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
-        public SwitchParameter NoClobber { get; set; }
-
-        /// <summary>
         /// Used to pass in an object via pipeline to update.
         /// </summary>
         [Parameter(ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
@@ -164,7 +156,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             VersionRange versionRange = new VersionRange();
 
-            // TODO: discuss with Paul + then update test for incorrectly formatted version
             if (Version !=null && !Utils.TryParseVersionOrVersionRange(Version, out versionRange))
             {
                 WriteError(new ErrorRecord(
@@ -172,7 +163,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     "ErrorParsingVersionParamIntoVersionRange",
                     ErrorCategory.InvalidArgument,
                     this));
-                versionRange = VersionRange.All; // or should I return here instead?
+                return;
             }
 
             if (isContainWildcard)
@@ -189,7 +180,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     versionRange: versionRange,
                     pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
             }
-            WriteVerbose("names after GetHelper.ProcessGetParams: " + String.Join(", ", Name)); // TODO: remove this!
 
             InstallHelper installHelper = new InstallHelper(
                 update: true,
@@ -211,7 +201,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         reinstall: false,
                         force: Force,
                         trustRepository: TrustRepository,
-                        noClobber: NoClobber,
+                        noClobber: false,
                         credential: Credential,
                         requiredResourceFile: null,
                         requiredResourceJson: null,
@@ -219,7 +209,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         specifiedPath: null,
                         asNupkg: false,
                         includeXML: true,
-                        pathsToInstallPkg: Utils.GetAllInstallationPaths(this, String.Equals(Scope.ToString(), "None", StringComparison.InvariantCultureIgnoreCase) ? "" : Scope.ToString()));
+                        pathsToInstallPkg: Utils.GetAllInstallationPaths(
+                            psCmdlet: this,
+                            scope: String.Equals(Scope.ToString(), "None", StringComparison.InvariantCultureIgnoreCase) ? "" : Scope.ToString()));
                     break;
 
                 case InputObjectParameterSet:
@@ -227,7 +219,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 default:
-                    // TODO: the case where no name was specified so we update all packages?
                     Dbg.Assert(false, "Invalid parameter set");
                     break;
             }
