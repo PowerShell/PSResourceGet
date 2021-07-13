@@ -536,7 +536,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             foreach(PSObject dependencyObj in dependencyInfos)
             {
-                // can be an array or hashtable
+                // The dependency object can be a string or a hashtable
+                // eg: 
+                // RequiredModules = @('PSGetTestDependency1') 
+                // RequiredModules = @(@{ModuleName='PackageManagement';ModuleVersion='1.0.0.1'})
                 if (dependencyObj.BaseObject is Hashtable dependencyInfo)
                 {
                     if (!dependencyInfo.ContainsKey("Name"))

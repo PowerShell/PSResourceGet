@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using NuGet.Versioning;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using Dbg = System.Diagnostics.Debug;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Threading;
-using static System.Environment;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -146,7 +145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             CancellationTokenSource source = new CancellationTokenSource();
             CancellationToken cancellationToken = source.Token;
 
-            var installHelper = new InstallHelper(updatePkg: false, savePkg: true, cancellationToken, this);
+            var installHelper = new InstallHelper(updatePkg: false, savePkg: true, cancellationToken: cancellationToken, cmdletPassedIn: this);
 
             switch (ParameterSetName)
             {
@@ -173,7 +172,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 default:
-                    WriteDebug("Invalid parameter set");
+                    Dbg.Assert(false, "Invalid parameter set");
                     break;
             }
         }

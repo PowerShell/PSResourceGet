@@ -161,16 +161,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         credential: credential,
                         includeDependencies: true);
 
-                    // Deduplicate any packages
-                    pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
-                        m => new { m.Name, m.Version }).Select(
-                            group => group.First()).ToList();
-
-                    // Make sure only the latest version of a module gets installed
+                    // Select the first package from each name group, which is guaranteed to be the latest version.
+                    // We should only have one version returned for each package name
+                    // e.g.:
+                    // PackageA (version 1.0)
+                    // PackageB (version 2.0)
+                    // PackageC (version 1.0)
                     pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
                         m => new { m.Name }).Select(
                             group => group.First()).ToList();
-
+                    
                     if (!pkgsFromRepoToInstall.Any())
                     {
                         _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
@@ -212,6 +212,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> _pathsToSearch = new List<string>();
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
+            // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
+            // e.g.:
+            // ./InstallPackagePath1/PackageA
+            // ./InstallPackagePath1/PackageB
+            // ./InstallPackagePath2/PackageC
+            // ./InstallPackagePath3/PackageD
             foreach (var path in _pathsToInstallPkg)
             {
                 _pathsToSearch.AddRange(Directory.GetDirectories(path));
@@ -268,7 +274,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!NuGetVersion.TryParse(createFullVersion, out NuGetVersion pkgVersion))
                     {
-                        _cmdletPassedIn.WriteDebug("Error parsing version into a NuGetVersion");
+                        _cmdletPassedIn.WriteDebug(string.Format("Error parsing package '{0}' version '{1}' into a NuGetVersion", p.Name, p.Version.ToString()));
+                        continue;
                     }
                     var pkgIdentity = new PackageIdentity(p.Name, pkgVersion);
                     var cacheContext = new SourceCacheContext();
@@ -313,6 +320,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
+                        /* Download from a non-local repository */
                         // Set up NuGet API resource for download
                         PackageSource source = new PackageSource(repoUrl);
                         if (credential != null)
