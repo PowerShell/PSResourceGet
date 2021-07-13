@@ -16,7 +16,7 @@
         'Get-PSResourceRepository',
         'Install-PSResource',
         'Register-PSResourceRepository',
-        # 'Save-PSResource',
+        'Save-PSResource',
         'Set-PSResourceRepository',
         'Publish-PSResource',
         'Uninstall-PSResource',
