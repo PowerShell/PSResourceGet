@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using NuGet.Versioning;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using Dbg = System.Diagnostics.Debug;
 using System.Management.Automation;
 using System.Threading;
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -39,14 +39,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies to allow installation of prerelease versions
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public SwitchParameter Prerelease { get; set; }
 
         /// <summary>
         /// Specifies the repositories from which to search for the resource to be installed.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
@@ -55,7 +53,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public PSCredential Credential { get; set; }
 
         /// <summary>
@@ -63,79 +60,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [ValidateSet("CurrentUser", "AllUsers")]
         [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public ScopeType Scope { get; set; }
 
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public SwitchParameter TrustRepository { get; set; }
 
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public SwitchParameter Reinstall { get; set; }
 
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         public SwitchParameter AcceptLicense { get; set; }
-
-        /*
-        /// <summary>
-        /// Prevents installation conflicts with modules that contain existing commands on a computer.
-        /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        //[Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
-        public SwitchParameter NoClobber { get; set; }
-        */
-           
-        /*
-        /// <summary>
-        /// </summary>
-        [Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
-        public String RequiredResourceFile { get; set; }
-        */
-
-        /*
-        /// <summary> 
-        /// </summary>
-        [Parameter(ParameterSetName = RequiredResourceParameterSet)]
-        public Object RequiredResource  // takes either string (json) or hashtable
-        {
-            get { return _requiredResourceHash != null ? (Object)_requiredResourceHash : (Object)_requiredResourceJson; }
-
-            set {
-                if (value.GetType().Name.Equals("String"))
-                {
-                    _requiredResourceJson = (String) value;
-                }
-                else if (value.GetType().Name.Equals("Hashtable"))
-                {
-                    _requiredResourceHash = (Hashtable) value;
-                }
-                else
-                {
-                    throw new ParameterBindingException("Object is not a JSON or Hashtable");
-                }
-            }
-        }
-        private string _requiredResourceJson;
-        private Hashtable _requiredResourceHash;
-        */
         #endregion
 
         #region members
@@ -195,15 +144,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
                     
                 case RequiredResourceFileParameterSet:
-                    WriteDebug("Not yet implemented");
+                    ThrowTerminatingError(new ErrorRecord(
+                                           new PSNotImplementedException("RequiredResourceFileParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
+                                           "CommandParameterSetNotImplementedYet",
+                                           ErrorCategory.NotImplemented,
+                                           this));
                     break;
 
                 case RequiredResourceParameterSet:
-                    WriteDebug("Not yet implemented");
+                    ThrowTerminatingError(new ErrorRecord(
+                                           new PSNotImplementedException("RequiredResourceParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
+                                           "CommandParameterSetNotImplementedYet",
+                                           ErrorCategory.NotImplemented,
+                                           this));
                     break;
 
                 default:
-                    WriteDebug("Invalid parameter set");
+                    Dbg.Assert(false, "Invalid parameter set");
                     break;
             }
         }
