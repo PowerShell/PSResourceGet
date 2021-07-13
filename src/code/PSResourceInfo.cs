@@ -710,9 +710,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static string ParsePrerelease(IPackageSearchMetadata pkg)
         {
-            return pkg.Identity.Version.ReleaseLabels.Count() == 0 ?
-                String.Empty :
-                pkg.Identity.Version.ReleaseLabels.FirstOrDefault();
+            return pkg.Identity.Version.ReleaseLabels.Count() > 0 ?
+                pkg.Identity.Version.ReleaseLabels.FirstOrDefault() :
+                String.Empty;
         }
 
         private static Uri ParseMetadataProjectUri(IPackageSearchMetadata pkg)
@@ -802,15 +802,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             var additionalMetadata = new PSObject();
 
-            // Need to add a null check here due to null ref exception getting thrown
-            if (AdditionalMetadata != null)
-            {
-                foreach (var item in AdditionalMetadata)
-                {
-                    additionalMetadata.Properties.Add(new PSNoteProperty(item.Key, item.Value));
-                }
+            AdditionalMetadata.Add(nameof(IsPrerelease), IsPrerelease.ToString());
 
+            foreach (var item in AdditionalMetadata)
+            {
+                additionalMetadata.Properties.Add(new PSNoteProperty(item.Key, item.Value));
             }
+
             var psObject = new PSObject();
             psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Version), ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel)));
