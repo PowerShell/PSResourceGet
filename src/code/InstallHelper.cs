@@ -359,12 +359,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Prompt if module requires license acceptance (need to read info license acceptance info from the module manifest)
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.
 
+                    // 1.2.7.5 
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
-                    string version3digitNoPrerelease = newVersion;
+              
+                    //
+                    string normalizedVersion = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
                     {
+                        // 2.0.2
                         version3digitNoPrerelease = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
                     }
+                    p.Version = version3digitNoPrerelease;
 
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();

@@ -12,7 +12,6 @@ using System.Management.Automation;
 using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
-using System.Reflection;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -37,13 +36,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         MinimumVersion,
         RequiredVersion,
         MaximumVersion
-    }
-
-    public enum ScopeType
-    {
-        None,
-        CurrentUser,
-        AllUsers
     }
 
     #endregion
@@ -225,6 +217,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
+        #region Constructor
+        #endregion
+
         #region Private fields
         private static readonly char[] Delimeter = {' ', ','};
 
@@ -368,19 +363,24 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 string pkgVersion = versionString;
                 if (versionString.Contains("-"))
                 {
+                    // versionString: "1.2.0-alpha1"
                     string[] versionStringParsed = versionString.Split('-');
                     if (versionStringParsed.Length == 1)
                     {
+                        // versionString: "1.2.0-" (unlikely, at least should not be from our PSResourceInfo.TryWrite())
                         pkgVersion = versionStringParsed[0];
                     }
                     else
                     {
                         // versionStringParsed.Length > 1 (because string contained '-' so couldn't be 0)
+                        // versionString: "1.2.0-alpha1"
                         pkgVersion = versionStringParsed[0];
                         prereleaseLabel = versionStringParsed[1];
                     }
                 }
 
+                // at this point, version is normalized (i.e either "1.2.0" (if part of prerelease) or "1.2.0.0" otherwise)
+                // parse the pkgVersion parsed out above into a System.Version object
                 if (!Version.TryParse(pkgVersion, out Version parsedVersion))
                 {
                     prereleaseLabel = String.Empty;
@@ -392,6 +392,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
             }
 
+            // version could not be parsed as string, it was written to XML file as a System.Version object
+            // V3 code briefly did so, I believe so we provide support for it
             prereleaseLabel = String.Empty;
             return GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo);
         }
@@ -533,12 +535,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<Dependency> dependenciesFound = new List<Dependency>();
             if (dependencyInfos == null) { return dependenciesFound.ToArray(); }
 
-            
+
             foreach(PSObject dependencyObj in dependencyInfos)
             {
                 // The dependency object can be a string or a hashtable
-                // eg: 
-                // RequiredModules = @('PSGetTestDependency1') 
+                // eg:
+                // RequiredModules = @('PSGetTestDependency1')
                 // RequiredModules = @(@{ModuleName='PackageManagement';ModuleVersion='1.0.0.1'})
                 if (dependencyObj.BaseObject is Hashtable dependencyInfo)
                 {
@@ -635,22 +637,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static string ConcatenateVersionWithPrerelease(string version, string prerelease)
         {
-            // if no prerelease, just version suffices
-            if (String.IsNullOrEmpty(prerelease))
-            {
-                return version;
-            }
-
-            int numVersionDigits = version.Split('.').Count();
-            if (numVersionDigits == 3)
-            {
-                // 0.5.3 -> version string , preview4 -> prerelease string , return: 5.3.0-preview4
-                return version + "-" + prerelease;
-            }
-
-
-            // number of digits not equivalent to 3 was not supported in V2
-            return version;
+            return Utils.GetNormalizedVersionString(version, prerelease);
         }
 
 
@@ -713,9 +700,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static string ParsePrerelease(IPackageSearchMetadata pkg)
         {
-            return pkg.Identity.Version.ReleaseLabels.Count() == 0 ?
-                String.Empty :
-                pkg.Identity.Version.ReleaseLabels.FirstOrDefault();
+            return pkg.Identity.Version.ReleaseLabels.Count() > 0 ?
+                pkg.Identity.Version.ReleaseLabels.FirstOrDefault() :
+                String.Empty;
         }
 
         private static Uri ParseMetadataProjectUri(IPackageSearchMetadata pkg)
@@ -803,20 +790,44 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private PSObject ConvertToCustomObject()
         {
+            // 1.0.0-alpha1
+            // 1.0.0.0
+            string NormalizedVersion = IsPrerelease ? ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel) : Version.ToString();
+
             var additionalMetadata = new PSObject();
 
-            // Need to add a null check here due to null ref exception getting thrown
-            if (AdditionalMetadata != null)
+            if (AdditionalMetadata == null)
             {
-                foreach (var item in AdditionalMetadata)
-                {
-                    additionalMetadata.Properties.Add(new PSNoteProperty(item.Key, item.Value));
-                }
-
+                AdditionalMetadata = new Dictionary<string, string>();
             }
+
+            if (!AdditionalMetadata.ContainsKey(nameof(IsPrerelease)))
+            {
+                AdditionalMetadata.Add(nameof(IsPrerelease), IsPrerelease.ToString());
+            }
+            else
+            {
+                AdditionalMetadata[nameof(IsPrerelease)] = IsPrerelease.ToString();
+            }
+
+            // This is added for V2, V3 does not need it.
+            if (!AdditionalMetadata.ContainsKey(nameof(NormalizedVersion)))
+            {
+                AdditionalMetadata.Add(nameof(NormalizedVersion), NormalizedVersion);
+            }
+            else
+            {
+                AdditionalMetadata[nameof(NormalizedVersion)] = NormalizedVersion;
+            }
+
+            foreach (var item in AdditionalMetadata)
+            {
+                additionalMetadata.Properties.Add(new PSNoteProperty(item.Key, item.Value));
+            }
+
             var psObject = new PSObject();
             psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name ?? string.Empty));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Version), ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel)));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Version), NormalizedVersion));
             psObject.Properties.Add(new PSNoteProperty(nameof(Type), Type));
             psObject.Properties.Add(new PSNoteProperty(nameof(Description), Description ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Author), Author ?? string.Empty));
@@ -824,6 +835,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(Copyright), Copyright ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(PublishedDate), PublishedDate));
             psObject.Properties.Add(new PSNoteProperty(nameof(InstalledDate), InstalledDate));
+            psObject.Properties.Add(new PSNoteProperty(nameof(IsPrerelease), IsPrerelease));
             psObject.Properties.Add(new PSNoteProperty(nameof(UpdatedDate), UpdatedDate));
             psObject.Properties.Add(new PSNoteProperty(nameof(LicenseUri), LicenseUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(ProjectUri), ProjectUri));
