@@ -535,98 +535,82 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             foreach(PSObject dependencyObj in dependencyInfos)
             {
-                // The dependency object can be a string or a hashtable
-                // eg:
-                // RequiredModules = @('PSGetTestDependency1')
-                // RequiredModules = @(@{ModuleName='PackageManagement';ModuleVersion='1.0.0.1'})
-                if (dependencyObj.BaseObject is Hashtable dependencyInfo)
+                if (!(dependencyObj.BaseObject is Hashtable dependencyInfo))
                 {
-                    if (!dependencyInfo.ContainsKey("Name"))
-                    {
-                        Dbg.Assert(false, "Derived dependencies Hashtable must contain a Name key");
-                        continue;
-                    }
-
-                    string dependencyName = (string)dependencyInfo["Name"];
-                    if (String.IsNullOrEmpty(dependencyName))
-                    {
-                        Dbg.Assert(false, "Dependency Name must not be null or empty");
-                        continue;
-                    }
-
-                    if (dependencyInfo.ContainsKey("RequiredVersion"))
-                    {
-                        if (!Utils.TryParseVersionOrVersionRange((string)dependencyInfo["RequiredVersion"], out VersionRange dependencyVersion))
-                        {
-                            dependencyVersion = VersionRange.All;
-                        }
-
-                        dependenciesFound.Add(new Dependency(dependencyName, dependencyVersion));
-                        continue;
-                    }
-
-                    if (dependencyInfo.ContainsKey("MinimumVersion") || dependencyInfo.ContainsKey("MaximumVersion"))
-                    {
-                        NuGetVersion minimumVersion = null;
-                        NuGetVersion maximumVersion = null;
-                        bool includeMin = false;
-                        bool includeMax = false;
-
-                        if (dependencyInfo.ContainsKey("MinimumVersion") &&
-                            !NuGetVersion.TryParse((string)dependencyInfo["MinimumVersion"], out minimumVersion))
-                        {
-                            VersionRange dependencyAll = VersionRange.All;
-                            dependenciesFound.Add(new Dependency(dependencyName, dependencyAll));
-                            continue;
-                        }
-
-                        if (dependencyInfo.ContainsKey("MaximumVersion") &&
-                            !NuGetVersion.TryParse((string)dependencyInfo["MaximumVersion"], out maximumVersion))
-                        {
-                            VersionRange dependencyAll = VersionRange.All;
-                            dependenciesFound.Add(new Dependency(dependencyName, dependencyAll));
-                            continue;
-                        }
-
-                        if (minimumVersion != null)
-                        {
-                            includeMin = true;
-                        }
-
-                        if (maximumVersion != null)
-                        {
-                            includeMax = true;
-                        }
-
-                        VersionRange dependencyVersionRange = new VersionRange(
-                            minVersion: minimumVersion,
-                            includeMinVersion: includeMin,
-                            maxVersion: maximumVersion,
-                            includeMaxVersion: includeMax);
-
-                        dependenciesFound.Add(new Dependency(dependencyName, dependencyVersionRange));
-                        continue;
-                    }
-
-                    // neither Required, Minimum or Maximum Version provided
-                    VersionRange dependencyVersionRangeAll = VersionRange.All;
-                    dependenciesFound.Add(new Dependency(dependencyName, dependencyVersionRangeAll));
+                    Dbg.Assert(false, "Dependencies BaseObject must be a Hashtable");
+                    continue;
                 }
-                else if (dependencyObj.Properties["Name"] != null)
+
+                if (!dependencyInfo.ContainsKey("Name"))
                 {
-                    string name = dependencyObj.Properties["Name"].Value.ToString();
+                    Dbg.Assert(false, "Derived dependencies Hashtable must contain a Name key");
+                    continue;
+                }
 
-                    string version = string.Empty;
-                    VersionRange versionRange = VersionRange.All;
+                string dependencyName = (string) dependencyInfo["Name"];
+                if (String.IsNullOrEmpty(dependencyName))
+                {
+                    Dbg.Assert(false, "Dependency Name must not be null or empty");
+                    continue;
+                }
 
-                    if (dependencyObj.Properties["VersionRange"] != null)
+                if (dependencyInfo.ContainsKey("RequiredVersion"))
+                {
+                    if (!Utils.TryParseVersionOrVersionRange((string) dependencyInfo["RequiredVersion"], out VersionRange dependencyVersion))
                     {
-                        version = dependencyObj.Properties["VersionRange"].Value.ToString();
-                        VersionRange.TryParse(version, out versionRange);
+                        dependencyVersion = VersionRange.All;
                     }
 
-                    dependenciesFound.Add(new Dependency(name, versionRange));
+                    dependenciesFound.Add(new Dependency(dependencyName, dependencyVersion));
+                    continue;
                 }
+
+                if (dependencyInfo.ContainsKey("MinimumVersion") || dependencyInfo.ContainsKey("MaximumVersion"))
+                {
+                    NuGetVersion minimumVersion = null;
+                    NuGetVersion maximumVersion = null;
+                    bool includeMin = false;
+                    bool includeMax = false;
+
+                    if (dependencyInfo.ContainsKey("MinimumVersion") &&
+                        !NuGetVersion.TryParse((string) dependencyInfo["MinimumVersion"], out minimumVersion))
+                    {
+                        VersionRange dependencyAll = VersionRange.All;
+                        dependenciesFound.Add(new Dependency(dependencyName, dependencyAll));
+                        continue;
+                    }
+
+                    if (dependencyInfo.ContainsKey("MaximumVersion") &&
+                        !NuGetVersion.TryParse((string) dependencyInfo["MaximumVersion"], out maximumVersion))
+                    {
+                        VersionRange dependencyAll = VersionRange.All;
+                        dependenciesFound.Add(new Dependency(dependencyName, dependencyAll));
+                        continue;
+                    }
+
+                    if (minimumVersion != null)
+                    {
+                        includeMin = true;
+                    }
+
+                    if (maximumVersion != null)
+                    {
+                        includeMax = true;
+                    }
+
+                    VersionRange dependencyVersionRange = new VersionRange(
+                        minVersion: minimumVersion,
+                        includeMinVersion: includeMin,
+                        maxVersion: maximumVersion,
+                        includeMaxVersion: includeMax);
+
+                    dependenciesFound.Add(new Dependency(dependencyName, dependencyVersionRange));
+                    continue;
+                }
+
+                // neither Required, Minimum or Maximum Version provided
+                VersionRange dependencyVersionRangeAll = VersionRange.All;
+                dependenciesFound.Add(new Dependency(dependencyName, dependencyVersionRangeAll));
             }
 
             return dependenciesFound.ToArray();
@@ -787,9 +771,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private PSObject ConvertToCustomObject()
         {
-            string NormalizedVersion = IsPrerelease ? ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel) : Version.ToString();
-
+            string normalizedVersion = IsPrerelease ? ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel) : Version.ToString();
             var additionalMetadata = new PSObject();
+
             if (AdditionalMetadata == null)
             {
                 AdditionalMetadata = new Dictionary<string, string>();
@@ -800,9 +784,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 AdditionalMetadata.Add(nameof(IsPrerelease), IsPrerelease.ToString());
             }
 
-            if (!AdditionalMetadata.ContainsKey(nameof(NormalizedVersion)))
+            if (!AdditionalMetadata.ContainsKey("NormalizedVersion"))
             {
-                AdditionalMetadata.Add(nameof(NormalizedVersion), NormalizedVersion);
+                AdditionalMetadata.Add("NormalizedVersion", normalizedVersion);
             }
 
             foreach (var item in AdditionalMetadata)
@@ -812,7 +796,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             var psObject = new PSObject();
             psObject.Properties.Add(new PSNoteProperty(nameof(Name), Name ?? string.Empty));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Version), NormalizedVersion));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Version), normalizedVersion));
             psObject.Properties.Add(new PSNoteProperty(nameof(Type), Type));
             psObject.Properties.Add(new PSNoteProperty(nameof(Description), Description ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Author), Author ?? string.Empty));
@@ -826,7 +810,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(ProjectUri), ProjectUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(IconUri), IconUri));
             psObject.Properties.Add(new PSNoteProperty(nameof(Tags), Tags));
-            psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes != null ? Includes.ConvertToHashtable() : null));
+            psObject.Properties.Add(new PSNoteProperty(nameof(Includes), Includes.ConvertToHashtable()));
             psObject.Properties.Add(new PSNoteProperty(nameof(PowerShellGetFormatVersion), PowerShellGetFormatVersion ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(ReleaseNotes), ReleaseNotes ?? string.Empty));
             psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));
