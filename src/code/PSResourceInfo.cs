@@ -12,7 +12,6 @@ using System.Management.Automation;
 using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
-using System.Reflection;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
