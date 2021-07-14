@@ -112,7 +112,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // if no version is specified, just delete the latest version
                         Array.Sort(versionsDirs);
 
-                        yield return (versionsDirs[versionsDirs.Length - 1]);
+                        if (versionsDirs.Length > 0)
+                        {
+                            yield return versionsDirs[versionsDirs.Length - 1];
+                        }
                         continue;
                     }
 
@@ -219,7 +222,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         #endregion
-    
+
         #region Private methods
 
         private static string GetResourceNameFromPath(string path)
@@ -230,7 +233,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ./Modules/Microsoft.PowerShell.Test-Module     : Microsoft.PowerShell.Test-Module
             // ./Scripts/Microsoft.PowerShell.Test-Script.ps1 : Microsoft.PowerShell.Test-Script
             var resourceName = Path.GetFileName(path);
-            return Path.GetExtension(resourceName).Equals(".ps1", StringComparison.OrdinalIgnoreCase) 
+            return Path.GetExtension(resourceName).Equals(".ps1", StringComparison.OrdinalIgnoreCase)
                 ? Path.GetFileNameWithoutExtension(resourceName) : resourceName;
         }
 
