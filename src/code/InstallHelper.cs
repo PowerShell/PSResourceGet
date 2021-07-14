@@ -170,7 +170,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
                         m => new { m.Name }).Select(
                             group => group.First()).ToList();
-                    
+
                     if (!pkgsFromRepoToInstall.Any())
                     {
                         _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
@@ -565,7 +565,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var message = string.Format("Error parsing metadata into XML: '{0}'", error);
                 var ex = new ArgumentException(message);
                 var ErrorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
-                WriteError(ErrorParsingMetadata);
+                _cmdletPassedIn.WriteError(ErrorParsingMetadata);
             }
         }
 
