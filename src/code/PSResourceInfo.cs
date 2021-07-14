@@ -217,6 +217,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
+        #region Constructor
+        #endregion
+
         #region Private fields
         private static readonly char[] Delimeter = {' ', ','};
 
@@ -787,9 +790,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private PSObject ConvertToCustomObject()
         {
+            // 1.0.0-alpha1
+            // 1.0.0.0
             string NormalizedVersion = IsPrerelease ? ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel) : Version.ToString();
 
             var additionalMetadata = new PSObject();
+
             if (AdditionalMetadata == null)
             {
                 AdditionalMetadata = new Dictionary<string, string>();
@@ -799,10 +805,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 AdditionalMetadata.Add(nameof(IsPrerelease), IsPrerelease.ToString());
             }
+            else
+            {
+                AdditionalMetadata[nameof(IsPrerelease)] = IsPrerelease.ToString();
+            }
 
+            // This is added for V2, V3 does not need it.
             if (!AdditionalMetadata.ContainsKey(nameof(NormalizedVersion)))
             {
                 AdditionalMetadata.Add(nameof(NormalizedVersion), NormalizedVersion);
+            }
+            else
+            {
+                AdditionalMetadata[nameof(NormalizedVersion)] = NormalizedVersion;
             }
 
             foreach (var item in AdditionalMetadata)
