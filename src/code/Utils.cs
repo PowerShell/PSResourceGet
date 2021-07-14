@@ -32,6 +32,41 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             catch { }
         }
 
+        public static string GetNormalizedVersionString(
+            string versionString,
+            string prerelease
+        )
+        {
+            // versionString may be like 1.2.0.0 or 1.2.0
+            // prerelease    may be      null    or "alpha1"
+            // possible passed in examples:
+            // versionString: "1.2.0"   prerelease: "alpha1"
+            // versionString: "1.2.0"   prerelease: ""        <- doubtful though
+            // versionString: "1.2.0.0" prerelease: "alpha1"
+            // versionString: "1.2.0.0" prerelease: ""
+
+            if (String.IsNullOrEmpty(prerelease))
+            {
+                return versionString;
+            }
+
+            int numVersionDigits = versionString.Split('.').Count();
+
+            if (numVersionDigits == 3)
+            {
+                // versionString: "1.2.0" prerelease: "alpha1"
+                return versionString + "-" + prerelease;
+            }
+
+            else if (numVersionDigits == 4)
+            {
+                // versionString: "1.2.0.0" prerelease: "alpha1"
+                return versionString.Substring(0, versionString.LastIndexOf('.')) + "-" + prerelease;
+            }
+
+            return versionString;
+        }
+
         public static string[] FilterOutWildcardNames(
             string[] pkgNames,
             out string[] errorMsgs)
