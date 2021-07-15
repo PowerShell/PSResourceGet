@@ -161,6 +161,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         credential: credential,
                         includeDependencies: true);
 
+                    foreach (PSResourceInfo a in pkgsFromRepoToInstall)
+                    {
+                        var test = a;
+                        _cmdletPassedIn.WriteVerbose(a.Version.ToString());
+                    }
+
                     // Select the first package from each name group, which is guaranteed to be the latest version.
                     // We should only have one version returned for each package name
                     // e.g.:
@@ -359,17 +365,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Prompt if module requires license acceptance (need to read info license acceptance info from the module manifest)
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.
 
-                    // 1.2.7.5 
+
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
               
                     //
-                    string normalizedVersion = newVersion;
+                    string normalizedVersionNoPrereleaseLabel = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
                     {
                         // 2.0.2
-                        version3digitNoPrerelease = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
+                        normalizedVersionNoPrereleaseLabel = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
                     }
-                    p.Version = version3digitNoPrerelease;
+                    //p.Version = new System.Version(normalizedVersionNoPrereleaseLabel);
 
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
@@ -414,7 +420,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         CreateMetadataXMLFile(tempDirNameVersion, installPath, repoName, p, isScript);
                     }
                     
-                    MoveFilesIntoInstallPath(p, isScript, isLocalRepo, tempDirNameVersion, tempInstallPath, installPath, newVersion, moduleManifestVersion, version3digitNoPrerelease, version4digitNoPrerelease, scriptPath);
+                    MoveFilesIntoInstallPath(p, isScript, isLocalRepo, tempDirNameVersion, tempInstallPath, installPath, newVersion, moduleManifestVersion, normalizedVersionNoPrereleaseLabel, version4digitNoPrerelease, scriptPath);
                     
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}'", p.Name));
                     pkgsSuccessfullyInstalled.Add(p.Name);
