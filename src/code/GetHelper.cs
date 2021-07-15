@@ -73,7 +73,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     path => nameWildCardPattern.IsMatch(
                         GetResourceNameFromPath(path))));
             }
-            _cmdletPassedIn.WriteDebug(wildCardDirsToSearch.Any().ToString());
 
             return wildCardDirsToSearch;
         }
