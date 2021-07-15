@@ -226,7 +226,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ./InstallPackagePath3/PackageD
             foreach (var path in _pathsToInstallPkg)
             {
-                _pathsToSearch.AddRange(Directory.GetDirectories(path));
+                _pathsToSearch.AddRange(Utils.GetSubDirectories(path));
             }
 
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.FilterPkgPaths(pkgNames.ToArray(), _versionRange, _pathsToSearch);
