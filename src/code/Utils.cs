@@ -16,94 +16,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     internal static class Utils
     {
-        public static void WriteVerboseOnCmdlet(
-            PSCmdlet cmdlet,
-            string message)
-        {
-            try
-            {
-                cmdlet.InvokeCommand.InvokeScript(
-                    script: $"param ([string] $message) Write-Verbose -Verbose -Message $message",
-                    useNewScope: true,
-                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                    input: null,
-                    args: new object[] { message });
-            }
-            catch { }
-        }
+        #region String fields
 
-        public static string GetNormalizedVersionString(
-            string versionString,
-            string prerelease
-        )
-        {
-            // versionString may be like 1.2.0.0 or 1.2.0
-            // prerelease    may be      null    or "alpha1"
-            // possible passed in examples:
-            // versionString: "1.2.0"   prerelease: "alpha1"
-            // versionString: "1.2.0"   prerelease: ""        <- doubtful though
-            // versionString: "1.2.0.0" prerelease: "alpha1"
-            // versionString: "1.2.0.0" prerelease: ""
+        public static readonly string[] EmptyStrArray = Array.Empty<string>();
 
-            if (String.IsNullOrEmpty(prerelease))
-            {
-                return versionString;
-            }
+        #endregion
 
-            int numVersionDigits = versionString.Split('.').Count();
-
-            if (numVersionDigits == 3)
-            {
-                // versionString: "1.2.0" prerelease: "alpha1"
-                return versionString + "-" + prerelease;
-            }
-
-            else if (numVersionDigits == 4)
-            {
-                // versionString: "1.2.0.0" prerelease: "alpha1"
-                return versionString.Substring(0, versionString.LastIndexOf('.')) + "-" + prerelease;
-            }
-
-            return versionString;
-        }
-
-        public static string[] FilterOutWildcardNames(
-            string[] pkgNames,
-            out string[] errorMsgs)
-        {
-            List<string> errorFreeNames = new List<string>();
-            List<string> errorMsgList = new List<string>();
-
-            foreach (string n in pkgNames)
-            {
-                bool isNameErrorProne = false;
-                if (WildcardPattern.ContainsWildcardCharacters(n))
-                {
-                    if (String.Equals(n, "*", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        errorMsgList = new List<string>(); // clear prior error messages
-                        errorMsgList.Add("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded.");
-                        errorFreeNames = new List<string>();
-                        break;
-                    }
-                    else if (n.Contains("?") || n.Contains("["))
-                    {
-                        errorMsgList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for Find-PSResource so Name entry: {0} will be discarded.", n));
-                        isNameErrorProne = true;
-                    }
-                }
-
-                if (!isNameErrorProne)
-                {
-                    errorFreeNames.Add(n);
-                }
-            }
-
-            errorMsgs = errorMsgList.ToArray();
-            return errorFreeNames.ToArray();
-        }
-
-        #region Public methods
+        #region String methods
 
         public static string TrimQuotes(string name)
         {
@@ -146,6 +65,80 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return strArray;
         }
 
+        public static string[] FilterOutWildcardNames(
+            string[] pkgNames,
+            out string[] errorMsgs)
+        {
+            List<string> errorFreeNames = new List<string>();
+            List<string> errorMsgList = new List<string>();
+
+            foreach (string n in pkgNames)
+            {
+                bool isNameErrorProne = false;
+                if (WildcardPattern.ContainsWildcardCharacters(n))
+                {
+                    if (String.Equals(n, "*", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        errorMsgList = new List<string>(); // clear prior error messages
+                        errorMsgList.Add("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded.");
+                        errorFreeNames = new List<string>();
+                        break;
+                    }
+                    else if (n.Contains("?") || n.Contains("["))
+                    {
+                        errorMsgList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for Find-PSResource so Name entry: {0} will be discarded.", n));
+                        isNameErrorProne = true;
+                    }
+                }
+
+                if (!isNameErrorProne)
+                {
+                    errorFreeNames.Add(n);
+                }
+            }
+
+            errorMsgs = errorMsgList.ToArray();
+            return errorFreeNames.ToArray();
+        }
+    
+        #endregion
+
+        #region Version methods
+
+        public static string GetNormalizedVersionString(
+            string versionString,
+            string prerelease)
+        {
+            // versionString may be like 1.2.0.0 or 1.2.0
+            // prerelease    may be      null    or "alpha1"
+            // possible passed in examples:
+            // versionString: "1.2.0"   prerelease: "alpha1"
+            // versionString: "1.2.0"   prerelease: ""        <- doubtful though
+            // versionString: "1.2.0.0" prerelease: "alpha1"
+            // versionString: "1.2.0.0" prerelease: ""
+
+            if (String.IsNullOrEmpty(prerelease))
+            {
+                return versionString;
+            }
+
+            int numVersionDigits = versionString.Split('.').Count();
+
+            if (numVersionDigits == 3)
+            {
+                // versionString: "1.2.0" prerelease: "alpha1"
+                return versionString + "-" + prerelease;
+            }
+
+            else if (numVersionDigits == 4)
+            {
+                // versionString: "1.2.0.0" prerelease: "alpha1"
+                return versionString.Substring(0, versionString.LastIndexOf('.')) + "-" + prerelease;
+            }
+
+            return versionString;
+        }
+
         public static bool TryParseVersionOrVersionRange(
            string version,
            out VersionRange versionRange)
@@ -176,6 +169,34 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             // parse as Version range
             return VersionRange.TryParse(version, out versionRange);
+        }
+
+        #endregion
+        
+        #region Path methods
+
+        public static string[] GetSubDirectories(string dirPath)
+        {
+            try
+            {
+                return Directory.GetDirectories(dirPath);
+            }
+            catch
+            {
+                return EmptyStrArray;
+            }
+        }
+
+        public static string[] GetDirectoryFiles(string dirPath)
+        {
+            try
+            {
+                return Directory.GetFiles(dirPath);
+            }
+            catch
+            {
+                return EmptyStrArray;
+            }
         }
 
         public static string GetInstalledPackageName(string pkgPath)
@@ -240,7 +261,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     try
                     {
-                        pathsToSearch.AddRange(Directory.GetFiles(path));
+                        pathsToSearch.AddRange(GetDirectoryFiles(path));
                     }
                     catch (Exception e)
                     {
@@ -251,7 +272,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     try
                     {
-                        pathsToSearch.AddRange(Directory.GetDirectories(path));
+                        pathsToSearch.AddRange(GetSubDirectories(path));
                     }
                     catch (Exception e)
                     {
@@ -269,7 +290,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             return pathsToSearch;
         }
-
 
         // Find all potential installation paths given a scope
         public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
@@ -311,17 +331,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return installationPaths;
         }
 
-        private static string GetResourceNameFromPath(string path)
-        {
-            // Resource paths may end in a directory or script file name.
-            // Directory name is the same as the resource name.
-            // Script file name is the resource name without the file extension.
-            // ./Modules/Microsoft.PowerShell.Test-Module     : Microsoft.PowerShell.Test-Module
-            // ./Scripts/Microsoft.PowerShell.Test-Script.ps1 : Microsoft.PowerShell.Test-Script
-            var resourceName = Path.GetFileName(path);
-            return Path.GetExtension(resourceName).Equals(".ps1", StringComparison.OrdinalIgnoreCase)
-                ? Path.GetFileNameWithoutExtension(resourceName) : resourceName;
-        }
+        #endregion
+
+        #region Manifest methods
 
         public static Hashtable ParseModuleManifest(string moduleFileInfo, PSCmdlet cmdletPassedIn)
         {
@@ -361,6 +373,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             return parsedMetadataHash;
         }
+
+        #endregion
+
+        #region Misc methods
+
+        public static void WriteVerboseOnCmdlet(
+            PSCmdlet cmdlet,
+            string message)
+        {
+            try
+            {
+                cmdlet.InvokeCommand.InvokeScript(
+                    script: $"param ([string] $message) Write-Verbose -Verbose -Message $message",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { message });
+            }
+            catch { }
+        }
+
         #endregion
     }
 }
