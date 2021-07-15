@@ -265,12 +265,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", p.Name));
 
-                    if (!_quiet && !_savePkg)
-                    {
-                        // todo: UPDATE PROGRESS BAR
-                        CallProgressBar(p);
-                    }
-
+                    // TODO: add progress bar here
+        
                     // Create PackageIdentity in order to download
                     string createFullVersion = p.Version.ToString();
                     if (p.IsPrerelease)
@@ -442,49 +438,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return pkgsSuccessfullyInstalled;
         }
-
-        private void CallProgressBar(PSResourceInfo p)
-        {
-            int i = 1;
-            //int j = 1;
-            /****************************
-            * START PACKAGE INSTALLATION -- start progress bar
-            *****************************/
-            // Write-Progress -Activity "Search in Progress" - Status "$i% Complete:" - PercentComplete $i
-
-            int activityId = 0;
-            string activity = "";
-            string statusDescription = "";
-
-            // If the pkg exists in one of the names passed in, then we wont include it as a dependent package
-            activityId = 0;
-            activity = string.Format("Installing {0}...", p.Name);
-            statusDescription = string.Format("{0}% Complete:", i++);
-
-            // j = 1;
-            /*
-            if (packageNames.ToList().Contains(p.Identity.Id))
-            {
-                // If the pkg exists in one of the names passed in, then we wont include it as a dependent package
-                activityId = 0;
-                activity = string.Format("Installing {0}...", p.Identity.Id);
-                statusDescription = string.Format("{0}% Complete:", i++);
-
-                j = 1;
-            }
-            else
-            {
-                // Child process
-                // Installing dependent package
-                activityId = 1;
-                activity = string.Format("Installing dependent package {0}...", p.Identity.Id);
-                statusDescription = string.Format("{0}% Complete:", j);
-            }
-            */
-            var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
-            _cmdletPassedIn.WriteProgress(progressRecord);
-        }
-
+        
         private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion)
         {
             var requireLicenseAcceptance = false;
