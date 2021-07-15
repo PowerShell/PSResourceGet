@@ -147,8 +147,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         public static bool TryParseVersionOrVersionRange(
-            string version,
-            out VersionRange versionRange)
+           string version,
+           out VersionRange versionRange)
         {
             versionRange = null;
 
@@ -170,7 +170,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     maxVersion: nugetVersion,
                     includeMaxVersion: true,
                     floatRange: null,
-                    originalString: null);
+                    originalString: version);
                 return true;
             }
 
@@ -270,6 +270,97 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pathsToSearch;
         }
 
+
+        // Find all potential installation paths given a scope
+        public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
+        {
+            List<string> installationPaths = new List<string>();
+            var PSVersion6 = new Version(6, 0);
+            var isCorePS = psCmdlet.Host.Version >= PSVersion6;
+            string myDocumentsPath;
+            string programFilesPath;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
+
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
+                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
+            }
+            else
+            {
+                // paths are the same for both Linux and MacOS
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
+                programFilesPath = System.IO.Path.Combine("usr", "local", "share", "Powershell");
+            }
+
+            // The default user scope is CurrentUser
+            if (scope == ScopeType.AllUsers)
+            {
+                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
+                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+            }
+            else {
+                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
+                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+            }
+
+            installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
+            installationPaths.ForEach(dir => psCmdlet.WriteDebug(string.Format("All paths to search: '{0}'", dir)));
+
+            return installationPaths;
+        }
+
+        private static string GetResourceNameFromPath(string path)
+        {
+            // Resource paths may end in a directory or script file name.
+            // Directory name is the same as the resource name.
+            // Script file name is the resource name without the file extension.
+            // ./Modules/Microsoft.PowerShell.Test-Module     : Microsoft.PowerShell.Test-Module
+            // ./Scripts/Microsoft.PowerShell.Test-Script.ps1 : Microsoft.PowerShell.Test-Script
+            var resourceName = Path.GetFileName(path);
+            return Path.GetExtension(resourceName).Equals(".ps1", StringComparison.OrdinalIgnoreCase)
+                ? Path.GetFileNameWithoutExtension(resourceName) : resourceName;
+        }
+
+        public static Hashtable ParseModuleManifest(string moduleFileInfo, PSCmdlet cmdletPassedIn)
+        {
+            Hashtable parsedMetadataHash = new Hashtable();
+            // A script will already  have the metadata parsed into the parsedMetadatahash,
+            // a module will still need the module manifest to be parsed.
+            if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
+            {
+                // Parse the module manifest 
+                System.Management.Automation.Language.Token[] tokens;
+                ParseError[] errors;
+                var ast = Parser.ParseFile(moduleFileInfo, out tokens, out errors);
+
+                if (errors.Length > 0)
+                {
+                    var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo);
+                    var ex = new ArgumentException(message);
+                    var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
+                    cmdletPassedIn.WriteError(psdataParseError);
+                }
+                else
+                {
+                    var data = ast.Find(a => a is HashtableAst, false);
+                    if (data != null)
+                    {
+                        parsedMetadataHash = (Hashtable)data.SafeGetValue();
+                    }
+                    else
+                    {
+                        var message = String.Format("Could not parse as PowerShell data file-- no hashtable root for file '{0}'", moduleFileInfo);
+                        var ex = new ArgumentException(message);
+                        var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
+                        cmdletPassedIn.WriteError(psdataParseError);
+                    }
+                }
+            }
+
+            return parsedMetadataHash;
+        }
         #endregion
     }
 }
