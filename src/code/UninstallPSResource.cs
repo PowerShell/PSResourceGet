@@ -59,7 +59,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void BeginProcessing()
         {
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range.
+            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
             if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
@@ -137,7 +137,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Checking if module or script
             // a module path will look like:
             // ./Modules/TestModule/0.0.1
-            // note that the xml file is located in this path, eg: ./Modules/TestModule/0.0.1/PSModuleInfo.xml
+            // note that the xml file is located in this path, eg: ./Modules/TestModule/0.0.1/PSModuleInfo.xml 
             // a script path will look like:
             // ./Scripts/TestScript.ps1
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
@@ -188,7 +188,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             var successfullyUninstalledPkg = false;
 
-            // if -Force is not specified and the pkg is a dependency for another package,
+            // if -Force is not specified and the pkg is a dependency for another package, 
             // an error will be written and we return false
             if (!Force && CheckIfDependency(pkgName))
             {
@@ -278,7 +278,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // this is a primitive implementation
             // TODO:  implement a dependencies database for querying dependency info
-            // cannot uninstall a module if another module is dependent on it
+            // cannot uninstall a module if another module is dependent on it 
             using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
             {
                 // Check all modules for dependencies
