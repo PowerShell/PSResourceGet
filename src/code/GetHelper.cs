@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 using System;
 using System.Collections.Generic;
+using Dbg = System.Diagnostics.Debug;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -80,6 +81,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // Filter by user provided version
         public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch)
         {
+            Dbg.Assert(versionRange != null, "Version Range cannot be null");
+            
             // if no version is specified, just get the latest version
             foreach (string pkgPath in dirsToSearch)
             {
@@ -105,19 +108,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // sort and reverse to get package versions in descending order to maintain consistency with V2
                     Array.Sort(versionsDirs);
                     Array.Reverse(versionsDirs);
-
-                    // versionRange should not be null if the cmdlet is Get-InstalledPSResource or Uninstall-PSResource
-                    if (versionRange == null)
-                    {
-                        // Get-InstalledPSResource and Uninstall-PSResource, which call into this helper, should
-                        // not be calling this with null.
-                        // if no version is specified, just delete the latest version
-                        if (versionsDirs.Length > 0)
-                        {
-                            yield return versionsDirs[versionsDirs.Length - 1];
-                        }
-                        continue;
-                    }
 
                     foreach (string versionPath in versionsDirs)
                     {
