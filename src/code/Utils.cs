@@ -395,5 +395,85 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion
+
+
+        #region Directory and File
+
+        /// <Summary>
+        /// Deletes a directory and its contents
+        /// </Summary>
+        public static void DeleteDirectory(string dirPath)
+        {
+            foreach (var dirFilePath in Directory.GetFiles(dirPath))
+            {
+                File.Delete(dirFilePath);
+            }
+
+            foreach (var dirSubPath in Directory.GetDirectories(dirPath))
+            {
+                DeleteDirectory(dirSubPath);
+            }
+
+            Directory.Delete(dirPath);
+        }
+
+        /// <Summary>
+        /// Moves files from source to destination locations.
+        /// Works over different file volumes.
+        /// </Summary>
+        public static void MoveFiles(
+            string sourceFilePath,
+            string destFilePath,
+            bool overwrite = true)
+        {
+            File.Copy(sourceFilePath, destFilePath, overwrite);
+            File.Delete(sourceFilePath);
+        }
+
+        /// <Summary>
+        /// Moves the directory, including contents, from source to destination locations.
+        /// Works over different file volumes.
+        /// </Summary>
+        public static void MoveDirectory(
+            string sourceDirPath,
+            string destDirPath,
+            bool overwrite = true)
+        {
+            CopyDirContents(sourceDirPath, destDirPath, overwrite);
+            DeleteDirectory(sourceDirPath);
+        }
+
+        private static void CopyDirContents(
+            string sourceDirPath,
+            string destDirPath,
+            bool overwrite)
+        {
+            if (Directory.Exists(destDirPath))
+            {
+                if (!overwrite)
+                {
+                    throw new PSInvalidOperationException(
+                        $"Cannot move directory because destination directory already exists: '{destDirPath}'");
+                }
+
+                DeleteDirectory(destDirPath);
+            }
+
+            Directory.CreateDirectory(destDirPath);
+
+            foreach (var filePath in Directory.GetFiles(sourceDirPath))
+            {
+                var destFilePath = Path.Combine(destDirPath, Path.GetFileName(filePath));
+                File.Copy(filePath, destFilePath);
+            }
+
+            foreach (var srcSubDirPath in Directory.GetDirectories(sourceDirPath))
+            {
+                var destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
+                CopyDirContents(srcSubDirPath, destSubDirPath, overwrite);
+            }
+        }
+
+        #endregion
     }
 }
