@@ -604,7 +604,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     _cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
-                    File.Move(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
+                    Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
 
                     // Need to delete old script file, if that exists
                     _cmdletPassedIn.WriteDebug(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, p.Name + ".ps1"))));
@@ -616,7 +616,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 _cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1")));
-                File.Move(scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1"));
+                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1"));
             }
             else
             {
@@ -625,7 +625,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _cmdletPassedIn.WriteDebug(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
                     Directory.CreateDirectory(newPathParent);
-                    Directory.Move(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
                 else
                 {
@@ -640,7 +640,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     _cmdletPassedIn.WriteDebug(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
-                    Directory.Move(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
             }
         }

@@ -192,8 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                // delete recursively
-                Directory.Delete(pkgPath, recursive: true);
+                Utils.DeleteDirectory(pkgPath);
                 WriteVerbose(string.Format("Successfully uninstalled '{0}' from path '{1}'", pkgName, dir.FullName));
 
                 successfullyUninstalledPkg = true;
