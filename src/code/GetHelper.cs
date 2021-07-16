@@ -1,4 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿using System.ComponentModel;
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
 using System.Collections.Generic;
@@ -97,6 +98,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     try
                     {
                         versionsDirs = Directory.GetDirectories(pkgPath);
+                        // versionsDirs are sorted in descending order, as was done in V2 cmdlets
+                        Array.Sort(versionsDirs);
+                        Array.Reverse(versionsDirs);
                     }
                     catch (Exception e){
                         _cmdletPassedIn.WriteVerbose(string.Format("Error retreiving directories from path '{0}': '{1}'", pkgPath, e.Message));
@@ -108,9 +112,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // versionRange should not be null if the cmdlet is Get-InstalledPSResource
                     if (versionRange == null)
                     {
+                        _cmdletPassedIn.WriteVerbose("version range in GetHelper is: " + versionRange);
                         // if no version is specified, just delete the latest version
-                        Array.Sort(versionsDirs);
-
                         if (versionsDirs.Length > 0)
                         {
                             yield return versionsDirs[versionsDirs.Length - 1];

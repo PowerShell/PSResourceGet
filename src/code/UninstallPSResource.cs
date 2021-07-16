@@ -13,7 +13,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-    /// <summary>   
+    /// <summary>
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
     [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true, HelpUri = "<add>")]
@@ -27,7 +27,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
-        
+
         /// <summary>
         /// Specifies the version or version range of the package to be uninstalled.
         /// </summary>
@@ -59,7 +59,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void BeginProcessing()
         {
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range.
             // an exact version will be formatted into a version range.
             if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
@@ -67,6 +67,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ex = new ArgumentException(exMessage);
                 var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(IncorrectVersionFormat);
+            }
+
+            // if no Version specified, uninstall all versions for the package
+            if (Version == null)
+            {
+                _versionRange = VersionRange.All;
             }
 
             _pathsToSearch = Utils.GetAllResourcePaths(this);
@@ -119,7 +125,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
         }
-        
+
 
         private bool UninstallPkgHelper()
         {
@@ -131,15 +137,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Checking if module or script
             // a module path will look like:
             // ./Modules/TestModule/0.0.1
-            // note that the xml file is located in this path, eg: ./Modules/TestModule/0.0.1/PSModuleInfo.xml 
+            // note that the xml file is located in this path, eg: ./Modules/TestModule/0.0.1/PSModuleInfo.xml
             // a script path will look like:
             // ./Scripts/TestScript.ps1
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
             string pkgName = string.Empty;
 
+            WriteVerbose("version range for Uninstall: " + _versionRange);
             foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
             {
+
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
@@ -180,13 +188,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             var successfullyUninstalledPkg = false;
 
-            // if -Force is not specified and the pkg is a dependency for another package, 
+            // if -Force is not specified and the pkg is a dependency for another package,
             // an error will be written and we return false
             if (!Force && CheckIfDependency(pkgName))
             {
                 return false;
             }
-            
+
             DirectoryInfo dir = new DirectoryInfo(pkgPath);
             dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
 
@@ -221,7 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ErrorDeletingDirectory = new ErrorRecord(ex, "ErrorDeletingDirectory", ErrorCategory.PermissionDenied, null);
                 WriteError(ErrorDeletingDirectory);
             }
-            
+
             return successfullyUninstalledPkg;
         }
 
@@ -270,7 +278,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // this is a primitive implementation
             // TODO:  implement a dependencies database for querying dependency info
-            // cannot uninstall a module if another module is dependent on it 
+            // cannot uninstall a module if another module is dependent on it
             using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
             {
                 // Check all modules for dependencies

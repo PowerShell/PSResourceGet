@@ -34,14 +34,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] Name { get; set; }
 
         /// <summary>
-        /// Specifies the version of the resource to include to look for. 
+        /// Specifies the version of the resource to include to look for.
         /// </summary>
         [Parameter()]
         [ValidateNotNullOrEmpty()]
         public string Version { get; set; }
 
         /// <summary>
-        /// Specifies the path to look in. 
+        /// Specifies the path to look in.
         /// </summary>
         [Parameter()]
         [ValidateNotNullOrEmpty()]
@@ -53,7 +53,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            // Validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+            // Validate that if a -Version param is passed in that it can be parsed into a NuGet version range.
             // an exact version will be formatted into a version range.
             if (Version == null)
             {
@@ -109,7 +109,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 Name = new string[] { "*" };
             }
-            // if '*' is passed in as an argument for -Name with other -Name arguments, 
+            // if '*' is passed in as an argument for -Name with other -Name arguments,
             // ignore all arguments except for '*' since it is the most inclusive
             // eg:  -Name ["TestModule, Test*, *"]  will become -Name ["*"]
             if (Name != null && Name.Length > 1)
@@ -132,6 +132,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             GetHelper getHelper = new GetHelper(this);
             foreach (PSResourceInfo pkg in getHelper.FilterPkgPaths(Name, _versionRange, _pathsToSearch))
             {
+                WriteVerbose("version range for Get: " + _versionRange.ToString());
                 WriteObject(pkg);
             }
         }
