@@ -87,17 +87,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var resolvedPath = resolvedPaths[0].Path;
                 WriteDebug(string.Format("Provided resolved path is '{0}'", resolvedPath));
 
-                try
+                var versionPaths = Utils.GetSubDirectories(resolvedPath);
+                if (versionPaths.Length == 0)
                 {
-                    _pathsToSearch.AddRange(Directory.GetDirectories(resolvedPath));
+                    ThrowTerminatingError(
+                        new ErrorRecord(
+                            exception: new PSInvalidOperationException(
+                                $"Error cannot find expected subdirectories in provided path: {Path}"),
+                            "PathMissingExpectedSubdirectories",
+                            ErrorCategory.InvalidOperation,
+                            targetObject: null));
                 }
-                catch (Exception e)
-                {
-                    var exMessage = String.Format("Error retrieving directories from provided path '{0}': '{1}'.", Path, e.Message);
-                    var ex = new ArgumentException(exMessage);
-                    var ErrorRetrievingDirectories = new ErrorRecord(ex, "ErrorRetrievingDirectories", ErrorCategory.ResourceUnavailable, null);
-                    ThrowTerminatingError(ErrorRetrievingDirectories);
-                }
+
+                _pathsToSearch.AddRange(versionPaths);
             }
             else
             {

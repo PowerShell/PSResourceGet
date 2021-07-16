@@ -94,9 +94,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // ./Modules/Test-Module/2.0.0
                     _cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
 
-                    string[] versionsDirs = new string[] { };
-                    try
+                    string[] versionsDirs = Utils.GetSubDirectories(pkgPath);
+                    if (versionsDirs.Length == 0)
                     {
+<<<<<<< HEAD
                         versionsDirs = Directory.GetDirectories(pkgPath);
                         // versionsDirs are sorted in descending order, as was done in V2 cmdlets
                         Array.Sort(versionsDirs);
@@ -106,6 +107,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         _cmdletPassedIn.WriteVerbose(string.Format("Error retreiving directories from path '{0}': '{1}'", pkgPath, e.Message));
 
                         // skip to next iteration of the loop
+=======
+                        _cmdletPassedIn.WriteVerbose(
+                            $"No version subdirectories found for path: {pkgPath}");
+>>>>>>> 9e882f0d179af94c4e1609e3b15e09632e08e1e5
                         continue;
                     }
 

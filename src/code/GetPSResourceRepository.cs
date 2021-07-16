@@ -31,7 +31,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
-        public string[] Name { get; set; } = new string[0];
+        public string[] Name { get; set; } = Utils.EmptyStrArray;
 
         #endregion
 

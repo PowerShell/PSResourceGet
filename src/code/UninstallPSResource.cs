@@ -209,7 +209,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // finally: check to see if there's anything left in the parent directory, if not, delete that as well
                 try
                 {
-                    if (Directory.GetDirectories(dir.Parent.FullName).Length == 0)
+                    if (Utils.GetSubDirectories(dir.Parent.FullName).Length == 0)
                     {
                         Directory.Delete(dir.Parent.FullName, true);
                     }
