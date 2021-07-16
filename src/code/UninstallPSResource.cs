@@ -188,12 +188,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             
             DirectoryInfo dir = new DirectoryInfo(pkgPath);
-            dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+            dir.Attributes &= ~FileAttributes.ReadOnly;
 
             try
             {
                 // delete recursively
-                dir.Delete(true);
+                Directory.Delete(pkgPath, recursive: true);
                 WriteVerbose(string.Format("Successfully uninstalled '{0}' from path '{1}'", pkgName, dir.FullName));
 
                 successfullyUninstalledPkg = true;

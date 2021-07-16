@@ -25,10 +25,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Publishes a module, script, or nupkg to a designated repository.
     /// </summary>
-    [Cmdlet(VerbsData.Publish, "PSResource", SupportsShouldProcess = true,
-        HelpUri = "<add>")]
-    public sealed
-    class PublishPSResource : PSCmdlet
+    [Cmdlet(VerbsData.Publish, "PSResource", SupportsShouldProcess = true)]
+    public sealed class PublishPSResource : PSCmdlet
     {
         #region Parameters
 
@@ -44,6 +42,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter()]
         [ValidateNotNullOrEmpty]
+        [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         public string Repository { get; set; }
 
         /// <summary>
@@ -168,11 +167,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region members
+        #region Members
+
         private NuGetVersion _pkgVersion;
         private string _pkgName;
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+        
         #endregion
+
+        #region Method overrides
 
         protected override void ProcessRecord()
         {
@@ -318,7 +321,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 string repositoryUrl = repository.Url.AbsoluteUri;
 
-
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and 
                 // 2) the -SkipDependenciesCheck flag is not passed in
@@ -389,6 +391,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 Directory.Delete(outputDir, recursive:true);
             }
         }
+
+        #endregion
+
+        #region Private methods
 
         private bool IsValidModuleManifest(string moduleManifestPath)
         {
@@ -608,7 +614,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 <icon>Powershell_black_64.png</icon>
                 <projectUrl>https://github.com/PowerShell/PowerShell</projectUrl>
                 <description>Example description here</description>
-                <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+                <copyright>Copyright (c) Microsoft Corporation. All rights reserved.</copyright>
                 <language>en-US</language>
                 <tags>PowerShell</tags>
                 <dependencies>
@@ -923,4 +929,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }            
         }
     }
+
+    #endregion
 }

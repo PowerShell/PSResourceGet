@@ -418,7 +418,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     
                     MoveFilesIntoInstallPath(p, isScript, isLocalRepo, tempDirNameVersion, tempInstallPath, installPath, newVersion, moduleManifestVersion, normalizedVersionNoPrereleaseLabel, version4digitNoPrerelease, scriptPath);
                     
-                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}'", p.Name));
+                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", p.Name, installPath));
                     pkgsSuccessfullyInstalled.Add(p.Name);
                 }
                 catch (Exception e)
