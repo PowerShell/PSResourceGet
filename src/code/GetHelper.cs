@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 using System;
 using System.Collections.Generic;
+using Dbg = System.Diagnostics.Debug;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -80,6 +81,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // Filter by user provided version
         public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch)
         {
+            Dbg.Assert(versionRange != null, "Version Range cannot be null");
+            
             // if no version is specified, just get the latest version
             foreach (string pkgPath in dirsToSearch)
             {
@@ -94,6 +97,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
 
                     string[] versionsDirs = Utils.GetSubDirectories(pkgPath);
+
                     if (versionsDirs.Length == 0)
                     {
                         _cmdletPassedIn.WriteVerbose(
@@ -101,18 +105,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         continue;
                     }
 
-                    // versionRange should not be null if the cmdlet is Get-InstalledPSResource
-                    if (versionRange == null)
-                    {
-                        // if no version is specified, just delete the latest version
-                        Array.Sort(versionsDirs);
-
-                        if (versionsDirs.Length > 0)
-                        {
-                            yield return versionsDirs[versionsDirs.Length - 1];
-                        }
-                        continue;
-                    }
+                    // sort and reverse to get package versions in descending order to maintain consistency with V2
+                    Array.Sort(versionsDirs);
+                    Array.Reverse(versionsDirs);
 
                     foreach (string versionPath in versionsDirs)
                     {
