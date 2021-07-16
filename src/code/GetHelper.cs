@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.ComponentModel;
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
 using System.Collections.Generic;
@@ -113,7 +111,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // Get-InstalledPSResource and Uninstall-PSResource, which call into this helper, should
                         // not be calling this with null.
-                        _cmdletPassedIn.WriteVerbose("version range in GetHelper is: " + versionRange);
                         // if no version is specified, just delete the latest version
                         if (versionsDirs.Length > 0)
                         {
