@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections;
+using System.ComponentModel;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
@@ -95,6 +96,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
 
                     string[] versionsDirs = Utils.GetSubDirectories(pkgPath);
+
                     if (versionsDirs.Length == 0)
                     {
                         _cmdletPassedIn.WriteVerbose(
@@ -102,9 +104,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         continue;
                     }
 
-                    // versionRange should not be null if the cmdlet is Get-InstalledPSResource
+                    // sort and reverse to get package versions in descending order to maintain consistency with V2
+                    Array.Sort(versionsDirs);
+                    Array.Reverse(versionsDirs);
+
+                    // versionRange should not be null if the cmdlet is Get-InstalledPSResource or Uninstall-PSResource
                     if (versionRange == null)
                     {
+                        // Get-InstalledPSResource and Uninstall-PSResource, which call into this helper, should
+                        // not be calling this with null.
                         _cmdletPassedIn.WriteVerbose("version range in GetHelper is: " + versionRange);
                         // if no version is specified, just delete the latest version
                         if (versionsDirs.Length > 0)
