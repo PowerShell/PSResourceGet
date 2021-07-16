@@ -144,7 +144,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             string pkgName = string.Empty;
 
-            WriteVerbose("version range for Uninstall: " + _versionRange);
             foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
             {
 
