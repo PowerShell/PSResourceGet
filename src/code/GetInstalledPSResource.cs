@@ -41,7 +41,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Version { get; set; }
 
         /// <summary>
-        /// Specifies the path to look in.
+        /// Specifies the path to look in. 
         /// </summary>
         [Parameter()]
         [ValidateNotNullOrEmpty()]
