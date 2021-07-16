@@ -114,6 +114,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
+            // if no Version specified, install latest version for the package
+            if (Version == null)
+            {
+                _versionRange = VersionRange.All;
+            }
+
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
         }
 
