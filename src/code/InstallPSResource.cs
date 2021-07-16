@@ -19,7 +19,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     public sealed
     class InstallPSResource : PSCmdlet
     {
-        #region parameters 
+        #region Parameters 
+
         /// <summary>
         /// Specifies the exact names of resources to install from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
@@ -85,17 +86,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         public SwitchParameter AcceptLicense { get; set; }
+
         #endregion
 
-        #region members
+        #region Members
+
         private const string NameParameterSet = "NameParameterSet";
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
         List<string> _pathsToInstallPkg;
         VersionRange _versionRange;
+
         #endregion
 
-        #region Methods
+        #region Method overrides
+
         protected override void BeginProcessing()
         {
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
@@ -165,6 +170,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
         }
+        
         #endregion
     }
 }
