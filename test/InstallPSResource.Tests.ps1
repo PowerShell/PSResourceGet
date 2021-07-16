@@ -15,7 +15,7 @@ Describe 'Test Install-PSResource for Module' {
 
     AfterEach {
         Uninstall-PSResource "TestModule", "TestModule99", "myTestModule", "myTestModule2", "testModulePrerelease", 
-            "testModuleWithlicense","PSGetTestModule", "PSGetTestDependency1", "TestFindModule"
+            "testModuleWithlicense","PSGetTestModule", "PSGetTestDependency1", "TestFindModule" -Force -ErrorAction SilentlyContinue
     }
 
     AfterAll {
