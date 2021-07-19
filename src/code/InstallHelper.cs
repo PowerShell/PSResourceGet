@@ -578,17 +578,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private void MoveFilesIntoInstallPath(PSResourceInfo p, bool isScript, bool isLocalRepo, string dirNameVersion, string tempInstallPath, string installPath, string newVersion, string moduleManifestVersion, string nupkgVersion, string versionWithoutPrereleaseTag, string scriptPath)
+        private void MoveFilesIntoInstallPath(
+            PSResourceInfo p, 
+            bool isScript, 
+            bool isLocalRepo, 
+            string dirNameVersion, 
+            string tempInstallPath, 
+            string installPath, 
+            string newVersion, 
+            string moduleManifestVersion, 
+            string nupkgVersion, 
+            string versionWithoutPrereleaseTag, 
+            string scriptPath)
         {
             // Creating the proper installation path depending on whether pkg is a module or script
             var newPathParent = isScript ? installPath : Path.Combine(installPath, p.Name);
             var finalModuleVersionDir = isScript ? installPath : Path.Combine(installPath, p.Name, moduleManifestVersion);  // versionWithoutPrereleaseTag
-            _cmdletPassedIn.WriteDebug(string.Format("Installation path is: '{0}'", finalModuleVersionDir));
 
             // If script, just move the files over, if module, move the version directory over
             var tempModuleVersionDir = (isScript || isLocalRepo) ? dirNameVersion
                 : Path.Combine(tempInstallPath, p.Name.ToLower(), newVersion);
-            _cmdletPassedIn.WriteVerbose(string.Format("Full installation path is: '{0}'", tempModuleVersionDir));
+
+            _cmdletPassedIn.WriteVerbose(string.Format("Installation source path is: '{0}'", tempModuleVersionDir));
+            _cmdletPassedIn.WriteVerbose(string.Format("Installation destination path is: '{0}'", finalModuleVersionDir));    
 
             if (isScript)
             {
