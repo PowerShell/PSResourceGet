@@ -125,7 +125,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under CurrentUser scope" {
+    It "Install resource under CurrentUser scope" -Skip:(!$IsWindows) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -133,7 +133,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under AllUsers scope" {
+    It "Install resource under AllUsers scope" -Skip:(!$IsWindows) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -141,7 +141,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under no specified scope" {
+    It "Install resource under no specified scope" -Skip:(!$IsWindows) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 

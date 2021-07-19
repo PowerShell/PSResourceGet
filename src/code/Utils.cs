@@ -221,27 +221,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static List<string> GetAllResourcePaths(PSCmdlet psCmdlet)
         {
+            GetStandardPlatformPaths(
+                psCmdlet,
+                out string myDocumentsPath,
+                out string programFilesPath);
+
             string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
             List<string> resourcePaths = psModulePath.Split(';').ToList();
             List<string> pathsToSearch = new List<string>();
-            var PSVersion6 = new Version(6, 0);
-            var isCorePS = psCmdlet.Host.Version >= PSVersion6;
-            string myDocumentsPath;
-            string programFilesPath;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
-            }
-            else
-            {
-                // paths are the same for both Linux and MacOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = System.IO.Path.Combine("usr", "local", "share", "Powershell");
-            }
 
             // will search first in PSModulePath, then will search in default paths
             resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
@@ -294,33 +281,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // Find all potential installation paths given a scope
         public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
         {
-            List<string> installationPaths = new List<string>();
-            var PSVersion6 = new Version(6, 0);
-            var isCorePS = psCmdlet.Host.Version >= PSVersion6;
-            string myDocumentsPath;
-            string programFilesPath;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
-            }
-            else
-            {
-                // paths are the same for both Linux and MacOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = System.IO.Path.Combine("usr", "local", "share", "Powershell");
-            }
+            GetStandardPlatformPaths(
+                psCmdlet,
+                out string myDocumentsPath,
+                out string programFilesPath);
 
             // The default user scope is CurrentUser
+            var installationPaths = new List<string>();
             if (scope == ScopeType.AllUsers)
             {
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
             }
-            else {
+            else
+            {
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
             }
@@ -329,6 +303,26 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             installationPaths.ForEach(dir => psCmdlet.WriteDebug(string.Format("All paths to search: '{0}'", dir)));
 
             return installationPaths;
+        }
+
+        private readonly static Version PSVersion6 = new Version(6, 0);
+        private static void GetStandardPlatformPaths(
+            PSCmdlet psCmdlet,
+            out string myDocumentsPath,
+            out string programFilesPath)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
+                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
+            }
+            else
+            {
+                // paths are the same for both Linux and macOS
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
+                programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
+            }
         }
 
         #endregion
@@ -395,7 +389,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion
-
 
         #region Directory and File
 
