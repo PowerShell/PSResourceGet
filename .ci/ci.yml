@@ -123,11 +123,11 @@ stages:
       imageName: windows-latest
       powershellExecutable: powershell
 
-  - template: test.yml
-    parameters:
-      jobName: TestPkgUbuntu16
-      displayName: PowerShell Core on Ubuntu
-      imageName: ubuntu-latest
+#  - template: test.yml
+#    parameters:
+#      jobName: TestPkgUbuntu16
+#      displayName: PowerShell Core on Ubuntu
+#      imageName: ubuntu-latest
 
 #  - template: test.yml
 #    parameters:
