@@ -77,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';",
                 string.Join(",", names),
-                (_versionRange != null ? _versionRange.OriginalString : string.Empty),
+                (versionRange != null ? versionRange.OriginalString : string.Empty),
                 prerelease.ToString(),
                 repository != null ? string.Join(",", repository) : string.Empty,
                 acceptLicense.ToString(),
