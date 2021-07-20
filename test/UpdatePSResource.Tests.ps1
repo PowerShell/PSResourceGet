@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Install-PSResource for Module' {
+Describe 'Test Update-PSResource for Module' {
 
 
     BeforeAll{
@@ -87,18 +87,18 @@ Describe 'Test Install-PSResource for Module' {
         $isPkgUpdated | Should -BeTrue
     }
 
-    $testCases2 = @{Version="[2.10.0.0]";          ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match"},
-                  @{Version="2.10.0.0";            ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, exact range inclusive"},
-                  @{Version="(2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0"); Reason="validate version, exact range exclusive"},
-                  @{Version="(2.9.4.0,)";          ExpectedVersions=@("2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version exclusive"},
-                  @{Version="[2.9.4.0,)";          ExpectedVersions=@("2.9.4.0", "2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version inclusive"},
-                  @{Version="(,2.0.0.0)";          ExpectedVersions=@("1.9.0.0"); Reason="validate version, maximum version exclusive"},
-                  @{Version="(,2.0.0.0]";          ExpectedVersions=@("1.9.0.0", "2.0.0.0"); Reason="validate version, maximum version inclusive"},
-                  @{Version="[2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version="[1.3.0.0]";           ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, exact match"},
+                  @{Version="1.3.0.0";             ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[1.1.1.0, 1.3.0.0]";  ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, exact range inclusive"},
+                  @{Version="(1.1.1.0, 1.3.0.0)";  ExpectedVersions=@("1.1.0.0", "1.2.0.0"); Reason="validate version, exact range exclusive"},
+                  @{Version="(1.1.1.0,)";          ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, minimum version exclusive"},
+                  @{Version="[1.1.1.0,)";          ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, minimum version inclusive"},
+                  @{Version="(,1.3.0.0)";          ExpectedVersions=@("1.1.0.0", "1.2.0.0"); Reason="validate version, maximum version exclusive"},
+                  @{Version="(,1.3.0.0]";          ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, maximum version inclusive"},
+                  @{Version="[1.1.1.0, 1.3.0.0)";  ExpectedVersions=@("1.1.0.0", "1.2.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(1.1.1.0, 1.3.0.0]";  ExpectedVersions=@("1.1.0.0", "1.2.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
-    It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+    It "update resource when given Name to <Reason> <Version>" -TestCases $testCases2{
         param($Version, $ExpectedVersions)
 
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
@@ -248,7 +248,7 @@ Describe 'Test Install-PSResource for Module' {
     #     # $pkg.Version | Should -Be "0.0.1.0"
     # }
 
-    It "Install resource should not prompt 'trust repository' if repository is not trusted but -TrustRepository is used" {
+    It "update resource should not prompt 'trust repository' if repository is not trusted but -TrustRepository is used" {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
 
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
