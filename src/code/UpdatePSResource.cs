@@ -114,7 +114,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private string[] ProcessNames(string[] namesToProcess, VersionRange versionRange)
         {
-            namesToProcess = Utils.FilterWildcards(namesToProcess, out string[] errorMsgs, out bool nameContainsWildcard);
+            namesToProcess = Utils.ProcessNameWildcards(namesToProcess, out string[] errorMsgs, out bool nameContainsWildcard);
             
             foreach (string error in errorMsgs)
             {

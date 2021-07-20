@@ -65,7 +65,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return strArray;
         }
 
-        public static string[] FilterWildcards(
+        public static string[] ProcessNameWildcards(
             string[] pkgNames,
             out string[] errorMsgs,
             out bool isContainWildcard)
@@ -191,14 +191,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
            string version,
            out VersionRange versionRange)
         {
-            // versionRange = null;
-
             if (version == null) { 
                 versionRange = VersionRange.All;
-                // return false;
                 return true;
             }
-
 
             if (version.Trim().Equals("*"))
             {
