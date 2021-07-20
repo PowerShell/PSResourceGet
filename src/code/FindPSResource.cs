@@ -16,7 +16,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It returns PSResourceInfo objects which describe each resource item found.
     /// Other parameters allow the returned results to be filtered by item Type and Tag.
     /// </summary>
-
     [Cmdlet(VerbsCommon.Find,
         "PSResource",
         DefaultParameterSetName = ResourceNameParameterSet,
@@ -25,6 +24,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     public sealed class FindPSResource : PSCmdlet
     {
         #region Members
+        
         private const string ResourceNameParameterSet = "ResourceNameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";

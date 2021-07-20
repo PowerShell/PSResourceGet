@@ -1,4 +1,3 @@
-using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -17,141 +16,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     internal static class Utils
     {
-        public static void WriteVerboseOnCmdlet(
-        PSCmdlet cmdlet, string message)
-        {
-            try
-            {
-                cmdlet.InvokeCommand.InvokeScript(
-                    script: $"param ([string] $message) Write-Verbose -Verbose -Message $message",
-                    useNewScope: true,
-                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                    input: null,
-                    args: new object[] { message });
-            }
-            catch { }
-        }
+        #region String fields
 
-        public static string GetNormalizedVersionString(
-            string versionString,
-            string prerelease
-        )
-        {
-            // versionString may be like 1.2.0.0 or 1.2.0
-            // prerelease    may be      null    or "alpha1"
-            // possible passed in examples:
-            // versionString: "1.2.0"   prerelease: "alpha1"
-            // versionString: "1.2.0"   prerelease: ""        <- doubtful though
-            // versionString: "1.2.0.0" prerelease: "alpha1"
-            // versionString: "1.2.0.0" prerelease: ""
+        public static readonly string[] EmptyStrArray = Array.Empty<string>();
 
-            if (String.IsNullOrEmpty(prerelease))
-            {
-                return versionString;
-            }
+        #endregion
 
-            int numVersionDigits = versionString.Split('.').Count();
-
-            if (numVersionDigits == 3)
-            {
-                // versionString: "1.2.0" prerelease: "alpha1"
-                return versionString + "-" + prerelease;
-            }
-
-            else if (numVersionDigits == 4)
-            {
-                // versionString: "1.2.0.0" prerelease: "alpha1"
-                return versionString.Substring(0, versionString.LastIndexOf('.')) + "-" + prerelease;
-            }
-
-            return versionString;
-        }
-
-        public static string[] FilterWildcards(
-            string[] pkgNames,
-            out string[] errorMsgs,
-            out bool isContainWildcard)
-        {
-            List<string> namesWithSupportedWildcards = new List<string>();
-            List<string> errorMsgsList = new List<string>();
-
-            if (pkgNames == null)
-            {
-                isContainWildcard = true;
-                errorMsgs = errorMsgsList.ToArray();
-                return new string[] {"*"};
-            }
-
-            isContainWildcard = false;
-            foreach (string name in pkgNames)
-            {
-                if (WildcardPattern.ContainsWildcardCharacters(name))
-                {
-                    if (String.Equals(name, "*", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        isContainWildcard = true;
-                        errorMsgs = new string[] {};
-                        return new string[] {"*"};
-                    }
-
-                    if (name.Contains("?") || name.Contains("["))
-                    {
-                        errorMsgsList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for Find-PSResource so Name entry: {0} will be discarded.", name));
-                    }
-                    else
-                    {
-                        isContainWildcard = true;
-                        namesWithSupportedWildcards.Add(name);
-                    }
-                }
-                else
-                {
-                    namesWithSupportedWildcards.Add(name);
-                }
-
-            }
-
-            errorMsgs = errorMsgsList.ToArray();
-            return namesWithSupportedWildcards.ToArray();
-        }
-
-        public static string[] FilterOutWildcardNames(
-            string[] pkgNames,
-            out string[] errorMsgs)
-        {
-            List<string> errorFreeNames = new List<string>();
-            List<string> errorMsgList = new List<string>();
-
-            foreach (string n in pkgNames)
-            {
-                bool isNameErrorProne = false;
-                if (WildcardPattern.ContainsWildcardCharacters(n))
-                {
-                    if (String.Equals(n, "*", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        errorMsgList = new List<string>(); // clear prior error messages
-                        errorMsgList.Add("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded.");
-                        errorFreeNames = new List<string>();
-                        break;
-                    }
-                    else if (n.Contains("?") || n.Contains("["))
-                    {
-                        errorMsgList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for Find-PSResource so Name entry: {0} will be discarded.", n));
-                        isNameErrorProne = true;
-                    }
-                }
-
-                if (!isNameErrorProne)
-                {
-                    errorFreeNames.Add(n);
-                }
-            }
-
-            errorMsgs = errorMsgList.ToArray();
-            return errorFreeNames.ToArray();
-        }
-
-        #region Public methods
+        #region String methods
 
         public static string TrimQuotes(string name)
         {
@@ -194,9 +65,83 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return strArray;
         }
 
+        public static string[] FilterOutWildcardNames(
+            string[] pkgNames,
+            out string[] errorMsgs)
+        {
+            List<string> errorFreeNames = new List<string>();
+            List<string> errorMsgList = new List<string>();
+
+            foreach (string n in pkgNames)
+            {
+                bool isNameErrorProne = false;
+                if (WildcardPattern.ContainsWildcardCharacters(n))
+                {
+                    if (String.Equals(n, "*", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        errorMsgList = new List<string>(); // clear prior error messages
+                        errorMsgList.Add("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded.");
+                        errorFreeNames = new List<string>();
+                        break;
+                    }
+                    else if (n.Contains("?") || n.Contains("["))
+                    {
+                        errorMsgList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for Find-PSResource so Name entry: {0} will be discarded.", n));
+                        isNameErrorProne = true;
+                    }
+                }
+
+                if (!isNameErrorProne)
+                {
+                    errorFreeNames.Add(n);
+                }
+            }
+
+            errorMsgs = errorMsgList.ToArray();
+            return errorFreeNames.ToArray();
+        }
+    
+        #endregion
+
+        #region Version methods
+
+        public static string GetNormalizedVersionString(
+            string versionString,
+            string prerelease)
+        {
+            // versionString may be like 1.2.0.0 or 1.2.0
+            // prerelease    may be      null    or "alpha1"
+            // possible passed in examples:
+            // versionString: "1.2.0"   prerelease: "alpha1"
+            // versionString: "1.2.0"   prerelease: ""        <- doubtful though
+            // versionString: "1.2.0.0" prerelease: "alpha1"
+            // versionString: "1.2.0.0" prerelease: ""
+
+            if (String.IsNullOrEmpty(prerelease))
+            {
+                return versionString;
+            }
+
+            int numVersionDigits = versionString.Split('.').Count();
+
+            if (numVersionDigits == 3)
+            {
+                // versionString: "1.2.0" prerelease: "alpha1"
+                return versionString + "-" + prerelease;
+            }
+
+            else if (numVersionDigits == 4)
+            {
+                // versionString: "1.2.0.0" prerelease: "alpha1"
+                return versionString.Substring(0, versionString.LastIndexOf('.')) + "-" + prerelease;
+            }
+
+            return versionString;
+        }
+
         public static bool TryParseVersionOrVersionRange(
-            string version,
-            out VersionRange versionRange)
+           string version,
+           out VersionRange versionRange)
         {
             versionRange = null;
 
@@ -226,6 +171,34 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return VersionRange.TryParse(version, out versionRange);
         }
 
+        #endregion
+        
+        #region Path methods
+
+        public static string[] GetSubDirectories(string dirPath)
+        {
+            try
+            {
+                return Directory.GetDirectories(dirPath);
+            }
+            catch
+            {
+                return EmptyStrArray;
+            }
+        }
+
+        public static string[] GetDirectoryFiles(string dirPath)
+        {
+            try
+            {
+                return Directory.GetFiles(dirPath);
+            }
+            catch
+            {
+                return EmptyStrArray;
+            }
+        }
+
         public static string GetInstalledPackageName(string pkgPath)
         {
             if (string.IsNullOrEmpty(pkgPath))
@@ -246,30 +219,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-        // Returns paths to all installed resources, for example: 'c:\users\johndoe\Documents\PowerShell\Modules\TestModule'
         public static List<string> GetAllResourcePaths(PSCmdlet psCmdlet)
         {
+            GetStandardPlatformPaths(
+                psCmdlet,
+                out string myDocumentsPath,
+                out string programFilesPath);
+
             string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
             List<string> resourcePaths = psModulePath.Split(';').ToList();
             List<string> pathsToSearch = new List<string>();
-            var PSVersion6 = new Version(6, 0);
-            var isCorePS = psCmdlet.Host.Version >= PSVersion6;
-            string myDocumentsPath;
-            string programFilesPath;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
-            }
-            else
-            {
-                // paths are the same for both Linux and MacOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = System.IO.Path.Combine("usr", "local", "share", "Powershell");
-            }
 
             // will search first in PSModulePath, then will search in default paths
             resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
@@ -289,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     try
                     {
-                        pathsToSearch.AddRange(Directory.GetFiles(path));
+                        pathsToSearch.AddRange(GetDirectoryFiles(path));
                     }
                     catch (Exception e)
                     {
@@ -300,7 +259,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     try
                     {
-                        pathsToSearch.AddRange(Directory.GetDirectories(path));
+                        pathsToSearch.AddRange(GetSubDirectories(path));
                     }
                     catch (Exception e)
                     {
@@ -319,55 +278,25 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pathsToSearch;
         }
 
-        // Returns all potential installation paths given a scope, for example: 'c:\users\johndoe\Documents\PowerShell\Modules'
+        // Find all potential installation paths given a scope
         public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
         {
-            List<string> installationPaths = new List<string>();
-            var PSVersion6 = new Version(6, 0);
-            var isCorePS = psCmdlet.Host.Version >= PSVersion6;
-            string myDocumentsPath;
-            string programFilesPath;
+            GetStandardPlatformPaths(
+                psCmdlet,
+                out string myDocumentsPath,
+                out string programFilesPath);
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string powerShellType = isCorePS ? "PowerShell" : "WindowsPowerShell";
-
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
-            }
-            else
-            {
-                // paths are the same for both Linux and MacOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "Powershell");
-                programFilesPath = System.IO.Path.Combine("usr", "local", "share", "Powershell");
-            }
-
-
-            // If no explicit specification, will return PSModulePath, and then CurrentUser paths
-            // Installation will search for a /Modules or /Scripts directory
-            // If they are not available within one of the paths in PSModulePath, the CurrentUser path will be used.
-            if (scope == ScopeType.None)
-            {
-                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                installationPaths = psModulePath.Split(';').ToList();
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
-            }
-            // If user explicitly specifies AllUsers
-            else if (scope == ScopeType.AllUsers)
+            // The default user scope is CurrentUser
+            var installationPaths = new List<string>();
+            if (scope == ScopeType.AllUsers)
             {
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
                 installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
             }
-            // If user explicitly specifies CurrentUser
-            else if (scope == ScopeType.CurrentUser)
+            else
             {
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
                 installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
-            }
-            else
-            {
-                psCmdlet.WriteDebug(string.Format("Invalid scope provided: '{0}'", scope));
             }
 
             installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
@@ -376,17 +305,29 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return installationPaths;
         }
 
-        private static string GetResourceNameFromPath(string path)
+        private readonly static Version PSVersion6 = new Version(6, 0);
+        private static void GetStandardPlatformPaths(
+            PSCmdlet psCmdlet,
+            out string myDocumentsPath,
+            out string programFilesPath)
         {
-            // Resource paths may end in a directory or script file name.
-            // Directory name is the same as the resource name.
-            // Script file name is the resource name without the file extension.
-            // ./Modules/Microsoft.PowerShell.Test-Module     : Microsoft.PowerShell.Test-Module
-            // ./Scripts/Microsoft.PowerShell.Test-Script.ps1 : Microsoft.PowerShell.Test-Script
-            var resourceName = Path.GetFileName(path);
-            return Path.GetExtension(resourceName).Equals(".ps1", StringComparison.OrdinalIgnoreCase)
-                ? Path.GetFileNameWithoutExtension(resourceName) : resourceName;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
+                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
+            }
+            else
+            {
+                // paths are the same for both Linux and macOS
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
+                programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
+            }
         }
+
+        #endregion
+
+        #region Manifest methods
 
         public static Hashtable ParseModuleManifest(string moduleFileInfo, PSCmdlet cmdletPassedIn)
         {
@@ -395,7 +336,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // a module will still need the module manifest to be parsed.
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
-                // Parse the module manifest
+                // Parse the module manifest 
                 System.Management.Automation.Language.Token[] tokens;
                 ParseError[] errors;
                 var ast = Parser.ParseFile(moduleFileInfo, out tokens, out errors);
@@ -426,6 +367,106 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             return parsedMetadataHash;
         }
+
+        #endregion
+
+        #region Misc methods
+
+        public static void WriteVerboseOnCmdlet(
+            PSCmdlet cmdlet,
+            string message)
+        {
+            try
+            {
+                cmdlet.InvokeCommand.InvokeScript(
+                    script: $"param ([string] $message) Write-Verbose -Verbose -Message $message",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { message });
+            }
+            catch { }
+        }
+
+        #endregion
+
+        #region Directory and File
+
+        /// <Summary>
+        /// Deletes a directory and its contents
+        /// </Summary>
+        public static void DeleteDirectory(string dirPath)
+        {
+            foreach (var dirFilePath in Directory.GetFiles(dirPath))
+            {
+                File.Delete(dirFilePath);
+            }
+
+            foreach (var dirSubPath in Directory.GetDirectories(dirPath))
+            {
+                DeleteDirectory(dirSubPath);
+            }
+
+            Directory.Delete(dirPath);
+        }
+
+        /// <Summary>
+        /// Moves files from source to destination locations.
+        /// Works over different file volumes.
+        /// </Summary>
+        public static void MoveFiles(
+            string sourceFilePath,
+            string destFilePath,
+            bool overwrite = true)
+        {
+            File.Copy(sourceFilePath, destFilePath, overwrite);
+            File.Delete(sourceFilePath);
+        }
+
+        /// <Summary>
+        /// Moves the directory, including contents, from source to destination locations.
+        /// Works over different file volumes.
+        /// </Summary>
+        public static void MoveDirectory(
+            string sourceDirPath,
+            string destDirPath,
+            bool overwrite = true)
+        {
+            CopyDirContents(sourceDirPath, destDirPath, overwrite);
+            DeleteDirectory(sourceDirPath);
+        }
+
+        private static void CopyDirContents(
+            string sourceDirPath,
+            string destDirPath,
+            bool overwrite)
+        {
+            if (Directory.Exists(destDirPath))
+            {
+                if (!overwrite)
+                {
+                    throw new PSInvalidOperationException(
+                        $"Cannot move directory because destination directory already exists: '{destDirPath}'");
+                }
+
+                DeleteDirectory(destDirPath);
+            }
+
+            Directory.CreateDirectory(destDirPath);
+
+            foreach (var filePath in Directory.GetFiles(sourceDirPath))
+            {
+                var destFilePath = Path.Combine(destDirPath, Path.GetFileName(filePath));
+                File.Copy(filePath, destFilePath);
+            }
+
+            foreach (var srcSubDirPath in Directory.GetDirectories(sourceDirPath))
+            {
+                var destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
+                CopyDirContents(srcSubDirPath, destSubDirPath, overwrite);
+            }
+        }
+
         #endregion
     }
 }

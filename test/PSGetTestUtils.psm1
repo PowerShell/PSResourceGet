@@ -509,6 +509,7 @@ $($ReleaseNotes -join "`r`n")
 Checks that provided PSGetInfo object contents match the expected data
 from the test information file: PSGetModuleInfo.xml
 #>
+
 function CheckForExpectedPSGetInfo
 {
     param ($psGetInfo)
@@ -528,9 +529,9 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.AdditionalMetadata['tags'] | Should -BeLike 'PSModule PSEdition_Core PSCmdlet_Register-SecretVault*'
     $psGetInfo.AdditionalMetadata['developmentDependency'] | Should -BeExactly 'False'
     $psGetInfo.AdditionalMetadata['updated'] | Should -BeExactly '2021-03-25T18:08:10Z'
-    $psGetInfo.AdditionalMetadata['NormalizedVersion'] | Should -BeExactly '1.0.0'
+    $psGetInfo.AdditionalMetadata['NormalizedVersion'] | Should -BeExactly '1.1.0-preview2'
     $psGetInfo.AdditionalMetadata['Authors'] | Should -BeExactly 'Microsoft Corporation'
-    $psGetInfo.AdditionalMetadata['IsPrerelease'] | Should -BeExactly 'false'
+    $psGetInfo.AdditionalMetadata['IsPrerelease'] | Should -Be $True
     $psGetInfo.AdditionalMetadata['ItemType'] | Should -BeExactly 'Module'
     $psGetInfo.AdditionalMetadata['FileList'] | Should -BeLike 'Microsoft.PowerShell.SecretManagement.nuspec|Microsoft.PowerShell.SecretManagement.dll*'
     $psGetInfo.AdditionalMetadata['GUID'] | Should -BeExactly 'a5c858f6-4a8e-41f1-b1ee-0ff8f6ad69d3'
@@ -543,6 +544,8 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.Dependencies | Should -HaveCount 0
     $psGetInfo.Description | Should -BeLike 'This module provides a convenient way for a user to store*'
     $psGetInfo.IconUri | Should -BeNullOrEmpty
+    $psGetInfo.IsPrerelease | Should -Be $True
+    $psGetInfo.PrereleaseLabel | Should -Be "preview2"
     $psGetInfo.Includes.Cmdlet | Should -HaveCount 10
     $psGetInfo.Includes.Cmdlet[0] | Should -BeExactly 'Register-SecretVault'
     $psGetInfo.InstalledDate.Year | Should -BeExactly 2021
@@ -559,5 +562,10 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.Tags | Should -BeExactly @('PSModule', 'PSEdition_Core')
     $psGetInfo.Type | Should -BeExactly 'Module'
     $psGetInfo.UpdatedDate.Year | Should -BeExactly 1
+<<<<<<< HEAD
     $psGetInfo.Version.ToString() | Should -BeExactly '1.0.0'
 }
+=======
+    $psGetInfo.Version | Should -Be "1.1.0"
+}
+>>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e

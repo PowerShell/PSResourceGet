@@ -13,7 +13,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-    /// <summary>   
+    /// <summary>
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
     [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true, HelpUri = "<add>")]
@@ -27,7 +27,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
-        
+
         /// <summary>
         /// Specifies the version or version range of the package to be uninstalled.
         /// </summary>
@@ -67,6 +67,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ex = new ArgumentException(exMessage);
                 var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(IncorrectVersionFormat);
+            }
+
+            // if no Version specified, uninstall all versions for the package
+            if (Version == null)
+            {
+                _versionRange = VersionRange.All;
             }
 
             _pathsToSearch = Utils.GetAllResourcePaths(this);
@@ -119,7 +125,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
         }
-        
+
 
         private bool UninstallPkgHelper()
         {
@@ -186,14 +192,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 return false;
             }
-            
+
             DirectoryInfo dir = new DirectoryInfo(pkgPath);
-            dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+            dir.Attributes &= ~FileAttributes.ReadOnly;
 
             try
             {
-                // delete recursively
-                dir.Delete(true);
+                Utils.DeleteDirectory(pkgPath);
                 WriteVerbose(string.Format("Successfully uninstalled '{0}' from path '{1}'", pkgName, dir.FullName));
 
                 successfullyUninstalledPkg = true;
@@ -201,7 +206,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // finally: check to see if there's anything left in the parent directory, if not, delete that as well
                 try
                 {
-                    if (Directory.GetDirectories(dir.Parent.FullName).Length == 0)
+                    if (Utils.GetSubDirectories(dir.Parent.FullName).Length == 0)
                     {
                         Directory.Delete(dir.Parent.FullName, true);
                     }
@@ -221,7 +226,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ErrorDeletingDirectory = new ErrorRecord(ex, "ErrorDeletingDirectory", ErrorCategory.PermissionDenied, null);
                 WriteError(ErrorDeletingDirectory);
             }
-            
+
             return successfullyUninstalledPkg;
         }
 

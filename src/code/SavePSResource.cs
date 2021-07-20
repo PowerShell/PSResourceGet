@@ -16,12 +16,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// The Save-PSResource cmdlet saves a resource to a machine.
     /// It returns nothing.
     /// </summary>
-
-    [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true, HelpUri = "<add>")]
-    public sealed
-    class SavePSResource : PSCmdlet
+    [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
+    public sealed class SavePSResource : PSCmdlet
     {
-        #region parameters
+        #region Members
+
+        private const string NameParameterSet = "NameParameterSet";
+        private const string InputObjectSet = "InputObjectSet";
+        VersionRange _versionRange;
+        
+        #endregion
+
+        #region Parameters 
 
         /// <summary>
         /// Specifies the exact names of resources to save from a repository.
@@ -50,6 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = NameParameterSet)]
         // todo: add tab completion (look at get-psresourcerepository at the name parameter)
         [ValidateNotNullOrEmpty]
+        [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         public string[] Repository { get; set; }
 
         /// <summary>
@@ -57,7 +64,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         public PSCredential Credential { get; set; }
-
+        
         /*
         /// <summary>
         /// Saves as a .nupkg
@@ -104,27 +111,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter()]
         public SwitchParameter TrustRepository { get; set; }
-
+        
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "InputObjectSet")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = InputObjectSet)]
         [ValidateNotNullOrEmpty]
         public object[] InputObject { set; get; }
+
         #endregion
 
-        #region members
-        private const string NameParameterSet = "NameParameterSet";
-        private const string InputObjectSet = "InputObjectSet";
-        VersionRange _versionRange;
-        #endregion
+        #region Method overrides
 
-        #region Methods
         protected override void BeginProcessing()
         {
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range.
+            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            if (ParameterSetName.Equals("NameParameterSet") && 
+                Version != null && 
+                !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";
                 var ex = new ArgumentException(exMessage);
@@ -151,23 +156,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case NameParameterSet:
                     installHelper.InstallPackages(
-                        names: Name,
-                        versionRange: _versionRange,
-                        prerelease: Prerelease,
-                        repository: Repository,
-                        acceptLicense: true,
-                        quiet: true,
-                        reinstall: true,
-                        force: false,
-                        trustRepository: TrustRepository,
-                        noClobber: false,
-                        credential: Credential,
+                        names: Name, 
+                        versionRange: _versionRange, 
+                        prerelease: Prerelease, 
+                        repository: Repository, 
+                        acceptLicense: true, 
+                        quiet: true, 
+                        reinstall: true, 
+                        force: false, 
+                        trustRepository: TrustRepository, 
+                        noClobber: false, 
+                        credential: Credential, 
                         requiredResourceFile: null,
-                        requiredResourceJson: null,
-                        requiredResourceHash: null,
-                        specifiedPath: _path,
-                        asNupkg: false,
-                        includeXML: false,
+                        requiredResourceJson: null, 
+                        requiredResourceHash: null, 
+                        specifiedPath: _path, 
+                        asNupkg: false, 
+                        includeXML: false, 
                         pathsToInstallPkg: new List<string> { _path } );
                     break;
 
@@ -176,6 +181,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
         }
+
         #endregion
     }
 }

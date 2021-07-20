@@ -77,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';",
                 string.Join(",", names),
-                (_versionRange != null ? _versionRange.OriginalString : string.Empty),
+                (versionRange != null ? versionRange.OriginalString : string.Empty),
                 prerelease.ToString(),
                 repository != null ? string.Join(",", repository) : string.Empty,
                 acceptLicense.ToString(),
@@ -161,6 +161,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         credential: credential,
                         includeDependencies: true);
 
+                    foreach (PSResourceInfo a in pkgsFromRepoToInstall)
+                    {
+                        var test = a;
+                        _cmdletPassedIn.WriteVerbose(a.Version.ToString());
+                    }
+
                     // Select the first package from each name group, which is guaranteed to be the latest version.
                     // We should only have one version returned for each package name
                     // e.g.:
@@ -170,7 +176,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
                         m => new { m.Name }).Select(
                             group => group.First()).ToList();
-
+                    
                     if (!pkgsFromRepoToInstall.Any())
                     {
                         _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
@@ -220,7 +226,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ./InstallPackagePath3/PackageD
             foreach (var path in _pathsToInstallPkg)
             {
-                _pathsToSearch.AddRange(Directory.GetDirectories(path));
+                _pathsToSearch.AddRange(Utils.GetSubDirectories(path));
             }
 
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.FilterPkgPaths(pkgNames.ToArray(), _versionRange, _pathsToSearch);
@@ -252,19 +258,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
                                                                            // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
                                                                            // with a mask (bitwise complement of desired attributes combination).
-                                                                           // TODO: check the attributes and if it's read only then set it
+                                                                           // TODO: check the attributes and if it's read only then set it 
                                                                            // attribute may be inherited from the parent
                                                                            // TODO:  are there Linux accommodations we need to consider here?
                     dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", p.Name));
 
-                    if (!_quiet && !_savePkg)
-                    {
-                        // todo: UPDATE PROGRESS BAR
-                        CallProgressBar(p);
-                    }
-
+                    // TODO: add progress bar here
+        
                     // Create PackageIdentity in order to download
                     string createFullVersion = p.Version.ToString();
                     if (p.IsPrerelease)
@@ -359,12 +361,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Prompt if module requires license acceptance (need to read info license acceptance info from the module manifest)
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.
 
+
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
-                    string version3digitNoPrerelease = newVersion;
+              
+                    //
+                    string normalizedVersionNoPrereleaseLabel = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
                     {
-                        version3digitNoPrerelease = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
+                        // 2.0.2
+                        normalizedVersionNoPrereleaseLabel = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
                     }
+                    //p.Version = new System.Version(normalizedVersionNoPrereleaseLabel);
 
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
@@ -396,7 +403,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         installPath = _pathsToInstallPkg.FirstOrDefault();
                     }
                     else {
-                        // PSModules:
+                        // PSModules: 
                         /// ./Modules
                         /// ./Scripts
                         /// _pathsToInstallPkg is sorted by desirability, Find will pick the pick the first Script or Modules path found in the list
@@ -408,10 +415,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         CreateMetadataXMLFile(tempDirNameVersion, installPath, repoName, p, isScript);
                     }
-
-                    MoveFilesIntoInstallPath(p, isScript, isLocalRepo, tempDirNameVersion, tempInstallPath, installPath, newVersion, moduleManifestVersion, version3digitNoPrerelease, version4digitNoPrerelease, scriptPath);
-
-                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}'", p.Name));
+                    
+                    MoveFilesIntoInstallPath(p, isScript, isLocalRepo, tempDirNameVersion, tempInstallPath, installPath, newVersion, moduleManifestVersion, normalizedVersionNoPrereleaseLabel, version4digitNoPrerelease, scriptPath);
+                    
+                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", p.Name, installPath));
                     pkgsSuccessfullyInstalled.Add(p.Name);
                 }
                 catch (Exception e)
@@ -431,49 +438,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return pkgsSuccessfullyInstalled;
         }
-
-        private void CallProgressBar(PSResourceInfo p)
-        {
-            int i = 1;
-            //int j = 1;
-            /****************************
-            * START PACKAGE INSTALLATION -- start progress bar
-            *****************************/
-            // Write-Progress -Activity "Search in Progress" - Status "$i% Complete:" - PercentComplete $i
-
-            int activityId = 0;
-            string activity = "";
-            string statusDescription = "";
-
-            // If the pkg exists in one of the names passed in, then we wont include it as a dependent package
-            activityId = 0;
-            activity = string.Format("Installing {0}...", p.Name);
-            statusDescription = string.Format("{0}% Complete:", i++);
-
-            // j = 1;
-            /*
-            if (packageNames.ToList().Contains(p.Identity.Id))
-            {
-                // If the pkg exists in one of the names passed in, then we wont include it as a dependent package
-                activityId = 0;
-                activity = string.Format("Installing {0}...", p.Identity.Id);
-                statusDescription = string.Format("{0}% Complete:", i++);
-
-                j = 1;
-            }
-            else
-            {
-                // Child process
-                // Installing dependent package
-                activityId = 1;
-                activity = string.Format("Installing dependent package {0}...", p.Identity.Id);
-                statusDescription = string.Format("{0}% Complete:", j);
-            }
-            */
-            var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
-            _cmdletPassedIn.WriteProgress(progressRecord);
-        }
-
+        
         private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion)
         {
             var requireLicenseAcceptance = false;
@@ -565,7 +530,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var message = string.Format("Error parsing metadata into XML: '{0}'", error);
                 var ex = new ArgumentException(message);
                 var ErrorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
-                _cmdletPassedIn.WriteError(ErrorParsingMetadata);
+                WriteError(ErrorParsingMetadata);
             }
         }
 
@@ -613,17 +578,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private void MoveFilesIntoInstallPath(PSResourceInfo p, bool isScript, bool isLocalRepo, string dirNameVersion, string tempInstallPath, string installPath, string newVersion, string moduleManifestVersion, string nupkgVersion, string versionWithoutPrereleaseTag, string scriptPath)
+        private void MoveFilesIntoInstallPath(
+            PSResourceInfo p, 
+            bool isScript, 
+            bool isLocalRepo, 
+            string dirNameVersion, 
+            string tempInstallPath, 
+            string installPath, 
+            string newVersion, 
+            string moduleManifestVersion, 
+            string nupkgVersion, 
+            string versionWithoutPrereleaseTag, 
+            string scriptPath)
         {
             // Creating the proper installation path depending on whether pkg is a module or script
             var newPathParent = isScript ? installPath : Path.Combine(installPath, p.Name);
             var finalModuleVersionDir = isScript ? installPath : Path.Combine(installPath, p.Name, moduleManifestVersion);  // versionWithoutPrereleaseTag
-            _cmdletPassedIn.WriteDebug(string.Format("Installation path is: '{0}'", finalModuleVersionDir));
 
             // If script, just move the files over, if module, move the version directory over
             var tempModuleVersionDir = (isScript || isLocalRepo) ? dirNameVersion
                 : Path.Combine(tempInstallPath, p.Name.ToLower(), newVersion);
-            _cmdletPassedIn.WriteVerbose(string.Format("Full installation path is: '{0}'", tempModuleVersionDir));
+
+            _cmdletPassedIn.WriteVerbose(string.Format("Installation source path is: '{0}'", tempModuleVersionDir));
+            _cmdletPassedIn.WriteVerbose(string.Format("Installation destination path is: '{0}'", finalModuleVersionDir));    
 
             if (isScript)
             {
@@ -639,7 +616,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     _cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
-                    File.Move(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
+                    Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
 
                     // Need to delete old script file, if that exists
                     _cmdletPassedIn.WriteDebug(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, p.Name + ".ps1"))));
@@ -651,7 +628,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 _cmdletPassedIn.WriteDebug(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1")));
-                File.Move(scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1"));
+                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1"));
             }
             else
             {
@@ -660,13 +637,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _cmdletPassedIn.WriteDebug(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
                     Directory.CreateDirectory(newPathParent);
-                    Directory.Move(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
                 else
                 {
                     _cmdletPassedIn.WriteDebug(string.Format("Temporary module version directory is: '{0}'", tempModuleVersionDir));
 
-                    // At this point if
+                    // At this point if 
                     if (Directory.Exists(finalModuleVersionDir))
                     {
                         // Delete the directory path before replacing it with the new module
@@ -675,7 +652,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     _cmdletPassedIn.WriteDebug(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
-                    Directory.Move(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
             }
         }

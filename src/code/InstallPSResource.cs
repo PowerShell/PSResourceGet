@@ -19,7 +19,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     public sealed
     class InstallPSResource : PSCmdlet
     {
-        #region parameters
+        #region Parameters 
+
         /// <summary>
         /// Specifies the exact names of resources to install from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
@@ -34,7 +35,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
-
+        
         /// <summary>
         /// Specifies to allow installation of prerelease versions
         /// </summary>
@@ -85,20 +86,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         public SwitchParameter AcceptLicense { get; set; }
+
         #endregion
 
-        #region members
+        #region Members
+
         private const string NameParameterSet = "NameParameterSet";
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
         List<string> _pathsToInstallPkg;
         VersionRange _versionRange;
+
         #endregion
 
-        #region Methods
+        #region Method overrides
+
         protected override void BeginProcessing()
         {
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range.
+            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // An exact version will be formatted into a version range.
             if (ParameterSetName.Equals(NameParameterSet) && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
 
@@ -107,6 +112,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ex = new ArgumentException(exMessage);
                 var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(IncorrectVersionFormat);
+            }
+
+            // if no Version specified, install latest version for the package
+            if (Version == null)
+            {
+                _versionRange = VersionRange.All;
             }
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
@@ -135,15 +146,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         trustRepository: TrustRepository,
                         noClobber: false,
                         credential: Credential,
-                        requiredResourceFile: null,
-                        requiredResourceJson: null,
-                        requiredResourceHash: null,
-                        specifiedPath: null,
-                        asNupkg: false,
-                        includeXML: true,
+                        requiredResourceFile: null, 
+                        requiredResourceJson: null, 
+                        requiredResourceHash: null, 
+                        specifiedPath: null, 
+                        asNupkg: false, 
+                        includeXML: true, 
                         pathsToInstallPkg: _pathsToInstallPkg);
                     break;
-
+                    
                 case RequiredResourceFileParameterSet:
                     ThrowTerminatingError(new ErrorRecord(
                                            new PSNotImplementedException("RequiredResourceFileParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
@@ -165,6 +176,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
         }
+        
         #endregion
     }
 }
