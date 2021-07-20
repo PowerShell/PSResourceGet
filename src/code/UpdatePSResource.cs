@@ -14,24 +14,20 @@ using NuGet.Versioning;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// The Save-PSResource cmdlet combines the Save-Module, Save-Script cmdlets from V2.
-    /// It saves from a package found from a repository (local or remote) based on the -Name parameter argument.
-    /// It does not return an object. Other parameters allow the returned results to be further filtered.
+    /// The Update-PSResource cmdlet replaces the Update-Module and Update-Script cmdlets from V2.
+    /// It updates an already installed package based on the -Name parameter argument.
+    /// It does not return an object. Other parameters allow the package to be updated to be further filtered.
     /// </summary>
 
     [Cmdlet(VerbsData.Update,
         "PSResource",
         DefaultParameterSetName = NameParameterSet,
-        SupportsShouldProcess = true,
-        HelpUri = "<add>")]
-    [OutputType(typeof(PSResourceInfo))]
-    public sealed
-    class UpdatePSResource : PSCmdlet
+        SupportsShouldProcess = true)]
+    public sealed class UpdatePSResource : PSCmdlet
     {
         #region Members
 
         private const string NameParameterSet = "NameParameterSet";
-        private const string InputObjectParameterSet = "InputObjectParameterSet";
         private CancellationTokenSource _source;
         private CancellationToken _cancellationToken;
         private List<string> _pathsToInstallPkg;
@@ -73,14 +69,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the scope of the resource to update.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        [ValidateNotNullOrEmpty]
         public ScopeType Scope { get; set; }
 
         /// <summary>
         /// When specified, supresses being prompted for untrusted sources.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter TrustRepository { get; set; }
 
         /// <summary>
@@ -93,28 +87,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Supresses progress information.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>
         /// For resources that require a license, AcceptLicense automatically accepts the license agreement during the update.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter AcceptLicense { get; set; }
 
         /// <summary>
         /// When specified, bypasses checks for TrustRepository and AcceptLicense and updates the package.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter Force { get; set; }
-
-        /// <summary>
-        /// Used to pass in an object via pipeline to update.
-        /// </summary>
-        [Parameter(ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
-        public object[] InputObject { get; set; }
 
         #endregion
 
@@ -127,15 +112,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
         }
 
-        protected override void StopProcessing()
+        private string[] ProcessNames(string[] namesToProcess, VersionRange versionRange)
         {
-            _source.Cancel();
-        }
-
-        protected override void ProcessRecord()
-        {
-            Name = Utils.FilterWildcards(Name, out string[] errorMsgs, out bool isContainWildcard);
-
+            namesToProcess = Utils.FilterWildcards(namesToProcess, out string[] errorMsgs, out bool nameContainsWildcard);
+            
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
@@ -144,22 +124,42 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.InvalidArgument,
                     this));
             }
-
-            if (Name.Length == 1 && String.Equals(Name[0], "*", StringComparison.InvariantCultureIgnoreCase))
-            {
-                WriteVerbose("Name was detected to be (or contain an element equal to): '*', so all packages will be updated");
-            }
-
+            
             // this catches the case where Name wasn't input as null or empty,
             // but after filtering out unsupported wildcard names there are no elements left in Name
             if (Name.Length == 0)
             {
-                 return;
+                 return namesToProcess;
             }
 
-            VersionRange versionRange = new VersionRange();
+            if (String.Equals(namesToProcess[0], "*", StringComparison.InvariantCultureIgnoreCase))
+            {
+                WriteVerbose("Name was detected to be (or contain an element equal to): '*', so all packages will be updated");
+            }
 
-            if (Version !=null && !Utils.TryParseVersionOrVersionRange(Version, out versionRange))
+            if (nameContainsWildcard)
+            {
+                // any of the Name entries contains a supported wildcard
+                // then we need to use GetHelper (Get-InstalledPSResource logic) to find which packages are installed that match
+                // the wildcard pattern name for each package name with wildcard
+
+                GetHelper getHelper = new GetHelper(
+                    cmdletPassedIn: this);
+
+                namesToProcess = getHelper.FilterPkgPaths(
+                    name: Name,
+                    versionRange: versionRange,
+                    pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
+            }
+
+            return namesToProcess;
+
+        }
+
+        protected override void ProcessRecord()
+        {
+            // this can handle Version == null and only returns false if the range was incorrectly formatted and couldn't be parsed.
+            if (!Utils.TryParseVersionOrVersionRange(Version, out VersionRange versionRange))
             {
                 WriteError(new ErrorRecord(
                     new PSInvalidOperationException("Cannot parse Version parameter provided into VersionRange"),
@@ -169,20 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            if (isContainWildcard)
-            {
-                // any of the Name entries contains a supported wildcard
-                // then we need to use GetHelper (Get-InstalledPSResource logic) to find which packages are installed that match
-                // the wildcard pattern name for each package name with wildcard
-
-                GetHelper getHelper = new GetHelper(
-                    cmdletPassedIn: this);
-
-                Name = getHelper.FilterPkgPaths(
-                    name: Name,
-                    versionRange: versionRange,
-                    pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
-            }
+            Name = ProcessNames(Name, versionRange);
 
             InstallHelper installHelper = new InstallHelper(
                 updatePkg: true,
@@ -190,38 +177,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 cancellationToken: _cancellationToken,
                 cmdletPassedIn: this);
 
-            switch (ParameterSetName)
-            {
-                case NameParameterSet:
-                    installHelper.InstallPackages(
-                        names: Name,
-                        versionRange: versionRange,
-                        prerelease: Prerelease,
-                        repository: Repository,
-                        acceptLicense: AcceptLicense,
-                        quiet: Quiet,
-                        reinstall: false,
-                        force: Force,
-                        trustRepository: TrustRepository,
-                        noClobber: false,
-                        credential: Credential,
-                        requiredResourceFile: null,
-                        requiredResourceJson: null,
-                        requiredResourceHash: null,
-                        specifiedPath: null,
-                        asNupkg: false,
-                        includeXML: true,
-                        pathsToInstallPkg: _pathsToInstallPkg);
-                    break;
 
-                case InputObjectParameterSet:
-                    // TODO
-                    break;
-
-                default:
-                    Dbg.Assert(false, "Invalid parameter set");
-                    break;
-            }
+            installHelper.InstallPackages(
+                names: Name,
+                versionRange: versionRange,
+                prerelease: Prerelease,
+                repository: Repository,
+                acceptLicense: AcceptLicense,
+                quiet: Quiet,
+                reinstall: false,
+                force: Force,
+                trustRepository: TrustRepository,
+                noClobber: false,
+                credential: Credential,
+                requiredResourceFile: null,
+                requiredResourceJson: null,
+                requiredResourceHash: null,
+                specifiedPath: null,
+                asNupkg: false,
+                includeXML: true,
+                pathsToInstallPkg: _pathsToInstallPkg);
         }
 
         #endregion

@@ -147,8 +147,7 @@ Describe 'Test Update-PSResource for Module' {
         {
             if ([System.Version]$pkg.Version -gt [System.Version]"1.0.2.0")
             {
-                Write-Host $pkg.Version" and prerelease data is:"$pkg.PrivateData.PSData.Prerelease"."
-                # $pkg.PrereleaseLabel | Should -Be "-alpha1" (todo: for some reason get-installedpsresource doesn't get this!)
+                $pkg.PrereleaseLabel | Should -Be "alpha1"
                 $isPkgUpdated = $true
             }
         }

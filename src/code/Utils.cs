@@ -112,6 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             errorMsgs = errorMsgsList.ToArray();
             return namesWithSupportedWildcards.ToArray();
         }
+
         public static string[] FilterOutWildcardNames(
             string[] pkgNames,
             out string[] errorMsgs)
@@ -190,9 +191,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
            string version,
            out VersionRange versionRange)
         {
-            versionRange = null;
+            // versionRange = null;
 
-            if (version == null) { return false; }
+            if (version == null) { 
+                versionRange = VersionRange.All;
+                // return false;
+                return true;
+            }
 
 
             if (version.Trim().Equals("*"))
