@@ -174,6 +174,7 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir = Get-ChildItem -Path . | Where-Object Name -eq "TestModule"
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
+
         # Delete all files and subdirectories in the current , but keep the directory $SaveDir
         if (Test-Path -Path $pkgDir.FullName) {
             Remove-Item -Path $pkgDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
@@ -185,10 +186,12 @@ Describe 'Test Save-PSResource for PSResources' {
     # This needs to be manually tested due to prompt
     It "Install resource should prompt 'trust repository' if repository is not trusted" {
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
+
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -confirm:$false
         
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
+
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
 #>

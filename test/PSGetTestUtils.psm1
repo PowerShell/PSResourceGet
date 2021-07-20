@@ -458,23 +458,40 @@ function Create-PSScriptMetadata
     Process
     {
         $PSScriptInfoString = @"
+
 <#PSScriptInfo
+
 .VERSION$(if ($Version) {" $Version"})
+
 .GUID$(if ($Guid) {" $Guid"})
+
 .AUTHOR$(if ($Author) {" $Author"})
+
 .COMPANYNAME$(if ($CompanyName) {" $CompanyName"})
+
 .COPYRIGHT$(if ($Copyright) {" $Copyright"})
+
 .DESCRIPTION$(if ($Description) {" $Description"})
+
 .TAGS$(if ($Tags) {" $Tags"})
+
 .LICENSEURI$(if ($LicenseUri) {" $LicenseUri"})
+
 .PROJECTURI$(if ($ProjectUri) {" $ProjectUri"})
+
 .ICONURI$(if ($IconUri) {" $IconUri"})
+
 .EXTERNALMODULEDEPENDENCIES$(if ($ExternalModuleDependencies) {" $($ExternalModuleDependencies -join ',')"})
+
 .REQUIREDSCRIPTS$(if ($RequiredScripts) {" $($RequiredScripts -join ',')"})
+
 .EXTERNALSCRIPTDEPENDENCIES$(if ($ExternalScriptDependencies) {" $($ExternalScriptDependencies -join ',')"})
+
 .RELEASENOTES
 $($ReleaseNotes -join "`r`n")
+
 .PRIVATEDATA$(if ($PrivateData) {" $PrivateData"})
+
 #>
 "@
         return $PSScriptInfoString
