@@ -12,19 +12,6 @@ Describe 'Test Save-PSResource for PSResources' {
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
-<<<<<<< HEAD
-       $TempDir = Create-TemporaryDirectory 
-    }
-
-    AfterEach {
-        # Delete all files and subdirectories in $Tempdir, but keep the directory $Tempdir
-        try {
-            Get-ChildItem -Path $TempDir -Force | foreach { $_.Delete($true)}
-        }
-        catch {
-            Get-ChildItem -Path $TempDir -Force | foreach { $_.Delete()}
-        }
-=======
        $SaveDir = Join-Path $TestDrive 'SavedResources'
        New-Item -Item Directory $SaveDir -Force
     }
@@ -32,7 +19,6 @@ Describe 'Test Save-PSResource for PSResources' {
     AfterEach {
         # Delte contents of save directory
         Remove-Item -Path (Join-Path $SaveDir '*') -Recurse -Force -ErrorAction SilentlyContinue
->>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e
     }
 
     AfterAll {
@@ -40,19 +26,6 @@ Describe 'Test Save-PSResource for PSResources' {
     }
 
     It "Save specific module resource by name" {
-<<<<<<< HEAD
-        Save-PSResource -Name "TestModule" -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-    }
-
-    It "Save specific script resource by name" {
-        Save-PSResource -Name "TestTestScript" -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestTestScript.ps1" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-=======
         Save-PSResource -Name "TestModule" -Repository $TestGalleryName -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"
         $pkgDir | Should -Not -BeNullOrEmpty
@@ -64,23 +37,10 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestTestScript.ps1"
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
->>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e
     }
 
     It "Save multiple resources by name" {
         $pkgNames = @("TestModule","TestModule99")
-<<<<<<< HEAD
-        Save-PSResource -Name $pkgNames -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be @("TestModule","TestModule99") 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-    }
-
-    It "Should not save resource given nonexistant name" {
-        Save-PSResource -Name NonExistantModule -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -BeNullOrEmpty
-=======
         Save-PSResource -Name $pkgNames -Repository $TestGalleryName -Path $SaveDir
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "TestModule" -or $_.Name -eq "TestModule99" }
         $pkgDirs.Count | Should -Be 2
@@ -92,46 +52,10 @@ Describe 'Test Save-PSResource for PSResources' {
         Save-PSResource -Name NonExistentModule -Repository $TestGalleryName -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "NonExistentModule"
         $pkgDir.Name | Should -BeNullOrEmpty
->>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
     It "Should save resource given name and exact version" {
-<<<<<<< HEAD
-        Save-PSResource -Name "TestModule" -Version "1.2.0" -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-        $pkgVersion = Get-ChildItem $pkg
-        $pkgVersion.Name | Should -Be "1.2.0"
-    }
-
-    It "Should save resource given name and exact version with bracket syntax" {
-        Save-PSResource -Name "TestModule" -Version "[1.2.0]" -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-        $pkgVersion = Get-ChildItem $pkg
-        $pkgVersion.Name | Should -Be "1.2.0"
-    }
-
-    It "Should save resource given name and exact range inclusive [1.0.0, 1.1.1]" {
-        Save-PSResource -Name "TestModule" -Version "[1.0.0, 1.1.1]" -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-        $pkgVersion = Get-ChildItem $pkg
-        $pkgVersion.Name | Should -Be "1.1.1"
-    }
-
-    It "Should save resource given name and exact range exclusive (1.0.0, 1.1.1)" {
-        Save-PSResource -Name "TestModule" -Version "(1.0.0, 1.1.1)" -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-        $pkgVersion = Get-ChildItem $pkg
-        $pkgVersion.Name | Should -Be "1.1"
-=======
         Save-PSResource -Name "TestModule" -Version "1.2.0" -Repository $TestGalleryName -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"
         $pkgDir | Should -Not -BeNullOrEmpty
@@ -161,7 +85,6 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "1.1"
->>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e
     }
 
     It "Should not save resource with incorrectly formatted version such as <Description>" -TestCases @(
@@ -170,58 +93,6 @@ Describe 'Test Save-PSResource for PSResources' {
     ) {
         param($Version, $Description)
 
-<<<<<<< HEAD
-        Save-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName -Path $TempDir
-        $res = Get-ChildItem $TempDir
-        $res | Should -BeNullOrEmpty
-    }
-
-    It "Save resource when given Name, Version '*', should install the latest version" {
-        Save-PSResource -Name "TestModule" -Version "*" -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-        $pkgVersion = Get-ChildItem $pkg
-        $pkgVersion.Name | Should -Be "1.3.0"
-    }
-
-    It "Save resource with latest (including prerelease) version given Prerelease parameter" {
-        Save-PSResource -Name "TestModulePrerelease" -Prerelease -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModulePrerelease" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-        $pkgVersion = Get-ChildItem $pkg
-        $pkgVersion.Name | Should -Be "0.0.1"
-    }
-
-    It "Save a module with a dependency" {
-        Save-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be @("PSGetTestDependency1","PSGetTestModule") 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-    }
-
-    It "Save resource via InputObject by piping from Find-PSresource" {
-        Find-PSResource -Name "TestModule" -Repository $TestGalleryName | Save-PSResource -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-        $pkgVersion = Get-ChildItem $pkg
-        $pkgVersion.Name | Should -Be "1.3.0"
-    }
-
-    It "Save resource should not prompt 'trust repository' if repository is not trusted but -TrustRepository is used" {
-        Set-PSResourceRepository PoshTestGallery -Trusted:$false
-
-        Save-PSResource -Name "TestModule" -Repository $TestGalleryName -TrustRepository -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-        $pkgVersion = Get-ChildItem $pkg
-        $pkgVersion.Name | Should -Be "1.3.0"
-
-        Set-PSResourceRepository PoshTestGallery -Trusted
-=======
         Save-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"
         $pkgDir | Should -BeNullOrEmpty
@@ -271,7 +142,6 @@ Describe 'Test Save-PSResource for PSResources' {
         finally {
             Set-PSResourceRepository PoshTestGallery -Trusted
         }
->>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e
     }
 
     It "Save resource from local repository given Repository parameter" {
@@ -280,17 +150,10 @@ Describe 'Test Save-PSResource for PSResources' {
         Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
         Set-PSResourceRepository "psgettestlocal" -Trusted:$true
 
-<<<<<<< HEAD
-        Save-PSResource -Name $publishModuleName -Repository $repoName -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be $publishModuleName 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-=======
         Save-PSResource -Name $publishModuleName -Repository $repoName -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $publishModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1
->>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e
     }
 
     It "Save specific module resource by name when no repository is specified" {
@@ -298,25 +161,6 @@ Describe 'Test Save-PSResource for PSResources' {
         Set-PSResourceRepository "PSGallery" -Trusted:$True
         Set-PSResourceRepository "psgettestlocal2" -Trusted:$True
 
-<<<<<<< HEAD
-        Save-PSResource -Name "TestModule" -Path $TempDir
-        $pkg = Get-ChildItem $TempDir
-        $pkg.Name | Should -Be "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-    }
-
-    It "Save specific module resource by name if no -Path param is specifed" {
-        Save-PSResource -Name "TestModule" -Repository $TestGalleryName
-        $pkg = Get-ChildItem .
-
-        $pkg.Name | Should -Contain "TestModule" 
-        (Get-ChildItem $pkg).Count | Should -BeGreaterThan 0
-
-        # Delete all files and subdirectories in the current , but keep the directory $Tempdir
-        $pkgDir = Join-Path -Path . -ChildPath "TestModule"
-        Remove-Item $pkgDir -Recurse -Force
-    }
-=======
         Save-PSResource -Name "TestModule" -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"
         $pkgDir | Should -Not -BeNullOrEmpty 
@@ -330,25 +174,21 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir = Get-ChildItem -Path . | Where-Object Name -eq "TestModule"
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
-
         # Delete all files and subdirectories in the current , but keep the directory $SaveDir
         if (Test-Path -Path $pkgDir.FullName) {
             Remove-Item -Path $pkgDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 #>
->>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e
 
 <#
     # This needs to be manually tested due to prompt
     It "Install resource should prompt 'trust repository' if repository is not trusted" {
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
-
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -confirm:$false
         
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
-
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
 #>

@@ -166,13 +166,6 @@ function Get-RemoveTestDirs {
     }
 }
 
-function Create-TemporaryDirectory {
-    $path = [System.IO.Path]::GetTempPath()
-    $child = [System.Guid]::NewGuid()
-
-    return New-Item -ItemType Directory -Path (Join-Path $path $child) 
-}
-
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
     $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
@@ -465,40 +458,23 @@ function Create-PSScriptMetadata
     Process
     {
         $PSScriptInfoString = @"
-
 <#PSScriptInfo
-
 .VERSION$(if ($Version) {" $Version"})
-
 .GUID$(if ($Guid) {" $Guid"})
-
 .AUTHOR$(if ($Author) {" $Author"})
-
 .COMPANYNAME$(if ($CompanyName) {" $CompanyName"})
-
 .COPYRIGHT$(if ($Copyright) {" $Copyright"})
-
 .DESCRIPTION$(if ($Description) {" $Description"})
-
 .TAGS$(if ($Tags) {" $Tags"})
-
 .LICENSEURI$(if ($LicenseUri) {" $LicenseUri"})
-
 .PROJECTURI$(if ($ProjectUri) {" $ProjectUri"})
-
 .ICONURI$(if ($IconUri) {" $IconUri"})
-
 .EXTERNALMODULEDEPENDENCIES$(if ($ExternalModuleDependencies) {" $($ExternalModuleDependencies -join ',')"})
-
 .REQUIREDSCRIPTS$(if ($RequiredScripts) {" $($RequiredScripts -join ',')"})
-
 .EXTERNALSCRIPTDEPENDENCIES$(if ($ExternalScriptDependencies) {" $($ExternalScriptDependencies -join ',')"})
-
 .RELEASENOTES
 $($ReleaseNotes -join "`r`n")
-
 .PRIVATEDATA$(if ($PrivateData) {" $PrivateData"})
-
 #>
 "@
         return $PSScriptInfoString
@@ -562,10 +538,5 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.Tags | Should -BeExactly @('PSModule', 'PSEdition_Core')
     $psGetInfo.Type | Should -BeExactly 'Module'
     $psGetInfo.UpdatedDate.Year | Should -BeExactly 1
-<<<<<<< HEAD
-    $psGetInfo.Version.ToString() | Should -BeExactly '1.0.0'
-}
-=======
     $psGetInfo.Version | Should -Be "1.1.0"
 }
->>>>>>> b7bb562fa3858b500061aab324d9af4c4a7e375e
