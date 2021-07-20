@@ -217,13 +217,16 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Name | Should -Be "testModuleWithlicense" 
         $pkg.Version | Should -Be "0.0.1.0"
     }
+
     # This needs to be manually tested due to prompt
     It "Install resource should prompt 'trust repository' if repository is not trusted" {
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
+
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -confirm:$false
         
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
+
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
 #>
