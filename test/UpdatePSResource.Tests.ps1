@@ -156,7 +156,7 @@ Describe 'Test Update-PSResource for Module' {
     }
 
     # Windows only
-    It "update resource under CurrentUser scope" {
+    It "update resource under CurrentUser scope" -skip:(!$IsWindows) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName -Scope CurrentUser
@@ -182,7 +182,7 @@ Describe 'Test Update-PSResource for Module' {
     }
 
     # Windows only
-    It "update resource under AllUsers scope" {
+    It "update resource under AllUsers scope" -skip:(!$IsWindows) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the CurrentUser path too
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName -Scope AllUsers
@@ -205,7 +205,7 @@ Describe 'Test Update-PSResource for Module' {
     }
 
     # Windows only
-    It "update resource under no specified scope" {
+    It "update resource under no specified scope" -skip:(!$IsWindows) {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName
 
