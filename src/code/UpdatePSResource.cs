@@ -1,4 +1,5 @@
 
+using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -62,6 +63,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// If not specified, search will include all currently registered repositories in order of highest priority.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
 
@@ -171,11 +173,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             Name = ProcessNames(Name, versionRange);
 
+            if (!ShouldProcess(string.Format("package to update: '{0}'", String.Join(", ", Name))))
+            {
+                WriteVerbose("ShouldProcess was set to false.");
+                return;
+            }
+
             InstallHelper installHelper = new InstallHelper(
                 updatePkg: true,
                 savePkg: false,
                 cancellationToken: _cancellationToken,
                 cmdletPassedIn: this);
+
 
 
             installHelper.InstallPackages(
