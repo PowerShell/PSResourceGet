@@ -140,7 +140,7 @@ Describe 'Test Update-PSResource for Module' {
 
         Install-PSResource -Name "PSGetTestModule" -Version "1.0.2.0" -Repository $TestGalleryName
         Update-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName
-        $res = Get-InstalledPSResource "PSGetTestModule"
+        $res = Get-InstalledPSResource -Name "PSGetTestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -158,22 +158,19 @@ Describe 'Test Update-PSResource for Module' {
     # Windows only
     It "update resource under CurrentUser scope" -skip:(!$IsWindows) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName -Scope CurrentUser
 
-        # TODO: use Get-InstalledPSResource
-        # $res = Get-InstalledPSResource -Name "TestModule"
-        # $res.Name | Should -Be "TestModule"
-        # $res.InstalledLocation.Contains("Documents") | Should -Be $true
-        # TODO: turn foreach loop bool return into a helper function which takes the list output of get, name and version of a package we wish to search for
-        $res = Get-Module "TestModule" -ListAvailable
+        $res = Get-InstalledPSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
             if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
             {
-                $pkg.Path.Contains("Documents") | Should -Be $true
+                $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
                 $isPkgUpdated = $true
             }
         }
@@ -183,20 +180,18 @@ Describe 'Test Update-PSResource for Module' {
 
     # Windows only
     It "update resource under AllUsers scope" -skip:(!$IsWindows) {
-        # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the CurrentUser path too
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName -Scope AllUsers
 
-        # $res = Get-InstalledPSResource -Name "TestModule"
-        # $res.Name | Should -Be "TestModule"
-        # $res.InstalledLocation.Contains("Program Files") | Should -Be $true
-        $res = Get-Module "TestModule" -ListAvailable
+        $res = Get-InstalledPSResource -Name "TestModule"
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
             if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
             {
-                $pkg.Path.Contains("Program Files") | Should -Be $true
+                $pkg.InstalledLocation.Contains("Program Files") | Should -Be $true
                 $isPkgUpdated = $true
             }
         }
@@ -209,14 +204,14 @@ Describe 'Test Update-PSResource for Module' {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName
 
-        $res = Get-Module "TestModule" -ListAvailable
+        $res = Get-InstalledPSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
             if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
             {
-                $pkg.Path.Contains("Documents") | Should -Be $true
+                $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
                 $isPkgUpdated = $true
             }
         }
@@ -229,8 +224,6 @@ Describe 'Test Update-PSResource for Module' {
     #     Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
     #     Update-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
     #     $pkg = Get-InstalledPSResource "testModuleWithlicense"
-
-    #     $res = Get-Module "TestModule" -ListAvailable
 
     #     $isPkgUpdated = $false
     #     foreach ($pkg in $res)
