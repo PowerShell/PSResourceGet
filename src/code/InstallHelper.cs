@@ -347,7 +347,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         catch (Exception e)
                         {
-                            _cmdletPassedIn.WriteDebug(string.Format("Error attempting download: '{0}'", e.Message));
+                            _cmdletPassedIn.WriteError(string.Format("Error attempting download: '{0}'", e.Message));
                         }
                         finally
                         {
