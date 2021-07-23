@@ -30,6 +30,7 @@ Describe "Test Register-PSResourceRepository" {
         Write-Host $tmpDir1Path
         Write-Host $res.URL
         $res.URL | Should -Contain "$([regex]::Escape($tmpDir1Path))"
+        # $res.URL | Should -Not -Contain $tmpDir1Path
         # "$([regex]::Escape($tmpDir1Path))" | Should -Contain $res.URL 
 
         $res.Trusted | Should -Be False
@@ -39,7 +40,10 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository with Name, URL, Trusted (NameParameterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -PassThru
         $res.Name | Should -Be "testRepository"
-        $res.URL | Should -Match $tmpDir1Path
+        Write-Host "$([regex]::Escape($tmpDir1Path))"
+        Write-Host $tmpDir1Path
+        Write-Host $res.URL
+        $res.URL | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 50
     }

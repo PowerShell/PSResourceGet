@@ -137,16 +137,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            string url = SessionState.Path.GetResolvedPSPathFromPSPath(URL)[0].Path;
-            bool tryCreateResult = Utils.CreateUrl(url, out _url, out ErrorRecord errorRecord);
-            if (!tryCreateResult || _url == null)
-            {
-                WriteWarning("url creation failed!");
-                ThrowTerminatingError(errorRecord);
-            }
-
-
-
             // bool tryCreateResult = false;
             // try
             // {
@@ -197,6 +187,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
+                    string url = SessionState.Path.GetResolvedPSPathFromPSPath(URL)[0].Path;
+                    bool tryCreateResult = Utils.CreateUrl(url, out _url, out ErrorRecord errorRecord);
+                    if (!tryCreateResult || _url == null)
+                    {
+                        WriteWarning("url creation failed!");
+                        ThrowTerminatingError(errorRecord);
+                    }
                     try
                     {
                         items.Add(NameParameterSetHelper(Name, _url, Priority, Trusted));
