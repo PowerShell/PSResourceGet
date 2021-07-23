@@ -11,6 +11,7 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.InteropServices;
 using NuGet.Versioning;
+using System.Globalization;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -171,6 +172,44 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return VersionRange.TryParse(version, out versionRange);
         }
 
+        #endregion
+
+        #region Url methods
+        public static bool CreateUrl(
+            string urlString,
+            out Uri urlResult,
+            out ErrorRecord errorRecord
+        )
+        {
+            // string url = SessionState.Path.GetResolvedPSPathFromPSPath(URL)[0].Path;
+            bool tryCreateResult = false;
+            try
+            {
+                tryCreateResult = Uri.TryCreate(urlString, UriKind.Absolute, out urlResult);
+            }
+            catch (Exception e)
+            {
+                var message = string.Format("Uri.TryCreate on provided Url string: " + urlString + " threw error: " + e.Message);
+                var ex = new ArgumentException(message);
+                errorRecord = new ErrorRecord(ex, "TryCreateFails", ErrorCategory.InvalidArgument, null);
+                urlResult = null;
+                return false;
+            }
+
+            if (!tryCreateResult)
+            {
+                var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", urlString);
+                var ex = new ArgumentException(message);
+                errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+                urlResult = null;
+                return false;
+            }
+
+            // otherwise Url (urlResult) was successfully created in Uri.TryCreate() call
+            errorRecord = null;
+            return tryCreateResult;
+            
+        }
         #endregion
         
         #region Path methods

@@ -51,25 +51,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, Position = 1, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public Uri URL
-        {
-            get
-            { return _url; }
+        public string URL { get; set; }
 
-            set
-            {
-                if (!Uri.TryCreate(value, string.Empty, out Uri url))
-                {
-                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
-                    var ex = new ArgumentException(message);
-                    var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(moduleManifestNotFound);
-                }
+        // /// <summary>
+        // /// Specifies the location of the repository to be registered.
+        // /// </summary>
+        // [Parameter(Mandatory = true, Position = 1, ParameterSetName = NameParameterSet)]
+        // [ValidateNotNullOrEmpty]
+        // public Uri URL {
+        //     get
+        //     { return _url; }
 
-                _url = url;
-            }
-        }
-        private Uri _url;
+        //     set
+        //     {
+        //         string urlString = SessionState.Path.GetResolvedPSPathFromPSPath(value.AbsoluteUri)[0].Path;
+        //         // tryCreateResult = Uri.TryCreate(url, UriKind.Absolute, out _url);
+
+        //         if (!Uri.TryCreate(urlString, UriKind.Absolute, out Uri url))
+        //         {
+        //             var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
+        //             var ex = new ArgumentException(message);
+        //             var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+        //             ThrowTerminatingError(moduleManifestNotFound);
+        //         }
+
+        //         _url = url;
+        //     }
+        // }
+
 
         /// <summary>
         /// When specified, registers PSGallery repository.
@@ -124,9 +133,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Methods
+        private Uri _url;
 
         protected override void BeginProcessing()
         {
+            string url = SessionState.Path.GetResolvedPSPathFromPSPath(URL)[0].Path;
+            bool tryCreateResult = Utils.CreateUrl(url, out _url, out ErrorRecord errorRecord);
+            if (!tryCreateResult || _url == null)
+            {
+                WriteWarning("url creation failed!");
+                ThrowTerminatingError(errorRecord);
+            }
+
+
+
+            // bool tryCreateResult = false;
+            // try
+            // {
+            //     tryCreateResult = Uri.TryCreate(url, UriKind.Absolute, out _url);
+            // }
+            // catch (Exception e)
+            // {
+            //     var message = string.Format("Uri.TryCreate on provided Url threw error: " + e.Message);
+            //     var ex = new ArgumentException(message);
+            //     var tryCreateFailure = new ErrorRecord(ex, "TryCreateFails", ErrorCategory.InvalidArgument, null);
+            //     ThrowTerminatingError(tryCreateFailure);
+            // }
+
+            // if (!tryCreateResult)
+            // {
+            //     var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", url);
+            //     var ex = new ArgumentException(message);
+            //     var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+            //     ThrowTerminatingError(moduleManifestNotFound);
+            // }
+
             if (Proxy != null || ProxyCredential != null)
             {
                 ThrowTerminatingError(new ErrorRecord(
@@ -158,7 +199,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case NameParameterSet:
                     try
                     {
-                        items.Add(NameParameterSetHelper(Name, URL, Priority, Trusted));
+                        items.Add(NameParameterSetHelper(Name, _url, Priority, Trusted));
                     }
                     catch (Exception e)
                     {
