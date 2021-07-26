@@ -187,13 +187,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    string url = SessionState.Path.GetResolvedPSPathFromPSPath(URL)[0].Path;
+                    string url = URL;
+                    if (!URL.StartsWith(Uri.UriSchemeHttp) && !URL.StartsWith(Uri.UriSchemeHttps) && !URL.StartsWith(Uri.UriSchemeFtp))
+                    {
+                        url = SessionState.Path.GetResolvedPSPathFromPSPath(URL)[0].Path;
+                    }
+
                     bool tryCreateResult = Utils.CreateUrl(url, out _url, out ErrorRecord errorRecord);
+
                     if (!tryCreateResult || _url == null)
                     {
-                        WriteWarning("url creation failed!");
                         ThrowTerminatingError(errorRecord);
                     }
+
                     try
                     {
                         items.Add(NameParameterSetHelper(Name, _url, Priority, Trusted));
@@ -372,15 +378,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            if (!Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out Uri repoURL))
+            // string url = repo["Url"].ToString();
+
+            // if (!repo["Url"].ToString().StartsWith(Uri.UriSchemeHttp) &&
+            //     !repo["Url"].ToString().StartsWith(Uri.UriSchemeHttps) &&
+            //     !repo["Url"].ToString().StartsWith(Uri.UriSchemeFtp))
+            // {
+            //     url = SessionState.Path.GetResolvedPSPathFromPSPath(url)[0].Path;
+            // }
+
+            // bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
+
+            // if (!tryCreateResult || repoURL == null)
+            // {
+            //     WriteError(errorRecord);
+            //     return null;
+            // }
+
+
+            string url = repo["Url"].ToString();
+            if (!repo["Url"].ToString().StartsWith(Uri.UriSchemeHttp) && !repo["Url"].ToString().StartsWith(Uri.UriSchemeHttps) && !repo["Url"].ToString().StartsWith(Uri.UriSchemeFtp))
             {
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("Invalid url, unable to create"),
-                    "InvalidUrlScheme",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                url = SessionState.Path.GetResolvedPSPathFromPSPath(repo["Url"].ToString())[0].Path;
+            }
+
+            bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
+
+            if (!tryCreateResult || repoURL == null)
+            {
+                WriteError(errorRecord);
                 return null;
             }
+
+            // if (!Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out Uri repoURL))
+            // {
+            //     WriteError(new ErrorRecord(
+            //         new PSInvalidOperationException("Invalid url, unable to create"),
+            //         "InvalidUrlScheme",
+            //         ErrorCategory.InvalidArgument,
+            //         this));
+            //     return null;
+            // }
 
             try
             {
