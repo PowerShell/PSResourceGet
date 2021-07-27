@@ -1,5 +1,4 @@
 
-using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -8,6 +7,7 @@ using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
 using System.Linq;
 using System.Management.Automation;
+using System.Text;
 using System.Threading;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
@@ -160,9 +160,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // this can handle Version == null and only returns false if the range was incorrectly formatted and couldn't be parsed.
-            if (!Utils.TryParseVersionOrVersionRange(Version, out VersionRange versionRange))
+            VersionRange versionRange;
+
+            // handle case where Version == null
+            if (Version == null) { 
+                versionRange = VersionRange.All;
+            }
+            else if (!Utils.TryParseVersionOrVersionRange(Version, out versionRange))
             {
+                // Only returns false if the range was incorrectly formatted and couldn't be parsed.
                 WriteError(new ErrorRecord(
                     new PSInvalidOperationException("Cannot parse Version parameter provided into VersionRange"),
                     "ErrorParsingVersionParamIntoVersionRange",
@@ -184,8 +190,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 savePkg: false,
                 cancellationToken: _cancellationToken,
                 cmdletPassedIn: this);
-
-
 
             installHelper.InstallPackages(
                 names: Name,

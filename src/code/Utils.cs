@@ -191,10 +191,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
            string version,
            out VersionRange versionRange)
         {
-            if (version == null) { 
-                versionRange = VersionRange.All;
-                return true;
-            }
+            versionRange = null;
+            if (version == null) { return false; }
 
             if (version.Trim().Equals("*"))
             {
