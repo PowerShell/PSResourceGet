@@ -125,7 +125,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under CurrentUser scope - Windows only" -Skip:(!$IsWindows) {
+    It "Install resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -133,7 +133,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under AllUsers scope - Windows only" -Skip:(!$IsWindows) {
+    It "Install resource under AllUsers scope - Windows only" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -141,7 +141,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under no specified scope - Windows only" -Skip:(!$IsWindows) {
+    It "Install resource under no specified scope - Windows only" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -150,7 +150,7 @@ Describe 'Test Install-PSResource for Module' {
 
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
-    It "Install resource under CurrentUser scope - Unix only" -Skip:($IsWindows) {
+    It "Install resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -159,7 +159,7 @@ Describe 'Test Install-PSResource for Module' {
 
     # Unix only
     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
-    It "Install resource under AllUsers scope - Unix only" -Skip:($IsWindows) {
+    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -168,7 +168,7 @@ Describe 'Test Install-PSResource for Module' {
 
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
-    It "Install resource under no specified scope - Unix only" -Skip:($IsWindows) {
+    It "Install resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 

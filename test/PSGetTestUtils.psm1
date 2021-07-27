@@ -7,7 +7,11 @@ $script:EnvPATHValueBackup = $null
 
 $script:PowerShellGet = 'PowerShellGet'
 $script:IsInbox = $PSHOME.EndsWith('\WindowsPowerShell\v1.0', [System.StringComparison]::OrdinalIgnoreCase)
-$script:IsWindows = (-not (Get-Variable -Name IsWindows -ErrorAction Ignore)) -or $IsWindows
+$script:IsWindows = $IsWindows
+if ($IsWindows -eq $null) {
+    $script:IsWindows = ($PSVersionTable.PSVersion.Major -eq 5)
+}
+
 $script:IsLinux = (Get-Variable -Name IsLinux -ErrorAction Ignore) -and $IsLinux
 $script:IsMacOS = (Get-Variable -Name IsMacOS -ErrorAction Ignore) -and $IsMacOS
 $script:IsCoreCLR = $PSVersionTable.ContainsKey('PSEdition') -and $PSVersionTable.PSEdition -eq 'Core'
@@ -95,6 +99,10 @@ $script:moduleSourcesFilePath = Microsoft.PowerShell.Management\Join-Path -Path 
 # Major is incremented for the breaking change.
 $script:CurrentPSGetFormatVersion = "1.0"
 $script:PSGetFormatVersionPrefix = "PowerShellGetFormatVersion_"
+
+function Get-IsWindows {
+    return $script:IsWindows
+}
 
 function Get-AllUsersModulesPath {
     return $script:ProgramFilesModulesPath
