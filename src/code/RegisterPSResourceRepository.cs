@@ -139,7 +139,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    bool isUrlValid = TryCreateURL(URL, out _url, out ErrorRecord errorRecord);
+                    bool isUrlValid = Utils.TryCreateValidUrl(URL, this, out _url, out ErrorRecord errorRecord);
                     if (!isUrlValid)
                     {
                         ThrowTerminatingError(errorRecord);
@@ -324,7 +324,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             string url = repo["Url"].ToString();
-            bool isUrlValid = TryCreateURL(repo["Url"].ToString(), out Uri repoURL, out ErrorRecord errorRecord);
+            bool isUrlValid = Utils.TryCreateValidUrl(url, this, out Uri repoURL, out ErrorRecord errorRecord);
             if (!isUrlValid)
             {
                 WriteError(errorRecord);
@@ -359,39 +359,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private bool TryCreateURL(string urlString, out Uri url, out ErrorRecord errorRecord)
-        {
-            // try to create with url string as is, so that absolute URIs are handled properly
-            bool isUrlValid = Utils.CreateUrl(urlString, out url, out errorRecord);
-
-            // only if url creation fails, try to convert url from possibly relative path to absolute path and try again
-            if (!isUrlValid && (!urlString.StartsWith(Uri.UriSchemeHttp) &&
-                    !urlString.StartsWith(Uri.UriSchemeHttps) &&
-                    !urlString.StartsWith(Uri.UriSchemeFtp)))
-            {
-                try
-                {
-                    // /tmp/Users/annavied -> Uri.UriSchemeFile ? (Todo: retry and see if condition above checks for Uri.Filescheme if we can detect)
-                    // www.google.com -> C:/Users/annavied/www.google.com
-                    string resolvedUrlString = SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;  
-                    urlString = resolvedUrlString;
-                }
-                catch (Exception e)
-                {
-                    errorRecord = new ErrorRecord(e, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                    return false;
-                }
-                
-                isUrlValid = Utils.CreateUrl(urlString, out url, out errorRecord);
-                if (!isUrlValid || url == null)
-                {
-                    return false;
-                }
-            }
-
-            return isUrlValid;
-        }
-
-    #endregion
+        #endregion
     }
 }

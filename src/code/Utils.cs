@@ -176,41 +176,51 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Url methods
 
-        public static bool CreateUrl(
+        public static bool TryCreateValidUrl(
             string urlString,
+            PSCmdlet cmdletPassedIn,
             out Uri urlResult,
             out ErrorRecord errorRecord
         )
         {
-            // string url = SessionState.Path.GetResolvedPSPathFromPSPath(URL)[0].Path;
-            bool tryCreateResult = false;
-            try
+            errorRecord = null;
+
+            if (!urlString.StartsWith(Uri.UriSchemeHttps) &&
+                !urlString.StartsWith(Uri.UriSchemeHttp) &&
+                !urlString.StartsWith(Uri.UriSchemeFtp))
             {
-                tryCreateResult = Uri.TryCreate(urlString, UriKind.Absolute, out urlResult);
-            }
-            catch (Exception e)
-            {
-                var message = string.Format("Uri.TryCreate on provided Url string: " + urlString + " threw error: " + e.Message);
-                var ex = new ArgumentException(message);
-                errorRecord = new ErrorRecord(ex, "TryCreateFails", ErrorCategory.InvalidArgument, null);
-                urlResult = null;
-                return false;
+                // url string could be of type (potentially) UriSchemeFile or invalid type
+                // can't check for UriSchemeFile because relative paths don't qualify as UriSchemeFile
+                try
+                {
+                    // this is needed for a relative path urlstring. Does not throw error for an absolute path
+                    string resolvedUrlString = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;
+                    urlString = resolvedUrlString;
+
+                }
+                catch (Exception e)
+                {
+                    // this should only be reached if the url string is invalid
+                    // i.e www.google.com
+                    // error message will look like: Cannot find path 'C:\Users\annavied\Documents\PowerShellGet\www.google.com' because it does not exist.
+                    errorRecord = new ErrorRecord(e, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+                    urlResult = null;
+                    return false;
+                }
             }
 
+            bool tryCreateResult = Uri.TryCreate(urlString, UriKind.Absolute, out urlResult);
             if (!tryCreateResult)
             {
                 var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", urlString);
                 var ex = new ArgumentException(message);
                 errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
                 urlResult = null;
-                return false;
             }
 
-            // otherwise Url (urlResult) was successfully created in Uri.TryCreate() call
-            errorRecord = null;
             return tryCreateResult;
-            
         }
+
         #endregion
         
         #region Path methods
