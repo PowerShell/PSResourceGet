@@ -197,12 +197,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     urlString = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;
 
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     // this should only be reached if the url string is invalid
                     // i.e www.google.com
-                    // error message will look like: Cannot find path 'C:\Users\annavied\Documents\PowerShellGet\www.google.com' because it does not exist.
-                    errorRecord = new ErrorRecord(e, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0} and must be of Uri Scheme: HTTP, HTTPS, FTP or File", urlString);
+                    var ex = new ArgumentException(message);
+                    errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
                     urlResult = null;
                     return false;
                 }
