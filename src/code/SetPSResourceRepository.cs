@@ -112,7 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            if (!String.IsNullOrEmpty(URL))
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(URL)))
             {
                 bool isUrlValid = Utils.TryCreateValidUrl(URL, this, out _url, out ErrorRecord errorRecord);
                 if (!isUrlValid)
@@ -249,9 +249,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return null;
                 }
 
-                string url = repo["Url"].ToString();
-                bool isUrlValid = Utils.TryCreateValidUrl(url, this, out repoURL, out ErrorRecord errorRecord);
-                if (!isUrlValid)
+                if (!Utils.TryCreateValidUrl(urlString: repo["Url"].ToString(),
+                    cmdletPassedIn: this,
+                    urlResult: out repoURL,
+                    errorRecord: out ErrorRecord errorRecord))
                 {
                     WriteError(errorRecord);
                     return null;

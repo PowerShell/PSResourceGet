@@ -194,8 +194,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 try
                 {
                     // this is needed for a relative path urlstring. Does not throw error for an absolute path
-                    string resolvedUrlString = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;
-                    urlString = resolvedUrlString;
+                    urlString = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;
 
                 }
                 catch (Exception e)

@@ -139,8 +139,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    bool isUrlValid = Utils.TryCreateValidUrl(URL, this, out _url, out ErrorRecord errorRecord);
-                    if (!isUrlValid)
+                    if (!Utils.TryCreateValidUrl(urlString: URL,
+                        cmdletPassedIn: this,
+                        urlResult: out _url,
+                        errorRecord: out ErrorRecord errorRecord))
                     {
                         ThrowTerminatingError(errorRecord);
                     }
@@ -323,9 +325,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            string url = repo["Url"].ToString();
-            bool isUrlValid = Utils.TryCreateValidUrl(url, this, out Uri repoURL, out ErrorRecord errorRecord);
-            if (!isUrlValid)
+            if (!Utils.TryCreateValidUrl(urlString: repo["Url"].ToString(),
+                cmdletPassedIn: this,
+                urlResult: out Uri repoURL,
+                errorRecord: out ErrorRecord errorRecord))
             {
                 WriteError(errorRecord);
                 return null;
