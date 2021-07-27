@@ -139,8 +139,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    string url = URL;
-                    bool isUrlValid = TryCreateURL(url, out _url, out ErrorRecord errorRecord);
+                    bool isUrlValid = TryCreateURL(URL, out _url, out ErrorRecord errorRecord);
                     if (!isUrlValid)
                     {
                         ThrowTerminatingError(errorRecord);
