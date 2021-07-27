@@ -13,7 +13,6 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
     BeforeEach{
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource BaseTestPackage -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
     }
     AfterAll {
         Get-RevertPSResourceRepositoryFile
@@ -25,6 +24,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall a list of modules by name" {
+        $null = Install-PSResource BaseTestPackage -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
+
         $res = Uninstall-PSResource -Name BaseTestPackage, ContosoServer 
         Get-Module ContosoServer, BaseTestPackage -ListAvailable | Should -be $null
     }
@@ -128,7 +129,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg = Get-Module ContosoServer -ListAvailable
         $pkg.Version | Should -Be "2.5"
     }
-#>
+
     It "Do not Uninstall module that is a dependency for another module" {
         $null = Install-PSResource "test_module" -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
     
@@ -136,6 +137,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
         $pkg = Get-Module "RequiredModule1" -ListAvailable
         $pkg | Should -Not -Be $null
+
+        $ev | Should -Be "Cannot uninstall 'RequiredModule1', the following package(s) take a dependency on this package: test_module. If you would still like to uninstall, rerun the command with -Force"
     }
 
     It "Uninstall module that is a dependency for another module using -Force" {
