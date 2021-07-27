@@ -59,7 +59,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the scope of installation.
         /// </summary>
-        [ValidateSet("CurrentUser", "AllUsers")]
         [Parameter(ParameterSetName = NameParameterSet)]
         public ScopeType Scope { get; set; }
 
