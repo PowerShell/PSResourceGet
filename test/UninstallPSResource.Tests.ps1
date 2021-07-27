@@ -55,16 +55,6 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkgs.Version | Should -Not -Contain "2.5.0"
     }
 
-    It "Uninstall all versions of a module when given name and not specifying any version param" {
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
-
-        $res = Uninstall-PSResource -Name "Carbon"
-        $pkgs = Get-Module ContosoServer -ListAvailable
-        $pkgs | Should -Be $null
-    }
-
     It "Uninstall module when given Name and specifying exact version" {
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
