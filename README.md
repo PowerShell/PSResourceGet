@@ -14,9 +14,7 @@ Please note, the repository for previous versions of PowerShellGet has a new loc
 Introduction
 ============
 
-PowerShellGet is a PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, DSC Resources, Role Capabilities and Scripts.  
-
-PowerShellGet module is also integrated with the PackageManagement module as a provider, users can also use the PackageManagement cmdlets for discovering, installing and updating the PowerShell artifacts like Modules and Scripts.  
+PowerShellGet is a PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, Scripts, and DSC Resources.  
 
 Documentation
 =============
@@ -28,8 +26,7 @@ to reference the documentation for previous versions of PowerShellGet.
 Requirements
 ============
 
-- Windows PowerShell 5.0 or newer.
-- PowerShell Core.
+- PowerShell 5.0 or higher.
 
 Get PowerShellGet Module
 ========================
@@ -68,9 +65,6 @@ if ((Get-Module -Name PSPackageProject -ListAvailable).Count -eq 0) {
 ```powershell
 # Build for the netstandard2.0 framework
 PS C:\Repos\PowerShellGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework netstandard2.0
-
-# Build for the net472 framework
-PS C:\Repos\PowerShellGet> .\build.ps1 -Build -BuildConfiguration Debug -BuildFramework net472
 ```
 
 * Publish the module to a local repository
@@ -98,4 +92,4 @@ C:\> Import-Module C:\Repos\PowerShellGet\out\PowerShellGet\PowerShellGet.psd1
 **Note**  
 PowerShellGet consists of .NET binaries and so can be imported into a PowerShell session only once.
 Since the PSPackageProject module, used to build the module, has a dependency on earlier versions of PowerShellGet, the newly built module cannot be imported into that session.
-The new module can only be imported into a new session that has no prior imported PowerShellGet module.  
+The new module can only be imported into a new session that has no prior imported PowerShellGet module. You will recieve warning messages in the console if you encounter this issue.
