@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
 using System.Globalization;
 using System.Management.Automation;
-using System.Text;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
