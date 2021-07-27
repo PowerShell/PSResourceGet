@@ -175,6 +175,25 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Url methods
+
+        // public static bool CreateValidUrl(
+        //     string urlString,
+
+        //     out  Uri urlResult,
+        //     out ErrorRecord errorRecord
+        // )
+        // {
+        //     // create with url string as is
+        //     bool isUrlValid = CreateUrl(urlString, out urlResult, out errorRecord);
+
+        //     // only if url creation fails, try to convert url from possibly relative path to absolute path and try again
+        //     if (!isUrlValid && !CreateUrl(SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path, out urlResult, out errorRecord))
+        //     {
+        //         return false;
+        //     }
+
+        //     return true;
+        // }
         public static bool CreateUrl(
             string urlString,
             out Uri urlResult,

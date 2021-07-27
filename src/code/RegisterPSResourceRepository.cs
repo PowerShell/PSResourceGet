@@ -137,27 +137,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            // bool tryCreateResult = false;
-            // try
-            // {
-            //     tryCreateResult = Uri.TryCreate(url, UriKind.Absolute, out _url);
-            // }
-            // catch (Exception e)
-            // {
-            //     var message = string.Format("Uri.TryCreate on provided Url threw error: " + e.Message);
-            //     var ex = new ArgumentException(message);
-            //     var tryCreateFailure = new ErrorRecord(ex, "TryCreateFails", ErrorCategory.InvalidArgument, null);
-            //     ThrowTerminatingError(tryCreateFailure);
-            // }
-
-            // if (!tryCreateResult)
-            // {
-            //     var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", url);
-            //     var ex = new ArgumentException(message);
-            //     var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-            //     ThrowTerminatingError(moduleManifestNotFound);
-            // }
-
             if (Proxy != null || ProxyCredential != null)
             {
                 ThrowTerminatingError(new ErrorRecord(
@@ -188,17 +167,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case NameParameterSet:
                     string url = URL;
-                    if (!URL.StartsWith(Uri.UriSchemeHttp) && !URL.StartsWith(Uri.UriSchemeHttps) && !URL.StartsWith(Uri.UriSchemeFtp))
-                    {
-                        url = SessionState.Path.GetResolvedPSPathFromPSPath(URL)[0].Path;
-                    }
-
-                    bool tryCreateResult = Utils.CreateUrl(url, out _url, out ErrorRecord errorRecord);
-
-                    if (!tryCreateResult || _url == null)
+                    /*** trying to get it working */
+                    bool isUrlValid = TryCreateURL(url, out _url, out ErrorRecord errorRecord);
+                    if (!isUrlValid)
                     {
                         ThrowTerminatingError(errorRecord);
                     }
+
+                    /** WORKS */
+                    // bool tryCreateResult = Utils.CreateUrl(url, out _url, out ErrorRecord errorRecord);
+
+                    // if (!tryCreateResult || _url == null)
+                    // {
+                    //     url = SessionState.Path.GetResolvedPSPathFromPSPath(url)[0].Path;
+                    //     bool tryWithResolvedPath = Utils.CreateUrl(url, out _url, out errorRecord);
+                    //     if (!tryWithResolvedPath || _url == null)
+                    //     {
+                    //         ThrowTerminatingError(errorRecord);
+                    //     }
+                    //     WriteVerbose(url);
+                    // }
 
                     try
                     {
@@ -396,19 +384,71 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // }
 
 
+            // string url = repo["Url"].ToString();
+            // if (!repo["Url"].ToString().StartsWith(Uri.UriSchemeHttp) && !repo["Url"].ToString().StartsWith(Uri.UriSchemeHttps) && !repo["Url"].ToString().StartsWith(Uri.UriSchemeFtp))
+            // {
+            //     url = SessionState.Path.GetResolvedPSPathFromPSPath(repo["Url"].ToString())[0].Path;
+            // }
+
+            // bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
+
+            // if (!tryCreateResult || repoURL == null)
+            // {
+            //     WriteError(errorRecord);
+            //     return null;
+            // }
+
             string url = repo["Url"].ToString();
-            if (!repo["Url"].ToString().StartsWith(Uri.UriSchemeHttp) && !repo["Url"].ToString().StartsWith(Uri.UriSchemeHttps) && !repo["Url"].ToString().StartsWith(Uri.UriSchemeFtp))
-            {
-                url = SessionState.Path.GetResolvedPSPathFromPSPath(repo["Url"].ToString())[0].Path;
-            }
-
-            bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
-
-            if (!tryCreateResult || repoURL == null)
+            /*** trying to get working */
+            bool isUrlValid = TryCreateURL(repo["Url"].ToString(), out Uri repoURL, out ErrorRecord errorRecord);
+            if (!isUrlValid)
             {
                 WriteError(errorRecord);
                 return null;
             }
+
+
+
+            /** WORKS */
+            // bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
+
+            // if (!tryCreateResult || repoURL == null)
+            // {
+            //     url = SessionState.Path.GetResolvedPSPathFromPSPath(url)[0].Path;
+            //     bool tryWithResolvedPath = Utils.CreateUrl(url, out repoURL, out errorRecord);
+            //     if (!tryWithResolvedPath || repoURL == null)
+            //     {
+            //         WriteError(errorRecord);
+            //     }
+            //     WriteVerbose(url);
+            // }
+
+
+            // bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
+
+            // if (!tryCreateResult || repoURL == null)
+            // {
+            //     url = SessionState.Path.GetResolvedPSPathFromPSPath(url)[0].Path;
+            //     bool tryWithResolvedPath = Utils.CreateUrl(url, out repoURL, out errorRecord);
+            //     if (!tryWithResolvedPath || repoURL == null)
+            //     {
+            //         WriteError(errorRecord);
+            //     }
+            //     WriteVerbose(url);
+            // }
+
+            // bool tryCreateResult = Utils.CreateValidUrl(repo["Url"].ToString(), out Uri repoURL, out ErrorRecord errorRecord);
+            // // add condition repoURL == null (as a OR)
+            // if (!tryCreateResult)
+            // {
+            //     WriteError(errorRecord);
+            //     return null;
+            // }
+            // if (!tryCreateResult || repoURL == null)
+            // {
+            //     WriteError(errorRecord);
+            //     return null;
+            // }
 
             // if (!Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out Uri repoURL))
             // {
@@ -446,6 +486,46 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 return null;
             }
+        }
+
+        private bool TryCreateURL(string urlString, out Uri url, out ErrorRecord errorRecord)
+        {
+            // create with url string as is
+            bool isUrlValid = Utils.CreateUrl(urlString, out url, out errorRecord);
+
+            // // only if url creation fails, try to convert url from possibly relative path to absolute path and try again
+            // if (!isUrlValid && !Utils.CreateUrl(SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path, out url, out errorRecord))
+            // {
+            //     return false;
+            // }
+
+            // only if url creation fails, try to convert url from possibly relative path to absolute path and try again
+            if (!isUrlValid && (!urlString.StartsWith(Uri.UriSchemeHttp) &&
+                    !urlString.StartsWith(Uri.UriSchemeHttps) &&
+                    !urlString.StartsWith(Uri.UriSchemeFtp)))
+            {
+                try
+                {
+                    string resolvedUrlString = SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;  
+                    urlString = resolvedUrlString;
+                }
+                catch (Exception e)
+                {
+                    // var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", urlString);
+                    // var ex = new ArgumentException(message);
+                    errorRecord = new ErrorRecord(e, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+                    return false;
+                }
+                
+                isUrlValid = Utils.CreateUrl(urlString, out url, out errorRecord);
+                if (!isUrlValid || url == null)
+                {
+                    return false;
+                }
+
+            }
+
+            return true;
         }
 
     #endregion

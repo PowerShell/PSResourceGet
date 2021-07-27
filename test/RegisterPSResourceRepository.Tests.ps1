@@ -23,20 +23,14 @@ Describe "Test Register-PSResourceRepository" {
         Get-RemoveTestDirs($tmpDirPaths)
     }
 
-    It "should work on Windows and Linux" {
-        $resURL = "file:///tmp/testAnam/tmpDir1"
-        $tmpDirPath10 = "/tmp/testAnam/tmpDir1"
-
-        $resURL | Should -Contain $tmpDirPath10
-    }
-
     It "register repository given Name, URL (bare minimum for NameParmaterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -PassThru
         $res.Name | Should -Be "testRepository"
-        Write-Host "$([regex]::Escape($tmpDir1Path))"
-        Write-Host $tmpDir1Path
-        Write-Host $res.URL
-        # $res.URL | Should -Contain "$([regex]::Escape($tmpDir1Path))"
+        # Write-Host "$([regex]::Escape($tmpDir1Path))"
+        # Write-Host $tmpDir1Path
+        # Write-Host $res.URL
+        # # $res.URL | Should -Contain "$([regex]::Escape($tmpDir1Path))"
+        Write-Host "uri path 1: " $res.URL " should contain " $tmpDir1Path
         $res.URL | Should -Contain $tmpDir1Path
         # "$([regex]::Escape($tmpDir1Path))" | Should -Contain $res.URL 
 
@@ -50,6 +44,7 @@ Describe "Test Register-PSResourceRepository" {
         Write-Host "$([regex]::Escape($tmpDir1Path))"
         Write-Host $tmpDir1Path
         Write-Host $res.URL
+        Write-Host "uri path 2: " $res.URL " should contain " $tmpDir1Path
         $res.URL | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 50
@@ -58,6 +53,7 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository given Name, URL, Trusted, Priority (NameParameterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -PassThru
         $res.Name | Should -Be "testRepository"
+        Write-Host "uri path 3: " $res.URL " should contain " $tmpDir1Path
         $res.URL | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
@@ -98,17 +94,20 @@ Describe "Test Register-PSResourceRepository" {
 
         Register-PSResourceRepository -Repositories $arrayOfHashtables
         $res = Get-PSResourceRepository -Name "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        Write-Host "uri path 4.1: " $res.URL.AbsolutePath " should contain " $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
 
         $res2 = Get-PSResourceRepository -Name "testRepository2"
-        $res2.URL | Should -Contain $tmpDir2Path
+        Write-Host "uri path 4.2: " $res2.URL " should contain " $tmpDir2Path
+        $res2.URL.LocalPath | Should -Contain $tmpDir2Path
         $res2.Trusted | Should -Be True
         $res2.Priority | Should -Be 50
 
         $res3 = Get-PSResourceRepository -Name "testRepository3"
-        $res3.URL | Should -Contain $tmpDir3Path
+        Write-Host "uri path 4.3: " $res3.URL " should contain " $tmpDir3Path
+        $res3.URL.LocalPath | Should -Contain $tmpDir3Path
         $res3.Trusted | Should -Be True
         $res3.Priority | Should -Be 20
     }
@@ -139,17 +138,20 @@ Describe "Test Register-PSResourceRepository" {
         $res1.Priority | Should -Be 50
 
         $res2 = Get-PSResourceRepository -Name "testRepository"
-        $res2.URL | Should -Contain $tmpDir1Path
+        Write-Host "uri path 5.1: " $res2.URL.AbsolutePath " should contain " $tmpDir1Path
+        $res2.URL.LocalPath | Should -Contain $tmpDir1Path
         $res2.Trusted | Should -Be False
         $res2.Priority | Should -Be 50
 
         $res3 = Get-PSResourceRepository -Name "testRepository2"
-        $res3.URL | Should -Contain $tmpDir2Path
+        Write-Host "uri path 5.2: " $res3.URL " should contain " $tmpDir2Path
+        $res3.URL.LocalPath | Should -Contain $tmpDir2Path
         $res3.Trusted | Should -Be True
         $res3.Priority | Should -Be 50
 
         $res4 = Get-PSResourceRepository -Name "testRepository3"
-        $res4.URL | Should -Contain $tmpDir3Path
+        Write-Host "uri path 5.3: " $res4.URL.AbsolutePath " should contain " $tmpDir3Path
+        $res4.URL.LocalPath | Should -Contain $tmpDir3Path
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 20
     }
@@ -209,7 +211,7 @@ Describe "Test Register-PSResourceRepository" {
     $testCases2 = @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-Name is PSGallery";                     IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUrlScheme,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
+                  @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUrl,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases $testCases2 {
         param($Type, $IncorrectHashTable, $ErrorId)
