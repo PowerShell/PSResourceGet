@@ -1,4 +1,3 @@
-using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -8,6 +7,7 @@ using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
 using System.Globalization;
 using System.Management.Automation;
+using System.Text;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -260,18 +260,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return null;
                 }
             }
-
-
-
-            // if (repo.ContainsKey("Url")  && !Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out repoURL))
-            // {
-            //     WriteError(new ErrorRecord(
-            //         new PSInvalidOperationException("Invalid Url, unable to parse and create Uri"),
-            //         "InvalidUrl",
-            //         ErrorCategory.InvalidArgument,
-            //         this));
-            //     return null;
-            // }
 
             bool repoTrusted = false;
             isSet = false;
