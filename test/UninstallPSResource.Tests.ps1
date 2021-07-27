@@ -47,7 +47,20 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        $res = Uninstall-PSResource -Name "Carbon" -version "*"
+        $res = Uninstall-PSResource -Name ContosoServer -version "*"
+        $pkgs = Get-Module ContosoServer -ListAvailable
+        $pkgs.Version | Should -Not -Contain "1.0.0"
+        $pkgs.Version | Should -Not -Contain "1.5.0"
+        $pkgs.Version | Should -Not -Contain "2.0.0"
+        $pkgs.Version | Should -Not -Contain "2.5.0"
+    }
+
+    It "Uninstall a module when given name and using the default version (ie all versions, not explicitly specified)" {
+        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
+
+        $res = Uninstall-PSResource -Name ContosoServer
         $pkgs = Get-Module ContosoServer -ListAvailable
         $pkgs.Version | Should -Not -Contain "1.0.0"
         $pkgs.Version | Should -Not -Contain "1.5.0"
