@@ -28,7 +28,7 @@ Describe "Test Register-PSResourceRepository" {
         Set-PSResourceRepository -Name "testRepository" -URL $tmpDir2Path
         $res = Get-PSResourceRepository -Name "testRepository"
         $res.Name | Should -Be "testRepository"
-        $res.URL | Should -Contain $tmpDir2Path
+        $res.URL.LocalPath | Should -Contain $tmpDir2Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
     }
@@ -38,7 +38,7 @@ Describe "Test Register-PSResourceRepository" {
         Set-PSResourceRepository -Name "testRepository" -Priority 25
         $res = Get-PSResourceRepository -Name "testRepository"
         $res.Name | Should -Be "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 25
         $res.Trusted | Should -Be False
     }
@@ -48,7 +48,7 @@ Describe "Test Register-PSResourceRepository" {
         Set-PSResourceRepository -Name "testRepository" -Trusted
         $res = Get-PSResourceRepository -Name "testRepository"
         $res.Name | Should -Be "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be True
     }
@@ -59,8 +59,8 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     $testCases = @{Type = "contains *";     Name = "test*Repository"; ErrorId = "ErrorInNameParameterSet"},
-                 @{Type = "is whitespace";  Name = " "; ErrorId = "ErrorInNameParameterSet"},
-                 @{Type = "is null"; Name = $null; ErrorId = "ParameterArgumentValidationError"}
+                 @{Type = "is whitespace";  Name = " ";               ErrorId = "ErrorInNameParameterSet"},
+                 @{Type = "is null";        Name = $null;             ErrorId = "ParameterArgumentValidationError"}
 
     It "not set repository and throw error given Name <Type> (NameParameterSet)" -TestCases $testCases {
         param($Type, $Name)
@@ -88,7 +88,7 @@ Describe "Test Register-PSResourceRepository" {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name "testRepository"
-        $res.URL | Should -Contain $tmpDir3Path
+        $res.URL.LocalPath | Should -Contain $tmpDir3Path
         $res.Trusted | Should -Be False
 
         $res2 = Get-PSResourceRepository -Name "testRepository2"
@@ -110,13 +110,13 @@ Describe "Test Register-PSResourceRepository" {
         Set-PSResourceRepository -Repositories $arrayOfHashtables
         $res = Get-PSResourceRepository -Name "testRepository1"
         $res.Name | Should -Be "testRepository1"
-        $res.URL | Should -Contain $tmpDir2Path
+        $res.URL.LocalPath | Should -Contain $tmpDir2Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
 
         $res2 = Get-PSResourceRepository -Name "testRepository2"
         $res2.Name | Should -Be "testRepository2"
-        $res2.URL | Should -Contain $tmpDir2Path
+        $res2.URL.LocalPath | Should -Contain $tmpDir2Path
         $res2.Priority | Should -Be 25
         $res2.Trusted | Should -Be False
 
@@ -148,7 +148,7 @@ Describe "Test Register-PSResourceRepository" {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingIndividualRepoFromRepositories,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 25
         $res.Trusted | Should -Be False
     }

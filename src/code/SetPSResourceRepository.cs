@@ -1,3 +1,4 @@
+using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -27,6 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string NameParameterSet = "NameParameterSet";
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
         private const int DefaultPriority = -1;
+        private Uri _url;
         #endregion
 
         #region Parameters
@@ -45,25 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </sumamry>
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public Uri URL
-        {
-            get
-            { return _url; }
-
-            set
-            {
-                if (!Uri.TryCreate(value, string.Empty, out Uri url))
-                {
-                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not a valid url: {0}", value);
-                    var ex = new ArgumentException(message);
-                    var urlErrorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(urlErrorRecord);
-                }
-
-                _url = url;
-            }
-        }
-        private Uri _url;
+        public string URL { get; set; }
 
         /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
@@ -129,6 +113,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            // string url = URL;
+            if (!String.IsNullOrEmpty(URL))
+            {
+                bool isUrlValid = TryCreateURL(URL, out _url, out ErrorRecord errorRecord);
+                if (!isUrlValid)
+                {
+                    ThrowTerminatingError(errorRecord);
+                }
+            }
+
+
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
             switch(ParameterSetName)
@@ -136,7 +131,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case NameParameterSet:
                     try
                     {
-                        items.Add(UpdateRepositoryStoreHelper(Name, URL, Priority, Trusted));
+                        items.Add(UpdateRepositoryStoreHelper(Name, _url, Priority, Trusted));
                     }
                     catch (Exception e)
                     {
@@ -243,16 +238,40 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private PSRepositoryInfo RepoValidationHelper(Hashtable repo)
         {
             WriteDebug(String.Format("Parsing through repository: {0}", repo["Name"]));
+
             Uri repoURL = null;
-            if (repo.ContainsKey("Url")  && !Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out repoURL))
+            if (repo.ContainsKey("Url"))
             {
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("Invalid Url, unable to parse and create Uri"),
-                    "InvalidUrl",
-                    ErrorCategory.InvalidArgument,
-                    this));
-                return null;
+                if (String.IsNullOrEmpty(repo["Url"].ToString()))
+                {
+                    WriteError(new ErrorRecord(
+                            new PSInvalidOperationException("Repository url cannot be null if provided"),
+                            "NullURLForRepositoriesParameterSetUpdate",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    return null;
+                }
+
+                string url = repo["Url"].ToString();
+                bool isUrlValid = TryCreateURL(repo["Url"].ToString(), out repoURL, out ErrorRecord errorRecord);
+                if (!isUrlValid)
+                {
+                    WriteError(errorRecord);
+                    return null;
+                }
             }
+
+
+
+            // if (repo.ContainsKey("Url")  && !Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out repoURL))
+            // {
+            //     WriteError(new ErrorRecord(
+            //         new PSInvalidOperationException("Invalid Url, unable to parse and create Uri"),
+            //         "InvalidUrl",
+            //         ErrorCategory.InvalidArgument,
+            //         this));
+            //     return null;
+            // }
 
             bool repoTrusted = false;
             isSet = false;
@@ -279,6 +298,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
+        private bool TryCreateURL(string urlString, out Uri url, out ErrorRecord errorRecord)
+        {
+            // try to create with url string as is, so that absolute URIs are handled properly
+            bool isUrlValid = Utils.CreateUrl(urlString, out url, out errorRecord);
+
+            // only if url creation fails, try to convert url from possibly relative path to absolute path and try again
+            if (!isUrlValid && (!urlString.StartsWith(Uri.UriSchemeHttp) &&
+                    !urlString.StartsWith(Uri.UriSchemeHttps) &&
+                    !urlString.StartsWith(Uri.UriSchemeFtp)))
+            {
+                try
+                {
+                    string resolvedUrlString = SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;  
+                    urlString = resolvedUrlString;
+                }
+                catch (Exception e)
+                {
+                    errorRecord = new ErrorRecord(e, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+                    return false;
+                }
+                
+                isUrlValid = Utils.CreateUrl(urlString, out url, out errorRecord);
+                if (!isUrlValid || url == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
         #endregion
     }
 }

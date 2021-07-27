@@ -53,33 +53,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public string URL { get; set; }
 
-        // /// <summary>
-        // /// Specifies the location of the repository to be registered.
-        // /// </summary>
-        // [Parameter(Mandatory = true, Position = 1, ParameterSetName = NameParameterSet)]
-        // [ValidateNotNullOrEmpty]
-        // public Uri URL {
-        //     get
-        //     { return _url; }
-
-        //     set
-        //     {
-        //         string urlString = SessionState.Path.GetResolvedPSPathFromPSPath(value.AbsoluteUri)[0].Path;
-        //         // tryCreateResult = Uri.TryCreate(url, UriKind.Absolute, out _url);
-
-        //         if (!Uri.TryCreate(urlString, UriKind.Absolute, out Uri url))
-        //         {
-        //             var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
-        //             var ex = new ArgumentException(message);
-        //             var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-        //             ThrowTerminatingError(moduleManifestNotFound);
-        //         }
-
-        //         _url = url;
-        //     }
-        // }
-
-
         /// <summary>
         /// When specified, registers PSGallery repository.
         /// </summary>
@@ -167,26 +140,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case NameParameterSet:
                     string url = URL;
-                    /*** trying to get it working */
                     bool isUrlValid = TryCreateURL(url, out _url, out ErrorRecord errorRecord);
                     if (!isUrlValid)
                     {
                         ThrowTerminatingError(errorRecord);
                     }
-
-                    /** WORKS */
-                    // bool tryCreateResult = Utils.CreateUrl(url, out _url, out ErrorRecord errorRecord);
-
-                    // if (!tryCreateResult || _url == null)
-                    // {
-                    //     url = SessionState.Path.GetResolvedPSPathFromPSPath(url)[0].Path;
-                    //     bool tryWithResolvedPath = Utils.CreateUrl(url, out _url, out errorRecord);
-                    //     if (!tryWithResolvedPath || _url == null)
-                    //     {
-                    //         ThrowTerminatingError(errorRecord);
-                    //     }
-                    //     WriteVerbose(url);
-                    // }
 
                     try
                     {
@@ -366,99 +324,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            // string url = repo["Url"].ToString();
-
-            // if (!repo["Url"].ToString().StartsWith(Uri.UriSchemeHttp) &&
-            //     !repo["Url"].ToString().StartsWith(Uri.UriSchemeHttps) &&
-            //     !repo["Url"].ToString().StartsWith(Uri.UriSchemeFtp))
-            // {
-            //     url = SessionState.Path.GetResolvedPSPathFromPSPath(url)[0].Path;
-            // }
-
-            // bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
-
-            // if (!tryCreateResult || repoURL == null)
-            // {
-            //     WriteError(errorRecord);
-            //     return null;
-            // }
-
-
-            // string url = repo["Url"].ToString();
-            // if (!repo["Url"].ToString().StartsWith(Uri.UriSchemeHttp) && !repo["Url"].ToString().StartsWith(Uri.UriSchemeHttps) && !repo["Url"].ToString().StartsWith(Uri.UriSchemeFtp))
-            // {
-            //     url = SessionState.Path.GetResolvedPSPathFromPSPath(repo["Url"].ToString())[0].Path;
-            // }
-
-            // bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
-
-            // if (!tryCreateResult || repoURL == null)
-            // {
-            //     WriteError(errorRecord);
-            //     return null;
-            // }
-
             string url = repo["Url"].ToString();
-            /*** trying to get working */
             bool isUrlValid = TryCreateURL(repo["Url"].ToString(), out Uri repoURL, out ErrorRecord errorRecord);
             if (!isUrlValid)
             {
                 WriteError(errorRecord);
                 return null;
             }
-
-
-
-            /** WORKS */
-            // bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
-
-            // if (!tryCreateResult || repoURL == null)
-            // {
-            //     url = SessionState.Path.GetResolvedPSPathFromPSPath(url)[0].Path;
-            //     bool tryWithResolvedPath = Utils.CreateUrl(url, out repoURL, out errorRecord);
-            //     if (!tryWithResolvedPath || repoURL == null)
-            //     {
-            //         WriteError(errorRecord);
-            //     }
-            //     WriteVerbose(url);
-            // }
-
-
-            // bool tryCreateResult = Utils.CreateUrl(url, out Uri repoURL, out ErrorRecord errorRecord);
-
-            // if (!tryCreateResult || repoURL == null)
-            // {
-            //     url = SessionState.Path.GetResolvedPSPathFromPSPath(url)[0].Path;
-            //     bool tryWithResolvedPath = Utils.CreateUrl(url, out repoURL, out errorRecord);
-            //     if (!tryWithResolvedPath || repoURL == null)
-            //     {
-            //         WriteError(errorRecord);
-            //     }
-            //     WriteVerbose(url);
-            // }
-
-            // bool tryCreateResult = Utils.CreateValidUrl(repo["Url"].ToString(), out Uri repoURL, out ErrorRecord errorRecord);
-            // // add condition repoURL == null (as a OR)
-            // if (!tryCreateResult)
-            // {
-            //     WriteError(errorRecord);
-            //     return null;
-            // }
-            // if (!tryCreateResult || repoURL == null)
-            // {
-            //     WriteError(errorRecord);
-            //     return null;
-            // }
-
-            // if (!Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out Uri repoURL))
-            // {
-            //     WriteError(new ErrorRecord(
-            //         new PSInvalidOperationException("Invalid url, unable to create"),
-            //         "InvalidUrlScheme",
-            //         ErrorCategory.InvalidArgument,
-            //         this));
-            //     return null;
-            // }
 
             try
             {
@@ -490,14 +362,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private bool TryCreateURL(string urlString, out Uri url, out ErrorRecord errorRecord)
         {
-            // create with url string as is
+            // try to create with url string as is, so that absolute URIs are handled properly
             bool isUrlValid = Utils.CreateUrl(urlString, out url, out errorRecord);
-
-            // // only if url creation fails, try to convert url from possibly relative path to absolute path and try again
-            // if (!isUrlValid && !Utils.CreateUrl(SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path, out url, out errorRecord))
-            // {
-            //     return false;
-            // }
 
             // only if url creation fails, try to convert url from possibly relative path to absolute path and try again
             if (!isUrlValid && (!urlString.StartsWith(Uri.UriSchemeHttp) &&
@@ -511,8 +377,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    // var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", urlString);
-                    // var ex = new ArgumentException(message);
                     errorRecord = new ErrorRecord(e, "InvalidUrl", ErrorCategory.InvalidArgument, null);
                     return false;
                 }
@@ -522,7 +386,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     return false;
                 }
-
             }
 
             return true;

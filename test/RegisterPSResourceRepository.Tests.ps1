@@ -26,14 +26,7 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository given Name, URL (bare minimum for NameParmaterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -PassThru
         $res.Name | Should -Be "testRepository"
-        # Write-Host "$([regex]::Escape($tmpDir1Path))"
-        # Write-Host $tmpDir1Path
-        # Write-Host $res.URL
-        # # $res.URL | Should -Contain "$([regex]::Escape($tmpDir1Path))"
-        Write-Host "uri path 1: " $res.URL " should contain " $tmpDir1Path
         $res.URL | Should -Contain $tmpDir1Path
-        # "$([regex]::Escape($tmpDir1Path))" | Should -Contain $res.URL 
-
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
     }
@@ -41,10 +34,6 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository with Name, URL, Trusted (NameParameterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -PassThru
         $res.Name | Should -Be "testRepository"
-        Write-Host "$([regex]::Escape($tmpDir1Path))"
-        Write-Host $tmpDir1Path
-        Write-Host $res.URL
-        Write-Host "uri path 2: " $res.URL " should contain " $tmpDir1Path
         $res.URL | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 50
@@ -53,7 +42,6 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository given Name, URL, Trusted, Priority (NameParameterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -PassThru
         $res.Name | Should -Be "testRepository"
-        Write-Host "uri path 3: " $res.URL " should contain " $tmpDir1Path
         $res.URL | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
@@ -94,19 +82,16 @@ Describe "Test Register-PSResourceRepository" {
 
         Register-PSResourceRepository -Repositories $arrayOfHashtables
         $res = Get-PSResourceRepository -Name "testRepository"
-        Write-Host "uri path 4.1: " $res.URL.AbsolutePath " should contain " $tmpDir1Path
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
 
         $res2 = Get-PSResourceRepository -Name "testRepository2"
-        Write-Host "uri path 4.2: " $res2.URL " should contain " $tmpDir2Path
         $res2.URL.LocalPath | Should -Contain $tmpDir2Path
         $res2.Trusted | Should -Be True
         $res2.Priority | Should -Be 50
 
         $res3 = Get-PSResourceRepository -Name "testRepository3"
-        Write-Host "uri path 4.3: " $res3.URL " should contain " $tmpDir3Path
         $res3.URL.LocalPath | Should -Contain $tmpDir3Path
         $res3.Trusted | Should -Be True
         $res3.Priority | Should -Be 20
@@ -138,19 +123,16 @@ Describe "Test Register-PSResourceRepository" {
         $res1.Priority | Should -Be 50
 
         $res2 = Get-PSResourceRepository -Name "testRepository"
-        Write-Host "uri path 5.1: " $res2.URL.AbsolutePath " should contain " $tmpDir1Path
         $res2.URL.LocalPath | Should -Contain $tmpDir1Path
         $res2.Trusted | Should -Be False
         $res2.Priority | Should -Be 50
 
         $res3 = Get-PSResourceRepository -Name "testRepository2"
-        Write-Host "uri path 5.2: " $res3.URL " should contain " $tmpDir2Path
         $res3.URL.LocalPath | Should -Contain $tmpDir2Path
         $res3.Trusted | Should -Be True
         $res3.Priority | Should -Be 50
 
         $res4 = Get-PSResourceRepository -Name "testRepository3"
-        Write-Host "uri path 5.3: " $res4.URL.AbsolutePath " should contain " $tmpDir3Path
         $res4.URL.LocalPath | Should -Contain $tmpDir3Path
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 20
