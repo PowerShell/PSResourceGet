@@ -320,14 +320,14 @@ stages:
       imageName: windows-latest
       powershellExecutable: powershell
 
-#  - template: test.yml
-#    parameters:
-#      jobName: TestPkgUbuntu16
-#      displayName: PowerShell Core on Ubuntu 16.04
-#      imageName: ubuntu-16.04
+  - template: test.yml
+    parameters:
+      jobName: TestPkgUbuntu16
+      displayName: PowerShell Core on Ubuntu 16.04
+      imageName: ubuntu-16.04
 
-#  - template: test.yml
-#    parameters:
-#      jobName: TestPkgWinMacOS
-#      displayName: PowerShell Core on macOS
-#      imageName: macOS-10.14
+  - template: test.yml
+    parameters:
+      jobName: TestPkgWinMacOS
+      displayName: PowerShell Core on macOS
+      imageName: macOS-10.14
