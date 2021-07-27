@@ -21,15 +21,6 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
-
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Management.Automation;
-using System.Threading;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using NuGet.Versioning;
-
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>

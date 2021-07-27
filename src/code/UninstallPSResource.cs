@@ -165,7 +165,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // if we can't find the resource, write non-terminating error and return
-                if (!successfullyUninstalled)
+                if (!successfullyUninstalled || errRecord != null)
                 {
                     if (errRecord == null)
                     {
@@ -192,9 +192,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             errRecord = null;
             var successfullyUninstalledPkg = false;
-            
+
             // if -Force is not specified and the pkg is a dependency for another package, 
-            // an error will be written and we return fa lse
+            // an error will be written and we return false
             if (!Force && CheckIfDependency(pkgName, out errRecord))
             {
                 return false;
@@ -223,7 +223,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var exMessage = String.Format("Parent directory '{0}' could not be deleted: {1}", dir.Parent.FullName, e.Message);
                     var ex = new ArgumentException(exMessage);
                     var ErrorDeletingParentDirectory = new ErrorRecord(ex, "ErrorDeletingParentDirectory", ErrorCategory.InvalidArgument, null);
-                    //WriteError(ErrorDeletingParentDirectory);
                     errRecord = ErrorDeletingParentDirectory;
                 }
             }
@@ -232,7 +231,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var exMessage = String.Format("Directory '{0}' could not be deleted: {1}", dir.FullName, err.Message);
                 var ex = new ArgumentException(exMessage);
                 var ErrorDeletingDirectory = new ErrorRecord(ex, "ErrorDeletingDirectory", ErrorCategory.PermissionDenied, null);
-                //WriteError(ErrorDeletingDirectory);
                 errRecord = ErrorDeletingDirectory;
             }
 
@@ -268,7 +266,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var exMessage = String.Format("Script metadata file '{0}' could not be deleted: {1}", scriptXML, e.Message);
                     var ex = new ArgumentException(exMessage);
                     var ErrorDeletingScriptMetadataFile = new ErrorRecord(ex, "ErrorDeletingScriptMetadataFile", ErrorCategory.PermissionDenied, null);
-                    //WriteError(ErrorDeletingScriptMetadataFile);
                     errRecord = ErrorDeletingScriptMetadataFile;
                 }
             }
@@ -276,7 +273,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var exMessage = String.Format("Script '{0}' could not be deleted: {1}", pkgPath, err.Message);
                 var ex = new ArgumentException(exMessage);
                 var ErrorDeletingScript = new ErrorRecord(ex, "ErrorDeletingScript", ErrorCategory.PermissionDenied, null);
-                //WriteError(ErrorDeletingScript);
                 errRecord = ErrorDeletingScript;
             }
 
@@ -309,7 +305,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var exMessage = String.Format("Error checking if resource is a dependency: {0}. If you would still like to uninstall, rerun the command with -Force", e.Message);
                     var ex = new ArgumentException(exMessage);
                     var DependencyCheckError = new ErrorRecord(ex, "DependencyCheckError", ErrorCategory.OperationStopped, null);
-                   // WriteError(DependencyCheckError);
                     errRecord = DependencyCheckError;
                 }
 
@@ -321,10 +316,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var exMessage = String.Format("Cannot uninstall '{0}', the following package(s) take a dependency on this package: {1}. If you would still like to uninstall, rerun the command with -Force", pkgName, strUniquePkgNames);
                     var ex = new ArgumentException(exMessage);
                     var PackageIsaDependency = new ErrorRecord(ex, "PackageIsaDependency", ErrorCategory.OperationStopped, null);
-                    //WriteError(PackageIsaDependency);
                     errRecord = PackageIsaDependency;
-                    return true;
 
+                    return true;
                 }
             }
             return false;
