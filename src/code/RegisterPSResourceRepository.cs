@@ -34,6 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string NameParameterSet = "NameParameterSet";
         private const string PSGalleryParameterSet = "PSGalleryParameterSet";
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
+        private Uri _url;
 
         #endregion
 
@@ -106,7 +107,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Methods
-        private Uri _url;
 
         protected override void BeginProcessing()
         {
@@ -371,6 +371,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 try
                 {
+                    // /tmp/Users/annavied -> Uri.UriSchemeFile ? (Todo: retry and see if condition above checks for Uri.Filescheme if we can detect)
+                    // www.google.com -> C:/Users/annavied/www.google.com
                     string resolvedUrlString = SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;  
                     urlString = resolvedUrlString;
                 }
@@ -387,7 +389,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            return true;
+            return isUrlValid;
         }
 
     #endregion
