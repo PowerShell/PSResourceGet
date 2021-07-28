@@ -13,6 +13,8 @@ Describe "Test Register-PSResourceRepository" {
         $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
         $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
         Get-NewTestDirs($tmpDirPaths)
+
+        $relativeCurrentPath = Pop-Location -PassThru
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -151,5 +153,15 @@ Describe "Test Register-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 25
         $res.Trusted | Should -Be False
+    }
+
+    It "should set repository with relative URL provided" {
+        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
+        Set-PSResourceRepository -Name "testRepository" -URL $relativeCurrentPath
+        $res = Get-PSResourceRepository -Name "testRepository"
+        $res.Name | Should -Be "testRepository"
+        $res.URL.LocalPath | Should -Contain $relativeCurrentPath
+        $res.Trusted | Should -Be False
+        $res.Priority | Should -Be 50
     }
 }
