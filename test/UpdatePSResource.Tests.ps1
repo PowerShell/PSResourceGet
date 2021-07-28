@@ -8,7 +8,6 @@ Describe 'Test Update-PSResource for Module' {
 
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
-        $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
