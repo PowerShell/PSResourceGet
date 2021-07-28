@@ -15,7 +15,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It returns nothing.
     /// </summary>
 
-    [Cmdlet(VerbsLifecycle.Install, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true, HelpUri = "<add>")]
+    [Cmdlet(VerbsLifecycle.Install, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
     public sealed
     class InstallPSResource : PSCmdlet
     {
@@ -124,6 +124,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", Name))))
+            {
+                WriteVerbose("ShouldProcess was set to false.");
+                return;
+            }
+
             var installHelper = new InstallHelper(updatePkg: false, savePkg: false, cmdletPassedIn: this);
 
             switch (ParameterSetName)
