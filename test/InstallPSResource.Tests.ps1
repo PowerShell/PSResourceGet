@@ -157,17 +157,6 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Path.Contains("$env:HOME/.local") | Should -Be $true
     }
 
-<## manually test only 
-    # Unix only
-    # Expected path should be similar to: '/usr/local/share/powershell/Modules'
-    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
-        $pkg = Get-Module "TestModule" -ListAvailable
-        $pkg.Name | Should -Be "TestModule" 
-        $pkg.Path.Contains("/usr/") | Should -Be $true
-    }
-#>
-
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
     It "Install resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
@@ -237,8 +226,36 @@ Describe 'Test Install-PSResource for Module' {
         $pkg | Should -Not -BeNullOrEmpty
         $pkg.Name | Should -Be $publishModuleName
     }
+}
 
-<#
+<# Temporarily commented until -Tag is implemented for this Describe block
+Describe 'Test Install-PSResource for interactive and root user scenarios' {
+
+    BeforeAll{
+        $TestGalleryName = Get-PoshTestGalleryName
+        $PSGalleryName = Get-PSGalleryName
+        $NuGetGalleryName = Get-NuGetGalleryName
+        Get-NewPSResourceRepositoryFile
+        Register-LocalRepos
+    }
+
+    AfterEach {
+        Uninstall-PSResource "TestModule", "testModuleWithlicense" -Force -ErrorAction SilentlyContinue
+    }
+
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    # Unix only manual test
+    # Expected path should be similar to: '/usr/local/share/powershell/Modules'
+    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
+        $pkg = Get-Module "TestModule" -ListAvailable
+        $pkg.Name | Should -Be "TestModule" 
+        $pkg.Path.Contains("/usr/") | Should -Be $true
+    }
+
     # This needs to be manually tested due to prompt
     It "Install resource that requires accept license without -AcceptLicense flag" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName
@@ -258,5 +275,5 @@ Describe 'Test Install-PSResource for Module' {
 
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
-#>
 }
+#>
