@@ -154,9 +154,10 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
-        $pkg.Path.Contains("/home/") | Should -Be $true
+        $pkg.Path.Contains("$env:HOME/.local") | Should -Be $true
     }
 
+<## manually test only 
     # Unix only
     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
     It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
@@ -165,6 +166,7 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Name | Should -Be "TestModule" 
         $pkg.Path.Contains("/usr/") | Should -Be $true
     }
+#>
 
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
@@ -172,7 +174,7 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
-        $pkg.Path.Contains("/home/") | Should -Be $true
+        $pkg.Path.Contains("$env:HOME/.local") | Should -Be $true
     }
 
     It "Should not install resource that is already installed" {
