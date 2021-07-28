@@ -392,6 +392,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield break;
                 }
 
+                Console.WriteLine("ANAM- version range: " + versionRange);
                 // at this point, version should be parsed successfully, into allVersions (null or "*") or versionRange (specific or range)
                 if (pkgName.Contains("*"))
                 {
@@ -427,10 +428,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // for non wildcard names, NuGet GetMetadataAsync() API is which returns all versions for that package ordered descendingly
                     if (versionRange != VersionRange.All) // Version range
                     {
+                        foreach(var anamPkg in foundPackagesMetadata.ToList())
+                        {
+                            Console.WriteLine("package pre sort by version: " + anamPkg.Identity.Version.ToString());
+                        }
                         foundPackagesMetadata = foundPackagesMetadata.Where(
                             p => versionRange.Satisfies(
                                 p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(
                                     p => p.Identity.Version).ToList();
+                        
+                        foreach(var anamPkg in foundPackagesMetadata.ToList())
+                        {
+                            Console.WriteLine("package post sort by version: " + anamPkg.Identity.Version.ToString());
+                        }
                     }
                 }
             }
