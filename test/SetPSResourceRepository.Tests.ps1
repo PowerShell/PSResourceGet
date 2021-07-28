@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test Register-PSResourceRepository" {
+Describe "Test Set-PSResourceRepository" {
     BeforeEach {
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryURL = Get-PSGalleryLocation
@@ -14,7 +14,7 @@ Describe "Test Register-PSResourceRepository" {
         $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
         Get-NewTestDirs($tmpDirPaths)
 
-        $relativeCurrentPath = Pop-Location -PassThru
+        $relativeCurrentPath = Get-Location
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
