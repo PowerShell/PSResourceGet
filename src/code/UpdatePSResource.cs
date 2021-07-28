@@ -29,8 +29,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
 
         private const string NameParameterSet = "NameParameterSet";
-        private CancellationTokenSource _source;
-        private CancellationToken _cancellationToken;
         private List<string> _pathsToInstallPkg;
 
         #endregion
@@ -109,8 +107,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            _source = new CancellationTokenSource();
-            _cancellationToken = _source.Token;
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
         }
 
@@ -188,7 +184,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             InstallHelper installHelper = new InstallHelper(
                 updatePkg: true,
                 savePkg: false,
-                cancellationToken: _cancellationToken,
                 cmdletPassedIn: this);
 
             installHelper.InstallPackages(
