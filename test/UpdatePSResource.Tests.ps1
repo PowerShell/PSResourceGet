@@ -259,17 +259,4 @@ Describe 'Test Update-PSResource' {
         $isPkgUpdated | Should -BeTrue
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
-
-
-    # update script resource
-    # Name
-    # Version
-    # Prerelease
-    # Scope
-    # AcceptLicense
-    # TrustRepository
-    # Credential
-    # InputObject
-
-
 }
