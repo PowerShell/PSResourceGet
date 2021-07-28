@@ -59,7 +59,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the scope of installation.
         /// </summary>
-        [ValidateSet("CurrentUser", "AllUsers")]
         [Parameter(ParameterSetName = NameParameterSet)]
         public ScopeType Scope { get; set; }
 
@@ -125,11 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // Define the cancellation token.
-            CancellationTokenSource source = new CancellationTokenSource();
-            CancellationToken cancellationToken = source.Token;
-
-            var installHelper = new InstallHelper(updatePkg: false, savePkg: false, cancellationToken: cancellationToken, cmdletPassedIn: this);
+            var installHelper = new InstallHelper(updatePkg: false, savePkg: false, cmdletPassedIn: this);
 
             switch (ParameterSetName)
             {

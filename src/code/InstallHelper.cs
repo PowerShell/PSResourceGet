@@ -46,11 +46,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         bool _asNupkg;
         bool _includeXML;
 
-        public InstallHelper(bool updatePkg, bool savePkg, CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
+        public InstallHelper(bool updatePkg, bool savePkg, PSCmdlet cmdletPassedIn)
         {
+            // Define the cancellation token.
+            CancellationTokenSource source = new CancellationTokenSource();
+            _cancellationToken = source.Token;
+            
             this._updatePkg = updatePkg;
             this._savePkg = savePkg;
-            this._cancellationToken = cancellationToken;
             this._cmdletPassedIn = cmdletPassedIn;
         }
 
