@@ -9,14 +9,9 @@ Other parameters allow the returned results to be further filtered.
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Scope <string>]
+[[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Scope <Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType>]
 [-Repository <string[]>] [-TrustRepository] [-Credential <pscredential>] [-Quiet] 
 [-AcceptLicense] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### InputObjectParameterSet
-``` PowerShell
-[[-InputObject] <object[]> [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## Parameters
@@ -74,8 +69,8 @@ Parameter Sets: NameParameterSet
 Specifies the scope of the resource to update.
 
 ```yml
-Type: string
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet 
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType
+Parameter Sets: NameParameterSet
 AllowedValues: 'CurrentUser','AllUsers'
 ```
 
@@ -85,7 +80,7 @@ Suppresses being prompted for untrusted sources.
 
 ```yml
 Type: SwitchParameter
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet  
+Parameter Sets: NameParameterSet
 ```
 
 ### -Credential
@@ -115,22 +110,11 @@ Type: SwitchParameter
 Parameter Sets: (All)
 ```
 
-### -NoClobber
-
-Prevents updating modules that have the same cmdlets as a differently named module already
-
-```yml
-Type: SwitchParameter
-Parameter Sets: NameParameterSet
-```
-
-
 ### Outputs
 
 No output.
 
 ## Notes
-Input object still needs to be implemented.
 
 Should a -PassThru parameter be added?
 
@@ -138,7 +122,7 @@ Should a -PassThru parameter be added?
 
 Most update tests can be performed on a local repository.  
 
-Some tests should be performed on remote repository (PSGallery) to verify remote operation, but can be limited.  
+Some tests should be performed on remote repository (PoshTestGallery) to verify remote operation, but can be limited.  
 
 ### -Name param
 
@@ -148,11 +132,6 @@ Some tests should be performed on remote repository (PSGallery) to verify remote
 - Cancel search
 - Errors: Not found (single name, wildcard, multiple name)
 - Errors: Repository: Invalid name, connection error, etc
-
-### -Type InputObject
-
-- Validate pipeline input
-- Errors: The object passed in is not the correct type
 
 ### -Version param
 
@@ -192,11 +171,6 @@ Some tests should be performed on remote repository (PSGallery) to verify remote
 ### -AcceptLicense
 
 - Validate that modules which require license agreements are approved without a prompt
-
-### -NoClobber
-
-- Validate that resources are not overwritten when flag is passed
-
 
 ## Work Items
 

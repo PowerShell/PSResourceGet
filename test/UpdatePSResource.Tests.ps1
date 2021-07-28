@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Update-PSResource for Module' {
+Describe 'Test Update-PSResource' {
 
 
     BeforeAll{
