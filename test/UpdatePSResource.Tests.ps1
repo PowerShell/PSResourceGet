@@ -10,7 +10,6 @@ Describe 'Test Update-PSResource' {
         $TestGalleryName = Get-PoshTestGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
         Get-NewPSResourceRepositoryFile
-        Register-LocalRepos
         Get-PSResourceRepository
     }
 
@@ -151,7 +150,7 @@ Describe 'Test Update-PSResource' {
             }
         }
 
-        $isPkgUpdated | Should -BeTrue
+        $isPkgUpdated | Should -Be $true
     }
 
     # Windows only
@@ -174,7 +173,7 @@ Describe 'Test Update-PSResource' {
             }
         }
 
-        $isPkgUpdated | Should -BeTrue
+        $isPkgUpdated | Should -Be $true
     }
 
     # Windows only
@@ -195,7 +194,7 @@ Describe 'Test Update-PSResource' {
             }
         }
 
-        $isPkgUpdated | Should -BeTrue
+        $isPkgUpdated | Should -Be $true
     }
 
     # Windows only
@@ -215,7 +214,76 @@ Describe 'Test Update-PSResource' {
             }
         }
 
-        $isPkgUpdated | Should -BeTrue
+        $isPkgUpdated | Should -Be $true
+    }
+
+    # Unix only
+    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
+    It "Install resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+
+        Update-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
+
+        $res = Get-InstalledPSResource -Name "TestModule"
+
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            {
+                $pkg.InstalledLocation.Contains("home") | Should -Be $true
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -Be $true
+    }
+
+    # Unix only
+    # Expected path should be similar to: '/usr/local/share/powershell/Modules'
+    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+
+        Update-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
+
+        $res = Get-InstalledPSResource -Name "TestModule"
+
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            {
+                $pkg.InstalledLocation.Contains("usr") | Should -Be $true
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -Be $true
+    }
+
+    # Unix only
+    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
+    It "Install resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+
+        Update-PSResource -Name "TestModule" -Repository $TestGalleryName
+
+        $res = Get-InstalledPSResource -Name "TestModule"
+
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            {
+                $pkg.InstalledLocation.Contains("home") | Should -Be $true
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -Be $true
     }
 
     # TODO: ask Amber if we can publish another version to TestModuleWithLicense
