@@ -288,8 +288,8 @@ Describe 'Test Update-PSResource' {
 
     It "update resource that requires accept license with -AcceptLicense flag" {
         Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
-        Update-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
-        $pkg = Get-InstalledPSResource "testModuleWithlicense"
+        Update-PSResource -Name "TestModuleWithLicense" -Repository $TestGalleryName -AcceptLicense
+        $res = Get-InstalledPSResource "TestModuleWithLicense"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
