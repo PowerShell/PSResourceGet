@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
@@ -126,7 +127,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", Name))))
             {
-                WriteVerbose("ShouldProcess was set to false.");
+                WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", Name)));
                 return;
             }
 
