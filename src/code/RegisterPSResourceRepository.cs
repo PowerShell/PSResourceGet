@@ -34,6 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string NameParameterSet = "NameParameterSet";
         private const string PSGalleryParameterSet = "PSGalleryParameterSet";
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
+        private Uri _url;
 
         #endregion
 
@@ -51,25 +52,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, Position = 1, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public Uri URL
-        {
-            get
-            { return _url; }
-
-            set
-            {
-                if (!Uri.TryCreate(value, string.Empty, out Uri url))
-                {
-                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", value);
-                    var ex = new ArgumentException(message);
-                    var moduleManifestNotFound = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(moduleManifestNotFound);
-                }
-
-                _url = url;
-            }
-        }
-        private Uri _url;
+        public string URL { get; set; }
 
         /// <summary>
         /// When specified, registers PSGallery repository.
@@ -156,9 +139,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
+                    if (!Utils.TryCreateValidUrl(urlString: URL,
+                        cmdletPassedIn: this,
+                        urlResult: out _url,
+                        errorRecord: out ErrorRecord errorRecord))
+                    {
+                        ThrowTerminatingError(errorRecord);
+                    }
+
                     try
                     {
-                        items.Add(NameParameterSetHelper(Name, URL, Priority, Trusted));
+                        items.Add(NameParameterSetHelper(Name, _url, Priority, Trusted));
                     }
                     catch (Exception e)
                     {
@@ -334,13 +325,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            if (!Uri.TryCreate(repo["URL"].ToString(), UriKind.Absolute, out Uri repoURL))
+            if (!Utils.TryCreateValidUrl(urlString: repo["Url"].ToString(),
+                cmdletPassedIn: this,
+                urlResult: out Uri repoURL,
+                errorRecord: out ErrorRecord errorRecord))
             {
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("Invalid url, unable to create"),
-                    "InvalidUrlScheme",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                WriteError(errorRecord);
                 return null;
             }
 
@@ -372,6 +362,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-    #endregion
+        #endregion
     }
 }
