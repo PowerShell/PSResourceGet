@@ -13,6 +13,8 @@ Describe "Test Register-PSResourceRepository" {
         $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
         $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
         Get-NewTestDirs($tmpDirPaths)
+
+        $relativeCurrentPath = Get-Location
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -26,7 +28,7 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository given Name, URL (bare minimum for NameParmaterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -PassThru
         $res.Name | Should -Be "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
     }
@@ -34,7 +36,7 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository with Name, URL, Trusted (NameParameterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -PassThru
         $res.Name | Should -Be "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 50
     }
@@ -42,7 +44,7 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository given Name, URL, Trusted, Priority (NameParameterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -PassThru
         $res.Name | Should -Be "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
     }
@@ -82,17 +84,17 @@ Describe "Test Register-PSResourceRepository" {
 
         Register-PSResourceRepository -Repositories $arrayOfHashtables
         $res = Get-PSResourceRepository -Name "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
 
         $res2 = Get-PSResourceRepository -Name "testRepository2"
-        $res2.URL | Should -Contain $tmpDir2Path
+        $res2.URL.LocalPath | Should -Contain $tmpDir2Path
         $res2.Trusted | Should -Be True
         $res2.Priority | Should -Be 50
 
         $res3 = Get-PSResourceRepository -Name "testRepository3"
-        $res3.URL | Should -Contain $tmpDir3Path
+        $res3.URL.LocalPath | Should -Contain $tmpDir3Path
         $res3.Trusted | Should -Be True
         $res3.Priority | Should -Be 20
     }
@@ -123,23 +125,23 @@ Describe "Test Register-PSResourceRepository" {
         $res1.Priority | Should -Be 50
 
         $res2 = Get-PSResourceRepository -Name "testRepository"
-        $res2.URL | Should -Contain $tmpDir1Path
+        $res2.URL.LocalPath | Should -Contain $tmpDir1Path
         $res2.Trusted | Should -Be False
         $res2.Priority | Should -Be 50
 
         $res3 = Get-PSResourceRepository -Name "testRepository2"
-        $res3.URL | Should -Contain $tmpDir2Path
+        $res3.URL.LocalPath | Should -Contain $tmpDir2Path
         $res3.Trusted | Should -Be True
         $res3.Priority | Should -Be 50
 
         $res4 = Get-PSResourceRepository -Name "testRepository3"
-        $res4.URL | Should -Contain $tmpDir3Path
+        $res4.URL.LocalPath | Should -Contain $tmpDir3Path
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 20
     }
 
     It "not register repository when Name is provided but URL is not" {
-        {Register-PSResourceRepository -Name "testRepository" -URL "" -ErrorAction Stop} | Should -Throw -ErrorId "InvalidUrl,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -Name "testRepository" -URL "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name is empty but URL is provided" {
@@ -193,7 +195,7 @@ Describe "Test Register-PSResourceRepository" {
     $testCases2 = @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-Name is PSGallery";                     IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUrlScheme,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
+                  @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUrl,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases $testCases2 {
         param($Type, $IncorrectHashTable, $ErrorId)
@@ -217,5 +219,15 @@ Describe "Test Register-PSResourceRepository" {
         $res3 = Get-PSResourceRepository -Name "PSGallery"
         $res3.Name | Should -Be "PSGallery"
         $res3.Priority | Should -Be 30
+    }
+
+    It "should register repository with relative location provided as URL" {
+        Register-PSResourceRepository -Name "testRepository" -URL "./"
+        $res = Get-PSResourceRepository -Name "testRepository"
+
+        $res.Name | Should -Be "testRepository"
+        $res.URL.LocalPath | Should -Contain $relativeCurrentPath
+        $res.Trusted | Should -Be False
+        $res.Priority | Should -Be 50
     }
 }
