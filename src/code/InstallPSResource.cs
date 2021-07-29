@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
@@ -15,7 +16,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It returns nothing.
     /// </summary>
 
-    [Cmdlet(VerbsLifecycle.Install, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true, HelpUri = "<add>")]
+    [Cmdlet(VerbsLifecycle.Install, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
     public sealed
     class InstallPSResource : PSCmdlet
     {
@@ -124,6 +125,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", Name))))
+            {
+                WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", Name)));
+                return;
+            }
+
             var installHelper = new InstallHelper(updatePkg: false, savePkg: false, cmdletPassedIn: this);
 
             switch (ParameterSetName)
