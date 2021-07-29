@@ -233,7 +233,7 @@ Describe 'Test Update-PSResource' {
         {
             if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
             {
-                $pkg.InstalledLocation.Contains("home") | Should -Be $true
+                $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
                 $isPkgUpdated = $true
             }
         }
@@ -281,7 +281,7 @@ Describe 'Test Update-PSResource' {
         {
             if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
             {
-                $pkg.InstalledLocation.Contains("home") | Should -Be $true
+                $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
                 $isPkgUpdated = $true
             }
         }
