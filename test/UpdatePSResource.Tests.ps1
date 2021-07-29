@@ -219,8 +219,9 @@ Describe 'Test Update-PSResource' {
 
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
-    It "Install resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
+    It "Update resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
+        # this line is commented out because AllUsers scope requires sudo and that isn't supported in CI yet
+        # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
 
         Update-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
@@ -242,7 +243,8 @@ Describe 'Test Update-PSResource' {
 
     # Unix only
     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
-    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
+    # this test is skipped because it requires sudo to run and has yet to be resolved in CI
+    It "Update resource under AllUsers scope - Unix only" -Skip:($true) {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
 
@@ -265,8 +267,9 @@ Describe 'Test Update-PSResource' {
 
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
-    It "Install resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
+    It "Update resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
+        # this is commented out because it requires sudo to run with AllUsers scope and this hasn't been resolved in CI yet
+        # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
 
         Update-PSResource -Name "TestModule" -Repository $TestGalleryName

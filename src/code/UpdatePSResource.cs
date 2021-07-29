@@ -1,4 +1,4 @@
-
+using System.Collections.Specialized;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -22,13 +22,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
     [Cmdlet(VerbsData.Update,
         "PSResource",
-        DefaultParameterSetName = NameParameterSet,
         SupportsShouldProcess = true)]
     public sealed class UpdatePSResource : PSCmdlet
     {
         #region Members
-
-        private const string NameParameterSet = "NameParameterSet";
         private List<string> _pathsToInstallPkg;
 
         #endregion
@@ -39,21 +36,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies name of a resource or resources to update.
         /// Accepts wildcard characters.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set ; } = new string[] {"*"};
 
         /// <summary>
         /// Specifies the version the resource is to be updated to.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
 
         /// <summary>
         /// When specified, allows updating to a prerelease version.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public SwitchParameter Prerelease { get; set; }
 
         /// <summary>
@@ -103,55 +100,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Override Methods
 
         protected override void BeginProcessing()
         {
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
-        }
-
-        private string[] ProcessNames(string[] namesToProcess, VersionRange versionRange)
-        {
-            namesToProcess = Utils.ProcessNameWildcards(namesToProcess, out string[] errorMsgs, out bool nameContainsWildcard);
-            
-            foreach (string error in errorMsgs)
-            {
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException(error),
-                    "ErrorFilteringNamesForUnsupportedWildcards",
-                    ErrorCategory.InvalidArgument,
-                    this));
-            }
-            
-            // this catches the case where Name wasn't input as null or empty,
-            // but after filtering out unsupported wildcard names there are no elements left in Name
-            if (Name.Length == 0)
-            {
-                 return namesToProcess;
-            }
-
-            if (String.Equals(namesToProcess[0], "*", StringComparison.InvariantCultureIgnoreCase))
-            {
-                WriteVerbose("Name was detected to be (or contain an element equal to): '*', so all packages will be updated");
-            }
-
-            if (nameContainsWildcard)
-            {
-                // any of the Name entries contains a supported wildcard
-                // then we need to use GetHelper (Get-InstalledPSResource logic) to find which packages are installed that match
-                // the wildcard pattern name for each package name with wildcard
-
-                GetHelper getHelper = new GetHelper(
-                    cmdletPassedIn: this);
-
-                namesToProcess = getHelper.FilterPkgPaths(
-                    name: Name,
-                    versionRange: versionRange,
-                    pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
-            }
-
-            return namesToProcess;
-
         }
 
         protected override void ProcessRecord()
@@ -173,11 +126,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            Name = ProcessNames(Name, versionRange);
+            var namesToUpdate = ProcessPackageNameWildCards(Name, versionRange);
+
+            if (namesToUpdate.Length == 0)
+            {
+                return;
+            }
 
             if (!ShouldProcess(string.Format("package to update: '{0}'", String.Join(", ", Name))))
             {
-                WriteVerbose("ShouldProcess was set to false.");
+                WriteVerbose(string.Format("Update is cancelled by user for: {0}", String.Join(", ", Name)));
                 return;
             }
 
@@ -187,7 +145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 cmdletPassedIn: this);
 
             installHelper.InstallPackages(
-                names: Name,
+                names: namesToUpdate,
                 versionRange: versionRange,
                 prerelease: Prerelease,
                 repository: Repository,
@@ -207,6 +165,55 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
 
+        #endregion
+        #region Private Methods
+
+        /// <Summary>
+        /// This method checks all provided package names for wild card characters and removes any name containing invalid characters.
+        /// If any name contains a single '*' wildcard character then it is returned alone, indicating all packages should be processed.
+        /// </Summary>
+        private string[] ProcessPackageNameWildCards(string[] namesToProcess, VersionRange versionRange)
+        {
+            namesToProcess = Utils.ProcessNameWildcards(namesToProcess, out string[] errorMsgs, out bool nameContainsWildcard);
+            
+            foreach (string error in errorMsgs)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
+            
+            // this catches the case where namesToProcess wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in namesToProcess
+            if (namesToProcess.Length == 0)
+            {
+                 return namesToProcess;
+            }
+
+            if (String.Equals(namesToProcess[0], "*", StringComparison.InvariantCultureIgnoreCase))
+            {
+                WriteVerbose("Package names were detected to be (or contain an element equal to): '*', so all packages will be updated");
+            }
+
+            if (nameContainsWildcard)
+            {
+                // if any of the namesToProcess entries contains a supported wildcard
+                // then we need to use GetHelper (Get-InstalledPSResource logic) to find which packages are installed that match
+                // the wildcard pattern name for each package name with wildcard
+
+                GetHelper getHelper = new GetHelper(
+                    cmdletPassedIn: this);
+
+                namesToProcess = getHelper.FilterPkgPaths(
+                    name: namesToProcess,
+                    versionRange: versionRange,
+                    pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
+            }
+
+            return namesToProcess;
+        }
         #endregion
     }
 }
