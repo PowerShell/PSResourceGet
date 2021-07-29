@@ -286,26 +286,22 @@ Describe 'Test Update-PSResource' {
         $isPkgUpdated | Should -Be $true
     }
 
-    # TODO: ask Amber if we can publish another version to TestModuleWithLicense
-    # It "update resource that requires accept license with -AcceptLicense flag" {
-    #     Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
-    #     Update-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
-    #     $pkg = Get-InstalledPSResource "testModuleWithlicense"
+    It "update resource that requires accept license with -AcceptLicense flag" {
+        Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
+        Update-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
+        $pkg = Get-InstalledPSResource "testModuleWithlicense"
 
-    #     $isPkgUpdated = $false
-    #     foreach ($pkg in $res)
-    #     {
-    #         if ([System.Version]$pkg.Version -gt [System.Version]"0.0.1.0")
-    #         {
-    #             $isPkgUpdated = $true
-    #         }
-    #     }
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -gt [System.Version]"0.0.1.0")
+            {
+                $isPkgUpdated = $true
+            }
+        }
 
-    #     $isPkgUpdated | Should -BeTrue
-
-    #     # $pkg.Name | Should -Be "testModuleWithlicense"
-    #     # $pkg.Version | Should -Be "0.0.1.0"
-    # }
+        $isPkgUpdated | Should -Be $true
+    }
 
     It "update resource should not prompt 'trust repository' if repository is not trusted but -TrustRepository is used" {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
