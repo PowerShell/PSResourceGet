@@ -226,6 +226,13 @@ Describe 'Test Install-PSResource for Module' {
         $pkg | Should -Not -BeNullOrEmpty
         $pkg.Name | Should -Be $publishModuleName
     }
+
+    It "Install module using -WhatIf, should not install the module" {
+        Install-PSResource -Name "TestModule" -WhatIf
+    
+        $res = Get-Module "TestModule" -ListAvailable
+        $res | Should -BeNullOrEmpty
+    }
 }
 
 <# Temporarily commented until -Tag is implemented for this Describe block
