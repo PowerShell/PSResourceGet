@@ -251,6 +251,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceCacheContext sourceContext)
         {
             List<IPackageSearchMetadata> foundPackagesMetadata = new List<IPackageSearchMetadata>();
+            VersionRange versionRange = null;
+
+            if (_version != null)
+            {
+                if (!Utils.TryParseVersionOrVersionRange(_version, out versionRange))
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                        "IncorrectVersionFormat",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                    yield break;
+                }
+
+                if (_version.Contains("-"))
+                {
+                    _prerelease = true;
+                    Console.WriteLine("early on detected it's a prerelease version");
+                }
+            }
 
             // filter by param: Name
             if (!pkgName.Contains("*"))
@@ -382,23 +402,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                if (!Utils.TryParseVersionOrVersionRange(_version, out VersionRange versionRange))
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new ArgumentException("Argument for -Version parameter is not in the proper format"),
-                        "IncorrectVersionFormat",
-                        ErrorCategory.InvalidArgument,
-                        this));
-                    yield break;
-                }
-
-                if (versionRange.ToString().Contains("-"))
-                {
-                    Console.WriteLine("prerelease version bc - detected");
-                    _prerelease = true;
-                    Console.WriteLine("prerelease is: " + _prerelease);
-                }
-
                 Console.WriteLine("ANAM- version range: " + versionRange);
                 // at this point, version should be parsed successfully, into allVersions (null or "*") or versionRange (specific or range)
                 if (pkgName.Contains("*"))
@@ -410,6 +413,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     foreach (string n in foundPackagesMetadata.Select(p => p.Identity.Id).Distinct(StringComparer.InvariantCultureIgnoreCase))
                     {
                         // get all versions for this package
+                        Console.WriteLine("right before GetMEtadataAsync prerelease is: " + _prerelease);
                         allPkgsAllVersions.AddRange(pkgMetadataResource.GetMetadataAsync(n, _prerelease, false, sourceContext, NullLogger.Instance, _cancellationToken).GetAwaiter().GetResult().ToList());
                     }
 
