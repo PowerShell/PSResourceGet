@@ -154,16 +154,7 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
-        $pkg.Path.Contains("/home/") | Should -Be $true
-    }
-
-    # Unix only
-    # Expected path should be similar to: '/usr/local/share/powershell/Modules'
-    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
-        $pkg = Get-Module "TestModule" -ListAvailable
-        $pkg.Name | Should -Be "TestModule" 
-        $pkg.Path.Contains("/usr/") | Should -Be $true
+        $pkg.Path.Contains("$env:HOME/.local") | Should -Be $true
     }
 
     # Unix only
@@ -172,7 +163,7 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
-        $pkg.Path.Contains("/home/") | Should -Be $true
+        $pkg.Path.Contains("$env:HOME/.local") | Should -Be $true
     }
 
     It "Should not install resource that is already installed" {
@@ -198,7 +189,7 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
         $pkg = Get-InstalledPSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
-        $pkg.Version | Should -Be "0.0.1.0"
+        $pkg.Version | Should -Be "0.0.3.0"
     }
 
     It "Install resource should not prompt 'trust repository' if repository is not trusted but -TrustRepository is used" {
@@ -235,8 +226,36 @@ Describe 'Test Install-PSResource for Module' {
         $pkg | Should -Not -BeNullOrEmpty
         $pkg.Name | Should -Be $publishModuleName
     }
+}
 
-<#
+<# Temporarily commented until -Tag is implemented for this Describe block
+Describe 'Test Install-PSResource for interactive and root user scenarios' {
+
+    BeforeAll{
+        $TestGalleryName = Get-PoshTestGalleryName
+        $PSGalleryName = Get-PSGalleryName
+        $NuGetGalleryName = Get-NuGetGalleryName
+        Get-NewPSResourceRepositoryFile
+        Register-LocalRepos
+    }
+
+    AfterEach {
+        Uninstall-PSResource "TestModule", "testModuleWithlicense" -Force -ErrorAction SilentlyContinue
+    }
+
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    # Unix only manual test
+    # Expected path should be similar to: '/usr/local/share/powershell/Modules'
+    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
+        $pkg = Get-Module "TestModule" -ListAvailable
+        $pkg.Name | Should -Be "TestModule" 
+        $pkg.Path.Contains("/usr/") | Should -Be $true
+    }
+
     # This needs to be manually tested due to prompt
     It "Install resource that requires accept license without -AcceptLicense flag" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName
@@ -256,5 +275,5 @@ Describe 'Test Install-PSResource for Module' {
 
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
-#>
 }
+#>

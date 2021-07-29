@@ -11,6 +11,7 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.InteropServices;
 using NuGet.Versioning;
+using System.Globalization;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -63,6 +64,52 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             return strArray;
+        }
+
+        public static string[] ProcessNameWildcards(
+            string[] pkgNames,
+            out string[] errorMsgs,
+            out bool isContainWildcard)
+        {
+            List<string> namesWithSupportedWildcards = new List<string>();
+            List<string> errorMsgsList = new List<string>();
+
+            if (pkgNames == null)
+            {
+                isContainWildcard = true;
+                errorMsgs = errorMsgsList.ToArray();
+                return new string[] {"*"};
+            }
+
+            isContainWildcard = false;
+            foreach (string name in pkgNames)
+            {
+                if (WildcardPattern.ContainsWildcardCharacters(name))
+                {
+                    if (String.Equals(name, "*", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        isContainWildcard = true;
+                        errorMsgs = new string[] {};
+                        return new string[] {"*"};
+                    }
+
+                    if (name.Contains("?") || name.Contains("["))
+                    {
+                        errorMsgsList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for this cmdlet so Name entry: {0} will be discarded.", name));
+                        continue;
+                    }
+
+                    isContainWildcard = true;
+                    namesWithSupportedWildcards.Add(name);
+                }
+                else
+                {
+                    namesWithSupportedWildcards.Add(name);
+                }
+            }
+
+            errorMsgs = errorMsgsList.ToArray();
+            return namesWithSupportedWildcards.ToArray();
         }
 
         public static string[] FilterOutWildcardNames(
@@ -144,9 +191,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
            out VersionRange versionRange)
         {
             versionRange = null;
-
             if (version == null) { return false; }
-
 
             if (version.Trim().Equals("*"))
             {
@@ -169,6 +214,55 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             // parse as Version range
             return VersionRange.TryParse(version, out versionRange);
+        }
+
+        #endregion
+
+        #region Url methods
+
+        public static bool TryCreateValidUrl(
+            string urlString,
+            PSCmdlet cmdletPassedIn,
+            out Uri urlResult,
+            out ErrorRecord errorRecord
+        )
+        {
+            errorRecord = null;
+
+            if (!urlString.StartsWith(Uri.UriSchemeHttps) &&
+                !urlString.StartsWith(Uri.UriSchemeHttp) &&
+                !urlString.StartsWith(Uri.UriSchemeFtp))
+            {
+                // url string could be of type (potentially) UriSchemeFile or invalid type
+                // can't check for UriSchemeFile because relative paths don't qualify as UriSchemeFile
+                try
+                {
+                    // this is needed for a relative path urlstring. Does not throw error for an absolute path
+                    urlString = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;
+
+                }
+                catch (Exception)
+                {
+                    // this should only be reached if the url string is invalid
+                    // i.e www.google.com
+                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0} and must be of Uri Scheme: HTTP, HTTPS, FTP or File", urlString);
+                    var ex = new ArgumentException(message);
+                    errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+                    urlResult = null;
+                    return false;
+                }
+            }
+
+            bool tryCreateResult = Uri.TryCreate(urlString, UriKind.Absolute, out urlResult);
+            if (!tryCreateResult)
+            {
+                var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", urlString);
+                var ex = new ArgumentException(message);
+                errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
+                urlResult = null;
+            }
+
+            return tryCreateResult;
         }
 
         #endregion
