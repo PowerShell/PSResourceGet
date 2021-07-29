@@ -57,7 +57,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies one or more repository names to update packages from.
         /// If not specified, search will include all currently registered repositories in order of highest priority.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
@@ -65,37 +65,37 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the scope of the resource to update.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public ScopeType Scope { get; set; }
 
         /// <summary>
         /// When specified, supresses being prompted for untrusted sources.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public SwitchParameter TrustRepository { get; set; }
 
         /// <summary>
         /// Specifies optional credentials to be used when accessing a private repository.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public PSCredential Credential { get; set; }
 
         /// <summary>
         /// Supresses progress information.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>
         /// For resources that require a license, AcceptLicense automatically accepts the license agreement during the update.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public SwitchParameter AcceptLicense { get; set; }
 
         /// <summary>
         /// When specified, bypasses checks for TrustRepository and AcceptLicense and updates the package.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public SwitchParameter Force { get; set; }
 
         #endregion
