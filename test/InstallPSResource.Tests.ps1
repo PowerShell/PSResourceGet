@@ -189,7 +189,7 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
         $pkg = Get-InstalledPSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
-        $pkg.Version | Should -Be "0.0.1.0"
+        $pkg.Version | Should -Be "0.0.3.0"
     }
 
     It "Install resource should not prompt 'trust repository' if repository is not trusted but -TrustRepository is used" {
