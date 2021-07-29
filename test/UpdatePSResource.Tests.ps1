@@ -323,4 +323,22 @@ Describe 'Test Update-PSResource' {
         $isPkgUpdated | Should -BeTrue
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
+
+    It "Update module using -WhatIf, should not update the module" {
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
+        Update-PSResource -Name "TestModule" -WhatIf
+
+        $res = Get-InstalledPSResource -Name "TestModule"
+
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            {
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -Be $false
+    }
 }
