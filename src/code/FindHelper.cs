@@ -392,6 +392,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield break;
                 }
 
+                if (versionRange.ToString().Contains("-"))
+                {
+                    Console.WriteLine("prerelease version bc - detected");
+                    _prerelease = true;
+                    Console.WriteLine("prerelease is: " + _prerelease);
+                }
+
                 Console.WriteLine("ANAM- version range: " + versionRange);
                 // at this point, version should be parsed successfully, into allVersions (null or "*") or versionRange (specific or range)
                 if (pkgName.Contains("*"))
