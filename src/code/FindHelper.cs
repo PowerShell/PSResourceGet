@@ -268,7 +268,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (_version.Contains("-"))
                 {
                     _prerelease = true;
-                    // Console.WriteLine("ANAM early on detected it's a prerelease version");
                 }
             }
 
@@ -402,7 +401,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                Console.WriteLine("ANAM- version range: " + versionRange);
                 // at this point, version should be parsed successfully, into allVersions (null or "*") or versionRange (specific or range)
                 if (pkgName.Contains("*"))
                 {
@@ -410,12 +408,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // at this point foundPackagesMetadata contains latest version for each package, get list of distinct
                     // package names and get all versions for each name, this is due to the SearchAsync and GetMetadataAsync() API restrictions !
                     List<IPackageSearchMetadata> allPkgsAllVersions = new List<IPackageSearchMetadata>();
-                    foreach (string n in foundPackagesMetadata.Select(p => p.Identity.Id).Distinct(StringComparer.InvariantCultureIgnoreCase))
-                    {
-                        // get all versions for this package
-                        Console.WriteLine("right before GetMEtadataAsync prerelease is: " + _prerelease);
-                        allPkgsAllVersions.AddRange(pkgMetadataResource.GetMetadataAsync(n, _prerelease, false, sourceContext, NullLogger.Instance, _cancellationToken).GetAwaiter().GetResult().ToList());
-                    }
 
                     foundPackagesMetadata = allPkgsAllVersions;
                     if (versionRange == VersionRange.All) // Version = "*"
@@ -439,19 +431,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // for non wildcard names, NuGet GetMetadataAsync() API is which returns all versions for that package ordered descendingly
                     if (versionRange != VersionRange.All) // Version range
                     {
-                        foreach(var anamPkg in foundPackagesMetadata.ToList())
-                        {
-                            Console.WriteLine("package pre sort by version: " + anamPkg.Identity.Version.ToString());
-                        }
                         foundPackagesMetadata = foundPackagesMetadata.Where(
                             p => versionRange.Satisfies(
                                 p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(
                                     p => p.Identity.Version).ToList();
-                        
-                        foreach(var anamPkg in foundPackagesMetadata.ToList())
-                        {
-                            Console.WriteLine("package post sort by version: " + anamPkg.Identity.Version.ToString());
-                        }
                     }
                 }
             }
