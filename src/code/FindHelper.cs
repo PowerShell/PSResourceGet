@@ -408,6 +408,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // at this point foundPackagesMetadata contains latest version for each package, get list of distinct
                     // package names and get all versions for each name, this is due to the SearchAsync and GetMetadataAsync() API restrictions !
                     List<IPackageSearchMetadata> allPkgsAllVersions = new List<IPackageSearchMetadata>();
+                    foreach (string n in foundPackagesMetadata.Select(p => p.Identity.Id).Distinct(StringComparer.InvariantCultureIgnoreCase))
+                    {
+                        // get all versions for this package
+                        allPkgsAllVersions.AddRange(pkgMetadataResource.GetMetadataAsync(n, _prerelease, false, sourceContext, NullLogger.Instance, _cancellationToken).GetAwaiter().GetResult().ToList());
+                    }
 
                     foundPackagesMetadata = allPkgsAllVersions;
                     if (versionRange == VersionRange.All) // Version = "*"
