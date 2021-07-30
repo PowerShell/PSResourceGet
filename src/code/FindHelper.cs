@@ -251,6 +251,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceCacheContext sourceContext)
         {
             List<IPackageSearchMetadata> foundPackagesMetadata = new List<IPackageSearchMetadata>();
+            VersionRange versionRange = null;
+
+            if (_version != null)
+            {
+                if (!Utils.TryParseVersionOrVersionRange(_version, out versionRange))
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                        "IncorrectVersionFormat",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                    yield break;
+                }
+
+                if (_version.Contains("-"))
+                {
+                    _prerelease = true;
+                }
+            }
 
             // filter by param: Name
             if (!pkgName.Contains("*"))
@@ -382,16 +401,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                if (!Utils.TryParseVersionOrVersionRange(_version, out VersionRange versionRange))
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new ArgumentException("Argument for -Version parameter is not in the proper format"),
-                        "IncorrectVersionFormat",
-                        ErrorCategory.InvalidArgument,
-                        this));
-                    yield break;
-                }
-
                 // at this point, version should be parsed successfully, into allVersions (null or "*") or versionRange (specific or range)
                 if (pkgName.Contains("*"))
                 {
