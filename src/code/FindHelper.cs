@@ -268,7 +268,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (_version.Contains("-"))
                 {
                     _prerelease = true;
-                    Console.WriteLine("early on detected it's a prerelease version");
+                    // Console.WriteLine("ANAM early on detected it's a prerelease version");
                 }
             }
 
