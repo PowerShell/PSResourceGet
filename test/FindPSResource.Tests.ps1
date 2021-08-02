@@ -108,6 +108,30 @@ Describe 'Test Find-PSResource for Module' {
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
+    It "find resources when given Name with wildcard, Version not null --> '*'" {
+        $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "*" -Repository $TestGalleryName
+        $moduleA = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyA"}
+        $moduleA.Count | Should -BeGreaterOrEqual 3
+        $moduleB = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyB"}
+        $moduleB.Count | Should -BeGreaterOrEqual 2
+        $moduleC = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyC"}
+        $moduleC.Count | Should -BeGreaterOrEqual 3
+        $moduleD = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyD"}
+        $moduleD.Count | Should -BeGreaterOrEqual 2
+        $moduleE = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyE"}
+        $moduleE.Count | Should -BeGreaterOrEqual 1        
+        $moduleF = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyF"}
+        $moduleF.Count | Should -BeGreaterOrEqual 1
+    }
+
+    It "find resources when given Name with wildcard, Version range" {
+        $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "[1.0.0.0, 2.0.0.0]" -Repository $TestGalleryName
+        foreach ($pkg in $res) {
+            $pkg.Name | Should -Match "TestModuleWithDependency*"
+            [System.Version]$pkg.Version -ge [System.Version]"1.0.0.0" -or [System.Version]$pkg.Version -le [System.Version]"2.0.0.0" | Should -Be $true
+        }
+    }
+
     It "find resource when given Name, Version param null" {
         $res = Find-PSResource -Name "Carbon" -Repository $PSGalleryName
         $res.Name | Should -Be "Carbon"
