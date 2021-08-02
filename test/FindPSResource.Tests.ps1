@@ -27,6 +27,12 @@ Describe 'Test Find-PSResource for Module' {
         $res | Should -BeNullOrEmpty
     }
 
+    It "should not find any resources given names with invalid wildcard characters" {
+        Find-PSResource -Name "Invalid?PkgName", "Invalid[PkgName" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource" 
+    }
+
     It "find resources when Name contains * from V2 endpoint repository (PowerShellGallery))" {
         $foundScript = $False
         $res = Find-PSResource -Name "AzureS*" -Repository $PSGalleryName
@@ -106,6 +112,30 @@ Describe 'Test Find-PSResource for Module' {
             $_.Name | Should -Be "Carbon"
         }
         $res.Count | Should -BeGreaterOrEqual 1
+    }
+
+    It "find resources when given Name with wildcard, Version not null --> '*'" {
+        $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "*" -Repository $TestGalleryName
+        $moduleA = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyA"}
+        $moduleA.Count | Should -BeGreaterOrEqual 3
+        $moduleB = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyB"}
+        $moduleB.Count | Should -BeGreaterOrEqual 2
+        $moduleC = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyC"}
+        $moduleC.Count | Should -BeGreaterOrEqual 3
+        $moduleD = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyD"}
+        $moduleD.Count | Should -BeGreaterOrEqual 2
+        $moduleE = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyE"}
+        $moduleE.Count | Should -BeGreaterOrEqual 1        
+        $moduleF = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyF"}
+        $moduleF.Count | Should -BeGreaterOrEqual 1
+    }
+
+    It "find resources when given Name with wildcard, Version range" {
+        $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "[1.0.0.0, 2.0.0.0]" -Repository $TestGalleryName
+        foreach ($pkg in $res) {
+            $pkg.Name | Should -Match "TestModuleWithDependency*"
+            [System.Version]$pkg.Version -ge [System.Version]"1.0.0.0" -or [System.Version]$pkg.Version -le [System.Version]"2.0.0.0" | Should -Be $true
+        }
     }
 
     It "find resource when given Name, Version param null" {
