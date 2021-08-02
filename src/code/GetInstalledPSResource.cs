@@ -107,23 +107,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _pathsToSearch = Utils.GetAllResourcePaths(this);
             }
 
-            if (Name == null)
+            Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
+            foreach (string error in errorMsgs)
             {
-                Name = new string[] { "*" };
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
-            // if '*' is passed in as an argument for -Name with other -Name arguments, 
-            // ignore all arguments except for '*' since it is the most inclusive
-            // eg:  -Name ["TestModule, Test*, *"]  will become -Name ["*"]
-            if (Name != null && Name.Length > 1)
+
+            // this catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
+            if (Name.Length == 0)
             {
-                foreach (var pkgName in Name)
-                {
-                    if (pkgName.Trim().Equals("*"))
-                    {
-                        Name = new string[] { "*" };
-                        break;
-                    }
-                }
+                 return;
             }
         }
 
