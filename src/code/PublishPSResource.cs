@@ -1,6 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using MoreLinq;
+using MoreLinq.Extensions;
+using NuGet.Commands;
+using NuGet.Common;
+using NuGet.Configuration;
+using NuGet.Packaging;
+using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,15 +18,6 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Net.Http;
 using System.Xml;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using MoreLinq;
-using MoreLinq.Extensions;
-using NuGet.Commands;
-using NuGet.Common;
-using NuGet.Configuration;
-using NuGet.Packaging;
-using NuGet.Versioning;
-
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -44,21 +43,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         public string Repository { get; set; }
-
-        /// <summary>
-        /// Can be used to publish a nupkg locally.
-        /// </summary>
-        [Parameter()]
-        [ValidateNotNullOrEmpty]
-        public string DestinationPath
-        {
-            get
-            { return _destinationPath; }
-
-            set
-            { _destinationPath =  SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path; }
-        }
-        private string _destinationPath;
 
         /// <summary>
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
