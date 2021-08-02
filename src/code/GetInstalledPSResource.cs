@@ -112,7 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             WriteDebug("Entering GetInstalledPSResource");
 
-            Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
+            var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
@@ -124,13 +124,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // this catches the case where Name wasn't passed in as null or empty,
             // but after filtering out unsupported wildcard names in BeginProcessing() there are no elements left in Name
-            if (Name.Length == 0)
+            if (namesToSearch.Length == 0)
             {
                  return;
             }
 
             GetHelper getHelper = new GetHelper(this);
-            foreach (PSResourceInfo pkg in getHelper.FilterPkgPaths(Name, _versionRange, _pathsToSearch))
+            foreach (PSResourceInfo pkg in getHelper.FilterPkgPaths(namesToSearch, _versionRange, _pathsToSearch))
             {
                 WriteObject(pkg);
             }
