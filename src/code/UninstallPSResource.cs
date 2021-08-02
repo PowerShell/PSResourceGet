@@ -17,7 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
-    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.High)]
+    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true)]
     public sealed class UninstallPSResource : PSCmdlet
     {
         #region Parameters
@@ -84,14 +84,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
-                    if (nameContainsWildcard)
-                    {
-                        if (!ShouldProcess(string.Format("Uninstall resource with wildcard, so all of the following will be uninstalled from machine: '{0}'.", String.Join(",", Name))))
-                        {
-                            return;
-                        }
-                    }
+                    Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
                     
                     foreach (string error in errorMsgs)
                     {

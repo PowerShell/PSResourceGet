@@ -23,6 +23,16 @@ Describe 'Test Uninstall-PSResource for Modules' {
         Get-Module ContosoServer -ListAvailable | Should -Be $null
     }
 
+    $testCases = @{Name="Test?Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"},
+                 @{Name="Test[Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+
+    It "not uninstall module given Name with invalid wildcard characters" -TestCases $testCases {
+        param($Name, $ErrorId)
+        Uninstall-PSResource -Name $Name -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource"
+    }
+
     It "Uninstall a list of modules by name" {
         $null = Install-PSResource BaseTestPackage -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
 
