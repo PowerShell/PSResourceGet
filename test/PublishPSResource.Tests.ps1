@@ -74,16 +74,6 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
     }
 
-    It "Publish a module with -Path and -DestinationPath" {
-        $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
-
-        Publish-PSResource -Path $script:PublishModuleBase -DestinationPath $script:destinationPath
-
-        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath 
-    }
-
     It "Publish a module with -LiteralPath" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
