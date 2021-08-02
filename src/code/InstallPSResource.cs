@@ -157,7 +157,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     // this catches the case where Name wasn't passed in as null or empty,
-                    // but after filtering out unsupported wildcard names in BeginProcessing() there are no elements left in namesToSearch
+                    // but after filtering out unsupported wildcard names there are no elements left in namesToInstall
                     if (namesToInstall.Length == 0)
                     {
                         return;

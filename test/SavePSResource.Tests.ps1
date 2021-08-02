@@ -54,6 +54,12 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir.Name | Should -BeNullOrEmpty
     }
 
+    It "Not Save module with Name containing wildcard" {
+        Save-PSResource -Name "TestModule*" -Repository $TestGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "NameContainsWildcard,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+    }
+
     # Do some version testing, but Find-PSResource should be doing thorough testing
     It "Should save resource given name and exact version" {
         Save-PSResource -Name "TestModule" -Version "1.2.0" -Repository $TestGalleryName -Path $SaveDir

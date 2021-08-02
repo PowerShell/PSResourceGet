@@ -151,8 +151,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
+                    var namesToSave = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
+                    if (nameContainsWildcard)
+                    {
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException("Name with wildcards is not supported for Save-PSResource cmdlet"),
+                            "NameContainsWildcard",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        return;
+                    }
+                    
+                    foreach (string error in errorMsgs)
+                    {
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException(error),
+                            "ErrorFilteringNamesForUnsupportedWildcards",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    }
+
+                    // this catches the case where Name wasn't passed in as null or empty,
+                    // but after filtering out unsupported wildcard names there are no elements left in namesToSave
+                    if (namesToSave.Length == 0)
+                    {
+                        return;
+                    }
+
                     installHelper.InstallPackages(
-                        names: Name, 
+                        names: namesToSave, 
                         versionRange: _versionRange, 
                         prerelease: Prerelease, 
                         repository: Repository, 
