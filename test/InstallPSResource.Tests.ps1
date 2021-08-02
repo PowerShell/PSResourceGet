@@ -24,9 +24,10 @@ Describe 'Test Install-PSResource for Module' {
 
     $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
                  @{Name="TestModule*";                ErrorId="NameContainsWildcard"},
-                 @{Name="Test?Module", "Test[Module"; ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+                 @{Name="Test?Module","Test[Module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
+        param($Name, $ErrorId)
         Install-PSResource -Name $Name -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
