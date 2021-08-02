@@ -136,6 +136,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
+                    Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
+                    if (nameContainsWildcard)
+                    {
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException("Name with wildcards is not supported for Install-PSResource cmdlet"),
+                            "NameContainsWildcard",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        return;
+                    }
+                    
+                    foreach (string error in errorMsgs)
+                    {
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException(error),
+                            "ErrorFilteringNamesForUnsupportedWildcards",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    }
+
+                    // this catches the case where Name wasn't passed in as null or empty,
+                    // but after filtering out unsupported wildcard names in BeginProcessing() there are no elements left in namesToSearch
+                    if (Name.Length == 0)
+                    {
+                        return;
+                    }
+
                     installHelper.InstallPackages(
                         names: Name,
                         versionRange: _versionRange,

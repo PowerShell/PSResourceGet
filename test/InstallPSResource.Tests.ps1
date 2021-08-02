@@ -22,6 +22,17 @@ Describe 'Test Install-PSResource for Module' {
         Get-RevertPSResourceRepositoryFile
     }
 
+    $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"}
+                 @{Name=$null;                        ErrorId="NameContainsWildcard"},
+                 @{Name="TestModule*";                ErrorId="NameContainsWildcard"},
+                 @{Name="Test?Module", "Test[Module"; ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+
+    It "Should not install resource with wildcard in name" -TestCases $testCases {
+        Install-PSResource -Name $Name -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+
     It "Install specific module resource by name" {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName  
         $pkg = Get-Module "TestModule" -ListAvailable
@@ -42,7 +53,6 @@ Describe 'Test Install-PSResource for Module' {
         $pkg = Get-Module $pkgNames -ListAvailable
         $pkg.Name | Should -Be $pkgNames
     }
-
 
     It "Should not install resource given nonexistant name" {
         Install-PSResource -Name NonExistantModule -Repository $TestGalleryName  
