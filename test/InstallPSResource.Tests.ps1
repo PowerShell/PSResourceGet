@@ -22,8 +22,7 @@ Describe 'Test Install-PSResource for Module' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"}
-                 @{Name=$null;                        ErrorId="NameContainsWildcard"},
+    $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
                  @{Name="TestModule*";                ErrorId="NameContainsWildcard"},
                  @{Name="Test?Module", "Test[Module"; ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
