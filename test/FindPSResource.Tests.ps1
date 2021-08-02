@@ -27,6 +27,12 @@ Describe 'Test Find-PSResource for Module' {
         $res | Should -BeNullOrEmpty
     }
 
+    It "should not find any resources given names with invalid wildcard characters" {
+        Find-PSResource -Name "Invalid?PkgName", "Invalid[PkgName" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource" 
+    }
+
     It "find resources when Name contains * from V2 endpoint repository (PowerShellGallery))" {
         $foundScript = $False
         $res = Find-PSResource -Name "AzureS*" -Repository $PSGalleryName
