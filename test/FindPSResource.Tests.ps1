@@ -42,6 +42,12 @@ Describe 'Test Find-PSResource for Module' {
         $foundScript | Should -BeTrue
     }
 
+    It "should not find resources given Name that equals wildcard, '*'" {
+        Find-PSResource -Name "*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "NameEqualsWildcardIsNotSupported,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
+    }
+
     It "find resource given Name from V3 endpoint repository (NuGetGallery)" {
         $res = Find-PSResource -Name "Serilog" -Repository $NuGetGalleryName
         $res.Count | Should -Be 1
