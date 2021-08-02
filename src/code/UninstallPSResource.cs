@@ -1,3 +1,4 @@
+using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
@@ -16,7 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
-    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true, HelpUri = "<add>")]
+    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.High)]
     public sealed class UninstallPSResource : PSCmdlet
     {
         #region Parameters
@@ -83,6 +84,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
+                    Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
+                    if (nameContainsWildcard)
+                    {
+                        if (!ShouldProcess(string.Format("Uninstall resource with wildcard, so all of the following will be uninstalled from machine: '{0}'.", String.Join(",", Name))))
+                        {
+                            return;
+                        }
+                    }
+                    
+                    foreach (string error in errorMsgs)
+                    {
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException(error),
+                            "ErrorFilteringNamesForUnsupportedWildcards",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                    }
+
+                    // this catches the case where Name wasn't passed in as null or empty,
+                    // but after filtering out unsupported wildcard names there are no elements left in Name
+                    if (Name.Length == 0)
+                    {
+                        return;
+                    }
+
                     if (!UninstallPkgHelper())
                     {
                         // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
