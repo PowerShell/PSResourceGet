@@ -8,107 +8,56 @@ schema: 2.0.0
 # Install-PSResource
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Installs resources (modules and scripts) from a registered repository onto the machine.
 
 ## SYNTAX
 
-### NameParameterSet (Default)
+### NameParameterSet
 ```
-Install-PSResource [-Name] <String[]> [-Type <String[]>] [-Version <String>] [-Prerelease]
- [-Repository <String[]>] [-Credential <PSCredential>] [-Scope <String>] [-NoClobber] [-TrustRepository]
+Install-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease]
+ [-Repository <String[]>] [-Credential <PSCredential>] [-Scope <ScopeType>] [-TrustRepository]
  [-Reinstall] [-Quiet] [-AcceptLicense] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### InputObjectSet
-```
-Install-PSResource [-InputObject] <Object[]> [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### RequiredResourceFileParameterSet
-```
-Install-PSResource [-Type <String[]>] [-Prerelease] [-Repository <String[]>] [-Credential <PSCredential>]
- [-Scope <String>] [-NoClobber] [-TrustRepository] [-Reinstall] [-Quiet] [-AcceptLicense]
- [-RequiredResourceFile <String>] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### RequiredResourceParameterSet
-```
-Install-PSResource [-RequiredResource <Object>] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
 ## DESCRIPTION
-{{ Fill in the Description }}
+The Install-PSResource cmdlet combines the Install-Module and Install-Script cmdlets from V2. 
+It installs a resource from a registered repository to an installation path on a machine based on the -Name parameter argument. It does not return any object. Other parameters allow the resource to be specified by repository and version, and allow the user to suppress prompts or specify the scope of installation.
 
 ## EXAMPLES
 
 ### Example 1
 ```powershell
-PS C:\> {{ Add example code here }}
+PS C:\> Install-PSResource Az
 ```
 
-{{ Add example description here }}
+Installs the Az module.
+
+### Example 2
+```powershell
+PS C:\> Install-PSResource Az -Version "[2.0.0, 3.0.0]"
+```
+
+Installs the latest stable Az module that is within the range 2.0.0 and 3.0.0.
+
+### Example 3
+```powershell
+PS C:\> Install-PSResource Az -Repository PSGallery
+```
+
+Installs the latest stable Az module from the PowerShellGallery.
+
+
+### Example 3
+```powershell
+PS C:\> Install-PSResource Az -Reinstall
+```
+
+Installs the Az module and will write over any previously installed version if it is already installed.
 
 ## PARAMETERS
 
-### -AcceptLicense
-{{ Fill AcceptLicense Description }}
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Credential
-{{ Fill Credential Description }}
-
-```yaml
-Type: System.Management.Automation.PSCredential
-Parameter Sets: NameParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: True (ByPropertyName)
-Accept wildcard characters: False
-```
-
-```yaml
-Type: System.Management.Automation.PSCredential
-Parameter Sets: RequiredResourceFileParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: True (ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -InputObject
-{{ Fill InputObject Description }}
-
-```yaml
-Type: System.Object[]
-Parameter Sets: InputObjectSet
-Aliases:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: True (ByPropertyName, ByValue)
-Accept wildcard characters: False
-```
-
 ### -Name
-{{ Fill Name Description }}
+Name of a resource or resources to install. Does not accept wildcard characters or a null value.
 
 ```yaml
 Type: System.String[]
@@ -122,12 +71,14 @@ Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
-### -NoClobber
-{{ Fill NoClobber Description }}
+### -Version
+Specifies the version of the resource to be installed. 
+Can be an exact version or a version range, using the NuGet versioning syntax. 
+Expected version/version range format is documented here: https://docs.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
 
 ```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
+Type: System.String
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -138,41 +89,11 @@ Accept wildcard characters: False
 ```
 
 ### -Prerelease
-{{ Fill Prerelease Description }}
+When specified, includes prerelease versions in search results returned.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Quiet
-{{ Fill Quiet Description }}
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Reinstall
-{{ Fill Reinstall Description }}
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -183,11 +104,12 @@ Accept wildcard characters: False
 ```
 
 ### -Repository
-{{ Fill Repository Description }}
+Specifies one or more repository names to search.
+If not specified, search will include all currently registered repositories, in order of highest priority, until first repository package is found in.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -197,42 +119,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -RequiredResource
-{{ Fill RequiredResource Description }}
+### -Credential
+Optional credentials to be used when accessing a repository.
 
 ```yaml
-Type: System.Object
-Parameter Sets: RequiredResourceParameterSet
+Type: System.Management.Automation.PSCredential
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
 Position: Named
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -RequiredResourceFile
-{{ Fill RequiredResourceFile Description }}
-
-```yaml
-Type: System.String
-Parameter Sets: RequiredResourceFileParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
 ### -Scope
-{{ Fill Scope Description }}
+Specifies the scope under which a user has access.
 
 ```yaml
-Type: System.String
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType
+Parameter Sets: NameParameterSet
 Aliases:
 Accepted values: CurrentUser, AllUsers
 
@@ -244,11 +151,11 @@ Accept wildcard characters: False
 ```
 
 ### -TrustRepository
-{{ Fill TrustRepository Description }}
+Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository is not already set to a trusted level.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -258,12 +165,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Type
-{{ Fill Type Description }}
+### -Reinstall
+Writes over any previously installed resource version that already exists on the machine.
 
 ```yaml
-Type: System.String[]
-Parameter Sets: NameParameterSet, RequiredResourceFileParameterSet
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -273,11 +180,26 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Version
-{{ Fill Version Description }}
+### -Quiet
+Supresses installation progress bar.
 
 ```yaml
-Type: System.String
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: NameParameterSet
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -AcceptLicense
+Specifies that the resource should accept any request to accept license. This will suppress prompting if the module mandates that a user accept their license.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
 Parameter Sets: NameParameterSet
 Aliases:
 
@@ -293,7 +215,7 @@ Prompts you for confirmation before running the cmdlet.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases: cf
 
 Required: False
@@ -309,7 +231,7 @@ The cmdlet is not run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases: wi
 
 Required: False
@@ -322,21 +244,9 @@ Accept wildcard characters: False
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
 
-## INPUTS
-
-### System.String[]
-
-### System.Object[]
-
-### System.Management.Automation.PSCredential
-
 ## OUTPUTS
-
-### System.Object
+None
 
 ## NOTES
 
 ## RELATED LINKS
-
-[<add>](<add>)
-

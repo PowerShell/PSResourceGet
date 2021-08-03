@@ -8,7 +8,7 @@ schema: 2.0.0
 # Save-PSResource
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Saves resources (modules and scripts) from a registered repository onto the machine.
 
 ## SYNTAX
 
@@ -19,70 +19,43 @@ Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repositor
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+The Save-PSResource cmdlet combines the Save-Module and Save-Script cmdlets from V2. 
+It saves a resource from a registered repository to a specific path on a machine based on the -Name parameter argument. It does not return any object. Other parameters allow the resource to be specified by repository and version, and allow the user to save the resource as a .nupkg or with the PowerShellGet XML metadata.
 
 ## EXAMPLES
 
 ### Example 1
 ```powershell
-PS C:\> {{ Add example code here }}
+PS C:\> Save-PSResource -Name Az
 ```
+Saves the Az module 
 
-{{ Add example description here }}
+### Example 2
+```powershell
+PS C:\> Save-PSResource -Name Az -Repository PSGallery
+```
+Saves the Az module found in the PowerShellGallery
+
+### Example 3
+```powershell
+PS C:\> Save-PSResource Az -AsNupkg
+```
+Saves the Az module as a .nupkg file
+
+### Example 4
+```powershell
+PS C:\> Save-PSResource Az -IncludeXML
+```
+Saves the Az module and includes the PowerShellGet XML metadata
 
 ## PARAMETERS
 
-### -AsNupkg
-{{ Fill AsNupkg Description }}
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Credential
-{{ Fill Credential Description }}
-
-```yaml
-Type: System.Management.Automation.PSCredential
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: True (ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -IncludeXML
-{{ Fill IncludeXML Description }}
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Name
-{{ Fill Name Description }}
+Name of a resource or resources to save. Does not accept wildcard characters or a null value.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: True
@@ -92,27 +65,29 @@ Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
-### -Path
-{{ Fill Path Description }}
+### -Version
+Specifies the version of the resource to be saved. 
+Can be an exact version or a version range, using the NuGet versioning syntax. 
+Expected version/version range format is documented here: https://docs.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
 
 ```yaml
 Type: System.String
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
 Position: Named
 Default value: None
-Accept pipeline input: True (ByPropertyName, ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Prerelease
-{{ Fill Prerelease Description }}
+Specifies to include prerelease versions.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -123,11 +98,12 @@ Accept wildcard characters: False
 ```
 
 ### -Repository
-{{ Fill Repository Description }}
+Specifies one or more repository names to search.
+If not specified, search will include all currently registered repositories, in order of highest priority, until first repository package is found in.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -137,18 +113,47 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Version
-{{ Fill Version Description }}
-
+### -AsNupkg
+Saves the resource as a zipped .nupkg file.
 ```yaml
-Type: System.String
-Parameter Sets: (All)
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeXML
+Includes the PowerShellGet metadata XML (used to verify that PowerShellGet has installed a module).
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: NameParameterSet
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+Specifies the path to save the resource to.
+
+```yaml
+Type: System.String
+Parameter Sets: NameParameterSet
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
@@ -157,7 +162,7 @@ Prompts you for confirmation before running the cmdlet.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases: cf
 
 Required: False
@@ -173,7 +178,7 @@ The cmdlet is not run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases: wi
 
 Required: False
@@ -188,19 +193,9 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-### System.String[]
-
-### System.Management.Automation.PSCredential
-
-### System.String
-
 ## OUTPUTS
-
-### System.Object
+None
 
 ## NOTES
 
 ## RELATED LINKS
-
-[<add>](<add>)
-
