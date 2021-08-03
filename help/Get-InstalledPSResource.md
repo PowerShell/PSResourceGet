@@ -17,7 +17,7 @@ Get-InstalledPSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>
 ```
 
 ## DESCRIPTION
-The Get-InstalledPSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript cmdlets from V2. It performs a search within module or script installation paths based on the -Name parameter argument. It returns PSResourceInfo objects which describe each resource item found. Other parameters allow the returned results to be filtered by version and path.
+The Get-InstalledPSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript cmdlets from V2. It performs a search within module or script installation paths based on the -Name parameter argument. It returns PSResourceInfo objects which describes each resource item found. Other parameters allow the returned results to be filtered by version and path.
 
 ## EXAMPLES
 
@@ -49,14 +49,21 @@ PS C:\> Get-InstalledPSResource Az -Path .
 
 This will return all versions of the Az module that have been installed in the current directory.
 
+### Example 5
+```powershell
+PS C:\> Get-InstalledPSResource
+```
+
+This will return all versions and scripts installed on the machine.
+
 ## PARAMETERS
 
 ### -Name
-Name of a resource or resources to find. Accepts wild card characters.
+Name of a resource or resources to find. Accepts wild card characters or a null value.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -71,7 +78,7 @@ Specifies the path to search in.
 
 ```yaml
 Type: System.String
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -82,11 +89,13 @@ Accept wildcard characters: False
 ```
 
 ### -Version
-Specifies the version of the resource to be returned. Can be an exact version or a version range.
+Specifies the version of the resource to be returned. 
+Can be an exact version or a version range, using the NuGet versioning syntax. 
+Expected version/version range format is documented here: https://docs.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
 
 ```yaml
 Type: System.String
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -103,7 +112,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
 ```
-PSRepositoryItemInfo : {
+PSResourceInfo : {
     AdditionalMetadata
     Author
     CompanyName
@@ -119,6 +128,7 @@ PSRepositoryItemInfo : {
     Name
     PackageManagementProvider
     PowerShellGetFormatVersion
+    PrereleaseLabel
     ProjectUri
     PublishedDate
     ReleaseNotes

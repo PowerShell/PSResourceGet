@@ -17,7 +17,10 @@ Uninstall-PSResource [-Name] <String[]> [-Version <String>] [-Force] [-WhatIf] [
 ```
 
 ## DESCRIPTION
-The Uninstall-PSResource cmdlet combines the Uninstall-Module, Uninstall-Script cmdlets from V2. It uninstalls a package found in a module or script installation path based on the -Name parameter argument. It does not return an object. Other parameters allow the returned results to be further filtered.
+The Uninstall-PSResource cmdlet combines the Uninstall-Module, Uninstall-Script cmdlets from V2. 
+It uninstalls a package found in a module or script installation path based on the -Name parameter argument. 
+It does not return an object. 
+Other parameters allow the returned results to be further filtered.
 
 ## EXAMPLES
 
@@ -66,7 +69,7 @@ Specifies the version of the resource to be uninstalled.
 
 ```yaml
 Type: System.String
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -81,7 +84,7 @@ Skips check to see if any modules have a dependency on the resource to be uninst
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -97,7 +100,7 @@ The cmdlet is not run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases: wi
 
 Required: False

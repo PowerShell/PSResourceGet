@@ -14,22 +14,22 @@ Publishes a specified module from the local computer to PSResource repository.
 
 ### PathParameterSet
 ```
-Publish-PSResource [-APIKey <String>] [-Repository <String>] [-DestinationPath <String>] [-Path] <String>
+Publish-PSResource [-APIKey <String>] [-Repository <String>] [-Path] <String>
  [-Credential <PSCredential>] [-SkipDependenciesCheck]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathLiteralParameterSet
 ```
-Publish-PSResource [-APIKey <String>] [-Repository <String>] [-DestinationPath <String>] -LiteralPath <String>
+Publish-PSResource [-APIKey <String>] [-Repository <String>] -LiteralPath <String>
  [-Credential <PSCredential>] [-SkipDependenciesCheck]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 The Publish-PSResource cmdlet combines the Publish-Module and Publish-Script cmdlets from V2.
-
-It publishes a specified resource from the local computer to an online Nuget-based gallery by using an API key, stored as part of a user's profile in the gallery or to a local repository. You can specify the resource to publish either by the resource's name, or by the path to the folder containing the module or script resource.
+It publishes a specified resource from the local computer to an online Nuget-based gallery by using an API key, stored as part of a user's profile in the gallery or to a local repository. 
+You can specify the resource to publish either by the resource's name, or by the path to the folder containing the module or script resource.
 
 ## EXAMPLES
 
@@ -54,7 +54,7 @@ Specifies the API key that you want to use to publish a resource to the online g
 
 ```yaml
 Type: System.String
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralParameterSet
 Aliases:
 
 Required: False
@@ -64,48 +64,18 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Credential
-Specifies a user account that has rights to a specific repository (used for finding dependencies).
-
-```yaml
-Type: System.Management.Automation.PSCredential
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DestinationPath
-Specifies the location to be used to publish a nupkg locally.
+### -Repository
+Specifies the repository to publish to.
 
 ```yaml
 Type: System.String
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralParameterSet
 Aliases:
 
 Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LiteralPath
-Specifies a path to one or more locations. Unlike the Path parameter, the value of the LiteralPath parameter is used exactly as entered. No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks. Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
-
-```yaml
-Type: System.String
-Parameter Sets: PathLiteralParameterSet
-Aliases:
-
-Required: True
-Position: Named
-Default value: None
-Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
@@ -124,12 +94,27 @@ Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
-### -Repository
-Specifies the repository to publish to.
+### -LiteralPath
+Specifies a path to one or more locations. Unlike the Path parameter, the value of the LiteralPath parameter is used exactly as entered. No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks. Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
 
 ```yaml
 Type: System.String
-Parameter Sets: (All)
+Parameter Sets: PathLiteralParameterSet
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: True (ByPropertyName, ByValue)
+Accept wildcard characters: False
+```
+
+### -Credential
+Specifies a user account that has rights to a specific repository (used for finding dependencies).
+
+```yaml
+Type: System.Management.Automation.PSCredential
+Parameter Sets: PathParameterSet, PathLiteralParameterSet
 Aliases:
 
 Required: False
@@ -140,11 +125,11 @@ Accept wildcard characters: False
 ```
 
 ### -SkipDependenciesCheck
-Bypasses the default check that all dependencies are present.
+Bypasses the default check that all dependencies are present on the repository which the resource is being published to.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralParameterSet
 Aliases:
 
 Required: False
@@ -159,7 +144,7 @@ Prompts you for confirmation before running the cmdlet.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralParameterSet
 Aliases: cf
 
 Required: False
@@ -175,7 +160,7 @@ The cmdlet is not run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: PathParameterSet, PathLiteralParameterSet
 Aliases: wi
 
 Required: False
@@ -190,8 +175,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 
 ## OUTPUTS
-
-### None
+None
 
 ## NOTES
 
