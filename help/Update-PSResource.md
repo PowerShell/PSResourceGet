@@ -1,7 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-online version: <add>
+online version:
 schema: 2.0.0
 ---
 
@@ -20,7 +20,7 @@ Update-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Reposit
 
 ## DESCRIPTION
 The Update-PSResource cmdlet replaces the Update-Module and Update-Script cmdlets from V2.
-It updates an already installed package based on the -Name parameter argument.
+It updates an already installed package based on the `-Name` parameter argument.
 It does not return an object. Other parameters allow the package to be updated to be further filtered.
 
 ## EXAMPLES
@@ -32,8 +32,9 @@ PS C:\> Get-InstalledPSResource -Name "TestModule"
         ----                                    -------                         ----------   -----------
         TestModule                              1.2.0                                        test
 
-        Update-PSResource -Name "TestModule"
-        Get-InstalledPSResource -Name "TestModule"
+PS C:\> Update-PSResource -Name "TestModule"
+
+PS C:\> Get-InstalledPSResource -Name "TestModule"
         Name                                    Version                         Prerelease   Description
         ----                                    -------                         ----------   -----------
         TestModule                              1.3.0                                        test
@@ -169,6 +170,7 @@ Accept wildcard characters: False
 
 ### -Version
 Specifies the version the resource is to be updated to.
+Expected version/version range format is documented here: https://docs.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
 
 ```yaml
 Type: System.String
