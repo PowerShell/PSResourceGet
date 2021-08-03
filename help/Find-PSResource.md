@@ -160,7 +160,7 @@ Accept wildcard characters: False
 
 ### -Repository
 Specifies one or more repository names to search.
-If not specified, search will include all currently registered repositories, in order of highest priority, til we reach the first repository the package is found in.
+If not specified, search will include all currently registered repositories, in order of highest priority, until a repository is found that contains the package.
 
 ```yaml
 Type: System.String[]
