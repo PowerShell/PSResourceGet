@@ -17,7 +17,7 @@ Get-PSResourceRepository [[-Name] <String[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-PSResourceRepository cmdlet searches for the PowerShell resource repositories that are registered on the machine. By default it will return all registered repositories, or if the -Name parameter argument is specified then it will return the repository which matches that name. It returns PSRepositoryInfo objects which contain information for each repository item found.
+The Get-PSResourceRepository cmdlet searches for the PowerShell resource repositories that are registered on the machine. By default it will return all registered repositories, or if the `-Name` parameter argument is specified then it will return the repository which matches that name. It returns PSRepositoryInfo objects which contain information for each repository item found.
 
 ## EXAMPLES
 
@@ -71,7 +71,7 @@ This example runs the command with the 'Name' parameter being set to a single wi
 ## PARAMETERS
 
 ### -Name
-This parameter takes a String argument, including wildcard characters, or an array of such String arguments. It is used to search for repository names from the repository store which match the provided name pattern.
+This parameter takes a String argument, including wildcard characters, or an array of such String arguments. It is used to search for repository names from the repository store which match the provided name pattern. Tab completion is provided on this argument and will display registered repository names.
 
 ```yaml
 Type: String[]
@@ -91,9 +91,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 ### System.String[]
+
 ## OUTPUTS
 
 ### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo
+
 ## NOTES
 If no value for Name is provided, Get-PSResourceRepository will return information for all registered repositories.
 

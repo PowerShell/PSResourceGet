@@ -49,7 +49,7 @@ PS C:\> Get-PSResourceRepository
 
 ```
 
-In this example, the command to find all registered repositories is run and the repositories found are displayed. Next, the command to un-register is run with a list of names ("PoshTestGallery", "psgettestlocal") provided for the 'Name' parameter. Finally, the command to find all registered repositories is run again, but this time we can see that "PoshTestGallery" and "psgettestlocal" are not found and displayed as they have been successfully unregistered.
+In this example, the command to find all registered repositories is run and the repositories found are displayed. Next, the command to un-register is run with a list of names ("PoshTestGallery", "psgettestlocal") provided for the `-Name` parameter. Finally, the command to find all registered repositories is run again, but this time we can see that "PoshTestGallery" and "psgettestlocal" are not found and displayed as they have been successfully unregistered.
 
 ## PARAMETERS
 
@@ -105,9 +105,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 ### System.String[]
+
 ## OUTPUTS
 
 None
+
 ## NOTES
 
 ## RELATED LINKS

@@ -14,7 +14,7 @@ Registers a repository for PowerShell resources.
 
 ### NameParameterSet (Default)
 ```
-Register-PSResourceRepository [-Name] <String> [-URL] <Uri> [-Trusted] [-Priority <Int32>] [-PassThru]
+Register-PSResourceRepository [-Name] <String> [-URL] <String> [-Trusted] [-Priority <Int32>] [-PassThru]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -33,7 +33,7 @@ Register-PSResourceRepository -Repositories <Hashtable[]> [-PassThru] [-WhatIf] 
 The Register-PSResourceRepository cmdlet registers a repository for PowerShell resources.
 
 ## EXAMPLES
-These examples assume that the repository we attempt to reigster is not already registered on the user's machine.
+These examples assume that the repository we attempt to register is not already registered on the user's machine.
 ### Example 1
 ```
 PS C:\> Register-PSResourceRepository -Name "PoshTestGallery" -URL "https://www.powershellgallery.com/api/v2"
@@ -43,7 +43,7 @@ PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
         PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
 ```
 
-This example registers the repository with the 'Name' of "PoshTestGallery" along with the associated 'URL' value for it.
+This example registers the repository with the `-Name` of "PoshTestGallery" along with the associated `URL` value for it.
 
 ### Example 2
 ```
@@ -54,7 +54,7 @@ PS C:\> Get-PSResourceRepository -Name "PSGallery"
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
 ```
 
-This example registers the "PSGallery" repository, with the 'PSGallery' parameter. Unlike the previous example, we cannot use the 'Name' or 'URL' parameters to register the "PSGallery" repository as it is considered Powershell's default repository store and has its own value for URL.
+This example registers the "PSGallery" repository, with the 'PSGallery' parameter. Unlike the previous example, we cannot use the `-Name` or `-URL` parameters to register the "PSGallery" repository as it is considered Powershell's default repository store and has its own value for URL.
 
 ### Example 3
 ```
@@ -68,12 +68,13 @@ PS C:\> Get-PSResourceRepository
 
 ```
 
-This example registers multiple repositories at once. To do so, we use the 'Repositories' parameter and provide an array of hashtables. Each hashtable can only have keys associated with parameters for the NameParameterSet or the PSGalleryParameterSet. Upon running the command we can see that the "psgettestlocal" and "PSGallery" repositories have been succesfully registered.
+This example registers multiple repositories at once. To do so, we use the `-Repositories` parameter and provide an array of hashtables. Each hashtable can only have keys associated with parameters for the NameParameterSet or the PSGalleryParameterSet. Upon running the command we can see that the "psgettestlocal" and "PSGallery" repositories have been succesfully registered.
 
 ## PARAMETERS
 
 ### -Name
 Name of the repository to be registered.
+Cannot be "PSGallery".
 
 ```yaml
 Type: String
@@ -153,7 +154,7 @@ Specifies the location of the repository to be registered.
 URL can be of the following Uri schemas: HTTPS, HTTP, FTP, file share based.
 
 ```yaml
-Type: Uri
+Type: String
 Parameter Sets: NameParameterSet
 Aliases:
 
@@ -216,12 +217,16 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 ### System.String
-### System.Uri
+
 ## OUTPUTS
 
-### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo (if 'PassThru' parameter used)
+### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo (if 'PassThru' parameter is used)
+
 ## NOTES
 Repositories are unique by 'Name'. Attempting to register a repository with same 'Name' as an already registered repository will not successfully register.
+
 Registering the PSGallery repository must be done via the PSGalleryParameterSet (i.e by using the 'PSGallery' parameter instead of 'Name' and 'URL' parameters).
+
+URL string input must be of one of the following Uri schemes: HTTP, HTTPS, FTP, File
 
 ## RELATED LINKS
