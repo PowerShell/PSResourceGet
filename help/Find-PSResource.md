@@ -1,22 +1,20 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-online version: <add>
+online version:
 schema: 2.0.0
 ---
 
 # Find-PSResource
 
 ## SYNOPSIS
-Searches for packages from a repository (local or remote), based on Name or other package properties.
-
+Searches for packages from a repository (local or remote), based on `-Name` and other package properties.
 
 ## SYNTAX
 
 ### ResourceNameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string[]>] [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
@@ -44,7 +42,7 @@ Searches for packages from a repository (local or remote), based on Name or othe
 ```
 
 ## DESCRIPTION
-The `Find-PSResource` cmdlet searches for a package from a repository (local or remote) based on Name or other package properties.
+The `Find-PSResource` cmdlet searches for a package from a repository (local or remote) based on `-Name` or other package properties.
 
 ## EXAMPLES
 These examples assume that the PSGallery repository is registered and contains the packages we are searching for.
@@ -162,7 +160,7 @@ Accept wildcard characters: False
 
 ### -Repository
 Specifies one or more repository names to search.
-If not specified, search will include all currently registered repositories, in order of highest priority, til first repository package is found in.
+If not specified, search will include all currently registered repositories, in order of highest priority, til we reach the first repository the package is found in.
 
 ```yaml
 Type: System.String[]
@@ -210,6 +208,7 @@ Accept wildcard characters: False
 
 ### -Version
 Specifies the version of the resource to be returned.
+Expected version/version range format is documented here: https://docs.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
 
 ```yaml
 Type: System.String
@@ -260,14 +259,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 ### System.String[]
-
-### System.String
-
-### System.Management.Automation.PSCredential
-
-### System.Management.Automation.SwitchParameter
-
-### Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]
 
 ## OUTPUTS
 
