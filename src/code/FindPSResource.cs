@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
 using System.Linq;
@@ -198,7 +199,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
             }
             
-            Name = Utils.FilterOutWildcardNames(Name, out string[] errorMsgs);
+            var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
+            
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
@@ -208,8 +210,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
-            if (Name.Length == 0)
+            // this catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
+            if (namesToSearch.Length == 0)
             {
+                 return;
+            }
+
+            if (String.Equals(namesToSearch[0], "*", StringComparison.InvariantCultureIgnoreCase))
+            {
+                // WriteVerbose("Package names were detected to be (or contain an element equal to): '*', so all packages will be updated");
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded."),
+                    "NameEqualsWildcardIsNotSupported",
+                    ErrorCategory.InvalidArgument,
+                    this));
                 return;
             }
 
