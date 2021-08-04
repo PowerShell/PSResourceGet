@@ -176,7 +176,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TODO: think about including the repository the resource is being published to
             if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine.", _path)))
             {
-                WriteDebug("ShouldProcess is set to false.");
+                WriteVerbose("ShouldProcess is set to false.");
                 return;
             }
             
@@ -287,7 +287,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (string.IsNullOrEmpty(nuspec))
                 {
                     // nuspec creation failed.
-                    WriteDebug("Nuspec creation failed.");
+                    WriteVerbose("Nuspec creation failed.");
                     return;
                 }
 
@@ -371,7 +371,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  PushNupkg(outputNupkgDir, repositoryUrl);
             }
             finally {
-                WriteDebug(string.Format("Deleting temporary directory '{0}'", outputDir));
+                WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
                 Directory.Delete(outputDir, recursive:true);
             }
         }
@@ -620,7 +620,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     metadataElement.AppendChild(element);
                 }
                 else {
-                    WriteDebug(string.Format("Creating XML element failed. Unable to get value from key '{0}'.", key));
+                    WriteVerbose(string.Format("Creating XML element failed. Unable to get value from key '{0}'.", key));
                 }
             }
 
@@ -812,11 +812,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool success = runner.RunPackageBuild();
             if (success)
             {
-                WriteDebug("Successfully packed the resource into a .nupkg");
+                WriteVerbose("Successfully packed the resource into a .nupkg");
             }
             else
             {
-                WriteDebug("Successfully packed the resource into a .nupkg");
+                WriteVerbose("Successfully packed the resource into a .nupkg");
             }
 
             return success;
