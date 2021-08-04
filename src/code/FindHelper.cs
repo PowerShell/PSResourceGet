@@ -110,12 +110,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUrl, repositoriesToSearch[i].Priority, false);
                     if (_type == ResourceType.None)
                     {
-                        _cmdletPassedIn.WriteDebug("Null Type provided, so add PSGalleryScripts repository");
+                        _cmdletPassedIn.WriteVerbose("Null Type provided, so add PSGalleryScripts repository");
                         repositoriesToSearch.Insert(i + 1, psGalleryScripts);
                     }
                     else if (_type != ResourceType.None && _type == ResourceType.Script)
                     {
-                        _cmdletPassedIn.WriteDebug("Type Script provided, so add PSGalleryScripts and remove PSGallery (Modules only)");
+                        _cmdletPassedIn.WriteVerbose("Type Script provided, so add PSGalleryScripts and remove PSGallery (Modules only)");
                         repositoriesToSearch.Insert(i + 1, psGalleryScripts);
                         repositoriesToSearch.RemoveAt(i); // remove PSGallery
                     }
@@ -124,7 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
-                _cmdletPassedIn.WriteDebug(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
                 foreach (var pkg in SearchFromRepository(
                     repositoryName: repositoriesToSearch[i].Name,
                     repositoryUrl: repositoriesToSearch[i].Url))
@@ -224,7 +224,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (String.IsNullOrWhiteSpace(pkgName))
                 {
-                    _cmdletPassedIn.WriteDebug(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.",
+                    _cmdletPassedIn.WriteVerbose(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.",
                         pkgName == null ? "null string" : pkgName));
                     continue;
                 }
