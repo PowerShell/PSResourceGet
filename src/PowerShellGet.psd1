@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 @{
     RootModule        = './netstandard2.0/PowerShellGet.dll'
     ModuleVersion     = '3.0.11'
