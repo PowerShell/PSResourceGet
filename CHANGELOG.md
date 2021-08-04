@@ -1,5 +1,31 @@
-### 3.0.0-beta10
-# Changelog
+# CHANGELOG
+
+## 3.0.11-beta
+
+### Fixes
+
+### Changes
+
+### New Features
+
+- Find-PSResource
+- Get-InstalledPSResource
+- Get-PSResourceRepository
+- Install-PSResource
+- Publish-PSResource
+- Register-PSResourceRepository
+- Save-PSResource
+- Set-PSResourceRepository
+- Uninstall-PSResource
+- Unregister-PSResourceRepository
+- Update-PSResource
+
+### Notes
+In this release, all cmdlets have been reviewed and implementation code refactored as needed.
+Cmdlets have most of their functionality, but some parameters are not yet implemented and will be added in future releases.
+All tests have been reviewed and rewritten as needed.
+
+## 3.0.0-beta10
 Bug Fixes
 * Bug fix for -ModuleName (used with -Version) in Find-PSResource returning incorrect resource type
 * Make repositories unique by name
@@ -10,8 +36,7 @@ Bug Fixes
 * Ensure that not passing credentials does not throw an error if searching through multiple repositories
 * Remove attempt to remove loaded assemblies in psm1
 
-### 3.0.0-beta9
-# Changelog
+## 3.0.0-beta9
 New Features
 * Add DSCResources
 
@@ -23,7 +48,7 @@ Bug Fixes
 * Add debugging statements for Get-PSResource and Install-PSResource
 * Fix bug related to paths in Uninstall-PSResource
 
-### 3.0.0-beta8
+## 3.0.0-beta8
 New Features 
 * Add Type parameter to Install-PSResource
 * Add 'sudo' check for admin privileges in Unix in Install-PSResource
@@ -34,7 +59,7 @@ Bug Fixes
 * Fix bug with Uninstall-PSResource sometimes not fully uninstalling
 * Change installed file paths to contain original version number instead of normalized version
 
-### 3.0.0-beta7
+## 3.0.0-beta7
 New Features 
 * Completed functionality for Update-PSResource
 * Input-Object parameter for Install-PSResource
@@ -48,21 +73,21 @@ Bug Fixes
 * Fix error getting thrown from paths with incorrectly formatted module versions
 * Fix module installation paths on Linux and MacOS
 
-### 3.0.0-beta6
+## 3.0.0-beta6
 New Feature 
 * Implement functionality for Publish-PSResource
 
-### 3.0.0-beta5
+## 3.0.0-beta5
 * Note: 3.0.0-beta5 was skipped due to a packaging error
 
-### 3.0.0-beta4
+## 3.0.0-beta4
 New Feature
 * Implement -Repository '*' in Find-PSResource to search through all repositories instead of prioritized repository 
 
 Bug Fix
 * Fix poor error handling for when repository is not accessible in Find-PSResource
 
-### 3.0.0-beta3
+## 3.0.0-beta3
 New Features
 * -RequiredResource parameter for Install-PSResource 
 * -RequiredResourceFile parameter for Install-PSResource
@@ -72,7 +97,7 @@ Bug Fixes
 * Resolved paths in Install-PSRsource and Save-PSResource 
 * Resolved issues with capitalization (for unix systems) in Install-PSResource and Save-PSResource
 
-### 3.0.0-beta2
+## 3.0.0-beta2
 New Features
 * Progress bar and -Quiet parameter for Install-PSResource
 * -TrustRepository parameter for Install-PSResource
@@ -82,6 +107,6 @@ New Features
 * -Reinstall parameter for Install-PSResource
 * Improved error handling
 
-### 3.0.0-beta1
+## 3.0.0-beta1
 BREAKING CHANGE
 * Preview version of PowerShellGet. Many features are not fully implemented yet. Please see https://devblogs.microsoft.com/powershell/powershellget-3-0-preview1 for more details.
