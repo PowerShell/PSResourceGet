@@ -105,7 +105,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!UninstallPkgHelper())
                     {
                         // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
-                        WriteDebug("Did not successfully uninstall all packages");
+                        WriteVerbose("Did not successfully uninstall all packages");
                     }
                     break;
 
@@ -140,7 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 default:
-                    WriteDebug("Invalid parameter set");
+                    WriteVerbose("Invalid parameter set");
                     break;
             }
         }
@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
                 {
-                    this.WriteDebug("ShouldProcess is set to false.");
+                    WriteVerbose("ShouldProcess is set to false.");
                     continue;
                 }
 

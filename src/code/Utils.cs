@@ -300,7 +300,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // add all module directories or script files
             foreach (string path in resourcePaths)
             {
-                psCmdlet.WriteDebug(string.Format("Retrieving directories in the path '{0}'", path));
+                psCmdlet.WriteVerbose(string.Format("Retrieving directories in the path '{0}'", path));
 
                 if (path.EndsWith("Scripts"))
                 {
@@ -331,7 +331,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // ./PowerShell/Modules/TestModule
             // need to use .ToList() to cast the IEnumerable<string> to type List<string>
             pathsToSearch = pathsToSearch.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
-            pathsToSearch.ForEach(dir => psCmdlet.WriteDebug(string.Format("All paths to search: '{0}'", dir)));
+            pathsToSearch.ForEach(dir => psCmdlet.WriteVerbose(string.Format("All paths to search: '{0}'", dir)));
 
             return pathsToSearch;
         }
@@ -358,7 +358,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
-            installationPaths.ForEach(dir => psCmdlet.WriteDebug(string.Format("All paths to search: '{0}'", dir)));
+            installationPaths.ForEach(dir => psCmdlet.WriteVerbose(string.Format("All paths to search: '{0}'", dir)));
 
             return installationPaths;
         }

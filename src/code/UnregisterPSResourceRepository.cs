@@ -39,7 +39,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             try
             {
-                WriteDebug("Calling API to check repository store exists in non-corrupted state");
+                WriteVerbose("Calling API to check repository store exists in non-corrupted state");
                 RepositorySettings.CheckRepositoryStore();
             }
             catch (PSInvalidOperationException e)
@@ -54,7 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             string nameArrayAsString = string.Join(", ", Name);
-            WriteDebug(String.Format("removing repository {0}. Calling Remove() API now", nameArrayAsString));
+            WriteVerbose(String.Format("removing repository {0}. Calling Remove() API now", nameArrayAsString));
             if (!ShouldProcess(nameArrayAsString, "Unregister repositories from repository store"))
             {
                 return;
