@@ -41,7 +41,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             try
             {
-                WriteDebug("Calling API to check repository store exists in non-corrupted state");
+                WriteVerbose("Calling API to check repository store exists in non-corrupted state");
                 RepositorySettings.CheckRepositoryStore();
             }
             catch (PSInvalidOperationException e)
@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             string nameArrayAsString = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null) ? "all" : string.Join(", ", Name);
-            WriteDebug(String.Format("reading repository: {0}. Calling Read() API now", nameArrayAsString));
+            WriteVerbose(String.Format("reading repository: {0}. Calling Read() API now", nameArrayAsString));
             List<PSRepositoryInfo> items = RepositorySettings.Read(Name, out string[] errorList);
 
             // handle non-terminating errors
