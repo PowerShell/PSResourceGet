@@ -86,7 +86,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // if no version is specified, just get the latest version
             foreach (string pkgPath in dirsToSearch)
             {
-                _cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
+                _cmdletPassedIn.WriteVerbose(string.Format("Searching through package path: '{0}'", pkgPath));
 
                 // if this is a module directory
                 if (Directory.Exists(pkgPath))
@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // search modules paths
                     // ./Modules/Test-Module/1.0.0
                     // ./Modules/Test-Module/2.0.0
-                    _cmdletPassedIn.WriteDebug(string.Format("Searching through package path: '{0}'", pkgPath));
+                    _cmdletPassedIn.WriteVerbose(string.Format("Searching through package path: '{0}'", pkgPath));
 
                     string[] versionsDirs = Utils.GetSubDirectories(pkgPath);
 
@@ -111,7 +111,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     foreach (string versionPath in versionsDirs)
                     {
-                        _cmdletPassedIn.WriteDebug(string.Format("Searching through package version path: '{0}'", versionPath));
+                        _cmdletPassedIn.WriteVerbose(string.Format("Searching through package version path: '{0}'", versionPath));
                         DirectoryInfo dirInfo = new DirectoryInfo(versionPath);
 
                         // if the version is not valid, we'll just skip it and output a debug message
