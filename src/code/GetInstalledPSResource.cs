@@ -71,7 +71,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _pathsToSearch = new List<string>();
             if (Path != null)
             {
-                WriteDebug(string.Format("Provided path is: '{0}'", Path));
+                WriteVerbose(string.Format("Provided path is: '{0}'", Path));
 
                 var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
                 if (resolvedPaths.Count != 1)
@@ -85,7 +85,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 var resolvedPath = resolvedPaths[0].Path;
-                WriteDebug(string.Format("Provided resolved path is '{0}'", resolvedPath));
+                WriteVerbose(string.Format("Provided resolved path is '{0}'", resolvedPath));
 
                 var versionPaths = Utils.GetSubDirectories(resolvedPath);
                 if (versionPaths.Length == 0)
@@ -110,7 +110,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            WriteDebug("Entering GetInstalledPSResource");
+            WriteVerbose("Entering GetInstalledPSResource");
 
             var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
