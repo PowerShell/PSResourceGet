@@ -89,9 +89,16 @@ Accept wildcard characters: False
 ```
 
 ### -Version
-Specifies the version of the resource to be returned. 
-Can be an exact version or a version range, using the NuGet versioning syntax. 
-Expected version/version range format is documented here: https://docs.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
+Specifies the version of the resource to be returned. The value can be an exact version or a version
+range using the NuGet versioning syntax.
+
+For more information about NuGet version ranges, see [Package versioning](/nuget/concepts/package-versioning#version-ranges)
+
+PowerShellGet supports all but the _minimum inclusive version_ listed in the NuGet version range
+documentation. So inputting "1.0.0.0" as the version doesn't yield versions 1.0.0.0 and higher
+(minimum inclusive range). Instead, the values is considered as the required version and yields 
+version 1.0.0.0 only (required version). To use the minimum inclusive range, provide `[1.0.0.0, ]` as 
+the version range.
 
 ```yaml
 Type: System.String
