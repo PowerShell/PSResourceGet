@@ -72,9 +72,16 @@ Accept wildcard characters: False
 ```
 
 ### -Version
-Specifies the version of the resource to be installed. 
-Can be an exact version or a version range, using the NuGet versioning syntax. 
-Expected version/version range format is documented here: https://docs.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
+Specifies the version of the resource to be installed.
+Can be an exact version or a version range, using the NuGet versioning syntax.
+
+Expected NuGet Version/Version Range format is documented here: https://docs.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges.
+
+All but the "minimum inclusive version" listed in the NuGet Version/Version Range documentation above are
+supported. The NuGet version documentation suggested minimum inclusive version will be considered as a required version instead in PowerShellGet.
+So inputting "1.0.0.0" as the version won't yield versions 1.0.0.0 and higher (minimum inclusive range)
+but instead will consider that as the required version and yield version 1.0.0.0 only (required version).
+To use the minimum inclusive range, provide "[1.0.0.0, ]" as the version range.
 
 ```yaml
 Type: System.String
