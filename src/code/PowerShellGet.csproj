@@ -16,12 +16,12 @@
     <PackageReference Include="LinqKit.Core" Version="1.1.17" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0-preview.7.20364.11" />
     <PackageReference Include="morelinq" Version="3.3.2" />
-    <PackageReference Include="NuGet.Commands" Version="5.10.0" />
-    <PackageReference Include="NuGet.Common" Version="5.7.0-rtm.6702" />
-    <PackageReference Include="NuGet.Configuration" Version="5.7.0-rtm.6702" />
-    <PackageReference Include="NuGet.Packaging" Version="5.7.0-rtm.6702" />
-    <PackageReference Include="NuGet.ProjectModel" Version="5.7.0-rtm.6702" />
-    <PackageReference Include="NuGet.Protocol" Version="5.7.0-rtm.6702" />
+    <PackageReference Include="NuGet.Commands" Version="5.7.0" />
+    <PackageReference Include="NuGet.Common" Version="5.7.0" />
+    <PackageReference Include="NuGet.Configuration" Version="5.7.0" />
+    <PackageReference Include="NuGet.Packaging" Version="5.7.0" />
+    <PackageReference Include="NuGet.ProjectModel" Version="5.7.0" />
+    <PackageReference Include="NuGet.Protocol" Version="5.7.0" />
     <PackageReference Include="NuGet.Repositories" Version="4.3.0-beta1-2418" />
     <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
