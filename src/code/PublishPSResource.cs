@@ -844,7 +844,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     sourceProvider: new PackageSourceProvider(settings),
                     packagePaths: new List<string> { fullNupkgFile },
                     source: publishLocation,
-                    apiKey: APIKey,
+                    apiKey: ApiKey,
                     symbolSource: null,
                     symbolApiKey: null,
                     timeoutSeconds: 0,
