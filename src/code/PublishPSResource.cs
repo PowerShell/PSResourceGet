@@ -34,7 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter()]
         [ValidateNotNullOrEmpty]
-        public string APIKey { get; set; }
+        public string ApiKey { get; set; }
 
         /// <summary>
         /// Specifies the repository to publish to.
@@ -865,10 +865,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (e.Message.Contains("API"))
                     {
-                        var message = String.Format("{0} Please try running again with the -APIKey parameter and specific API key for the repository specified.", e.Message);
+                        var message = String.Format("{0} Please try running again with the -ApiKey parameter and specific API key for the repository specified.", e.Message);
                         ex = new ArgumentException(message);
-                        var APIKeyError = new ErrorRecord(ex, "APIKeyError", ErrorCategory.AuthenticationError, null);
-                        WriteError(APIKeyError);
+                        var ApiKeyError = new ErrorRecord(ex, "ApiKeyError", ErrorCategory.AuthenticationError, null);
+                        WriteError(ApiKeyError);
                     }
                     else
                     {
