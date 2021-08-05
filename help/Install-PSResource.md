@@ -72,7 +72,7 @@ Accept wildcard characters: False
 ```
 
 ### -Version
-Specifies the version of the resource to be returned. The value can be an exact version or a version
+Specifies the version of the resource to be installed. The value can be an exact version or a version
 range using the NuGet versioning syntax.
 
 For more information about NuGet version ranges, see [Package versioning](/nuget/concepts/package-versioning#version-ranges)
