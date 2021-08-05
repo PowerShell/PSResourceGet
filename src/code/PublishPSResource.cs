@@ -840,20 +840,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 PushRunner.Run(
-                        settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
-                        sourceProvider: new PackageSourceProvider(settings),
-                        packagePath: fullNupkgFile,
-                        source: publishLocation,
-                        apiKey: APIKey,
-                        symbolSource: null,
-                        symbolApiKey: null,
-                        timeoutSeconds: 0,
-                        disableBuffering: false,
-                        noSymbols: false,
-                        noServiceEndpoint: false,  // enable server endpoint  
-                        skipDuplicate: false, // if true-- if a package and version already exists, skip it and continue with the next package in the push, if any.
-                        logger: log // nuget logger
-                        ).GetAwaiter().GetResult();
+                    settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
+                    sourceProvider: new PackageSourceProvider(settings),
+                    packagePaths: new List<string> { fullNupkgFile },
+                    source: publishLocation,
+                    apiKey: APIKey,
+                    symbolSource: null,
+                    symbolApiKey: null,
+                    timeoutSeconds: 0,
+                    disableBuffering: false,
+                    noSymbols: false,
+                    noServiceEndpoint: false, // enable server endpoint
+                    skipDuplicate: false, // if true-- if a package and version already exists, skip it and continue with the next package in the push, if any.
+                    logger: log // nuget logger
+                    ).GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
             {
