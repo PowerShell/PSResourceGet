@@ -27,7 +27,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         private static readonly string RepositoryFileName = "PSResourceRepository.xml";
         private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet");
         private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
-
+        private static readonly string PSGalleryRepoName = "PSGallery";
+        private static readonly string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
+        private const int defaultPriority = 50;
+        private const bool defaultTrusted = false;
 
         /// <summary>
         /// Check if repository store xml file exists, if not then create
@@ -52,6 +55,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store creation failed with error: {0}.", e.Message));
                 }
+
+                // Add PSGallery to the newly created store
+                Uri psGalleryUri = new Uri(PSGalleryRepoURL);
+                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
