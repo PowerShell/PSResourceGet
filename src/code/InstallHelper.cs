@@ -386,7 +386,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + ".psd1");
 
-                        var parsedMetadataHashtable = Utils.ParseModuleManifest(moduleManifest, this);
+                        var parsedMetadataHashtable = Utils.ParseModuleManifest(moduleManifest, _cmdletPassedIn);
+                        if (parsedMetadataHashtable.Count == 0)
+                        {
+                            continue;
+                        }
+
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
 
                         // Accept License verification
@@ -435,6 +440,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (Directory.Exists(tempInstallPath))
                     {
                         Directory.Delete(tempInstallPath, true);
+                    }
+                    if (!Directory.Exists(tempInstallPath))
+                    {
+                        _cmdletPassedIn.WriteVerbose(string.Format("Sucessfully deleted '{0}'", tempInstallPath));
                     }
                 }
             }
