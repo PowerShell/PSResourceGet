@@ -146,9 +146,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            if (!ShouldProcess(string.Format("package to save: '{0}'", String.Join(", ", Name))))
+            if (!ShouldProcess(string.Format("resources to save: '{0}'", String.Join(", ", Name))))
             {
-                WriteVerbose(string.Format("Save operation cancelled by user for packages: {0}", String.Join(", ", Name)));
+                WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", String.Join(", ", Name)));
                 return;
             }
 
