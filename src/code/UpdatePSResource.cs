@@ -104,6 +104,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
+            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
+            try
+            {
+                RepositorySettings.CheckRepositoryStore();
+            }
+            catch (PSInvalidOperationException e)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException(e.Message),
+                    "RepositoryStoreException",
+                    ErrorCategory.ReadError,
+                    this));
+            }
+
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
         }
 
