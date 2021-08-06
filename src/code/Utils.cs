@@ -396,7 +396,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 if (!File.Exists(moduleFileInfo))
                 {
-                    var message = String.Format("File {0} does not exist", moduleFileInfo);
+                    var message = String.Format("File {0} does not exist {0}. This is not a valid PowerShell package.", moduleFileInfo);
                     var ex = new ArgumentException(message);
                     var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                     cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
