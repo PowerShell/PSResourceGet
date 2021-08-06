@@ -275,8 +275,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     nuspec = CreateNuspec(outputDir, moduleFileInfo, out dependencies, parsedMetadataHash);
                 }
-                catch {
-                    var message = "Nuspec creation failed.";
+                catch (Exception e) {
+                    var message = string.Format("Nuspec creation failed: {0}", e.Message);
                     var ex = new ArgumentException(message);
                     var nuspecCreationFailed = new ErrorRecord(ex, "NuspecCreationFailed", ErrorCategory.ObjectNotFound, null);
                     WriteError(nuspecCreationFailed);
@@ -451,7 +451,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    var data = ast.Find(a => a is HashtableAst, false);
+                    // Must search nested script blocks because 'Tags' are located under 'PrivateData' > 'PSData'
+                    var data = ast.Find(a => a is HashtableAst, true);
                     if (data != null)
                     {
                         parsedMetadataHash = (Hashtable) data.SafeGetValue();
@@ -506,18 +507,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return string.Empty;
             }
 
-            // Look for Prerelease tag
+            // Look for Prerelease tag and then process any Tags in PrivateData > PSData
             if (parsedMetadataHash.ContainsKey("PrivateData"))
             {
                 if (parsedMetadataHash["PrivateData"] is Hashtable privateData &&
                     privateData.ContainsKey("PSData"))
                 {
-                    if (privateData["PSData"] is Hashtable psData &&
-                        psData.ContainsKey("Prerelease"))
+                    if (privateData["PSData"] is Hashtable psData)
                     {
-                        if (psData["Prerelease"] is string preReleaseVersion)
+                        if (psData.ContainsKey("Prerelease") && psData["Prerelease"] is string preReleaseVersion)
                         {
-                            version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                            version = string.Format(@"{0}-{1}", version, preReleaseVersion);    
+                        }
+                        if (psData.ContainsKey("Tags") && psData["Tags"] is Array manifestTags)
+                        {
+                            var tagArr = new List<string>();
+                            foreach (string tag in manifestTags)
+                            {
+                                tagArr.Add(tag);
+                            }
+                            parsedMetadataHash["tags"] = string.Join(" ", tagArr.ToArray());
                         }
                     }
                 }
