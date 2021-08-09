@@ -1,4 +1,3 @@
-using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
@@ -388,21 +387,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + ".psd1");
                         if (!File.Exists(moduleManifest))
                         {
-                            // NuGet resources may not contain a PowerShell resource, so the manifest file may not exist.
-                            // Note: Every PowerShell resource is wrapped into a NuGet resource and published, but
-                            // not every NuGet resource contains a PowerShell resource wrapped within
-                            var message = String.Format("Module manifest file: {0} does not exist. This is not a valid PowerShell resource.", moduleManifest);
+                            var message = String.Format("Module manifest file: {0} does not exist. This is not a valid PowerShell module.", moduleManifest);
                             var ex = new ArgumentException(message);
                             var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                             _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
                             continue;
                         }
 
-                        var parsedMetadataHashtable = Utils.ParseModuleManifest(moduleManifest, _cmdletPassedIn);
-                        if (parsedMetadataHashtable.Count == 0)
+                        if (!Utils.TryParseModuleManifest(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
                         {
-                            // we ran into errors parsing the module manifest file which was found. Utils.ParseModuleManifest() wrote the errors
-                            continue;
+                            if (parsedMetadataHashtable.Count == 0)
+                            {
+                                // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
+                                continue;
+                            }
                         }
 
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
