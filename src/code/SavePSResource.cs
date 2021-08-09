@@ -125,6 +125,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
+            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
+            RepositorySettings.CheckRepositoryStore();
+
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
             if (ParameterSetName.Equals("NameParameterSet") && 

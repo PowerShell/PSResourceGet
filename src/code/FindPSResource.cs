@@ -135,6 +135,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             _source = new CancellationTokenSource();
             _cancellationToken = _source.Token;
+
+            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
+            RepositorySettings.CheckRepositoryStore();
         }
 
         protected override void StopProcessing()

@@ -37,19 +37,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            try
-            {
-                WriteVerbose("Calling API to check repository store exists in non-corrupted state");
-                RepositorySettings.CheckRepositoryStore();
-            }
-            catch (PSInvalidOperationException e)
-            {
-                ThrowTerminatingError(new ErrorRecord(
-                    new PSInvalidOperationException(e.Message),
-                    "RepositoryStoreException",
-                    ErrorCategory.ReadError,
-                    this));
-            }
+            RepositorySettings.CheckRepositoryStore();
         }
         protected override void ProcessRecord()
         {
