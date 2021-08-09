@@ -156,10 +156,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private NuGetVersion _pkgVersion;
         private string _pkgName;
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
-        
+
         #endregion
 
         #region Method overrides
+        protected override void BeginProcessing()
+        {
+            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
+            RepositorySettings.CheckRepositoryStore();
+        }
 
         protected override void ProcessRecord()
         {

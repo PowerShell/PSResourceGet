@@ -118,19 +118,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.NotImplemented,
                     this));
             }
-
-            try
-            {
-                RepositorySettings.CheckRepositoryStore();
-            }
-            catch (PSInvalidOperationException e)
-            {
-                ThrowTerminatingError(new ErrorRecord(
-                    new PSInvalidOperationException(e.Message),
-                    "RepositoryStoreException",
-                    ErrorCategory.ReadError,
-                    this));
-            }
+            
+            RepositorySettings.CheckRepositoryStore();
         }
         protected override void ProcessRecord()
         {
