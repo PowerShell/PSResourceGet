@@ -625,6 +625,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return true;
         }
+
         private void MoveFilesIntoInstallPath(
             PSResourceInfo p, 
             bool isScript, 
