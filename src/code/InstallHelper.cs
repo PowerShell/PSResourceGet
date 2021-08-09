@@ -385,8 +385,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!isScript)
                     {
                         var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + ".psd1");
+                        if (!File.Exists(moduleManifest))
+                        {
+                            var message = String.Format("Module manifest file: {0} does not exist. This is not a valid PowerShell module.", moduleManifest);
 
-                        var parsedMetadataHashtable = Utils.ParseModuleManifest(moduleManifest, this);
+                            var ex = new ArgumentException(message);
+                            var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
+                            _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
+                            continue;
+                        }
+
+                        if (!Utils.TryParseModuleManifest(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
+                        {
+                            // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
+                            continue;
+                        }
+
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
 
                         // Accept License verification
@@ -432,9 +446,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // Delete the temp directory and all its contents
                     _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", tempInstallPath));
+                    
                     if (Directory.Exists(tempInstallPath))
                     {
-                        Directory.Delete(tempInstallPath, true);
+                        if (!TryDeleteDirectory(tempInstallPath, out ErrorRecord errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(errorMsg);
+                        }
+                        else
+                        {
+                            _cmdletPassedIn.WriteVerbose(String.Format("Successfully deleted '{0}'", tempInstallPath));
+                        }
                     }
                 }
             }
@@ -579,6 +601,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
                 Directory.Delete(packageDirToDelete, true);
             }
+        }
+
+        private bool TryDeleteDirectory(
+            string tempInstallPath,
+            out ErrorRecord errorMsg)
+        {
+            errorMsg = null;
+
+            try
+            {
+                Utils.DeleteDirectory(tempInstallPath);
+            }
+            catch (Exception e)
+            {
+                var TempDirCouldNotBeDeletedError = new ErrorRecord(e, "errorDeletingTempInstallPath", ErrorCategory.InvalidResult, null);
+                errorMsg = TempDirCouldNotBeDeletedError;
+                return false;
+            }
+
+            return true;
         }
 
         private void MoveFilesIntoInstallPath(

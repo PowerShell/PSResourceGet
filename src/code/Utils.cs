@@ -387,9 +387,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Manifest methods
 
-        public static Hashtable ParseModuleManifest(string moduleFileInfo, PSCmdlet cmdletPassedIn)
+        public static bool TryParseModuleManifest(
+            string moduleFileInfo,
+            PSCmdlet cmdletPassedIn,
+            out Hashtable parsedMetadataHashtable)
         {
-            Hashtable parsedMetadataHash = new Hashtable();
+            parsedMetadataHashtable = new Hashtable();
+            bool successfullyParsed = false;
+
             // A script will already  have the metadata parsed into the parsedMetadatahash,
             // a module will still need the module manifest to be parsed.
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
@@ -405,13 +410,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     var ex = new ArgumentException(message);
                     var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
                     cmdletPassedIn.WriteError(psdataParseError);
+                    return successfullyParsed;
                 }
                 else
                 {
                     var data = ast.Find(a => a is HashtableAst, false);
                     if (data != null)
                     {
-                        parsedMetadataHash = (Hashtable)data.SafeGetValue();
+                        parsedMetadataHashtable = (Hashtable)data.SafeGetValue();
+                        successfullyParsed = true;
                     }
                     else
                     {
@@ -423,7 +430,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
             }
 
-            return parsedMetadataHash;
+            return successfullyParsed;
         }
 
         #endregion
