@@ -394,15 +394,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // a module will still need the module manifest to be parsed.
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
-                if (!File.Exists(moduleFileInfo))
-                {
-                    var message = String.Format("File {0} does not exist {0}. This is not a valid PowerShell package.", moduleFileInfo);
-                    var ex = new ArgumentException(message);
-                    var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
-                    cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
-                    return parsedMetadataHash;
-                }
-
                 // Parse the module manifest 
                 System.Management.Automation.Language.Token[] tokens;
                 ParseError[] errors;
