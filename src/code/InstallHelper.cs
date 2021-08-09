@@ -388,6 +388,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (!File.Exists(moduleManifest))
                         {
                             var message = String.Format("Module manifest file: {0} does not exist. This is not a valid PowerShell module.", moduleManifest);
+
                             var ex = new ArgumentException(message);
                             var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                             _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
