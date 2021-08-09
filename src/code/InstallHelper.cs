@@ -397,11 +397,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         if (!Utils.TryParseModuleManifest(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
                         {
-                            if (parsedMetadataHashtable.Count == 0)
-                            {
-                                // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
-                                continue;
-                            }
+                            // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
+                            continue;
                         }
 
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
