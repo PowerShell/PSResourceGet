@@ -391,7 +391,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             // NuGet resources may not contain a PowerShell resource, so the manifest file may not exist.
                             // Note: Every PowerShell resource is wrapped into a NuGet resource and published, but
                             // not every NuGet resource contains a PowerShell resource wrapped within
-                            var message = String.Format("Module manifest file: {0} does not exist. This is not a valid PowerShell resource.", moduleManifest);
+                            var message = String.Format("Module manifest file: {0} does not exist. This is not a valid PowerShell module.", moduleManifest);
+
                             var ex = new ArgumentException(message);
                             var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                             _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
