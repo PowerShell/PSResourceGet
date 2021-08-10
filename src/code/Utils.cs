@@ -459,6 +459,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <Summary>
         /// Deletes a directory and its contents
+        /// This is a workaround for .NET Directory.Delete(), which can fail with WindowsPowerShell
+        /// on OneDrive with 'access denied' error.
+        /// Later versions of .NET, with PowerShellCore, do not have this bug.
         /// </Summary>
         public static void DeleteDirectory(string dirPath)
         {
@@ -477,7 +480,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <Summary>
         /// Moves files from source to destination locations.
-        /// Works over different file volumes.
+        /// This is a workaround for .NET File.Move(), which fails over different file volumes.
         /// </Summary>
         public static void MoveFiles(
             string sourceFilePath,
@@ -490,7 +493,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <Summary>
         /// Moves the directory, including contents, from source to destination locations.
-        /// Works over different file volumes.
+        /// This is a workaround for .NET Directory.Move(), which fails over different file volumes.
         /// </Summary>
         public static void MoveDirectory(
             string sourceDirPath,
