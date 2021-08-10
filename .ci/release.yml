@@ -28,7 +28,7 @@ jobs:
     displayName: 'Capture PowerShellGet module NuGet package path and set environment variable'
 
   - task: NuGetCommand@2
-    displayName: 'Push Microsoft.PowerShell.Store module artifacts to PSGallery feed'
+    displayName: 'Push PowerShellGet module artifacts to PSGallery feed'
     inputs:
       command: push
       packagesToPush: '$(NugetPkgPath)'
