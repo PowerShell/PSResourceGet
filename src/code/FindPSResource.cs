@@ -184,52 +184,50 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {
-                // TODO: Add support for Tag and Type parameters without Name parameter being specified.
-                if (MyInvocation.BoundParameters.ContainsKey(nameof(Type)) || MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
+                // only cases where Name is allowed to not be specified is if Type or Tag parameters are
+                if (!MyInvocation.BoundParameters.ContainsKey(nameof(Type)) && !MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
                 {
                     ThrowTerminatingError(
                         new ErrorRecord(
-                            new PSNotImplementedException("Search by Tag or Type parameter is not yet implemented."),
-                            "TagTypeSearchNotYetImplemented",
-                            ErrorCategory.NotImplemented,
+                            new PSInvalidOperationException("Name parameter must be provided."),
+                            "NameParameterNotProvided",
+                            ErrorCategory.InvalidOperation,
                             this));
                 }
 
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                        new PSInvalidOperationException("Name parameter must be provided."),
-                        "NameParameterNotProvided",
-                        ErrorCategory.InvalidOperation,
+                Name = new string[] {"*"};
+            }
+            else
+            {
+                var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
+                
+                foreach (string error in errorMsgs)
+                {
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
                         this));
-            }
-            
-            var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
-            
-            foreach (string error in errorMsgs)
-            {
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException(error),
-                    "ErrorFilteringNamesForUnsupportedWildcards",
-                    ErrorCategory.InvalidArgument,
-                    this));
-            }
+                }
 
-            // this catches the case where Name wasn't passed in as null or empty,
-            // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
-            if (namesToSearch.Length == 0)
-            {
-                 return;
-            }
+                // this catches the case where Name wasn't passed in as null or empty,
+                // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
+                if (namesToSearch.Length == 0)
+                {
+                    return;
+                }
 
-            if (String.Equals(namesToSearch[0], "*", StringComparison.InvariantCultureIgnoreCase))
-            {
-                // WriteVerbose("Package names were detected to be (or contain an element equal to): '*', so all packages will be updated");
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded."),
-                    "NameEqualsWildcardIsNotSupported",
-                    ErrorCategory.InvalidArgument,
-                    this));
-                return;
+
+                // if (String.Equals(namesToSearch[0], "*", StringComparison.InvariantCultureIgnoreCase) && !MyInvocation.BoundParameters.ContainsKey(nameof(Type)) && !MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
+                if (String.Equals(namesToSearch[0], "*", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    WriteError(new ErrorRecord(
+                        new PSInvalidOperationException("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded."),
+                        "NameEqualsWildcardIsNotSupported",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                    return;
+                }
             }
 
             FindHelper findHelper = new FindHelper(_cancellationToken, this);
