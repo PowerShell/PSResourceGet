@@ -369,18 +369,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foundPackagesMetadata.AddRange(wildcardPkgs.Where(
                     p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
 
-                // if the Script Uri endpoint still needs to be searched, don't remove the wildcard name from _pkgsLeftToFind
-                // PSGallery + Type == null -> M, S
-                // PSGallery + Type == M    -> M
-                // PSGallery + Type == S    -> S (but PSGallery would be skipped early on, only PSGalleryScripts would be checked)
-                // PSGallery + Type == C    -> M
-                // PSGallery + Type == D    -> M
-
-                bool needToCheckPSGalleryScriptsRepo = String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) && _type == ResourceType.None;
-                if (foundPackagesMetadata.Any() && !needToCheckPSGalleryScriptsRepo)
-                {
-                    _pkgsLeftToFind.Remove(pkgName);
-                }
+                // We don't remove the pkgName from _pkgsLeftToFind list because there may be matches for that name wildcard pattern
+                // in each repository, so search each specified repository.
             }
 
             if (foundPackagesMetadata.Count == 0)
