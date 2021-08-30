@@ -38,6 +38,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly string _psGalleryRepoName = "PSGallery";
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
         private bool _isADOFeedRepository;
+        private bool _repositoryNameContainsWildcard;
 
         // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
         // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
@@ -74,10 +75,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             List<PSRepositoryInfo> repositoriesToSearch;
 
+            //determine if repository array of names of repositories input to be searched contains wildcard
+            if (repository != null)
+            {
+                repository = Utils.ProcessNameWildcards(repository, out string[] errorMsgs, out _repositoryNameContainsWildcard);
+                foreach (string error in errorMsgs)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+            }
+
             try
             {
                 repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
-
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -309,7 +323,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 foundPackagesMetadata.AddRange(retrievedPkgs.ToList());
-                _pkgsLeftToFind.Remove(pkgName);
+
+                // _pkgsLeftToFind.Remove(pkgName);
+
+                if (!_repositoryNameContainsWildcard)
+                {
+                    _pkgsLeftToFind.Remove(pkgName);
+                }
             }
             else
             {
@@ -326,7 +346,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 IEnumerable<IPackageSearchMetadata> wildcardPkgs = null;
                 try
                 {
-                    _cmdletPassedIn.WriteVerbose("searching with name: " + pkgName);
                     // SearchAsync() API returns the latest version only for all packages that match the wild-card name
                     wildcardPkgs = pkgSearchResource.SearchAsync(
                         searchTerm: pkgName,
@@ -369,8 +388,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foundPackagesMetadata.AddRange(wildcardPkgs.Where(
                     p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
 
-                // We don't remove the pkgName from _pkgsLeftToFind list because there may be matches for that name wildcard pattern
-                // in each repository, so search each specified repository.
+                if (!_repositoryNameContainsWildcard)
+                {
+                    // if the Script Uri endpoint still needs to be searched, don't remove the wildcard name from _pkgsLeftToFind
+                    // PSGallery + Type == null -> M, S
+                    // PSGallery + Type == M    -> M
+                    // PSGallery + Type == S    -> S (but PSGallery would be skipped early on, only PSGalleryScripts would be checked)
+                    // PSGallery + Type == C    -> M
+                    // PSGallery + Type == D    -> M
+
+                    bool needToCheckPSGalleryScriptsRepo = String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) && _type == ResourceType.None;
+                    if (foundPackagesMetadata.Any() && !needToCheckPSGalleryScriptsRepo)
+                    {
+                        _pkgsLeftToFind.Remove(pkgName);
+                    }                    
+                }
+
+                // if repository names did contain wildcard, we want to do an exhaustive search across all the repositories
+                // which matched the input repository name search term.
             }
 
             if (foundPackagesMetadata.Count == 0)
