@@ -159,7 +159,7 @@ Accept wildcard characters: False
 ```
 
 ### -Repository
-Specifies one or more repository names to search.
+Specifies one or more repository names to search, which can include wildcard.
 If not specified, search will include all currently registered repositories, in order of highest priority, until a repository is found that contains the package.
 
 ```yaml
@@ -171,7 +171,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Tag
