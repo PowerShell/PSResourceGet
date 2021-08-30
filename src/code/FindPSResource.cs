@@ -233,7 +233,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             foreach (var uniquePackageVersion in foundPackages.GroupBy(
-                m => new {m.Name, m.Version}).Select(
+                m => new {m.Name, m.Version, m.Repository}).Select(
                     group => group.First()).ToList())
             {
                 WriteObject(uniquePackageVersion);
