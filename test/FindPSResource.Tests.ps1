@@ -255,9 +255,9 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find all resources with specified tag given Tag property" {
-        $tagToFind = "Dell"
-        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
-        $res.Count | Should -BeGreaterOrEqual 14
+        $tagToFind = "Tag1"
+        $res = Find-PSResource -Tag $tagToFind -Repository $TestGalleryName
+        $res.Count | Should -BeGreaterOrEqual 43
         foreach ($item in $res) {
             $item.Tags -contains $tagToFind | Should -Be $True
         }
