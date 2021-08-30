@@ -37,6 +37,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
+        private readonly string _poshTestGalleryRepoName = "PoshTestGallery";
+        private readonly string _poshTestGalleryScriptsRepoName = "PoshTestGalleryScripts";
+        private readonly string _poshTestGalleryURL = "https://www.poshtestgallery.com/api/v2";
         private bool _isADOFeedRepository;
         private bool _repositoryNameContainsWildcard;
 
@@ -114,6 +117,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // loop through repositoriesToSearch and if PSGallery add it to list with same priority as PSGallery repo
             for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
+                _cmdletPassedIn.WriteVerbose("uri absolute uri: " + repositoriesToSearch[i].Url.AbsoluteUri);
                 if (String.Equals(repositoriesToSearch[i].Name, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase))
                 {
                     // for PowerShellGallery, Module and Script resources have different endpoints so separate repositories have to be registered
@@ -129,11 +133,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else if (_type != ResourceType.None && _type == ResourceType.Script)
                     {
-                        _cmdletPassedIn.WriteVerbose("Type Script provided, so add PSGalleryScripts and remove PSGallery (Modules only)");
+                        _cmdletPassedIn.WriteVerbose("Type Script provided, so add PSGalleryScripts and remove PSGallery (Modules only) from search consideration");
                         repositoriesToSearch.Insert(i + 1, psGalleryScripts);
                         repositoriesToSearch.RemoveAt(i); // remove PSGallery
                     }
+                }       
+                else if (String.Equals(repositoriesToSearch[i].Url.AbsoluteUri, _poshTestGalleryURL, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    // for PoshTestGallery, Module and Script resources have different endpoints so separate repositories have to be registered
+                    // with those endpoints in order for the NuGet APIs to search across both in the case where name includes '*'
+
+                    // detect if Script repository needs to be added and/or Module repository needs to be skipped
+                    Uri poshTestGalleryScriptsUrl = new Uri("https://www.poshtestgallery.com/api/v2/items/psscript/");
+                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(_poshTestGalleryScriptsRepoName, poshTestGalleryScriptsUrl, repositoriesToSearch[i].Priority, false);
+                    if (_type == ResourceType.None)
+                    {
+                        _cmdletPassedIn.WriteVerbose("Null Type provided, so add PoshTestGalleryScripts repository");
+                        repositoriesToSearch.Insert(i + 1, poshTestGalleryScripts);
+                    }
+                    else if (_type != ResourceType.None && _type == ResourceType.Script)
+                    {
+                        _cmdletPassedIn.WriteVerbose("Type Script provided, so add PoshTestGalleryScripts and remove PoshTestGallery (Modules only) from search consideration");
+                        repositoriesToSearch.Insert(i + 1, poshTestGalleryScripts);
+                        repositoriesToSearch.RemoveAt(i); // remove PSGallery
+                    }
                 }
+
             }
 
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
@@ -217,7 +242,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             context = new SourceCacheContext();
 
             foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                repositoryName: repositoryName,
+                repositoryName: String.Equals(repositoryUrl.AbsoluteUri, _poshTestGalleryURL, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryName,
                 pkgSearchResource: resourceSearch,
                 pkgMetadataResource: resourceMetadata,
                 searchFilter: filter,
@@ -397,11 +422,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // PSGallery + Type == C    -> M
                     // PSGallery + Type == D    -> M
 
-                    bool needToCheckPSGalleryScriptsRepo = String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) && _type == ResourceType.None;
-                    if (foundPackagesMetadata.Any() && !needToCheckPSGalleryScriptsRepo)
+                    if (String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) ||
+                        String.Equals(repositoryName, _poshTestGalleryRepoName, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        _pkgsLeftToFind.Remove(pkgName);
-                    }                    
+                        if (foundPackagesMetadata.Any() && _type != ResourceType.None)
+                        {
+                            _pkgsLeftToFind.Remove(pkgName);
+                        }
+                    }
+                 
                 }
 
                 // if repository names did contain wildcard, we want to do an exhaustive search across all the repositories

@@ -52,8 +52,8 @@ Describe 'Test Find-PSResource for Module' {
     It "should find all resources given Name that equals wildcard, '*'" {
         $foundScript = $False
         $foundPreview = $False
-        $res = Find-PSResource -Name "*" -Repository $PSGalleryName
-        $res.Count | Should -BeGreaterThan 1
+        $res = Find-PSResource -Name "*" -Repository $TestGalleryName
+        $res.Count | Should -BeGreaterOrEqual 2004
         #should find Module and Script resources
         foreach ($item in $res)
         {
@@ -75,8 +75,8 @@ Describe 'Test Find-PSResource for Module' {
     It "should find all resources (including prerelease) given Name that equals wildcard, '*' and Prerelease parameter" {
         $foundScript = $False
         $foundPreview = $False
-        $res = Find-PSResource -Name "*" -Prerelease -Repository $PSGalleryName
-        $res.Count | Should -BeGreaterThan 1
+        $res = Find-PSResource -Name "*" -Prerelease -Repository $TestGalleryName
+        $res.Count | Should -BeGreaterOrEqual 2781
         #should find Module and Script resources
         foreach ($item in $res)
         {
