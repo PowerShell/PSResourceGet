@@ -54,7 +54,7 @@ Describe "Test Register-PSResourceRepository" {
     It "register repository given Name, URL, Trusted, Priority, Authentication (NameParameterSet)" {
         $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -Authentication @{VaultName = "testvault"; Secret = "testsecret"} -PassThru
         $res.Name | Should -Be "testRepository"
-        $res.URL | Should -Contain $tmpDir1Path
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
         $res.Authentication["VaultName"] | Should -Be "testvault"
@@ -112,7 +112,7 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Priority | Should -Be 20
 
         $res4 = Get-PSResourceRepository -Name "testRepository4"
-        $res4.URL | Should -Contain $tmpDir4Path
+        $res4.URL.LocalPath | Should -Contain $tmpDir4Path
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 30
         $res4.Authentication["VaultName"] | Should -Be "testvault"
@@ -161,7 +161,7 @@ Describe "Test Register-PSResourceRepository" {
         $res4.Priority | Should -Be 20
 
         $res5 = Get-PSResourceRepository -Name "testRepository4"
-        $res5.URL | Should -Contain $tmpDir4Path
+        $res5.URL.LocalPath | Should -Contain $tmpDir4Path
         $res5.Trusted | Should -Be True
         $res5.Priority | Should -Be 30
         $res5.Authentication["VaultName"] | Should -Be "testvault"
