@@ -90,7 +90,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public Hashtable Authentication {get; set;}
+        public Hashtable Authentication { get; set; }
 
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
