@@ -37,6 +37,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
+        private readonly string _psGalleryURL = "https://www.powershellgallery.com/api/v2";
         private readonly string _poshTestGalleryRepoName = "PoshTestGallery";
         private readonly string _poshTestGalleryScriptsRepoName = "PoshTestGalleryScripts";
         private readonly string _poshTestGalleryURL = "https://www.poshtestgallery.com/api/v2";
@@ -114,13 +115,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
 
-            // loop through repositoriesToSearch and if PSGallery add it to list with same priority as PSGallery repo
+            // loop through repositoriesToSearch and if PSGallery or PoshTestGallery add its Scripts endpoint repo
+            // to list with same priority as PSGallery repo
+            // This special casing is done to handle PSGallery and PoshTestGallery having 2 endpoints currently for different resources.
             for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
-                _cmdletPassedIn.WriteVerbose("uri absolute uri: " + repositoriesToSearch[i].Url.AbsoluteUri);
-                if (String.Equals(repositoriesToSearch[i].Name, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase))
+                if (String.Equals(repositoriesToSearch[i].Url.AbsoluteUri, _psGalleryURL, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    // for PowerShellGallery, Module and Script resources have different endpoints so separate repositories have to be registered
+                    // special case: for PowerShellGallery, Module and Script resources have different endpoints so separate repositories have to be registered
                     // with those endpoints in order for the NuGet APIs to search across both in the case where name includes '*'
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
@@ -140,7 +142,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }       
                 else if (String.Equals(repositoriesToSearch[i].Url.AbsoluteUri, _poshTestGalleryURL, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    // for PoshTestGallery, Module and Script resources have different endpoints so separate repositories have to be registered
+                    // special case: for PoshTestGallery, Module and Script resources have different endpoints so separate repositories have to be registered
                     // with those endpoints in order for the NuGet APIs to search across both in the case where name includes '*'
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
@@ -155,7 +157,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         _cmdletPassedIn.WriteVerbose("Type Script provided, so add PoshTestGalleryScripts and remove PoshTestGallery (Modules only) from search consideration");
                         repositoriesToSearch.Insert(i + 1, poshTestGalleryScripts);
-                        repositoriesToSearch.RemoveAt(i); // remove PSGallery
+                        repositoriesToSearch.RemoveAt(i); // remove PoshTestGallery
                     }
                 }
 
@@ -242,7 +244,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             context = new SourceCacheContext();
 
             foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                repositoryName: String.Equals(repositoryUrl.AbsoluteUri, _poshTestGalleryURL, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryName,
+                repositoryName: String.Equals(repositoryUrl.AbsoluteUri, _psGalleryURL, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName :
+                                (String.Equals(repositoryUrl.AbsoluteUri, _poshTestGalleryURL, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryName),
                 pkgSearchResource: resourceSearch,
                 pkgMetadataResource: resourceMetadata,
                 searchFilter: filter,
