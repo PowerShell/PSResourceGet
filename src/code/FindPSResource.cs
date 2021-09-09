@@ -198,7 +198,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 Name = new string[] {"*"};
             }
 
-            var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
+            Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
             
             foreach (string error in errorMsgs)
             {
@@ -211,7 +211,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // this catches the case where Name wasn't passed in as null or empty,
             // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
-            if (namesToSearch.Length == 0)
+            if (Name.Length == 0)
             {
                 return;
             }            
