@@ -155,19 +155,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case CommandNameParameterSet:
-                    ThrowTerminatingError(new ErrorRecord(
-                        new PSNotImplementedException("CommandNameParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                        "CommandParameterSetNotImplementedYet",
-                        ErrorCategory.NotImplemented,
-                        this));
+                    ProcessCommandOrDscParameterSet();
                     break;
 
                 case DscResourceNameParameterSet:
-                    ThrowTerminatingError(new ErrorRecord(
-                        new PSNotImplementedException("DscResourceNameParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                        "DscResourceParameterSetNotImplementedYet",
-                        ErrorCategory.NotImplemented,
-                        this));
+                    ProcessCommandOrDscParameterSet();
                     break;
 
                 default:
@@ -256,6 +248,123 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
+        private void ProcessCommandOrDscParameterSet()
+        {
+            // can have commandName
+            // or have commandName + moduleName
+            // cannot have Command + DSCResource BOTH. bc one pset called at a time
+            // cannot have neither Command nor DSCResource, bc pset wouldn't have been called.
+            // add Dbg.Assert?
+            bool isSearchingForCommands = (DscResourceName == null || DscResourceName.Length == 0);
+            var commandOrDSCNamesToSearch = Utils.ProcessNameWildcards(isSearchingForCommands ? CommandName : DscResourceName,
+                out string[] errorMsgs,
+                out bool nameContainsWildcard);
+            
+            foreach (string error in errorMsgs)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
+
+            // this catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in commandOrDSCNamesToSearch
+            if (commandOrDSCNamesToSearch.Length == 0)
+            {
+                 return;
+            }
+
+            if (String.Equals(commandOrDSCNamesToSearch[0], "*", StringComparison.InvariantCultureIgnoreCase))
+            {
+                // WriteVerbose("Resource names were detected to be (or contain an element equal to): '*', so all packages will be updated");
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("-CommandName '*' or -DSCResourceName '*' is not supported for Find-PSResource so all CommandName or DSCResourceName entries will be discarded."),
+                    "CommandDSCResourceNameEqualsWildcardIsNotSupported",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                return;
+            }
+
+            // if ModuleName not specified search all packages (Name '*') w/ Type Command or DSC
+            // if ModuleName is  specified, provide that new string[] {ModuleName} as Name w/ that type
+
+            FindHelper findHelper = new FindHelper(_cancellationToken, this);
+            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
+
+            if (String.IsNullOrEmpty(ModuleName))
+            {
+                foreach (PSResourceInfo package in findHelper.FindByResourceName(
+                    name: new string[]{"*"},
+                    type: isSearchingForCommands? ResourceType.Command : ResourceType.DscResource,
+                    version: Version,
+                    prerelease: Prerelease,
+                    tag: Tag,
+                    repository: Repository,
+                    credential: Credential,
+                    includeDependencies: IncludeDependencies))
+                {
+                    foundPackages.Add(package);
+                }
+            }
+            else
+            {
+                foreach (PSResourceInfo package in findHelper.FindByResourceName(
+                    name: new string[]{ModuleName},
+                    type: isSearchingForCommands ? ResourceType.Command : ResourceType.DscResource,
+                    version: Version,
+                    prerelease: Prerelease,
+                    tag: Tag,
+                    repository: Repository,
+                    credential: Credential,
+                    includeDependencies: IncludeDependencies))
+                {
+                    foundPackages.Add(package);
+                }
+            }
+
+            WriteVerbose("packages before type filtering by name: " + foundPackages.Count());
+            WriteVerbose("namesToSearch count: " + commandOrDSCNamesToSearch.Count());
+
+            // -CommandName "command1", "dsc1" <- should not return or add DSC name
+            List<PSIncludedResourceInfo> resourcesWithCorrectCommandOrDSC = new List<PSIncludedResourceInfo>();
+            foreach (string resourceName in commandOrDSCNamesToSearch)
+            {
+                WriteVerbose("resource name: " + resourceName);
+                // TODO: question here, if package contained multiple commands we are interested in,
+                // we'd return:
+                // Command1 , PackageA
+                // Command2 , PackageB (right?, not make the packages unique! so I think below is ok)
+                foreach (var uniquePkgsWithType in foundPackages)
+                {
+                    // WriteVerbose("uniquepkg name: " + uniquePkgsWithType.Name);
+                    if (isSearchingForCommands && uniquePkgsWithType.Includes.Command.Contains(resourceName))
+                    {
+                        resourcesWithCorrectCommandOrDSC.Add(new PSIncludedResourceInfo(resourceName, uniquePkgsWithType));
+                        WriteVerbose("Command Added " + resourceName + " from " + uniquePkgsWithType.Name);
+                    }
+                    else if (!isSearchingForCommands && uniquePkgsWithType.Includes.DscResource.Contains(resourceName))
+                    {
+                        resourcesWithCorrectCommandOrDSC.Add(new PSIncludedResourceInfo(resourceName, uniquePkgsWithType));
+                        WriteVerbose("DSC Added " + resourceName + " from " + uniquePkgsWithType.Name);
+                    }
+                }
+            }
+
+            foreach (PSIncludedResourceInfo resource in resourcesWithCorrectCommandOrDSC)
+            {
+                WriteObject(resource);
+            }
+
+
+            // foreach (var uniquePackageVersion in foundPackages.GroupBy(
+            //     m => new {m.Name, m.Version}).Select(
+            //         group => group.First()).ToList())
+            // {
+            //     WriteObject(uniquePackageVersion);
+            // }
+        }
         #endregion
     }
 }

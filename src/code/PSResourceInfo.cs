@@ -199,6 +199,29 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #endregion
 
+    #region PSIncludedResourceInfo
+    public sealed class PSIncludedResourceInfo
+    {
+        // this object will represent a Command or DSCResource or Function
+        // included by the PSResourceInfo property
+
+        #region Properties
+        public string Name { get; }
+
+        public PSResourceInfo ParentResource { get; }
+        #endregion
+
+        #region Constructor
+        public PSIncludedResourceInfo(string name, PSResourceInfo parentResource)
+        {
+           Name = name;
+           ParentResource = parentResource; 
+        }
+        #endregion        
+    }
+
+    #endregion
+
     #region PSResourceInfo
 
     public sealed class PSResourceInfo
