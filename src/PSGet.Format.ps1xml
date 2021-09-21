@@ -42,10 +42,10 @@
                     <TableRowEntry>
                         <TableColumnItems>
                             <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
-                            <TableColumnItem><PropertyName>ParentResource.Version</PropertyName></TableColumnItem>
-                            <TableColumnItem><PropertyName>ParentResource.PrereleaseLabel</PropertyName></TableColumnItem>
-                            <TableColumnItem><PropertyName>ParentResource.Name</PropertyName></TableColumnItem>
-                            <TableColumnItem><PropertyName>ParentResource.Repository</PropertyName></TableColumnItem>
+                            <TableColumnItem><PropertyName>($this.ParentResource.Version)</PropertyName></TableColumnItem>
+                            <TableColumnItem><PropertyName>($this.ParentResource.PrereleaseLabel)</PropertyName></TableColumnItem>
+                            <TableColumnItem><PropertyName>($this.ParentResource.Name)</PropertyName></TableColumnItem>
+                            <TableColumnItem><PropertyName>($this.ParentResource.Repository)</PropertyName></TableColumnItem>
                         </TableColumnItems>
                 </TableRowEntry>
                 </TableRowEntries>
