@@ -25,7 +25,7 @@
                 </TableRowEntries>
             </TableControl>
         </View>
-        <View>
+        <!-- <View>
             <Name>PSIncludedResourceInfo</Name>
             <ViewSelectedBy>
                 <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSIncludedResourceInfo</TypeName>
@@ -42,7 +42,15 @@
                     <TableRowEntry>
                         <TableColumnItems>
                             <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
-                            <TableColumnItem><PropertyName>($this.ParentResource.Version)</PropertyName></TableColumnItem>
+                                <TableColumnItem>
+                                    <PropertyName>
+                                        <ScriptProperty>
+                                            <GetScriptBlock>
+                                                ($this.ParentResource)
+                                            </GetScriptBlock>
+                                        </ScriptProperty>
+                                    </PropertyName>
+                                </TableColumnItem>
                             <TableColumnItem><PropertyName>($this.ParentResource.PrereleaseLabel)</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>($this.ParentResource.Name)</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>($this.ParentResource.Repository)</PropertyName></TableColumnItem>
@@ -50,6 +58,6 @@
                 </TableRowEntry>
                 </TableRowEntries>
             </TableControl>
-        </View>
+        </View> -->
     </ViewDefinitions>
 </Configuration>

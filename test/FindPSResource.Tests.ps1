@@ -9,6 +9,9 @@ Describe 'Test Find-PSResource for Module' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
+        $commandName = "Get-TargetResource"
+        $dscResourceName = "SystemLocale"
+        $parentModuleName = "SystemLocaleDsc"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }

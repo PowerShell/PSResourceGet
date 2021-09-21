@@ -76,7 +76,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = CommandNameParameterSet)]
         [Parameter(ParameterSetName = DscResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public string ModuleName { get; set; }
+        public string[] ModuleName { get; set; }
 
         /// <summary>
         /// Specifies a list of command names that searched module packages will provide. Wildcards are supported.
@@ -250,21 +250,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private void ProcessCommandOrDscParameterSet()
         {
-            // can have commandName
-            // or have commandName + moduleName
-            // cannot have Command + DSCResource BOTH. bc one pset called at a time
-            // cannot have neither Command nor DSCResource, bc pset wouldn't have been called.
-            // add Dbg.Assert?
             bool isSearchingForCommands = (DscResourceName == null || DscResourceName.Length == 0);
-            var commandOrDSCNamesToSearch = Utils.ProcessNameWildcards(isSearchingForCommands ? CommandName : DscResourceName,
-                out string[] errorMsgs,
-                out bool nameContainsWildcard);
-            
+            var commandOrDSCNamesToSearch = Utils.ProcessNameWildcards(
+                pkgNames: isSearchingForCommands ? CommandName : DscResourceName,
+                errorMsgs: out string[] errorMsgs,
+                isContainWildcard: out bool nameContainsWildcard);
+
+            if (nameContainsWildcard)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("Wilcards are not supported for -CommandName or -DSCResourceName for Find-PSResource. So all CommandName or DSCResourceName entries will be discarded."),
+                    "CommandDSCResourceNameWithWildcardsNotSupported",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                return;
+            }
+
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
                     new PSInvalidOperationException(error),
-                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    "ErrorFilteringCommandDscResourceNamesForUnsupportedWildcards",
                     ErrorCategory.InvalidArgument,
                     this));
             }
@@ -275,22 +281,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                  return;
             }
+            
+            var moduleNamesToSearch = Utils.ProcessNameWildcards(
+                pkgNames: ModuleName,
+                errorMsgs: out string[] moduleErrorMsgs,
+                isContainWildcard: out bool _);
 
-            if (String.Equals(commandOrDSCNamesToSearch[0], "*", StringComparison.InvariantCultureIgnoreCase))
+            foreach (string error in moduleErrorMsgs)
             {
                 WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("-CommandName '*' or -DSCResourceName '*' is not supported for Find-PSResource so all CommandName or DSCResourceName entries will be discarded."),
-                    "CommandDSCResourceNameEqualsWildcardIsNotSupported",
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringModuleNamesForUnsupportedWildcards",
                     ErrorCategory.InvalidArgument,
                     this));
-                return;
             }
 
             FindHelper findHelper = new FindHelper(_cancellationToken, this);
             List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
 
             foreach (PSResourceInfo package in findHelper.FindByResourceName(
-                name: String.IsNullOrEmpty(ModuleName) ? new string[]{"*"} : new string[]{ModuleName},
+                name: moduleNamesToSearch,
+                // provide type so Scripts endpoint for PSGallery won't be searched
                 type: isSearchingForCommands? ResourceType.Command : ResourceType.DscResource,
                 version: Version,
                 prerelease: Prerelease,
@@ -302,21 +313,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foundPackages.Add(package);
             }
             
-            // -CommandName "command1", "dsc1" <- should not return or add DSC name
             List<PSIncludedResourceInfo> resourcesWithCorrectCommandOrDSC = new List<PSIncludedResourceInfo>();
 
-            // TODO: question here, if package contained multiple commands we are interested in,
-            // we'd return:
+            // if package contained multiple commands we are interested in, we'd return:
             // Command1 , PackageA
-            // Command2 , PackageB (right?, not make the packages unique! so I think below is ok)
-            foundPackages = foundPackages.GroupBy(
-                m => new {m.Name, m.Version}).Select(
-                    group => group.First()).ToList();
-        
+            // Command2 , PackageA        
             foreach (string resourceName in commandOrDSCNamesToSearch)
             {
                 foreach (var uniquePkgsWithType in foundPackages)
                 {
+                    // -CommandName "command1", "dsc1" <- (will not return or add DSC name)
                     if (isSearchingForCommands && uniquePkgsWithType.Includes.Command.Contains(resourceName))
                     {
                         resourcesWithCorrectCommandOrDSC.Add(new PSIncludedResourceInfo(resourceName, uniquePkgsWithType));
