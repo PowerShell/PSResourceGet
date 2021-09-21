@@ -278,7 +278,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (String.Equals(commandOrDSCNamesToSearch[0], "*", StringComparison.InvariantCultureIgnoreCase))
             {
-                // WriteVerbose("Resource names were detected to be (or contain an element equal to): '*', so all packages will be updated");
                 WriteError(new ErrorRecord(
                     new PSInvalidOperationException("-CommandName '*' or -DSCResourceName '*' is not supported for Find-PSResource so all CommandName or DSCResourceName entries will be discarded."),
                     "CommandDSCResourceNameEqualsWildcardIsNotSupported",
@@ -287,58 +286,37 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            // if ModuleName not specified search all packages (Name '*') w/ Type Command or DSC
-            // if ModuleName is  specified, provide that new string[] {ModuleName} as Name w/ that type
-
             FindHelper findHelper = new FindHelper(_cancellationToken, this);
             List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
 
-            if (String.IsNullOrEmpty(ModuleName))
+            foreach (PSResourceInfo package in findHelper.FindByResourceName(
+                name: String.IsNullOrEmpty(ModuleName) ? new string[]{"*"} : new string[]{ModuleName},
+                type: isSearchingForCommands? ResourceType.Command : ResourceType.DscResource,
+                version: Version,
+                prerelease: Prerelease,
+                tag: Tag,
+                repository: Repository,
+                credential: Credential,
+                includeDependencies: IncludeDependencies))
             {
-                foreach (PSResourceInfo package in findHelper.FindByResourceName(
-                    name: new string[]{"*"},
-                    type: isSearchingForCommands? ResourceType.Command : ResourceType.DscResource,
-                    version: Version,
-                    prerelease: Prerelease,
-                    tag: Tag,
-                    repository: Repository,
-                    credential: Credential,
-                    includeDependencies: IncludeDependencies))
-                {
-                    foundPackages.Add(package);
-                }
+                foundPackages.Add(package);
             }
-            else
-            {
-                foreach (PSResourceInfo package in findHelper.FindByResourceName(
-                    name: new string[]{ModuleName},
-                    type: isSearchingForCommands ? ResourceType.Command : ResourceType.DscResource,
-                    version: Version,
-                    prerelease: Prerelease,
-                    tag: Tag,
-                    repository: Repository,
-                    credential: Credential,
-                    includeDependencies: IncludeDependencies))
-                {
-                    foundPackages.Add(package);
-                }
-            }
-
-            WriteVerbose("packages before type filtering by name: " + foundPackages.Count());
-            WriteVerbose("namesToSearch count: " + commandOrDSCNamesToSearch.Count());
-
+            
             // -CommandName "command1", "dsc1" <- should not return or add DSC name
             List<PSIncludedResourceInfo> resourcesWithCorrectCommandOrDSC = new List<PSIncludedResourceInfo>();
+
+            // TODO: question here, if package contained multiple commands we are interested in,
+            // we'd return:
+            // Command1 , PackageA
+            // Command2 , PackageB (right?, not make the packages unique! so I think below is ok)
+            foundPackages = foundPackages.GroupBy(
+                m => new {m.Name, m.Version}).Select(
+                    group => group.First()).ToList();
+        
             foreach (string resourceName in commandOrDSCNamesToSearch)
             {
-                WriteVerbose("resource name: " + resourceName);
-                // TODO: question here, if package contained multiple commands we are interested in,
-                // we'd return:
-                // Command1 , PackageA
-                // Command2 , PackageB (right?, not make the packages unique! so I think below is ok)
                 foreach (var uniquePkgsWithType in foundPackages)
                 {
-                    // WriteVerbose("uniquepkg name: " + uniquePkgsWithType.Name);
                     if (isSearchingForCommands && uniquePkgsWithType.Includes.Command.Contains(resourceName))
                     {
                         resourcesWithCorrectCommandOrDSC.Add(new PSIncludedResourceInfo(resourceName, uniquePkgsWithType));
@@ -356,15 +334,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 WriteObject(resource);
             }
-
-
-            // foreach (var uniquePackageVersion in foundPackages.GroupBy(
-            //     m => new {m.Name, m.Version}).Select(
-            //         group => group.First()).ToList())
-            // {
-            //     WriteObject(uniquePackageVersion);
-            // }
         }
+
         #endregion
     }
 }
