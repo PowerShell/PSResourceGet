@@ -315,13 +315,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             List<PSIncludedResourceInfo> resourcesWithCorrectCommandOrDSC = new List<PSIncludedResourceInfo>();
 
-            // if package contained multiple commands we are interested in, we'd return:
+            // if a single package contains multiple commands we are interested in, return a unique entry for each:
             // Command1 , PackageA
             // Command2 , PackageA        
             foreach (string resourceName in commandOrDSCNamesToSearch)
             {
                 foreach (var uniquePkgsWithType in foundPackages)
                 {
+                    // this check ensures DSC names provided as a Command name won't get returned mistakenly
                     // -CommandName "command1", "dsc1" <- (will not return or add DSC name)
                     if (isSearchingForCommands && uniquePkgsWithType.Includes.Command.Contains(resourceName))
                     {

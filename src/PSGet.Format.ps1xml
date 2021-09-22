@@ -25,39 +25,39 @@
                 </TableRowEntries>
             </TableControl>
         </View>
-        <!-- <View>
-            <Name>PSIncludedResourceInfo</Name>
+        <View>
+            <Name>PSIncludedResourceInfoTable</Name>
             <ViewSelectedBy>
-                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSIncludedResourceInfo</TypeName>
-        </ViewSelectedBy>
+            <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSIncludedResourceInfo</TypeName>
+            </ViewSelectedBy>
             <TableControl>
             <TableHeaders>
-                <TableColumnHeader><Label>Name</Label></TableColumnHeader>
-                <TableColumnHeader><Label>Version</Label></TableColumnHeader>
-                <TableColumnHeader><Label>Prerelease</Label></TableColumnHeader>
-                <TableColumnHeader><Label>ModuleName</Label></TableColumnHeader>
-                <TableColumnHeader><Label>Repository</Label></TableColumnHeader>
+            <TableColumnHeader><Label>Name</Label></TableColumnHeader>
+            <TableColumnHeader>
+                <Label>Version</Label>
+            </TableColumnHeader>
+            <TableColumnHeader>
+                <Label>Prerelease</Label>
+            </TableColumnHeader>
+            <TableColumnHeader>
+                <Label>ModuleName</Label>
+            </TableColumnHeader>
+            <TableColumnHeader>
+                <Label>Repository</Label>
+            </TableColumnHeader>
             </TableHeaders>
-                <TableRowEntries>
-                    <TableRowEntry>
-                        <TableColumnItems>
-                            <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
-                                <TableColumnItem>
-                                    <PropertyName>
-                                        <ScriptProperty>
-                                            <GetScriptBlock>
-                                                ($this.ParentResource)
-                                            </GetScriptBlock>
-                                        </ScriptProperty>
-                                    </PropertyName>
-                                </TableColumnItem>
-                            <TableColumnItem><PropertyName>($this.ParentResource.PrereleaseLabel)</PropertyName></TableColumnItem>
-                            <TableColumnItem><PropertyName>($this.ParentResource.Name)</PropertyName></TableColumnItem>
-                            <TableColumnItem><PropertyName>($this.ParentResource.Repository)</PropertyName></TableColumnItem>
-                        </TableColumnItems>
-                </TableRowEntry>
-                </TableRowEntries>
+            <TableRowEntries>
+            <TableRowEntry>
+            <TableColumnItems>
+                <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
+            <TableColumnItem><ScriptBlock>$_.ParentResource.Version</ScriptBlock></TableColumnItem>
+            <TableColumnItem><ScriptBlock>$_.ParentResource.PrereleaseLabel</ScriptBlock></TableColumnItem>
+            <TableColumnItem><ScriptBlock>$_.ParentResource.Name</ScriptBlock></TableColumnItem>
+            <TableColumnItem><ScriptBlock>$_.ParentResource.Repository</ScriptBlock></TableColumnItem>
+            </TableColumnItems>
+            </TableRowEntry>
+            </TableRowEntries>
             </TableControl>
-        </View> -->
+        </View>
     </ViewDefinitions>
 </Configuration>
