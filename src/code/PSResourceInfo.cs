@@ -199,10 +199,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #endregion
 
-    #region PSIncludedResourceInfo
-    public sealed class PSIncludedResourceInfo
+    #region PSCommandResourceInfo
+    public sealed class PSCommandResourceInfo
     {
-        // this object will represent a Command or DSCResource or Function
+        // this object will represent a Command or DSCResource
         // included by the PSResourceInfo property
 
         #region Properties
@@ -219,7 +219,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         /// <param name="name">Name of the command or DSC resource</param>
         /// <param name="parentResource">the parent module resource the command or dsc resource belongs to</param>
-        public PSIncludedResourceInfo(string name, PSResourceInfo parentResource)
+        public PSCommandResourceInfo(string name, PSResourceInfo parentResource)
         {
            Name = name;
            ParentResource = parentResource; 

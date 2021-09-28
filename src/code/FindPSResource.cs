@@ -329,7 +329,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if ((isSearchingForCommands && package.Includes.Command.Contains(nameToSearch)) ||
                         (!isSearchingForCommands && package.Includes.DscResource.Contains(nameToSearch)))
                     {
-                        WriteObject(new PSIncludedResourceInfo(nameToSearch, package));
+                        WriteObject(new PSCommandResourceInfo(nameToSearch, package));
                     }
                 }
             }
