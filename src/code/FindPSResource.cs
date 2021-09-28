@@ -320,16 +320,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // if a single package contains multiple commands we are interested in, return a unique entry for each:
             // Command1 , PackageA
             // Command2 , PackageA        
-            foreach (string resourceName in commandOrDSCNamesToSearch)
+            foreach (string nameToSearch in commandOrDSCNamesToSearch)
             {
                 foreach (var package in foundPackages)
                 {
                     // this check ensures DSC names provided as a Command name won't get returned mistakenly
                     // -CommandName "command1", "dsc1" <- (will not return or add DSC name)
-                    if ((isSearchingForCommands && package.Includes.Command.Contains(resourceName)) ||
-                        (!isSearchingForCommands && package.Includes.DscResource.Contains(resourceName)))
+                    if ((isSearchingForCommands && package.Includes.Command.Contains(nameToSearch)) ||
+                        (!isSearchingForCommands && package.Includes.DscResource.Contains(nameToSearch)))
                     {
-                        WriteObject(new PSIncludedResourceInfo(resourceName, package));
+                        WriteObject(new PSIncludedResourceInfo(nameToSearch, package));
                     }
                 }
             }
