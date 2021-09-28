@@ -328,22 +328,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // this check ensures DSC names provided as a Command name won't get returned mistakenly
                     // -CommandName "command1", "dsc1" <- (will not return or add DSC name)
-                    if (isSearchingForCommands && uniquePkgsWithType.Includes.Command.Contains(resourceName))
+                    if ((isSearchingForCommands && uniquePkgsWithType.Includes.Command.Contains(resourceName)) ||
+                        (!isSearchingForCommands && uniquePkgsWithType.Includes.DscResource.Contains(resourceName)))
                     {
-                        resourcesWithCorrectCommandOrDSC.Add(new PSIncludedResourceInfo(resourceName, uniquePkgsWithType));
-                        WriteVerbose("Command Added " + resourceName + " from " + uniquePkgsWithType.Name);
-                    }
-                    else if (!isSearchingForCommands && uniquePkgsWithType.Includes.DscResource.Contains(resourceName))
-                    {
-                        resourcesWithCorrectCommandOrDSC.Add(new PSIncludedResourceInfo(resourceName, uniquePkgsWithType));
-                        WriteVerbose("DSC Added " + resourceName + " from " + uniquePkgsWithType.Name);
+                        WriteObject(new PSIncludedResourceInfo(resourceName, uniquePkgsWithType));
                     }
                 }
-            }
-
-            foreach (PSIncludedResourceInfo resource in resourcesWithCorrectCommandOrDSC)
-            {
-                WriteObject(resource);
             }
         }
 
