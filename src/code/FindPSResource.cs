@@ -295,6 +295,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
+            if (moduleNamesToSearch.Length == 0)
+            {
+                moduleNamesToSearch = new string[] {"*"};
+            }
+
             FindHelper findHelper = new FindHelper(_cancellationToken, this);
             List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
 
