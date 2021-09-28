@@ -155,11 +155,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case CommandNameParameterSet:
-                    ProcessCommandOrDscParameterSet();
+                    ProcessCommandOrDscParameterSet(isSearchingForCommands: true);
                     break;
 
                 case DscResourceNameParameterSet:
-                    ProcessCommandOrDscParameterSet();
+                    ProcessCommandOrDscParameterSet(isSearchingForCommands: false);
                     break;
 
                 default:
@@ -248,9 +248,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private void ProcessCommandOrDscParameterSet()
+        private void ProcessCommandOrDscParameterSet(bool isSearchingForCommands)
         {
-            bool isSearchingForCommands = (DscResourceName == null || DscResourceName.Length == 0);
             var commandOrDSCNamesToSearch = Utils.ProcessNameWildcards(
                 pkgNames: isSearchingForCommands ? CommandName : DscResourceName,
                 errorMsgs: out string[] errorMsgs,
