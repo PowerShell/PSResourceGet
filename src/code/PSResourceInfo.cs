@@ -217,6 +217,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
            Name = name;
            ParentResource = parentResource; 
         }
+
         #endregion        
     }
 
