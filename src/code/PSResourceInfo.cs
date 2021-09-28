@@ -212,6 +212,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Constructor
+
+        /// <summary>
+        /// Constructor
+        ///
+        /// </summary>
+        /// <param name="name">Name of the command or DSC resource</param>
+        /// <param name="parentResource">the parent module resource the command or dsc resource belongs to</param>
         public PSIncludedResourceInfo(string name, PSResourceInfo parentResource)
         {
            Name = name;
