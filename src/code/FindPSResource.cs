@@ -21,7 +21,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         "PSResource",
         DefaultParameterSetName = ResourceNameParameterSet,
         SupportsShouldProcess = true)]
-    [OutputType(typeof(PSResourceInfo))]
+    [OutputType(typeof(PSResourceInfo), typeof(PSCommandResourceInfo))]
     public sealed class FindPSResource : PSCmdlet
     {
         #region Members
