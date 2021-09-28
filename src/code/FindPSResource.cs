@@ -316,8 +316,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 foundPackages.Add(package);
             }
-            
-            List<PSIncludedResourceInfo> resourcesWithCorrectCommandOrDSC = new List<PSIncludedResourceInfo>();
 
             // if a single package contains multiple commands we are interested in, return a unique entry for each:
             // Command1 , PackageA
