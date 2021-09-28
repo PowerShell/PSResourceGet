@@ -19,13 +19,13 @@ Searches for packages from a repository (local or remote), based on `-Name` and 
 
 ### CommandNameParameterSet
 ``` PowerShell
-[[-CommandName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
+[[-CommandName] <string[]>] [-ModuleName <string[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
 [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### DscResourceNameParameterSet
 ``` PowerShell
-[[-DscResourceName] <string[]>] [-ModuleName <string>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
+[[-DscResourceName] <string[]>] [-ModuleName <string[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
 [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -76,6 +76,47 @@ PS C:\> Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "
 ```
 
 This examples searches for the package with `-Name` "Microsoft.PowerShell.SecretManagement". It returns all versions which satisfy the specified `-Version` range by looking through the specified `-Repository` "PSGallery". At the time of writing this example those satisfying versions are: "0.9.1.0" and "1.0.0.0".
+
+### Example 4
+```powershell
+PS C:\> Find-PSResource -CommandName "Get-TargetResource" -Repository PSGallery
+        Name                                    Version    Prerelease   ModuleName                     Repository
+        ----                                    -------    ----------   ----------                     ----------
+        Get-TargetResource                      3.1.0.0                 xPowerShellExecutionPolicy     PSGallery
+        Get-TargetResource                      1.0.0.4                 WindowsDefender                PSGallery
+        Get-TargetResource                      1.2.0.0                 SystemLocaleDsc                PSGallery
+        Get-TargetResource                      1.0.0.0                 xInternetExplorerHomePage      PSGallery
+        Get-TargetResource                      4.0.1055.0              OctopusDSC                     PSGallery
+        Get-TargetResource                      1.2.0.0                 cRegFile                       PSGallery
+        Get-TargetResource                      1.1.0.0                 cWindowsErrorReporting         PSGallery
+        Get-TargetResource                      1.0.0.0                 cVNIC                          PSGallery
+        Get-TargetResource                      1.1.17.0                supVsts                        PSGallery
+
+```
+
+This examples searches for all module resources with `-CommandName` "Get-TargetResource" from the `-Repository` PSGallery. It returns all the module resources which include a command named "Get-TargetResource" and also lists the following information for each module resource: version, name (displayed under ModuleName) and repository. To access the rest of the properties of the parent module resource, you can access the `$_.ParentResource` of the PSIncludedResourceInfo object returned from the CommandName parameter set.
+
+### Example 5
+```powershell
+PS C:\> Find-PSResource -CommandName "Get-TargetResource" -ModuleName "SystemLocaleDsc" -Repository PSGallery
+        Name                                    Version    Prerelease   ModuleName                     Repository
+        ----                                    -------    ----------   ----------                     ----------
+        Get-TargetResource                      1.2.0.0                 SystemLocaleDsc                PSGallery
+```
+
+This examples searches for a module resource with a command named "Get-TargetResource" (via the `-CommandName` parameter), specifically from the module resource "SystemLocaleDsc" (via the `-ModuleName` parameter) from the `-Repository` PSGallery. The "SystemLocaleDsc" resource does indeed include a command named Get-TargetResource so this resource will be returned. The returned object lists the name of the command (displayed under Name) and the following information for the parent module resource: version, name (displayed under ModuleName) and repository. To access the rest of the properties of the parent module resource, you can access the `$_.ParentResource` of the PSIncludedResourceInfo object returned from the CommandName parameter set.
+
+### Example 6
+```powershell
+PS C:\> Find-PSResource -DscResourceName "SystemLocale" -Repository PSGallery
+        Name                                    Version    Prerelease   ModuleName                     Repository
+        ----                                    -------    ----------   ----------                     ----------
+        Get-TargetResource                      8.5.0.0                 ComputerManagementDsc          PSGallery
+        Get-TargetResource                      1.2.0.0                 SystemLocaleDsc                PSGallery
+
+```
+
+This examples searches for all module resources with `-DscResourceName` "SystemLocale" from the `-Repository` PSGallery. It returns all the module resources which include a DSC resource named "SystemLocale" and also lists the following information for each module resource: version, name (displayed under ModuleName) and repository. To access the rest of the properties of the parent module resource, you can access the `$_.ParentResource` of the PSIncludedResourceInfo object returned from the DSCResourceName parameter set.
 
 ## PARAMETERS
 

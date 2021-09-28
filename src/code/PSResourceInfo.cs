@@ -199,6 +199,37 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #endregion
 
+    #region PSCommandResourceInfo
+    public sealed class PSCommandResourceInfo
+    {
+        // this object will represent a Command or DSCResource
+        // included by the PSResourceInfo property
+
+        #region Properties
+        public string Name { get; }
+
+        public PSResourceInfo ParentResource { get; }
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        ///
+        /// </summary>
+        /// <param name="name">Name of the command or DSC resource</param>
+        /// <param name="parentResource">the parent module resource the command or dsc resource belongs to</param>
+        public PSCommandResourceInfo(string name, PSResourceInfo parentResource)
+        {
+           Name = name;
+           ParentResource = parentResource; 
+        }
+
+        #endregion        
+    }
+
+    #endregion
+
     #region PSResourceInfo
 
     public sealed class PSResourceInfo
@@ -485,7 +516,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             try
-            {
+            {                
+                var typeInfo = ParseMetadataType(metadataToParse, repositoryName, type, out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var includes = new ResourceIncludes(resourceHashtable);
+
+
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: null,
                     author: ParseMetadataAuthor(metadataToParse),
@@ -494,7 +532,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     dependencies: ParseMetadataDependencies(metadataToParse),
                     description: ParseMetadataDescription(metadataToParse),
                     iconUri: ParseMetadataIconUri(metadataToParse),
-                    includes: null,
+                    includes: includes,
                     installedDate: null,
                     installedLocation: null,
                     isPrelease: ParseMetadataIsPrerelease(metadataToParse),
@@ -509,7 +547,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     repository: repositoryName,
                     repositorySourceLocation: null,
                     tags: ParseMetadataTags(metadataToParse),
-                    type: ParseMetadataType(metadataToParse, repositoryName, type),
+                    // type: ParseMetadataType(metadataToParse, repositoryName, type),
+                    type: typeInfo,
                     updatedDate: null,
                     version: ParseMetadataVersion(metadataToParse));
 
@@ -803,7 +842,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pkg.Tags.Split(Delimeter, StringSplitOptions.RemoveEmptyEntries);
         }
 
-        private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg, string repoName, ResourceType? pkgType)
+        private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg,
+        string repoName,
+        ResourceType? pkgType,
+        out ArrayList commandNames,
+        out ArrayList dscResourceNames)
         {
             // possible type combinations:
             // M, C
@@ -811,6 +854,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // M
             // S
 
+            commandNames = new ArrayList();
+            dscResourceNames = new ArrayList();
             string[] tags = ParseMetadataTags(pkg);
             ResourceType currentPkgType = ResourceType.Module;
 
@@ -838,15 +883,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     currentPkgType &= ~ResourceType.Module;
                     currentPkgType |= ResourceType.Script;
                 }
-                if (tag.StartsWith("PSCommand_"))
+                if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
                 {
                     currentPkgType |= ResourceType.Command;
+                    commandNames.Add(tag.Split('_')[1]);
                 }
-                if (String.Equals(tag, "PSIncludes_DscResource", StringComparison.InvariantCultureIgnoreCase))
+                if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
                 {
                     currentPkgType |= ResourceType.DscResource;
+                    dscResourceNames.Add(tag.Split('_')[1]);
                 }
             }
+
             return currentPkgType;
         }
 

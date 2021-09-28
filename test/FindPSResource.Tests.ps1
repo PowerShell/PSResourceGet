@@ -11,6 +11,9 @@ Describe 'Test Find-PSResource for Module' {
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = "testmodule"
         $testScriptName = "test_script"
+        $commandName = "Get-TargetResource"
+        $dscResourceName = "SystemLocale"
+        $parentModuleName = "SystemLocaleDsc"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
@@ -330,5 +333,35 @@ Describe 'Test Find-PSResource for Module' {
 
         $resNonDefault = Find-PSResource -Name $moduleName -Repository $repoLowerPriorityRanking
         $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
+    }
+
+    It "find resource given CommandName (CommandNameParameterSet)" {
+        $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
+        foreach ($item in $res) {
+            $item.Name | Should -Be $commandName
+            $item.ParentResource.Includes.Command | Should -Contain $commandName
+        }
+    }
+
+    It "find resource given CommandName and ModuleName (CommandNameParameterSet)" {
+        $res = Find-PSResource -CommandName $commandName -ModuleName $parentModuleName -Repository $PSGalleryName
+        $res.Name | Should -Be $commandName
+        $res.ParentResource.Name | Should -Be $parentModuleName
+        $res.ParentResource.Includes.Command | Should -Contain $commandName
+    }
+
+    It "find resource given DSCResourceName (DSCResourceNameParameterSet)" {
+        $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
+        foreach ($item in $res) {
+            $item.Name | Should -Be $dscResourceName
+            $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
+        }
+    }
+
+    It "find resource given DscResourceName and ModuleName (DSCResourceNameParameterSet)" {
+        $res = Find-PSResource -DscResourceName $dscResourceName -ModuleName $parentModuleName -Repository $PSGalleryName
+        $res.Name | Should -Be $dscResourceName
+        $res.ParentResource.Name | Should -Be $parentModuleName
+        $res.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
     }
 }
