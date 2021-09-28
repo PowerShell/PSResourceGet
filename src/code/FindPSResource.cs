@@ -322,14 +322,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Command2 , PackageA        
             foreach (string resourceName in commandOrDSCNamesToSearch)
             {
-                foreach (var uniquePkgsWithType in foundPackages)
+                foreach (var package in foundPackages)
                 {
                     // this check ensures DSC names provided as a Command name won't get returned mistakenly
                     // -CommandName "command1", "dsc1" <- (will not return or add DSC name)
-                    if ((isSearchingForCommands && uniquePkgsWithType.Includes.Command.Contains(resourceName)) ||
-                        (!isSearchingForCommands && uniquePkgsWithType.Includes.DscResource.Contains(resourceName)))
+                    if ((isSearchingForCommands && package.Includes.Command.Contains(resourceName)) ||
+                        (!isSearchingForCommands && package.Includes.DscResource.Contains(resourceName)))
                     {
-                        WriteObject(new PSIncludedResourceInfo(resourceName, uniquePkgsWithType));
+                        WriteObject(new PSIncludedResourceInfo(resourceName, package));
                     }
                 }
             }
