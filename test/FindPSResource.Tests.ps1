@@ -9,6 +9,8 @@ Describe 'Test Find-PSResource for Module' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
+        $testModuleName = "testmodule"
+        $testScriptName = "test_script"
         $commandName = "Get-TargetResource"
         $dscResourceName = "SystemLocale"
         $parentModuleName = "SystemLocaleDsc"
@@ -41,7 +43,8 @@ Describe 'Test Find-PSResource for Module' {
         $res = Find-PSResource -Name "AzureS*" -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 1
         # should find Module and Script resources
-        foreach ($item in $res) {
+        foreach ($item in $res)
+        {
             if ($item.Type -eq "Script")
             {
                 $foundScript = $true
@@ -51,10 +54,62 @@ Describe 'Test Find-PSResource for Module' {
         $foundScript | Should -BeTrue
     }
 
-    It "should not find resources given Name that equals wildcard, '*'" {
-        Find-PSResource -Name "*" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "NameEqualsWildcardIsNotSupported,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
+    It "should find all resources given Name that equals wildcard, '*'" {
+        $foundPreview = $False
+        $foundTestScript = $False
+        $foundTestModule = $False
+        $res = Find-PSResource -Name "*" -Repository $TestGalleryName
+        #should find Module and Script resources
+        foreach ($item in $res)
+        {
+            if ($item.Name -eq $testModuleName)
+            {
+                $foundTestModule = $True
+            }
+
+            if ($item.Name -eq $testScriptName)
+            {
+                $foundTestScript = $True
+            }
+
+            if(-not [string]::IsNullOrEmpty($item.PrereleaseLabel))
+            {
+                $foundPreview = $True
+            }
+        }
+
+        $foundPreview | Should -Be $False
+        $foundTestScript | Should -Be $True
+        $foundTestModule | Should -Be $True
+    }
+
+    It "should find all resources (including prerelease) given Name that equals wildcard, '*' and Prerelease parameter" {
+        $foundPreview = $False
+        $foundTestScript = $False
+        $foundTestModule = $False
+        $res = Find-PSResource -Name "*" -Prerelease -Repository $TestGalleryName
+        #should find Module and Script resources
+        foreach ($item in $res)
+        {
+            if ($item.Name -eq $testModuleName)
+            {
+                $foundTestModule = $True
+            }
+
+            if ($item.Name -eq $testScriptName)
+            {
+                $foundTestScript = $True
+            }
+
+            if(-not [string]::IsNullOrEmpty($item.PrereleaseLabel))
+            {
+                $foundPreview = $True
+            }
+        }
+
+        $foundPreview | Should -Be $True
+        $foundTestScript | Should -Be $True
+        $foundTestModule | Should -Be $True
     }
 
     It "find resource given Name from V3 endpoint repository (NuGetGallery)" {
@@ -194,12 +249,49 @@ Describe 'Test Find-PSResource for Module' {
         }
     }
 
-    It "find resuources given Tag parameter" {
+    It "find all resources of Type Module when Type parameter set is used" {
+        $foundScript = $False
+        $res = Find-PSResource -Type Module -Repository $PSGalleryName
+        $res.Count | Should -BeGreaterThan 1
+        foreach ($item in $res) {
+            if ($item.Type -eq "Script")
+            {
+                $foundScript = $True
+            }
+        }
+
+        $foundScript | Should -Be $False
+    }
+
+    It "find resources given Tag parameter" {
         $resWithEitherExpectedTag = @("NetworkingDsc", "DSCR_FileContent", "SS.PowerShell")
         $res = Find-PSResource -Name "NetworkingDsc", "HPCMSL", "DSCR_FileContent", "SS.PowerShell", "PowerShellGet" -Tag "Dsc", "json" -Repository $PSGalleryName
         foreach ($item in $res) {
             $resWithEitherExpectedTag | Should -Contain $item.Name
         }
+    }
+
+    It "find all resources with specified tag given Tag property" {
+        $foundTestModule = $False
+        $foundTestScript = $False
+        $tagToFind = "Tag1"
+        $res = Find-PSResource -Tag $tagToFind -Repository $TestGalleryName
+        foreach ($item in $res) {
+            $item.Tags -contains $tagToFind | Should -Be $True
+
+            if ($item.Name -eq $testModuleName)
+            {
+                $foundTestModule = $True
+            }
+
+            if ($item.Name -eq $testScriptName)
+            {
+                $foundTestScript = $True
+            }
+        }
+
+        $foundTestModule | Should -Be $True
+        $foundTestScript | Should -Be $True
     }
 
     It "find resource with IncludeDependencies parameter" {
