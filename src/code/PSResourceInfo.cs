@@ -518,9 +518,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             try
             {                
                 var typeInfo = ParseMetadataType(metadataToParse, repositoryName, type, out ArrayList commandNames, out ArrayList dscResourceNames);
-                var resourceHashtable = new Hashtable();
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var resourceHashtable = new Hashtable
+                {
+                    { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
+                    { nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
+                };
                 var includes = new ResourceIncludes(resourceHashtable);
 
 
@@ -573,7 +575,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // We only convert Dictionary<string, string> types.
             if (typeof(T) != typeof(Dictionary<string, string>))
             {
-                return default(T);
+                return default;
             }
 
             var dict = new Dictionary<string, string>();
@@ -592,32 +594,21 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             var val = psObjectInfo.Properties[Name]?.Value;
             if (val == null)
             {
-                return default(T);
+                return default;
             }
 
-            switch (val)
+            return val switch
             {
-                case T valType:
-                    return valType;
-
-                case PSObject valPSObject:
-                    switch (valPSObject.BaseObject)
-                    {
-                        case T valBase:
-                            return valBase;
-
-                        case PSCustomObject _:
-                            // A base object of PSCustomObject means this is additional metadata
-                            // and type T should be Dictionary<string,string>.
-                            return ConvertToType<T>(valPSObject);
-
-                        default:
-                            return default(T);
-                    }
-
-                default:
-                    return default(T);
-            }
+                T valType => valType,
+                PSObject valPSObject => valPSObject.BaseObject switch
+                {
+                    T valBase => valBase,
+                    PSCustomObject _ => ConvertToType<T>(valPSObject),// A base object of PSCustomObject means this is additional metadata
+                                                                      // and type T should be Dictionary<string,string>.
+                    _ => default,
+                },
+                _ => default,
+            };
         }
 
         private static string GetPrereleaseLabel(Version version)
@@ -734,13 +725,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 else if (dependencyObj.Properties["Name"] != null)
                 {
                     string name = dependencyObj.Properties["Name"].Value.ToString();
-
-                    string version = string.Empty;
                     VersionRange versionRange = VersionRange.All;
 
                     if (dependencyObj.Properties["VersionRange"] != null)
                     {
-                        version = dependencyObj.Properties["VersionRange"].Value.ToString();
+                        string version = dependencyObj.Properties["VersionRange"].Value.ToString();
                         VersionRange.TryParse(version, out versionRange);
                     }
 

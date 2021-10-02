@@ -153,6 +153,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             GetHelper getHelper = new GetHelper(this);
             List<string>  dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
 
+
             // Checking if module or script
             // a module path will look like:
             // ./Modules/TestModule/0.0.1
@@ -161,12 +162,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ./Scripts/TestScript.ps1
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
-            string pkgName = string.Empty;
-
             foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
             {
-                pkgName = Utils.GetInstalledPackageName(pkgPath);
+                
 
+                string pkgName = Utils.GetInstalledPackageName(pkgPath);
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
                 {
                     WriteVerbose("ShouldProcess is set to false.");

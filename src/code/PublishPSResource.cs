@@ -155,7 +155,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private NuGetVersion _pkgVersion;
         private string _pkgName;
-        private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+        private static readonly char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
 
         #endregion
 
@@ -196,7 +196,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // ParseScriptMetadata will write non-terminating error if it's unsucessful in parsing
                 parsedMetadataHash = ParseScriptMetadata(moduleFileInfo);
 
-                var message = string.Empty;
+                string message;
                 // Check that the value is valid input
                 // If it does not contain 'Version' or the Version empty or whitespace, write error
                 if (!parsedMetadataHash.ContainsKey("Version") || String.IsNullOrWhiteSpace(parsedMetadataHash["Version"].ToString()))
@@ -442,9 +442,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (moduleFileInfo.Extension.Equals(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the module manifest 
-                System.Management.Automation.Language.Token[] tokens;
-                ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
+                var ast = Parser.ParseFile(moduleFileInfo.FullName, out System.Management.Automation.Language.Token[] tokens, out ParseError[] errors);
 
                 if (errors.Length > 0)
                 {
@@ -488,10 +486,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             XmlElement packageElement = doc.CreateElement("package", nameSpaceUri);
             XmlElement metadataElement = doc.CreateElement("metadata", nameSpaceUri);
 
-            Dictionary<string, string> metadataElementsDictionary = new Dictionary<string, string>();
-       
-            // id is mandatory
-            metadataElementsDictionary.Add("id", _pkgName);
+            Dictionary<string, string> metadataElementsDictionary = new Dictionary<string, string>
+            {
+
+                // id is mandatory
+                { "id", _pkgName }
+            };
 
             string version = String.Empty;
             if (parsedMetadataHash.ContainsKey("moduleversion"))
@@ -732,11 +732,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // We're retrieving all the comments within a script and grabbing all the key/value pairs
             // because there's no standard way to create metadata for a script.
             Hashtable parsedMetadataHash = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
-            
+
             // parse comments out           
-            System.Management.Automation.Language.Token[] tokens;
-            ParseError[] errors;
-            Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
+            Parser.ParseFile(moduleFileInfo.FullName, out System.Management.Automation.Language.Token[] tokens, out ParseError[] errors);
 
             if (errors.Length > 0)
             {

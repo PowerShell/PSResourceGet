@@ -258,7 +258,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         WriteVerbose("(RepositoriesParameterSet): on repo: PSGallery. Registers PSGallery repository");
                         reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(
                             repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
-                            repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
+                            repo.ContainsKey("Trusted") && (bool)repo["Trusted"]));
                     }
                     catch (Exception e)
                     {
@@ -329,7 +329,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return NameParameterSetHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
-                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted);
+                    repo.ContainsKey("Trusted") && Convert.ToBoolean(repo["Trusted"].ToString()));
             }
             catch (Exception e)
             {

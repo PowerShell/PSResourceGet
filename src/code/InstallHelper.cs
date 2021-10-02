@@ -157,7 +157,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
                         name: packageNames,
                         type: ResourceType.None,
-                        version: _versionRange != null ? _versionRange.OriginalString : null,
+                        version: _versionRange?.OriginalString,
                         prerelease: _prerelease,
                         tag: null,
                         repository: new string[] { repoName },
@@ -264,7 +264,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                                                            // TODO: check the attributes and if it's read only then set it 
                                                                            // attribute may be inherited from the parent
                                                                            // TODO:  are there Linux accommodations we need to consider here?
-                    dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+                    dir.Attributes &= ~FileAttributes.ReadOnly;
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", p.Name));
 
@@ -380,7 +380,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
                     string moduleManifestVersion = string.Empty;
                     var scriptPath = Path.Combine(tempDirNameVersion, (p.Name + ".ps1"));
-                    var isScript = File.Exists(scriptPath) ? true : false;
+                    var isScript = File.Exists(scriptPath);
 
                     if (!isScript)
                     {

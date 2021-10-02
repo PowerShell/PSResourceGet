@@ -400,9 +400,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the module manifest 
-                System.Management.Automation.Language.Token[] tokens;
-                ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFileInfo, out tokens, out errors);
+                var ast = Parser.ParseFile(moduleFileInfo, out Token[] tokens, out ParseError[] errors);
 
                 if (errors.Length > 0)
                 {

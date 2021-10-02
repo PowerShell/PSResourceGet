@@ -89,8 +89,7 @@ public class NuGetLogger : ILogger
 
     public void Clear()
     {
-        string msg;
-        while (Messages.TryDequeue(out msg))
+        while (Messages.TryDequeue(out string msg))
         {
             // do nothing
         }

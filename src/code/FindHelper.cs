@@ -267,7 +267,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (String.IsNullOrWhiteSpace(pkgName))
                 {
                     _cmdletPassedIn.WriteVerbose(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.",
-                        pkgName == null ? "null string" : pkgName));
+                        pkgName ?? "null string"));
                     continue;
                 }
 
