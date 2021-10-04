@@ -362,20 +362,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
 
                     // Prompt if module requires license acceptance (need to read info license acceptance info from the module manifest)
-                    // pkgIdentity.Version.Version gets the version without metadata or release labels.
-
-
+                    // pkgIdentity.Version.Version gets the version without metadata or release labels.      
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
               
-                    //
                     string normalizedVersionNoPrereleaseLabel = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
                     {
-                        // 2.0.2
+                        // eg: 2.0.2
                         normalizedVersionNoPrereleaseLabel = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
                     }
-                    //p.Version = new System.Version(normalizedVersionNoPrereleaseLabel);
-
+                    
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
                     string moduleManifestVersion = string.Empty;
@@ -402,6 +398,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
+                        
+                        //string commandsAsStr = string.Empty;
+                        object[] metaHashObj = parsedMetadataHashtable["CmdletsToExport"] as Object[];
+                        int hashLength = metaHashObj.Length;
+                        string[] commands = new string[hashLength];
+
+                        /*foreach (var a in (parsedMetadataHashtable["FunctionsToExport"] as Object[]))
+                        {
+                            commands = commands.Append
+                            commandsAsStr += (", " + a as string);
+                        } */
+
+                        for (int i = 0; i < hashLength; i++)
+                        {
+                            commands[i] = metaHashObj[i] as string;
+                        }
+                        
+                        // Clobber verification
+                        if (_noClobber && commands.Length > 0 && !CallClobberCheck(p.Name, commands))
+                        {
+                            continue;
+                        }
 
                         // Accept License verification
                         if (!_savePkg && !CallAcceptLicense(p, moduleManifest, tempInstallPath, newVersion))
@@ -463,7 +481,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return pkgsSuccessfullyInstalled;
         }
-        
+
+        private bool CallClobberCheck(string pkgName, string[] commands)
+        {
+            var success = true;
+
+            try
+            {
+                var results = _cmdletPassedIn.InvokeCommand.InvokeScript(
+                                script: $"param ([string[]] $commands) Get-Command $commands",
+                                useNewScope: true,
+                                writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                                input: null,
+                                args: new object[] { commands });
+
+                if (results != null)
+                {
+                    // The following commands already exist on the system.
+                    var resultsAsStr = string.Join(", ", results);
+                    _cmdletPassedIn.WriteVerbose(string.Format("The resource '{0}' cannot be installed because the following commands already exist on the system '{1}'", pkgName, resultsAsStr));
+
+                    success = false;
+                }
+            }
+            catch (Exception e) {
+                success = false;
+            }
+
+            return success;
+        }
+
         private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion)
         {
             var requireLicenseAcceptance = false;
@@ -566,6 +613,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var nupkgSHAToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg.sha512").ToLower());
             var nuspecToDelete = Path.Combine(dirNameVersion, (pkgIdentity.Id + ".nuspec").ToLower());
             var nupkgToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg").ToLower());
+            var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg.metadata").ToLower());
             var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
             var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
             var packageDirToDelete = Path.Combine(dirNameVersion, "package");
@@ -585,6 +633,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgToDelete));
                 File.Delete(nupkgToDelete);
+            }
+            if (File.Exists(nupkgMetadataToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgMetadataToDelete));
+                File.Delete(nupkgMetadataToDelete);
             }
             if (File.Exists(contentTypesToDelete))
             {
