@@ -397,6 +397,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
+                        moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
+
                         // Accept License verification
                         if (!_savePkg && !CallAcceptLicense(p, moduleManifest, tempInstallPath, newVersion))
                         {
