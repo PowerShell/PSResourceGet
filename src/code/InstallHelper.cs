@@ -559,10 +559,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
             var pkgIdString = pkgIdentity.ToString();
-            var nupkgSHAToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg.sha512").ToLower());
-            var nuspecToDelete = Path.Combine(dirNameVersion, (pkgIdentity.Id + ".nuspec").ToLower());
-            var nupkgToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg").ToLower());
-            var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg.metadata").ToLower());
+            var nupkgSHAToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg.sha512"));
+            var nuspecToDelete = Path.Combine(dirNameVersion, (pkgIdentity.Id + ".nuspec"));
+            var nupkgToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg"));
+            var nupkgMetadataToDelete = Path.Combine(dirNameVersion, (pkgIdString + ".nupkg.metadata"));
             var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
             var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
             var packageDirToDelete = Path.Combine(dirNameVersion, "package");
