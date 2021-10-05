@@ -7,7 +7,8 @@
 Important Note
 ==============
 This version of PowerShellGet is currently under development and is not feature complete.
-As a result, we are currently not accepting PRs to this repository.  
+As a result, we are currently only accepting PRs for tests.
+If you would like to open a PR please open an issue first so that necessary discussion can take place.
 Please open an issue for any feature requests, bug reports, or questions for PowerShellGet version 3.0 (currently available as a preview release).
 Please note, the repository for previous versions of PowerShellGet has a new location at [PowerShell/PowerShellGetv2](https://github.com/PowerShell/PowerShellGetv2).  
 
