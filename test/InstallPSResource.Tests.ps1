@@ -143,7 +143,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under AllUsers scope - Windows only" -Skip:(!(Get-IsWindows)) {
+    It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 

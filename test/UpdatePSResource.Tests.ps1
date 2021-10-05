@@ -177,7 +177,7 @@ Describe 'Test Update-PSResource' {
     }
 
     # Windows only
-    It "update resource under AllUsers scope" -skip:(!$IsWindows) {
+    It "update resource under AllUsers scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
 
