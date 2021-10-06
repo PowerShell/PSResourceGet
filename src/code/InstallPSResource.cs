@@ -46,7 +46,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the repositories from which to search for the resource to be installed.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
@@ -110,7 +110,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // An exact version will be formatted into a version range.
             if (ParameterSetName.Equals(NameParameterSet) && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";
                 var ex = new ArgumentException(exMessage);
@@ -118,17 +117,42 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
-            // if no Version specified, install latest version for the package
-            if (Version == null)
-            {
-                _versionRange = VersionRange.All;
-            }
+            // // if no Version specified, install latest version for the package
+            // if (Version == null)
+            // {
+            //     WriteDebug("Install- version is null!");
+            //     _versionRange = VersionRange.All;
+            // }
 
+            // if (Repository != null)
+            // {
+            //     WriteDebug("Install- Repository is: " + String.Join(", ", Repository));
+            // }
+            // else
+            // {
+            //     WriteDebug("Install- Repository is: null" );
+            // }
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
         }
 
         protected override void ProcessRecord()
         {
+            // if no Version specified, install latest version for the package
+            if (Version == null)
+            {
+                _versionRange = VersionRange.All;
+            }
+            else
+            {
+                Utils.TryParseVersionOrVersionRange(Version, out _versionRange);
+            }
+
+            // WriteDebug("Install 2- Version is: " + Version);
+            // if (Repository != null)
+            // {
+            //     WriteDebug("Install 2- Repository is: " + String.Join(", ", Repository));
+            // }
+
             if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", Name))))
             {
                 WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", Name)));

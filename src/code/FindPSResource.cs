@@ -148,6 +148,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            WriteDebug("Find- Repository is: " + String.Join(", ", Repository));
+            if (Version == null)
+            {
+                WriteDebug("Find- Version is null");
+            }
+            else
+            {
+                WriteDebug("Find- Version is: " + Version);
+            }
+
             switch (ParameterSetName)
             {
                 case ResourceNameParameterSet:
