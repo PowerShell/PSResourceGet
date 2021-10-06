@@ -243,6 +243,13 @@ Describe 'Test Install-PSResource for Module' {
         $res = Get-Module "TestModule" -ListAvailable
         $res | Should -BeNullOrEmpty
     }
+
+    It "Validate that Pester is installing under Modules path" {
+        Install-PSResource -Name "Pester" -Repository PSGallery
+    
+        $res = Get-Module "Pester" -ListAvailable
+        $res.Path.Contains("Modules") | Should -Be $true
+    }
 }
 
 <# Temporarily commented until -Tag is implemented for this Describe block
