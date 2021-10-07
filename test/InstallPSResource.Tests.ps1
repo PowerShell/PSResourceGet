@@ -245,9 +245,11 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Validate that Pester is installing under Modules path" {
+        write-Output $PSGalleryName
         Install-PSResource -Name "Pester" -Repository $PSGalleryName
     
         $res = Get-Module "Pester" -ListAvailable
+        Write-Output ($res)
         $res.Path.Contains("Modules") | Should -Be $true
     }
 }
