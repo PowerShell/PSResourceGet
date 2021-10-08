@@ -102,6 +102,40 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string _literalPath;
 
         /// <summary>
+        /// Specifies the path to where the resource (as a nupkg) should be saved to. This parameter can be used in conjunction with the
+        /// -Repository parameter to publish to a repository and also save the exact same package to the local file system.
+        /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
+        /// </summary>
+        [Parameter()]
+        [ValidateNotNullOrEmpty]
+        public string DestinationPath
+        {
+            get
+            { return _destinationPath; }
+
+            set
+            {
+                string resolvedPath = string.Empty;
+                if (!string.IsNullOrEmpty(value))
+                {
+                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+                }
+
+                if (Directory.Exists(resolvedPath))
+                {
+                    _destinationPath = resolvedPath;
+                }
+                // consider throwing error if path does not exist
+                else {
+                    var ex = new ArgumentException("Destination path does not exist.");
+                    var DestinationPathDoesNotExist = new ErrorRecord(ex, "DestinationPathDoesNotExist", ErrorCategory.InvalidArgument, null);
+                    WriteError(DestinationPathDoesNotExist);
+                }
+            }
+        }
+        private string _destinationPath;
+
+        /// <summary>
         /// Specifies a user account that has rights to a specific repository (used for finding dependencies).
         /// </summary>
         [Parameter()]
@@ -374,7 +408,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
-                 PushNupkg(outputNupkgDir, repositoryUrl);
+                // This call does not throw any exceptions, but it will return unsuccessful response status codes
+                PushNupkg(outputNupkgDir, repositoryUrl);
+
+                // If -DestinationPath is specified then also publish the .nupkg there
+                if (!string.IsNullOrWhiteSpace(_destinationPath))
+                {
+                    try
+                    {
+                        var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
+                        File.Move(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
+                    }
+                    catch (Exception e) {
+                        var message = string.Format("Error moving .nupkg into destination path: '{0}'.", e.Message);
+                        var ex = new ArgumentException(message);
+                        var ErrorMovingNupkg = new ErrorRecord(ex, "ErrorMovingNupkg", ErrorCategory.NotSpecified, null);
+                        WriteError(ErrorMovingNupkg);
+
+                        // exit process record
+                        return;
+                    }
+                }
             }
             finally {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
