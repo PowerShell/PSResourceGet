@@ -144,19 +144,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
+            // TODO: what should versionRange be by default;
+            // if no Version specified, install latest version for the package
+            if (Version == null)
+            {
+                _versionRange = VersionRange.All;
+            }
+        
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && 
-                Version != null && 
-                !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            else if (ParameterSetName.Equals("NameParameterSet") && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";
                 var ex = new ArgumentException(exMessage);
                 var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
-
-            // TODO: what should versionRange be by default;
 
             var installHelper = new InstallHelper(updatePkg: false, savePkg: true, cmdletPassedIn: this);
 
