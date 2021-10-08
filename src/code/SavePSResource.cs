@@ -129,18 +129,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && 
-                Version != null && 
-                !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-            {
-                var exMessage = "Argument for -Version parameter is not in the proper format.";
-                var ex = new ArgumentException(exMessage);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(IncorrectVersionFormat);
-            }
-
             // If the user does not specify a path to save to, use the user's current working directory
             if (string.IsNullOrWhiteSpace(_path))
             {
@@ -155,6 +143,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", String.Join(", ", Name)));
                 return;
             }
+
+            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+            // an exact version will be formatted into a version range.
+            if (ParameterSetName.Equals("NameParameterSet") && 
+                Version != null && 
+                !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            {
+                var exMessage = "Argument for -Version parameter is not in the proper format.";
+                var ex = new ArgumentException(exMessage);
+                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(IncorrectVersionFormat);
+            }
+
+            // TODO: what should versionRange be by default;
 
             var installHelper = new InstallHelper(updatePkg: false, savePkg: true, cmdletPassedIn: this);
 

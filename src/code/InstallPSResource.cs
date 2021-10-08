@@ -107,31 +107,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // An exact version will be formatted into a version range.
-            if (ParameterSetName.Equals(NameParameterSet) && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-            {
-                var exMessage = "Argument for -Version parameter is not in the proper format.";
-                var ex = new ArgumentException(exMessage);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(IncorrectVersionFormat);
-            }
-
-            // // if no Version specified, install latest version for the package
-            // if (Version == null)
-            // {
-            //     WriteDebug("Install- version is null!");
-            //     _versionRange = VersionRange.All;
-            // }
-
-            // if (Repository != null)
-            // {
-            //     WriteDebug("Install- Repository is: " + String.Join(", ", Repository));
-            // }
-            // else
-            // {
-            //     WriteDebug("Install- Repository is: null" );
-            // }
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
         }
 
@@ -142,16 +117,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _versionRange = VersionRange.All;
             }
-            else
+            
+            // otherwise if a -Version param is passed in validate that it can be parsed into a NuGet version range. 
+            // An exact version will be formatted into a version range.
+            else if (ParameterSetName.Equals(NameParameterSet) && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
-                Utils.TryParseVersionOrVersionRange(Version, out _versionRange);
+                var exMessage = "Argument for -Version parameter is not in the proper format.";
+                var ex = new ArgumentException(exMessage);
+                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(IncorrectVersionFormat);
             }
-
-            // WriteDebug("Install 2- Version is: " + Version);
-            // if (Repository != null)
-            // {
-            //     WriteDebug("Install 2- Repository is: " + String.Join(", ", Repository));
-            // }
 
             if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", Name))))
             {

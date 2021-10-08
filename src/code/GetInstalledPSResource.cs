@@ -53,20 +53,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            // Validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // an exact version will be formatted into a version range.
-            if (Version == null)
-            {
-                _versionRange = VersionRange.All;
-            }
-            else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-            {
-                var exMessage = "Argument for -Version parameter is not in the proper format.";
-                var ex = new ArgumentException(exMessage);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(IncorrectVersionFormat);
-            }
-
             // Determine paths to search.
             _pathsToSearch = new List<string>();
             if (Path != null)
@@ -111,6 +97,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             WriteVerbose("Entering GetInstalledPSResource");
+
+            // Validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+            // an exact version will be formatted into a version range.
+            if (Version == null)
+            {
+                _versionRange = VersionRange.All;
+            }
+            else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            {
+                var exMessage = "Argument for -Version parameter is not in the proper format.";
+                var ex = new ArgumentException(exMessage);
+                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(IncorrectVersionFormat);
+            }
 
             var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
