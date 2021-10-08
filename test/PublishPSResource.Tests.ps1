@@ -281,7 +281,8 @@ Describe "Test Publish-PSResource" {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -DestinationPath $tmpPath
 
-        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
+
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
 
         $expectedPath = Join-Path -Path $tmpPath -ChildPath "$script:PublishModuleName.$version.nupkg"
