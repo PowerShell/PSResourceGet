@@ -60,9 +60,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void BeginProcessing()
         {
+            _pathsToSearch = Utils.GetAllResourcePaths(this);
+        }
+
+        protected override void ProcessRecord()
+        {
+            // if no Version specified, uninstall all versions for the package
+            if (Version == null)
+            {
+                _versionRange = VersionRange.All;
+            }
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            else if (ParameterSetName.Equals("NameParameterSet") && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";
                 var ex = new ArgumentException(exMessage);
@@ -70,17 +80,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
-            // if no Version specified, uninstall all versions for the package
-            if (Version == null)
-            {
-                _versionRange = VersionRange.All;
-            }
-
-            _pathsToSearch = Utils.GetAllResourcePaths(this);
-        }
-
-        protected override void ProcessRecord()
-        {
             switch (ParameterSetName)
             {
                 case NameParameterSet:
