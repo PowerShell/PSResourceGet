@@ -240,6 +240,12 @@ stages:
       displayName: Copy already properly signed third party files
       condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
+    - ${{ if ne(variables.SkipSigning, 'True') }}:
+      - template: Sbom.yml@ComplianceRepo
+        parameters:
+          BuildDropPath: $(signOutPath)
+          Build_Repository_Uri: 'https://github.com/powershell/powershellget'
+
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
