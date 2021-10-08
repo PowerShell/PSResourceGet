@@ -87,6 +87,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = NameParameterSet)]
         public SwitchParameter AcceptLicense { get; set; }
 
+        /// <summary>
+        /// Prevents installing a package that contains cmdlets that already exist on the machine.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public SwitchParameter NoClobber { get; set; }
+
         #endregion
 
         #region Members
@@ -177,7 +183,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         reinstall: Reinstall,
                         force: false,
                         trustRepository: TrustRepository,
-                        noClobber: false,
+                        noClobber: NoClobber,
                         credential: Credential,
                         requiredResourceFile: null, 
                         requiredResourceJson: null, 
