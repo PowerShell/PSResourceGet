@@ -420,7 +420,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         File.Move(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
                     }
                     catch (Exception e) {
-                        var message = string.Format("Error moving .nupkg into destination path: '{0}'.", e.Message);
+                        var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", _destinationPath, e.Message);
+
                         var ex = new ArgumentException(message);
                         var ErrorMovingNupkg = new ErrorRecord(ex, "ErrorMovingNupkg", ErrorCategory.NotSpecified, null);
                         WriteError(ErrorMovingNupkg);
