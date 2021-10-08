@@ -378,7 +378,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var scriptPath = Path.Combine(tempDirNameVersion, (p.Name + ".ps1"));
                     var modulePath = Path.Combine(tempDirNameVersion, (p.Name + ".psd1"));
                     // Check if the package is a module or a script
-                    var isModule = File.Exists(modulePath) ? true : false;
+                    var isModule = File.Exists(modulePath);
+
 
                     if (isModule)
                     {
