@@ -17,7 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
-    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true)]
+    [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", SupportsShouldProcess = true)]
     public sealed class UninstallPSResource : PSCmdlet
     {
         #region Parameters
@@ -25,33 +25,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to uninstall.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
         /// <summary>
         /// Specifies the version or version range of the package to be uninstalled.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
 
         /// <summary>
-        /// Used for pipeline input.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = InputObjectSet)]
-        [ValidateNotNullOrEmpty]
-        public PSResourceInfo[] InputObject { get; set; }
-
-        /// <summary>
-        /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter()]
         public SwitchParameter Force { get; set; }
         #endregion
 
         #region Members
-        private const string NameParameterSet = "NameParameterSet";
-        private const string InputObjectSet = "InputObjectSet";
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
@@ -72,7 +63,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
             // an exact version will be formatted into a version range.
-            else if (ParameterSetName.Equals("NameParameterSet") && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";
                 var ex = new ArgumentException(exMessage);
@@ -80,70 +71,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
-            switch (ParameterSetName)
+            Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
+            
+            foreach (string error in errorMsgs)
             {
-                case NameParameterSet:
-                    Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
-                    
-                    foreach (string error in errorMsgs)
-                    {
-                        WriteError(new ErrorRecord(
-                            new PSInvalidOperationException(error),
-                            "ErrorFilteringNamesForUnsupportedWildcards",
-                            ErrorCategory.InvalidArgument,
-                            this));
-                    }
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
 
-                    // this catches the case where Name wasn't passed in as null or empty,
-                    // but after filtering out unsupported wildcard names there are no elements left in Name
-                    if (Name.Length == 0)
-                    {
-                        return;
-                    }
+            // this catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in Name
+            if (Name.Length == 0)
+            {
+                return;
+            }
 
-                    if (!UninstallPkgHelper())
-                    {
-                        // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
-                        WriteVerbose("Did not successfully uninstall all packages");
-                    }
-                    break;
-
-                case InputObjectSet:
-                    // the for loop will use type PSObject in order to pull the properties from the pkg object
-                    foreach (PSResourceInfo pkg in InputObject)
-                    {
-                        if (pkg == null)
-                        {
-                            continue;
-                        }
-
-                        // attempt to parse version
-                        if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange))
-                        {
-                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
-                            var ex = new ArgumentException(exMessage);
-                            var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
-                            WriteError(ErrorParsingVersion);
-                        }
-
-                        Name = new string[] { pkg.Name };
-                        if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper())
-                        {
-                            // specific errors will be displayed lower in the stack
-                            var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", pkg.Name));
-                            var ex = new ArgumentException(exMessage);
-                            var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
-                                WriteError(UninstallResourceError);
-                        }
-                    }
-                    break;
-
-                default:
-                    WriteVerbose("Invalid parameter set");
-                    break;
+            if (!UninstallPkgHelper())
+            {
+                // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
+                WriteVerbose("Did not successfully uninstall all packages");
             }
         }
-
 
         private bool UninstallPkgHelper()
         {
