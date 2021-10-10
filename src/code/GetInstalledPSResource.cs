@@ -36,7 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version of the resource to include to look for. 
         /// </summary>
-        [Parameter()]
+        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty()]
         public string Version { get; set; }
 

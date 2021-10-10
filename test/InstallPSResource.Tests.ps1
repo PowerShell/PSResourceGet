@@ -9,6 +9,7 @@ Describe 'Test Install-PSResource for Module' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
+        $testModuleName = "TestModule"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
@@ -242,6 +243,14 @@ Describe 'Test Install-PSResource for Module' {
     
         $res = Get-Module "TestModule" -ListAvailable
         $res | Should -BeNullOrEmpty
+    }
+
+    It "Install PSResourceInfo object piped in" {
+        Find-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName | Install-PSResource
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "1.1.0.0"
+        $res.Repository | Should -Be $TestGalleryName
     }
 }
 

@@ -18,6 +18,7 @@ Describe 'Test Get-InstalledPSResource for Module' {
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
+        Uninstall-PSResource -Name "ContosoServer", "TestTestScript"
     }
 
     It "Get resources without any parameter values" {
@@ -105,5 +106,12 @@ $testCases =
     It "Get resources when given Name, and Version is '*'" {
         $pkgs = Get-InstalledPSResource -Name ContosoServer -Version "*"
         $pkgs.Count | Should -BeGreaterOrEqual 2
+    }
+
+    It "Get PSResourceInfo object piped in" {
+        $res = Find-PSResource -Name "ContosoServer" -Version "1.5.0.0" -Repository $TestGalleryName | Get-InstalledPSResource
+        $res.Name | Should -Be "ContosoServer"
+        $res.Version | Should -Be "1.5.0.0"
+        $res.Repository | Should -Be $TestGalleryName
     }
 }
