@@ -344,4 +344,12 @@ Describe 'Test Update-PSResource' {
 
         $isPkgUpdated | Should -Be $false
     }
+
+    It "Update to PSResourceInfo object piped in" {
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
+        Find-PSResource -Name "TestModule" -Version "1.2.0.0" | Updated-PSResource
+        $res = Get-InstalledPSResource -Name "TestModule"
+        $res.Name | Should -Be "TestModule"
+        $res.Version | Should -Be "1.2.0.0"
+    }
 }

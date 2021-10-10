@@ -43,7 +43,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version the resource is to be updated to.
         /// </summary>
-        [Parameter]
+        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
 

@@ -258,7 +258,6 @@ Describe 'Test Install-PSResource for Module' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.1.0.0"
-        $res.Repository | Should -Be $TestGalleryName
     }
 }
 
