@@ -173,6 +173,13 @@ Describe 'Test Save-PSResource for PSResources' {
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1
     }
 
+    It "Save PSResourceInfo object piped in" {
+        Find-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName | Save-PSResource -Path $SaveDir
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"
+        $pkgDir | Should -Not -BeNullOrEmpty 
+        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
+    }
+
 <#
     # Tests should not write to module directory
     It "Save specific module resource by name if no -Path param is specifed" {
