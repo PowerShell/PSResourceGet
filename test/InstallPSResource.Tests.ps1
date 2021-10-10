@@ -144,7 +144,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under AllUsers scope - Windows only" -Skip:(!(Get-IsWindows)) {
+    It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -243,6 +243,14 @@ Describe 'Test Install-PSResource for Module' {
     
         $res = Get-Module "TestModule" -ListAvailable
         $res | Should -BeNullOrEmpty
+    }
+
+    It "Validates that a module with module-name script files (like Pester) installs under Modules path" {
+
+        Install-PSResource -Name "testModuleWithScript" -Repository $TestGalleryName
+    
+        $res = Get-Module "testModuleWithScript" -ListAvailable
+        $res.Path.Contains("Modules") | Should -Be $true
     }
 
     It "Install PSResourceInfo object piped in" {
