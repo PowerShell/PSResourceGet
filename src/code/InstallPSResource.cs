@@ -46,7 +46,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the repositories from which to search for the resource to be installed.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
