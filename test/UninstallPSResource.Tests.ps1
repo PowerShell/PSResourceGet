@@ -162,4 +162,11 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg = Get-Module "RequiredModule1" -ListAvailable
         $pkg | Should -Be $null
     }
+
+    It "Uninstall PSResourceInfo object piped in" {
+        Install-PSResource -Name "ContosoServer" -Version "1.5.0.0" -Repository $TestGalleryName
+        Get-InstalledPSResource -Name "ContosoServer" -Version "1.5.0.0" | Uninstall-PSResource
+        $res = Get-InstalledPSResource -Name "ContosoServer" -Version "1.5.0.0"
+        $res | Should -BeNullOrEmpty
+    }
 }
