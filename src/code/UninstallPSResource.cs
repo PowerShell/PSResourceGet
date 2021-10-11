@@ -56,13 +56,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // if no Version specified, uninstall all versions for the package
+            // If no Version specified, uninstall all versions for the package.
+            // Otherwise, validate that the -Version param passed in can be parsed into a NuGet version range. 
+            // An exact version will be formatted into a version range.
             if (Version == null)
             {
                 _versionRange = VersionRange.All;
             }
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // an exact version will be formatted into a version range.
             else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";

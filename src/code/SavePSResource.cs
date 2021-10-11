@@ -144,15 +144,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            // TODO: what should versionRange be by default;
-            // if no Version specified, install latest version for the package
+            // If no Version specified, save latest version for the package.
+            // Otherwise, validate that the -Version param passed in can be parsed into a NuGet version range. 
+            // An exact version will be formatted into a version range.
             if (Version == null)
             {
                 _versionRange = VersionRange.All;
             }
-        
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // an exact version will be formatted into a version range.
             else if (ParameterSetName.Equals("NameParameterSet") && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";

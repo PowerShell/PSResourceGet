@@ -112,14 +112,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // if no Version specified, install latest version for the package
+            // If no Version specified, install latest version for the package.
+            // Otherwise, validate that the -Version param passed in can be parsed into a NuGet version range. 
+            // An exact version will be formatted into a version range.
             if (Version == null)
             {
                 _versionRange = VersionRange.All;
             }
-            
-            // otherwise if a -Version param is passed in validate that it can be parsed into a NuGet version range. 
-            // An exact version will be formatted into a version range.
             else if (ParameterSetName.Equals(NameParameterSet) && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";

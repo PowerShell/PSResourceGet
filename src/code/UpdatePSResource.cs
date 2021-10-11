@@ -115,7 +115,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             VersionRange versionRange;
 
-            // handle case where Version == null
+            // If no Version specified, update to latest version for the package.
+            // Otherwise, validate that the -Version param passed in can be parsed into a NuGet version range. 
+            // An exact version will be formatted into a version range.
             if (Version == null) { 
                 versionRange = VersionRange.All;
             }
