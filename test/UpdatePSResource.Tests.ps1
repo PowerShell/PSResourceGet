@@ -347,8 +347,8 @@ Describe 'Test Update-PSResource' {
 
     It "Update to PSResourceInfo object piped in" {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
-        Find-PSResource -Name "TestModule" -Version "1.2.0.0" | Updated-PSResource
-        $res = Get-InstalledPSResource -Name "TestModule"
+        Find-PSResource -Name "TestModule" -Version "1.2.0.0" | Update-PSResource
+        $res = Get-InstalledPSResource -Name "TestModule" -Version "1.2.0.0"
         $res.Name | Should -Be "TestModule"
         $res.Version | Should -Be "1.2.0.0"
     }
