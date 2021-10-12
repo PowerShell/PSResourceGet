@@ -76,7 +76,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         _versionRange = VersionRange.All;
                     }
-
                     else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
                     {
                         var exMessage = "Argument for -Version parameter is not in the proper format.";
