@@ -33,7 +33,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to save from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
@@ -61,7 +61,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has rights to save a resource from a specific repository.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         public PSCredential Credential { get; set; }
         
@@ -82,7 +82,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
-        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Path
@@ -130,18 +130,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
-
-            // // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // // an exact version will be formatted into a version range.
-            // if (ParameterSetName.Equals("NameParameterSet") && 
-            //     Version != null && 
-            //     !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-            // {
-            //     var exMessage = "Argument for -Version parameter is not in the proper format.";
-            //     var ex = new ArgumentException(exMessage);
-            //     var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-            //     ThrowTerminatingError(IncorrectVersionFormat);
-            // }
 
             // If the user does not specify a path to save to, use the user's current working directory
             if (string.IsNullOrWhiteSpace(_path))
