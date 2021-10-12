@@ -39,19 +39,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = InputObjectSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = InputObjectParameterSet)]
         [ValidateNotNullOrEmpty]
         public PSResourceInfo[] InputObject { get; set; }
 
         /// <summary>
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter Force { get; set; }
         #endregion
 
         #region Members
         private const string NameParameterSet = "NameParameterSet";
-        private const string InputObjectSet = "InputObjectSet";
+        private const string InputObjectParameterSet = "InputObjectParameterSet";
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
@@ -109,7 +110,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     break;
 
-                case InputObjectSet:
+                case InputObjectParameterSet:
                     foreach (PSResourceInfo pkg in InputObject)
                     {
                         if (pkg == null)
@@ -162,7 +163,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string pkgName = string.Empty;
             foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
             {
-                WriteVerbose("second in loop version range in FilterPkgPathsByVersion:" + _versionRange);
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))

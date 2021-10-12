@@ -22,7 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
 
         private const string NameParameterSet = "NameParameterSet";
-        private const string InputObjectSet = "InputObjectSet";
+        private const string InputObjectParameterSet = "InputObjectParameterSet";
         VersionRange _versionRange;
         
         #endregion
@@ -54,15 +54,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the specific repositories to search within.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        // todo: add tab completion (look at get-psresourcerepository at the name parameter)
-        [ValidateNotNullOrEmpty]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
+        [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
 
         /// <summary>
         /// Specifies a user account that has rights to save a resource from a specific repository.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public PSCredential Credential { get; set; }
         
         /*
@@ -82,7 +82,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
-        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "NameParameterSet")]
+        [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -109,15 +110,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter TrustRepository { get; set; }
         
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = InputObjectSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = InputObjectParameterSet)]
         [ValidateNotNullOrEmpty]
-        public object[] InputObject { set; get; }
+        public PSResourceInfo[] InputObject { get; set; }
 
         #endregion
 
@@ -129,17 +131,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && 
-                Version != null && 
-                !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-            {
-                var exMessage = "Argument for -Version parameter is not in the proper format.";
-                var ex = new ArgumentException(exMessage);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(IncorrectVersionFormat);
-            }
+            // // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+            // // an exact version will be formatted into a version range.
+            // if (ParameterSetName.Equals("NameParameterSet") && 
+            //     Version != null && 
+            //     !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+            // {
+            //     var exMessage = "Argument for -Version parameter is not in the proper format.";
+            //     var ex = new ArgumentException(exMessage);
+            //     var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+            //     ThrowTerminatingError(IncorrectVersionFormat);
+            // }
 
             // If the user does not specify a path to save to, use the user's current working directory
             if (string.IsNullOrWhiteSpace(_path))
@@ -150,12 +152,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            if (!ShouldProcess(string.Format("Resources to save: '{0}'", String.Join(", ", Name))))
-            {
-                WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", String.Join(", ", Name)));
-                return;
-            }
-
             var installHelper = new InstallHelper(updatePkg: false, savePkg: true, cmdletPassedIn: this);
 
             switch (ParameterSetName)
@@ -188,6 +184,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return;
                     }
 
+                    // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+                    // an exact version will be formatted into a version range.
+                    if (Version == null)
+                    {
+                        _versionRange = VersionRange.All;
+                    }
+                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+                    {
+                        var exMessage = "Argument for -Version parameter is not in the proper format.";
+                        var ex = new ArgumentException(exMessage);
+                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                        ThrowTerminatingError(IncorrectVersionFormat);
+                    }
+
+                    if (!ShouldProcess(string.Format("Resources to save: '{0}'", namesToSave)))
+                    {
+                        WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", namesToSave));
+                        return;
+                    }
+
                     installHelper.InstallPackages(
                         names: namesToSave, 
                         versionRange: _versionRange, 
@@ -207,6 +223,80 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         asNupkg: false, 
                         includeXML: false, 
                         pathsToInstallPkg: new List<string> { _path } );
+                    break;
+
+                case InputObjectParameterSet:
+                    foreach (PSResourceInfo pkg in InputObject)
+                    {
+                        if (pkg == null)
+                        {
+                            continue;
+                        }
+
+                        Name = new string[] { pkg.Name };
+                        var inputNamesToSave = Utils.ProcessNameWildcards(Name, out string[] inputErrorMsgs, out bool inputNameContainsWildcard);
+                        if (inputNameContainsWildcard)
+                        {
+                            WriteError(new ErrorRecord(
+                                new PSInvalidOperationException("Name with wildcards is not supported for Save-PSResource cmdlet"),
+                                "NameContainsWildcard",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                            return;
+                        }
+                        
+                        foreach (string error in inputErrorMsgs)
+                        {
+                            WriteError(new ErrorRecord(
+                                new PSInvalidOperationException(error),
+                                "ErrorFilteringNamesForUnsupportedWildcards",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                        }
+
+                        // this catches the case where Name wasn't passed in as null or empty,
+                        // but after filtering out unsupported wildcard names there are no elements left in namesToSave
+                        if (inputNamesToSave.Length == 0)
+                        {
+                            return;
+                        }
+
+                        string normalizedVersionString = Utils.GetNormalizedVersionString(pkg.Version.ToString(), pkg.PrereleaseLabel);
+                        if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
+                        {
+                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", normalizedVersionString, pkg.Name);
+                            var ex = new ArgumentException(exMessage);
+                            var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                            ThrowTerminatingError(IncorrectVersionFormat);
+                        }
+
+                        if (!ShouldProcess(string.Format("Resources to save: '{0}'", inputNamesToSave)))
+                        {
+                            WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", inputNamesToSave));
+                            return;
+                        }
+
+                        installHelper.InstallPackages(
+                            names: inputNamesToSave, 
+                            versionRange: _versionRange, 
+                            prerelease: Prerelease, 
+                            repository: Repository, 
+                            acceptLicense: true, 
+                            quiet: true, 
+                            reinstall: true, 
+                            force: false, 
+                            trustRepository: TrustRepository, 
+                            noClobber: false, 
+                            credential: Credential, 
+                            requiredResourceFile: null,
+                            requiredResourceJson: null, 
+                            requiredResourceHash: null, 
+                            specifiedPath: _path, 
+                            asNupkg: false, 
+                            includeXML: false, 
+                            pathsToInstallPkg: new List<string> { _path } );
+
+                    }
                     break;
 
                 default:

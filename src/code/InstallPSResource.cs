@@ -243,9 +243,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             WriteError(ErrorParsingVersion);
                         }
 
-                        if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", Name))))
+                        if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", inputNameToInstall))))
                         {
-                            WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", Name)));
+                            WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", inputNameToInstall)));
                             return;
                         }
 

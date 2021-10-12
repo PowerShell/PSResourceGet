@@ -8,6 +8,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        $testModuleName = "test_module"
         Get-NewPSResourceRepositoryFile
         $res = Uninstall-PSResource -name ContosoServer -Version "*"
     }
@@ -161,5 +162,22 @@ Describe 'Test Uninstall-PSResource for Modules' {
         
         $pkg = Get-Module "RequiredModule1" -ListAvailable
         $pkg | Should -Be $null
+    }
+
+    It "Uninstall PSResourceInfo object piped in" {
+        Install-PSResource -Name "ContosoServer" -Version "1.5.0.0" -Repository $TestGalleryName
+        Get-InstalledPSResource -Name "ContosoServer" -Version "1.5.0.0" | Uninstall-PSResource
+        $res = Get-InstalledPSResource -Name "ContosoServer" -Version "1.5.0.0"
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Uninstall PSResourceInfo object piped in for prerelease version object" {
+        Install-PSResource -Name $testModuleName -Version "4.5.2-alpha001" -Repository $TestGalleryName
+        # Powershell cannot create install locations indicating a prerelease version (with prerelease label indicated in install location).
+        # To test we can uninstall prerelease versions, we must use the numeric part of the prerelease version only and it must be unique
+        # of all versions installed for that module.
+        Get-InstalledPSResource -Name $testModuleName -Version "4.5.2" | Uninstall-PSResource
+        $res = Get-InstalledPSResource -Name $testModuleName -Version "4.5.2"
+        $res | Should -BeNullOrEmpty
     }
 }
