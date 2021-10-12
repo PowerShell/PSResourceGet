@@ -1,4 +1,3 @@
-using System.Collections.Specialized;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
@@ -55,43 +54,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
         [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public PSCredential Credential { get; set; }
 
         /// <summary>
         /// Specifies the scope of installation.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public ScopeType Scope { get; set; }
 
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter TrustRepository { get; set; }
 
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter Reinstall { get; set; }
 
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter AcceptLicense { get; set; }
+
+        /// <summary>
+        /// Used for pipeline input.
+        /// </summary>
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = InputObjectParameterSet)]
+        [ValidateNotNullOrEmpty]
+        public PSResourceInfo[] InputObject { get; set; }
 
         #endregion
 
         #region Members
 
         private const string NameParameterSet = "NameParameterSet";
+        private const string InputObjectParameterSet = "InputObjectParameterSet";
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
         List<string> _pathsToInstallPkg;
@@ -107,39 +120,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // An exact version will be formatted into a version range.
-            if (ParameterSetName.Equals(NameParameterSet) && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-
-            {
-                var exMessage = "Argument for -Version parameter is not in the proper format.";
-                var ex = new ArgumentException(exMessage);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(IncorrectVersionFormat);
-            }
-
-            // if no Version specified, install latest version for the package
-            if (Version == null)
-            {
-                _versionRange = VersionRange.All;
-            }
-
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
         }
 
         protected override void ProcessRecord()
         {
-            if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", Name))))
-            {
-                WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", Name)));
-                return;
-            }
-
             var installHelper = new InstallHelper(updatePkg: false, savePkg: false, cmdletPassedIn: this);
 
             switch (ParameterSetName)
             {
                 case NameParameterSet:
+                    // If no Version specified, install latest version for the package.
+                    // Otherwise validate Version can be parsed out successfully.
+                    if (Version == null)
+                    {
+                        _versionRange = VersionRange.All;
+                    }
+                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+                    {
+                        var exMessage = "Argument for -Version parameter is not in the proper format.";
+                        var ex = new ArgumentException(exMessage);
+                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                        ThrowTerminatingError(IncorrectVersionFormat);
+                    }
+                    
                     var namesToInstall = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
                     if (nameContainsWildcard)
                     {
@@ -167,6 +171,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return;
                     }
 
+                    if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", namesToInstall))))
+                    {
+                        WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", namesToInstall)));
+                        return;
+                    }
+
                     installHelper.InstallPackages(
                         names: namesToInstall,
                         versionRange: _versionRange,
@@ -188,6 +198,79 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         pathsToInstallPkg: _pathsToInstallPkg);
                     break;
                     
+                case InputObjectParameterSet:
+                    foreach (PSResourceInfo pkg in InputObject)
+                    {
+                        if (pkg == null)
+                        {
+                            continue;
+                        }
+
+                        Name = new string[] { pkg.Name };
+                        var inputNameToInstall = Utils.ProcessNameWildcards(Name, out string[] inputErrorMsgs, out bool inputNameContainsWildcard);
+                        if (inputNameContainsWildcard)
+                        {
+                            WriteError(new ErrorRecord(
+                                new PSInvalidOperationException("Name with wildcards is not supported for Install-PSResource cmdlet"),
+                                "NameContainsWildcard",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                            return;
+                        }
+                        
+                        foreach (string error in inputErrorMsgs)
+                        {
+                            WriteError(new ErrorRecord(
+                                new PSInvalidOperationException(error),
+                                "ErrorFilteringNamesForUnsupportedWildcards",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                        }
+
+                        // this catches the case where Name wasn't passed in as null or empty,
+                        // but after filtering out unsupported wildcard names there are no elements left in namesToInstall
+                        if (inputNameToInstall.Length == 0)
+                        {
+                            return;
+                        }
+
+                        string normalizedVersionString = Utils.GetNormalizedVersionString(pkg.Version.ToString(), pkg.PrereleaseLabel);
+                        if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
+                        {
+                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", normalizedVersionString, pkg.Name);
+                            var ex = new ArgumentException(exMessage);
+                            var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
+                            WriteError(ErrorParsingVersion);
+                        }
+
+                        if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", Name))))
+                        {
+                            WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", Name)));
+                            return;
+                        }
+
+                        installHelper.InstallPackages(
+                            names: inputNameToInstall,
+                            versionRange: _versionRange,
+                            prerelease: pkg.IsPrerelease,
+                            repository: new string[] { pkg.Repository },
+                            acceptLicense: AcceptLicense,
+                            quiet: Quiet,
+                            reinstall: Reinstall,
+                            force: false,
+                            trustRepository: TrustRepository,
+                            noClobber: false,
+                            credential: Credential,
+                            requiredResourceFile: null, 
+                            requiredResourceJson: null, 
+                            requiredResourceHash: null, 
+                            specifiedPath: null, 
+                            asNupkg: false, 
+                            includeXML: true, 
+                            pathsToInstallPkg: _pathsToInstallPkg);
+                    }
+                    break;
+
                 case RequiredResourceFileParameterSet:
                     ThrowTerminatingError(new ErrorRecord(
                                            new PSNotImplementedException("RequiredResourceFileParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),

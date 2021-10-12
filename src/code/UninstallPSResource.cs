@@ -60,22 +60,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         protected override void BeginProcessing()
         {
-            // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
-            // an exact version will be formatted into a version range.
-            if (ParameterSetName.Equals("NameParameterSet") && Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-            {
-                var exMessage = "Argument for -Version parameter is not in the proper format.";
-                var ex = new ArgumentException(exMessage);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(IncorrectVersionFormat);
-            }
-
-            // if no Version specified, uninstall all versions for the package
-            if (Version == null)
-            {
-                _versionRange = VersionRange.All;
-            }
-
             _pathsToSearch = Utils.GetAllResourcePaths(this);
         }
 
@@ -84,6 +68,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
+                    // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+                    // an exact version will be formatted into a version range.
+                    if (Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+                    {
+                        var exMessage = "Argument for -Version parameter is not in the proper format.";
+                        var ex = new ArgumentException(exMessage);
+                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                        ThrowTerminatingError(IncorrectVersionFormat);
+                    }
+
+                    // if no Version specified, uninstall all versions for the package
+                    if (Version == null)
+                    {
+                        _versionRange = VersionRange.All;
+                    }
                     Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
                     
                     foreach (string error in errorMsgs)
@@ -110,7 +109,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectSet:
-                    WriteVerbose("in inputObject parameter set");
                     // the for loop will use type PSResourceInfo in order to pull the properties from the pkg object
                     foreach (PSResourceInfo pkg in InputObject)
                     {
@@ -119,16 +117,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        if (!Utils.TryParseVersionOrVersionRange(pkg.IsPrerelease ? pkg.Version.ToString() + pkg.PrereleaseLabel : pkg.Version.ToString(),
-                            out VersionRange _versionRange))
+                        if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out _versionRange))
                         {
                             var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
                             var ex = new ArgumentException(exMessage);
                             var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
                             WriteError(ErrorParsingVersion);
                         }
-
-                        WriteVerbose("Uninstall- version range is: " + _versionRange);
 
                         Name = new string[] { pkg.Name };
                         if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper())
@@ -165,9 +160,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
             string pkgName = string.Empty;
-
+            WriteVerbose("First version range in FilterPkgPathsByVersion:" + _versionRange);
             foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
             {
+                WriteVerbose("second in loop version range in FilterPkgPathsByVersion:" + _versionRange);
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
