@@ -141,37 +141,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             var installHelper = new InstallHelper(updatePkg: false, savePkg: true, cmdletPassedIn: this);
-
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    var namesToSave = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
-                    if (nameContainsWildcard)
-                    {
-                        WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Name with wildcards is not supported for Save-PSResource cmdlet"),
-                            "NameContainsWildcard",
-                            ErrorCategory.InvalidArgument,
-                            this));
-                        return;
-                    }
-                    
-                    foreach (string error in errorMsgs)
-                    {
-                        WriteError(new ErrorRecord(
-                            new PSInvalidOperationException(error),
-                            "ErrorFilteringNamesForUnsupportedWildcards",
-                            ErrorCategory.InvalidArgument,
-                            this));
-                    }
-
-                    // this catches the case where Name wasn't passed in as null or empty,
-                    // but after filtering out unsupported wildcard names there are no elements left in namesToSave
-                    if (namesToSave.Length == 0)
-                    {
-                        return;
-                    }
-
                     // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
                     // an exact version will be formatted into a version range.
                     if (Version == null)
@@ -186,31 +158,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
 
-                    if (!ShouldProcess(string.Format("Resources to save: '{0}'", namesToSave)))
-                    {
-                        WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", namesToSave));
-                        return;
-                    }
-
-                    installHelper.InstallPackages(
-                        names: namesToSave, 
-                        versionRange: _versionRange, 
-                        prerelease: Prerelease, 
-                        repository: Repository, 
-                        acceptLicense: true, 
-                        quiet: true, 
-                        reinstall: true, 
-                        force: false, 
-                        trustRepository: TrustRepository, 
-                        noClobber: false, 
-                        credential: Credential, 
-                        requiredResourceFile: null,
-                        requiredResourceJson: null, 
-                        requiredResourceHash: null, 
-                        specifiedPath: _path, 
-                        asNupkg: false, 
-                        includeXML: false, 
-                        pathsToInstallPkg: new List<string> { _path } );
+                    ProcessSaveHelper(installHelper: installHelper,
+                        pkgNames: Name,
+                        pkgPrerelease: Prerelease,
+                        pkgRepository: Repository);
                     break;
 
                 case InputObjectParameterSet:
@@ -221,34 +172,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        Name = new string[] { pkg.Name };
-                        var inputNamesToSave = Utils.ProcessNameWildcards(Name, out string[] inputErrorMsgs, out bool inputNameContainsWildcard);
-                        if (inputNameContainsWildcard)
-                        {
-                            WriteError(new ErrorRecord(
-                                new PSInvalidOperationException("Name with wildcards is not supported for Save-PSResource cmdlet"),
-                                "NameContainsWildcard",
-                                ErrorCategory.InvalidArgument,
-                                this));
-                            return;
-                        }
-                        
-                        foreach (string error in inputErrorMsgs)
-                        {
-                            WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(error),
-                                "ErrorFilteringNamesForUnsupportedWildcards",
-                                ErrorCategory.InvalidArgument,
-                                this));
-                        }
-
-                        // this catches the case where Name wasn't passed in as null or empty,
-                        // but after filtering out unsupported wildcard names there are no elements left in namesToSave
-                        if (inputNamesToSave.Length == 0)
-                        {
-                            return;
-                        }
-
                         string normalizedVersionString = Utils.GetNormalizedVersionString(pkg.Version.ToString(), pkg.PrereleaseLabel);
                         if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
                         {
@@ -257,33 +180,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                             ThrowTerminatingError(IncorrectVersionFormat);
                         }
-
-                        if (!ShouldProcess(string.Format("Resources to save: '{0}'", inputNamesToSave)))
-                        {
-                            WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", inputNamesToSave));
-                            return;
-                        }
-
-                        installHelper.InstallPackages(
-                            names: inputNamesToSave, 
-                            versionRange: _versionRange, 
-                            prerelease: Prerelease, 
-                            repository: Repository, 
-                            acceptLicense: true, 
-                            quiet: true, 
-                            reinstall: true, 
-                            force: false, 
-                            trustRepository: TrustRepository, 
-                            noClobber: false, 
-                            credential: Credential, 
-                            requiredResourceFile: null,
-                            requiredResourceJson: null, 
-                            requiredResourceHash: null, 
-                            specifiedPath: _path, 
-                            asNupkg: false, 
-                            includeXML: false, 
-                            pathsToInstallPkg: new List<string> { _path } );
-
+                        
+                        ProcessSaveHelper(installHelper: installHelper,
+                            pkgNames: new string[] { pkg.Name },
+                            pkgPrerelease: pkg.IsPrerelease,
+                            pkgRepository: new string[] { pkg.Repository });
                     }
                     break;
 
@@ -293,6 +194,64 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
+        #endregion
+
+        #region Methods
+        private void ProcessSaveHelper(InstallHelper installHelper, string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
+        {
+            var namesToSave = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
+            if (nameContainsWildcard)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("Name with wildcards is not supported for Save-PSResource cmdlet"),
+                    "NameContainsWildcard",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                return;
+            }
+            
+            foreach (string error in errorMsgs)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
+
+            // this catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in namesToSave
+            if (namesToSave.Length == 0)
+            {
+                return;
+            }
+
+            if (!ShouldProcess(string.Format("Resources to save: '{0}'", namesToSave)))
+            {
+                WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", namesToSave));
+                return;
+            }
+
+            installHelper.InstallPackages(
+                names: namesToSave, 
+                versionRange: _versionRange, 
+                prerelease: pkgPrerelease, 
+                repository: pkgRepository, 
+                acceptLicense: true, 
+                quiet: true, 
+                reinstall: true, 
+                force: false, 
+                trustRepository: TrustRepository, 
+                noClobber: false, 
+                credential: Credential, 
+                requiredResourceFile: null,
+                requiredResourceJson: null, 
+                requiredResourceHash: null, 
+                specifiedPath: _path, 
+                asNupkg: false, 
+                includeXML: false, 
+                pathsToInstallPkg: new List<string> { _path } );
+        }
         #endregion
     }
 }
