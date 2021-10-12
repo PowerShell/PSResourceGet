@@ -160,7 +160,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
             string pkgName = string.Empty;
-            WriteVerbose("First version range in FilterPkgPathsByVersion:" + _versionRange);
             foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
             {
                 WriteVerbose("second in loop version range in FilterPkgPathsByVersion:" + _versionRange);
