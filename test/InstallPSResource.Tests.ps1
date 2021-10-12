@@ -243,6 +243,16 @@ Describe 'Test Install-PSResource for Module' {
         $res = Get-Module "TestModule" -ListAvailable
         $res | Should -BeNullOrEmpty
     }
+
+    It "Install module using -NoClobber, should throw clobber error and not install the module" {
+        Install-PSResource -Name "ClobberTestModule1" -Repository $TestGalleryName  
+    
+        $res = Get-Module "ClobberTestModule1" -ListAvailable
+        $res.Name | Should -Be "ClobberTestModule1"
+
+        Install-PSResource -Name "ClobberTestModule2" -Repository $TestGalleryName -NoClobber -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
 }
 
 <# Temporarily commented until -Tag is implemented for this Describe block
