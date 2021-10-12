@@ -68,9 +68,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
+                    // if no Version specified, uninstall all versions for the package.
                     // validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
                     // an exact version will be formatted into a version range.
-                    if (Version != null && !Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+                    if (Version == null)
+                    {
+                        _versionRange = VersionRange.All;
+                    }
+
+                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
                     {
                         var exMessage = "Argument for -Version parameter is not in the proper format.";
                         var ex = new ArgumentException(exMessage);
@@ -78,11 +84,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
 
-                    // if no Version specified, uninstall all versions for the package
-                    if (Version == null)
-                    {
-                        _versionRange = VersionRange.All;
-                    }
                     Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
                     
                     foreach (string error in errorMsgs)
@@ -109,7 +110,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectSet:
-                    // the for loop will use type PSResourceInfo in order to pull the properties from the pkg object
                     foreach (PSResourceInfo pkg in InputObject)
                     {
                         if (pkg == null)
