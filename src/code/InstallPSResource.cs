@@ -25,14 +25,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to install from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
         /// <summary>
         /// Specifies the version or version range of the package to be installed
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
         
@@ -53,7 +53,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         public PSCredential Credential { get; set; }
 
