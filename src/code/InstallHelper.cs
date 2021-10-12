@@ -406,7 +406,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         // If NoClobber is specified, ensure command clobbering does not happen
-                        if (_noClobber && !DetectClobber(tempDirNameVersion))
+                        if (_noClobber && !DetectClobber(p.Name, tempDirNameVersion, parsedMetadataHashtable))
                         {
                             continue;
                         }
@@ -541,39 +541,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return success;
         }
 
-        private bool DetectClobber(string tempDirNameVersion)
+        private bool DetectClobber(string pkgName, string tempDirNameVersion, Hashtable parsedMetadataHashtable)
         {
             // Get installed modules, then get all possible paths
             bool foundClobber = false;
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.FilterPkgPaths(new string[] { "*" }, VersionRange.All, _pathsToSearch);
-
-            var PSGetModuleInfoXML = Path.Combine(tempDirNameVersion, "PSGetModuleInfo.xml");
-
-            PSResourceInfo.TryRead(PSGetModuleInfoXML, out PSResourceInfo psGetInfo, out string errorMsg);
-            if (!String.IsNullOrEmpty(errorMsg)) _cmdletPassedIn.WriteDebug(string.Format("Error reading from '{0}': '{1}'.", PSGetModuleInfoXML, errorMsg));
+            // user parsed metadata hash
+            List<string> listOfCmdlets = new List<string>();
+            foreach (var cmdlet in parsedMetadataHashtable["CmdletsToExport"] as object[])
+            {
+                listOfCmdlets.Add(cmdlet as string); 
+            }
 
             foreach (var pkg in pkgsAlreadyInstalled)
             {
+                List<string> duplicateCmdlets = new List<string>();
+                List<string> duplicateCmds = new List<string>();
+                // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed
+                if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
+                {
+                    duplicateCmdlets = listOfCmdlets.Where(cmdlet => pkg.Includes.Cmdlet.Contains(cmdlet)).ToList();
+
+                }
                 if (pkg.Includes.Command != null && pkg.Includes.Command.Any())
                 {
-                    // See if any of the commands in the pkg we're trying to install exist within a package that's already installed
-                    // We can't use the PSResourceInfo object here because that doesn't have Includes info.  We need to use the PSModuleInfo.xml file.
-                    if (psGetInfo.Includes.Command.Any(command => pkg.Includes.Command.Contains(command)))
-                    {
-                        var duplicateCommands = psGetInfo.Includes.Command.Where(command => pkg.Includes.Command.Contains(command)).ToList();
-                        var exMessage = string.Format(
-                            "The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
-                            String.Join(", ", duplicateCommands), psGetInfo.Name);
+                    duplicateCmds = listOfCmdlets.Where(commands => pkg.Includes.Command.Contains(commands)).ToList();
+                }
+                if (duplicateCmdlets.Any() || duplicateCmds.Any())
+                { 
+                    
+                    duplicateCmdlets.AddRange(duplicateCmds);
 
-                        var ex = new ArgumentException(exMessage);
-                        var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
+                    var errMessage = string.Format(
+                        "The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
+                        String.Join(", ", duplicateCmdlets), pkgName);
 
-                        _cmdletPassedIn.WriteError(noClobberError);
-                        foundClobber = true;
+                    var ex = new ArgumentException(errMessage);
+                    var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
 
-                        return foundClobber;
-                    }
+                    _cmdletPassedIn.WriteError(noClobberError);
+                    foundClobber = true;
+
+                    return foundClobber;
                 }
             }
 
