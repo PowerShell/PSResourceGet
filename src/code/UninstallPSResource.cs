@@ -110,7 +110,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectSet:
-                    // the for loop will use type PSObject in order to pull the properties from the pkg object
+                    WriteVerbose("in inputObject parameter set");
+                    // the for loop will use type PSResourceInfo in order to pull the properties from the pkg object
                     foreach (PSResourceInfo pkg in InputObject)
                     {
                         if (pkg == null)
@@ -118,14 +119,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        // attempt to parse version
-                        if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out VersionRange _versionRange))
+                        if (!Utils.TryParseVersionOrVersionRange(pkg.IsPrerelease ? pkg.Version.ToString() + pkg.PrereleaseLabel : pkg.Version.ToString(),
+                            out VersionRange _versionRange))
                         {
                             var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
                             var ex = new ArgumentException(exMessage);
                             var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
                             WriteError(ErrorParsingVersion);
                         }
+
+                        WriteVerbose("Uninstall- version range is: " + _versionRange);
 
                         Name = new string[] { pkg.Name };
                         if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper())
