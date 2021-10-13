@@ -17,8 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// </summary>
 
     [Cmdlet(VerbsCommon.Get,
-        "PSResourceRepository",
-        HelpUri = "<add>")]
+        "PSResourceRepository")]
     public sealed
     class GetPSResourceRepository : PSCmdlet
     {
