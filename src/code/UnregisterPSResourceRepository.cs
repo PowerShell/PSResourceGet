@@ -23,7 +23,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the desired name for the repository to be registered.
         /// </summary>
-        [Parameter(Mandatory= true, Position = 0, ValueFromPipelineByPropertyName = true)]
+        [Parameter(Mandatory= true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; } = Utils.EmptyStrArray;
