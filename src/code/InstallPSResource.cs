@@ -143,59 +143,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
-                    
-                    var namesToInstall = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
-                    if (nameContainsWildcard)
-                    {
-                        WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Name with wildcards is not supported for Install-PSResource cmdlet"),
-                            "NameContainsWildcard",
-                            ErrorCategory.InvalidArgument,
-                            this));
-                        return;
-                    }
-                    
-                    foreach (string error in errorMsgs)
-                    {
-                        WriteError(new ErrorRecord(
-                            new PSInvalidOperationException(error),
-                            "ErrorFilteringNamesForUnsupportedWildcards",
-                            ErrorCategory.InvalidArgument,
-                            this));
-                    }
 
-                    // this catches the case where Name wasn't passed in as null or empty,
-                    // but after filtering out unsupported wildcard names there are no elements left in namesToInstall
-                    if (namesToInstall.Length == 0)
-                    {
-                        return;
-                    }
-
-                    if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", namesToInstall))))
-                    {
-                        WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", namesToInstall)));
-                        return;
-                    }
-
-                    installHelper.InstallPackages(
-                        names: namesToInstall,
-                        versionRange: _versionRange,
-                        prerelease: Prerelease,
-                        repository: Repository,
-                        acceptLicense: AcceptLicense,
-                        quiet: Quiet,
-                        reinstall: Reinstall,
-                        force: false,
-                        trustRepository: TrustRepository,
-                        noClobber: false,
-                        credential: Credential,
-                        requiredResourceFile: null, 
-                        requiredResourceJson: null, 
-                        requiredResourceHash: null, 
-                        specifiedPath: null, 
-                        asNupkg: false, 
-                        includeXML: true, 
-                        pathsToInstallPkg: _pathsToInstallPkg);
+                    ProcessInstallHelper(installHelper: installHelper,
+                        pkgNames: Name,
+                        pkgPrerelease: Prerelease,
+                        pkgRepository: Repository);
                     break;
                     
                 case InputObjectParameterSet:
@@ -204,34 +156,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (pkg == null)
                         {
                             continue;
-                        }
-
-                        Name = new string[] { pkg.Name };
-                        var inputNameToInstall = Utils.ProcessNameWildcards(Name, out string[] inputErrorMsgs, out bool inputNameContainsWildcard);
-                        if (inputNameContainsWildcard)
-                        {
-                            WriteError(new ErrorRecord(
-                                new PSInvalidOperationException("Name with wildcards is not supported for Install-PSResource cmdlet"),
-                                "NameContainsWildcard",
-                                ErrorCategory.InvalidArgument,
-                                this));
-                            return;
-                        }
-                        
-                        foreach (string error in inputErrorMsgs)
-                        {
-                            WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(error),
-                                "ErrorFilteringNamesForUnsupportedWildcards",
-                                ErrorCategory.InvalidArgument,
-                                this));
-                        }
-
-                        // this catches the case where Name wasn't passed in as null or empty,
-                        // but after filtering out unsupported wildcard names there are no elements left in namesToInstall
-                        if (inputNameToInstall.Length == 0)
-                        {
-                            return;
                         }
 
                         string normalizedVersionString = Utils.GetNormalizedVersionString(pkg.Version.ToString(), pkg.PrereleaseLabel);
@@ -243,31 +167,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             WriteError(ErrorParsingVersion);
                         }
 
-                        if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", inputNameToInstall))))
-                        {
-                            WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", inputNameToInstall)));
-                            return;
-                        }
-
-                        installHelper.InstallPackages(
-                            names: inputNameToInstall,
-                            versionRange: _versionRange,
-                            prerelease: pkg.IsPrerelease,
-                            repository: new string[] { pkg.Repository },
-                            acceptLicense: AcceptLicense,
-                            quiet: Quiet,
-                            reinstall: Reinstall,
-                            force: false,
-                            trustRepository: TrustRepository,
-                            noClobber: false,
-                            credential: Credential,
-                            requiredResourceFile: null, 
-                            requiredResourceJson: null, 
-                            requiredResourceHash: null, 
-                            specifiedPath: null, 
-                            asNupkg: false, 
-                            includeXML: true, 
-                            pathsToInstallPkg: _pathsToInstallPkg);
+                        ProcessInstallHelper(installHelper: installHelper,
+                            pkgNames: new string[] { pkg.Name },
+                            pkgPrerelease: pkg.IsPrerelease,
+                            pkgRepository: new string[]{ pkg.Repository });
                     }
                     break;
 
@@ -293,6 +196,64 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
         
+        #endregion
+
+        #region Methods
+        private void ProcessInstallHelper(InstallHelper installHelper, string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
+        {
+            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
+            if (nameContainsWildcard)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("Name with wildcards is not supported for Install-PSResource cmdlet"),
+                    "NameContainsWildcard",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                return;
+            }
+            
+            foreach (string error in errorMsgs)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
+
+            // this catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in namesToInstall
+            if (inputNameToInstall.Length == 0)
+            {
+                return;
+            }
+
+            if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", inputNameToInstall))))
+            {
+                WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", inputNameToInstall)));
+                return;
+            }
+
+            installHelper.InstallPackages(
+                names: pkgNames,
+                versionRange: _versionRange,
+                prerelease: pkgPrerelease,
+                repository: pkgRepository,
+                acceptLicense: AcceptLicense,
+                quiet: Quiet,
+                reinstall: Reinstall,
+                force: false,
+                trustRepository: TrustRepository,
+                noClobber: false,
+                credential: Credential,
+                requiredResourceFile: null, 
+                requiredResourceJson: null, 
+                requiredResourceHash: null, 
+                specifiedPath: null, 
+                asNupkg: false, 
+                includeXML: true, 
+                pathsToInstallPkg: _pathsToInstallPkg);
+        }
         #endregion
     }
 }
