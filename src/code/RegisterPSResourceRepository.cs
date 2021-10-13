@@ -5,7 +5,6 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Management.Automation;
 using Dbg = System.Diagnostics.Debug;
 
