@@ -41,6 +41,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, 
                    ValueFromPipeline = true,
+                   ValueFromPipelineByPropertyName = true,
                    ParameterSetName = ResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
