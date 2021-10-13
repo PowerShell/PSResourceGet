@@ -554,7 +554,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdlet in parsedMetadataHashtable["CmdletsToExport"] as object[])
             {
-                listOfCmdlets.Add(cmdlet as string); 
+                listOfCmdlets.Add(cmdletName as string); 
+
             }
 
             foreach (var pkg in pkgsAlreadyInstalled)
