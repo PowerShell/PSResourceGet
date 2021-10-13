@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -35,7 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies name of a resource or resources to update.
         /// Accepts wildcard characters.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true)]
+        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set ; } = new string[] {"*"};
 

@@ -48,7 +48,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = "PathParameterSet")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "PathParameterSet")]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -80,7 +80,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks.
         /// Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = "PathLiteralParameterSet")]
+        [Parameter(Mandatory = true, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "PathLiteralParameterSet")]
         [ValidateNotNullOrEmpty]
         public string LiteralPath
         {
@@ -118,7 +118,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
         /// </summary>
-        [Parameter()]
+        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public Uri Proxy {
             set
@@ -135,7 +135,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
         /// </summary>
-        [Parameter()]
+        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public PSCredential ProxyCredential {
             set
