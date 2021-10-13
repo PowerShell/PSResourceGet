@@ -552,7 +552,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.FilterPkgPaths(new string[] { "*" }, VersionRange.All, _pathsToSearch);
             // user parsed metadata hash
             List<string> listOfCmdlets = new List<string>();
-            foreach (var cmdlet in parsedMetadataHashtable["CmdletsToExport"] as object[])
+            foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
             {
                 listOfCmdlets.Add(cmdletName as string); 
 
