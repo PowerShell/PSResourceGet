@@ -5,7 +5,6 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Management.Automation;
 using Dbg = System.Diagnostics.Debug;
 
@@ -20,8 +19,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsLifecycle.Register,
         "PSResourceRepository",
         DefaultParameterSetName = NameParameterSet,
-        SupportsShouldProcess = true,
-        HelpUri = "<add>")]
+        SupportsShouldProcess = true)]
     public sealed
     class RegisterPSResourceRepository : PSCmdlet
     {
@@ -63,7 +61,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = "RepositoriesParameterSet", ValueFromPipeline = true)]
+        [Parameter(Mandatory = true, ParameterSetName = RepositoriesParameterSet)]
         [ValidateNotNullOrEmpty]
         public Hashtable[] Repositories {get; set;}
 
