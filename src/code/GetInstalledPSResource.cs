@@ -30,7 +30,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the desired name for the resource to look for.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+        [Parameter(Position = 0, ValueFromPipeline = true)]
         public string[] Name { get; set; }
 
         /// <summary>
