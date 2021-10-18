@@ -41,7 +41,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
         [ValidateNotNullOrEmpty]
-        public PSResourceInfo[] InputObject { get; set; }
+        public PSResourceInfo InputObject { get; set; }
 
         /// <summary>
         /// </summary>
@@ -110,31 +110,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (PSResourceInfo pkg in InputObject)
+                    if (!Utils.TryParseVersionOrVersionRange(InputObject.Version.ToString(), out _versionRange))
                     {
-                        if (pkg == null)
-                        {
-                            continue;
-                        }
-
-                        if (!Utils.TryParseVersionOrVersionRange(pkg.Version.ToString(), out _versionRange))
-                        {
-                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", pkg.Version.ToString(), pkg.Name);
-                            var ex = new ArgumentException(exMessage);
-                            var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
-                            WriteError(ErrorParsingVersion);
-                        }
-
-                        Name = new string[] { pkg.Name };
-                        if (!String.IsNullOrWhiteSpace(pkg.Name) && !UninstallPkgHelper())
-                        {
-                            // specific errors will be displayed lower in the stack
-                            var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", pkg.Name));
-                            var ex = new ArgumentException(exMessage);
-                            var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
-                                WriteError(UninstallResourceError);
-                        }
+                        var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", InputObject.Version.ToString(), InputObject.Name);
+                        var ex = new ArgumentException(exMessage);
+                        var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
+                        WriteError(ErrorParsingVersion);
                     }
+
+                    Name = new string[] { InputObject.Name };
+                    if (!String.IsNullOrWhiteSpace(InputObject.Name) && !UninstallPkgHelper())
+                    {
+                        // specific errors will be displayed lower in the stack
+                        var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", InputObject.Name));
+                        var ex = new ArgumentException(exMessage);
+                        var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
+                            WriteError(UninstallResourceError);
+                    }
+                
                     break;
 
                 default:

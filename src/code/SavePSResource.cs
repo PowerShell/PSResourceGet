@@ -119,7 +119,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
         [ValidateNotNullOrEmpty]
-        public PSResourceInfo[] InputObject { get; set; }
+        public PSResourceInfo InputObject { get; set; }
 
         #endregion
 
@@ -165,27 +165,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (PSResourceInfo pkg in InputObject)
+                    string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.PrereleaseLabel);
+                    if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
                     {
-                        if (pkg == null)
-                        {
-                            continue;
-                        }
-
-                        string normalizedVersionString = Utils.GetNormalizedVersionString(pkg.Version.ToString(), pkg.PrereleaseLabel);
-                        if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
-                        {
-                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", normalizedVersionString, pkg.Name);
-                            var ex = new ArgumentException(exMessage);
-                            var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                            ThrowTerminatingError(IncorrectVersionFormat);
-                        }
-                        
-                        ProcessSaveHelper(installHelper: installHelper,
-                            pkgNames: new string[] { pkg.Name },
-                            pkgPrerelease: pkg.IsPrerelease,
-                            pkgRepository: new string[] { pkg.Repository });
+                        var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", normalizedVersionString, InputObject.Name);
+                        var ex = new ArgumentException(exMessage);
+                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                        ThrowTerminatingError(IncorrectVersionFormat);
                     }
+                    
+                    ProcessSaveHelper(installHelper: installHelper,
+                        pkgNames: new string[] { InputObject.Name },
+                        pkgPrerelease: InputObject.IsPrerelease,
+                        pkgRepository: new string[] { InputObject.Repository });
+                
                     break;
 
                 default:
