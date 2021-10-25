@@ -1,7 +1,8 @@
-using System.Text;
+using System.Reflection;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -56,6 +57,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
+        string _prereleaseLabel = String.Empty;
         #endregion
 
         #region Methods
@@ -76,7 +78,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         _versionRange = VersionRange.All;
                     }
-                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+                    else if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrereleaseHelper(Version, out _prereleaseLabel),
+                        versionRange: out _versionRange))
                     {
                         var exMessage = "Argument for -Version parameter is not in the proper format.";
                         var ex = new ArgumentException(exMessage);
@@ -110,7 +113,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    if (!Utils.TryParseVersionOrVersionRange(InputObject.Version.ToString(), out _versionRange))
+                    if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrereleaseHelper(InputObject.Version.ToString(), out _prereleaseLabel),
+                        versionRange: out _versionRange))
                     {
                         var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", InputObject.Version.ToString(), InputObject.Name);
                         var ex = new ArgumentException(exMessage);
@@ -202,6 +206,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             errRecord = null;
             var successfullyUninstalledPkg = false;
 
+            // if Version provided by user contains prerelease label and installed package contains same prerelease label, then uninstall
+            if (!String.IsNullOrEmpty(_prereleaseLabel) && !CheckIfPrerelease(isModule: true,
+                pkgPath: pkgPath,
+                pkgName: pkgName,
+                expectedPrereleaseLabel: _prereleaseLabel))
+            {
+                return false;
+            }
+
             // if -Force is not specified and the pkg is a dependency for another package, 
             // an error will be written and we return false
             if (!Force && CheckIfDependency(pkgName, out errRecord))
@@ -251,6 +264,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             errRecord = null;
             var successfullyUninstalledPkg = false;
+
+            // if Version provided by user contains prerelease label and installed package contains same prerelease label, then uninstall
+            if (!String.IsNullOrEmpty(_prereleaseLabel) && !CheckIfPrerelease(isModule: true,
+                pkgPath: pkgPath,
+                pkgName: pkgName,
+                expectedPrereleaseLabel: _prereleaseLabel))
+            {
+                return false;
+            }
 
             // delete the appropriate file
             try
@@ -330,6 +352,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return true;
                 }
             }
+            return false;
+        }
+        
+        private bool CheckIfPrerelease(bool isModule, string pkgPath, string pkgName, string expectedPrereleaseLabel)
+        {
+            // get module manifest path, same for modules and scripts:
+            // ./Modules/TestModule/0.0.1/TestModule.psd1
+            // ./Scripts/TestScript/0.0.1/TestScript.psd1
+            string moduleManifestPath = Path.Combine(pkgPath, pkgName + ".psd1");
+
+            if (!Utils.TryParseModuleManifest(moduleManifestPath, this, out Hashtable parsedMetadataHashtable))
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("Module manifest could not be parsed for package: " + pkgName),
+                    "ErrorParsingModuleManifest",
+                    ErrorCategory.InvalidData,
+                    this));
+                return false;
+            }
+
+            var parsedPrivateData = parsedMetadataHashtable["PrivateData"] as Hashtable;
+            var parsedPSData = parsedPrivateData["PSData"] as Hashtable;
+            string parsedPrereleaseLabel = parsedPSData["prerelease"] as string;
+
+            if (String.Equals(parsedPrereleaseLabel, expectedPrereleaseLabel, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return true;
+            }
+            
             return false;
         }
         #endregion

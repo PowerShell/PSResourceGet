@@ -116,6 +116,61 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Version methods
 
+        public static string GetVersionWithoutPrerelease(string versionString, out string[] prereleaseLabels)
+        {
+            List<String> prereleaseLabelList = new List<string>();
+            if (versionString.StartsWith("[") || versionString.StartsWith("("))
+            {
+                // TODO: do I need to check end cases?
+                // this is a version range, i.e: [3.0.0-preview, ] or (2.9.0, 3.0.0-preview)
+                // not supported, bc you can't install versions with same core version part side by side (3.0.0, 3.0.0-preview)
+                string[] versionRangeParts = versionString.Substring(1, versionString.Length - 2).Split(',');
+                // versionRangeParts should be like: ["3.0.0-preview", ""] or ("2.9.0", "3.0.0-preview")
+                string endString = versionString.Substring(0, 1); // "[" or "("
+                List<string> versionOnlyParts = new List<string>();
+                foreach(string individualVersion in versionRangeParts)
+                {
+                    if (!String.IsNullOrEmpty(individualVersion))
+                    {
+                        versionOnlyParts.Add(GetVersionWithoutPrereleaseHelper(individualVersion, out string prereleaseLabel));
+                        prereleaseLabelList.Add(prereleaseLabel);
+                        // endString += GetVersionWithoutPrereleaseHelper(individualVersion, out string prereleaseLabel);
+                        // prereleaseLabelList.Add(prereleaseLabel);
+                    }
+                    else
+                    {
+                        prereleaseLabelList.Add(String.Empty);
+                    }
+                }
+
+                prereleaseLabels = prereleaseLabelList.ToArray();
+                return versionString.Substring(0, 1) + String.Join(",", versionOnlyParts) + versionString.Substring(versionString.Length-1);
+
+                // Console.WriteLine
+                // endString.TrimEnd(',');
+                // endString += versionString.Substring(versionString.Length -1);
+                // prereleaseLabels = prereleaseLabelList.ToArray();
+                // Console.WriteLine(endString);
+                // return endString;
+            }
+
+            // just a specific version
+            prereleaseLabels = new string[]{""};
+            return GetVersionWithoutPrereleaseHelper(versionString, out prereleaseLabels[0]);
+        }
+        public static string GetVersionWithoutPrereleaseHelper(string versionString, out string prereleaseLabel)
+        {
+            if (versionString.Contains("-"))
+            {
+                string[] versionParts = versionString.Split('-');
+                prereleaseLabel = versionParts[1];
+                return versionParts[0];
+            }
+            
+            prereleaseLabel = String.Empty;
+            return versionString;
+        }
+
         public static string GetNormalizedVersionString(
             string versionString,
             string prerelease)

@@ -137,6 +137,25 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg.Version | Should -Be "2.5"
     }
 
+    It "Uninstall version with prerelease" {
+        Install-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "1.1.0-preview" -Repository $PSGalleryName
+        Uninstall-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "1.1.0-preview"
+        $res = Get-InstalledPSResource "Microsoft.PowerShell.SecretManagement"
+        $prereleaseVersionFound = $false
+        foreach ($item in $res) {
+            if ([System.Version]$item.Version -eq "1.1.0" -and $item.PrereleaseLabel -eq "preview")
+            {
+                $prereleaseVersionFound = $true
+            }
+        }
+
+        $prereleaseVersionFound | Should -Be $true
+    }
+
+    It "Not Uninstall non-prerelease when similar prerelease version is specified" {
+
+    }
+
     It "Uninstall module using -WhatIf, should not uninstall the module" {
         $res = Uninstall-PSResource -Name "ContosoServer" -WhatIf
 
