@@ -57,7 +57,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
-        string _prereleaseLabel = String.Empty;
+        string[] _prereleaseLabels = new string[]{};
         #endregion
 
         #region Methods
@@ -78,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         _versionRange = VersionRange.All;
                     }
-                    else if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrereleaseHelper(Version, out _prereleaseLabel),
+                    else if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrerelease(Version, out _prereleaseLabels),
                         versionRange: out _versionRange))
                     {
                         var exMessage = "Argument for -Version parameter is not in the proper format.";
@@ -113,7 +113,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrereleaseHelper(InputObject.Version.ToString(), out _prereleaseLabel),
+                    if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrerelease(InputObject.Version.ToString(), out _prereleaseLabels),
                         versionRange: out _versionRange))
                     {
                         var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", InputObject.Version.ToString(), InputObject.Name);
@@ -139,7 +139,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
         }
-
 
         private bool UninstallPkgHelper()
         {
@@ -206,11 +205,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             errRecord = null;
             var successfullyUninstalledPkg = false;
 
+            // TODO: remove
             // if Version provided by user contains prerelease label and installed package contains same prerelease label, then uninstall
-            if (!String.IsNullOrEmpty(_prereleaseLabel) && !CheckIfPrerelease(isModule: true,
-                pkgPath: pkgPath,
-                pkgName: pkgName,
-                expectedPrereleaseLabel: _prereleaseLabel))
+            // if (!String.IsNullOrEmpty(_prereleaseLabel) && !CheckIfPrerelease(isModule: true,
+            //     pkgPath: pkgPath,
+            //     pkgName: pkgName,
+            //     expectedPrereleaseLabel: _prereleaseLabel))
+            // {
+            //     return false;
+            // }
+            if (!CheckIfPrerelease(isModule: true, pkgName: pkgName, pkgPath: pkgPath))
             {
                 return false;
             }
@@ -265,11 +269,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             errRecord = null;
             var successfullyUninstalledPkg = false;
 
+            // TODO: remove
             // if Version provided by user contains prerelease label and installed package contains same prerelease label, then uninstall
-            if (!String.IsNullOrEmpty(_prereleaseLabel) && !CheckIfPrerelease(isModule: true,
-                pkgPath: pkgPath,
-                pkgName: pkgName,
-                expectedPrereleaseLabel: _prereleaseLabel))
+            // if (!String.IsNullOrEmpty(_prereleaseLabel) && !CheckIfPrerelease(isModule: true,
+            //     pkgPath: pkgPath,
+            //     pkgName: pkgName,
+            //     expectedPrereleaseLabel: _prereleaseLabel))
+            // {
+            //     return false;
+            // }
+            if (!CheckIfPrerelease(isModule: false, pkgName: pkgName, pkgPath: pkgPath))
             {
                 return false;
             }
@@ -355,33 +364,44 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return false;
         }
         
-        private bool CheckIfPrerelease(bool isModule, string pkgPath, string pkgName, string expectedPrereleaseLabel)
+        private bool CheckIfPrerelease(bool isModule, string pkgPath, string pkgName)
         {
-            // get module manifest path, same for modules and scripts:
-            // ./Modules/TestModule/0.0.1/TestModule.psd1
-            // ./Scripts/TestScript/0.0.1/TestScript.psd1
-            string moduleManifestPath = Path.Combine(pkgPath, pkgName + ".psd1");
 
-            if (!Utils.TryParseModuleManifest(moduleManifestPath, this, out Hashtable parsedMetadataHashtable))
+            string PSGetModuleInfoFilePath = isModule ? Path.Combine(pkgPath, "PSGetModuleInfo.xml") : Path.Combine(Path.GetDirectoryName(pkgPath), "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
+            WriteVerbose("pkgPath: " + PSGetModuleInfoFilePath);
+            if (!PSResourceInfo.TryRead(PSGetModuleInfoFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
             {
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("Module manifest could not be parsed for package: " + pkgName),
-                    "ErrorParsingModuleManifest",
-                    ErrorCategory.InvalidData,
-                    this));
                 return false;
             }
 
-            var parsedPrivateData = parsedMetadataHashtable["PrivateData"] as Hashtable;
-            var parsedPSData = parsedPrivateData["PSData"] as Hashtable;
-            string parsedPrereleaseLabel = parsedPSData["prerelease"] as string;
-
-            if (String.Equals(parsedPrereleaseLabel, expectedPrereleaseLabel, StringComparison.InvariantCultureIgnoreCase))
+            string[] versionRangeParts = _versionRange.ToString().Trim(new char []{'[', ']', '(', ')'}).Split(',');
+            if ((_versionRange != VersionRange.All) &&
+                (psGetInfo.Version.ToString().StartsWith(versionRangeParts[0]) && !String.Equals(psGetInfo.PrereleaseLabel, _prereleaseLabels[0], StringComparison.InvariantCultureIgnoreCase)) ||
+                (psGetInfo.Version.ToString().StartsWith(versionRangeParts[1]) && !String.Equals(psGetInfo.PrereleaseLabel, _prereleaseLabels[1], StringComparison.InvariantCultureIgnoreCase)))
             {
-                return true;
+                return false;
             }
+            return true;
             
-            return false;
+            // // get module manifest path, same for modules and scripts:
+            // // ./Modules/TestModule/0.0.1/TestModule.psd1
+            // // ./Scripts/TestScript/0.0.1/TestScript.psd1
+            // string moduleManifestPath = Path.Combine(pkgPath, pkgName + ".psd1");
+
+            // if (!Utils.TryParseModuleManifest(moduleManifestPath, this, out Hashtable parsedMetadataHashtable))
+            // {
+            //     WriteError(new ErrorRecord(
+            //         new PSInvalidOperationException("Module manifest could not be parsed for package: " + pkgName),
+            //         "ErrorParsingModuleManifest",
+            //         ErrorCategory.InvalidData,
+            //         this));
+            //     return false;
+            // }
+
+            // if (String.Equals(parsedPrereleaseLabel, expectedPrereleaseLabel, StringComparison.InvariantCultureIgnoreCase))
+            // {
+            //     return true;
+            // }
         }
         #endregion
     }
