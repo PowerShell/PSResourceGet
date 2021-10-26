@@ -132,12 +132,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             GetHelper getHelper = new GetHelper(this);
+            WriteVerbose("versionRange: " + _versionRange);
             string[] versionRangeParts = _versionRange.ToString().Trim(new char []{'[', ']', '(', ')'}).Split(',');
+            WriteVerbose("version range parts: " + String.Join(",", versionRangeParts));
 
             foreach (PSResourceInfo pkg in getHelper.FilterPkgPaths(namesToSearch, _versionRange, _pathsToSearch))
             {
-                if ((_versionRange != VersionRange.All) && (pkg.Version.ToString().StartsWith(versionRangeParts[0]) && !String.Equals(pkg.PrereleaseLabel, _prereleaseLabels[0], StringComparison.InvariantCultureIgnoreCase)) ||
-                        (pkg.Version.ToString().StartsWith(versionRangeParts[1]) && !String.Equals(pkg.PrereleaseLabel, _prereleaseLabels[1], StringComparison.InvariantCultureIgnoreCase)))
+                if ((_versionRange != VersionRange.All) && (!String.IsNullOrEmpty(versionRangeParts[0]) && pkg.Version.ToString().StartsWith(versionRangeParts[0]) && !String.Equals(pkg.PrereleaseLabel, _prereleaseLabels[0], StringComparison.InvariantCultureIgnoreCase)) ||
+                        (!String.IsNullOrEmpty(versionRangeParts[1]) && pkg.Version.ToString().StartsWith(versionRangeParts[1]) && !String.Equals(pkg.PrereleaseLabel, _prereleaseLabels[1], StringComparison.InvariantCultureIgnoreCase)))
                 {
                     continue;
                 }

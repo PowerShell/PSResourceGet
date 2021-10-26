@@ -121,25 +121,23 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<String> prereleaseLabelList = new List<string>();
             if (versionString.StartsWith("[") || versionString.StartsWith("("))
             {
-                // TODO: do I need to check end cases?
                 // this is a version range, i.e: [3.0.0-preview, ] or (2.9.0, 3.0.0-preview)
                 // not supported, bc you can't install versions with same core version part side by side (3.0.0, 3.0.0-preview)
-                string[] versionRangeParts = versionString.Substring(1, versionString.Length - 2).Split(',');
-                // versionRangeParts should be like: ["3.0.0-preview", ""] or ("2.9.0", "3.0.0-preview")
+                string[] versionRangeParts = versionString.Trim(new char[]{'[', ']', '(', ')'}).Split(',');
                 List<string> versionOnlyParts = new List<string>();
-                foreach(string individualVersion in versionRangeParts)
+                foreach(string indivVersion in versionRangeParts)
                 {
-                    if (!String.IsNullOrEmpty(individualVersion))
+                    if (!String.IsNullOrEmpty(indivVersion))
                     {
-                        versionOnlyParts.Add(GetVersionWithoutPrereleaseHelper(individualVersion, out string prereleaseLabel));
+                        versionOnlyParts.Add(GetVersionWithoutPrereleaseHelper(indivVersion, out string prereleaseLabel));
                         prereleaseLabelList.Add(prereleaseLabel);
                     }
                     else
                     {
+                        versionOnlyParts.Add(String.Empty);
                         prereleaseLabelList.Add(String.Empty);
                     }
                 }
-
                 prereleaseLabels = prereleaseLabelList.ToArray();
                 return versionString.Substring(0, 1) + String.Join(",", versionOnlyParts) + versionString.Substring(versionString.Length-1);
             }
