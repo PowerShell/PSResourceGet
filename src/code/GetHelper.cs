@@ -124,7 +124,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         _cmdletPassedIn.WriteVerbose(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
 
-                        _cmdletPassedIn.WriteVerbose("versionRange: " + versionRange + " and dirAsNuGetVersion: " + dirAsNugetVersion);
                         if (versionRange.Satisfies(dirAsNugetVersion))
                         {
                             // This will be one version or a version range.
