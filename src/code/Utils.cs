@@ -146,6 +146,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             prereleaseLabels = new string[]{""};
             return GetVersionWithoutPrereleaseHelper(versionString, out prereleaseLabels[0]);
         }
+
         public static string GetVersionWithoutPrereleaseHelper(string versionString, out string prereleaseLabel)
         {
             if (versionString.Contains("-"))

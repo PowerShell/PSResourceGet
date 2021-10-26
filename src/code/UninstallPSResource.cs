@@ -204,15 +204,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             errRecord = null;
             var successfullyUninstalledPkg = false;
 
-            // TODO: remove
-            // if Version provided by user contains prerelease label and installed package contains same prerelease label, then uninstall
-            // if (!String.IsNullOrEmpty(_prereleaseLabel) && !CheckIfPrerelease(isModule: true,
-            //     pkgPath: pkgPath,
-            //     pkgName: pkgName,
-            //     expectedPrereleaseLabel: _prereleaseLabel))
-            // {
-            //     return false;
-            // }
             if (!CheckIfPrerelease(isModule: true, pkgName: pkgName, pkgPath: pkgPath))
             {
                 return false;
@@ -268,15 +259,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             errRecord = null;
             var successfullyUninstalledPkg = false;
 
-            // TODO: remove
-            // if Version provided by user contains prerelease label and installed package contains same prerelease label, then uninstall
-            // if (!String.IsNullOrEmpty(_prereleaseLabel) && !CheckIfPrerelease(isModule: true,
-            //     pkgPath: pkgPath,
-            //     pkgName: pkgName,
-            //     expectedPrereleaseLabel: _prereleaseLabel))
-            // {
-            //     return false;
-            // }
             if (!CheckIfPrerelease(isModule: false, pkgName: pkgName, pkgPath: pkgPath))
             {
                 return false;
@@ -365,7 +347,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         
         private bool CheckIfPrerelease(bool isModule, string pkgPath, string pkgName)
         {
-
             string PSGetModuleInfoFilePath = isModule ? Path.Combine(pkgPath, "PSGetModuleInfo.xml") : Path.Combine(Path.GetDirectoryName(pkgPath), "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
             WriteVerbose("pkgPath: " + PSGetModuleInfoFilePath);
             if (!PSResourceInfo.TryRead(PSGetModuleInfoFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
@@ -380,28 +361,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 return false;
             }
+
             return true;
-            
-            // // get module manifest path, same for modules and scripts:
-            // // ./Modules/TestModule/0.0.1/TestModule.psd1
-            // // ./Scripts/TestScript/0.0.1/TestScript.psd1
-            // string moduleManifestPath = Path.Combine(pkgPath, pkgName + ".psd1");
-
-            // if (!Utils.TryParseModuleManifest(moduleManifestPath, this, out Hashtable parsedMetadataHashtable))
-            // {
-            //     WriteError(new ErrorRecord(
-            //         new PSInvalidOperationException("Module manifest could not be parsed for package: " + pkgName),
-            //         "ErrorParsingModuleManifest",
-            //         ErrorCategory.InvalidData,
-            //         this));
-            //     return false;
-            // }
-
-            // if (String.Equals(parsedPrereleaseLabel, expectedPrereleaseLabel, StringComparison.InvariantCultureIgnoreCase))
-            // {
-            //     return true;
-            // }
         }
+
         #endregion
     }
 }

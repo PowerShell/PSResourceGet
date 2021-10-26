@@ -9,6 +9,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module"
+        $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
         $res = Uninstall-PSResource -name ContosoServer -Version "*"
     }
@@ -137,23 +138,34 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg.Version | Should -Be "2.5"
     }
 
-    It "Uninstall version with prerelease" {
-        Install-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "1.1.0-preview" -Repository $PSGalleryName
-        Uninstall-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "1.1.0-preview"
-        $res = Get-InstalledPSResource "Microsoft.PowerShell.SecretManagement"
-        $prereleaseVersionFound = $false
-        foreach ($item in $res) {
-            if ([System.Version]$item.Version -eq "1.1.0" -and $item.PrereleaseLabel -eq "preview")
-            {
-                $prereleaseVersionFound = $true
-            }
-        }
-
-        $prereleaseVersionFound | Should -Be $true
+    It "Uninstall prerelease version module when prerelease version specified" {
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName
+        Uninstall-PSResource -Name $testModuleName -Version "5.2.5-alpha001"
+        $res = Get-InstalledPSResource $testModuleName -Version "5.2.5-alpha001"
+        $res | Should -BeNullOrEmpty
     }
 
-    It "Not Uninstall non-prerelease when similar prerelease version is specified" {
+    It "Not uninstall non-prerelease version module when similar prerelease version is specified" {
+        Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName
+        Uninstall-PSResource -Name $testModuleName -Version "5.0.0-preview"
+        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.0.0.0"
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0.0"
+    }
 
+    It "Uninstall prerelease version script when prerelease version specified" {
+        Install-PSResource -Name $testScriptName -Version "3.0.0-alpha001" -Repository $TestGalleryName
+        Uninstall-PSResource -Name $testScriptName -Version "3.0.0-alpha001"
+        $res = Get-InstalledPSResource -Name $testScriptName
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Not uninstall non-prerelease version module when prerelease version specified" {
+        Install-PSResource -Name $testScriptName -Version "2.5.0.0" -Repository $TestGalleryName
+        Uninstall-PSResource -Name $testScriptName -Version "2.5.0-alpha001"
+        $res = Get-InstalledPSResource -Name $testScriptName -Version "2.5.0.0"
+        $res.Name | Should -Be $testScriptName
+        $res.Version | Should -Be "2.5.0.0"
     }
 
     It "Uninstall module using -WhatIf, should not uninstall the module" {

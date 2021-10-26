@@ -132,9 +132,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             GetHelper getHelper = new GetHelper(this);
-            WriteVerbose("versionRange: " + _versionRange);
             string[] versionRangeParts = _versionRange.ToString().Trim(new char []{'[', ']', '(', ')'}).Split(',');
-            WriteVerbose("version range parts: " + String.Join(",", versionRangeParts));
 
             foreach (PSResourceInfo pkg in getHelper.FilterPkgPaths(namesToSearch, _versionRange, _pathsToSearch))
             {
