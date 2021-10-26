@@ -126,7 +126,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // not supported, bc you can't install versions with same core version part side by side (3.0.0, 3.0.0-preview)
                 string[] versionRangeParts = versionString.Substring(1, versionString.Length - 2).Split(',');
                 // versionRangeParts should be like: ["3.0.0-preview", ""] or ("2.9.0", "3.0.0-preview")
-                string endString = versionString.Substring(0, 1); // "[" or "("
                 List<string> versionOnlyParts = new List<string>();
                 foreach(string individualVersion in versionRangeParts)
                 {
@@ -134,8 +133,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     {
                         versionOnlyParts.Add(GetVersionWithoutPrereleaseHelper(individualVersion, out string prereleaseLabel));
                         prereleaseLabelList.Add(prereleaseLabel);
-                        // endString += GetVersionWithoutPrereleaseHelper(individualVersion, out string prereleaseLabel);
-                        // prereleaseLabelList.Add(prereleaseLabel);
                     }
                     else
                     {
@@ -145,13 +142,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 prereleaseLabels = prereleaseLabelList.ToArray();
                 return versionString.Substring(0, 1) + String.Join(",", versionOnlyParts) + versionString.Substring(versionString.Length-1);
-
-                // Console.WriteLine
-                // endString.TrimEnd(',');
-                // endString += versionString.Substring(versionString.Length -1);
-                // prereleaseLabels = prereleaseLabelList.ToArray();
-                // Console.WriteLine(endString);
-                // return endString;
             }
 
             // just a specific version
