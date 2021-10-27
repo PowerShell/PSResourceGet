@@ -134,6 +134,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                     else
                     {
+                        // prereleaseLabelList always has 2 entries, they might just be empty strings
                         versionOnlyParts.Add(String.Empty);
                         prereleaseLabelList.Add(String.Empty);
                     }

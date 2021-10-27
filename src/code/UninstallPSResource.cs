@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
-        string[] _prereleaseLabels = new string[]{};
+        string[] _prereleaseLabels = new string[]{""};
         #endregion
 
         #region Methods
@@ -112,7 +112,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrerelease(InputObject.Version.ToString(), out _prereleaseLabels),
+                    // PSResourceInfo object will always have:
+                    // specific version, not version range
+                    // Version and PrereleaseLabel (if any) as separate properties, i.e "1.0.0-alpha" case wouldn't be piped in
+
+                    // if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrerelease(InputObject.Version.ToString(), out _prereleaseLabels),
+                    //     versionRange: out _versionRange))
+                    _prereleaseLabels[0] = InputObject.PrereleaseLabel;
+                    if (!Utils.TryParseVersionOrVersionRange(version: InputObject.Version.ToString(),
                         versionRange: out _versionRange))
                     {
                         var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", InputObject.Version.ToString(), InputObject.Name);
@@ -348,7 +355,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool CheckIfPrerelease(bool isModule, string pkgPath, string pkgName)
         {
             string PSGetModuleInfoFilePath = isModule ? Path.Combine(pkgPath, "PSGetModuleInfo.xml") : Path.Combine(Path.GetDirectoryName(pkgPath), "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
-            WriteVerbose("pkgPath: " + PSGetModuleInfoFilePath);
             if (!PSResourceInfo.TryRead(PSGetModuleInfoFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
             {
                 return false;

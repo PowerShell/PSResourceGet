@@ -207,8 +207,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
         # Powershell cannot create install locations indicating a prerelease version (with prerelease label indicated in install location).
         # To test we can uninstall prerelease versions, we must use the numeric part of the prerelease version only and it must be unique
         # of all versions installed for that module.
-        Get-InstalledPSResource -Name $testModuleName -Version "4.5.2" | Uninstall-PSResource
-        $res = Get-InstalledPSResource -Name $testModuleName -Version "4.5.2"
+        Get-InstalledPSResource -Name $testModuleName -Version "4.5.2-alpha001" | Uninstall-PSResource
+        $res = Get-InstalledPSResource -Name $testModuleName -Version "4.5.2-alpha001"
         $res | Should -BeNullOrEmpty
     }
 }
