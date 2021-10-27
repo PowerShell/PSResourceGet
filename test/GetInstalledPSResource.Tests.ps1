@@ -110,7 +110,7 @@ $testCases =
     }
 
     It "Get prerelease version module when version with correct prerelease label is specified" {
-        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001"
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $TestGalleryName
         $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5"
         $res | Should -BeNullOrEmpty
         $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5-alpha001"
@@ -120,7 +120,7 @@ $testCases =
     }
 
     It "Get prerelease version script when version with correct prerelease label is specified" {
-        Install-PSResource -Name $testScriptName -Version "3.0.0-alpha001"
+        Install-PSResource -Name $testScriptName -Version "3.0.0-alpha001" -Repository $TestGalleryName
         $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0"
         $res | Should -BeNullOrEmpty
         $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0-alpha001"

@@ -139,14 +139,14 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall prerelease version module when prerelease version specified" {
-        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $TestGalleryName
         Uninstall-PSResource -Name $testModuleName -Version "5.2.5-alpha001"
         $res = Get-InstalledPSResource $testModuleName -Version "5.2.5-alpha001"
         $res | Should -BeNullOrEmpty
     }
 
     It "Not uninstall non-prerelease version module when similar prerelease version is specified" {
-        Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName
+        Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $TestGalleryName
         Uninstall-PSResource -Name $testModuleName -Version "5.0.0-preview"
         $res = Get-InstalledPSResource -Name $testModuleName -Version "5.0.0.0"
         $res.Name | Should -Be $testModuleName
