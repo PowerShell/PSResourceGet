@@ -115,7 +115,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // PSResourceInfo object will always have:
                     // specific version, not version range
                     // Version and PrereleaseLabel (if any) as separate properties, i.e "1.0.0-alpha" case wouldn't be piped in
-
                     _prereleaseLabels[0] = InputObject.PrereleaseLabel;
                     if (!Utils.TryParseVersionOrVersionRange(version: InputObject.Version.ToString(),
                         versionRange: out _versionRange))
