@@ -140,7 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var installHelper = new InstallHelper(updatePkg: false, savePkg: true, cmdletPassedIn: this);
+            var installHelper = new InstallHelper(savePkg: true, cmdletPassedIn: this);
             switch (ParameterSetName)
             {
                 case NameParameterSet:
@@ -234,8 +234,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 quiet: true, 
                 reinstall: true, 
                 force: false, 
-                trustRepository: TrustRepository, 
-                noClobber: false, 
+                trustRepository: TrustRepository,
                 credential: Credential, 
                 requiredResourceFile: null,
                 requiredResourceJson: null, 
