@@ -112,7 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    // PSResourceInfo object will always have:
+                    // PSResourceInfo object piped in will always have:
                     // specific version, not version range
                     // Version and PrereleaseLabel (if any) as separate properties, i.e "1.0.0-alpha" case wouldn't be piped in
                     _prereleaseLabels[0] = InputObject.PrereleaseLabel;
