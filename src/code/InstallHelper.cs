@@ -442,7 +442,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    _cmdletPassedIn.WriteVerbose(string.Format("Unable to successfully install package '{0}': '{1}'", p.Name, e.Message));
+                    _cmdletPassedIn.WriteError(
+                        new ErrorRecord(
+                            new PSInvalidOperationException(
+                                message: $"Unable to successfully install package '{p.Name}': '{e.Message}'",
+                                innerException: e),
+                            "InstallPackageFailed",
+                            ErrorCategory.InvalidOperation,
+                            _cmdletPassedIn));
                 }
                 finally
                 {
@@ -668,12 +675,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("Temporary module version directory is: '{0}'", tempModuleVersionDir));
 
-                    // At this point if 
                     if (Directory.Exists(finalModuleVersionDir))
                     {
-                        // Delete the directory path before replacing it with the new module
-                        _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", finalModuleVersionDir));
-                        Directory.Delete(finalModuleVersionDir, true);
+                        // Delete the directory path before replacing it with the new module.
+                        // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
+                        // installed module is not corrupted.
+                        _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete with restore on failure.'{0}'", finalModuleVersionDir));
+                        Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
                     }
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
