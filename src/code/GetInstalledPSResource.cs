@@ -22,7 +22,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private VersionRange _versionRange;
         private List<string> _pathsToSearch;
-        string[] _prereleaseLabels = new string[]{};
 
         #endregion
 
@@ -60,8 +59,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _versionRange = VersionRange.All;
             }
-            else if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrerelease(Version, out _prereleaseLabels),
-                        versionRange: out _versionRange))
+            else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
                 var exMessage = "Argument for -Version parameter is not in the proper format.";
                 var ex = new ArgumentException(exMessage);
@@ -132,16 +130,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             GetHelper getHelper = new GetHelper(this);
-            string[] versionRangeParts = _versionRange.ToString().Trim(new char []{'[', ']', '(', ')'}).Split(',');
-
             foreach (PSResourceInfo pkg in getHelper.FilterPkgPaths(namesToSearch, _versionRange, _pathsToSearch))
             {
-                if ((_versionRange != VersionRange.All) && (!String.IsNullOrEmpty(versionRangeParts[0]) && pkg.Version.ToString().StartsWith(versionRangeParts[0]) && !String.Equals(pkg.PrereleaseLabel, _prereleaseLabels[0], StringComparison.InvariantCultureIgnoreCase)) ||
-                        (!String.IsNullOrEmpty(versionRangeParts[1]) && pkg.Version.ToString().StartsWith(versionRangeParts[1]) && !String.Equals(pkg.PrereleaseLabel, _prereleaseLabels[1], StringComparison.InvariantCultureIgnoreCase)))
-                {
-                    continue;
-                }
-
                 WriteObject(pkg);
             }
         }

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -56,7 +55,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
-        string[] _prereleaseLabels = new string[]{""};
         #endregion
 
         #region Methods
@@ -77,8 +75,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         _versionRange = VersionRange.All;
                     }
-                    else if (!Utils.TryParseVersionOrVersionRange(version: Utils.GetVersionWithoutPrerelease(Version, out _prereleaseLabels),
-                        versionRange: out _versionRange))
+                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
                     {
                         var exMessage = "Argument for -Version parameter is not in the proper format.";
                         var ex = new ArgumentException(exMessage);
@@ -112,12 +109,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    // PSResourceInfo object piped in will always have:
-                    // specific version, not version range
-                    // Version and PrereleaseLabel (if any) as separate properties, i.e "1.0.0-alpha" case wouldn't be piped in
-                    _prereleaseLabels[0] = InputObject.PrereleaseLabel;
-                    if (!Utils.TryParseVersionOrVersionRange(version: InputObject.Version.ToString(),
-                        versionRange: out _versionRange))
+                    string inputObjectPrereleaseLabel = InputObject.PrereleaseLabel;
+                    string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrereleaseLabel) ? InputObject.Version.ToString() : Utils.GetNormalizedVersionString(versionString: InputObject.Version.ToString(), prerelease: inputObjectPrereleaseLabel);
+                    if (!Utils.TryParseVersionOrVersionRange(version: inputObjectVersion, versionRange: out _versionRange))
                     {
                         var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", InputObject.Version.ToString(), InputObject.Name);
                         var ex = new ArgumentException(exMessage);
@@ -142,6 +136,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
         }
+
 
         private bool UninstallPkgHelper()
         {
@@ -208,11 +203,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             errRecord = null;
             var successfullyUninstalledPkg = false;
 
-            if (!CheckIfPrerelease(isModule: true, pkgName: pkgName, pkgPath: pkgPath))
-            {
-                return false;
-            }
-
             // if -Force is not specified and the pkg is a dependency for another package, 
             // an error will be written and we return false
             if (!Force && CheckIfDependency(pkgName, out errRecord))
@@ -262,11 +252,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             errRecord = null;
             var successfullyUninstalledPkg = false;
-
-            if (!CheckIfPrerelease(isModule: false, pkgName: pkgName, pkgPath: pkgPath))
-            {
-                return false;
-            }
 
             // delete the appropriate file
             try
@@ -348,26 +333,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             return false;
         }
-        
-        private bool CheckIfPrerelease(bool isModule, string pkgPath, string pkgName)
-        {
-            string PSGetModuleInfoFilePath = isModule ? Path.Combine(pkgPath, "PSGetModuleInfo.xml") : Path.Combine(Path.GetDirectoryName(pkgPath), "InstalledScriptInfos", pkgName + "_InstalledScriptInfo.xml");
-            if (!PSResourceInfo.TryRead(PSGetModuleInfoFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
-            {
-                return false;
-            }
-
-            string[] versionRangeParts = _versionRange.ToString().Trim(new char []{'[', ']', '(', ')'}).Split(',');
-            if ((_versionRange != VersionRange.All) &&
-                (psGetInfo.Version.ToString().StartsWith(versionRangeParts[0]) && !String.Equals(psGetInfo.PrereleaseLabel, _prereleaseLabels[0], StringComparison.InvariantCultureIgnoreCase)) ||
-                (psGetInfo.Version.ToString().StartsWith(versionRangeParts[1]) && !String.Equals(psGetInfo.PrereleaseLabel, _prereleaseLabels[1], StringComparison.InvariantCultureIgnoreCase)))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
         #endregion
     }
 }

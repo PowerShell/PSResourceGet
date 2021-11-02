@@ -116,51 +116,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Version methods
 
-        public static string GetVersionWithoutPrerelease(string versionString, out string[] prereleaseLabels)
-        {
-            List<String> prereleaseLabelList = new List<string>();
-            if (versionString.StartsWith("[") || versionString.StartsWith("("))
-            {
-                // this is a version range, i.e: [3.0.0-preview, ] or (2.9.0, 3.0.0-preview)
-                // not supported, bc you can't install versions with same core version part side by side (3.0.0, 3.0.0-preview)
-                string[] versionRangeParts = versionString.Trim(new char[]{'[', ']', '(', ')'}).Split(',');
-                List<string> versionOnlyParts = new List<string>();
-                foreach(string indivVersion in versionRangeParts)
-                {
-                    if (!String.IsNullOrEmpty(indivVersion))
-                    {
-                        versionOnlyParts.Add(GetVersionWithoutPrereleaseHelper(indivVersion, out string prereleaseLabel));
-                        prereleaseLabelList.Add(prereleaseLabel);
-                    }
-                    else
-                    {
-                        // prereleaseLabelList always has 2 entries, they might just be empty strings
-                        versionOnlyParts.Add(String.Empty);
-                        prereleaseLabelList.Add(String.Empty);
-                    }
-                }
-                prereleaseLabels = prereleaseLabelList.ToArray();
-                return versionString.Substring(0, 1) + String.Join(",", versionOnlyParts) + versionString.Substring(versionString.Length-1);
-            }
-
-            // just a specific version
-            prereleaseLabels = new string[]{""};
-            return GetVersionWithoutPrereleaseHelper(versionString, out prereleaseLabels[0]);
-        }
-
-        public static string GetVersionWithoutPrereleaseHelper(string versionString, out string prereleaseLabel)
-        {
-            if (versionString.Contains("-"))
-            {
-                string[] versionParts = versionString.Split('-');
-                prereleaseLabel = versionParts[1];
-                return versionParts[0];
-            }
-            
-            prereleaseLabel = String.Empty;
-            return versionString;
-        }
-
         public static string GetNormalizedVersionString(
             string versionString,
             string prerelease)
@@ -223,6 +178,45 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             // parse as Version range
             return VersionRange.TryParse(version, out versionRange);
+        }
+
+        public static bool GetVersionFromPSGetModuleInfoFile(
+            string installedPkgPath,
+            bool isModule,
+            PSCmdlet cmdletPassedIn,
+            out NuGetVersion pkgNuGetVersion)
+        {
+            // for Modules, installedPkgPath will look like this:
+            // ./PowerShell/Modules/test_module/3.0.0
+            // for Scripts, installedPkgPath will look like this:
+            // ./PowerShell/Scripts/test_script.ps1
+
+            string pkgName = String.Empty;
+            if (!isModule)
+            {
+                pkgName = Utils.GetInstalledPackageName(installedPkgPath);
+            }
+
+            string PSGetModuleInfoFilePath = isModule ? Path.Combine(installedPkgPath, "PSGetModuleInfo.xml") : Path.Combine((new DirectoryInfo(installedPkgPath).Parent).FullName, "InstalledScriptInfos", $"{pkgName}_InstalledScriptInfo.xml");
+            if (!PSResourceInfo.TryRead(PSGetModuleInfoFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
+            {
+                cmdletPassedIn.WriteVerbose(String.Format("The PSGetModuleInfo.xml file found at location: {0} cannot be parsed due to {1}", PSGetModuleInfoFilePath, errorMsg));
+                NuGetVersion.TryParse(installedPkgPath, out pkgNuGetVersion);
+                return false;
+            }
+
+            string version = psGetInfo.Version.ToString();
+            string prereleaseLabel = psGetInfo.PrereleaseLabel;
+
+            if (!NuGetVersion.TryParse(
+                    value: String.IsNullOrEmpty(prereleaseLabel) ? version : GetNormalizedVersionString(version, prereleaseLabel),
+                    version: out pkgNuGetVersion))
+            {
+                cmdletPassedIn.WriteVerbose(String.Format("Leaf directory in path '{0}' cannot be parsed into a version.", installedPkgPath));
+                return false;
+            }
+
+            return true;
         }
 
         #endregion
