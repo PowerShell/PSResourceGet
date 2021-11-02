@@ -1,6 +1,6 @@
 parameters:
   jobName: TestPkgWin
-  imageName: windows-2019
+  imageName: windows-latest
   displayName: PowerShell Core on Windows
   powershellExecutable: pwsh
 
