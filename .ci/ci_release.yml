@@ -306,6 +306,13 @@ stages:
         codeBaseName: 'PowerShellGet_210306'
         # selections
         APIScan: false # set to false when not using Windows APIs
+    # Generate the third party notice file after component detection
+    - task: msospo.ospo-extension.8d7f9abb-6896-461d-9e25-4f74ed65ddb2.notice@0
+      displayName: 'Third Party Notice File Generator'
+      inputs:
+        outputfile: ThirdPartyNotice
+        # output format can be html or text
+        outputformat: text
 
 - stage: Test
   displayName: Test Package
