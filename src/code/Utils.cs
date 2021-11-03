@@ -458,6 +458,51 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Directory and File
 
         /// <Summary>
+        /// Deletes a directory and its contents.
+        /// Attempts to restore the directory and contents if deletion fails.
+        /// </Summary>
+        public static void DeleteDirectoryWithRestore(string dirPath)
+        {
+            string tempDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                // Create temporary directory for restore operation if needed.
+                CopyDirContents(dirPath, tempDirPath, overwrite: true);
+
+                try
+                {
+                    DeleteDirectory(dirPath);
+                }
+                catch (Exception ex)
+                {
+                    // Delete failed. Attempt to restore the saved directory content.
+                    try
+                    {
+                        RestoreDirContents(tempDirPath, dirPath);
+                    }
+                    catch (Exception exx)
+                    {
+                        throw new PSInvalidOperationException(
+                            $"Cannot remove package path {dirPath}. An attempt to restore the old package has failed with error: {exx.Message}",
+                            ex);
+                    }
+
+                    throw new PSInvalidOperationException(
+                        $"Cannot remove package path {dirPath}. The previous package contents have been restored.",
+                        ex);
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(tempDirPath))
+                {
+                    DeleteDirectory(tempDirPath);
+                }
+            }
+        }
+
+        /// <Summary>
         /// Deletes a directory and its contents
         /// This is a workaround for .NET Directory.Delete(), which can fail with WindowsPowerShell
         /// on OneDrive with 'access denied' error.
@@ -532,6 +577,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 var destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
                 CopyDirContents(srcSubDirPath, destSubDirPath, overwrite);
+            }
+        }
+
+        private static void RestoreDirContents(
+            string sourceDirPath,
+            string destDirPath)
+        {
+            if (!Directory.Exists(destDirPath))
+            {
+                Directory.CreateDirectory(destDirPath);
+            }
+
+            foreach (string filePath in Directory.GetFiles(sourceDirPath))
+            {
+                string destFilePath = Path.Combine(destDirPath, Path.GetFileName(filePath));
+                if (!File.Exists(destFilePath))
+                {
+                    File.Copy(filePath, destFilePath);
+                }
+            }
+
+            foreach (string srcSubDirPath in Directory.GetDirectories(sourceDirPath))
+            {
+                string destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
+                RestoreDirContents(srcSubDirPath, destSubDirPath);
             }
         }
 
