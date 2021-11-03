@@ -1,23 +1,23 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
-using System.Data;
-using Dbg = System.Diagnostics.Debug;
-using System.Linq;
-using System.Management.Automation;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using MoreLinq.Extensions;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo;
+using MoreLinq.Extensions;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Management.Automation;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -26,6 +26,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// </summary>
     internal class FindHelper
     {
+        #region Members
+
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pkgsLeftToFind;
@@ -50,11 +52,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const int SearchAsyncMaxReturned = 5990;
         private const int GalleryMax = 12000;
 
+        #endregion
+
+        #region Constructor
+
+        private FindHelper() { }
+
         public FindHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
         {
             _cancellationToken = cancellationToken;
             _cmdletPassedIn = cmdletPassedIn;
         }
+
+        #endregion
+
+        #region Public methods
 
         public IEnumerable<PSResourceInfo> FindByResourceName(
             string[] name,
@@ -175,7 +187,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        public IEnumerable<PSResourceInfo> SearchFromRepository(
+        #endregion
+
+        #region Private methods
+
+        private IEnumerable<PSResourceInfo> SearchFromRepository(
             string repositoryName,
             Uri repositoryUrl)
         {
@@ -255,7 +271,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        public IEnumerable<PSResourceInfo> SearchAcrossNamesInRepository(
+        private IEnumerable<PSResourceInfo> SearchAcrossNamesInRepository(
             string repositoryName,
             PackageSearchResource pkgSearchResource,
             PackageMetadataResource pkgMetadataResource,
@@ -637,5 +653,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
         }
+        #endregion
     }
 }

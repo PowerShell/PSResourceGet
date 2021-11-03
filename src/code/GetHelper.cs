@@ -1,16 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
-using Dbg = System.Diagnostics.Debug;
 using System.IO;
-using System.Linq;
 using System.Management.Automation;
-using System.Threading;
-using MoreLinq.Extensions;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+
+using Dbg = System.Diagnostics.Debug;
 using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo;
-using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -38,7 +37,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Public methods
 
-        public IEnumerable<PSResourceInfo> FilterPkgPaths(
+        public IEnumerable<PSResourceInfo> GetPackagesFromPath(
             string[] name,
             VersionRange versionRange,
             List<string> pathsToSearch)

@@ -1,16 +1,12 @@
-using System.Collections.Specialized;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
-using Dbg = System.Diagnostics.Debug;
-using System.Linq;
-using System.Management.Automation;
-using System.Text;
-using System.Threading;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -144,7 +140,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             InstallHelper installHelper = new InstallHelper(
-                updatePkg: true,
                 savePkg: false,
                 cmdletPassedIn: this);
 
@@ -155,10 +150,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 repository: Repository,
                 acceptLicense: AcceptLicense,
                 quiet: Quiet,
-                reinstall: false,
+                reinstall: true,
                 force: Force,
                 trustRepository: TrustRepository,
-                noClobber: false,
                 credential: Credential,
                 requiredResourceFile: null,
                 requiredResourceJson: null,
@@ -211,7 +205,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 GetHelper getHelper = new GetHelper(
                     cmdletPassedIn: this);
 
-                namesToProcess = getHelper.FilterPkgPaths(
+                namesToProcess = getHelper.GetPackagesFromPath(
                     name: namesToProcess,
                     versionRange: versionRange,
                     pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
