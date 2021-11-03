@@ -112,7 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     foreach (string versionPath in versionsDirs)
                     {
                         _cmdletPassedIn.WriteVerbose(string.Format("Searching through package version path: '{0}'", versionPath));
-                        if(!Utils.GetVersionFromPSGetModuleInfoFile(installedPkgPath: versionPath,
+                        if(!Utils.GetVersionForInstallPath(installedPkgPath: versionPath,
                             isModule: true,
                             cmdletPassedIn: _cmdletPassedIn,
                             out NuGetVersion dirAsNugetVersion))
@@ -149,7 +149,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // check to make sure it's within the version range.
                         // script versions will be parsed from the script xml file
                         PSResourceInfo scriptInfo = OutputPackageObject(pkgPath, _scriptDictionary);
-                        if(!Utils.GetVersionFromPSGetModuleInfoFile(installedPkgPath: pkgPath,
+                        if(!Utils.GetVersionForInstallPath(installedPkgPath: pkgPath,
                             isModule: false,
                             cmdletPassedIn: _cmdletPassedIn,
                             out NuGetVersion dirAsNugetVersion))

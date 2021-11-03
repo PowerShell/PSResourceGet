@@ -180,28 +180,32 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return VersionRange.TryParse(version, out versionRange);
         }
 
-        public static bool GetVersionFromPSGetModuleInfoFile(
+        public static bool GetVersionForInstallPath(
             string installedPkgPath,
             bool isModule,
             PSCmdlet cmdletPassedIn,
             out NuGetVersion pkgNuGetVersion)
         {
+            // this method returns false if the PSGetModuleInfo.xml or {pkgName}_InstalledScriptInfo.xml file
+            // could not be parsed properly, or the version from it could not be parsed into a NuGetVersion.
+            // In this case the caller method (i.e GetHelper.FilterPkgPathsByVersion()) should skip the current
+            // installed package path or reassign NuGetVersion variable passed in to a non-null value as it sees fit.
+
             // for Modules, installedPkgPath will look like this:
             // ./PowerShell/Modules/test_module/3.0.0
             // for Scripts, installedPkgPath will look like this:
             // ./PowerShell/Scripts/test_script.ps1
+            string pkgName = isModule ? String.Empty : Utils.GetInstalledPackageName(installedPkgPath);
 
-            string pkgName = String.Empty;
-            if (!isModule)
+            string packageInfoXMLFilePath = isModule ? Path.Combine(installedPkgPath, "PSGetModuleInfo.xml") : Path.Combine((new DirectoryInfo(installedPkgPath).Parent).FullName, "InstalledScriptInfos", $"{pkgName}_InstalledScriptInfo.xml");
+            if (!PSResourceInfo.TryRead(packageInfoXMLFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
             {
-                pkgName = Utils.GetInstalledPackageName(installedPkgPath);
-            }
-
-            string PSGetModuleInfoFilePath = isModule ? Path.Combine(installedPkgPath, "PSGetModuleInfo.xml") : Path.Combine((new DirectoryInfo(installedPkgPath).Parent).FullName, "InstalledScriptInfos", $"{pkgName}_InstalledScriptInfo.xml");
-            if (!PSResourceInfo.TryRead(PSGetModuleInfoFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
-            {
-                cmdletPassedIn.WriteVerbose(String.Format("The PSGetModuleInfo.xml file found at location: {0} cannot be parsed due to {1}", PSGetModuleInfoFilePath, errorMsg));
-                NuGetVersion.TryParse(installedPkgPath, out pkgNuGetVersion);
+                cmdletPassedIn.WriteVerbose(String.Format(
+                    "The {0} file found at location: {1} cannot be parsed due to {2}",
+                    isModule ? "PSGetModuleInfo.xml" : $"{pkgName}_InstalledScriptInfo.xml",
+                    packageInfoXMLFilePath,
+                    errorMsg));
+                pkgNuGetVersion = null;
                 return false;
             }
 
