@@ -171,7 +171,7 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $res = Find-PSResource -Name $testModuleName -Version "*" -Repository $PSGalleryName
+        $res = Find-PSResource -Name $testModuleName -Version "*" -Repository $TestGalleryName
         $res | ForEach-Object {
             $_.Name | Should -Be $testModuleName
         }
@@ -224,8 +224,8 @@ Describe 'Test Find-PSResource for Module' {
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
 
-    It "find resource of Type script or module from PSGallery, when no Type parameter provided" {
-        $resScript = Find-PSResource -Name "AzureSqlScale" -Repository $TestGalleryName
+    It "find resource of Type script or module from PSGallery/PoshTestGallery, when no Type parameter provided" {
+        $resScript = Find-PSResource -Name "AzureSqlScale" -Repository $PSGalleryName
         $resScript.Name | Should -Be "AzureSqlScale"
         $resScript.Type | Should -Be "Script"
 
