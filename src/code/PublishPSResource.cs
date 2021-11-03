@@ -374,7 +374,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
-                 PushNupkg(outputNupkgDir, repositoryUrl);
+                PushNupkg(outputNupkgDir, repository.Name, repositoryUrl);
             }
             finally {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
@@ -831,13 +831,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                WriteVerbose("Successfully packed the resource into a .nupkg");
+                WriteVerbose("Not able to successfully pack the resource into a .nupkg");
             }
 
             return success;
         }
 
-        private void PushNupkg(string outputNupkgDir, string repoUrl)
+        private void PushNupkg(string outputNupkgDir, string repoName, string repoUrl)
         {
             // Push the nupkg to the appropriate repository 
             // Pkg version is parsed from .ps1 file or .psd1 file 
@@ -875,7 +875,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 //  look in PS repo for how httpRequestExceptions are handled
 
                 // Unfortunately there is no response message  are no status codes provided with the exception and no 
-                var ex = new ArgumentException(e.Message);
+                var ex = new ArgumentException(String.Format("Repository '{0}': {1}", repoName, e.Message));
                 if (e.Message.Contains("401"))
                 {
                     if (e.Message.Contains("API"))
@@ -924,7 +924,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUrl));
+                WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUrl));
             }            
         }
     }
