@@ -9,6 +9,7 @@ Describe 'Test Install-PSResource for Module' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
+        $testModuleName = "TestModule"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
@@ -195,6 +196,32 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "1.3.0"
     }
 
+    It "Restore resource after reinstall fails" {
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName
+        $pkg = Get-Module "TestModule" -ListAvailable
+        $pkg.Name | Should -Be "TestModule"
+        $pkg.Version | Should -Be "1.3.0"
+
+        $resourcePath = Split-Path -Path $pkg.Path -Parent
+        $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
+
+        # Lock resource file to prevent reinstall from succeeding.
+        $fs = [System.IO.File]::Open($resourceFiles[0].FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
+        try
+        {
+            # Reinstall of resource should fail with one of its files locked.
+            Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Reinstall -ErrorVariable ev -ErrorAction Silent
+            $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource'
+        }
+        finally
+        {
+            $fs.Close()
+        }
+
+        # Verify that resource module has been restored.
+        (Get-ChildItem -Path $resourcePath -Recurse).Count | Should -BeExactly $resourceFiles.Count
+    }
+
     It "Install resource that requires accept license with -AcceptLicense flag" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
         $pkg = Get-InstalledPSResource "testModuleWithlicense"
@@ -260,6 +287,12 @@ Describe 'Test Install-PSResource for Module' {
 
         Install-PSResource -Name "ClobberTestModule2" -Repository $TestGalleryName -NoClobber -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+        It "Install PSResourceInfo object piped in" {
+        Find-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName | Install-PSResource
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "1.1.0.0"
     }
 }
 

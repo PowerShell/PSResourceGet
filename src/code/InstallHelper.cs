@@ -1,5 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using MoreLinq.Extensions;
+using NuGet.Common;
+using NuGet.Configuration;
+using NuGet.Packaging;
+using NuGet.Packaging.Core;
+using NuGet.Packaging.PackageExtraction;
+using NuGet.Protocol;
+using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,16 +21,6 @@ using System.Management.Automation;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
-using MoreLinq.Extensions;
-using NuGet.Common;
-using NuGet.Configuration;
-using NuGet.Packaging;
-using NuGet.Packaging.Core;
-using NuGet.Packaging.PackageExtraction;
-using NuGet.Protocol;
-using NuGet.Protocol.Core.Types;
-using NuGet.Versioning;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -28,34 +29,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// </summary>
     internal class InstallHelper : PSCmdlet
     {
+        #region Members
+
+        private const string MsgRepositoryNotTrusted = "Untrusted repository";
+        private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
+
         private CancellationToken _cancellationToken;
-        private readonly bool _updatePkg;
         private readonly bool _savePkg;
         private readonly PSCmdlet _cmdletPassedIn;
-        List<string> _pathsToInstallPkg;
-        VersionRange _versionRange;
-        bool _prerelease;
-        bool _acceptLicense;
-        bool _quiet;
-        bool _reinstall;
-        bool _force;
-        bool _trustRepository;
-        bool _noClobber;
-        PSCredential _credential;
-        string _specifiedPath;
-        bool _asNupkg;
-        bool _includeXML;
-        List<string> _pathsToSearch = new List<string>();
-
-        public InstallHelper(bool updatePkg, bool savePkg, PSCmdlet cmdletPassedIn)
         {
-            // Define the cancellation token.
             CancellationTokenSource source = new CancellationTokenSource();
-            _cancellationToken = source.Token;
-            
-            this._updatePkg = updatePkg;
-            this._savePkg = savePkg;
-            this._cmdletPassedIn = cmdletPassedIn;
+            _cancellationToken = source.Token;   
+            _savePkg = savePkg;
+            _cmdletPassedIn = cmdletPassedIn;
         }
 
         public void InstallPackages(
@@ -68,9 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool reinstall,
             bool force,
             bool trustRepository,
-            bool noClobber,
             PSCredential credential,
-            string requiredResourceFile,
             string requiredResourceJson,
             Hashtable requiredResourceHash,
             string specifiedPath,
@@ -79,7 +63,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}';",
                 string.Join(",", names),
                 (versionRange != null ? versionRange.OriginalString : string.Empty),
                 prerelease.ToString(),
@@ -87,8 +71,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 acceptLicense.ToString(),
                 quiet.ToString(),
                 reinstall.ToString(),
-                trustRepository.ToString(),
-                noClobber.ToString()));
+                trustRepository.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
@@ -97,7 +80,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _reinstall = reinstall;
             _force = force;
             _trustRepository = trustRepository;
-            _noClobber = noClobber;
             _credential = credential;
             _specifiedPath = specifiedPath;
             _asNupkg = asNupkg;
@@ -120,27 +102,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ProcessRepositories(names, repository, _trustRepository, _credential);
         }
 
+        #endregion
+
+        #region Private methods
+
         // This method calls iterates through repositories (by priority order) to search for the pkgs to install
-        public void ProcessRepositories(string[] packageNames, string[] repository, bool trustRepository, PSCredential credential)
+        private void ProcessRepositories(string[] packageNames, string[] repository, bool trustRepository, PSCredential credential)
         {
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
-            List<string> packagesToInstall = packageNames.ToList();
+            List<string> pckgNamesToInstall = packageNames.ToList();
             var yesToAll = false;
             var noToAll = false;
-            var repositoryIsNotTrusted = "Untrusted repository";
-            var queryInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
 
+            var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
             foreach (var repo in listOfRepositories)
             {
                 // If no more packages to install, then return
-                if (!packagesToInstall.Any()) return;
+                if (!pckgNamesToInstall.Any()) return;
 
-                var sourceTrusted = false;
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
                 // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
                 // OR the user issues trust interactively via console.
+                var sourceTrusted = true;
                 if (repo.Trusted == false && !trustRepository && !_force)
                 {
                     _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
@@ -148,105 +133,116 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!(yesToAll || noToAll))
                     {
                         // Prompt for installation of package from untrusted repository
-                        var message = string.Format(CultureInfo.InvariantCulture, queryInstallUntrustedPackage, repoName);
-                        sourceTrusted = _cmdletPassedIn.ShouldContinue(message, repositoryIsNotTrusted, true, ref yesToAll, ref noToAll);
+                        var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
+                        sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
                     }
                 }
-                else
+
+                if (!sourceTrusted && !yesToAll)
                 {
-                    sourceTrusted = true;
+                    continue;
                 }
 
-                if (sourceTrusted || yesToAll)
+                _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
+
+                // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
+                var isLocalRepo = repo.Url.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
+
+                // Finds parent packages and dependencies
+                IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
+                    name: packageNames,
+                    type: ResourceType.None,
+                    version: _versionRange != null ? _versionRange.OriginalString : null,
+                    prerelease: _prerelease,
+                    tag: null,
+                    repository: new string[] { repoName },
+                    credential: credential,
+                    includeDependencies: true);
+
+                if (!pkgsFromRepoToInstall.Any())
                 {
-                    _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
+                    _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
+                    // Check in the next repository
+                    continue;
+                }
 
-                    // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
-                    var isLocalRepo = repo.Url.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
+                // Select the first package from each name group, which is guaranteed to be the latest version.
+                // We should only have one version returned for each package name
+                // e.g.:
+                // PackageA (version 1.0)
+                // PackageB (version 2.0)
+                // PackageC (version 1.0)
+                pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
+                    m => new { m.Name }).Select(
+                        group => group.First()).ToList();
 
+                // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
+                if (!_reinstall)
+                {
+                    // Removes all of the names that are already installed from the list of names to search for
+                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
+                }
 
-                    var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
-                    // Finds parent packages and dependencies
-                    IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
-                        name: packageNames,
-                        type: ResourceType.None,
-                        version: _versionRange != null ? _versionRange.OriginalString : null,
-                        prerelease: _prerelease,
-                        tag: null,
-                        repository: new string[] { repoName },
-                        credential: credential,
-                        includeDependencies: true);
+                if (!pkgsFromRepoToInstall.Any())
+                {
+                    continue;
+                }
 
-                    foreach (PSResourceInfo a in pkgsFromRepoToInstall)
-                    {
-                        var test = a;
-                        _cmdletPassedIn.WriteVerbose(a.Version.ToString());
-                    }
+                List<string> pkgsInstalled = InstallPackage(pkgsFromRepoToInstall, repoName, repo.Url.AbsoluteUri, credential, isLocalRepo);
 
-                    // Select the first package from each name group, which is guaranteed to be the latest version.
-                    // We should only have one version returned for each package name
-                    // e.g.:
-                    // PackageA (version 1.0)
-                    // PackageB (version 2.0)
-                    // PackageC (version 1.0)
-                    pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
-                        m => new { m.Name }).Select(
-                            group => group.First()).ToList();
-                    
-                    if (!pkgsFromRepoToInstall.Any())
-                    {
-                        _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
-                        // Check in the next repository
-                        continue;
-                    }
-
-                    // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
-                    if (!_reinstall)
-                    {
-                        // Removes all of the names that are already installed from the list of names to search for
-                        pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
-                    }
-
-                    if (!pkgsFromRepoToInstall.Any())
-                    {
-                        continue;
-                    }
-
-                    List<string> pkgsInstalled = InstallPackage(pkgsFromRepoToInstall, repoName, repo.Url.AbsoluteUri, credential, isLocalRepo);
-
-                    foreach (string name in pkgsInstalled)
-                    {
-                        packagesToInstall.Remove(name);
-                    }
+                foreach (string name in pkgsInstalled)
+                {
+                    pckgNamesToInstall.Remove(name);
                 }
             }
         }
 
         // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
-        public IEnumerable<PSResourceInfo> FilterByInstalledPkgs(IEnumerable<PSResourceInfo> packagesToInstall)
+        private IEnumerable<PSResourceInfo> FilterByInstalledPkgs(IEnumerable<PSResourceInfo> packages)
         {
-            List<string> pkgNames = new List<string>();
-            foreach (var pkg in packagesToInstall)
-            {
-                pkgNames.Add(pkg.Name);
-            }
-
+            // Create list of installation paths to search.
+            List<string> _pathsToSearch = new List<string>();
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.FilterPkgPaths(pkgNames.ToArray(), _versionRange, _pathsToSearch);
-
-            // If any pkg versions are already installed, write a message saying it is already installed and continue processing other pkg names
-            if (pkgsAlreadyInstalled.Any())
+            // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
+            // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
+            // e.g.:
+            // ./InstallPackagePath1/PackageA
+            // ./InstallPackagePath1/PackageB
+            // ./InstallPackagePath2/PackageC
+            // ./InstallPackagePath3/PackageD
+            foreach (var path in _pathsToInstallPkg)
             {
-                foreach (PSResourceInfo pkg in pkgsAlreadyInstalled)
-                {
-                    _cmdletPassedIn.WriteWarning(string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter", pkg.Name, pkg.Version));
-
-                    // remove this pkg from the list of pkg names install
-                    packagesToInstall.ToList().Remove(pkg);
-                }
+                _pathsToSearch.AddRange(Utils.GetSubDirectories(path));
             }
 
-            return packagesToInstall;
+            var filteredPackages = new Dictionary<string, PSResourceInfo>();
+            foreach (var pkg in packages)
+            {
+                filteredPackages.Add(pkg.Name, pkg);
+            }
+
+            // Get currently installed packages.
+            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
+                name: filteredPackages.Keys.ToArray(),
+                versionRange: _versionRange,
+                pathsToSearch: _pathsToSearch);
+            if (!pkgsAlreadyInstalled.Any())
+            {
+                return packages;
+            }
+
+            // Remove from list package versions that are already installed.
+            foreach (PSResourceInfo pkg in pkgsAlreadyInstalled)
+            {
+                _cmdletPassedIn.WriteWarning(
+                    string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
+                    pkg.Name,
+                    pkg.Version));
+
+                filteredPackages.Remove(pkg.Name);
+            }
+
+            return filteredPackages.Values.ToArray();
         }
 
         private List<string> InstallPackage(IEnumerable<PSResourceInfo> pkgsToInstall, string repoName, string repoUrl, PSCredential credential, bool isLocalRepo)
@@ -445,7 +441,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    _cmdletPassedIn.WriteVerbose(string.Format("Unable to successfully install package '{0}': '{1}'", p.Name, e.Message));
+                    _cmdletPassedIn.WriteError(
+                        new ErrorRecord(
+                            new PSInvalidOperationException(
+                                message: $"Unable to successfully install package '{p.Name}': '{e.Message}'",
+                                innerException: e),
+                            "InstallPackageFailed",
+                            ErrorCategory.InvalidOperation,
+                            _cmdletPassedIn));
                 }
                 finally
                 {
@@ -721,12 +724,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("Temporary module version directory is: '{0}'", tempModuleVersionDir));
 
-                    // At this point if 
                     if (Directory.Exists(finalModuleVersionDir))
                     {
-                        // Delete the directory path before replacing it with the new module
-                        _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", finalModuleVersionDir));
-                        Directory.Delete(finalModuleVersionDir, true);
+                        // Delete the directory path before replacing it with the new module.
+                        // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
+                        // installed module is not corrupted.
+                        _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete with restore on failure.'{0}'", finalModuleVersionDir));
+                        Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
                     }
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
@@ -761,5 +765,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, p.Name + ".ps1"));
             }
         }
+
+        #endregion
     }
 }

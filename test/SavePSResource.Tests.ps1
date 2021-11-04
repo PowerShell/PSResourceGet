@@ -9,6 +9,7 @@ Describe 'Test Save-PSResource for PSResources' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
+        $testModuleName = "test_module"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
@@ -171,6 +172,20 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"
         $pkgDir | Should -Not -BeNullOrEmpty 
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1
+    }
+
+    It "Save PSResourceInfo object piped in" {
+        Find-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName | Save-PSResource -Path $SaveDir
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"
+        $pkgDir | Should -Not -BeNullOrEmpty 
+        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
+    }
+
+    It "Save PSResourceInfo object piped in for prerelease version object" {
+        Find-PSResource -Name $testModuleName -Version "4.5.2-alpha001" -Repository $TestGalleryName | Save-PSResource -Path $SaveDir
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
     }
 
 <#
