@@ -573,7 +573,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 if (pkg.Includes.Command != null && pkg.Includes.Command.Any())
                 {
-                    duplicateCmds = listOfCmdlets.Where(commands => pkg.Includes.Command.Contains(commands)).ToList();
+                    duplicateCmds = listOfCmdlets.Where(commands => pkg.Includes.Command.Contains(commands, StringComparer.InvariantCultureIgnoreCase)).ToList();
                 }
                 if (duplicateCmdlets.Any() || duplicateCmds.Any())
                 { 
