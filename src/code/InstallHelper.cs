@@ -74,16 +74,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool reinstall,
             bool force,
             bool trustRepository,
+            bool noClobber,
             PSCredential credential,
-            string requiredResourceJson,
-            Hashtable requiredResourceHash,
             string specifiedPath,
             bool asNupkg,
             bool includeXML,
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}';",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';",
                 string.Join(",", names),
                 (versionRange != null ? versionRange.OriginalString : string.Empty),
                 prerelease.ToString(),
@@ -91,7 +90,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 acceptLicense.ToString(),
                 quiet.ToString(),
                 reinstall.ToString(),
-                trustRepository.ToString()));
+                trustRepository.ToString(),
+                noClobber.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
