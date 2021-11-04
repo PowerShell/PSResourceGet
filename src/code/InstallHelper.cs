@@ -37,6 +37,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private CancellationToken _cancellationToken;
         private readonly bool _savePkg;
         private readonly PSCmdlet _cmdletPassedIn;
+        private List<string> _pathsToInstallPkg;
+        private VersionRange _versionRange;
+        private bool _prerelease;
+        private bool _acceptLicense;
+        private bool _quiet;
+        private bool _reinstall;
+        private bool _force;
+        private bool _trustRepository;
+        private PSCredential _credential;
+        private string _specifiedPath;
+        private bool _asNupkg;
+        private bool _includeXML;
+        private bool _noClobber;
+        List<string> _pathsToSearch;
+
+        #endregion
+
+        #region Public methods
+
+        public InstallHelper(bool savePkg, PSCmdlet cmdletPassedIn)
         {
             CancellationTokenSource source = new CancellationTokenSource();
             _cancellationToken = source.Token;   
@@ -85,6 +105,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _asNupkg = asNupkg;
             _includeXML = includeXML;
             _pathsToInstallPkg = pathsToInstallPkg;
+
+            // Create list of installation paths to search.
+            _pathsToSearch = new List<string>();
 
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
             // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
@@ -202,7 +225,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // Create list of installation paths to search.
             List<string> _pathsToSearch = new List<string>();
-            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
             // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
             // e.g.:
@@ -221,6 +243,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 filteredPackages.Add(pkg.Name, pkg);
             }
 
+            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // Get currently installed packages.
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: filteredPackages.Keys.ToArray(),
@@ -552,7 +575,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Get installed modules, then get all possible paths
             bool foundClobber = false;
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.FilterPkgPaths(new string[] { "*" }, VersionRange.All, _pathsToSearch);
+            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(new string[] { "*" }, VersionRange.All, _pathsToSearch);
             // user parsed metadata hash
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
