@@ -115,15 +115,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if(!Utils.GetVersionForInstallPath(installedPkgPath: versionPath,
                             isModule: true,
                             cmdletPassedIn: _cmdletPassedIn,
-                            out NuGetVersion dirAsNugetVersion))
+                            out NuGetVersion pkgNugetVersion))
                         {
                             // skip to next iteration of the loop
                             continue;
                         }
 
-                        _cmdletPassedIn.WriteVerbose(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
+                        _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
 
-                        if (versionRange.Satisfies(dirAsNugetVersion))
+                        if (versionRange.Satisfies(pkgNugetVersion))
                         {
                             // This will be one version or a version range.
                             // yield results then continue with this iteration of the loop
@@ -152,14 +152,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if(!Utils.GetVersionForInstallPath(installedPkgPath: pkgPath,
                             isModule: false,
                             cmdletPassedIn: _cmdletPassedIn,
-                            out NuGetVersion dirAsNugetVersion))
+                            out NuGetVersion pkgNugetVersion))
                         {
                             // skip to next iteration of the loop
                             yield return pkgPath;
                         }
 
-                        _cmdletPassedIn.WriteVerbose(string.Format("Directory parsed as NuGet version: '{0}'", dirAsNugetVersion));
-                        if (versionRange.Satisfies(dirAsNugetVersion))
+                        _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
+                        if (versionRange.Satisfies(pkgNugetVersion))
                         {
                             _scriptDictionary.Add(pkgPath, scriptInfo);
                             yield return pkgPath;
