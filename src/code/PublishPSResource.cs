@@ -48,7 +48,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ParameterSetName = "PathParameterSet")]
+        [Parameter()]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -74,37 +74,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
         private string _path;
-        
-        /// <summary>
-        /// Specifies a path to one or more locations. Unlike the Path parameter, the value of the LiteralPath parameter is used exactly as entered.
-        /// No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks.
-        /// Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
-        /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = "PathLiteralParameterSet")]
-        [ValidateNotNullOrEmpty]
-        public string LiteralPath
-        {
-            get
-            { return _literalPath; }
-
-            set
-            {
-                if (Directory.Exists(value))
-                {
-                    _literalPath = value;
-                }
-                else if (File.Exists(value) && value.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
-                {
-                    _literalPath = value;
-                }
-            }
-        }
-        private string _literalPath;
 
         /// <summary>
         /// Specifies the path to where the resource (as a nupkg) should be saved to. This parameter can be used in conjunction with the
         /// -Repository parameter to publish to a repository and also save the exact same package to the local file system.
-        /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
         [Parameter()]
         [ValidateNotNullOrEmpty]
@@ -125,11 +98,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _destinationPath = resolvedPath;
                 }
-                // consider throwing error if path does not exist
                 else {
-                    var ex = new ArgumentException("Destination path does not exist.");
-                    var DestinationPathDoesNotExist = new ErrorRecord(ex, "DestinationPathDoesNotExist", ErrorCategory.InvalidArgument, null);
-                    WriteError(DestinationPathDoesNotExist);
+                    // try to create the path 
+                    try
+                    {
+                        Directory.CreateDirectory(value);
+                    }
+                    catch (Exception e)
+                    {
+                        var exMessage = string.Format("Destination path does not exist and cannot be created: {0}", e.Message);
+                        var ex = new ArgumentException(exMessage);
+                        var InvalidDestinationPath = new ErrorRecord(ex, "InvalidDestinationPath", ErrorCategory.InvalidArgument, null);
+                        ThrowTerminatingError(InvalidDestinationPath);
+                    }
                 }
             }
         }
@@ -207,8 +188,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FileInfo moduleFileInfo;
             Hashtable parsedMetadataHash = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
 
-            // _path has been resolved, literal path does not need to be resolved
-            _path = string.IsNullOrEmpty(_path) ? _literalPath : _path;
             // Returns the name of the file or the name of the directory, depending on path
             var pkgFileOrDir = new DirectoryInfo(_path);
             bool isScript = _path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase);
@@ -414,7 +393,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     try
                     {
                         var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
-                        File.Move(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
+                        Utils.MoveFiles(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
                     }
                     catch (Exception e) {
                         var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", _destinationPath, e.Message);
