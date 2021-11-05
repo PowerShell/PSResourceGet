@@ -100,6 +100,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _reinstall = reinstall;
             _force = force;
             _trustRepository = trustRepository;
+            _noClobber = noClobber;
             _credential = credential;
             _specifiedPath = specifiedPath;
             _asNupkg = asNupkg;
