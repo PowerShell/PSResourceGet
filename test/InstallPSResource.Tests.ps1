@@ -279,7 +279,16 @@ Describe 'Test Install-PSResource for Module' {
         $res.Path.Contains("Modules") | Should -Be $true
     }
 
-    It "Install PSResourceInfo object piped in" {
+    It "Install module using -NoClobber, should throw clobber error and not install the module" {
+        Install-PSResource -Name "ClobberTestModule1" -Repository $TestGalleryName  
+    
+        $res = Get-Module "ClobberTestModule1" -ListAvailable
+        $res.Name | Should -Be "ClobberTestModule1"
+
+        Install-PSResource -Name "ClobberTestModule2" -Repository $TestGalleryName -NoClobber -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+        It "Install PSResourceInfo object piped in" {
         Find-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName | Install-PSResource
         $res = Get-InstalledPSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
