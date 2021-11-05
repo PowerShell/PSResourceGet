@@ -74,16 +74,6 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
     }
 
-    It "Publish a module with -LiteralPath" {
-        $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
-
-        Publish-PSResource -LiteralPath $script:PublishModuleBase
-
-        $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath 
-    }
-
 <# Temporarily comment this test out until Find Helper is complete and code within PublishPSResource is uncommented 
     It "Publish a module with dependencies" {
         # Create dependency module
