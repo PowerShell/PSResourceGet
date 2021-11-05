@@ -48,7 +48,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ParameterSetName = "PathParameterSet")]
+        [Parameter()]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -74,32 +74,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
         private string _path;
-        
+
         /// <summary>
-        /// Specifies a path to one or more locations. Unlike the Path parameter, the value of the LiteralPath parameter is used exactly as entered.
-        /// No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks.
-        /// Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
+        /// Specifies the path to where the resource (as a nupkg) should be saved to. This parameter can be used in conjunction with the
+        /// -Repository parameter to publish to a repository and also save the exact same package to the local file system.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = "PathLiteralParameterSet")]
+        [Parameter()]
         [ValidateNotNullOrEmpty]
-        public string LiteralPath
+        public string DestinationPath
         {
             get
-            { return _literalPath; }
+            { return _destinationPath; }
 
             set
             {
-                if (Directory.Exists(value))
+                string resolvedPath = string.Empty;
+                if (!string.IsNullOrEmpty(value))
                 {
-                    _literalPath = value;
+                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
                 }
-                else if (File.Exists(value) && value.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+
+                if (Directory.Exists(resolvedPath))
                 {
-                    _literalPath = value;
+                    _destinationPath = resolvedPath;
+                }
+                else {
+                    // try to create the path 
+                    try
+                    {
+                        Directory.CreateDirectory(value);
+                    }
+                    catch (Exception e)
+                    {
+                        var exMessage = string.Format("Destination path does not exist and cannot be created: {0}", e.Message);
+                        var ex = new ArgumentException(exMessage);
+                        var InvalidDestinationPath = new ErrorRecord(ex, "InvalidDestinationPath", ErrorCategory.InvalidArgument, null);
+                        ThrowTerminatingError(InvalidDestinationPath);
+                    }
                 }
             }
         }
-        private string _literalPath;
+        private string _destinationPath;
 
         /// <summary>
         /// Specifies a user account that has rights to a specific repository (used for finding dependencies).
@@ -173,8 +188,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FileInfo moduleFileInfo;
             Hashtable parsedMetadataHash = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
 
-            // _path has been resolved, literal path does not need to be resolved
-            _path = string.IsNullOrEmpty(_path) ? _literalPath : _path;
             // Returns the name of the file or the name of the directory, depending on path
             var pkgFileOrDir = new DirectoryInfo(_path);
             bool isScript = _path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase);
@@ -374,7 +387,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
+                // If -DestinationPath is specified then also publish the .nupkg there
+                if (!string.IsNullOrWhiteSpace(_destinationPath))
+                {
+                    try
+                    {
+                        var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
+                        Utils.MoveFiles(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
+                    }
+                    catch (Exception e) {
+                        var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", _destinationPath, e.Message);
+
+                        var ex = new ArgumentException(message);
+                        var ErrorMovingNupkg = new ErrorRecord(ex, "ErrorMovingNupkg", ErrorCategory.NotSpecified, null);
+                        WriteError(ErrorMovingNupkg);
+
+                        // exit process record
+                        return;
+                    }
+                }
+
+                // This call does not throw any exceptions, but it will write unsuccessful responses to the console
                 PushNupkg(outputNupkgDir, repository.Name, repositoryUrl);
+
             }
             finally {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
