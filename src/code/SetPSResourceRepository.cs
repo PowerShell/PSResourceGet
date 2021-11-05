@@ -5,7 +5,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Dbg = System.Diagnostics.Debug;
-using System.Globalization;
 using System.Management.Automation;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
@@ -17,8 +16,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsCommon.Set,
         "PSResourceRepository",
         DefaultParameterSetName = NameParameterSet,
-        SupportsShouldProcess = true,
-        HelpUri = "<add>")]
+        SupportsShouldProcess = true)]
     public sealed
     class SetPSResourceRepository : PSCmdlet
     {
@@ -35,8 +33,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the name of the repository to be set.
         /// </sumamry>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true,
-            ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string Name { get; set; }
@@ -51,7 +48,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
         /// </summary>
-        [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = RepositoriesParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = RepositoriesParameterSet)]
         [ValidateNotNullOrEmpty]
         public Hashtable[] Repositories { get; set; }
 

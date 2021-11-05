@@ -180,6 +180,49 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return VersionRange.TryParse(version, out versionRange);
         }
 
+        public static bool GetVersionForInstallPath(
+            string installedPkgPath,
+            bool isModule,
+            PSCmdlet cmdletPassedIn,
+            out NuGetVersion pkgNuGetVersion)
+        {
+            // this method returns false if the PSGetModuleInfo.xml or {pkgName}_InstalledScriptInfo.xml file
+            // could not be parsed properly, or the version from it could not be parsed into a NuGetVersion.
+            // In this case the caller method (i.e GetHelper.FilterPkgPathsByVersion()) should skip the current
+            // installed package path or reassign NuGetVersion variable passed in to a non-null value as it sees fit.
+
+            // for Modules, installedPkgPath will look like this:
+            // ./PowerShell/Modules/test_module/3.0.0
+            // for Scripts, installedPkgPath will look like this:
+            // ./PowerShell/Scripts/test_script.ps1
+            string pkgName = isModule ? String.Empty : Utils.GetInstalledPackageName(installedPkgPath);
+
+            string packageInfoXMLFilePath = isModule ? Path.Combine(installedPkgPath, "PSGetModuleInfo.xml") : Path.Combine((new DirectoryInfo(installedPkgPath).Parent).FullName, "InstalledScriptInfos", $"{pkgName}_InstalledScriptInfo.xml");
+            if (!PSResourceInfo.TryRead(packageInfoXMLFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
+            {
+                cmdletPassedIn.WriteVerbose(String.Format(
+                    "The {0} file found at location: {1} cannot be parsed due to {2}",
+                    isModule ? "PSGetModuleInfo.xml" : $"{pkgName}_InstalledScriptInfo.xml",
+                    packageInfoXMLFilePath,
+                    errorMsg));
+                pkgNuGetVersion = null;
+                return false;
+            }
+
+            string version = psGetInfo.Version.ToString();
+            string prereleaseLabel = psGetInfo.PrereleaseLabel;
+
+            if (!NuGetVersion.TryParse(
+                    value: String.IsNullOrEmpty(prereleaseLabel) ? version : GetNormalizedVersionString(version, prereleaseLabel),
+                    version: out pkgNuGetVersion))
+            {
+                cmdletPassedIn.WriteVerbose(String.Format("Leaf directory in path '{0}' cannot be parsed into a version.", installedPkgPath));
+                return false;
+            }
+
+            return true;
+        }
+
         #endregion
 
         #region Url methods
@@ -458,6 +501,51 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Directory and File
 
         /// <Summary>
+        /// Deletes a directory and its contents.
+        /// Attempts to restore the directory and contents if deletion fails.
+        /// </Summary>
+        public static void DeleteDirectoryWithRestore(string dirPath)
+        {
+            string tempDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                // Create temporary directory for restore operation if needed.
+                CopyDirContents(dirPath, tempDirPath, overwrite: true);
+
+                try
+                {
+                    DeleteDirectory(dirPath);
+                }
+                catch (Exception ex)
+                {
+                    // Delete failed. Attempt to restore the saved directory content.
+                    try
+                    {
+                        RestoreDirContents(tempDirPath, dirPath);
+                    }
+                    catch (Exception exx)
+                    {
+                        throw new PSInvalidOperationException(
+                            $"Cannot remove package path {dirPath}. An attempt to restore the old package has failed with error: {exx.Message}",
+                            ex);
+                    }
+
+                    throw new PSInvalidOperationException(
+                        $"Cannot remove package path {dirPath}. The previous package contents have been restored.",
+                        ex);
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(tempDirPath))
+                {
+                    DeleteDirectory(tempDirPath);
+                }
+            }
+        }
+
+        /// <Summary>
         /// Deletes a directory and its contents
         /// This is a workaround for .NET Directory.Delete(), which can fail with WindowsPowerShell
         /// on OneDrive with 'access denied' error.
@@ -532,6 +620,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 var destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
                 CopyDirContents(srcSubDirPath, destSubDirPath, overwrite);
+            }
+        }
+
+        private static void RestoreDirContents(
+            string sourceDirPath,
+            string destDirPath)
+        {
+            if (!Directory.Exists(destDirPath))
+            {
+                Directory.CreateDirectory(destDirPath);
+            }
+
+            foreach (string filePath in Directory.GetFiles(sourceDirPath))
+            {
+                string destFilePath = Path.Combine(destDirPath, Path.GetFileName(filePath));
+                if (!File.Exists(destFilePath))
+                {
+                    File.Copy(filePath, destFilePath);
+                }
+            }
+
+            foreach (string srcSubDirPath in Directory.GetDirectories(sourceDirPath))
+            {
+                string destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
+                RestoreDirContents(srcSubDirPath, destSubDirPath);
             }
         }
 

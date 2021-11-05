@@ -48,7 +48,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "PathParameterSet")]
+        [Parameter(Mandatory = true, Position = 0, ParameterSetName = "PathParameterSet")]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -80,7 +80,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks.
         /// Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
         /// </summary>
-        [Parameter(Mandatory = true, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "PathLiteralParameterSet")]
+        [Parameter(Mandatory = true, ParameterSetName = "PathLiteralParameterSet")]
         [ValidateNotNullOrEmpty]
         public string LiteralPath
         {
@@ -152,7 +152,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true)]
+        [Parameter()]
         [ValidateNotNullOrEmpty]
         public Uri Proxy {
             set
@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
         /// </summary>
-        [Parameter(ValueFromPipelineByPropertyName = true)]
+        [Parameter()]
         [ValidateNotNullOrEmpty]
         public PSCredential ProxyCredential {
             set
@@ -408,9 +408,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
-                // This call does not throw any exceptions, but it will return unsuccessful response status codes
-                PushNupkg(outputNupkgDir, repositoryUrl);
-
                 // If -DestinationPath is specified then also publish the .nupkg there
                 if (!string.IsNullOrWhiteSpace(_destinationPath))
                 {
@@ -430,6 +427,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return;
                     }
                 }
+
+                // This call does not throw any exceptions, but it will write unsuccessful responses to the console
+                PushNupkg(outputNupkgDir, repository.Name, repositoryUrl);
+
             }
             finally {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
@@ -886,13 +887,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                WriteVerbose("Successfully packed the resource into a .nupkg");
+                WriteVerbose("Not able to successfully pack the resource into a .nupkg");
             }
 
             return success;
         }
 
-        private void PushNupkg(string outputNupkgDir, string repoUrl)
+        private void PushNupkg(string outputNupkgDir, string repoName, string repoUrl)
         {
             // Push the nupkg to the appropriate repository 
             // Pkg version is parsed from .ps1 file or .psd1 file 
@@ -930,7 +931,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 //  look in PS repo for how httpRequestExceptions are handled
 
                 // Unfortunately there is no response message  are no status codes provided with the exception and no 
-                var ex = new ArgumentException(e.Message);
+                var ex = new ArgumentException(String.Format("Repository '{0}': {1}", repoName, e.Message));
                 if (e.Message.Contains("401"))
                 {
                     if (e.Message.Contains("API"))
@@ -979,7 +980,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUrl));
+                WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUrl));
             }            
         }
     }

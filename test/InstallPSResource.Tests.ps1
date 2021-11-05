@@ -9,6 +9,7 @@ Describe 'Test Install-PSResource for Module' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
+        $testModuleName = "TestModule"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
@@ -195,6 +196,32 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "1.3.0"
     }
 
+    It "Restore resource after reinstall fails" {
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName
+        $pkg = Get-Module "TestModule" -ListAvailable
+        $pkg.Name | Should -Be "TestModule"
+        $pkg.Version | Should -Be "1.3.0"
+
+        $resourcePath = Split-Path -Path $pkg.Path -Parent
+        $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
+
+        # Lock resource file to prevent reinstall from succeeding.
+        $fs = [System.IO.File]::Open($resourceFiles[0].FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
+        try
+        {
+            # Reinstall of resource should fail with one of its files locked.
+            Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Reinstall -ErrorVariable ev -ErrorAction Silent
+            $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource'
+        }
+        finally
+        {
+            $fs.Close()
+        }
+
+        # Verify that resource module has been restored.
+        (Get-ChildItem -Path $resourcePath -Recurse).Count | Should -BeExactly $resourceFiles.Count
+    }
+
     It "Install resource that requires accept license with -AcceptLicense flag" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
         $pkg = Get-InstalledPSResource "testModuleWithlicense"
@@ -242,6 +269,30 @@ Describe 'Test Install-PSResource for Module' {
     
         $res = Get-Module "TestModule" -ListAvailable
         $res | Should -BeNullOrEmpty
+    }
+
+    It "Validates that a module with module-name script files (like Pester) installs under Modules path" {
+
+        Install-PSResource -Name "testModuleWithScript" -Repository $TestGalleryName
+    
+        $res = Get-Module "testModuleWithScript" -ListAvailable
+        $res.Path.Contains("Modules") | Should -Be $true
+    }
+
+    It "Install module using -NoClobber, should throw clobber error and not install the module" {
+        Install-PSResource -Name "ClobberTestModule1" -Repository $TestGalleryName  
+    
+        $res = Get-Module "ClobberTestModule1" -ListAvailable
+        $res.Name | Should -Be "ClobberTestModule1"
+
+        Install-PSResource -Name "ClobberTestModule2" -Repository $TestGalleryName -NoClobber -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+        It "Install PSResourceInfo object piped in" {
+        Find-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName | Install-PSResource
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "1.1.0.0"
     }
 }
 

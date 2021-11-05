@@ -9,7 +9,7 @@ Describe 'Test Find-PSResource for Module' {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
-        $testModuleName = "testmodule"
+        $testModuleName = "test_module"
         $testScriptName = "test_script"
         $commandName = "Get-TargetResource"
         $dscResourceName = "SystemLocale"
@@ -23,8 +23,8 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find Specific Module Resource by Name" {
-        $specItem = Find-PSResource -Name "Carbon"
-        $specItem.Name | Should -Be "Carbon"
+        $specItem = Find-PSResource -Name $testModuleName
+        $specItem.Name | Should -Be $testModuleName
     }
 
     It "should not find resource given nonexistant name" {
@@ -124,56 +124,56 @@ Describe 'Test Find-PSResource for Module' {
         $res.Count | Should -BeGreaterThan 1
     }
 
-    $testCases2 = @{Version="[2.10.0.0]";          ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match"},
-                  @{Version="2.10.0.0";            ExpectedVersions=@("2.10.0.0"); Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, exact range inclusive"},
-                  @{Version="(2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0"); Reason="validate version, exact range exclusive"},
-                  @{Version="(2.9.4.0,)";          ExpectedVersions=@("2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version exclusive"},
-                  @{Version="[2.9.4.0,)";          ExpectedVersions=@("2.9.4.0", "2.10.0.0", "2.10.1.0", "2.10.2.0"); Reason="validate version, minimum version inclusive"},
-                  @{Version="(,2.0.0.0)";          ExpectedVersions=@("1.9.0.0"); Reason="validate version, maximum version exclusive"},
-                  @{Version="(,2.0.0.0]";          ExpectedVersions=@("1.9.0.0", "2.0.0.0"); Reason="validate version, maximum version inclusive"},
-                  @{Version="[2.5.0.0, 2.8.0.0)";  ExpectedVersions=@("2.5.0.0", "2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(2.5.0.0, 2.8.0.0]";  ExpectedVersions=@("2.5.1.0", "2.5.2.0", "2.5.3.0", "2.5.4.0", "2.6.0.0", "2.7.0.0", "2.8.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match"},
+                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[2.5.0.0, 5.0.0.0]";  ExpectedVersions=@("2.5.0.0", "3.0.0.0", "4.0.0.0", "5.0.0.0"); Reason="validate version, exact range inclusive"},
+                  @{Version="(2.5.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0.0", "4.0.0.0");                       Reason="validate version, exact range exclusive"},
+                  @{Version="(2.5.0.0,)";          ExpectedVersions=@("3.0.0.0", "4.0.0.0", "5.0.0.0");            Reason="validate version, minimum version exclusive"},
+                  @{Version="[2.5.0.0,)";          ExpectedVersions=@("2.5.0.0", "3.0.0.0", "4.0.0.0", "5.0.0.0"); Reason="validate version, minimum version inclusive"},
+                  @{Version="(,2.5.0.0)";          ExpectedVersions=@("1.2.0.0", "1.5.0.0", "2.0.0.0");            Reason="validate version, maximum version exclusive"},
+                  @{Version="(,2.0.0.0]";          ExpectedVersions=@("1.2.0.0", "1.5.0.0", "2.0.0.0", "2.5.0.0"); Reason="validate version, maximum version inclusive"},
+                  @{Version="[2.5.0.0, 5.0.0.0)";  ExpectedVersions=@("2.5.0.0", "3.0.0.0", "4.0.0.0");            Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(2.5.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0.0", "4.0.0.0", "5.0.0.0");            Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
         param($Version, $ExpectedVersions)
-        $res = Find-PSResource -Name "Carbon" -Version $Version -Repository $PSGalleryName
+        $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $TestGalleryName
         foreach ($item in $res) {
-            $item.Name | Should -Be "Carbon"
+            $item.Name | Should -Be $testModuleName
             $ExpectedVersions | Should -Contain $item.Version
         }
     }
 
     It "not find resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='(2.10.0.0)';       Description="exclusive version (2.10.0.0)"},
-        @{Version='[2-10-0-0]';       Description="version formatted with invalid delimiter"}
+        @{Version='(2.5.0.0)';       Description="exclusive version (2.5.0.0)"},
+        @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"}
     ) {
         param($Version, $Description)
 
-        $res = Find-PSResource -Name "Carbon" -Version $Version -Repository $PSGalleryName
+        $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName
         $res | Should -BeNullOrEmpty
     }
 
     $testCases = @{Version='[2.*.0.0]';       Description="version with wilcard in middle"},
-                 @{Version='[*.10.0.0]';      Description="version with wilcard at start"},
-                 @{Version='[2.10.*.0]';      Description="version with wildcard at third digit"}
-                 @{Version='[1.5.0.*';        Description="version with wildcard at end"},
-                 @{Version='[1..0.0]';        Description="version with missing digit in middle"},
-                 @{Version='[1.5.0.]';        Description="version with missing digit at end"},
-                 @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
+                 @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
+                 @{Version='[2.5.*.0]';       Description="version with wildcard at third digit"}
+                 @{Version='[2.5.0.*';        Description="version with wildcard at end"},
+                 @{Version='[2..0.0]';        Description="version with missing digit in middle"},
+                 @{Version='[2.5.0.]';        Description="version with missing digit at end"},
+                 @{Version='[2.5.0.0.0]';     Description="version with more than 4 digits"}
 
     It "not find resource and throw exception with incorrectly formatted version such as <Description>" -TestCases $testCases {
         param($Version, $Description)
 
-        Find-PSResource -Name "Carbon" -Version $Version -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        Find-PSResource -Name $testModuleName -Version $Version -Repository $TestGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
     It "find resources when given Name, Version not null --> '*'" {
-        $res = Find-PSResource -Name "Carbon" -Version "*" -Repository $PSGalleryName
+        $res = Find-PSResource -Name $testModuleName -Version "*" -Repository $TestGalleryName
         $res | ForEach-Object {
-            $_.Name | Should -Be "Carbon"
+            $_.Name | Should -Be $testModuleName
         }
         $res.Count | Should -BeGreaterOrEqual 1
     }
@@ -203,9 +203,9 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resource when given Name, Version param null" {
-        $res = Find-PSResource -Name "Carbon" -Repository $PSGalleryName
-        $res.Name | Should -Be "Carbon"
-        $res.Version | Should -Be "2.10.2.0"
+        $res = Find-PSResource -Name $testModuleName -Repository $TestGalleryName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0.0"
     }
 
     It "find resource with latest (including prerelease) version given Prerelease parameter" {
@@ -215,21 +215,22 @@ Describe 'Test Find-PSResource for Module' {
 
         $resPrerelease = Find-PSResource -Name "test_module" -Prerelease -Repository $TestGalleryName
         $resPrerelease.Version | Should -Be "5.2.5.0"
+        $resPrerelease.PrereleaseLabel | Should -Be "alpha001"
     }
 
     It "find resources, including Prerelease version resources, when given Prerelease parameter" {
-        $resWithoutPrerelease = Find-PSResource -Name "Carbon" -Version "*" -Repository $PSGalleryName
-        $resWithPrerelease = Find-PSResource -Name "Carbon" -Version "*" -Repository $PSGalleryName
+        $resWithoutPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $TestGalleryName
+        $resWithPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $TestGalleryName
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
 
-    It "find resource of Type script or module from PSGallery, when no Type parameter provided" {
+    It "find resource of Type script or module from PSGallery/PoshTestGallery, when no Type parameter provided" {
         $resScript = Find-PSResource -Name "AzureSqlScale" -Repository $PSGalleryName
         $resScript.Name | Should -Be "AzureSqlScale"
         $resScript.Type | Should -Be "Script"
 
-        $resModule = Find-PSResource -Name "Carbon" -Repository $PSGalleryName
-        $resModule.Name | Should -Be "Carbon"
+        $resModule = Find-PSResource -Name $testModuleName -Repository $TestGalleryName
+        $resModule.Name | Should -Be $testModuleName
         $resModuleType = Out-String -InputObject $resModule.Type
         $resModuleType.Replace(",", " ").Split() | Should -Contain "Module"
     }
@@ -274,7 +275,7 @@ Describe 'Test Find-PSResource for Module' {
     It "find all resources with specified tag given Tag property" {
         $foundTestModule = $False
         $foundTestScript = $False
-        $tagToFind = "Tag1"
+        $tagToFind = "Tag2"
         $res = Find-PSResource -Tag $tagToFind -Repository $TestGalleryName
         foreach ($item in $res) {
             $item.Tags -contains $tagToFind | Should -Be $True

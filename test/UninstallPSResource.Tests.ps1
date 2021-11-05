@@ -8,6 +8,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
+        $testModuleName = "test_module"
+        $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
         $res = Uninstall-PSResource -name ContosoServer -Version "*"
     }
@@ -136,6 +138,36 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg.Version | Should -Be "2.5"
     }
 
+    It "Uninstall prerelease version module when prerelease version specified" {
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $TestGalleryName
+        Uninstall-PSResource -Name $testModuleName -Version "5.2.5-alpha001"
+        $res = Get-InstalledPSResource $testModuleName -Version "5.2.5-alpha001"
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Not uninstall non-prerelease version module when similar prerelease version is specified" {
+        Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $TestGalleryName
+        Uninstall-PSResource -Name $testModuleName -Version "5.0.0-preview"
+        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.0.0.0"
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0.0"
+    }
+
+    It "Uninstall prerelease version script when prerelease version specified" {
+        Install-PSResource -Name $testScriptName -Version "3.0.0-alpha001" -Repository $TestGalleryName
+        Uninstall-PSResource -Name $testScriptName -Version "3.0.0-alpha001"
+        $res = Get-InstalledPSResource -Name $testScriptName
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Not uninstall non-prerelease version module when prerelease version specified" {
+        Install-PSResource -Name $testScriptName -Version "2.5.0.0" -Repository $TestGalleryName
+        Uninstall-PSResource -Name $testScriptName -Version "2.5.0-alpha001"
+        $res = Get-InstalledPSResource -Name $testScriptName -Version "2.5.0.0"
+        $res.Name | Should -Be $testScriptName
+        $res.Version | Should -Be "2.5.0.0"
+    }
+
     It "Uninstall module using -WhatIf, should not uninstall the module" {
         $res = Uninstall-PSResource -Name "ContosoServer" -WhatIf
 
@@ -161,5 +193,19 @@ Describe 'Test Uninstall-PSResource for Modules' {
         
         $pkg = Get-Module "RequiredModule1" -ListAvailable
         $pkg | Should -Be $null
+    }
+
+    It "Uninstall PSResourceInfo object piped in" {
+        Install-PSResource -Name "ContosoServer" -Version "1.5.0.0" -Repository $TestGalleryName
+        Get-InstalledPSResource -Name "ContosoServer" -Version "1.5.0.0" | Uninstall-PSResource
+        $res = Get-InstalledPSResource -Name "ContosoServer" -Version "1.5.0.0"
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Uninstall PSResourceInfo object piped in for prerelease version object" {
+        Install-PSResource -Name $testModuleName -Version "4.5.2-alpha001" -Repository $TestGalleryName
+        Get-InstalledPSResource -Name $testModuleName -Version "4.5.2-alpha001" | Uninstall-PSResource
+        $res = Get-InstalledPSResource -Name $testModuleName -Version "4.5.2-alpha001"
+        $res | Should -BeNullOrEmpty
     }
 }

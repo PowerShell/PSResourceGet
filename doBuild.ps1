@@ -36,6 +36,14 @@ function DoBuild
     Write-Verbose -Verbose -Message "Copying help files to '$BuildOutPath'"
     Copy-Item -Path "${HelpPath}/${Culture}" -Dest "$BuildOutPath" -Recurse -Force
 
+    # Copy license
+    Write-Verbose -Verbose -Message "Copying LICENSE file to '$BuildOutPath'"
+    Copy-Item -Path "./LICENSE" -Dest "$BuildOutPath"
+
+    # Copy notice
+    # Write-Verbose -Verbose -Message "Copying ThirdPartyNotices.txt to '$BuildOutPath'"
+    # Copy-Item -Path "./ThirdPartyNotices.txt" -Dest "$BuildOutPath"
+
     #
     # Copy DSC resources
     # TODO: This should not be part of PowerShellGet build/publish and should be moved to its own project
@@ -65,40 +73,21 @@ function DoBuild
             }
 
             # Place build results
-            if ($BuildFramework -eq "netstandard2.0") {
-                $assemblyNames = @(
-                    'PowerShellGet'
-                    'Microsoft.Extensions.Logging.Abstractions'
-                    'MoreLinq'
-                    'NuGet.Commands'
-                    'NuGet.Common'
-                    'NuGet.Configuration'
-                    'NuGet.Frameworks'
-                    'NuGet.Packaging'
-                    'NuGet.ProjectModel'
-                    'NuGet.Protocol'
-                    'NuGet.Repositories'
-                    'NuGet.Versioning'
-                    'Newtonsoft.Json'
-                )
-            } elseif ($BuildFramework -eq 'net472') {
-                $assemblyNames = @(
-                    'PowerShellGet'
-                    'Microsoft.Extensions.Logging.Abstractions'
-                    'MoreLinq'
-                    'NuGet.Commands'
-                    'NuGet.Common'
-                    'NuGet.Configuration'
-                    'NuGet.Frameworks'
-                    'NuGet.Packaging'
-                    'NuGet.ProjectModel'
-                    'NuGet.Protocol'
-                    'NuGet.Repositories'
-                    'NuGet.Versioning'
-                    'Newtonsoft.Json'
-                    'System.Security.Principal.Windows'
-                )
-            }
+            $assemblyNames = @(
+                'PowerShellGet'
+                'Microsoft.Extensions.Logging.Abstractions'
+                'MoreLinq'
+                'NuGet.Commands'
+                'NuGet.Common'
+                'NuGet.Configuration'
+                'NuGet.Frameworks'
+                'NuGet.Packaging'
+                'NuGet.ProjectModel'
+                'NuGet.Protocol'
+                'NuGet.Repositories'
+                'NuGet.Versioning'
+                'Newtonsoft.Json'
+            )
 
             $buildSuccess = $true
             foreach ($fileName in $assemblyNames)
