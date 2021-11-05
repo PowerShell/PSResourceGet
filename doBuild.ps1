@@ -41,8 +41,8 @@ function DoBuild
     Copy-Item -Path "./LICENSE" -Dest "$BuildOutPath"
 
     # Copy notice
-    # Write-Verbose -Verbose -Message "Copying ThirdPartyNotices.txt to '$BuildOutPath'"
-    # Copy-Item -Path "./ThirdPartyNotices.txt" -Dest "$BuildOutPath"
+    Write-Verbose -Verbose -Message "Copying ThirdPartyNotices.txt to '$BuildOutPath'"
+    Copy-Item -Path "./Notice.txt" -Dest "$BuildOutPath"
 
     #
     # Copy DSC resources

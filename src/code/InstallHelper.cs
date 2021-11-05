@@ -73,9 +73,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool force,
             bool trustRepository,
             PSCredential credential,
-            string requiredResourceFile,
-            string requiredResourceJson,
-            Hashtable requiredResourceHash,
             string specifiedPath,
             bool asNupkg,
             bool includeXML,
@@ -84,7 +81,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}';",
                 string.Join(",", names),
-                (versionRange != null ? versionRange.OriginalString : string.Empty),
+                versionRange != null ? versionRange.OriginalString : string.Empty,
                 prerelease.ToString(),
                 repository != null ? string.Join(",", repository) : string.Empty,
                 acceptLicense.ToString(),
@@ -94,11 +91,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             _versionRange = versionRange;
             _prerelease = prerelease;
-            _acceptLicense = acceptLicense;
+            _acceptLicense = acceptLicense || force;
             _quiet = quiet;
             _reinstall = reinstall;
             _force = force;
-            _trustRepository = trustRepository;
+            _trustRepository = trustRepository || force;
             _credential = credential;
             _specifiedPath = specifiedPath;
             _asNupkg = asNupkg;
@@ -114,7 +111,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Private methods
 
         // This method calls iterates through repositories (by priority order) to search for the pkgs to install
-        private void ProcessRepositories(string[] packageNames, string[] repository, bool trustRepository, PSCredential credential)
+        private void ProcessRepositories(
+            string[] packageNames,
+            string[] repository,
+            bool trustRepository,
+            PSCredential credential)
         {
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
             List<string> pckgNamesToInstall = packageNames.ToList();
@@ -157,7 +158,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // Finds parent packages and dependencies
                 IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
-                    name: packageNames,
+                    name: pckgNamesToInstall.ToArray(),
                     type: ResourceType.None,
                     version: _versionRange != null ? _versionRange.OriginalString : null,
                     prerelease: _prerelease,
@@ -195,7 +196,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                List<string> pkgsInstalled = InstallPackage(pkgsFromRepoToInstall, repoName, repo.Url.AbsoluteUri, credential, isLocalRepo);
+                List<string> pkgsInstalled = InstallPackage(
+                    pkgsFromRepoToInstall,
+                    repoName,
+                    repo.Url.AbsoluteUri,
+                    credential,
+                    isLocalRepo);
 
                 foreach (string name in pkgsInstalled)
                 {
@@ -252,7 +258,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return filteredPackages.Values.ToArray();
         }
 
-        private List<string> InstallPackage(IEnumerable<PSResourceInfo> pkgsToInstall, string repoName, string repoUrl, PSCredential credential, bool isLocalRepo)
+        private List<string> InstallPackage(
+            IEnumerable<PSResourceInfo> pkgsToInstall,
+            string repoName,
+            string repoUrl,
+            PSCredential credential,
+            bool isLocalRepo)
         {
             List<string> pkgsSuccessfullyInstalled = new List<string>();
             foreach (PSResourceInfo p in pkgsToInstall)
@@ -382,7 +393,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var modulePath = Path.Combine(tempDirNameVersion, (p.Name + ".psd1"));
                     // Check if the package is a module or a script
                     var isModule = File.Exists(modulePath);
-
 
                     if (isModule)
                     {
