@@ -157,6 +157,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 force: Force,
                 trustRepository: TrustRepository,
                 credential: Credential,
+                noClobber: false,
                 specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,

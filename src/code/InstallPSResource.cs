@@ -70,7 +70,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter TrustRepository { get; set; }
-
+        
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
@@ -91,6 +91,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter AcceptLicense { get; set; }
+
+        /// <summary>
+        /// Prevents installing a package that contains cmdlets that already exist on the machine.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public SwitchParameter NoClobber { get; set; }
 
         /// <summary>
         /// Used for pipeline input.
@@ -235,10 +241,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 reinstall: Reinstall,
                 force: false,
                 trustRepository: TrustRepository,
+                noClobber: NoClobber,
                 credential: Credential,
-                specifiedPath: null, 
-                asNupkg: false, 
-                includeXML: true, 
+                specifiedPath: null,
+                asNupkg: false,
+                includeXML: true,
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
         #endregion
