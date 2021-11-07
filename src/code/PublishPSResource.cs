@@ -30,6 +30,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Parameters
 
         /// <summary>
+        /// Specifies the name of the resource that you want to publish. Searches for the specified module name in $Env:PSModulePath.
+        /// </summary>
+        [Parameter(Mandatory = true, ParameterSetName = NameParameterSet)]
+        [ValidateNotNullOrEmpty]
+        public string Name { get; set; }
+
+        /// <summary>
+        /// Specifies the version or version range of the package to be published.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [ValidateNotNullOrEmpty]
+        public string Version { get; set; }
+
+        /// <summary>
         /// Specifies the API key that you want to use to publish a module to the online gallery.
         /// </summary>
         [Parameter()]
@@ -48,7 +62,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter()]
+        [Parameter(Mandatory = true, ParameterSetName = PathParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -168,6 +182,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Members
 
+        private const string NameParameterSet = "NameParameterSet";
+        private const string PathParameterSet = "PathParameterSet";
         private NuGetVersion _pkgVersion;
         private string _pkgName;
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
@@ -180,6 +196,80 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
+
+            switch (ParameterSetName)
+            {
+                case NameParameterSet:
+                    // Get all potential paths to search in
+                    // Order matters, but correct ordering is established in GetAllResourcePaths
+                    var allResourcePaths = Utils.GetAllResourcePaths(this);
+
+                    // Check if -Name matches any leaf file (if it's a script) or directory (if it's a module)
+                    var resourcePathsMatchingName = allResourcePaths.FindAll(
+                        resourcePath => (string.Equals(Name, (new DirectoryInfo(resourcePath).Name), StringComparison.InvariantCultureIgnoreCase)));
+
+                    if (resourcePathsMatchingName.Any())
+                    {
+                        // To make sure there's only one parent path, so we'll take the first one we can find
+                        var pathLocation = (new DirectoryInfo(resourcePathsMatchingName.FirstOrDefault()).FullName);
+
+                        // Filter by location
+                        var pathsFilteredByLocation = resourcePathsMatchingName.FindAll(
+                                resourcePath => (string.Equals(resourcePath, pathLocation)));
+
+                        // Filter by verison
+                        VersionRange _versionRange;
+                        // If no version specified, publish latest version for the package
+                        if (Version == null)
+                        {
+                            _versionRange = VersionRange.All;
+                        }
+                        else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+                        {
+                            var exMessage = "Argument for -Version parameter is not in the proper format.";
+                            var ex = new ArgumentException(exMessage);
+                            var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                            ThrowTerminatingError(IncorrectVersionFormat);
+                        }
+
+                        // Find psd.1 and see if this is the version that matches
+                        foreach (var modulePath in pathsFilteredByLocation)
+                        {
+                            string moduleManifestFile = System.IO.Path.Combine(modulePath, string.Concat(Name, ".psd1"));
+
+                            if (!File.Exists(moduleManifestFile))
+                            {
+                                var exMessage = "Module manifest for this module does not exist. Make sure the directory includes a .psd1 file that is properly formatted.";
+                                var ex = new ArgumentException(exMessage);
+                                var ModuleManifestDoesNotExist = new ErrorRecord(ex, "ModuleManifestDoesNotExist", ErrorCategory.InvalidArgument, null);
+                                ThrowTerminatingError(ModuleManifestDoesNotExist);
+                            }
+
+                            Utils.TryParseModuleManifest(moduleManifestFile, this, out Hashtable parsedMetadataHashtable);
+
+                            // If found the correct name and version, set that modulePath as the class path
+                            if (NuGetVersion.TryParse(parsedMetadataHashtable["ModuleVersion"].ToString(), out NuGetVersion nugetVersion) && _versionRange.Satisfies(nugetVersion))
+                            {
+                                _path = modulePath;
+                                break;
+                            }
+                        }
+                    }
+
+                    // If _path is empty, the package to be published could not be found
+                    if (string.IsNullOrEmpty(_path))
+                    {
+                        var exMessage = string.Format("Resource '{0}' cannot be found. Please try specifying the exact path of the resource to be published with 'Publish-PSResource -Path'", Name);
+                        var ex = new ArgumentException(exMessage);
+                        var ResourceToPublishNotFound = new ErrorRecord(ex, "ResourceToPublishNotFound", ErrorCategory.InvalidArgument, null);
+                        ThrowTerminatingError(ResourceToPublishNotFound);
+                    }
+
+                    break;
+
+                default:
+                    break;
+            }
         }
 
         protected override void ProcessRecord()
@@ -393,7 +483,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     try
                     {
                         var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
-                        Utils.MoveFiles(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
+                        File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
                     }
                     catch (Exception e) {
                         var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", _destinationPath, e.Message);

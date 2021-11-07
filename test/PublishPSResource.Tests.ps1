@@ -74,6 +74,20 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
     }
 
+    It "Publish a module with -Name and -Repository" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        $modulePath = $env:PSModulePath.split(";")[0]
+        Copy-Item -Path $script:PublishModuleBase -Destination $modulePath -recurse
+
+        Publish-PSResource -Name $script:PublishModuleName -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
+
+        Remove-Item -Path (Join-Path -Path $modulePath -ChildPath $script:PublishModuleName) -Recurse
+    }
+
 <# Temporarily comment this test out until Find Helper is complete and code within PublishPSResource is uncommented 
     It "Publish a module with dependencies" {
         # Create dependency module
