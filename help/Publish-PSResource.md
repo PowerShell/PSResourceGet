@@ -19,9 +19,9 @@ Publish-PSResource [-APIKey <String>] [-Repository <String>] [-Path] <String>
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### PathLiteralParameterSet
+### NameParameterSet
 ```
-Publish-PSResource [-APIKey <String>] [-Repository <String>] -LiteralPath <String>
+Publish-PSResource [-APIKey <String>] [-Repository <String>] -Name <String>
  [-Credential <PSCredential>] [-SkipDependenciesCheck]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -80,7 +80,7 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-When specified, includes prerelease versions in search.
+Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the module or the full path of the script.
 
 ```yaml
 Type: System.String
@@ -94,12 +94,13 @@ Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
-### -LiteralPath
-Specifies a path to one or more locations. Unlike the Path parameter, the value of the LiteralPath parameter is used exactly as entered. No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks. Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
+### -Name
+Specifies the name of the module that you want to publish. Searches for the specified module name in $Env:PSModulePath.
+This parameter can only be used to publish modules.
 
 ```yaml
 Type: System.String
-Parameter Sets: PathLiteralParameterSet
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: True
