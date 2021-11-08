@@ -24,7 +24,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
         private List<string> _pathsToInstallPkg;
-        private CancellationToken _cancellationToken;
+        private CancellationTokenSource _cancellationTokenSource;
+        private FindHelper _findHelper;
+        private InstallHelper _installHelper;
 
         #endregion
 
@@ -107,7 +109,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
-            _cancellationToken = (new CancellationTokenSource()).Token;
+
+            _cancellationTokenSource = new CancellationTokenSource();
+            _findHelper = new FindHelper(
+                cancellationToken: _cancellationTokenSource.Token, 
+                cmdletPassedIn: this);
+
+             _installHelper = new InstallHelper(
+                savePkg: false,
+                cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -142,11 +152,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            InstallHelper installHelper = new InstallHelper(
-                savePkg: false,
-                cmdletPassedIn: this);
-
-            installHelper.InstallPackages(
+            _installHelper.InstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,
                 prerelease: Prerelease,
@@ -161,6 +167,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 pathsToInstallPkg: _pathsToInstallPkg);
+        }
+
+        protected override void StopProcessing()
+        {
+            _cancellationTokenSource?.Cancel();
+        }
+
+        protected override void EndProcessing()
+        {
+            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource = null;
         }
 
         #endregion
@@ -227,9 +244,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Find all packages selected for updating in provided repositories.
-            FindHelper findHelper = new FindHelper(_cancellationToken, cmdletPassedIn: this);
             var repositoryPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
-            foreach (var foundResource in findHelper.FindByResourceName(
+            foreach (var foundResource in _findHelper.FindByResourceName(
                 name: installedPackages.Keys.ToArray(),
                 type: ResourceType.None,
                 version: Version,

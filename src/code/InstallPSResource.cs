@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-using System;
-using System.Collections.Generic;
-using Dbg = System.Diagnostics.Debug;
-using System.Management.Automation;
-using System.Threading;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
+using System;
+using System.Collections.Generic;
+using System.Management.Automation;
+
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -109,6 +109,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
         List<string> _pathsToInstallPkg;
         VersionRange _versionRange;
+        InstallHelper _installHelper;
 
         #endregion
 
@@ -121,11 +122,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
+            _installHelper = new InstallHelper(savePkg: false, cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
         {
-            var installHelper = new InstallHelper(savePkg: false, cmdletPassedIn: this);
             switch (ParameterSetName)
             {
                 case NameParameterSet:
@@ -143,7 +144,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
 
-                    ProcessInstallHelper(installHelper: installHelper,
+                    ProcessInstallHelper(
                         pkgNames: Name,
                         pkgPrerelease: Prerelease,
                         pkgRepository: Repository);
@@ -159,7 +160,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         WriteError(ErrorParsingVersion);
                     }
 
-                    ProcessInstallHelper(installHelper: installHelper,
+                    ProcessInstallHelper(
                         pkgNames: new string[] { InputObject.Name },
                         pkgPrerelease: InputObject.IsPrerelease,
                         pkgRepository: new string[]{ InputObject.Repository });
@@ -190,7 +191,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Methods
-        private void ProcessInstallHelper(InstallHelper installHelper, string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
+
+        private void ProcessInstallHelper(string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
         {
             var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
@@ -225,7 +227,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            installHelper.InstallPackages(
+            _installHelper.InstallPackages(
                 names: pkgNames,
                 versionRange: _versionRange,
                 prerelease: pkgPrerelease,
@@ -241,6 +243,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 includeXML: true, 
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
+
         #endregion
     }
 }

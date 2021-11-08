@@ -1,13 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
-using Dbg = System.Diagnostics.Debug;
 using System.Linq;
 using System.Management.Automation;
 using System.Threading;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -29,8 +30,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string ResourceNameParameterSet = "ResourceNameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
-        private CancellationTokenSource _source;
-        private CancellationToken _cancellationToken;
+        private CancellationTokenSource _cancellationTokenSource;
+        private FindHelper _findHelper;
 
         #endregion
 
@@ -132,17 +133,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            _source = new CancellationTokenSource();
-            _cancellationToken = _source.Token;
+            _cancellationTokenSource = new CancellationTokenSource();
+            _findHelper = new FindHelper(
+                cancellationToken: _cancellationTokenSource.Token,
+                cmdletPassedIn: this);
 
-            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
         }
 
         protected override void StopProcessing()
         {
-            _source.Cancel();
+            _cancellationTokenSource?.Cancel();
+        }
+
+        protected override void EndProcessing()
+        {
+            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource = null;
         }
 
         protected override void ProcessRecord()
@@ -207,10 +216,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }            
 
-            FindHelper findHelper = new FindHelper(_cancellationToken, this);
             List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
 
-            foreach (PSResourceInfo package in findHelper.FindByResourceName(
+            foreach (PSResourceInfo package in _findHelper.FindByResourceName(
                 Name,
                 Type,
                 Version,
@@ -283,10 +291,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 moduleNamesToSearch = new string[] {"*"};
             }
 
-            FindHelper findHelper = new FindHelper(_cancellationToken, this);
             List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
 
-            foreach (PSResourceInfo package in findHelper.FindByResourceName(
+            foreach (PSResourceInfo package in _findHelper.FindByResourceName(
                 name: moduleNamesToSearch,
                 // provide type so Scripts endpoint for PSGallery won't be searched
                 type: isSearchingForCommands? ResourceType.Command : ResourceType.DscResource,
