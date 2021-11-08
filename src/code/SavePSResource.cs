@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
-using Dbg = System.Diagnostics.Debug;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Threading;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using NuGet.Versioning;
+
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -24,6 +25,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string NameParameterSet = "NameParameterSet";
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         VersionRange _versionRange;
+        InstallHelper _installHelper;
         
         #endregion
 
@@ -127,7 +129,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
@@ -136,11 +138,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _path = SessionState.Path.CurrentLocation.Path;
             }
+
+            _installHelper = new InstallHelper(savePkg: true, cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
         {
-            var installHelper = new InstallHelper(savePkg: true, cmdletPassedIn: this);
             switch (ParameterSetName)
             {
                 case NameParameterSet:
@@ -158,7 +161,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
 
-                    ProcessSaveHelper(installHelper: installHelper,
+                    ProcessSaveHelper(
                         pkgNames: Name,
                         pkgPrerelease: Prerelease,
                         pkgRepository: Repository);
@@ -174,7 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
                     
-                    ProcessSaveHelper(installHelper: installHelper,
+                    ProcessSaveHelper(
                         pkgNames: new string[] { InputObject.Name },
                         pkgPrerelease: InputObject.IsPrerelease,
                         pkgRepository: new string[] { InputObject.Repository });
@@ -190,7 +193,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Methods
-        private void ProcessSaveHelper(InstallHelper installHelper, string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
+
+        private void ProcessSaveHelper(string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
         {
             var namesToSave = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
@@ -225,7 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            installHelper.InstallPackages(
+            _installHelper.InstallPackages(
                 names: namesToSave, 
                 versionRange: _versionRange, 
                 prerelease: pkgPrerelease, 
@@ -242,6 +246,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 includeXML: false, 
                 pathsToInstallPkg: new List<string> { _path } );
         }
+        
         #endregion
     }
 }
