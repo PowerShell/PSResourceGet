@@ -320,27 +320,41 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-        public static List<string> GetAllResourcePaths(PSCmdlet psCmdlet)
+        public static List<string> GetAllResourcePaths(
+            PSCmdlet psCmdlet,
+            ScopeType? scope = null)
         {
             GetStandardPlatformPaths(
                 psCmdlet,
                 out string myDocumentsPath,
                 out string programFilesPath);
 
-            string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-            List<string> resourcePaths = psModulePath.Split(';').ToList();
-            List<string> pathsToSearch = new List<string>();
+            List<string> resourcePaths = new List<string>();
 
-            // will search first in PSModulePath, then will search in default paths
-            resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-            resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-            resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
-            resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+            // Path search order is PSModulePath paths first, then default paths.
+            if (scope is null)
+            {
+                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
+                resourcePaths.AddRange(psModulePath.Split(';').ToList());
+            }
+
+            if (scope is null || scope.Value is ScopeType.CurrentUser)
+            {
+                resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
+                resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+            }
+            
+            if (scope is null || scope.Value is ScopeType.AllUsers)
+            {
+                resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
+                resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+            }
 
             // resourcePaths should now contain, eg:
             // ./PowerShell/Scripts
             // ./PowerShell/Modules
             // add all module directories or script files
+            List<string> pathsToSearch = new List<string>();
             foreach (string path in resourcePaths)
             {
                 psCmdlet.WriteVerbose(string.Format("Retrieving directories in the path '{0}'", path));

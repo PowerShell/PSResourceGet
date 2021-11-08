@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
+using System.Threading;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -23,6 +24,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
         private List<string> _pathsToInstallPkg;
+        private CancellationTokenSource _cancellationTokenSource;
+        private FindHelper _findHelper;
+        private InstallHelper _installHelper;
 
         #endregion
 
@@ -65,7 +69,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public ScopeType Scope { get; set; }
 
         /// <summary>
-        /// When specified, supresses being prompted for untrusted sources.
+        /// When specified, suppresses prompting for untrusted sources.
         /// </summary>
         [Parameter]
         public SwitchParameter TrustRepository { get; set; }
@@ -77,7 +81,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public PSCredential Credential { get; set; }
 
         /// <summary>
-        /// Supresses progress information.
+        /// Suppresses progress information.
         /// </summary>
         [Parameter]
         public SwitchParameter Quiet { get; set; }
@@ -100,11 +104,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
+
+            _cancellationTokenSource = new CancellationTokenSource();
+            _findHelper = new FindHelper(
+                cancellationToken: _cancellationTokenSource.Token, 
+                cmdletPassedIn: this);
+
+             _installHelper = new InstallHelper(
+                savePkg: false,
+                cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -126,7 +139,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            var namesToUpdate = ProcessPackageNameWildCards(Name, versionRange);
+            var namesToUpdate = ProcessPackageNames(Name, versionRange);
 
             if (namesToUpdate.Length == 0)
             {
@@ -139,11 +152,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            InstallHelper installHelper = new InstallHelper(
-                savePkg: false,
-                cmdletPassedIn: this);
-
-            installHelper.InstallPackages(
+            _installHelper.InstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,
                 prerelease: Prerelease,
@@ -161,17 +170,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
 
+        protected override void StopProcessing()
+        {
+            _cancellationTokenSource?.Cancel();
+        }
+
+        protected override void EndProcessing()
+        {
+            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource = null;
+        }
+
         #endregion
 
         #region Private Methods
 
         /// <Summary>
-        /// This method checks all provided package names for wild card characters and removes any name containing invalid characters.
-        /// If any name contains a single '*' wildcard character then it is returned alone, indicating all packages should be processed.
+        /// This method performs a number of functions on the list of resource package names to update.
+        ///  - Processes the name list for wild card characters.
+        ///  - Writes errors for names with unsupported wild characters.
+        ///  - Finds installed packages that match the names list.
+        ///  - Finds repository packages that match the names list and update version.
+        ///  - Compares installed packages and repository search results with name list.
+        ///  - Returns a final list of packages for reinstall, that meet update criteria.
         /// </Summary>
-        private string[] ProcessPackageNameWildCards(string[] namesToProcess, VersionRange versionRange)
+        private string[] ProcessPackageNames(
+            string[] namesToProcess,
+            VersionRange versionRange)
         {
-            namesToProcess = Utils.ProcessNameWildcards(namesToProcess, out string[] errorMsgs, out bool nameContainsWildcard);
+            namesToProcess = Utils.ProcessNameWildcards(
+                pkgNames: namesToProcess,
+                errorMsgs: out string[] errorMsgs,
+                isContainWildcard: out bool _);
             
             foreach (string error in errorMsgs)
             {
@@ -182,11 +212,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
             
-            // this catches the case where namesToProcess wasn't passed in as null or empty,
-            // but after filtering out unsupported wildcard names there are no elements left in namesToProcess
+            // This catches the case where namesToProcess wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in namesToProcess.
             if (namesToProcess.Length == 0)
             {
-                 return namesToProcess;
+                 return Utils.EmptyStrArray;
             }
 
             if (String.Equals(namesToProcess[0], "*", StringComparison.InvariantCultureIgnoreCase))
@@ -194,23 +224,92 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteVerbose("Package names were detected to be (or contain an element equal to): '*', so all packages will be updated");
             }
 
-            if (nameContainsWildcard)
+            // Get all installed packages selected for updating.
+            GetHelper getHelper = new GetHelper(cmdletPassedIn: this);
+            var installedPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
+            foreach (var installedPackage in getHelper.GetPackagesFromPath(
+                name: namesToProcess,
+                versionRange: VersionRange.All,
+                pathsToSearch: Utils.GetAllResourcePaths(this, Scope)))
             {
-                // if any of the namesToProcess entries contains a supported wildcard
-                // then we need to use GetHelper (Get-InstalledPSResource logic) to find which packages are installed that match
-                // the wildcard pattern name for each package name with wildcard
-
-                GetHelper getHelper = new GetHelper(
-                    cmdletPassedIn: this);
-
-                namesToProcess = getHelper.GetPackagesFromPath(
-                    name: namesToProcess,
-                    versionRange: versionRange,
-                    pathsToSearch: Utils.GetAllResourcePaths(this)).Select(p => p.Name).ToArray();
+                if (!installedPackages.ContainsKey(installedPackage.Name))
+                {
+                    installedPackages.Add(installedPackage.Name, installedPackage);
+                }
             }
 
-            return namesToProcess;
+            if (installedPackages.Count is 0)
+            {
+                WriteWarning($"No installed packages were found with name '{string.Join(",", namesToProcess)}' in scope '{Scope}'. First install package using 'Install-PSResource'.");
+                return Utils.EmptyStrArray;
+            }
+
+            // Find all packages selected for updating in provided repositories.
+            var repositoryPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
+            foreach (var foundResource in _findHelper.FindByResourceName(
+                name: installedPackages.Keys.ToArray(),
+                type: ResourceType.None,
+                version: Version,
+                prerelease: Prerelease,
+                tag: null,
+                repository: Repository,
+                credential: Credential,
+                includeDependencies: false))
+            {
+                if (!repositoryPackages.ContainsKey(foundResource.Name))
+                {
+                    repositoryPackages.Add(foundResource.Name, foundResource);
+                }
+            }
+
+            // Check if named package is installed or can be found in the repositories.
+            foreach (var nameToProcess in namesToProcess)
+            {
+                if (!WildcardPattern.ContainsWildcardCharacters(nameToProcess))
+                {
+                    if (!installedPackages.ContainsKey(nameToProcess))
+                    {
+                        WriteWarning(
+                            $"Package '{nameToProcess}' not installed in scope '{Scope}'. First install package using 'Install-PSResource'.");
+                    }
+                    else if (!repositoryPackages.ContainsKey(nameToProcess))
+                    {
+                        WriteWarning(
+                            $"Installed package '{nameToProcess}':'{Version}' was not found in repositories and cannot be updated.");
+                    }
+                }
+            }
+
+            // Create list of packages to update.
+            List<string> namesToUpdate = new List<string>();
+            foreach (PSResourceInfo repositoryPackage in repositoryPackages.Values)
+            {
+                if (!installedPackages.TryGetValue(repositoryPackage.Name, out PSResourceInfo installedPackage))
+                {
+                    continue;
+                }
+
+                // If the current package is out of range, install it with the correct version.
+                if (!NuGetVersion.TryParse(installedPackage.Version.ToString(), out NuGetVersion installedVersion))
+                {
+                    WriteWarning($"Cannot parse nuget version in installed package '{installedPackage.Name}'. Cannot update package.");
+                    continue;
+                }
+
+                if ((versionRange == VersionRange.All && repositoryPackage.Version > installedPackage.Version) ||
+                    !versionRange.Satisfies(installedVersion))
+                {
+                    namesToUpdate.Add(repositoryPackage.Name);
+                }
+                else
+                {
+                    WriteVerbose($"Installed package {repositoryPackage.Name} is up to date.");
+                }
+            }
+
+            return namesToUpdate.ToArray();
         }
+
         #endregion
     }
 }
