@@ -49,6 +49,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string _specifiedPath;
         private bool _asNupkg;
         private bool _includeXML;
+        private bool _noClobber;
+        List<string> _pathsToSearch;
 
         #endregion
 
@@ -72,6 +74,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool reinstall,
             bool force,
             bool trustRepository,
+            bool noClobber,
             PSCredential credential,
             string specifiedPath,
             bool asNupkg,
@@ -79,7 +82,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}';",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';",
                 string.Join(",", names),
                 versionRange != null ? versionRange.OriginalString : string.Empty,
                 prerelease.ToString(),
@@ -87,7 +90,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 acceptLicense.ToString(),
                 quiet.ToString(),
                 reinstall.ToString(),
-                trustRepository.ToString()));
+                trustRepository.ToString(),
+                noClobber.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
@@ -96,11 +100,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _reinstall = reinstall;
             _force = force;
             _trustRepository = trustRepository || force;
+            _noClobber = noClobber;
             _credential = credential;
             _specifiedPath = specifiedPath;
             _asNupkg = asNupkg;
             _includeXML = includeXML;
             _pathsToInstallPkg = pathsToInstallPkg;
+
+            // Create list of installation paths to search.
+            _pathsToSearch = new List<string>();
+
+            // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
+            // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
+            // e.g.:
+            // ./InstallPackagePath1/PackageA
+            // ./InstallPackagePath1/PackageB
+            // ./InstallPackagePath2/PackageC
+            // ./InstallPackagePath3/PackageD
+            foreach (var path in _pathsToInstallPkg)
+            {
+                _pathsToSearch.AddRange(Utils.GetSubDirectories(path));
+            }
 
             // Go through the repositories and see which is the first repository to have the pkg version available
             ProcessRepositories(names, repository, _trustRepository, _credential);
@@ -215,7 +235,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // Create list of installation paths to search.
             List<string> _pathsToSearch = new List<string>();
-            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
             // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
             // e.g.:
@@ -234,6 +253,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 filteredPackages.Add(pkg.Name, pkg);
             }
 
+            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // Get currently installed packages.
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: filteredPackages.Keys.ToArray(),
@@ -420,6 +440,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             continue;
                         }
+
+                        // If NoClobber is specified, ensure command clobbering does not happen
+                        if (_noClobber && !DetectClobber(p.Name, tempDirNameVersion, parsedMetadataHashtable))
+                        {
+                            continue;
+                        }
                     }
 
                     // Delete the extra nupkg related files that are not needed and not part of the module/script
@@ -556,6 +582,56 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return success;
+        }
+
+        private bool DetectClobber(string pkgName, string tempDirNameVersion, Hashtable parsedMetadataHashtable)
+        {
+            // Get installed modules, then get all possible paths
+            bool foundClobber = false;
+            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
+            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(new string[] { "*" }, VersionRange.All, _pathsToSearch);
+            // user parsed metadata hash
+            List<string> listOfCmdlets = new List<string>();
+            foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
+            {
+                listOfCmdlets.Add(cmdletName as string); 
+
+            }
+
+            foreach (var pkg in pkgsAlreadyInstalled)
+            {
+                List<string> duplicateCmdlets = new List<string>();
+                List<string> duplicateCmds = new List<string>();
+                // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed
+                if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
+                {
+                    duplicateCmdlets = listOfCmdlets.Where(cmdlet => pkg.Includes.Cmdlet.Contains(cmdlet)).ToList();
+
+                }
+                if (pkg.Includes.Command != null && pkg.Includes.Command.Any())
+                {
+                    duplicateCmds = listOfCmdlets.Where(commands => pkg.Includes.Command.Contains(commands, StringComparer.InvariantCultureIgnoreCase)).ToList();
+                }
+                if (duplicateCmdlets.Any() || duplicateCmds.Any())
+                { 
+                    
+                    duplicateCmdlets.AddRange(duplicateCmds);
+
+                    var errMessage = string.Format(
+                        "The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
+                        String.Join(", ", duplicateCmdlets), pkgName);
+
+                    var ex = new ArgumentException(errMessage);
+                    var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
+
+                    _cmdletPassedIn.WriteError(noClobberError);
+                    foundClobber = true;
+
+                    return foundClobber;
+                }
+            }
+
+            return foundClobber;
         }
 
         private void CreateMetadataXMLFile(string dirNameVersion, string installPath, string repoName, PSResourceInfo pkg, bool isModule)
