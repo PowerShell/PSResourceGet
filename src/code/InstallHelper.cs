@@ -472,7 +472,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Delete the extra nupkg related files that are not needed and not part of the module/script
                     DeleteExtraneousFiles(tempInstallPath, pkgIdentity, tempDirNameVersion);
 
-                    if (_includeXML && isModule)
+                    if (_includeXML)
                     {
                         CreateMetadataXMLFile(tempDirNameVersion, installPath, repoName, p, isModule);
                     }
