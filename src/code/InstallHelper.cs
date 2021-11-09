@@ -416,7 +416,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // asNupkg functionality only applies to Save-PSResource
                         if (_asNupkg)
                         {
-                            var nupkgFile = pkgIdentity + ".nupkg";
+                            var nupkgFile = pkgIdentity.ToString().ToLower() + ".nupkg";
                             File.Copy(Path.Combine(tempDirNameVersion, nupkgFile), Path.Combine(installPath, nupkgFile));
 
                             _cmdletPassedIn.WriteVerbose(string.Format("'{0}' moved into file path '{1}'", nupkgFile, installPath));
