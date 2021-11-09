@@ -6,7 +6,7 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe 'Test Get-InstalledPSResource for Module' {
 
     BeforeAll{
-        $TestGalleryName = Get-PoshTestGalleryName
+        $TestGalleryName = "PoshTestGallery"
         $testModuleName = "test_module"
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
