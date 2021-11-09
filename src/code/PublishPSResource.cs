@@ -393,7 +393,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     try
                     {
                         var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
-                        Utils.MoveFiles(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
+                        File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
                     }
                     catch (Exception e) {
                         var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", _destinationPath, e.Message);
