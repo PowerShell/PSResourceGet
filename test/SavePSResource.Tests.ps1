@@ -208,7 +208,7 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "1.3.0"
-        $xmlFile = Get-ChildItem -Path $pkgDirVersion | Where-Object Name -eq "PSGetModuleInfo.xml"
+        $xmlFile = Get-ChildItem -Path $pkgDirVersion.FullName | Where-Object Name -eq "PSGetModuleInfo.xml"
         $xmlFile | Should -Not -BeNullOrEmpty
     }
 
