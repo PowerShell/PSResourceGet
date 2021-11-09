@@ -98,6 +98,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter Force { get; set; }
 
+        /// <summary>
+        /// Passes the resource installed to the console.
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter PassThru { get; set; }
+
         #endregion
 
         #region Override Methods
@@ -167,6 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
+                passThru: PassThru,
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
 

@@ -294,6 +294,12 @@ Describe 'Test Install-PSResource for Module' {
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.1.0.0"
     }
+
+    It "Install module using -PassThru" {
+        $res = Install-PSResource -Name "TestModule" -Version "1.3.0" -Repository $TestGalleryName -PassThru
+        $res.Name | Should -Be "TestModule"
+        $res.Version | Should -Be "1.3.0.0"
+    }
 }
 
 <# Temporarily commented until -Tag is implemented for this Describe block

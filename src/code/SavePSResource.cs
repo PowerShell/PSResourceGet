@@ -115,7 +115,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter TrustRepository { get; set; }
-        
+
+        /// <summary>
+        /// Passes the resource installed to the console.
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter PassThru { get; set; }
+
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
@@ -244,6 +250,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 specifiedPath: _path, 
                 asNupkg: false, 
                 includeXML: false, 
+                passThru: PassThru,
                 pathsToInstallPkg: new List<string> { _path } );
         }
         

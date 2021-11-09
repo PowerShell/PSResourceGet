@@ -50,6 +50,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _asNupkg;
         private bool _includeXML;
         private bool _noClobber;
+        private bool _passThru;
         List<string> _pathsToSearch;
 
         #endregion
@@ -79,10 +80,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string specifiedPath,
             bool asNupkg,
             bool includeXML,
+            bool passThru, 
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; PassThru '{11}'",
                 string.Join(",", names),
                 versionRange != null ? versionRange.OriginalString : string.Empty,
                 prerelease.ToString(),
@@ -91,7 +93,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 quiet.ToString(),
                 reinstall.ToString(),
                 trustRepository.ToString(),
-                noClobber.ToString()));
+                noClobber.ToString(),
+                passThru.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
@@ -105,6 +108,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _specifiedPath = specifiedPath;
             _asNupkg = asNupkg;
             _includeXML = includeXML;
+            _passThru = passThru;
             _pathsToInstallPkg = pathsToInstallPkg;
 
             // Create list of installation paths to search.
@@ -216,16 +220,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                List<string> pkgsInstalled = InstallPackage(
+                List<PSResourceInfo> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
                     repoName,
                     repo.Url.AbsoluteUri,
                     credential,
                     isLocalRepo);
 
-                foreach (string name in pkgsInstalled)
+                if (_passThru)
                 {
-                    pckgNamesToInstall.Remove(name);
+                    foreach (PSResourceInfo pkg in pkgsInstalled)
+                    {
+                        _cmdletPassedIn.WriteObject(pkg);
+                    }
+                }
+
+                foreach (PSResourceInfo pkg in pkgsInstalled)
+                {
+                    pckgNamesToInstall.Remove(pkg.Name);
                 }
             }
         }
@@ -278,14 +290,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return filteredPackages.Values.ToArray();
         }
 
-        private List<string> InstallPackage(
+        private List<PSResourceInfo> InstallPackage(
             IEnumerable<PSResourceInfo> pkgsToInstall,
             string repoName,
             string repoUrl,
             PSCredential credential,
             bool isLocalRepo)
         {
-            List<string> pkgsSuccessfullyInstalled = new List<string>();
+            List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
             foreach (PSResourceInfo p in pkgsToInstall)
             {
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -474,7 +486,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     MoveFilesIntoInstallPath(p, isModule, isLocalRepo, tempDirNameVersion, tempInstallPath, installPath, newVersion, moduleManifestVersion, normalizedVersionNoPrereleaseLabel, version4digitNoPrerelease, scriptPath);
                     
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", p.Name, installPath));
-                    pkgsSuccessfullyInstalled.Add(p.Name);
+                    pkgsSuccessfullyInstalled.Add(p);
                 }
                 catch (Exception e)
                 {

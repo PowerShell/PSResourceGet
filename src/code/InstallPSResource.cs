@@ -100,6 +100,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter NoClobber { get; set; }
 
         /// <summary>
+        /// Passes the resource installed to the console.
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter PassThru { get; set; }
+
+        /// <summary>
         /// Used for pipeline input.
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
@@ -250,6 +256,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
+                passThru: PassThru,
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
 
