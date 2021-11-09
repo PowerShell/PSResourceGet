@@ -67,9 +67,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         public PSCredential Credential { get; set; }
         
-        /*
         /// <summary>
-        /// Saves as a .nupkg
+        /// Saves the resource as a .nupkg
         /// </summary>
         [Parameter()]
         public SwitchParameter AsNupkg { get; set; }
@@ -79,7 +78,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter()]
         public SwitchParameter IncludeXML { get; set; }
-        */
 
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
@@ -242,8 +240,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 credential: Credential, 
                 noClobber: false, 
                 specifiedPath: _path, 
-                asNupkg: false, 
-                includeXML: false, 
+                asNupkg: AsNupkg, 
+                includeXML: IncludeXML, 
                 pathsToInstallPkg: new List<string> { _path } );
         }
         

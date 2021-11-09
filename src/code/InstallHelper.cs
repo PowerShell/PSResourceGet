@@ -82,7 +82,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXML '{10}'",
                 string.Join(",", names),
                 versionRange != null ? versionRange.OriginalString : string.Empty,
                 prerelease.ToString(),
@@ -91,7 +91,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 quiet.ToString(),
                 reinstall.ToString(),
                 trustRepository.ToString(),
-                noClobber.ToString()));
+                noClobber.ToString(),
+                asNupkg.ToString(),
+                includeXML.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
@@ -332,15 +334,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                              globalPackagesFolder: tempInstallPath,
                              logger: NullLogger.Instance,
                              token: _cancellationToken).GetAwaiter().GetResult();
-
-                        if (_asNupkg) // this is Save functionality
-                        {
-                            DirectoryInfo nupkgPath = new DirectoryInfo(((System.IO.FileStream)result.PackageStream).Name);
-                            File.Copy(nupkgPath.FullName, Path.Combine(tempInstallPath, pkgIdentity.Id + pkgIdentity.Version + ".nupkg"));
-
-                            continue;
-                        }
-
+                        
                         // Create the package extraction context
                         PackageExtractionContext packageExtractionContext = new PackageExtractionContext(
                                 packageSaveMode: PackageSaveMode.Nupkg,
@@ -395,10 +389,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
 
-                    // Prompt if module requires license acceptance (need to read info license acceptance info from the module manifest)
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.      
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
-              
                     string normalizedVersionNoPrereleaseLabel = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
                     {
@@ -413,6 +405,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var modulePath = Path.Combine(tempDirNameVersion, (p.Name + ".psd1"));
                     // Check if the package is a module or a script
                     var isModule = File.Exists(modulePath);
+
+                    string installPath;
+                    if (_savePkg)
+                    {
+                        // For save the installation path is what is passed in via -Path
+                        installPath = _pathsToInstallPkg.FirstOrDefault();
+
+                        // If saving as nupkg simply copy the nupkg and move onto next iteration of loop
+                        // asNupkg functionality only applies to Save-PSResource
+                        if (_asNupkg)
+                        {
+                            var nupkgFile = pkgIdentity + ".nupkg";
+                            File.Copy(Path.Combine(tempDirNameVersion, nupkgFile), Path.Combine(installPath, nupkgFile));
+
+                            _cmdletPassedIn.WriteVerbose(string.Format("'{0}' moved into file path '{1}'", nupkgFile, installPath));
+                            pkgsSuccessfullyInstalled.Add(p.Name);
+
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        // PSModules: 
+                        /// ./Modules
+                        /// ./Scripts
+                        /// _pathsToInstallPkg is sorted by desirability, Find will pick the pick the first Script or Modules path found in the list
+                        installPath = isModule ? _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase))
+                                : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
+                    }
 
                     if (isModule)
                     {
@@ -451,22 +472,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Delete the extra nupkg related files that are not needed and not part of the module/script
                     DeleteExtraneousFiles(tempInstallPath, pkgIdentity, tempDirNameVersion);
 
-                    string installPath;
-                    if (_savePkg)
-                    {
-                        // For save the installation path is what is passed in via -Path
-                        installPath = _pathsToInstallPkg.FirstOrDefault();
-                    }
-                    else {
-                        // PSModules: 
-                        /// ./Modules
-                        /// ./Scripts
-                        /// _pathsToInstallPkg is sorted by desirability, Find will pick the pick the first Script or Modules path found in the list
-                        installPath = isModule ? _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase))
-                                : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
-                    }
-
-                    if (_includeXML)
+                    if (_includeXML && isModule)
                     {
                         CreateMetadataXMLFile(tempDirNameVersion, installPath, repoName, p, isModule);
                     }

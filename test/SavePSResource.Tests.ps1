@@ -188,6 +188,30 @@ Describe 'Test Save-PSResource for PSResources' {
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
     }
 
+    It "Save module as a nupkg" {
+        Save-PSResource -Name "TestModule" -Version "1.3.0" -Repository $TestGalleryName -Path $SaveDir -AsNupkg
+        write-host $SaveDir
+        write-host 
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "testmodule.1.3.0.nupkg"
+        $pkgDir | Should -Not -BeNullOrEmpty
+    }
+
+    It "Save script as a nupkg" {
+        Save-PSResource -Name "TestTestScript" -Version "1.3.1" -Repository $TestGalleryName -Path $SaveDir -AsNupkg
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "testtestscript.1.3.1.nupkg"
+        $pkgDir | Should -Not -BeNullOrEmpty
+    }
+
+    It "Save module and include XML metadata file" {
+        Save-PSResource -Name "TestModule" -Version "1.3.0" -Repository $TestGalleryName -Path $SaveDir -IncludeXML
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+        $pkgDirVersion.Name | Should -Be "1.3.0"
+        $xmlFile = Get-ChildItem -Path $pkgDirVersion | Where-Object Name -eq "PSGetModuleInfo.xml"
+        $xmlFile | Should -Not -BeNullOrEmpty
+    }
+
 <#
     # Tests should not write to module directory
     It "Save specific module resource by name if no -Path param is specifed" {
