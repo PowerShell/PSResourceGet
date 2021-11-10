@@ -102,7 +102,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Passes the resource installed to the console.
         /// </summary>
-        [Parameter()]
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter PassThru { get; set; }
 
         /// <summary>
