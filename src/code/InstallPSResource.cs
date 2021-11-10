@@ -242,34 +242,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            WriteVerbose("debug statement in install-psresource");
-
-            WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}';'", string.Join(",", pkgNames)));
-            WriteVerbose(string.Format("Parameters passed in >>> Version: '{0}';'", _versionRange != null ? _versionRange.OriginalString : string.Empty));
-            WriteVerbose(string.Format("Parameters passed in >>> Prerelease: '{0}';'", pkgPrerelease.ToString()));
-            WriteVerbose(string.Format("Parameters passed in >>> Repository: '{0}';'", pkgRepository != null ? string.Join(",", pkgRepository) : string.Empty));
-            WriteVerbose(string.Format("Parameters passed in >>> AcceptLicense: '{0}';'", AcceptLicense.ToString()));
-            WriteVerbose(string.Format("Parameters passed in >>> Quiet: '{0}';'", Quiet.ToString()));
-            WriteVerbose(string.Format("Parameters passed in >>> Reinstall: '{0}';'", Reinstall.ToString()));
-            WriteVerbose(string.Format("Parameters passed in >>> TrustRepository: '{0}';'", TrustRepository.ToString()));
-            WriteVerbose(string.Format("Parameters passed in >>> NoClobber: '{0}';'", NoClobber.ToString()));
-            WriteVerbose(string.Format("Parameters passed in >>> PassThru: '{0}';'", PassThru.ToString()));
-
-
-
-            WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; PassThru '{9}'",
-                string.Join(",", pkgNames),
-                _versionRange != null ? _versionRange.OriginalString : string.Empty,
-                pkgPrerelease.ToString(),
-                pkgRepository != null ? string.Join(",", pkgRepository) : string.Empty,
-                AcceptLicense.ToString(),
-                Quiet.ToString(),
-                Reinstall.ToString(),
-                TrustRepository.ToString(),
-                NoClobber.ToString(),
-                PassThru.ToString()));
-
             _installHelper.InstallPackages(
                 names: pkgNames,
                 versionRange: _versionRange,
