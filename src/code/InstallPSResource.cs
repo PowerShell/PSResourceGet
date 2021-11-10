@@ -242,6 +242,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
+            WriteVerbose("debug statement in install-psresource");
+
+            WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; PassThru '{11}'",
+                string.Join(",", pkgNames),
+                _versionRange != null ? _versionRange.OriginalString : string.Empty,
+                pkgPrerelease.ToString(),
+                pkgRepository != null ? string.Join(",", pkgRepository) : string.Empty,
+                AcceptLicense.ToString(),
+                Quiet.ToString(),
+                Reinstall.ToString(),
+                TrustRepository.ToString(),
+                NoClobber.ToString(),
+                PassThru.ToString()));
+
             _installHelper.InstallPackages(
                 names: pkgNames,
                 versionRange: _versionRange,
