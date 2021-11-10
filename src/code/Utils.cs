@@ -113,7 +113,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
     
         #endregion
-
+        
         #region Version methods
 
         public static string GetNormalizedVersionString(
@@ -228,48 +228,44 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Url methods
 
         public static bool TryCreateValidUrl(
-            string urlString,
+            string uriString,
             PSCmdlet cmdletPassedIn,
-            out Uri urlResult,
+            out Uri uriResult,
             out ErrorRecord errorRecord
         )
         {
             errorRecord = null;
-
-            bool tryCreateResult = Uri.TryCreate(urlString, UriKind.Absolute, out urlResult);
-            if (!tryCreateResult)
+            if (Uri.TryCreate(uriString, UriKind.Absolute, out uriResult))
             {
-                // url string could be of type (potentially) UriSchemeFile or invalid type
-                // can't check for UriSchemeFile because relative paths don't qualify as UriSchemeFile
-                try
-                {
-                    // this is needed for a relative path urlstring. Does not throw error for an absolute path
-                    urlString = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;
-
-                    if (!string.IsNullOrEmpty(urlString))
-                    {
-                        tryCreateResult = Uri.TryCreate(urlString, UriKind.Absolute, out urlResult);
-                        if (!tryCreateResult)
-                        {
-                            var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0} and must be of Uri Scheme: HTTP, HTTPS, FTP or a file path", urlString);
-                            var ex = new ArgumentException(message);
-                            errorRecord = new ErrorRecord(ex, "InvalidFilePathUrl", ErrorCategory.InvalidArgument, null);
-                            urlResult = null;
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // this should only be reached if the url string is invalid
-                    // i.e www.google.com
-                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0} and must be of Uri Scheme: HTTP, HTTPS, FTP or a file path", urlString);
-                    var ex = new ArgumentException(message);
-                    errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                    urlResult = null;
-                }
+                return true;
             }
 
-            return tryCreateResult;
+            Exception ex;
+            try
+            {
+                // This is needed for a relative path urlstring. Does not throw error for an absolute path
+                var filePath = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(uriString)[0].Path;
+                if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
+                {
+                    return true;
+                }
+
+                ex = new PSArgumentException($"Invalid Uri file path: {uriString}");
+            }
+            catch (Exception e)
+            {
+                ex = e;
+            }
+
+            errorRecord = new ErrorRecord(
+                new PSArgumentException(
+                    $"The provided Uri is not valid: {uriString}. It must be of Uri Scheme: HTTP, HTTPS, FTP or a file path",
+                    ex),
+                "InvalidUri",
+                ErrorCategory.InvalidArgument,
+                cmdletPassedIn);
+
+            return false;
         }
 
         #endregion
