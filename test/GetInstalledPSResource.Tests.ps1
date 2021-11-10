@@ -13,7 +13,7 @@ Describe 'Test Get-InstalledPSResource for Module' {
 
         Write-Host "New PSResource Repository file created"
         write-host $TestGalleryName
-        Install-PSResource -Name ContosoServer -Repository $TestGalleryName  -Verbose
+        Install-PSResource -Name ContosoServer -Repository $TestGalleryName -Verbose
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "2.0"
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "1.5"
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "1.0"
