@@ -6,11 +6,13 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe 'Test Get-InstalledPSResource for Module' {
 
     BeforeAll{
-        $TestGalleryName = "PoshTestGallery"
+        $TestGalleryName = Get-PoshTestGalleryName
         $testModuleName = "test_module"
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
 
+        Write-Host "New PSResource Repository file created"
+        write-host $TestGalleryName
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "2.0"
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "1.5"
