@@ -413,7 +413,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             finally {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
-                Directory.Delete(outputDir, recursive:true);
+
+                try
+                {
+                    Directory.Delete(outputDir, recursive: true);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // If an exception was thrown due to an access denied exception, attempt to change file attributes to normal
+                    string[] filesLeftToDelete = Directory.GetFiles(outputDir);
+                    foreach (var file in filesLeftToDelete)
+                    {
+                        File.SetAttributes(file, FileAttributes.Normal);
+                    }
+
+                    // Try to delete temp files again
+                    Directory.Delete(outputDir, recursive: true);
+                }
             }
         }
 
