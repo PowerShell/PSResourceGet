@@ -230,4 +230,12 @@ Describe "Test Register-PSResourceRepository" {
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
     }
+
+    It "should register local file share NuGet based repository" {
+        Register-PSResourceRepository -Name "localFileShareTestRepo" -URL "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
+        $res = Get-PSResourceRepository -Name "localFileShareTestRepo"
+
+        $res.Name | Should -Be "localFileShareTestRepo"
+        $res.URL.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
+    }
 }
