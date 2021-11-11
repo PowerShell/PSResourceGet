@@ -234,9 +234,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return null;
                 }
 
-                if (!Utils.TryCreateValidUrl(urlString: repo["Url"].ToString(),
+                if (!Utils.TryCreateValidUrl(uriString: repo["Url"].ToString(),
                     cmdletPassedIn: this,
-                    urlResult: out repoURL,
+                    uriResult: out repoURL,
                     errorRecord: out ErrorRecord errorRecord))
                 {
                     WriteError(errorRecord);
