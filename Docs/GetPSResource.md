@@ -1,6 +1,6 @@
-# Get-InstalledPSResource
+# Get-PSResource
 
-The `Get-InstalledPSResource` cmdlet combines the `Get-InstalledModule, Get-InstalledScript` cmdlets from V2.
+The `Get-PSResource` cmdlet combines the `Get-InstalledModule, Get-InstalledScript` cmdlets from V2.
 It performs a search within module or script installation paths based on the `-Name` parameter argument.
 It returns `PSRepositoryItemInfo` objects which describe each resource item found.
 Other parameters allow the returned results to be filtered by version, prerelease version, and path.
