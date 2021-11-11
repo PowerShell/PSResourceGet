@@ -227,7 +227,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (Utils.GetSubDirectories(dir.Parent.FullName).Length == 0)
                     {
-                        Directory.Delete(dir.Parent.FullName, true);
+                        Utils.DeleteDirectory(dir.Parent.FullName);
                     }
                 }
                 catch (Exception e) {

@@ -413,7 +413,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             finally {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
-                Directory.Delete(outputDir, recursive:true);
+                Utils.DeleteDirectory(outputDir);
             }
         }
 

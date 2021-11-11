@@ -695,12 +695,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (Directory.Exists(relsDirToDelete))
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", relsDirToDelete));
-                Directory.Delete(relsDirToDelete, true);
+                Utils.DeleteDirectory(relsDirToDelete);
             }
             if (Directory.Exists(packageDirToDelete))
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
-                Directory.Delete(packageDirToDelete, true);
+                Utils.DeleteDirectory(packageDirToDelete);
             }
         }
 
