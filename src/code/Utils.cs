@@ -569,6 +569,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             foreach (var dirFilePath in Directory.GetFiles(dirPath))
             {
+                FileAttributes attribute = File.GetAttributes(dirFilePath);
+                if (!attribute.Equals(FileAttributes.Normal))
+                {
+                    File.SetAttributes(dirFilePath, FileAttributes.Normal);
+                }
+
                 File.Delete(dirFilePath);
             }
 
