@@ -14,7 +14,7 @@ using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// Get helper class provides the core functionality for Get-InstalledPSResource.
+    /// Get helper class provides the core functionality for Get-PSResource.
     /// </summary>
     internal class GetHelper
     {
