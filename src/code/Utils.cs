@@ -304,7 +304,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (File.Exists(pkgPath))
             {
                 // ex: ./PowerShell/Scripts/TestScript.ps1
-                return System.IO.Path.GetFileNameWithoutExtension(pkgPath);
+                return Path.GetFileNameWithoutExtension(pkgPath);
             }
             else
             {
@@ -329,19 +329,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (scope is null)
             {
                 string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                resourcePaths.AddRange(psModulePath.Split(';').ToList());
+                resourcePaths.AddRange(psModulePath.Split(Path.PathSeparator).ToList());
             }
 
             if (scope is null || scope.Value is ScopeType.CurrentUser)
             {
-                resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-                resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
             
             if (scope is null || scope.Value is ScopeType.AllUsers)
             {
-                resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-                resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+                resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
+                resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
             }
 
             // resourcePaths should now contain, eg:
@@ -399,13 +399,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             var installationPaths = new List<string>();
             if (scope == ScopeType.AllUsers)
             {
-                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+                installationPaths.Add(Path.Combine(programFilesPath, "Modules"));
+                installationPaths.Add(Path.Combine(programFilesPath, "Scripts"));
             }
             else
             {
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+                installationPaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                installationPaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
 
             installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
