@@ -16,7 +16,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It updates an already installed package based on the -Name parameter argument.
     /// It does not return an object. Other parameters allow the package to be updated to be further filtered.
     /// </summary>
-
     [Cmdlet(VerbsData.Update,
         "PSResource",
         SupportsShouldProcess = true)]

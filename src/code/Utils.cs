@@ -4,14 +4,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using static System.Environment;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.InteropServices;
 using NuGet.Versioning;
-using System.Globalization;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -425,13 +423,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
+                programFilesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
             }
             else
             {
                 // paths are the same for both Linux and macOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "powershell");
                 programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
             }
         }
@@ -453,9 +451,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the module manifest 
-                System.Management.Automation.Language.Token[] tokens;
-                ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFileInfo, out tokens, out errors);
+                var ast = Parser.ParseFile(
+                    moduleFileInfo,
+                    out Token[] tokens,
+                    out ParseError[] errors);
 
                 if (errors.Length > 0)
                 {

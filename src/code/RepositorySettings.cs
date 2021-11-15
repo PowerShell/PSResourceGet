@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Xml.Linq;
-using static System.Environment;
+
 using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
@@ -20,17 +20,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     internal static class RepositorySettings
     {
-        /// <summary>
-        /// File name for a user's repository store file is 'PSResourceRepository.xml'
-        /// The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
-        /// </summary>
+        #region Members
+
+        // File name for a user's repository store file is 'PSResourceRepository.xml'
+        // The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
         private const string PSGalleryRepoName = "PSGallery";
         private const string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
         private const int defaultPriority = 50;
         private const bool defaultTrusted = false;
         private const string RepositoryFileName = "PSResourceRepository.xml";
-        private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet");
+        private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData), "PowerShellGet");
         private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
+
+        #endregion
+
+        #region Public methods
 
         /// <summary>
         /// Check if repository store xml file exists, if not then create
@@ -305,6 +310,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return reposToReturn.ToList();
         }
 
+        #endregion
+
+        #region Private methods
+
         private static XElement FindRepositoryElement(XDocument doc, string name)
         {
             return doc.Descendants("Repository").Where(
@@ -313,5 +322,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     name,
                     StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
         }
+
+        #endregion
     }
 }
