@@ -25,7 +25,7 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
 
         Update-PSResource -Name "TestModule" -Repository $TestGalleryName
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -44,7 +44,7 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "TestModule99" -Version "0.0.4.0" -Repository $TestGalleryName
 
         Update-PSResource -Name "TestModule*" -Repository $TestGalleryName
-        $res = Get-InstalledPSResource -Name "TestModule*"
+        $res = Get-PSResource -Name "TestModule*"
 
         $inputHashtable = @{TestModule = "1.1.0.0"; TestModule99 = "0.0.4.0"}
         $isTestModuleUpdated = $false
@@ -72,7 +72,7 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
 
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -102,7 +102,7 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
         Update-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         foreach ($item in $res) {
             $item.Name | Should -Be "TestModule"
@@ -120,7 +120,7 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
         Update-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -138,7 +138,7 @@ Describe 'Test Update-PSResource' {
 
         Install-PSResource -Name "PSGetTestModule" -Version "1.0.2.0" -Repository $TestGalleryName
         Update-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName
-        $res = Get-InstalledPSResource -Name "PSGetTestModule"
+        $res = Get-PSResource -Name "PSGetTestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -161,7 +161,7 @@ Describe 'Test Update-PSResource' {
 
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName -Scope CurrentUser
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -183,7 +183,7 @@ Describe 'Test Update-PSResource' {
 
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName -Scope AllUsers
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -202,7 +202,7 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -226,7 +226,7 @@ Describe 'Test Update-PSResource' {
 
         Update-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope CurrentUser
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -250,7 +250,7 @@ Describe 'Test Update-PSResource' {
 
         Update-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -274,7 +274,7 @@ Describe 'Test Update-PSResource' {
 
         Update-PSResource -Name "TestModule" -Repository $TestGalleryName
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -292,7 +292,7 @@ Describe 'Test Update-PSResource' {
     It "update resource that requires accept license with -AcceptLicense flag" {
         Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
         Update-PSResource -Name "TestModuleWithLicense" -Repository $TestGalleryName -AcceptLicense
-        $res = Get-InstalledPSResource "TestModuleWithLicense"
+        $res = Get-PSResource "TestModuleWithLicense"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -312,7 +312,7 @@ Describe 'Test Update-PSResource' {
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
         Update-PSResource -Name "TestModule" -Version "1.2.0.0" -Repository $TestGalleryName -TrustRepository
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -331,7 +331,7 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
         Update-PSResource -Name "TestModule" -WhatIf
 
-        $res = Get-InstalledPSResource -Name "TestModule"
+        $res = Get-PSResource -Name "TestModule"
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)

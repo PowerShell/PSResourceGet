@@ -192,7 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Private methods
 
         private void ProcessSaveHelper(string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
         {

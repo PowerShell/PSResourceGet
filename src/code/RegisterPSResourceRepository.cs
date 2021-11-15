@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
+
 using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -126,9 +127,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    if (!Utils.TryCreateValidUrl(urlString: URL,
+                    if (!Utils.TryCreateValidUrl(uriString: URL,
                         cmdletPassedIn: this,
-                        urlResult: out _url,
+                        uriResult: out _url,
                         errorRecord: out ErrorRecord errorRecord))
                     {
                         ThrowTerminatingError(errorRecord);
@@ -312,9 +313,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            if (!Utils.TryCreateValidUrl(urlString: repo["Url"].ToString(),
+            if (!Utils.TryCreateValidUrl(uriString: repo["Url"].ToString(),
                 cmdletPassedIn: this,
-                urlResult: out Uri repoURL,
+                uriResult: out Uri repoURL,
                 errorRecord: out ErrorRecord errorRecord))
             {
                 WriteError(errorRecord);

@@ -16,7 +16,8 @@ Describe 'Test Install-PSResource for Module' {
 
     AfterEach {
         Uninstall-PSResource "TestModule", "TestModule99", "myTestModule", "myTestModule2", "testModulePrerelease", 
-            "testModuleWithlicense","PSGetTestModule", "PSGetTestDependency1", "TestFindModule" -Force -ErrorAction SilentlyContinue
+            "testModuleWithlicense","PSGetTestModule", "PSGetTestDependency1", "TestFindModule","ClobberTestModule1",
+            "ClobberTestModule2" -Force -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -43,7 +44,7 @@ Describe 'Test Install-PSResource for Module' {
 
     It "Install specific script resource by name" {
         Install-PSResource -Name "TestTestScript" -Repository $TestGalleryName  
-        $pkg = Get-InstalledPSResource "TestTestScript"
+        $pkg = Get-PSResource "TestTestScript"
         $pkg.Name | Should -Be "TestTestScript" 
         $pkg.Version | Should -Be "1.3.1.0"
     }
@@ -224,7 +225,7 @@ Describe 'Test Install-PSResource for Module' {
 
     It "Install resource that requires accept license with -AcceptLicense flag" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
-        $pkg = Get-InstalledPSResource "testModuleWithlicense"
+        $pkg = Get-PSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
         $pkg.Version | Should -Be "0.0.3.0"
     }
@@ -242,12 +243,12 @@ Describe 'Test Install-PSResource for Module' {
 
     It "Install resource with cmdlet names from a module already installed (should clobber)" {
         Install-PSResource -Name "myTestModule" -Repository $TestGalleryName  
-        $pkg = Get-InstalledPSResource "myTestModule"
+        $pkg = Get-PSResource "myTestModule"
         $pkg.Name | Should -Be "myTestModule" 
         $pkg.Version | Should -Be "0.0.3.0"
 
         Install-PSResource -Name "myTestModule2" -Repository $TestGalleryName  
-        $pkg = Get-InstalledPSResource "myTestModule2"
+        $pkg = Get-PSResource "myTestModule2"
         $pkg.Name | Should -Be "myTestModule2" 
         $pkg.Version | Should -Be "0.0.1.0"
     }
@@ -290,7 +291,7 @@ Describe 'Test Install-PSResource for Module' {
     }
         It "Install PSResourceInfo object piped in" {
         Find-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName | Install-PSResource
-        $res = Get-InstalledPSResource -Name $testModuleName
+        $res = Get-PSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.1.0.0"
     }
@@ -327,7 +328,7 @@ Describe 'Test Install-PSResource for interactive and root user scenarios' {
     # This needs to be manually tested due to prompt
     It "Install resource that requires accept license without -AcceptLicense flag" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName
-        $pkg = Get-InstalledPSResource "testModuleWithlicense"
+        $pkg = Get-PSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
         $pkg.Version | Should -Be "0.0.1.0"
     }

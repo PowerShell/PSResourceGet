@@ -4,14 +4,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using static System.Environment;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.InteropServices;
 using NuGet.Versioning;
-using System.Globalization;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -113,7 +111,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
     
         #endregion
-
+        
         #region Version methods
 
         public static string GetNormalizedVersionString(
@@ -228,48 +226,44 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Url methods
 
         public static bool TryCreateValidUrl(
-            string urlString,
+            string uriString,
             PSCmdlet cmdletPassedIn,
-            out Uri urlResult,
+            out Uri uriResult,
             out ErrorRecord errorRecord
         )
         {
             errorRecord = null;
-
-            if (!urlString.StartsWith(Uri.UriSchemeHttps) &&
-                !urlString.StartsWith(Uri.UriSchemeHttp) &&
-                !urlString.StartsWith(Uri.UriSchemeFtp))
+            if (Uri.TryCreate(uriString, UriKind.Absolute, out uriResult))
             {
-                // url string could be of type (potentially) UriSchemeFile or invalid type
-                // can't check for UriSchemeFile because relative paths don't qualify as UriSchemeFile
-                try
-                {
-                    // this is needed for a relative path urlstring. Does not throw error for an absolute path
-                    urlString = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;
-
-                }
-                catch (Exception)
-                {
-                    // this should only be reached if the url string is invalid
-                    // i.e www.google.com
-                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0} and must be of Uri Scheme: HTTP, HTTPS, FTP or File", urlString);
-                    var ex = new ArgumentException(message);
-                    errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                    urlResult = null;
-                    return false;
-                }
+                return true;
             }
 
-            bool tryCreateResult = Uri.TryCreate(urlString, UriKind.Absolute, out urlResult);
-            if (!tryCreateResult)
+            Exception ex;
+            try
             {
-                var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", urlString);
-                var ex = new ArgumentException(message);
-                errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                urlResult = null;
+                // This is needed for a relative path urlstring. Does not throw error for an absolute path
+                var filePath = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(uriString)[0].Path;
+                if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
+                {
+                    return true;
+                }
+
+                ex = new PSArgumentException($"Invalid Uri file path: {uriString}");
+            }
+            catch (Exception e)
+            {
+                ex = e;
             }
 
-            return tryCreateResult;
+            errorRecord = new ErrorRecord(
+                new PSArgumentException(
+                    $"The provided Uri is not valid: {uriString}. It must be of Uri Scheme: HTTP, HTTPS, FTP or a file path",
+                    ex),
+                "InvalidUri",
+                ErrorCategory.InvalidArgument,
+                cmdletPassedIn);
+
+            return false;
         }
 
         #endregion
@@ -429,14 +423,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
+                programFilesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
             }
             else
             {
                 // paths are the same for both Linux and macOS
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
-                programFilesPath = Path.Combine("/usr", "local", "share", "powershell");
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "powershell");
+                programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
             }
         }
 
@@ -457,9 +451,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the module manifest 
-                System.Management.Automation.Language.Token[] tokens;
-                ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFileInfo, out tokens, out errors);
+                var ast = Parser.ParseFile(
+                    moduleFileInfo,
+                    out Token[] tokens,
+                    out ParseError[] errors);
 
                 if (errors.Length > 0)
                 {
