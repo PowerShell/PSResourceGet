@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Dbg = System.Diagnostics.Debug;
 using System.Management.Automation;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -17,8 +18,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         "PSResourceRepository",
         DefaultParameterSetName = NameParameterSet,
         SupportsShouldProcess = true)]
-    public sealed
-    class SetPSResourceRepository : PSCmdlet
+    public sealed class SetPSResourceRepository : PSCmdlet
     {
         #region Members
 
@@ -89,7 +89,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Private methods
+
         protected override void BeginProcessing()
         {
             RepositorySettings.CheckRepositoryStore();
@@ -190,6 +191,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 return null;
             }
+
             return RepositorySettings.Update(repoName, repoUrl, repoPriority, _trustedNullable);
         }
 
