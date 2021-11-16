@@ -218,10 +218,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public PSCommandResourceInfo(string name, PSResourceInfo parentResource)
         {
            Name = name;
-           ParentResource = parentResource; 
+           ParentResource = parentResource;
         }
 
-        #endregion        
+        #endregion
     }
 
     #endregion
@@ -512,7 +512,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             try
-            {                
+            {
                 var typeInfo = ParseMetadataType(metadataToParse, repositoryName, type, out ArrayList commandNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable();
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));

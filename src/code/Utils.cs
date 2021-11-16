@@ -156,9 +156,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             errorMsgs = errorMsgsList.ToArray();
             return namesWithSupportedWildcards.ToArray();
         }
-    
+
         #endregion
-        
+
         #region Version methods
 
         public static string GetNormalizedVersionString(
@@ -269,9 +269,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-        #region Url methods
+        #region Uri methods
 
-        public static bool TryCreateValidUrl(
+        public static bool TryCreateValidUri(
             string uriString,
             PSCmdlet cmdletPassedIn,
             out Uri uriResult,
@@ -286,7 +286,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Exception ex;
             try
             {
-                // This is needed for a relative path urlstring. Does not throw error for an absolute path.
+                // This is needed for a relative path uri string. Does not throw error for an absolute path.
                 var filePath = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(uriString)[0].Path;
                 if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
                 {
@@ -596,7 +596,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // ex: ./PowerShell/Scripts/TestScript.ps1
                 return Path.GetFileNameWithoutExtension(pkgPath);
             }
-            
+
             // expecting the full version module path
             // ex:  ./PowerShell/Modules/TestModule/1.0.0
             return new DirectoryInfo(pkgPath).Parent.Name;
@@ -625,7 +625,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
                 resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
-            
+
             if (scope is null || scope.Value is ScopeType.AllUsers)
             {
                 resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
@@ -740,7 +740,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // a module will still need the module manifest to be parsed.
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
-                // Parse the module manifest 
+                // Parse the module manifest
                 var ast = Parser.ParseFile(
                     moduleFileInfo,
                     out Token[] tokens,
@@ -1059,8 +1059,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 ps.Runspace = _runspace;
 
                 var cmd = new Command(
-                    command: script, 
-                    isScript: true, 
+                    command: script,
+                    isScript: true,
                     useLocalScope: true);
                 cmd.MergeMyResults(
                     myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
@@ -1070,7 +1070,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     ps.Commands.AddArgument(arg);
                 }
-                
+
                 try
                 {
                     // Invoke the script.
@@ -1102,7 +1102,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             case InformationRecord info:
                                 cmdlet.WriteInformation(info);
                                 break;
-                                
+
                             case T result:
                                 returnCollection.Add(result);
                                 break;
