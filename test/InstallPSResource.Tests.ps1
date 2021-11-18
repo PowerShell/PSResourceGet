@@ -103,14 +103,14 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install resource when given Name, Version '*', should install the latest version" {
-        $pkg = Install-PSResource -Name "TestModule" -Version "*" -Repository $TestGalleryName
+        Install-PSResource -Name "TestModule" -Version "*" -Repository $TestGalleryName
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule"
         $pkg.Version | Should -Be "1.3.0"
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        $pkg = Install-PSResource -Name "TestModulePrerelease" -Prerelease -Repository $TestGalleryName 
+        Install-PSResource -Name "TestModulePrerelease" -Prerelease -Repository $TestGalleryName 
         $pkg = Get-Module "TestModulePrerelease" -ListAvailable
         $pkg.Name | Should -Be "TestModulePrerelease"
         $pkg.Version | Should -Be "0.0.1"
@@ -118,7 +118,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install a module with a dependency" {
-        $pkg = Install-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName 
+        Install-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName 
         $pkg = Get-Module "PSGetTestModule" -ListAvailable
         $pkg.Name | Should -Be "PSGetTestModule"
         $pkg.Version | Should -Be "2.0.2"
@@ -127,6 +127,17 @@ Describe 'Test Install-PSResource for Module' {
         $pkg = Get-Module "PSGetTestDependency1" -ListAvailable
         $pkg.Name | Should -Be "PSGetTestDependency1"
         $pkg.Version | Should -Be "1.0.0"
+    }
+
+    It "Install a module with a dependency and skip installing the dependency" {
+        Install-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName -SkipDependencyCheck
+        $pkg = Get-Module "PSGetTestModule" -ListAvailable
+        $pkg.Name | Should -Be "PSGetTestModule"
+        $pkg.Version | Should -Be "2.0.2"
+        $pkg.PrivateData.PSData.Prerelease | Should -Be "-alpha1"
+
+        $pkg = Get-Module "PSGetTestDependency1" -ListAvailable
+        $pkg | Should -BeNullOrEmpty
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {

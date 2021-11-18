@@ -97,6 +97,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter Force { get; set; }
 
+        /// <summary>
+        /// Skips the check for resource dependencies, so that only found resources are updated,
+        /// and not any resources the found resource depends on.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
+
         #endregion
 
         #region Override Methods
@@ -166,6 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
+                skipDependencyCheck: SkipDependencyCheck,
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
 
@@ -253,7 +261,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tag: null,
                 repository: Repository,
                 credential: Credential,
-                includeDependencies: false))
+                includeDependencies: !SkipDependencyCheck))
             {
                 if (!repositoryPackages.ContainsKey(foundResource.Name))
                 {
