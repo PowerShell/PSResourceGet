@@ -11,7 +11,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $testModuleName = "test_module"
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
-        $res = Uninstall-PSResource -name ContosoServer -Version "*"
+        Uninstall-PSResource -name ContosoServer -Version "*"
     }
     BeforeEach{
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
@@ -21,7 +21,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall a specific module by name" {
-        $res = Uninstall-PSResource -name ContosoServer 
+        Uninstall-PSResource -name ContosoServer 
         Get-Module ContosoServer -ListAvailable | Should -Be $null
     }
 
@@ -38,20 +38,20 @@ Describe 'Test Uninstall-PSResource for Modules' {
     It "Uninstall a list of modules by name" {
         $null = Install-PSResource BaseTestPackage -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
 
-        $res = Uninstall-PSResource -Name BaseTestPackage, ContosoServer 
+        Uninstall-PSResource -Name BaseTestPackage, ContosoServer 
         Get-Module ContosoServer, BaseTestPackage -ListAvailable | Should -be $null
     }
 
     It "Uninstall a specific script by name" {
         $null = Install-PSResource Test-RPC -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
 
-        $pkg = Uninstall-PSResource -name Test-RPC 
+        Uninstall-PSResource -name Test-RPC 
     }
 
     It "Uninstall a list of scripts by name" {
         $null = Install-PSResource adsql, airoute -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
 
-        $pkg = Uninstall-PSResource -Name adsql, airoute 
+        Uninstall-PSResource -Name adsql, airoute 
     }
 
     It "Uninstall a module when given name and specifying all versions" {
@@ -59,7 +59,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        $res = Uninstall-PSResource -Name ContosoServer -version "*"
+        Uninstall-PSResource -Name ContosoServer -version "*"
         $pkgs = Get-Module ContosoServer -ListAvailable
         $pkgs.Version | Should -Not -Contain "1.0.0"
         $pkgs.Version | Should -Not -Contain "1.5.0"
@@ -72,7 +72,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        $res = Uninstall-PSResource -Name ContosoServer
+        Uninstall-PSResource -Name ContosoServer
         $pkgs = Get-Module ContosoServer -ListAvailable
         $pkgs.Version | Should -Not -Contain "1.0.0"
         $pkgs.Version | Should -Not -Contain "1.5.0"
@@ -85,7 +85,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        $res = Uninstall-PSResource -Name "ContosoServer" -Version "1.0.0"
+        Uninstall-PSResource -Name "ContosoServer" -Version "1.0.0"
         $pkgs = Get-Module ContosoServer -ListAvailable
         $pkgs.Version | Should -Not -Contain "1.0.0"
     }
@@ -106,7 +106,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        $res = Uninstall-PSResource -Name ContosoServer -Version $Version
+        Uninstall-PSResource -Name ContosoServer -Version $Version
         $pkgs = Get-Module ContosoServer -ListAvailable
         $pkgs.Version | Should -Not -Contain $Version
     }
@@ -169,8 +169,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall module using -WhatIf, should not uninstall the module" {
-        $res = Uninstall-PSResource -Name "ContosoServer" -WhatIf
-
+        Uninstall-PSResource -Name "ContosoServer" -WhatIf
         $pkg = Get-Module ContosoServer -ListAvailable
         $pkg.Version | Should -Be "2.5"
     }
@@ -183,16 +182,16 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg = Get-Module "RequiredModule1" -ListAvailable
         $pkg | Should -Not -Be $null
 
-        $ev | Should -Be "Cannot uninstall 'RequiredModule1', the following package(s) take a dependency on this package: test_module. If you would still like to uninstall, rerun the command with -Force"
+        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsaDependency,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
     }
 
-    It "Uninstall module that is a dependency for another module using -Force" {
+    It "Uninstall module that is a dependency for another module using -SkipDependencyCheck" {
         $null = Install-PSResource "test_module" -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
 
-        $res = Uninstall-PSResource -Name "RequiredModule1" -Force
+        Uninstall-PSResource -Name "RequiredModule1" -SkipDependencyCheck
         
         $pkg = Get-Module "RequiredModule1" -ListAvailable
-        $pkg | Should -Be $null
+        $pkg | Should -BeNullOrEmpty
     }
 
     It "Uninstall PSResourceInfo object piped in" {
