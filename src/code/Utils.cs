@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,7 +10,6 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.InteropServices;
-using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -138,7 +138,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // versionString: "1.2.0" prerelease: "alpha1"
                 return versionString + "-" + prerelease;
             }
-
             else if (numVersionDigits == 4)
             {
                 // versionString: "1.2.0.0" prerelease: "alpha1"
@@ -229,8 +228,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string uriString,
             PSCmdlet cmdletPassedIn,
             out Uri uriResult,
-            out ErrorRecord errorRecord
-        )
+            out ErrorRecord errorRecord)
         {
             errorRecord = null;
             if (Uri.TryCreate(uriString, UriKind.Absolute, out uriResult))
@@ -241,7 +239,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Exception ex;
             try
             {
-                // This is needed for a relative path urlstring. Does not throw error for an absolute path
+                // This is needed for a relative path urlstring. Does not throw error for an absolute path.
                 var filePath = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(uriString)[0].Path;
                 if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
                 {
@@ -306,12 +304,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // ex: ./PowerShell/Scripts/TestScript.ps1
                 return Path.GetFileNameWithoutExtension(pkgPath);
             }
-            else
-            {
-                // expecting the full version module path
-                // ex:  ./PowerShell/Modules/TestModule/1.0.0
-                return new DirectoryInfo(pkgPath).Parent.Name;
-            }
+            
+            // expecting the full version module path
+            // ex:  ./PowerShell/Modules/TestModule/1.0.0
+            return new DirectoryInfo(pkgPath).Parent.Name;
         }
 
         public static List<string> GetAllResourcePaths(
@@ -388,7 +384,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         // Find all potential installation paths given a scope
-        public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
+        public static List<string> GetAllInstallationPaths(
+            PSCmdlet psCmdlet,
+            ScopeType scope)
         {
             GetStandardPlatformPaths(
                 psCmdlet,
