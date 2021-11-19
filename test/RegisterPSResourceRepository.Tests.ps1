@@ -235,7 +235,7 @@ Describe "Test Register-PSResourceRepository" {
     $testCases2 = @{Type = "-Name is not specified";                    IncorrectHashTable = @{URL = $tmpDir1Path};                                                                              ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-Name is PSGallery";                        IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};                                                          ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-URL not specified";                        IncorrectHashTable = @{Name = "testRepository"};                                                                         ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL is not valid scheme";                  IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};                                                   ErrorId = "InvalidUrl,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL is not valid scheme";                  IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};                                                   ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-Authentication is missing VaultName";      IncorrectHashTable = @{Name = "testRepository"; URL=$tmpDir1Path; Authentication = @{Secret = "test"}};                  ErrorId = "InvalidAuthentication,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-Authentication is missing Secret";         IncorrectHashTable = @{Name = "testRepository"; URL=$tmpDir1Path; Authentication = @{VaultName = "test"}};               ErrorId = "InvalidAuthentication,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
                   @{Type = "-Authentication-VaultName value is empty";  IncorrectHashTable = @{Name = "testRepository"; URL=$tmpDir1Path; Authentication = @{VaultName = ""; Secret = "test"}};  ErrorId = "InvalidAuthentication,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
@@ -273,5 +273,13 @@ Describe "Test Register-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $relativeCurrentPath
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
+    }
+
+    It "should register local file share NuGet based repository" {
+        Register-PSResourceRepository -Name "localFileShareTestRepo" -URL "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
+        $res = Get-PSResourceRepository -Name "localFileShareTestRepo"
+
+        $res.Name | Should -Be "localFileShareTestRepo"
+        $res.URL.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
     }
 }

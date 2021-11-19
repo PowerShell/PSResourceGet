@@ -125,7 +125,7 @@ stages:
 
   - template: test.yml
     parameters:
-      jobName: TestPkgUbuntu16
+      jobName: TestPkgUbuntu
       displayName: PowerShell Core on Ubuntu
       imageName: ubuntu-latest
 

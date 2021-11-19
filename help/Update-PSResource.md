@@ -27,14 +27,14 @@ It does not return an object. Other parameters allow the package to be updated t
 
 ### Example 1
 ```powershell
-PS C:\> Get-InstalledPSResource -Name "TestModule"
+PS C:\> Update-PSResource -Name "TestModule"
         Name                                    Version                         Prerelease   Description
         ----                                    -------                         ----------   -----------
         TestModule                              1.2.0                                        test
 
 PS C:\> Update-PSResource -Name "TestModule"
 
-PS C:\> Get-InstalledPSResource -Name "TestModule"
+PS C:\> Update-PSResource -Name "TestModule"
         Name                                    Version                         Prerelease   Description
         ----                                    -------                         ----------   -----------
         TestModule                              1.3.0                                        test

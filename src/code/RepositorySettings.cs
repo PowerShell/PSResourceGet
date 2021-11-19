@@ -8,33 +8,36 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Xml;
 using System.Xml.Linq;
-using static System.Environment;
-using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     /// <summary>
     /// The class contains basic information of a repository path settings as well as methods to
-    /// perform CRUD operations on the repository store file.
+    /// perform Create/Read/Update/Delete operations on the repository store file.
     /// </summary>
-
     internal static class RepositorySettings
     {
-        /// <summary>
-        /// File name for a user's repository store file is 'PSResourceRepository.xml'
-        /// The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
-        /// </summary>
+        #region Members
+
+        // File name for a user's repository store file is 'PSResourceRepository.xml'
+        // The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
         private const string PSGalleryRepoName = "PSGallery";
         private const string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
         private const int defaultPriority = 50;
         private const bool defaultTrusted = false;
         private const string RepositoryFileName = "PSResourceRepository.xml";
-        private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "PowerShellGet");
+        private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData), "PowerShellGet");
         private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
 
         private static readonly string VaultNameAttribute = "VaultName";
         private static readonly string SecretAttribute = "Secret";
+
+        #endregion
+
+        #region Public methods
 
         /// <summary>
         /// Check if repository store xml file exists, if not then create
@@ -51,8 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
 
                     XDocument newRepoXML = new XDocument(
-                            new XElement("configuration")
-                    );
+                        new XElement("configuration"));
                     newRepoXML.Save(FullRepositoryPath);
                 }
                 catch (Exception e)
@@ -68,7 +70,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Open file (which should exist now), if cannot/is corrupted then throw error
             try
             {
-                XDocument.Load(FullRepositoryPath);
+                LoadXDocument(FullRepositoryPath);
             }
             catch (Exception e)
             {
@@ -83,13 +85,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <param name="sectionName"></param>
         public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted, Hashtable repoAuthentication)
         {
-            Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
-            Dbg.Assert(!string.IsNullOrEmpty(repoURL.ToString()), "Repository URL cannot be null or empty");
-
             try
             {
                 // Open file
-                XDocument doc = XDocument.Load(FullRepositoryPath);
+                XDocument doc = LoadXDocument(FullRepositoryPath);
                 if (FindRepositoryElement(doc, repoName) != null)
                 {
                     throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
@@ -109,11 +108,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     );
 
                 if(repoAuthentication != null) {
-                    Dbg.Assert(repoAuthentication.ContainsKey(VaultNameAttribute), "Authentication has to contain Vault Name");
-                    Dbg.Assert(!string.IsNullOrEmpty(repoAuthentication[VaultNameAttribute].ToString()), "Vault Name cannot be null or empty");
-                    Dbg.Assert(repoAuthentication.ContainsKey(SecretAttribute), "Authentication has to contain Secret");
-                    Dbg.Assert(!string.IsNullOrEmpty(repoAuthentication[SecretAttribute].ToString()), "Secret cannot be null or empty");
-
                     newElement.Add(new XAttribute(VaultNameAttribute, repoAuthentication[VaultNameAttribute]));
                     newElement.Add(new XAttribute(SecretAttribute, repoAuthentication[SecretAttribute]));
                 }
@@ -137,13 +131,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted, Hashtable repoAuthentication)
         {
-            Dbg.Assert(!string.IsNullOrEmpty(repoName), "Repository name cannot be null or empty");
-
             PSRepositoryInfo updatedRepo;
             try
             {
                 // Open file
-                XDocument doc = XDocument.Load(FullRepositoryPath);
+                XDocument doc = LoadXDocument(FullRepositoryPath);
                 XElement node = FindRepositoryElement(doc, repoName);
                 if (node == null)
                 {
@@ -179,11 +171,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // So only set VaultName and Secret attributes if non-null value passed in for repoAuthentication
                 if (repoAuthentication != null)
                 {
-                    Dbg.Assert(repoAuthentication.ContainsKey(VaultNameAttribute), "Authentication has to contain Vault Name");
-                    Dbg.Assert(!string.IsNullOrEmpty(repoAuthentication[VaultNameAttribute].ToString()), "Vault Name cannot be null or empty");
-                    Dbg.Assert(repoAuthentication.ContainsKey(SecretAttribute), "Authentication has to contain Secret");
-                    Dbg.Assert(!string.IsNullOrEmpty(repoAuthentication[SecretAttribute].ToString()), "Secret cannot be null or empty");
-
                     if (node.Attribute(VaultNameAttribute) == null) {
                         node.Add(new XAttribute(VaultNameAttribute, repoAuthentication[VaultNameAttribute]));
                     }
@@ -238,18 +225,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static void Remove(string[] repoNames, out string[] errorList)
         {
             List<string> tempErrorList = new List<string>();
-
-            // Check to see if information we're trying to remove from the repository is valid
-            if (repoNames == null || repoNames.Length == 0)
-            {
-                throw new ArgumentException("Repository name cannot be null or empty");
-            }
-
             XDocument doc;
             try
             {
                 // Open file
-                doc = XDocument.Load(FullRepositoryPath);
+                doc = LoadXDocument(FullRepositoryPath);
             }
             catch (Exception e)
             {
@@ -286,7 +266,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             try
             {
                 // Open file
-                doc = XDocument.Load(FullRepositoryPath);
+                doc = LoadXDocument(FullRepositoryPath);
             }
             catch (Exception e)
             {
@@ -407,6 +387,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return reposToReturn.ToList();
         }
 
+        #endregion
+
+        #region Private methods
+
         private static XElement FindRepositoryElement(XDocument doc, string name)
         {
             return doc.Descendants("Repository").Where(
@@ -415,5 +399,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     name,
                     StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
         }
+
+        private static readonly XmlReaderSettings XDocReaderSettings = new XmlReaderSettings()
+        {
+            DtdProcessing = DtdProcessing.Prohibit,     // Disallow any DTD elements
+            XmlResolver = null,                         // Do not resolve external links
+            CheckCharacters = true,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            IgnoreWhitespace = true,
+            MaxCharactersFromEntities = 1024,
+            MaxCharactersInDocument = 512 * 1024 * 1024, // 512M characters = 1GB
+            ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None,
+            ValidationType = ValidationType.None
+        };
+
+        private static XDocument LoadXDocument(string filePath)
+        {
+            using var xmlReader = XmlReader.Create(filePath, XDocReaderSettings);
+            return XDocument.Load(xmlReader);
+        }
+
+        #endregion
     }
 }

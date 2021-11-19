@@ -15,12 +15,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// By default it will return all registered repositories, or if the -Name parameter argument is specified then it wil return the repository with that name.
     /// It returns PSRepositoryInfo objects which describe each resource item found.
     /// </summary>
-
-    [Cmdlet(VerbsCommon.Get,
-        "PSResourceRepository",
-        HelpUri = "<add>")]
-    public sealed
-    class GetPSResourceRepository : PSCmdlet
+    [Cmdlet(VerbsCommon.Get, "PSResourceRepository")]
+    public sealed class GetPSResourceRepository : PSCmdlet
     {
         #region Parameters
 
@@ -28,7 +24,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the name(s) of a registered repository to find.
         /// Supports wild card characters.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+        [Parameter(Position = 0, ValueFromPipeline = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; } = Utils.EmptyStrArray;
@@ -41,9 +37,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             RepositorySettings.CheckRepositoryStore();
         }
+
         protected override void ProcessRecord()
         {
-            string nameArrayAsString = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null) ? "all" : string.Join(", ", Name);
+            string nameArrayAsString = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null)
+                ? "all" : string.Join(", ", Name);
             WriteVerbose(String.Format("reading repository: {0}. Calling Read() API now", nameArrayAsString));
             List<PSRepositoryInfo> items = RepositorySettings.Read(Name, out string[] errorList);
 

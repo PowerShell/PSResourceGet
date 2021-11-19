@@ -100,6 +100,15 @@ $script:moduleSourcesFilePath = Microsoft.PowerShell.Management\Join-Path -Path 
 $script:CurrentPSGetFormatVersion = "1.0"
 $script:PSGetFormatVersionPrefix = "PowerShellGetFormatVersion_"
 
+function Test-IsAdmin {
+    [OutputType([bool])]
+    param()
+
+    [System.Security.Principal.WindowsPrincipal]::new(
+        [Security.Principal.WindowsIdentity]::GetCurrent()
+    ).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
 function Get-IsWindows {
     return $script:IsWindows
 }

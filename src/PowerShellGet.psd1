@@ -3,7 +3,7 @@
 
 @{
     RootModule        = './netstandard2.0/PowerShellGet.dll'
-    ModuleVersion     = '3.0.11'
+    ModuleVersion     = '3.0.12'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'
     CompanyName       = 'Microsoft Corporation'
@@ -15,7 +15,7 @@
     FormatsToProcess  = 'PSGet.Format.ps1xml'
     CmdletsToExport = @(
         'Find-PSResource',
-        'Get-InstalledPSResource',
+        'Get-PSResource',
         'Get-PSResourceRepository',
         'Install-PSResource',
         'Register-PSResourceRepository',
@@ -63,7 +63,7 @@ All tests have been reviewed and rewritten as needed.
 - Install-PSResource no longer creates version folder with the prerelease tag
 - Update-PSResource can now update all resources, and no longer requires name param
 - Save-PSResource properly handles saving scripts
-- Get-InstalledPSResource uses default PowerShell paths
+- Get-PSResource uses default PowerShell paths
 '@
         }
     }

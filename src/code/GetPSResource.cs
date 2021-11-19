@@ -1,13 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Management.Automation;
-using System.Threading;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
+using System;
+using System.Collections.Generic;
+using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -15,8 +13,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It retrieves a resource that was installed with Install-PSResource
     /// Returns a single resource or multiple resource.
     /// </summary>
-    [Cmdlet(VerbsCommon.Get, "InstalledPSResource")]
-    public sealed class GetInstalledPSResource : PSCmdlet
+    [Cmdlet(VerbsCommon.Get, "PSResource")]
+    public sealed class GetPSResource : PSCmdlet
     {
         #region Members
 
@@ -30,7 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the desired name for the resource to look for.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+        [Parameter(Position = 0, ValueFromPipeline = true)]
         public string[] Name { get; set; }
 
         /// <summary>
@@ -110,7 +108,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            WriteVerbose("Entering GetInstalledPSResource");
+            WriteVerbose("Entering GetPSResource");
 
             var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
@@ -130,7 +128,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             GetHelper getHelper = new GetHelper(this);
-            foreach (PSResourceInfo pkg in getHelper.FilterPkgPaths(namesToSearch, _versionRange, _pathsToSearch))
+            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(namesToSearch, _versionRange, _pathsToSearch))
             {
                 WriteObject(pkg);
             }

@@ -1,13 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
-using Dbg = System.Diagnostics.Debug;
 using System.Linq;
 using System.Management.Automation;
 using System.Threading;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -21,7 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         "PSResource",
         DefaultParameterSetName = ResourceNameParameterSet,
         SupportsShouldProcess = true)]
-    [OutputType(typeof(PSResourceInfo))]
+    [OutputType(typeof(PSResourceInfo), typeof(PSCommandResourceInfo))]
     public sealed class FindPSResource : PSCmdlet
     {
         #region Members
@@ -29,8 +30,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string ResourceNameParameterSet = "ResourceNameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
-        private CancellationTokenSource _source;
-        private CancellationToken _cancellationToken;
+        private CancellationTokenSource _cancellationTokenSource;
+        private FindHelper _findHelper;
 
         #endregion
 
@@ -41,7 +42,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, 
                    ValueFromPipeline = true,
-                   ValueFromPipelineByPropertyName = true,
                    ParameterSetName = ResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
@@ -76,7 +76,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = CommandNameParameterSet)]
         [Parameter(ParameterSetName = DscResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public string ModuleName { get; set; }
+        public string[] ModuleName { get; set; }
 
         /// <summary>
         /// Specifies a list of command names that searched module packages will provide. Wildcards are supported.
@@ -133,17 +133,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            _source = new CancellationTokenSource();
-            _cancellationToken = _source.Token;
+            _cancellationTokenSource = new CancellationTokenSource();
+            _findHelper = new FindHelper(
+                cancellationToken: _cancellationTokenSource.Token,
+                cmdletPassedIn: this);
 
-            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
         }
 
         protected override void StopProcessing()
         {
-            _source.Cancel();
+            _cancellationTokenSource?.Cancel();
+        }
+
+        protected override void EndProcessing()
+        {
+            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource = null;
         }
 
         protected override void ProcessRecord()
@@ -155,19 +163,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case CommandNameParameterSet:
-                    ThrowTerminatingError(new ErrorRecord(
-                        new PSNotImplementedException("CommandNameParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                        "CommandParameterSetNotImplementedYet",
-                        ErrorCategory.NotImplemented,
-                        this));
+                    ProcessCommandOrDscParameterSet(isSearchingForCommands: true);
                     break;
 
                 case DscResourceNameParameterSet:
-                    ThrowTerminatingError(new ErrorRecord(
-                        new PSNotImplementedException("DscResourceNameParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                        "DscResourceParameterSetNotImplementedYet",
-                        ErrorCategory.NotImplemented,
-                        this));
+                    ProcessCommandOrDscParameterSet(isSearchingForCommands: false);
                     break;
 
                 default:
@@ -184,26 +184,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {
-                // TODO: Add support for Tag and Type parameters without Name parameter being specified.
-                if (MyInvocation.BoundParameters.ContainsKey(nameof(Type)) || MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
+                // only cases where Name is allowed to not be specified is if Type or Tag parameters are
+                if (!MyInvocation.BoundParameters.ContainsKey(nameof(Type)) && !MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
                 {
                     ThrowTerminatingError(
                         new ErrorRecord(
-                            new PSNotImplementedException("Search by Tag or Type parameter is not yet implemented."),
-                            "TagTypeSearchNotYetImplemented",
-                            ErrorCategory.NotImplemented,
+                            new PSInvalidOperationException("Name parameter must be provided."),
+                            "NameParameterNotProvided",
+                            ErrorCategory.InvalidOperation,
                             this));
                 }
 
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                        new PSInvalidOperationException("Name parameter must be provided."),
-                        "NameParameterNotProvided",
-                        ErrorCategory.InvalidOperation,
-                        this));
+                Name = new string[] {"*"};
             }
-            
-            var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
+
+            Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
             
             foreach (string error in errorMsgs)
             {
@@ -216,26 +211,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // this catches the case where Name wasn't passed in as null or empty,
             // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
-            if (namesToSearch.Length == 0)
+            if (Name.Length == 0)
             {
-                 return;
-            }
-
-            if (String.Equals(namesToSearch[0], "*", StringComparison.InvariantCultureIgnoreCase))
-            {
-                // WriteVerbose("Package names were detected to be (or contain an element equal to): '*', so all packages will be updated");
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("-Name '*' is not supported for Find-PSResource so all Name entries will be discarded."),
-                    "NameEqualsWildcardIsNotSupported",
-                    ErrorCategory.InvalidArgument,
-                    this));
                 return;
-            }
+            }            
 
-            FindHelper findHelper = new FindHelper(_cancellationToken, this);
             List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
 
-            foreach (PSResourceInfo package in findHelper.FindByResourceName(
+            foreach (PSResourceInfo package in _findHelper.FindByResourceName(
                 Name,
                 Type,
                 Version,
@@ -249,10 +232,96 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             foreach (var uniquePackageVersion in foundPackages.GroupBy(
-                m => new {m.Name, m.Version}).Select(
+                m => new {m.Name, m.Version, m.Repository}).Select(
                     group => group.First()).ToList())
             {
                 WriteObject(uniquePackageVersion);
+            }
+        }
+
+        private void ProcessCommandOrDscParameterSet(bool isSearchingForCommands)
+        {
+            var commandOrDSCNamesToSearch = Utils.ProcessNameWildcards(
+                pkgNames: isSearchingForCommands ? CommandName : DscResourceName,
+                errorMsgs: out string[] errorMsgs,
+                isContainWildcard: out bool nameContainsWildcard);
+
+            if (nameContainsWildcard)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("Wilcards are not supported for -CommandName or -DSCResourceName for Find-PSResource. So all CommandName or DSCResourceName entries will be discarded."),
+                    "CommandDSCResourceNameWithWildcardsNotSupported",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                return;
+            }
+
+            foreach (string error in errorMsgs)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringCommandDscResourceNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
+
+            // this catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in commandOrDSCNamesToSearch
+            if (commandOrDSCNamesToSearch.Length == 0)
+            {
+                 return;
+            }
+            
+            var moduleNamesToSearch = Utils.ProcessNameWildcards(
+                pkgNames: ModuleName,
+                errorMsgs: out string[] moduleErrorMsgs,
+                isContainWildcard: out bool _);
+
+            foreach (string error in moduleErrorMsgs)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringModuleNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
+
+            if (moduleNamesToSearch.Length == 0)
+            {
+                moduleNamesToSearch = new string[] {"*"};
+            }
+
+            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
+
+            foreach (PSResourceInfo package in _findHelper.FindByResourceName(
+                name: moduleNamesToSearch,
+                // provide type so Scripts endpoint for PSGallery won't be searched
+                type: isSearchingForCommands? ResourceType.Command : ResourceType.DscResource,
+                version: Version,
+                prerelease: Prerelease,
+                tag: Tag,
+                repository: Repository,
+                credential: Credential,
+                includeDependencies: IncludeDependencies))
+            {
+                foundPackages.Add(package);
+            }
+
+            // if a single package contains multiple commands we are interested in, return a unique entry for each:
+            // Command1 , PackageA
+            // Command2 , PackageA        
+            foreach (string nameToSearch in commandOrDSCNamesToSearch)
+            {
+                foreach (var package in foundPackages)
+                {
+                    // this check ensures DSC names provided as a Command name won't get returned mistakenly
+                    // -CommandName "command1", "dsc1" <- (will not return or add DSC name)
+                    if ((isSearchingForCommands && package.Includes.Command.Contains(nameToSearch)) ||
+                        (!isSearchingForCommands && package.Includes.DscResource.Contains(nameToSearch)))
+                    {
+                        WriteObject(new PSCommandResourceInfo(nameToSearch, package));
+                    }
+                }
             }
         }
 

@@ -1,17 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using static System.Environment;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.InteropServices;
-using NuGet.Versioning;
-using System.Globalization;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -113,7 +111,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
     
         #endregion
-
+        
         #region Version methods
 
         public static string GetNormalizedVersionString(
@@ -140,7 +138,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // versionString: "1.2.0" prerelease: "alpha1"
                 return versionString + "-" + prerelease;
             }
-
             else if (numVersionDigits == 4)
             {
                 // versionString: "1.2.0.0" prerelease: "alpha1"
@@ -180,53 +177,91 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return VersionRange.TryParse(version, out versionRange);
         }
 
+        public static bool GetVersionForInstallPath(
+            string installedPkgPath,
+            bool isModule,
+            PSCmdlet cmdletPassedIn,
+            out NuGetVersion pkgNuGetVersion)
+        {
+            // this method returns false if the PSGetModuleInfo.xml or {pkgName}_InstalledScriptInfo.xml file
+            // could not be parsed properly, or the version from it could not be parsed into a NuGetVersion.
+            // In this case the caller method (i.e GetHelper.FilterPkgPathsByVersion()) should skip the current
+            // installed package path or reassign NuGetVersion variable passed in to a non-null value as it sees fit.
+
+            // for Modules, installedPkgPath will look like this:
+            // ./PowerShell/Modules/test_module/3.0.0
+            // for Scripts, installedPkgPath will look like this:
+            // ./PowerShell/Scripts/test_script.ps1
+            string pkgName = isModule ? String.Empty : Utils.GetInstalledPackageName(installedPkgPath);
+
+            string packageInfoXMLFilePath = isModule ? Path.Combine(installedPkgPath, "PSGetModuleInfo.xml") : Path.Combine((new DirectoryInfo(installedPkgPath).Parent).FullName, "InstalledScriptInfos", $"{pkgName}_InstalledScriptInfo.xml");
+            if (!PSResourceInfo.TryRead(packageInfoXMLFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
+            {
+                cmdletPassedIn.WriteVerbose(String.Format(
+                    "The {0} file found at location: {1} cannot be parsed due to {2}",
+                    isModule ? "PSGetModuleInfo.xml" : $"{pkgName}_InstalledScriptInfo.xml",
+                    packageInfoXMLFilePath,
+                    errorMsg));
+                pkgNuGetVersion = null;
+                return false;
+            }
+
+            string version = psGetInfo.Version.ToString();
+            string prereleaseLabel = psGetInfo.PrereleaseLabel;
+
+            if (!NuGetVersion.TryParse(
+                    value: String.IsNullOrEmpty(prereleaseLabel) ? version : GetNormalizedVersionString(version, prereleaseLabel),
+                    version: out pkgNuGetVersion))
+            {
+                cmdletPassedIn.WriteVerbose(String.Format("Leaf directory in path '{0}' cannot be parsed into a version.", installedPkgPath));
+                return false;
+            }
+
+            return true;
+        }
+
         #endregion
 
         #region Url methods
 
         public static bool TryCreateValidUrl(
-            string urlString,
+            string uriString,
             PSCmdlet cmdletPassedIn,
-            out Uri urlResult,
-            out ErrorRecord errorRecord
-        )
+            out Uri uriResult,
+            out ErrorRecord errorRecord)
         {
             errorRecord = null;
-
-            if (!urlString.StartsWith(Uri.UriSchemeHttps) &&
-                !urlString.StartsWith(Uri.UriSchemeHttp) &&
-                !urlString.StartsWith(Uri.UriSchemeFtp))
+            if (Uri.TryCreate(uriString, UriKind.Absolute, out uriResult))
             {
-                // url string could be of type (potentially) UriSchemeFile or invalid type
-                // can't check for UriSchemeFile because relative paths don't qualify as UriSchemeFile
-                try
-                {
-                    // this is needed for a relative path urlstring. Does not throw error for an absolute path
-                    urlString = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(urlString)[0].Path;
-
-                }
-                catch (Exception)
-                {
-                    // this should only be reached if the url string is invalid
-                    // i.e www.google.com
-                    var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0} and must be of Uri Scheme: HTTP, HTTPS, FTP or File", urlString);
-                    var ex = new ArgumentException(message);
-                    errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                    urlResult = null;
-                    return false;
-                }
+                return true;
             }
 
-            bool tryCreateResult = Uri.TryCreate(urlString, UriKind.Absolute, out urlResult);
-            if (!tryCreateResult)
+            Exception ex;
+            try
             {
-                var message = string.Format(CultureInfo.InvariantCulture, "The URL provided is not valid: {0}", urlString);
-                var ex = new ArgumentException(message);
-                errorRecord = new ErrorRecord(ex, "InvalidUrl", ErrorCategory.InvalidArgument, null);
-                urlResult = null;
+                // This is needed for a relative path urlstring. Does not throw error for an absolute path.
+                var filePath = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(uriString)[0].Path;
+                if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
+                {
+                    return true;
+                }
+
+                ex = new PSArgumentException($"Invalid Uri file path: {uriString}");
+            }
+            catch (Exception e)
+            {
+                ex = e;
             }
 
-            return tryCreateResult;
+            errorRecord = new ErrorRecord(
+                new PSArgumentException(
+                    $"The provided Uri is not valid: {uriString}. It must be of Uri Scheme: HTTP, HTTPS, FTP or a file path",
+                    ex),
+                "InvalidUri",
+                ErrorCategory.InvalidArgument,
+                cmdletPassedIn);
+
+            return false;
         }
 
         #endregion
@@ -267,37 +302,49 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (File.Exists(pkgPath))
             {
                 // ex: ./PowerShell/Scripts/TestScript.ps1
-                return System.IO.Path.GetFileNameWithoutExtension(pkgPath);
+                return Path.GetFileNameWithoutExtension(pkgPath);
             }
-            else
-            {
-                // expecting the full version module path
-                // ex:  ./PowerShell/Modules/TestModule/1.0.0
-                return new DirectoryInfo(pkgPath).Parent.Name;
-            }
+            
+            // expecting the full version module path
+            // ex:  ./PowerShell/Modules/TestModule/1.0.0
+            return new DirectoryInfo(pkgPath).Parent.Name;
         }
 
-        public static List<string> GetAllResourcePaths(PSCmdlet psCmdlet)
+        public static List<string> GetAllResourcePaths(
+            PSCmdlet psCmdlet,
+            ScopeType? scope = null)
         {
             GetStandardPlatformPaths(
                 psCmdlet,
                 out string myDocumentsPath,
                 out string programFilesPath);
 
-            string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-            List<string> resourcePaths = psModulePath.Split(';').ToList();
-            List<string> pathsToSearch = new List<string>();
+            List<string> resourcePaths = new List<string>();
 
-            // will search first in PSModulePath, then will search in default paths
-            resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-            resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-            resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
-            resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+            // Path search order is PSModulePath paths first, then default paths.
+            if (scope is null)
+            {
+                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
+                resourcePaths.AddRange(psModulePath.Split(Path.PathSeparator).ToList());
+            }
+
+            if (scope is null || scope.Value is ScopeType.CurrentUser)
+            {
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
+            }
+            
+            if (scope is null || scope.Value is ScopeType.AllUsers)
+            {
+                resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
+                resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
+            }
 
             // resourcePaths should now contain, eg:
             // ./PowerShell/Scripts
             // ./PowerShell/Modules
             // add all module directories or script files
+            List<string> pathsToSearch = new List<string>();
             foreach (string path in resourcePaths)
             {
                 psCmdlet.WriteVerbose(string.Format("Retrieving directories in the path '{0}'", path));
@@ -337,7 +384,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         // Find all potential installation paths given a scope
-        public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
+        public static List<string> GetAllInstallationPaths(
+            PSCmdlet psCmdlet,
+            ScopeType scope)
         {
             GetStandardPlatformPaths(
                 psCmdlet,
@@ -348,13 +397,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             var installationPaths = new List<string>();
             if (scope == ScopeType.AllUsers)
             {
-                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+                installationPaths.Add(Path.Combine(programFilesPath, "Modules"));
+                installationPaths.Add(Path.Combine(programFilesPath, "Scripts"));
             }
             else
             {
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+                installationPaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                installationPaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
 
             installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
@@ -372,13 +421,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
+                programFilesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
             }
             else
             {
                 // paths are the same for both Linux and macOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "powershell");
                 programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
             }
         }
@@ -400,9 +449,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the module manifest 
-                System.Management.Automation.Language.Token[] tokens;
-                ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFileInfo, out tokens, out errors);
+                var ast = Parser.ParseFile(
+                    moduleFileInfo,
+                    out Token[] tokens,
+                    out ParseError[] errors);
 
                 if (errors.Length > 0)
                 {
@@ -456,6 +506,51 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Directory and File
+
+        /// <Summary>
+        /// Deletes a directory and its contents.
+        /// Attempts to restore the directory and contents if deletion fails.
+        /// </Summary>
+        public static void DeleteDirectoryWithRestore(string dirPath)
+        {
+            string tempDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                // Create temporary directory for restore operation if needed.
+                CopyDirContents(dirPath, tempDirPath, overwrite: true);
+
+                try
+                {
+                    DeleteDirectory(dirPath);
+                }
+                catch (Exception ex)
+                {
+                    // Delete failed. Attempt to restore the saved directory content.
+                    try
+                    {
+                        RestoreDirContents(tempDirPath, dirPath);
+                    }
+                    catch (Exception exx)
+                    {
+                        throw new PSInvalidOperationException(
+                            $"Cannot remove package path {dirPath}. An attempt to restore the old package has failed with error: {exx.Message}",
+                            ex);
+                    }
+
+                    throw new PSInvalidOperationException(
+                        $"Cannot remove package path {dirPath}. The previous package contents have been restored.",
+                        ex);
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(tempDirPath))
+                {
+                    DeleteDirectory(tempDirPath);
+                }
+            }
+        }
 
         /// <Summary>
         /// Deletes a directory and its contents
@@ -532,6 +627,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 var destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
                 CopyDirContents(srcSubDirPath, destSubDirPath, overwrite);
+            }
+        }
+
+        private static void RestoreDirContents(
+            string sourceDirPath,
+            string destDirPath)
+        {
+            if (!Directory.Exists(destDirPath))
+            {
+                Directory.CreateDirectory(destDirPath);
+            }
+
+            foreach (string filePath in Directory.GetFiles(sourceDirPath))
+            {
+                string destFilePath = Path.Combine(destDirPath, Path.GetFileName(filePath));
+                if (!File.Exists(destFilePath))
+                {
+                    File.Copy(filePath, destFilePath);
+                }
+            }
+
+            foreach (string srcSubDirPath in Directory.GetDirectories(sourceDirPath))
+            {
+                string destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
+                RestoreDirContents(srcSubDirPath, destSubDirPath);
             }
         }
 
