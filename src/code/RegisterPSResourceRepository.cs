@@ -85,11 +85,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public int Priority { get; set; } = defaultPriority;
 
         /// <summary>
-        /// Specifies a hashtable of vault and secret names as Authentication information for the repository.
+        /// Specifies a hashtable of vault and secret names as CredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        public Hashtable Authentication { get; set; }
+        public Hashtable CredentialInfo { get; set; }
 
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
@@ -144,7 +144,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     try
                     {
-                        items.Add(NameParameterSetHelper(Name, _url, Priority, Trusted, Authentication));
+                        items.Add(NameParameterSetHelper(Name, _url, Priority, Trusted, CredentialInfo));
                     }
                     catch (Exception e)
                     {
@@ -201,7 +201,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private PSRepositoryInfo AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, Hashtable repoAuthentication)
+        private PSRepositoryInfo AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, Hashtable repoCredentialInfo)
         {
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
             repoName = repoName.Trim(' ');
@@ -215,12 +215,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
 
-            if (repoAuthentication != null)
+            if (repoCredentialInfo != null)
             {
-                if (!repoAuthentication.ContainsKey(AuthenticationHelper.VaultNameAttribute) || string.IsNullOrEmpty(repoAuthentication[AuthenticationHelper.VaultNameAttribute].ToString())
-                    || !repoAuthentication.ContainsKey(AuthenticationHelper.SecretAttribute) || string.IsNullOrEmpty(repoAuthentication[AuthenticationHelper.SecretAttribute].ToString()))
+                if (!repoCredentialInfo.ContainsKey(CredentialInfoHelper.VaultNameAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.VaultNameAttribute].ToString())
+                    || !repoCredentialInfo.ContainsKey(CredentialInfoHelper.SecretAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString()))
                 {
-                    throw new ArgumentException($"Invalid Authentication, must include {AuthenticationHelper.VaultNameAttribute} and {AuthenticationHelper.SecretAttribute} key/(non-empty) value pairs");
+                    throw new ArgumentException($"Invalid CredentialInfo, must include {CredentialInfoHelper.VaultNameAttribute} and {CredentialInfoHelper.SecretAttribute} key/(non-empty) value pairs");
                 }
             }
 
@@ -230,10 +230,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            return RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted, repoAuthentication);
+            return RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted, repoCredentialInfo);
         }
 
-        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, Hashtable repoAuthentication)
+        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, Hashtable repoCredentialInfo)
         {
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
@@ -241,7 +241,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery");
             }
 
-            return AddToRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted, repoAuthentication);
+            return AddToRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted, repoCredentialInfo);
         }
 
         private PSRepositoryInfo PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
@@ -258,10 +258,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (repo.ContainsKey(PSGalleryRepoName))
                 {
-                    if (repo.ContainsKey("Name") || repo.ContainsKey("Url") || repo.ContainsKey("Authentication"))
+                    if (repo.ContainsKey("Name") || repo.ContainsKey("Url") || repo.ContainsKey("CredentialInfo"))
                     {
                         WriteError(new ErrorRecord(
-                                new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name, -URL and/or -Authentication key value pairs"),
+                                new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name, -URL and/or -CredentialInfo key value pairs"),
                                 "NotProvideNameUrlAuthForPSGalleryRepositoriesParameterSetRegistration",
                                 ErrorCategory.InvalidArgument,
                                 this));
@@ -338,15 +338,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            Hashtable repoAuthentication = repo["Authentication"] as Hashtable;
-            if (repoAuthentication != null)
+            Hashtable repoCredentialInfo = repo["CredentialInfo"] as Hashtable;
+            if (repoCredentialInfo != null)
             {
-                if (!repoAuthentication.ContainsKey(AuthenticationHelper.VaultNameAttribute) || string.IsNullOrEmpty(repoAuthentication[AuthenticationHelper.VaultNameAttribute].ToString())
-                    || !repoAuthentication.ContainsKey(AuthenticationHelper.SecretAttribute) || string.IsNullOrEmpty(repoAuthentication[AuthenticationHelper.SecretAttribute].ToString()))
+                if (!repoCredentialInfo.ContainsKey(CredentialInfoHelper.VaultNameAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.VaultNameAttribute].ToString())
+                    || !repoCredentialInfo.ContainsKey(CredentialInfoHelper.SecretAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString()))
                 {
                     WriteError(new ErrorRecord(
-                        new PSInvalidOperationException($"Invalid Authentication, must include {AuthenticationHelper.VaultNameAttribute} and {AuthenticationHelper.SecretAttribute} key/(non-empty) value pairs"),
-                        "InvalidAuthentication",
+                        new PSInvalidOperationException($"Invalid CredentialInfo, must include {CredentialInfoHelper.VaultNameAttribute} and {CredentialInfoHelper.SecretAttribute} key/(non-empty) value pairs"),
+                        "InvalidCredentialInfo",
                         ErrorCategory.InvalidArgument,
                         this));
                     return null;
@@ -360,7 +360,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted,
-                    repoAuthentication);
+                    repoCredentialInfo);
             }
             catch (Exception e)
             {

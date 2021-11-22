@@ -14,13 +14,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted, Hashtable authentication)
+        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted, Hashtable credentialInfo)
         {
             Name = name;
             Url = url;
             Priority = priority;
             Trusted = trusted;
-            Authentication = authentication;
+            CredentialInfo = credentialInfo;
         }
 
         #endregion
@@ -48,9 +48,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public int Priority { get; }
 
         /// <summary>
-        /// the Authentication for the repository
+        /// the CredentialInfo for the repository
         /// </summary>
-        public Hashtable Authentication { get; }
+        public Hashtable CredentialInfo { get; }
 
         #endregion
     }

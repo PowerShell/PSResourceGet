@@ -35,7 +35,7 @@ Describe "Test Set-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir2Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
-        $res.Authentication | Should -BeNullOrEmpty
+        $res.CredentialInfo | Should -BeNullOrEmpty
     }
 
     It "set repository given Name and Priority parameters" {
@@ -46,7 +46,7 @@ Describe "Test Set-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 25
         $res.Trusted | Should -Be False
-        $res.Authentication | Should -BeNullOrEmpty
+        $res.CredentialInfo | Should -BeNullOrEmpty
     }
 
     It "set repository given Name and Trusted parameters" {
@@ -57,19 +57,19 @@ Describe "Test Set-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be True
-        $res.Authentication | Should -BeNullOrEmpty
+        $res.CredentialInfo | Should -BeNullOrEmpty
     }
 
-    It "set repository given Name and Authentication parameters" {
+    It "set repository given Name and CredentialInfo parameters" {
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        Set-PSResourceRepository -Name "testRepository" -Authentication @{VaultName = "test"; Secret = "test"}
+        Set-PSResourceRepository -Name "testRepository" -CredentialInfo @{VaultName = "test"; Secret = "test"}
         $res = Get-PSResourceRepository -Name "testRepository"
         $res.Name | Should -Be "testRepository"
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
-        $res.Authentication["VaultName"] | Should -Be "test"
-        $res.Authentication["Secret"] | Should -Be "test"
+        $res.CredentialInfo["VaultName"] | Should -Be "test"
+        $res.CredentialInfo["Secret"] | Should -Be "test"
     }
 
     It "not set repository and write error given just Name parameter" {
@@ -124,7 +124,7 @@ Describe "Test Set-PSResourceRepository" {
 
         $hashtable1 = @{Name = "testRepository1"; URL = $tmpDir2Path};
         $hashtable2 = @{Name = "testRepository2"; Priority = 25};
-        $hashtable3 = @{Name = "testRepository3"; Authentication = @{VaultName = "test"; Secret = "test"}};
+        $hashtable3 = @{Name = "testRepository3"; CredentialInfo = @{VaultName = "test"; Secret = "test"}};
         $hashtable4 = @{Name = "PSGallery"; Trusted = $True};
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
@@ -134,29 +134,29 @@ Describe "Test Set-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir2Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
-        $res.Authentication | Should -BeNullOrEmpty
+        $res.CredentialInfo | Should -BeNullOrEmpty
 
         $res2 = Get-PSResourceRepository -Name "testRepository2"
         $res2.Name | Should -Be "testRepository2"
         $res2.URL.LocalPath | Should -Contain $tmpDir2Path
         $res2.Priority | Should -Be 25
         $res2.Trusted | Should -Be False
-        $res2.Authentication | Should -BeNullOrEmpty
+        $res2.CredentialInfo | Should -BeNullOrEmpty
 
         $res3 = Get-PSResourceRepository -Name "testRepository3"
         $res3.Name | Should -Be "testRepository3"
         $res3.URL.LocalPath | Should -Contain $tmpDir3Path
         $res3.Priority | Should -Be 50
         $res3.Trusted | Should -Be False
-        $res3.Authentication["VaultName"] | Should -Be "test"
-        $res3.Authentication["Secret"] | Should -Be "test"
+        $res3.CredentialInfo["VaultName"] | Should -Be "test"
+        $res3.CredentialInfo["Secret"] | Should -Be "test"
 
         $res4 = Get-PSResourceRepository -Name $PSGalleryName
         $res4.Name | Should -Be $PSGalleryName
         $res4.URL | Should -Contain $PSGalleryURL
         $res4.Priority | Should -Be 50
         $res4.Trusted | Should -Be True
-        $res4.Authentication | Should -BeNullOrEmpty
+        $res4.CredentialInfo | Should -BeNullOrEmpty
     }
 
     It "not set and throw error for trying to set PSGallery URL (NameParameterSet)" {
@@ -165,10 +165,10 @@ Describe "Test Set-PSResourceRepository" {
         {Set-PSResourceRepository -Name "PSGallery" -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
     }
 
-    It "not set and throw error for trying to set PSGallery Authentication (NameParameterSet)" {
+    It "not set and throw error for trying to set PSGallery CredentialInfo (NameParameterSet)" {
         Unregister-PSResourceRepository -Name "PSGallery"
         Register-PSResourceRepository -PSGallery
-        {Set-PSResourceRepository -Name "PSGallery" -Authentication @{VaultName = "test"; Secret = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name "PSGallery" -CredentialInfo @{VaultName = "test"; Secret = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
     }
 
     It "not set repository and throw error for trying to set PSGallery URL (RepositoriesParameterSet)" {
@@ -201,13 +201,13 @@ Describe "Test Set-PSResourceRepository" {
         $res.Priority | Should -Be 50
     }
 
-    It "not set repository and throw error for trying to set PSGallery Authentication (RepositoriesParameterSet)" {
+    It "not set repository and throw error for trying to set PSGallery CredentialInfo (RepositoriesParameterSet)" {
         Unregister-PSResourceRepository -Name "PSGallery"
         Register-PSResourceRepository -PSGallery
 
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
 
-        $hashtable1 = @{Name = "PSGallery"; Authentication = @{VaultName = "test"; Secret = "test"}}
+        $hashtable1 = @{Name = "PSGallery"; CredentialInfo = @{VaultName = "test"; Secret = "test"}}
         $hashtable2 = @{Name = "testRepository"; Priority = 25}
         $arrayOfHashtables = $hashtable1, $hashtable2
 
@@ -219,25 +219,25 @@ Describe "Test Set-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 25
         $res.Trusted | Should -Be False
-        $res.Authentication | Should -BeNullOrEmpty
+        $res.CredentialInfo | Should -BeNullOrEmpty
     }
 
-    It "not set and throw error if Authentication is invalid (NameParameterSet)" {
+    It "not set and throw error if CredentialInfo is invalid (NameParameterSet)" {
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        {Set-PSResourceRepository -Name "testRepository" -Authentication @{VaultName = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
-        {Set-PSResourceRepository -Name "testRepository" -Authentication @{VaultName = "test"; Secret = ""} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name "testRepository" -CredentialInfo @{VaultName = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name "testRepository" -CredentialInfo @{VaultName = "test"; Secret = ""} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
     }
 
-    It "not set and throw error if Authentication is invalid (RepositoriesParameterSet)" {
+    It "not set and throw error if CredentialInfo is invalid (RepositoriesParameterSet)" {
         Register-PSResourceRepository -Name "testRepository1" -URL $tmpDir1Path
         Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
         Register-PSResourceRepository -Name "testRepository3" -URL $tmpDir3Path
         Register-PSResourceRepository -Name "testRepository4" -URL $tmpDir4Path
 
         $hashtable1 = @{Name = "testRepository1"; Priority = 25}
-        $hashtable2 = @{Name = "testRepository2"; Authentication = @{Secret = ""}}
-        $hashtable3 = @{Name = "testRepository3"; Authentication = @{VaultName = "test"; Secret = ""}}
-        $hashtable4 = @{Name = "testRepository4"; Authentication = @{}}
+        $hashtable2 = @{Name = "testRepository2"; CredentialInfo = @{Secret = ""}}
+        $hashtable3 = @{Name = "testRepository3"; CredentialInfo = @{VaultName = "test"; Secret = ""}}
+        $hashtable4 = @{Name = "testRepository4"; CredentialInfo = @{}}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Set-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
@@ -248,15 +248,15 @@ Describe "Test Set-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 25
         $res.Trusted | Should -Be False
-        $res.Authentication | Should -BeNullOrEmpty
+        $res.CredentialInfo | Should -BeNullOrEmpty
 
         $res2 = Get-PSResourceRepository -Name "testRepository2"
-        $res2.Authentication | Should -BeNullOrEmpty
+        $res2.CredentialInfo | Should -BeNullOrEmpty
 
         $res3 = Get-PSResourceRepository -Name "testRepository3"
-        $res3.Authentication | Should -BeNullOrEmpty
+        $res3.CredentialInfo | Should -BeNullOrEmpty
 
         $res4 = Get-PSResourceRepository -Name "testRepository4"
-        $res4.Authentication | Should -BeNullOrEmpty
+        $res4.CredentialInfo | Should -BeNullOrEmpty
     }
 }

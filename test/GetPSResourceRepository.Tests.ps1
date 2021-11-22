@@ -83,8 +83,8 @@ Describe "Test Get-PSResourceRepository" {
         }
     }
 
-    It "given invalid and valid Authentication information, get valid ones and write error for non valid ones" {
-        Get-NewPSResourceRepositoryFileWithAuthentication
+    It "given invalid and valid CredentialInfo, get valid ones and write error for non valid ones" {
+        Get-NewPSResourceRepositoryFileWithCredentialInfo
 
         $res = Get-PSResourceRepository -Name "localtestrepo*" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0

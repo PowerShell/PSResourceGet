@@ -183,7 +183,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (var pkg in SearchFromRepository(
                     repositoryName: repositoriesToSearch[i].Name,
                     repositoryUrl: repositoriesToSearch[i].Url,
-                    repositoryAuthentication: repositoriesToSearch[i].Authentication))
+                    repositoryCredentialInfo: repositoriesToSearch[i].CredentialInfo))
                 {
                     yield return pkg;
                 }
@@ -197,7 +197,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private IEnumerable<PSResourceInfo> SearchFromRepository(
             string repositoryName,
             Uri repositoryUrl,
-            Hashtable repositoryAuthentication)
+            Hashtable repositoryCredentialInfo)
         {
             PackageSearchResource resourceSearch;
             PackageMetadataResource resourceMetadata;
@@ -234,22 +234,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
             PackageSource source = new PackageSource(repositoryUrl.ToString());
 
-            // Explicitly passed in Credential takes precedence over repository Authentication
+            // Explicitly passed in Credential takes precedence over repository CredentialInfo
             if (_credential != null)
             {
                 string password = new NetworkCredential(string.Empty, _credential.Password).Password;
                 source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), _credential.UserName, password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryName);
             }
-            else if (repositoryAuthentication != null)
+            else if (repositoryCredentialInfo != null)
             {
-                var authHelper = new AuthenticationHelper(_cmdletPassedIn);
-                string password = authHelper.GetRepositoryAuthenticationPassword(
+                var authHelper = new CredentialInfoHelper(_cmdletPassedIn);
+                string password = authHelper.GetRepositoryCredentialInfoPassword(
                     repositoryName,
-                    repositoryAuthentication[AuthenticationHelper.VaultNameAttribute].ToString(),
-                    repositoryAuthentication[AuthenticationHelper.SecretAttribute].ToString());
+                    repositoryCredentialInfo[CredentialInfoHelper.VaultNameAttribute].ToString(),
+                    repositoryCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString());
 
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repositoryAuthentication[AuthenticationHelper.SecretAttribute].ToString(), password, true, null);
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repositoryCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString(), password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);
             }
 

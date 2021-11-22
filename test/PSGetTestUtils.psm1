@@ -214,7 +214,7 @@ function Get-RevertPSResourceRepositoryFile {
     }
 }
 
-function Get-NewPSResourceRepositoryFileWithAuthentication {
+function Get-NewPSResourceRepositoryFileWithCredentialInfo {
     # register our own repositories with desired priority
     $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
     $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
@@ -229,7 +229,7 @@ function Get-NewPSResourceRepositoryFileWithAuthentication {
         $null = New-Item -Path $powerShellGetPath -ItemType Directory -Verbose
     }
 
-    $fileToCopy = Join-Path -Path $PSScriptRoot -ChildPath "testRepositoriesWithAuthentication.xml"
+    $fileToCopy = Join-Path -Path $PSScriptRoot -ChildPath "testRepositoriesWithCredentialInfo.xml"
     Copy-Item -Path $fileToCopy -Destination $originalXmlFilePath -Force -Verbose
 }
 

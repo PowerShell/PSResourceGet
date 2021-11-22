@@ -38,7 +38,7 @@ Describe "Test Publish-PSResource" {
         }
 
         # Create temp destination path
-        $script:destinationPath = Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"
+        $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
         New-Item $script:destinationPath -ItemType directory -Force
     }
     AfterAll {
@@ -266,16 +266,13 @@ Describe "Test Publish-PSResource" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        $tmpPath = Join-Path -Path $TestDrive -ChildPath "testtmppath"
-        New-Item $tmpPath -Itemtype directory -Force
-
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -DestinationPath $tmpPath
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -DestinationPath $script:destinationPath
 
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
 
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
 
-        $expectedPath = Join-Path -Path $tmpPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $tmpPath).FullName | Should -Be $expectedPath 
+        $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath 
     }
 }

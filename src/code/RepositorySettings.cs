@@ -83,7 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted, Hashtable repoAuthentication)
+        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted, Hashtable repoCredentialInfo)
         {
             try
             {
@@ -107,9 +107,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     new XAttribute("Trusted", repoTrusted)
                     );
 
-                if(repoAuthentication != null) {
-                    newElement.Add(new XAttribute(VaultNameAttribute, repoAuthentication[VaultNameAttribute]));
-                    newElement.Add(new XAttribute(SecretAttribute, repoAuthentication[SecretAttribute]));
+                if(repoCredentialInfo != null) {
+                    newElement.Add(new XAttribute(VaultNameAttribute, repoCredentialInfo[VaultNameAttribute]));
+                    newElement.Add(new XAttribute(SecretAttribute, repoCredentialInfo[SecretAttribute]));
                 }
 
                 root.Add(newElement);
@@ -122,14 +122,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted, repoAuthentication);
+            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted, repoCredentialInfo);
         }
 
         /// <summary>
         /// Updates a repository name, URL, priority, or installation policy
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted, Hashtable repoAuthentication)
+        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted, Hashtable repoCredentialInfo)
         {
             PSRepositoryInfo updatedRepo;
             try
@@ -167,22 +167,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     node.Attribute("Trusted").Value = repoTrusted.ToString();
                 }
 
-                // A null Authentication value passed in signifies that Authentication information was not attempted to be set.
-                // So only set VaultName and Secret attributes if non-null value passed in for repoAuthentication
-                if (repoAuthentication != null)
+                // A null CredentialInfo value passed in signifies that CredentialInfo was not attempted to be set.
+                // So only set VaultName and Secret attributes if non-null value passed in for repoCredentialInfo
+                if (repoCredentialInfo != null)
                 {
                     if (node.Attribute(VaultNameAttribute) == null) {
-                        node.Add(new XAttribute(VaultNameAttribute, repoAuthentication[VaultNameAttribute]));
+                        node.Add(new XAttribute(VaultNameAttribute, repoCredentialInfo[VaultNameAttribute]));
                     }
                     else {
-                        node.Attribute(VaultNameAttribute).Value = repoAuthentication[VaultNameAttribute].ToString();
+                        node.Attribute(VaultNameAttribute).Value = repoCredentialInfo[VaultNameAttribute].ToString();
                     }
 
                     if (node.Attribute(SecretAttribute) == null) {
-                        node.Add(new XAttribute(SecretAttribute, repoAuthentication[SecretAttribute]));
+                        node.Add(new XAttribute(SecretAttribute, repoCredentialInfo[SecretAttribute]));
                     }
                     else {
-                        node.Attribute(SecretAttribute).Value = repoAuthentication[SecretAttribute].ToString();
+                        node.Attribute(SecretAttribute).Value = repoCredentialInfo[SecretAttribute].ToString();
                     }
                 }
 
@@ -192,8 +192,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted URL for repo {0}", repoName));
                 }
 
-                // Create Authentication based on new values or whether it was empty to begin with
-                Hashtable thisAuthentication = !string.IsNullOrEmpty(node.Attribute(VaultNameAttribute)?.Value) && !string.IsNullOrEmpty(node.Attribute(SecretAttribute)?.Value)
+                // Create CredentialInfo based on new values or whether it was empty to begin with
+                Hashtable thisCredentialInfo = !string.IsNullOrEmpty(node.Attribute(VaultNameAttribute)?.Value) && !string.IsNullOrEmpty(node.Attribute(SecretAttribute)?.Value)
                     ? new Hashtable() {
                         { VaultNameAttribute, node.Attribute(VaultNameAttribute).Value },
                         { SecretAttribute, node.Attribute(SecretAttribute).Value }
@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
                     Boolean.Parse(node.Attribute("Trusted").Value),
-                    thisAuthentication);
+                    thisCredentialInfo);
 
                 // Close the file
                 root.Save(FullRepositoryPath);
@@ -285,14 +285,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         continue;
                     }
 
-                    Hashtable thisAuthentication = null;
-                    string authErrorMessage = $"Repository {repo.Attribute("Name")} has invalid Authentication information. {VaultNameAttribute} and {SecretAttribute} should both be present and non-empty";
+                    Hashtable thisCredentialInfo = null;
+                    string authErrorMessage = $"Repository {repo.Attribute("Name")} has invalid CredentialInfo. {VaultNameAttribute} and {SecretAttribute} should both be present and non-empty";
                     // both keys present
                     if (repo.Attribute(VaultNameAttribute) != null && repo.Attribute(SecretAttribute) != null) {
                         // both values non-empty
-                        // = valid authentication
+                        // = valid credentialInfo
                         if (!string.IsNullOrEmpty(repo.Attribute(VaultNameAttribute).Value) && !string.IsNullOrEmpty(repo.Attribute(SecretAttribute).Value)) {
-                            thisAuthentication = new Hashtable() {
+                            thisCredentialInfo = new Hashtable() {
                                 { VaultNameAttribute, repo.Attribute(VaultNameAttribute).Value },
                                 { SecretAttribute, repo.Attribute(SecretAttribute).Value }
                             };
@@ -304,7 +304,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                     // both keys are missing
                     else if (repo.Attribute(VaultNameAttribute) == null && repo.Attribute(SecretAttribute) == null) {
-                        // = valid authentication, do nothing
+                        // = valid credentialInfo, do nothing
                     }
                     // one of the keys is missing
                     else {
@@ -316,7 +316,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
-                        thisAuthentication);
+                        thisCredentialInfo);
 
                     foundRepos.Add(currentRepoItem);
                 }
@@ -338,14 +338,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             continue;
                         }
 
-                        Hashtable thisAuthentication = null;
-                        string authErrorMessage = $"Repository {node.Attribute("Name")} has invalid Authentication information. {VaultNameAttribute} and {SecretAttribute} should both be present and non-empty";
+                        Hashtable thisCredentialInfo = null;
+                        string authErrorMessage = $"Repository {node.Attribute("Name")} has invalid CredentialInfo. {VaultNameAttribute} and {SecretAttribute} should both be present and non-empty";
                         // both keys present
                         if (node.Attribute(VaultNameAttribute) != null && node.Attribute(SecretAttribute) != null) {
                             // both values non-empty
-                            // = valid authentication
+                            // = valid credentialInfo
                             if (!string.IsNullOrEmpty(node.Attribute(VaultNameAttribute).Value) && !string.IsNullOrEmpty(node.Attribute(SecretAttribute).Value)) {
-                                thisAuthentication = new Hashtable() {
+                                thisCredentialInfo = new Hashtable() {
                                     { VaultNameAttribute, node.Attribute(VaultNameAttribute).Value },
                                     { SecretAttribute, node.Attribute(SecretAttribute).Value }
                                 };
@@ -357,7 +357,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         }
                         // both keys are missing
                         else if (node.Attribute(VaultNameAttribute) == null && node.Attribute(SecretAttribute) == null) {
-                            // = valid authentication, do nothing
+                            // = valid credentialInfo, do nothing
                         }
                         // one of the keys is missing
                         else {
@@ -369,7 +369,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
-                            thisAuthentication);
+                            thisCredentialInfo);
 
                         foundRepos.Add(currentRepoItem);
                     }

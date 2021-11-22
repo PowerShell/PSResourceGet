@@ -10,9 +10,9 @@ using System.Management.Automation.Runspaces;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// Authentication helper class includes functions to get repository credentials from Microsoft.PowerShell.SecretManagement if provided
+    /// CredentialInfo helper class includes functions to get repository credentials from Microsoft.PowerShell.SecretManagement if provided
     /// </summary>
-    internal class AuthenticationHelper
+    internal class CredentialInfoHelper
     {
         internal static readonly string VaultNameAttribute = "VaultName";
         internal static readonly string SecretAttribute = "Secret";
@@ -21,12 +21,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private static readonly string SecretManagementModuleName = "Microsoft.PowerShell.SecretManagement";
 
-        public AuthenticationHelper(PSCmdlet cmdletPassedIn)
+        public CredentialInfoHelper(PSCmdlet cmdletPassedIn)
         {
             _cmdletPassedIn = cmdletPassedIn;
         }
 
-        public string GetRepositoryAuthenticationPassword(string repositoryName, string vaultName, string secretName)
+        public string GetRepositoryCredentialInfoPassword(string repositoryName, string vaultName, string secretName)
         {
             var results = PowerShellInvoker.InvokeScriptWithHost<string>(
                 cmdlet: _cmdletPassedIn,
@@ -53,7 +53,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         new PSInvalidOperationException(
                             message: string.Format(CultureInfo.InvariantCulture, "Unable to read secret {0} from vault {1} for authenticating to PSResourceRepository {2}", secretName, vaultName, repositoryName),
                             innerException: terminatingError),
-                        "RepositoryAuthenticationCannotGetSecretFromVault",
+                        "RepositoryCredentialInfoCannotGetSecretFromVault",
                         ErrorCategory.InvalidOperation,
                         this));
             }

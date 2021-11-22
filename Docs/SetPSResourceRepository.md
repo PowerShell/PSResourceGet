@@ -13,7 +13,7 @@ The `-URL` for the PSGallery repository, which is pre-defined for this repositor
 
 ### NameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string>] [-URL <string>] [-Trusted] [-Priority <int>] [-Authentication <Hashtable>] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string>] [-URL <string>] [-Trusted] [-Priority <int>] [-CredentialInfo <Hashtable>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
@@ -70,9 +70,9 @@ Type: int
 Parameter Sets: NameParameterSet
 ```
 
-### -Authentication
+### -CredentialInfo
 
-Specifies a hashtable of vault and secret names as Authentication information for the repository.
+Specifies a hashtable of vault and secret names as CredentialInfo for the repository.
 
 ```yml
 Type: Hashtable
