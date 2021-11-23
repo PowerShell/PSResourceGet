@@ -229,7 +229,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 IncludeDependencies))
             {
                 foundPackages.Add(package);
+                WriteVerbose("pkgName: " + package.Name);
             }
+
 
             foreach (var uniquePackageVersion in foundPackages.GroupBy(
                 m => new {m.Name, m.Version, m.Repository}).Select(
