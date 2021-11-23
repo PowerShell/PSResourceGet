@@ -218,6 +218,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 List<string> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
+                    pckgNamesToInstall,
                     repoName,
                     repo.Url.AbsoluteUri,
                     credential,
@@ -279,13 +280,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         private List<string> InstallPackage(
-            IEnumerable<PSResourceInfo> pkgsToInstall,
+            IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
+            List<string> pckgNamesPassedInToInstall, // those requested by the user to be installed
             string repoName,
             string repoUrl,
             PSCredential credential,
             bool isLocalRepo)
         {
             List<string> pkgsSuccessfullyInstalled = new List<string>();
+            int totalPkgs = pkgsToInstall.Count();
+
+            // by default this is 1, because if a parent package was already installed and only the dependent package
+            // needs to be installed we don't want a default value of 0 which throws a division error.
+            // if parent package isn't already installed we'll set this value properly in the below if condition anyways
+            int currentPkgNumOfDependentPkgs = 1;
+            int i = 1;
+            int j = 1;
             foreach (PSResourceInfo pkgInfo in pkgsToInstall)
             {
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -302,7 +312,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", pkgInfo.Name));
 
-                    // TODO: add progress bar here
+                    int activityId = 0;
+                    string activity = "";
+                    string statusDescription = "";
+
+                    if (pckgNamesPassedInToInstall.ToList().Contains(pkgInfo.Name, StringComparer.InvariantCultureIgnoreCase))
+                    {
+                        // Installing parent package (one whose name was passed in to install)
+                        activityId = 0;
+                        activity = string.Format("Installing {0}...", pkgInfo.Name);
+                        statusDescription = string.Format("{0}% Complete:", ((i++/totalPkgs) * 100));
+
+                        currentPkgNumOfDependentPkgs = pkgInfo.Dependencies.Count();
+                        j = 1;
+                    }
+                    else
+                    {
+                        // Installing dependent package
+                        activityId = 1;
+                        activity = string.Format("Installing dependent package {0}...", pkgInfo.Name);
+                        statusDescription = string.Format("{0}% Complete:", ((j++/currentPkgNumOfDependentPkgs) * 100));                        
+                    }
+
+                    var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
+                    _cmdletPassedIn.WriteProgress(progressRecord);
+                    
         
                     // Create PackageIdentity in order to download
                     string createFullVersion = pkgInfo.Version.ToString();
