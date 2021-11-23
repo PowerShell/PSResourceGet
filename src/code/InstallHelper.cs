@@ -294,10 +294,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // needs to be installed we don't want a default value of 0 which throws a division error.
             // if parent package isn't already installed we'll set this value properly in the below if condition anyways
             int currentPkgNumOfDependentPkgs = 1;
-            int i = 1;
+            // counter for dependency packages
             int j = 1;
-            foreach (PSResourceInfo pkgInfo in pkgsToInstall)
+            for (int i = 0; i < pkgsToInstall.Count(); i++)
             {
+                PSResourceInfo pkgInfo = pkgsToInstall.ElementAt(i);
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
@@ -321,8 +322,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Installing parent package (one whose name was passed in to install)
                         activityId = 0;
                         activity = string.Format("Installing {0}...", pkgInfo.Name);
-                        statusDescription = string.Format("{0}% Complete:", Math.Round(((double) i/totalPkgs) * 100), 2);
-                        i++;
+                        statusDescription = string.Format("{0}% Complete:", Math.Round(((double) (i+1)/totalPkgs) * 100), 2);
 
                         currentPkgNumOfDependentPkgs = pkgInfo.Dependencies.Count();
                         j = 1;
@@ -334,11 +334,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         activity = string.Format("Installing dependent package {0}...", pkgInfo.Name);
                         statusDescription = string.Format("{0}% Complete:", Math.Round(((double) j/currentPkgNumOfDependentPkgs) * 100), 2);   
                         j++;
-                        i++;
                     }
 
                     var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
-                    _cmdletPassedIn.WriteVerbose(statusDescription);
                     _cmdletPassedIn.WriteProgress(progressRecord);
                     
                     // Create PackageIdentity in order to download
