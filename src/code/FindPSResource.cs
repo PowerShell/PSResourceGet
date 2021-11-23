@@ -229,7 +229,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 IncludeDependencies))
             {
                 foundPackages.Add(package);
-                WriteVerbose("pkgName: " + package.Name);
             }
 
 
