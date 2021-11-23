@@ -337,7 +337,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
                     _cmdletPassedIn.WriteProgress(progressRecord);
                     
-        
                     // Create PackageIdentity in order to download
                     string createFullVersion = pkgInfo.Version.ToString();
                     if (pkgInfo.IsPrerelease)
