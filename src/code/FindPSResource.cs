@@ -231,7 +231,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foundPackages.Add(package);
             }
 
-
             foreach (var uniquePackageVersion in foundPackages.GroupBy(
                 m => new {m.Name, m.Version, m.Repository}).Select(
                     group => group.First()).ToList())
