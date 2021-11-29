@@ -79,6 +79,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string specifiedPath,
             bool asNupkg,
             bool includeXML,
+            bool skipDependencyCheck,
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
@@ -123,7 +124,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Go through the repositories and see which is the first repository to have the pkg version available
-            ProcessRepositories(names, repository, _trustRepository, _credential);
+            ProcessRepositories(
+                packageNames: names,
+                repository: repository,
+                trustRepository: _trustRepository,
+                credential: _credential,
+                skipDependencyCheck: skipDependencyCheck);
         }
 
         #endregion
@@ -135,7 +141,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string[] packageNames,
             string[] repository,
             bool trustRepository,
-            PSCredential credential)
+            PSCredential credential,
+            bool skipDependencyCheck)
         {
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
             List<string> pckgNamesToInstall = packageNames.ToList();
@@ -185,7 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     tag: null,
                     repository: new string[] { repoName },
                     credential: credential,
-                    includeDependencies: true);
+                    includeDependencies: !skipDependencyCheck);
 
                 if (!pkgsFromRepoToInstall.Any())
                 {

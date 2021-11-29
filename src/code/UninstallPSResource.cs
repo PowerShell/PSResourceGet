@@ -43,10 +43,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public PSResourceInfo InputObject { get; set; }
 
         /// <summary>
+        /// Skips check to see if other resources are dependent on the resource being uninstalled.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
-        public SwitchParameter Force { get; set; }
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
 
         #endregion
 
@@ -212,9 +212,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             errRecord = null;
             var successfullyUninstalledPkg = false;
 
-            // if -Force is not specified and the pkg is a dependency for another package, 
+            // if -SkipDependencyCheck is not specified and the pkg is a dependency for another package, 
             // an error will be written and we return false
-            if (!Force && CheckIfDependency(pkgName, out errRecord))
+            if (!SkipDependencyCheck && CheckIfDependency(pkgName, out errRecord))
             {
                 return false;
             }
@@ -301,9 +301,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return successfullyUninstalledPkg;
         }
 
-        private bool CheckIfDependency(string pkgName, out ErrorRecord errRecord)
+        private bool CheckIfDependency(string pkgName, out ErrorRecord errorRecord)
         {
-            errRecord = null;
             // this is a primitive implementation
             // TODO:  implement a dependencies database for querying dependency info
             // cannot uninstall a module if another module is dependent on it 
@@ -317,18 +316,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
                 // If we anything from the final call gets returned, there is a dependency on this pkg.
                 IEnumerable<PSObject> pkgsWithRequiredModules = new List<PSObject>();
+                errorRecord = null;
                 try
                 {
                     pkgsWithRequiredModules = results.Where(
-                        p => ((ReadOnlyCollection<PSModuleInfo>)p.Properties["RequiredModules"].Value).Where(
+                        pkg => ((ReadOnlyCollection<PSModuleInfo>)pkg.Properties["RequiredModules"].Value).Where(
                             rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any());
                 }
                 catch (Exception e)
                 {
-                    var exMessage = String.Format("Error checking if resource is a dependency: {0}. If you would still like to uninstall, rerun the command with -Force", e.Message);
-                    var ex = new ArgumentException(exMessage);
-                    var DependencyCheckError = new ErrorRecord(ex, "DependencyCheckError", ErrorCategory.OperationStopped, null);
-                    errRecord = DependencyCheckError;
+                    errorRecord = new ErrorRecord(
+                        new PSInvalidOperationException(
+                            $"Error checking if resource is a dependency: {e.Message}."),
+                        "UninstallPSResourceDependencyCheckError",
+                        ErrorCategory.InvalidOperation,
+                        null);
                 }
 
                 if (pkgsWithRequiredModules.Any())
@@ -336,10 +338,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var uniquePkgNames = pkgsWithRequiredModules.Select(p => p.Properties["Name"].Value).Distinct().ToArray();
                     var strUniquePkgNames = string.Join(",", uniquePkgNames);
 
-                    var exMessage = String.Format("Cannot uninstall '{0}', the following package(s) take a dependency on this package: {1}. If you would still like to uninstall, rerun the command with -Force", pkgName, strUniquePkgNames);
-                    var ex = new ArgumentException(exMessage);
-                    var PackageIsaDependency = new ErrorRecord(ex, "PackageIsaDependency", ErrorCategory.OperationStopped, null);
-                    errRecord = PackageIsaDependency;
+                    errorRecord = new ErrorRecord(
+                        new PSInvalidOperationException(
+                            $"Cannot uninstall '{pkgName}'. The following package(s) take a dependency on this package: {strUniquePkgNames}. If you would still like to uninstall, rerun the command with -SkipDependencyCheck"),
+                        "UninstallPSResourcePackageIsaDependency",
+                        ErrorCategory.InvalidOperation,
+                        null);
 
                     return true;
                 }
