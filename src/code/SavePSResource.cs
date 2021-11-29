@@ -123,6 +123,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public PSResourceInfo InputObject { get; set; }
 
+        /// <summary>
+        /// Skips the check for resource dependencies, so that only found resources are saved,
+        /// and not any resources the found resource depends on.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
+
         #endregion
 
         #region Method overrides
@@ -243,7 +250,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 noClobber: false, 
                 specifiedPath: _path, 
                 asNupkg: false, 
-                includeXML: false, 
+                includeXML: false,
+                skipDependencyCheck: SkipDependencyCheck,
                 pathsToInstallPkg: new List<string> { _path } );
         }
         
