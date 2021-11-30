@@ -562,6 +562,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             foreach (var dirFilePath in Directory.GetFiles(dirPath))
             {
+                FileAttributes attribute = File.GetAttributes(dirFilePath);
+                if ((attribute & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                {
+                    File.SetAttributes(dirFilePath, attribute | FileAttributes.Hidden);
+                }
+
                 File.Delete(dirFilePath);
             }
 
