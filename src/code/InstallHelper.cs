@@ -432,7 +432,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             File.Copy(Path.Combine(tempDirNameVersion, nupkgFile), Path.Combine(installPath, nupkgFile));
 
                             _cmdletPassedIn.WriteVerbose(string.Format("'{0}' moved into file path '{1}'", nupkgFile, installPath));
-                            pkgsSuccessfullyInstalled.Add(p.Name);
+                            pkgsSuccessfullyInstalled.Add(pkgInfo.Name);
 
                             continue;
                         }
