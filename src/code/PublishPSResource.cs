@@ -408,6 +408,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             finally
             {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
+
                 Utils.DeleteDirectory(outputDir);
             }
         }
