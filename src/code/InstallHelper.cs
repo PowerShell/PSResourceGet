@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _cmdletPassedIn = cmdletPassedIn;
         }
 
-        public void InstallPackages(
+        public List<PSResourceInfo> InstallPackages(
             string[] names,
             VersionRange versionRange,
             bool prerelease,
@@ -83,7 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}';",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'",
                 string.Join(",", names),
                 versionRange != null ? versionRange.OriginalString : string.Empty,
                 prerelease.ToString(),
@@ -124,7 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Go through the repositories and see which is the first repository to have the pkg version available
-            ProcessRepositories(
+            return ProcessRepositories(
                 packageNames: names,
                 repository: repository,
                 trustRepository: _trustRepository,
@@ -137,7 +137,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Private methods
 
         // This method calls iterates through repositories (by priority order) to search for the pkgs to install
-        private void ProcessRepositories(
+        private List<PSResourceInfo> ProcessRepositories(
             string[] packageNames,
             string[] repository,
             bool trustRepository,
@@ -150,10 +150,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var noToAll = false;
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
+            List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             foreach (var repo in listOfRepositories)
             {
                 // If no more packages to install, then return
-                if (!pkgNamesToInstall.Any()) return;
+                if (!pkgNamesToInstall.Any()) return allPkgsInstalled;
 
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
@@ -223,18 +224,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                List<string> pkgsInstalled = InstallPackage(
+                List<PSResourceInfo> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
                     pkgNamesToInstall,
                     repo.Url.AbsoluteUri,
                     credential,
                     isLocalRepo);
 
-                foreach (string name in pkgsInstalled)
+                foreach (PSResourceInfo pkg in pkgsInstalled)
                 {
-                    pkgNamesToInstall.Remove(name);
+                    pkgNamesToInstall.Remove(pkg.Name);
                 }
+
+                allPkgsInstalled.AddRange(pkgsInstalled);
             }
+
+            return allPkgsInstalled;
         }
 
         // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
@@ -285,14 +290,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return filteredPackages.Values.ToArray();
         }
 
-        private List<string> InstallPackage(
+        private List<PSResourceInfo> InstallPackage(
             IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
             List<string> pkgNamesToInstall, // those requested by the user to be installed
             string repoUrl,
             PSCredential credential,
             bool isLocalRepo)
         {
-            List<string> pkgsSuccessfullyInstalled = new List<string>();
+            List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
             int totalPkgs = pkgsToInstall.Count();
 
             // counters for tracking dependent package and current package out of total
@@ -527,7 +532,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         scriptPath);
                     
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkg.Name, installPath));
-                    pkgsSuccessfullyInstalled.Add(pkg.Name);
+                    pkgsSuccessfullyInstalled.Add(pkg);
                 }
                 catch (Exception e)
                 {

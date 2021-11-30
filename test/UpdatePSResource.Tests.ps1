@@ -344,4 +344,12 @@ Describe 'Test Update-PSResource' {
 
         $isPkgUpdated | Should -Be $false
     }
+
+    It "update resource installed given -Name and -PassThru parameters" {
+        Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName
+
+        $res = Update-PSResource -Name "TestModule" -Version "1.3.0.0" -Repository $TestGalleryName -PassThru
+        $res.Name | Should -Be "TestModule"
+        $res.Version | Should -Be "1.3.0.0"
+    }
 }

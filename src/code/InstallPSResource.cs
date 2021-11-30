@@ -99,18 +99,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter NoClobber { get; set; }
 
         /// <summary>
-        /// Used for pipeline input.
-        /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
-        [ValidateNotNullOrEmpty]
-        public PSResourceInfo InputObject { get; set; }
-
-        /// <summary>
         /// Skips the check for resource dependencies, so that only found resources are installed,
         /// and not any resources the found resource depends on.
         /// </summary>
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
+
+        /// <summary>
+        /// Passes the resource installed to the console.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        public SwitchParameter PassThru { get; set; }
+
+        /// <summary>
+        /// Used for pipeline input.
+        /// </summary>
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
+        [ValidateNotNullOrEmpty]
+        public PSResourceInfo InputObject { get; set; }
 
         #endregion
 
@@ -241,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            _installHelper.InstallPackages(
+            var installedPkgs = _installHelper.InstallPackages(
                 names: pkgNames,
                 versionRange: _versionRange,
                 prerelease: pkgPrerelease,
@@ -258,6 +265,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
                 pathsToInstallPkg: _pathsToInstallPkg);
+
+            if (PassThru)
+            {
+                foreach (PSResourceInfo pkg in installedPkgs)
+                {
+                    WriteObject(pkg);
+                }
+            }
         }
 
         #endregion

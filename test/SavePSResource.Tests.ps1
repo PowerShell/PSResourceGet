@@ -195,6 +195,11 @@ Describe 'Test Save-PSResource for PSResources' {
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
     }
 
+    It "Save module using -PassThru" {
+        $res = Save-PSResource -Name "TestModule" -Version "1.3.0" -Repository $TestGalleryName -Path $SaveDir -PassThru
+        $res.Name | Should -Be "TestModule"
+        $res.Version | Should -Be "1.3.0.0"
+    }
 <#
     # Tests should not write to module directory
     It "Save specific module resource by name if no -Path param is specifed" {
