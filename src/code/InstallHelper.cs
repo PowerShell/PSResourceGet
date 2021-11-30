@@ -85,7 +85,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXML '{10}'; SavePackage '{11}'",
                 string.Join(",", names),
-                versionRange != null ? versionRange.OriginalString : string.Empty,
+                versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
                 prerelease.ToString(),
                 repository != null ? string.Join(",", repository) : string.Empty,
                 acceptLicense.ToString(),

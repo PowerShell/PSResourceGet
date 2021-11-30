@@ -250,7 +250,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: AsNupkg, 
                 includeXML: IncludeXML, 
                 skipDependencyCheck: SkipDependencyCheck,
-                savePkg: false,
+                savePkg: true,
                 pathsToInstallPkg: new List<string> { _path } );
         }
         
