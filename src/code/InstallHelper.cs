@@ -138,7 +138,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PSCredential credential)
         {
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
-            List<string> pckgNamesToInstall = packageNames.ToList();
+            List<string> pkgNamesToInstall = packageNames.ToList();
             var yesToAll = false;
             var noToAll = false;
 
@@ -146,7 +146,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (var repo in listOfRepositories)
             {
                 // If no more packages to install, then return
-                if (!pckgNamesToInstall.Any()) return;
+                if (!pkgNamesToInstall.Any()) return;
 
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
@@ -178,7 +178,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // Finds parent packages and dependencies
                 IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
-                    name: pckgNamesToInstall.ToArray(),
+                    name: pkgNamesToInstall.ToArray(),
                     type: ResourceType.None,
                     version: _versionRange != null ? _versionRange.OriginalString : null,
                     prerelease: _prerelease,
@@ -218,7 +218,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 List<string> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
-                    pckgNamesToInstall,
+                    pkgNamesToInstall,
                     repoName,
                     repo.Url.AbsoluteUri,
                     credential,
@@ -226,7 +226,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach (string name in pkgsInstalled)
                 {
-                    pckgNamesToInstall.Remove(name);
+                    pkgNamesToInstall.Remove(name);
                 }
             }
         }
