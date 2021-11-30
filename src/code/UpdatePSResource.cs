@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter Force { get; set; }
 
         /// <summary>
-        /// Passes the resource installed to the console.
+        /// Passes the resource updated to the console.
         /// </summary>
         [Parameter()]
         public SwitchParameter PassThru { get; set; }
