@@ -11,7 +11,7 @@ Describe 'Test Get-PSResource for Module' {
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
 
-        Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository
+        Install-PSResource -Name ContosoServer -Repository $TestGalleryName -Verbose
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "2.0"
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "1.5"
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "1.0"
