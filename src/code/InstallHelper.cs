@@ -281,7 +281,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private List<string> InstallPackage(
             IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
-            List<string> pckgNamesPassedInToInstall, // those requested by the user to be installed
+            List<string> pkgNamesToInstall, // those requested by the user to be installed
             string repoName,
             string repoUrl,
             PSCredential credential,
@@ -319,7 +319,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string activity = "";
                     string statusDescription = "";
 
-                    if (pckgNamesPassedInToInstall.ToList().Contains(pkg.Name, StringComparer.InvariantCultureIgnoreCase))
+                    if (pkgNamesToInstall.ToList().Contains(pkg.Name, StringComparer.InvariantCultureIgnoreCase))
                     {
                         // Installing parent package (one whose name was passed in to install)
                         activityId = 0;
