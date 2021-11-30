@@ -145,7 +145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool skipDependencyCheck)
         {
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
-            List<string> pckgNamesToInstall = packageNames.ToList();
+            List<string> pkgNamesToInstall = packageNames.ToList();
             var yesToAll = false;
             var noToAll = false;
 
@@ -153,7 +153,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (var repo in listOfRepositories)
             {
                 // If no more packages to install, then return
-                if (!pckgNamesToInstall.Any()) return;
+                if (!pkgNamesToInstall.Any()) return;
 
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
@@ -185,7 +185,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // Finds parent packages and dependencies
                 IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
-                    name: pckgNamesToInstall.ToArray(),
+                    name: pkgNamesToInstall.ToArray(),
                     type: ResourceType.None,
                     version: _versionRange != null ? _versionRange.OriginalString : null,
                     prerelease: _prerelease,
@@ -225,14 +225,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 List<string> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
-                    repoName,
+                    pkgNamesToInstall,
                     repo.Url.AbsoluteUri,
                     credential,
                     isLocalRepo);
 
                 foreach (string name in pkgsInstalled)
                 {
-                    pckgNamesToInstall.Remove(name);
+                    pkgNamesToInstall.Remove(name);
                 }
             }
         }
@@ -286,15 +286,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         private List<string> InstallPackage(
-            IEnumerable<PSResourceInfo> pkgsToInstall,
-            string repoName,
+            IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
+            List<string> pkgNamesToInstall, // those requested by the user to be installed
             string repoUrl,
             PSCredential credential,
             bool isLocalRepo)
         {
             List<string> pkgsSuccessfullyInstalled = new List<string>();
-            foreach (PSResourceInfo pkgInfo in pkgsToInstall)
+            int totalPkgs = pkgsToInstall.Count();
+
+            // counters for tracking dependent package and current package out of total
+            int totalPkgsCount = 0;
+            int dependentPkgCount = 1;
+            // by default this is 1, because if a parent package was already installed and only the dependent package
+            // needs to be installed we don't want a default value of 0 which throws a division error.
+            // if parent package isn't already installed we'll set this value properly in the below if condition anyways
+            int currentPkgNumOfDependentPkgs = 1;
+
+            foreach (PSResourceInfo pkg in pkgsToInstall)
             {
+                totalPkgsCount++;
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
@@ -307,24 +318,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                                                            // TODO:  are there Linux accommodations we need to consider here?
                     dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
 
-                    _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", pkgInfo.Name));
+                    _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", pkg.Name));
 
-                    // TODO: add progress bar here
-        
-                    // Create PackageIdentity in order to download
-                    string createFullVersion = pkgInfo.Version.ToString();
-                    if (pkgInfo.IsPrerelease)
+                    int activityId = 0;
+                    string activity = "";
+                    string statusDescription = "";
+
+                    if (pkgNamesToInstall.ToList().Contains(pkg.Name, StringComparer.InvariantCultureIgnoreCase))
                     {
-                        createFullVersion = pkgInfo.Version.ToString() + "-" + pkgInfo.PrereleaseLabel;
+                        // Installing parent package (one whose name was passed in to install)
+                        activityId = 0;
+                        activity = string.Format("Installing {0}...", pkg.Name);
+                        statusDescription = string.Format("{0}% Complete:", Math.Round(((double) totalPkgsCount/totalPkgs) * 100), 2);
+                        currentPkgNumOfDependentPkgs = pkg.Dependencies.Count();
+                        dependentPkgCount = 1;
+                    }
+                    else
+                    {
+                        // Installing dependent package
+                        activityId = 1;
+                        activity = string.Format("Installing dependent package {0}...", pkg.Name);
+                        statusDescription = string.Format("{0}% Complete:", Math.Round(((double) dependentPkgCount/currentPkgNumOfDependentPkgs) * 100), 2);
+                        dependentPkgCount++;
+                    }
+
+                    var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
+                    _cmdletPassedIn.WriteProgress(progressRecord);
+                    
+                    // Create PackageIdentity in order to download
+                    string createFullVersion = pkg.Version.ToString();
+                    if (pkg.IsPrerelease)
+                    {
+                        createFullVersion = pkg.Version.ToString() + "-" + pkg.PrereleaseLabel;
                     }
 
                     if (!NuGetVersion.TryParse(createFullVersion, out NuGetVersion pkgVersion))
                     {
                         _cmdletPassedIn.WriteVerbose(string.Format("Error parsing package '{0}' version '{1}' into a NuGetVersion", 
-                            pkgInfo.Name, pkgInfo.Version.ToString()));
+                            pkg.Name, pkg.Version.ToString()));
                         continue;
                     }
-                    var pkgIdentity = new PackageIdentity(pkgInfo.Name, pkgVersion);
+                    var pkgIdentity = new PackageIdentity(pkg.Name, pkgVersion);
                     var cacheContext = new SourceCacheContext();
 
                     if (isLocalRepo)
@@ -419,8 +453,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
                     string moduleManifestVersion = string.Empty;
-                    var scriptPath = Path.Combine(tempDirNameVersion, pkgInfo.Name + ".ps1");
-                    var modulePath = Path.Combine(tempDirNameVersion, pkgInfo.Name + ".psd1");
+                    var scriptPath = Path.Combine(tempDirNameVersion, pkg.Name + ".ps1");
+                    var modulePath = Path.Combine(tempDirNameVersion, pkg.Name + ".psd1");
                     // Check if the package is a module or a script
                     var isModule = File.Exists(modulePath);
 
@@ -446,13 +480,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
 
                         // Accept License verification
-                        if (!_savePkg && !CallAcceptLicense(pkgInfo, moduleManifest, tempInstallPath, newVersion))
+                        if (!_savePkg && !CallAcceptLicense(pkg, moduleManifest, tempInstallPath, newVersion))
                         {
                             continue;
                         }
 
                         // If NoClobber is specified, ensure command clobbering does not happen
-                        if (_noClobber && !DetectClobber(pkgInfo.Name, parsedMetadataHashtable))
+                        if (_noClobber && !DetectClobber(pkg.Name, parsedMetadataHashtable))
                         {
                             continue;
                         }
@@ -478,11 +512,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (_includeXML)
                     {
-                        CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgInfo, isModule);
+                        CreateMetadataXMLFile(tempDirNameVersion, installPath, pkg, isModule);
                     }
                     
                     MoveFilesIntoInstallPath(
-                        pkgInfo, 
+                        pkg, 
                         isModule,
                         isLocalRepo,
                         tempDirNameVersion,
@@ -492,15 +526,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         moduleManifestVersion,
                         scriptPath);
                     
-                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkgInfo.Name, installPath));
-                    pkgsSuccessfullyInstalled.Add(pkgInfo.Name);
+                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkg.Name, installPath));
+                    pkgsSuccessfullyInstalled.Add(pkg.Name);
                 }
                 catch (Exception e)
                 {
                     _cmdletPassedIn.WriteError(
                         new ErrorRecord(
                             new PSInvalidOperationException(
-                                message: $"Unable to successfully install package '{pkgInfo.Name}': '{e.Message}'",
+                                message: $"Unable to successfully install package '{pkg.Name}': '{e.Message}'",
                                 innerException: e),
                             "InstallPackageFailed",
                             ErrorCategory.InvalidOperation,
