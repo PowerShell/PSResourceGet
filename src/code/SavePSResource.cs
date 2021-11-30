@@ -117,7 +117,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter TrustRepository { get; set; }
 
         /// <summary>
-        /// Passes the resource installed to the console.
+        /// Passes the resource saved to the console.
         /// </summary>
         [Parameter()]
         public SwitchParameter PassThru { get; set; }
