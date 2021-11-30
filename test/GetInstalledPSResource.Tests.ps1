@@ -11,8 +11,6 @@ Describe 'Test Get-PSResource for Module' {
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
 
-        Write-Host "New PSResource Repository file created"
-        write-host $TestGalleryName
         Install-PSResource -Name ContosoServer -Repository $TestGalleryName -Verbose
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "2.0"
         Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -Version "1.5"
