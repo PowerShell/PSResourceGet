@@ -242,7 +242,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            _installHelper.InstallPackages(
+            var installedPkgs = _installHelper.InstallPackages(
                 names: namesToSave, 
                 versionRange: _versionRange, 
                 prerelease: pkgPrerelease, 
@@ -258,8 +258,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false, 
                 includeXML: false, 
                 skipDependencyCheck: SkipDependencyCheck,
-                passThru: PassThru,
                 pathsToInstallPkg: new List<string> { _path } );
+
+            if (PassThru)
+            {
+                foreach (PSResourceInfo pkg in installedPkgs)
+                {
+                    WriteObject(pkg);
+                }
+            }
         }
         
         #endregion

@@ -50,7 +50,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _asNupkg;
         private bool _includeXML;
         private bool _noClobber;
-        private bool _passThru;
         List<string> _pathsToSearch;
 
         #endregion
@@ -65,7 +64,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _cmdletPassedIn = cmdletPassedIn;
         }
 
-        public void InstallPackages(
+        public List<PSResourceInfo> InstallPackages(
             string[] names,
             VersionRange versionRange,
             bool prerelease,
@@ -80,12 +79,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string specifiedPath,
             bool asNupkg,
             bool includeXML,
-            bool passThru, 
             bool skipDependencyCheck,
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; PassThru '{9}'",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'",
                 string.Join(",", names),
                 versionRange != null ? versionRange.OriginalString : string.Empty,
                 prerelease.ToString(),
@@ -94,8 +92,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 quiet.ToString(),
                 reinstall.ToString(),
                 trustRepository.ToString(),
-                noClobber.ToString(),
-                passThru.ToString()));
+                noClobber.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
@@ -109,7 +106,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _specifiedPath = specifiedPath;
             _asNupkg = asNupkg;
             _includeXML = includeXML;
-            _passThru = passThru;
             _pathsToInstallPkg = pathsToInstallPkg;
 
             // Create list of installation paths to search.
@@ -128,7 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Go through the repositories and see which is the first repository to have the pkg version available
-            ProcessRepositories(
+            return ProcessRepositories(
                 packageNames: names,
                 repository: repository,
                 trustRepository: _trustRepository,
@@ -141,7 +137,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Private methods
 
         // This method calls iterates through repositories (by priority order) to search for the pkgs to install
-        private void ProcessRepositories(
+        private List<PSResourceInfo> ProcessRepositories(
             string[] packageNames,
             string[] repository,
             bool trustRepository,
@@ -154,10 +150,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var noToAll = false;
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
+            List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             foreach (var repo in listOfRepositories)
             {
                 // If no more packages to install, then return
-                if (!pckgNamesToInstall.Any()) return;
+                if (!pckgNamesToInstall.Any()) return allPkgsInstalled;
 
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
@@ -234,19 +231,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     credential,
                     isLocalRepo);
 
-                if (_passThru)
-                {
-                    foreach (PSResourceInfo pkg in pkgsInstalled)
-                    {
-                        _cmdletPassedIn.WriteObject(pkg);
-                    }
-                }
-
                 foreach (PSResourceInfo pkg in pkgsInstalled)
                 {
                     pckgNamesToInstall.Remove(pkg.Name);
                 }
+
+                allPkgsInstalled.AddRange(pkgsInstalled);
             }
+
+            return allPkgsInstalled;
         }
 
         // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
