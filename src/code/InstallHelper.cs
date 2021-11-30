@@ -219,7 +219,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 List<string> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
                     pkgNamesToInstall,
-                    repoName,
                     repo.Url.AbsoluteUri,
                     credential,
                     isLocalRepo);
@@ -282,7 +281,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<string> InstallPackage(
             IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
             List<string> pkgNamesToInstall, // those requested by the user to be installed
-            string repoName,
             string repoUrl,
             PSCredential credential,
             bool isLocalRepo)
