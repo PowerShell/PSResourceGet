@@ -5,7 +5,7 @@ online version:
 schema: 2.0.0
 ---
 
-# Get-InstalledPSResource
+# Get-PSResource
 
 ## SYNOPSIS
 Returns resources (modules and scripts) installed on the machine via PowerShellGet.
@@ -13,45 +13,45 @@ Returns resources (modules and scripts) installed on the machine via PowerShellG
 ## SYNTAX
 
 ```
-Get-InstalledPSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [<CommonParameters>]
+Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-InstalledPSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript cmdlets from V2. It performs a search within module or script installation paths based on the -Name parameter argument. It returns PSResourceInfo objects which describes each resource item found. Other parameters allow the returned results to be filtered by version and path.
+The Get-PSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript cmdlets from V2. It performs a search within module or script installation paths based on the -Name parameter argument. It returns PSResourceInfo objects which describes each resource item found. Other parameters allow the returned results to be filtered by version and path.
 
 ## EXAMPLES
 
 ### Example 1
 ```powershell
-PS C:\> Get-InstalledPSResource Az
+PS C:\> Get-PSResource Az
 ```
 
 This will return versions of the Az module installed via PowerShellGet.
 
 ### Example 2
 ```powershell
-PS C:\> Get-InstalledPSResource Az -version "1.0.0"
+PS C:\> Get-PSResource Az -version "1.0.0"
 ```
 
 This will return version 1.0.0 of the Az module.
 
 ### Example 3
 ```powershell
-PS C:\> Get-InstalledPSResource Az -version "(1.0.0, 3.0.0)"
+PS C:\> Get-PSResource Az -version "(1.0.0, 3.0.0)"
 ```
 
 This will return all versions of the Az module within the specified range.
 
 ### Example 4
 ```powershell
-PS C:\> Get-InstalledPSResource Az -Path .
+PS C:\> Get-PSResource Az -Path .
 ```
 
 This will return all versions of the Az module that have been installed in the current directory.
 
 ### Example 5
 ```powershell
-PS C:\> Get-InstalledPSResource
+PS C:\> Get-PSResource
 ```
 
 This will return all versions and scripts installed on the machine.

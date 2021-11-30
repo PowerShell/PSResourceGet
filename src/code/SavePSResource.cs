@@ -129,6 +129,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public PSResourceInfo InputObject { get; set; }
 
+        /// <summary>
+        /// Skips the check for resource dependencies, so that only found resources are saved,
+        /// and not any resources the found resource depends on.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
+
         #endregion
 
         #region Method overrides
@@ -198,7 +205,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Private methods
 
         private void ProcessSaveHelper(string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
         {
@@ -250,6 +257,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 specifiedPath: _path, 
                 asNupkg: false, 
                 includeXML: false, 
+                skipDependencyCheck: SkipDependencyCheck,
                 passThru: PassThru,
                 pathsToInstallPkg: new List<string> { _path } );
         }

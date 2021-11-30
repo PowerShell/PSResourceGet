@@ -75,7 +75,6 @@ function DoBuild
             # Place build results
             $assemblyNames = @(
                 'PowerShellGet'
-                'Microsoft.Extensions.Logging.Abstractions'
                 'MoreLinq'
                 'NuGet.Commands'
                 'NuGet.Common'

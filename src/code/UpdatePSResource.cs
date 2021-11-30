@@ -16,7 +16,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It updates an already installed package based on the -Name parameter argument.
     /// It does not return an object. Other parameters allow the package to be updated to be further filtered.
     /// </summary>
-
     [Cmdlet(VerbsData.Update,
         "PSResource",
         SupportsShouldProcess = true)]
@@ -104,6 +103,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter()]
         public SwitchParameter PassThru { get; set; }
 
+        /// <summary>
+        /// Skips the check for resource dependencies, so that only found resources are updated,
+        /// and not any resources the found resource depends on.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
+
         #endregion
 
         #region Override Methods
@@ -173,6 +179,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
+                skipDependencyCheck: SkipDependencyCheck,
                 passThru: PassThru,
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
@@ -261,7 +268,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tag: null,
                 repository: Repository,
                 credential: Credential,
-                includeDependencies: false))
+                includeDependencies: !SkipDependencyCheck))
             {
                 if (!repositoryPackages.ContainsKey(foundResource.Name))
                 {

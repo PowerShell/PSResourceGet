@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Get-InstalledPSResource for Module' {
+Describe 'Test Get-PSResource for Module' {
 
     BeforeAll{
         $TestGalleryName = Get-PoshTestGalleryName
@@ -25,17 +25,17 @@ Describe 'Test Get-InstalledPSResource for Module' {
     }
 
     It "Get resources without any parameter values" {
-        $pkgs = Get-InstalledPSResource
+        $pkgs = Get-PSResource
         $pkgs.Count | Should -BeGreaterThan 1
     }
 
     It "Get specific module resource by name" {
-        $pkg = Get-InstalledPSResource -Name ContosoServer
+        $pkg = Get-PSResource -Name ContosoServer
         $pkg.Name | Should -Contain "ContosoServer"
     }
 
     It "Get specific script resource by name" {
-        $pkg = Get-InstalledPSResource -Name TestTestScript
+        $pkg = Get-PSResource -Name TestTestScript
         $pkg.Name | Should -Be "TestTestScript"
     }
 
@@ -46,7 +46,7 @@ Describe 'Test Get-InstalledPSResource for Module' {
         @{Name="Cont*erver";   ExpectedName="ContosoServer"; Reason="validate name, with wildcard in middle of name: Cont*erver"}
     ) {
         param($Version, $ExpectedVersion)
-        $pkgs = Get-InstalledPSResource -Name $Name
+        $pkgs = Get-PSResource -Name $Name
         $pkgs.Name | Should -Contain "ContosoServer"
     }
 
@@ -63,7 +63,7 @@ $testCases =
 
     It "Get resource when given Name to <Reason> <Version>" -TestCases $testCases {
         param($Version, $ExpectedVersion)
-        $pkgs = Get-InstalledPSResource -Name "ContosoServer" -Version $Version
+        $pkgs = Get-PSResource -Name "ContosoServer" -Version $Version
         $pkgs.Name | Should -Contain "ContosoServer"
         $pkgs.Version | Should -Be $ExpectedVersion
     }
@@ -107,15 +107,15 @@ $testCases =
     }
 
     It "Get resources when given Name, and Version is '*'" {
-        $pkgs = Get-InstalledPSResource -Name ContosoServer -Version "*"
+        $pkgs = Get-PSResource -Name ContosoServer -Version "*"
         $pkgs.Count | Should -BeGreaterOrEqual 2
     }
 
     It "Get prerelease version module when version with correct prerelease label is specified" {
         Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $TestGalleryName
-        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5"
+        $res = Get-PSResource -Name $testModuleName -Version "5.2.5"
         $res | Should -BeNullOrEmpty
-        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5-alpha001"
+        $res = Get-PSResource -Name $testModuleName -Version "5.2.5-alpha001"
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.2.5"
         $res.PrereleaseLabel | Should -Be "alpha001"
@@ -123,9 +123,9 @@ $testCases =
 
     It "Get prerelease version script when version with correct prerelease label is specified" {
         Install-PSResource -Name $testScriptName -Version "3.0.0-alpha001" -Repository $TestGalleryName
-        $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0"
+        $res = Get-PSResource -Name $testScriptName -Version "3.0.0"
         $res | Should -BeNullOrEmpty
-        $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0-alpha001"
+        $res = Get-PSResource -Name $testScriptName -Version "3.0.0-alpha001"
         $res.Name | Should -Be $testScriptName
         $res.Version | Should -Be "3.0.0"
         $res.PrereleaseLabel | Should -Be "alpha001"

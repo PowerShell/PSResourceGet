@@ -15,7 +15,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// The Install-PSResource cmdlet installs a resource.
     /// It returns nothing.
     /// </summary>
-
     [Cmdlet(VerbsLifecycle.Install, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
     public sealed
     class InstallPSResource : PSCmdlet
@@ -98,6 +97,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         public SwitchParameter NoClobber { get; set; }
+
+        /// <summary>
+        /// Skips the check for resource dependencies, so that only found resources are installed,
+        /// and not any resources the found resource depends on.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
 
         /// <summary>
         /// Passes the resource installed to the console.
@@ -257,6 +263,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
+                skipDependencyCheck: SkipDependencyCheck,
                 passThru: PassThru,
                 pathsToInstallPkg: _pathsToInstallPkg);
         }

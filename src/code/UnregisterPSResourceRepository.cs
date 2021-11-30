@@ -30,7 +30,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Method overrides
 
         protected override void BeginProcessing()
         {

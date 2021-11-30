@@ -15,7 +15,7 @@
     FormatsToProcess  = 'PSGet.Format.ps1xml'
     CmdletsToExport = @(
         'Find-PSResource',
-        'Get-InstalledPSResource',
+        'Get-PSResource',
         'Get-PSResourceRepository',
         'Install-PSResource',
         'Register-PSResourceRepository',
@@ -63,7 +63,7 @@ All tests have been reviewed and rewritten as needed.
 - Install-PSResource no longer creates version folder with the prerelease tag
 - Update-PSResource can now update all resources, and no longer requires name param
 - Save-PSResource properly handles saving scripts
-- Get-InstalledPSResource uses default PowerShell paths
+- Get-PSResource uses default PowerShell paths
 '@
         }
     }

@@ -9,12 +9,11 @@ using System.IO;
 using System.Management.Automation;
 
 using Dbg = System.Diagnostics.Debug;
-using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// Get helper class provides the core functionality for Get-InstalledPSResource.
+    /// Get helper class provides the core functionality for Get-PSResource.
     /// </summary>
     internal class GetHelper
     {
@@ -196,7 +195,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Read metadata from XML and parse into PSResourceInfo object
             _cmdletPassedIn.WriteVerbose(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
-            if (TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
+            if (PSResourceInfo.TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
             {
                 return psGetInfo;
             }

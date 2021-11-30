@@ -1,17 +1,16 @@
-using System.Text.RegularExpressions;
-using System.Linq;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using NuGet.Versioning;
+using NuGet.Protocol.Core.Types;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Dbg = System.Diagnostics.Debug;
 using System.Globalization;
+using System.Linq;
 using System.Management.Automation;
-using NuGet.Packaging;
-using NuGet.Protocol.Core.Types;
-using NuGet.Versioning;
+
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -20,9 +19,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     [Flags]
     public enum ResourceType
     {
-        // 00001 -> M
-        // 00100 -> C
-        // 00101 -> M, C
         None = 0x0,
         Module = 0x1,
         Script = 0x2,
@@ -204,18 +200,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         // this object will represent a Command or DSCResource
         // included by the PSResourceInfo property
-
         #region Properties
+
         public string Name { get; }
 
         public PSResourceInfo ParentResource { get; }
+
         #endregion
 
         #region Constructor
 
         /// <summary>
         /// Constructor
-        ///
         /// </summary>
         /// <param name="name">Name of the command or DSC resource</param>
         /// <param name="parentResource">the parent module resource the command or dsc resource belongs to</param>
@@ -325,6 +321,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Private fields
+
         private static readonly char[] Delimeter = {' ', ','};
 
         #endregion
@@ -498,7 +495,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo);
         }
 
-
         public static bool TryConvert(
             IPackageSearchMetadata metadataToParse,
             out PSResourceInfo psGetInfo,
@@ -620,37 +616,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-        private static string GetPrereleaseLabel(Version version)
-        {
-            string versionAsString = version.ToString();
-
-            if (!versionAsString.Contains("-"))
-            {
-                // no prerelease label present
-                return String.Empty;
-            }
-
-            string[] prereleaseParsed = versionAsString.Split('-');
-            if (prereleaseParsed.Length <= 1)
-            {
-                return String.Empty;
-            }
-
-            string prereleaseString = prereleaseParsed[1];
-            Regex prereleasePattern = new Regex("^[a-zA-Z0-9]+$");
-            if (!prereleasePattern.IsMatch(prereleaseString))
-            {
-                return String.Empty;
-            }
-
-            return prereleaseString;
-        }
-
         private static Dependency[] GetDependencies(ArrayList dependencyInfos)
         {
             List<Dependency> dependenciesFound = new List<Dependency>();
             if (dependencyInfos == null) { return dependenciesFound.ToArray(); }
-
 
             foreach(PSObject dependencyObj in dependencyInfos)
             {
@@ -734,14 +703,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 else if (dependencyObj.Properties["Name"] != null)
                 {
                     string name = dependencyObj.Properties["Name"].Value.ToString();
-
-                    string version = string.Empty;
                     VersionRange versionRange = VersionRange.All;
-
                     if (dependencyObj.Properties["VersionRange"] != null)
                     {
-                        version = dependencyObj.Properties["VersionRange"].Value.ToString();
-                        VersionRange.TryParse(version, out versionRange);
+                        VersionRange.TryParse(
+                            dependencyObj.Properties["VersionRange"].Value.ToString(),
+                            out versionRange);
                     }
 
                     dependenciesFound.Add(new Dependency(name, versionRange));
@@ -755,7 +722,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             return Utils.GetNormalizedVersionString(version, prerelease);
         }
-
 
         #region Parse Metadata private static methods
 
@@ -782,10 +748,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         depVersionRange = pkgDependencyItem.VersionRange;
                     }
 
-                    Dependency currentDependency = new Dependency(pkgDependencyItem.Id, depVersionRange);
-                    dependencies.Add(currentDependency);
+                    dependencies.Add(
+                        new Dependency(pkgDependencyItem.Id, depVersionRange));
                 }
             }
+
             return dependencies.ToArray();
         }
 
@@ -828,13 +795,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static DateTime? ParseMetadataPublishedDate(IPackageSearchMetadata pkg)
         {
-            DateTime? publishDate = null;
-            DateTimeOffset? pkgPublishedDate = pkg.Published;
-            if (pkgPublishedDate.HasValue)
+            if (pkg.Published.HasValue)
             {
-                publishDate = pkgPublishedDate.Value.DateTime;
+                return pkg.Published.Value.DateTime;
             }
-            return publishDate;
+
+            return null;
         }
 
         private static string[] ParseMetadataTags(IPackageSearchMetadata pkg)
@@ -842,11 +808,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pkg.Tags.Split(Delimeter, StringSplitOptions.RemoveEmptyEntries);
         }
 
-        private static ResourceType ParseMetadataType(IPackageSearchMetadata pkg,
-        string repoName,
-        ResourceType? pkgType,
-        out ArrayList commandNames,
-        out ArrayList dscResourceNames)
+        private static ResourceType ParseMetadataType(
+            IPackageSearchMetadata pkg,
+            string repoName,
+            ResourceType? pkgType,
+            out ArrayList commandNames,
+            out ArrayList dscResourceNames)
         {
             // possible type combinations:
             // M, C
@@ -875,7 +842,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // if Name contains wildcard, currently Script and Module tags should be set properly, but need to account for Command and DscResource types too
             // if Name does not contain wildcard, GetMetadataAsync() was used, PSGallery only is searched (and pkg will successfully be found
             // and returned from there) before PSGalleryScripts can be searched
-            foreach(string tag in tags)
+            foreach (string tag in tags)
             {
                 if(String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -883,11 +850,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     currentPkgType &= ~ResourceType.Module;
                     currentPkgType |= ResourceType.Script;
                 }
+
                 if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
                 {
                     currentPkgType |= ResourceType.Command;
                     commandNames.Add(tag.Split('_')[1]);
                 }
+
                 if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
                 {
                     currentPkgType |= ResourceType.DscResource;
@@ -904,6 +873,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 return pkg.Identity.Version.Version;
             }
+
             return null;
         }
 
@@ -999,7 +969,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if (psObjectGetInfo.BaseObject is PSResourceInfo psGetInfo)
             {
-                if (! psGetInfo.TryWrite(filePath, out string errorMsg))
+                if (!psGetInfo.TryWrite(filePath, out string errorMsg))
                 {
                     throw new PSInvalidOperationException(errorMsg);
                 }
