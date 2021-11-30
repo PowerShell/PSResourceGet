@@ -129,6 +129,13 @@ Describe 'Test Save-PSResource for PSResources' {
         (Get-ChildItem $pkgDirs[1].FullName).Count | Should -Be 1
     }
 
+    It "Save a module with a dependency and skip saving the dependency" {
+        Save-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName -Path $SaveDir -SkipDependencyCheck
+        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "PSGetTestModule" -or $_.Name -eq "PSGetTestDependency1" }
+        $pkgDirs.Count | Should -Be 1
+        (Get-ChildItem $pkgDirs[0].FullName).Count | Should -Be 1
+    }
+
     It "Save resource via InputObject by piping from Find-PSresource" {
         Find-PSResource -Name "TestModule" -Repository $TestGalleryName | Save-PSResource -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestModule"

@@ -57,11 +57,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             set
             {
-                string resolvedPath = string.Empty;
-                if (!string.IsNullOrEmpty(value))
-                {
-                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
-                }
+                string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
 
                 if (Directory.Exists(resolvedPath))
                 {
@@ -88,18 +84,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             set
             {
-                string resolvedPath = string.Empty;
-                if (!string.IsNullOrEmpty(value))
-                {
-                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
-                }
+                string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
 
                 if (Directory.Exists(resolvedPath))
                 {
                     _destinationPath = resolvedPath;
                 }
-                else {
-                    // try to create the path 
+                else
+                {
                     try
                     {
                         Directory.CreateDirectory(value);
@@ -175,6 +167,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Method overrides
+
         protected override void BeginProcessing()
         {
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
@@ -184,10 +177,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            string moduleManifestOrScriptPath;
-            FileInfo moduleFileInfo;
-            Hashtable parsedMetadataHash = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
-
             // Returns the name of the file or the name of the directory, depending on path
             var pkgFileOrDir = new DirectoryInfo(_path);
             bool isScript = _path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase);
@@ -198,23 +187,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteVerbose("ShouldProcess is set to false.");
                 return;
             }
-            
+
+            string resourceFilePath;
+            Hashtable parsedMetadataHash = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
             if (isScript)
             {
-                // Get the .psd1 file or .ps1 file
-                moduleManifestOrScriptPath = pkgFileOrDir.FullName;
-                moduleFileInfo = new FileInfo(moduleManifestOrScriptPath);
+                resourceFilePath = pkgFileOrDir.FullName;
 
                 // Check that script metadata is valid
-                // ParseScriptMetadata will write non-terminating error if it's unsucessful in parsing
-                parsedMetadataHash = ParseScriptMetadata(moduleFileInfo);
+                // ParseScriptMetadata will write non-terminating error if it's unsuccessful in parsing
+                parsedMetadataHash = ParseScriptMetadata(resourceFilePath);
 
-                var message = string.Empty;
                 // Check that the value is valid input
                 // If it does not contain 'Version' or the Version empty or whitespace, write error
                 if (!parsedMetadataHash.ContainsKey("Version") || String.IsNullOrWhiteSpace(parsedMetadataHash["Version"].ToString()))
                 {
-                    message = "No version was provided in the script metadata. Script metadata must specify a version, author and description.";
+                    var message = "No version was provided in the script metadata. Script metadata must specify a version, author and description.";
                     var ex = new ArgumentException(message);
                     var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
                     WriteError(InvalidScriptMetadata);
@@ -223,7 +211,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 if (!parsedMetadataHash.ContainsKey("Author") || String.IsNullOrWhiteSpace(parsedMetadataHash["Author"].ToString()))
                 {
-                    message = "No author was provided in the script metadata. Script metadata must specify a version, author and description.";
+                    var message = "No author was provided in the script metadata. Script metadata must specify a version, author and description.";
                     var ex = new ArgumentException(message);
                     var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
                     WriteError(InvalidScriptMetadata);
@@ -232,7 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 if (!parsedMetadataHash.ContainsKey("Description") || String.IsNullOrWhiteSpace(parsedMetadataHash["Description"].ToString()))
                 {
-                    message = "No description was provided in the script metadata. Script metadata must specify a version, author and description.";
+                    var message = "No description was provided in the script metadata. Script metadata must specify a version, author and description.";
                     var ex = new ArgumentException(message);
                     var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
                     WriteError(InvalidScriptMetadata);
@@ -243,15 +231,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // remove '.ps1' extension from file name 
                 _pkgName = pkgFileOrDir.Name.Remove(pkgFileOrDir.Name.Length - 4);
             }
-            else {
+            else
+            {
                 _pkgName = pkgFileOrDir.Name;
-                moduleManifestOrScriptPath = System.IO.Path.Combine(_path, _pkgName + ".psd1");
-                moduleFileInfo = new FileInfo(moduleManifestOrScriptPath);
+                resourceFilePath = System.IO.Path.Combine(_path, _pkgName + ".psd1");
 
                 // Validate that there's a module manifest 
-                if (!File.Exists(moduleManifestOrScriptPath))
+                if (!File.Exists(resourceFilePath))
                 {
-                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", moduleManifestOrScriptPath);
+                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", resourceFilePath);
                     var ex = new ArgumentException(message);
                     var moduleManifestNotFound = new ErrorRecord(ex, "moduleManifestNotFound", ErrorCategory.ObjectNotFound, null);
                     WriteError(moduleManifestNotFound);
@@ -260,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // validate that the module manifest has correct data 
-                if (!IsValidModuleManifest(moduleManifestOrScriptPath))
+                if (!IsValidModuleManifest(resourceFilePath))
                 {
                     return;
                 }
@@ -274,7 +262,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     Directory.CreateDirectory(outputDir);
                 }
-                catch (Exception e) {
+                catch (Exception e)
+                {
                     var ex = new ArgumentException(e.Message);
                     var ErrorCreatingTempDir = new ErrorRecord(ex, "ErrorCreatingTempDir", ErrorCategory.InvalidData, null);
                     WriteError(ErrorCreatingTempDir);
@@ -285,16 +274,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                Hashtable dependencies;
-
                 // Create a nuspec
                 // Right now parsedMetadataHash will be empty for modules and will contain metadata for scripts
+                Hashtable dependencies;
                 string nuspec = string.Empty;
                 try
                 {
-                    nuspec = CreateNuspec(outputDir, moduleFileInfo, out dependencies, parsedMetadataHash);
+                    nuspec = CreateNuspec(
+                        outputDir: outputDir,
+                        filePath: resourceFilePath,
+                        isScript: isScript,
+                        parsedMetadataHash: parsedMetadataHash,
+                        requiredModules: out dependencies);
                 }
-                catch (Exception e) {
+                catch (Exception e)
+                {
                     var message = string.Format("Nuspec creation failed: {0}", e.Message);
                     var ex = new ArgumentException(message);
                     var nuspecCreationFailed = new ErrorRecord(ex, "NuspecCreationFailed", ErrorCategory.ObjectNotFound, null);
@@ -311,7 +305,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // Find repository
-                PSRepositoryInfo repository = RepositorySettings.Read(new[] { Repository }, out string[] errorList).FirstOrDefault();
+                PSRepositoryInfo repository = RepositorySettings.Read(new[] { Repository }, out string[] _).FirstOrDefault();
                 if (repository == null)
                 {
                     var message = String.Format("The resource repository '{0}' is not a registered. Please run 'Register-PSResourceRepository' in order to publish to this repository.", Repository);
@@ -371,7 +365,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // pack into a nupkg
                 try
                 {
-                     if(!PackNupkg(outputDir, outputNupkgDir, nuspec))
+                     if (!PackNupkg(outputDir, outputNupkgDir, nuspec))
                      {
                         return;
                      }
@@ -411,7 +405,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 PushNupkg(outputNupkgDir, repository.Name, repositoryUrl);
 
             }
-            finally {
+            finally
+            {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
 
                 Utils.DeleteDirectory(outputDir);
@@ -424,7 +419,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private bool IsValidModuleManifest(string moduleManifestPath)
         {
-            var isValid = false;
+            var isValid = true;
             using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
             {
                 // use PowerShell cmdlet Test-ModuleManifest
@@ -454,10 +449,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var ex = new ArgumentException(message);
                     var InvalidModuleManifest = new ErrorRecord(ex, "InvalidModuleManifest", ErrorCategory.InvalidData, null);
                     WriteError(InvalidModuleManifest);
-                }
-                else
-                {
-                    isValid = true;
+                    isValid = false;
                 }
             }
 
@@ -465,53 +457,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         private string CreateNuspec(
-            string outputDir, 
-            FileInfo moduleFileInfo, 
-            out Hashtable requiredModules, 
-            Hashtable parsedMetadataHash)
+            string outputDir,
+            string filePath,
+            bool isScript,
+            Hashtable parsedMetadataHash,
+            out Hashtable requiredModules)
         {
             WriteVerbose("Creating new nuspec file.");
             requiredModules = new Hashtable();
 
-            // A script will already  have the metadata parsed into the parsedMetadatahash,
+            // A script will already have the metadata parsed into the parsedMetadatahash,
             // a module will still need the module manifest to be parsed.
-            if (moduleFileInfo.Extension.Equals(".psd1", StringComparison.OrdinalIgnoreCase))
+            if (!isScript)
             {
-                // Parse the module manifest 
-                System.Management.Automation.Language.Token[] tokens;
-                ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
-
-                if (errors.Length > 0)
+                // Parse the module manifest and *replace* the passed-in metadata with the module manifest metadata.
+                if (!Utils.TryParseModuleManifest(
+                    moduleFileInfo: filePath,
+                    cmdletPassedIn: this,
+                    parsedMetadataHashtable: out parsedMetadataHash))
                 {
-                    var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo.FullName);
-                    var ex = new ArgumentException(message);
-                    var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                    WriteError(psdataParseError);
-
                     return string.Empty;
-                }
-                else
-                {
-                    // Must search nested script blocks because 'Tags' are located under 'PrivateData' > 'PSData'
-                    var data = ast.Find(a => a is HashtableAst, true);
-                    if (data != null)
-                    {
-                        parsedMetadataHash = (Hashtable) data.SafeGetValue();
-                    }
-                    else
-                    {
-                        var message = String.Format("Could not parse as PowerShell data file-- no hashtable root for file '{0}'", moduleFileInfo.FullName);
-                        var ex = new ArgumentException(message);
-                        var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                        WriteError(psdataParseError);
-
-                        return string.Empty;
-                    }
                 }
             }
 
-            /// now we have parsedMetadatahash to fill out the nuspec information
+            // now we have parsedMetadatahash to fill out the nuspec information
             var nameSpaceUri = "http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd";
             var doc = new XmlDocument();
 
@@ -529,7 +498,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // id is mandatory
             metadataElementsDictionary.Add("id", _pkgName);
 
-            string version = String.Empty;
+            string version;
             if (parsedMetadataHash.ContainsKey("moduleversion"))
             {
                 version = parsedMetadataHash["moduleversion"].ToString();
@@ -609,7 +578,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 metadataElementsDictionary.Add("copyright", parsedMetadataHash["copyright"].ToString().Trim());
             }
 
-            string tags = moduleFileInfo.Extension.Equals(".psd1", StringComparison.OrdinalIgnoreCase) ? "PSModule" : "PSScript";
+            string tags = isScript ?  "PSScript" : "PSModule";
             if (parsedMetadataHash.ContainsKey("tags"))
             {
                 if (parsedMetadataHash["tags"] != null)
@@ -743,7 +712,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return dependenciesHash;
         }
 
-        private Hashtable ParseScriptMetadata(FileInfo moduleFileInfo)
+        private Hashtable ParseScriptMetadata(string filePath)
         {
             // parse .ps1 - example .ps1 metadata:
             /* <#PSScriptInfo
@@ -770,13 +739,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable parsedMetadataHash = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
             
             // parse comments out           
-            System.Management.Automation.Language.Token[] tokens;
-            ParseError[] errors;
-            Parser.ParseFile(moduleFileInfo.FullName, out tokens, out errors);
+            Parser.ParseFile(
+                filePath,
+                out System.Management.Automation.Language.Token[] tokens,
+                out ParseError[] errors);
 
             if (errors.Length > 0)
             {
-                var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo.FullName);
+                var message = String.Format("Could not parse '{0}' as a PowerShell data file.", filePath);
                 var ex = new ArgumentException(message);
                 var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
                 WriteError(psdataParseError);

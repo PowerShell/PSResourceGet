@@ -1,17 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using static System.Environment;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.InteropServices;
-using NuGet.Versioning;
-using System.Globalization;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -140,7 +138,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // versionString: "1.2.0" prerelease: "alpha1"
                 return versionString + "-" + prerelease;
             }
-
             else if (numVersionDigits == 4)
             {
                 // versionString: "1.2.0.0" prerelease: "alpha1"
@@ -231,8 +228,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string uriString,
             PSCmdlet cmdletPassedIn,
             out Uri uriResult,
-            out ErrorRecord errorRecord
-        )
+            out ErrorRecord errorRecord)
         {
             errorRecord = null;
             if (Uri.TryCreate(uriString, UriKind.Absolute, out uriResult))
@@ -243,7 +239,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Exception ex;
             try
             {
-                // This is needed for a relative path urlstring. Does not throw error for an absolute path
+                // This is needed for a relative path urlstring. Does not throw error for an absolute path.
                 var filePath = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(uriString)[0].Path;
                 if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
                 {
@@ -306,14 +302,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (File.Exists(pkgPath))
             {
                 // ex: ./PowerShell/Scripts/TestScript.ps1
-                return System.IO.Path.GetFileNameWithoutExtension(pkgPath);
+                return Path.GetFileNameWithoutExtension(pkgPath);
             }
-            else
-            {
-                // expecting the full version module path
-                // ex:  ./PowerShell/Modules/TestModule/1.0.0
-                return new DirectoryInfo(pkgPath).Parent.Name;
-            }
+            
+            // expecting the full version module path
+            // ex:  ./PowerShell/Modules/TestModule/1.0.0
+            return new DirectoryInfo(pkgPath).Parent.Name;
         }
 
         public static List<string> GetAllResourcePaths(
@@ -331,19 +325,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (scope is null)
             {
                 string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                resourcePaths.AddRange(psModulePath.Split(';').ToList());
+                resourcePaths.AddRange(psModulePath.Split(Path.PathSeparator).ToList());
             }
 
             if (scope is null || scope.Value is ScopeType.CurrentUser)
             {
-                resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-                resourcePaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
             
             if (scope is null || scope.Value is ScopeType.AllUsers)
             {
-                resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-                resourcePaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+                resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
+                resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
             }
 
             // resourcePaths should now contain, eg:
@@ -390,7 +384,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         // Find all potential installation paths given a scope
-        public static List<string> GetAllInstallationPaths(PSCmdlet psCmdlet, ScopeType scope)
+        public static List<string> GetAllInstallationPaths(
+            PSCmdlet psCmdlet,
+            ScopeType scope)
         {
             GetStandardPlatformPaths(
                 psCmdlet,
@@ -401,13 +397,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             var installationPaths = new List<string>();
             if (scope == ScopeType.AllUsers)
             {
-                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(programFilesPath, "Scripts"));
+                installationPaths.Add(Path.Combine(programFilesPath, "Modules"));
+                installationPaths.Add(Path.Combine(programFilesPath, "Scripts"));
             }
             else
             {
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Modules"));
-                installationPaths.Add(System.IO.Path.Combine(myDocumentsPath, "Scripts"));
+                installationPaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                installationPaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
 
             installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
@@ -425,13 +421,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(SpecialFolder.ProgramFiles), powerShellType);
+                myDocumentsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
+                programFilesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
             }
             else
             {
                 // paths are the same for both Linux and macOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "powershell");
+                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "powershell");
                 programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
             }
         }
@@ -453,9 +449,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the module manifest 
-                System.Management.Automation.Language.Token[] tokens;
-                ParseError[] errors;
-                var ast = Parser.ParseFile(moduleFileInfo, out tokens, out errors);
+                var ast = Parser.ParseFile(
+                    moduleFileInfo,
+                    out Token[] tokens,
+                    out ParseError[] errors);
 
                 if (errors.Length > 0)
                 {
@@ -565,12 +562,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             foreach (var dirFilePath in Directory.GetFiles(dirPath))
             {
-                FileAttributes attribute = File.GetAttributes(dirFilePath);
-                if (!attribute.Equals(FileAttributes.Normal))
-                {
-                    File.SetAttributes(dirFilePath, FileAttributes.Normal);
-                }
-
                 File.Delete(dirFilePath);
             }
 
