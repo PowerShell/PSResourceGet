@@ -247,7 +247,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 resourceSearch = repository.GetResourceAsync<PackageSearchResource>().GetAwaiter().GetResult();
                 resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
             }
-            catch (Exception e){
+            catch (Exception e)
+            {
                 Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Error retrieving resource from repository: " + e.Message);
             }
 

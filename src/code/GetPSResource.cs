@@ -13,8 +13,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It retrieves a resource that was installed with Install-PSResource
     /// Returns a single resource or multiple resource.
     /// </summary>
-    [Cmdlet(VerbsCommon.Get, "InstalledPSResource")]
-    public sealed class GetInstalledPSResource : PSCmdlet
+    [Cmdlet(VerbsCommon.Get, "PSResource")]
+    public sealed class GetPSResource : PSCmdlet
     {
         #region Members
 
@@ -108,7 +108,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            WriteVerbose("Entering GetInstalledPSResource");
+            WriteVerbose("Entering GetPSResource");
 
             var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
