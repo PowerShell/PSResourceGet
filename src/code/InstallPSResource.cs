@@ -136,7 +136,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
 
-            _installHelper = new InstallHelper(savePkg: false, cmdletPassedIn: this);
+            _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -257,6 +257,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
+                savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
         }
 

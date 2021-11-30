@@ -35,7 +35,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
 
         private CancellationToken _cancellationToken;
-        private readonly bool _savePkg;
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pathsToInstallPkg;
         private VersionRange _versionRange;
@@ -50,17 +49,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _asNupkg;
         private bool _includeXML;
         private bool _noClobber;
+        private bool _savePkg;
         List<string> _pathsToSearch;
 
         #endregion
 
         #region Public methods
 
-        public InstallHelper(bool savePkg, PSCmdlet cmdletPassedIn)
+        public InstallHelper(PSCmdlet cmdletPassedIn)
         {
             CancellationTokenSource source = new CancellationTokenSource();
             _cancellationToken = source.Token;   
-            _savePkg = savePkg;
             _cmdletPassedIn = cmdletPassedIn;
         }
 
@@ -80,10 +79,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool asNupkg,
             bool includeXML,
             bool skipDependencyCheck,
+            bool savePkg,
             List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXML '{10}'",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXML '{10}'; SavePackage '{11}'",
                 string.Join(",", names),
                 versionRange != null ? versionRange.OriginalString : string.Empty,
                 prerelease.ToString(),
@@ -94,7 +94,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 trustRepository.ToString(),
                 noClobber.ToString(),
                 asNupkg.ToString(),
-                includeXML.ToString()));
+                includeXML.ToString(),
+                savePkg.ToString()));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
@@ -108,6 +109,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _specifiedPath = specifiedPath;
             _asNupkg = asNupkg;
             _includeXML = includeXML;
+            _savePkg = savePkg;
             _pathsToInstallPkg = pathsToInstallPkg;
 
             // Create list of installation paths to search.
