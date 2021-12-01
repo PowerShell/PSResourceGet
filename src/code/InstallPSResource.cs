@@ -260,7 +260,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 trustRepository: TrustRepository,
                 noClobber: NoClobber,
                 credential: Credential,
-                specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,

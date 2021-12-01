@@ -45,7 +45,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _force;
         private bool _trustRepository;
         private PSCredential _credential;
-        private string _specifiedPath;
         private bool _asNupkg;
         private bool _includeXML;
         private bool _noClobber;
@@ -75,7 +74,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool trustRepository,
             bool noClobber,
             PSCredential credential,
-            string specifiedPath,
             bool asNupkg,
             bool includeXML,
             bool skipDependencyCheck,
@@ -106,7 +104,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _trustRepository = trustRepository || force;
             _noClobber = noClobber;
             _credential = credential;
-            _specifiedPath = specifiedPath;
             _asNupkg = asNupkg;
             _includeXML = includeXML;
             _savePkg = savePkg;
