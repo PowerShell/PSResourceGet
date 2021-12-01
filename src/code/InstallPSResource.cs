@@ -272,7 +272,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (!actualPkgNames.Contains(expectedPkgName))
                 {
-                    WriteWarning(String.Format("Package '{0}' could not be installed. Please run the cmdlet with -Verbose for more information", expectedPkgName));
+                    WriteWarning(String.Format("Package '{0}' was not installed. Please run the cmdlet with -Verbose for more information", expectedPkgName));
                 }
             }
 
