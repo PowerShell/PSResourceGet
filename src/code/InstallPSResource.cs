@@ -144,7 +144,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
 
-            _installHelper = new InstallHelper(savePkg: false, cmdletPassedIn: this);
+            _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -261,18 +261,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 trustRepository: TrustRepository,
                 noClobber: NoClobber,
                 credential: Credential,
-                specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
+                savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
             List<string> actualPkgNames = installedPkgs.Select(x => x.Name).ToList();
-            foreach(string expectedName in pkgNames)
+            foreach(string expectedPkgName in pkgNames)
             {
-                if (!actualPkgNames.Contains(expectedName))
+                if (!actualPkgNames.Contains(expectedPkgName))
                 {
-                    WriteWarning(String.Format("Package '{0}' was not installed. Please run the cmdlet with -Verbose to see more information", expectedName));
+                    WriteWarning(String.Format("Package '{0}' could not be installed. Please run the cmdlet with -Verbose for more information", expectedPkgName));
                 }
             }
 
