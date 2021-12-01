@@ -44,20 +44,6 @@ function DoBuild
     Write-Verbose -Verbose -Message "Copying ThirdPartyNotices.txt to '$BuildOutPath'"
     Copy-Item -Path "./Notice.txt" -Dest "$BuildOutPath"
 
-    #
-    # Copy DSC resources
-    # TODO: This should not be part of PowerShellGet build/publish and should be moved to its own project
-    #
-    Write-Verbose -Verbose -Message "Copying DSC resources to '$BuildOutPath"
-    Copy-Item -Path "${DSCModulePath}/DscResources" -Dest "$BuildOutPath" -Recurse -Force
-
-    #
-    # Copy Localization and Resources helper modules
-    # TODO: This should not be part of PowerShellGet build/publish and should be moved to its own project
-    #
-    Write-Verbose -Verbose -Message "Copying DSC resources to '$BuildOutPath"
-    Copy-Item -Path "${DSCModulePath}/Modules" -Dest "$BuildOutPath" -Recurse -Force
-
     # Build and place binaries
     if ( Test-Path "${SrcPath}/code" ) {
         Write-Verbose -Verbose -Message "Building assembly and copying to '$BuildOutPath'"
