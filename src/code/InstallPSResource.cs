@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 
 using Dbg = System.Diagnostics.Debug;
@@ -265,6 +266,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
                 pathsToInstallPkg: _pathsToInstallPkg);
+
+            List<string> actualPkgNames = installedPkgs.Select(x => x.Name).ToList();
+            foreach(string expectedName in pkgNames)
+            {
+                if (!actualPkgNames.Contains(expectedName))
+                {
+                    WriteWarning(String.Format("Package '{0}' was not installed. Please run the cmdlet with -Verbose to see more information", expectedName));
+                }
+            }
 
             if (PassThru)
             {
