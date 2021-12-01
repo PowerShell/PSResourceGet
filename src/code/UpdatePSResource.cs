@@ -127,9 +127,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 cancellationToken: _cancellationTokenSource.Token, 
                 cmdletPassedIn: this);
 
-             _installHelper = new InstallHelper(
-                savePkg: false,
-                cmdletPassedIn: this);
+             _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -176,10 +174,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 trustRepository: TrustRepository,
                 credential: Credential,
                 noClobber: false,
-                specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
+                savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
             if (PassThru)
