@@ -113,7 +113,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter TrustRepository { get; set; }
-        
+
+        /// <summary>
+        /// Passes the resource saved to the console.
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter PassThru { get; set; }
+
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
@@ -234,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            _installHelper.InstallPackages(
+            var installedPkgs = _installHelper.InstallPackages(
                 names: namesToSave, 
                 versionRange: _versionRange, 
                 prerelease: pkgPrerelease, 
@@ -252,6 +258,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 savePkg: true,
                 pathsToInstallPkg: new List<string> { _path } );
+
+            if (PassThru)
+            {
+                foreach (PSResourceInfo pkg in installedPkgs)
+                {
+                    WriteObject(pkg);
+                }
+            }
         }
         
         #endregion

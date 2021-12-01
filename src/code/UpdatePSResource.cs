@@ -98,6 +98,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter Force { get; set; }
 
         /// <summary>
+        /// Passes the resource updated to the console.
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter PassThru { get; set; }
+
+        /// <summary>
         /// Skips the check for resource dependencies, so that only found resources are updated,
         /// and not any resources the found resource depends on.
         /// </summary>
@@ -156,7 +162,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            _installHelper.InstallPackages(
+            var installedPkgs = _installHelper.InstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,
                 prerelease: Prerelease,
@@ -174,6 +180,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
+
+            if (PassThru)
+            {
+                foreach (PSResourceInfo pkg in installedPkgs)
+                {
+                    WriteObject(pkg);
+                }
+            }
         }
 
         protected override void StopProcessing()
