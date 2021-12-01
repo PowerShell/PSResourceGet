@@ -185,8 +185,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: void
         /// </summary>
         /// <param name="sectionName"></param>
-        public static void Remove(string[] repoNames, out string[] errorList)
+        public static List<PSRepositoryInfo> Remove(string[] repoNames, out string[] errorList)
         {
+            List<PSRepositoryInfo> removedRepos = new List<PSRepositoryInfo>();
             List<string> tempErrorList = new List<string>();
             XDocument doc;
             try
@@ -211,6 +212,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     continue;
                 }
 
+                removedRepos.Add(
+                    new PSRepositoryInfo(repo,
+                        new Uri(node.Attribute("Url").Value),
+                        Int32.Parse(node.Attribute("Priority").Value),
+                        Boolean.Parse(node.Attribute("Trusted").Value)));
                 // Remove item from file
                 node.Remove();
             }
@@ -218,6 +224,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Close the file
             root.Save(FullRepositoryPath);
             errorList = tempErrorList.ToArray();
+            return removedRepos;
         }
 
         public static List<PSRepositoryInfo> Read(string[] repoNames, out string[] errorList)
