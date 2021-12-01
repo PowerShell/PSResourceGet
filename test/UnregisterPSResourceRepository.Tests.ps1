@@ -5,6 +5,8 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe "Test Register-PSResourceRepository" {
     BeforeEach {
+        $TestGalleryName = Get-PoshTestGalleryName
+        $TestGalleryUrl = Get-PoshTestGalleryLocation
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
@@ -58,5 +60,13 @@ Describe "Test Register-PSResourceRepository" {
 
     It "throw error if Name is null" {
         {Unregister-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
+    }
+
+    It "unregister repository using -PassThru" {
+        $res = Unregister-PSResourceRepository -Name $TestGalleryName -PassThru
+        $res.Name | Should -Be $TestGalleryName
+        $res.Url | Should -Be $TestGalleryURL
+        $res = Get-PSResourceRepository -Name $TestGalleryName
+        $res | Should -BeNullOrEmpty
     }
 }
