@@ -134,6 +134,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
 
+        /// <summary>
+        /// Suppresses progress information.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        public SwitchParameter Quiet { get; set; }
+
         #endregion
 
         #region Method overrides
@@ -246,7 +253,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 prerelease: pkgPrerelease, 
                 repository: pkgRepository, 
                 acceptLicense: true, 
-                quiet: true, 
+                quiet: Quiet, 
                 reinstall: true, 
                 force: false, 
                 trustRepository: TrustRepository,
