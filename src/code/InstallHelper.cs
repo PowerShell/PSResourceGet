@@ -50,6 +50,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _noClobber;
         private bool _savePkg;
         List<string> _pathsToSearch;
+        List<ErrorRecord> _errorRecordsList;
 
         #endregion
 
@@ -78,7 +79,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool includeXML,
             bool skipDependencyCheck,
             bool savePkg,
-            List<string> pathsToInstallPkg)
+            List<string> pathsToInstallPkg,
+            out List<ErrorRecord> errorRecords)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXML '{10}'; SavePackage '{11}'",
@@ -108,6 +110,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _includeXML = includeXML;
             _savePkg = savePkg;
             _pathsToInstallPkg = pathsToInstallPkg;
+            _errorRecordsList = new List<ErrorRecord>();
 
             // Create list of installation paths to search.
             _pathsToSearch = new List<string>();
@@ -125,12 +128,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Go through the repositories and see which is the first repository to have the pkg version available
-            return ProcessRepositories(
+            List<PSResourceInfo> installedPkgs = ProcessRepositories(
                 packageNames: names,
                 repository: repository,
                 trustRepository: _trustRepository,
                 credential: _credential,
                 skipDependencyCheck: skipDependencyCheck);
+
+            errorRecords = _errorRecordsList;
+            return installedPkgs;
         }
 
         #endregion
@@ -488,11 +494,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + ".psd1");
                         if (!File.Exists(moduleManifest))
                         {
-                            var message = String.Format("Module manifest file: {0} does not exist. This is not a valid PowerShell module.", moduleManifest);
+                            var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgIdentity.Id, moduleManifest);
 
                             var ex = new ArgumentException(message);
                             var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                             _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
+
+                            // TODO: verify it works Anam
+                            _errorRecordsList.Add(psdataFileDoesNotExistError);
                             continue;
                         }
 
@@ -541,14 +550,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    _cmdletPassedIn.WriteError(
-                        new ErrorRecord(
+                    var errRec = new ErrorRecord(
                             new PSInvalidOperationException(
                                 message: $"Unable to successfully install package '{pkg.Name}': '{e.Message}'",
                                 innerException: e),
                             "InstallPackageFailed",
                             ErrorCategory.InvalidOperation,
-                            _cmdletPassedIn));
+                            _cmdletPassedIn);
+
+                    // _cmdletPassedIn.WriteError(
+                    //     new ErrorRecord(
+                    //         new PSInvalidOperationException(
+                    //             message: $"Unable to successfully install package '{pkg.Name}': '{e.Message}'",
+                    //             innerException: e),
+                    //         "InstallPackageFailed",
+                    //         ErrorCategory.InvalidOperation,
+                    //         _cmdletPassedIn));
+                    _cmdletPassedIn.WriteError(errRec);
+                    // TODO: change this to Package {0} could not be installed with error:  at start?? I feel not.
+                    _errorRecordsList.Add(errRec);
                 }
                 finally
                 {
@@ -560,6 +580,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (!TryDeleteDirectory(tempInstallPath, out ErrorRecord errorMsg))
                         {
                             _cmdletPassedIn.WriteError(errorMsg);
+                            // TODO: does this prevent installation? do I need to write Package {0} could not be installed with error: here?
+                            _errorRecordsList.Add(errorMsg);
                         }
                         else
                         {
@@ -607,11 +629,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         if (!File.Exists(LicenseFilePath))
                         {
-                            var exMessage = "License.txt not Found. License.txt must be provided when user license acceptance is required.";
+                            var exMessage = String.Format("{0} package could not be installed with error: License.txt not found. License.txt must be provided when user license acceptance is required.", p.Name);
                             var ex = new ArgumentException(exMessage);
                             var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
 
                             _cmdletPassedIn.WriteError(acceptLicenseError);
+                            // TODO verify it works Anam
+                            _errorRecordsList.Add(acceptLicenseError);
                             success = false;
                         }
 
@@ -634,11 +658,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Check if user agreed to license terms, if they didn't then throw error, otherwise continue to install
                     if (!_acceptLicense)
                     {
-                        var message = $"License Acceptance is required for module '{p.Name}'. Please specify '-AcceptLicense' to perform this operation.";
+                        var message = String.Format("{0} package could not be installed with error: License Acceptance is required for module '{0}'. Please specify '-AcceptLicense' to perform this operation.", p.Name);
                         var ex = new ArgumentException(message);
                         var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
 
                         _cmdletPassedIn.WriteError(acceptLicenseError);
+                        // TODO verify it works Anam
+                        _errorRecordsList.Add(acceptLicenseError);
                         success = false;
                     }
                 }
@@ -683,13 +709,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     duplicateCmdlets.AddRange(duplicateCmds);
 
                     var errMessage = string.Format(
-                        "The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
+                        "{1} package could not be installed with error: The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
                         String.Join(", ", duplicateCmdlets), pkgName);
 
                     var ex = new ArgumentException(errMessage);
                     var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
 
                     _cmdletPassedIn.WriteError(noClobberError);
+                    // TODO verify it works Anam
+                    _errorRecordsList.Add(noClobberError);
                     foundClobber = true;
 
                     return foundClobber;
@@ -712,10 +740,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Write all metadata into metadataXMLPath
             if (!pkg.TryWrite(metadataXMLPath, out string error))
             {
-                var message = string.Format("Error parsing metadata into XML: '{0}'", error);
+                var message = string.Format("{0} package could not be installed with error: Error parsing metadata into XML: '{1}'", pkg.Name, error);
                 var ex = new ArgumentException(message);
                 var ErrorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
-                WriteError(ErrorParsingMetadata);
+                _cmdletPassedIn.WriteError(ErrorParsingMetadata);
+                // TODO verify it works Anam
+                _errorRecordsList.Add(ErrorParsingMetadata);
             }
         }
 
