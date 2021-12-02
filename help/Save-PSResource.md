@@ -15,13 +15,13 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 ### NameParameterSet
 ```
 Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
 ```
 Save-PSResource [-InputObject] <PSResourceInfo> [-Credential <PSCredential>] [-AsNupkg]
- [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -222,6 +222,21 @@ Skips the check for resource dependencies, so that only found resources are save
 Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
 Aliases: 
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Quiet
+Supresses progress information.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
 
 Required: False
 Position: Named
