@@ -267,10 +267,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
-            List<string> actualPkgNames = installedPkgs.Select(x => x.Name).ToList();
+            List<string> installedPkgNames = installedPkgs.Select(x => x.Name).ToList();
             foreach(string expectedPkgName in pkgNames)
             {
-                if (!actualPkgNames.Contains(expectedPkgName))
+                if (!installedPkgNames.Contains(expectedPkgName))
                 {
                     WriteWarning(String.Format("Package '{0}' was not installed. Please run the cmdlet with -Verbose for more information", expectedPkgName));
                 }
