@@ -63,27 +63,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has rights to save a resource from a specific repository.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public PSCredential Credential { get; set; }
         
         /// <summary>
         /// Saves the resource as a .nupkg
         /// </summary>
-        [Parameter()]
+        [Parameter]
         public SwitchParameter AsNupkg { get; set; }
 
         /// <summary>
         /// Saves the metadata XML file with the resource
         /// </summary>
-        [Parameter()]
+        [Parameter]
         public SwitchParameter IncludeXML { get; set; }
 
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -110,14 +108,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter TrustRepository { get; set; }
 
         /// <summary>
         /// Passes the resource saved to the console.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         public SwitchParameter PassThru { get; set; }
 
         /// <summary>
