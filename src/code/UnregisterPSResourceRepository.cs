@@ -68,7 +68,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 foreach (PSRepositoryInfo repository in removedRepositories)
                 {
-                    WriteObject(repository);                }
+                    WriteObject(repository);
+                }
             }
         }
 
