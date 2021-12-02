@@ -3,6 +3,7 @@
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
+using System.Collections.Generic;
 using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -28,6 +29,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; } = Utils.EmptyStrArray;
 
+        /// <summary>
+        /// When specified, displays the repositories that were just unregistered
+        /// </summary>
+        [Parameter]
+        public SwitchParameter PassThru { get; set; }
+
         #endregion
 
         #region Method overrides
@@ -45,7 +52,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            RepositorySettings.Remove(Name, out string[] errorList);
+            List<PSRepositoryInfo> removedRepositories = RepositorySettings.Remove(Name, out string[] errorList);
 
             // handle non-terminating errors
             foreach (string error in errorList)
@@ -55,6 +62,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     "ErrorUnregisteringSpecifiedRepo",
                     ErrorCategory.InvalidOperation,
                     this));
+            }
+
+            if (PassThru)
+            {
+                foreach (PSRepositoryInfo repository in removedRepositories)
+                {
+                    WriteObject(repository);
+                }
             }
         }
 
