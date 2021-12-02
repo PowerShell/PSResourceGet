@@ -224,6 +224,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Close the file
             root.Save(FullRepositoryPath);
             errorList = tempErrorList.ToArray();
+            
             return removedRepos;
         }
 
