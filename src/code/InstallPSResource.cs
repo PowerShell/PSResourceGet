@@ -265,26 +265,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
                 savePkg: false,
-                pathsToInstallPkg: _pathsToInstallPkg,
-                out List<ErrorRecord> errorRecords);
+                pathsToInstallPkg: _pathsToInstallPkg);
 
-            List<string> installedPkgNames = installedPkgs.Select(x => x.Name).ToList();
-            foreach(string expectedPkgName in pkgNames)
-            {
-                if (!installedPkgNames.Contains(expectedPkgName))
-                {
-                    // WriteWarning(String.Format("Package '{0}' was not installed. Please run the cmdlet with -Verbose for more information", expectedPkgName));
-                    var message = String.Format("Package {0} could not be installed with error: resource could not be found in any registered repositories", expectedPkgName);
-                    var ex = new ArgumentException(message);
-                    var ResourceNotFoundError = new ErrorRecord(ex, "resourceNotFoundError", ErrorCategory.ObjectNotFound, null);
-                    errorRecords.Add(ResourceNotFoundError);
-                }
-            }
+            // List<string> installedPkgNames = installedPkgs.Select(x => x.Name).ToList();
+            // foreach(string expectedPkgName in pkgNames)
+            // {
+            //     if (!installedPkgNames.Contains(expectedPkgName))
+            //     {
+            //         // WriteWarning(String.Format("Package '{0}' was not installed. Please run the cmdlet with -Verbose for more information", expectedPkgName));
+            //         var message = String.Format("Package {0} could not be installed with error: resource could not be found in any registered repositories", expectedPkgName);
+            //         var ex = new ArgumentException(message);
+            //         var ResourceNotFoundError = new ErrorRecord(ex, "resourceNotFoundError", ErrorCategory.ObjectNotFound, null);
+            //         errorRecords.Add(ResourceNotFoundError);
+            //     }
+            // }
 
-            foreach (ErrorRecord error in errorRecords)
-            {
-                WriteError(error);
-            }
+            // foreach (ErrorRecord error in errorRecords)
+            // {
+            //     WriteError(error);
+            // }
 
             if (PassThru)
             {

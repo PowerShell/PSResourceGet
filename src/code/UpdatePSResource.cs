@@ -178,13 +178,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
                 savePkg: false,
-                pathsToInstallPkg: _pathsToInstallPkg,
-                errorRecords: out List<ErrorRecord> errorRecords);
-
-            foreach(ErrorRecord error in errorRecords)
-            {
-                WriteError(error);
-            }
+                pathsToInstallPkg: _pathsToInstallPkg);
 
             if (PassThru)
             {

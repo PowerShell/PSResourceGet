@@ -50,7 +50,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _noClobber;
         private bool _savePkg;
         List<string> _pathsToSearch;
-        List<ErrorRecord> _errorRecordsList;
 
         #endregion
 
@@ -79,8 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool includeXML,
             bool skipDependencyCheck,
             bool savePkg,
-            List<string> pathsToInstallPkg,
-            out List<ErrorRecord> errorRecords)
+            List<string> pathsToInstallPkg)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXML '{10}'; SavePackage '{11}'",
@@ -110,7 +108,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _includeXML = includeXML;
             _savePkg = savePkg;
             _pathsToInstallPkg = pathsToInstallPkg;
-            _errorRecordsList = new List<ErrorRecord>();
 
             // Create list of installation paths to search.
             _pathsToSearch = new List<string>();
@@ -135,7 +132,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 credential: _credential,
                 skipDependencyCheck: skipDependencyCheck);
 
-            errorRecords = _errorRecordsList;
             return installedPkgs;
         }
 
@@ -158,6 +154,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
+
             foreach (var repo in listOfRepositories)
             {
                 // If no more packages to install, then return
@@ -223,11 +220,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (!_reinstall)
                 {
                     // Removes all of the names that are already installed from the list of names to search for
-                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
+                    _cmdletPassedIn.WriteVerbose("made it to reinstall not selected condition being true");
+                    foreach(PSResourceInfo p in pkgsFromRepoToInstall)
+                    {
+                        _cmdletPassedIn.WriteVerbose("pkgs left before !reinstall removing: " + p.Name);
+                    }
+                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall, ref pkgNamesToInstall);
+                    foreach(PSResourceInfo p in pkgsFromRepoToInstall)
+                    {
+                        _cmdletPassedIn.WriteVerbose("pkgs left after !reinstall removing: " + p.Name);
+                    }
+                    // this now contains valid packages from Find minus those which would require reinstall
+                    // TODO I think: also remove names of packages which are already installed from PkgNamesToInstall here!
                 }
 
                 if (!pkgsFromRepoToInstall.Any())
                 {
+                    _cmdletPassedIn.WriteVerbose("nothing to install left so return");
                     continue;
                 }
 
@@ -246,11 +255,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 allPkgsInstalled.AddRange(pkgsInstalled);
             }
 
+            _cmdletPassedIn.WriteVerbose("names left in pkgNamesToInstall:" + String.Join(", ", pkgNamesToInstall));
+            // TODO: iterate through pkgNamesToInstall left and write error here tbh
+            foreach (string pkgName in pkgNamesToInstall)
+            {
+                var message = String.Format("Package {0} could not be installed as it was not found in any registered repositories", pkgName);
+                var ex = new ArgumentException(message);
+                var ResourceNotFoundError = new ErrorRecord(ex, "resourceNotFoundError", ErrorCategory.ObjectNotFound, null);
+                _cmdletPassedIn.WriteError(ResourceNotFoundError);
+            }
+
             return allPkgsInstalled;
         }
 
         // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
-        private IEnumerable<PSResourceInfo> FilterByInstalledPkgs(IEnumerable<PSResourceInfo> packages)
+        private IEnumerable<PSResourceInfo> FilterByInstalledPkgs(IEnumerable<PSResourceInfo> packages, ref List<string> pkgNamesToInstall)
         {
             // Create list of installation paths to search.
             List<string> _pathsToSearch = new List<string>();
@@ -292,6 +311,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkg.Version));
 
                 filteredPackages.Remove(pkg.Name);
+                pkgNamesToInstall.Remove(pkg.Name);
             }
 
             return filteredPackages.Values.ToArray();
@@ -499,9 +519,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ex = new ArgumentException(message);
                             var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                             _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
-
-                            // TODO: verify it works Anam
-                            _errorRecordsList.Add(psdataFileDoesNotExistError);
                             continue;
                         }
 
@@ -550,25 +567,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    var errRec = new ErrorRecord(
+                    _cmdletPassedIn.WriteError(
+                        new ErrorRecord(
                             new PSInvalidOperationException(
                                 message: $"Unable to successfully install package '{pkg.Name}': '{e.Message}'",
                                 innerException: e),
                             "InstallPackageFailed",
                             ErrorCategory.InvalidOperation,
-                            _cmdletPassedIn);
-
-                    // _cmdletPassedIn.WriteError(
-                    //     new ErrorRecord(
-                    //         new PSInvalidOperationException(
-                    //             message: $"Unable to successfully install package '{pkg.Name}': '{e.Message}'",
-                    //             innerException: e),
-                    //         "InstallPackageFailed",
-                    //         ErrorCategory.InvalidOperation,
-                    //         _cmdletPassedIn));
-                    _cmdletPassedIn.WriteError(errRec);
-                    // TODO: change this to Package {0} could not be installed with error:  at start?? I feel not.
-                    _errorRecordsList.Add(errRec);
+                            _cmdletPassedIn));
                 }
                 finally
                 {
@@ -580,8 +586,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (!TryDeleteDirectory(tempInstallPath, out ErrorRecord errorMsg))
                         {
                             _cmdletPassedIn.WriteError(errorMsg);
-                            // TODO: does this prevent installation? do I need to write Package {0} could not be installed with error: here?
-                            _errorRecordsList.Add(errorMsg);
                         }
                         else
                         {
@@ -634,8 +638,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
 
                             _cmdletPassedIn.WriteError(acceptLicenseError);
-                            // TODO verify it works Anam
-                            _errorRecordsList.Add(acceptLicenseError);
                             success = false;
                         }
 
@@ -663,8 +665,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
 
                         _cmdletPassedIn.WriteError(acceptLicenseError);
-                        // TODO verify it works Anam
-                        _errorRecordsList.Add(acceptLicenseError);
                         success = false;
                     }
                 }
@@ -716,8 +716,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
 
                     _cmdletPassedIn.WriteError(noClobberError);
-                    // TODO verify it works Anam
-                    _errorRecordsList.Add(noClobberError);
                     foundClobber = true;
 
                     return foundClobber;
@@ -743,9 +741,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var message = string.Format("{0} package could not be installed with error: Error parsing metadata into XML: '{1}'", pkg.Name, error);
                 var ex = new ArgumentException(message);
                 var ErrorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
+
                 _cmdletPassedIn.WriteError(ErrorParsingMetadata);
-                // TODO verify it works Anam
-                _errorRecordsList.Add(ErrorParsingMetadata);
             }
         }
 
