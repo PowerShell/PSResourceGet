@@ -376,8 +376,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkg.Name,
                             pkg.Version.ToString());
                         var ex = new ArgumentException(message);
-                        var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
-                        _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
+                        var packageIdentityVersionParseError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
+                        _cmdletPassedIn.WriteError(packageIdentityVersionParseError);
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                         continue;
                     }
