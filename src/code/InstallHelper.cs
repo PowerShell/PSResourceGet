@@ -221,7 +221,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!pkgsFromRepoToInstall.Any())
                 {
-                    _cmdletPassedIn.WriteVerbose("nothing to install left so return");
                     continue;
                 }
 
@@ -373,10 +372,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!NuGetVersion.TryParse(createFullVersion, out NuGetVersion pkgVersion))
                     {
-                        // TODO: should this be WriteError (cause once one bad version is specified that name isn't going to be searched/installed)
-                        // i.e can't do Install-PSResource ValidPkg -Version "2-0-0-0","2.0.0.0"
-                        _cmdletPassedIn.WriteVerbose(string.Format("Error parsing package '{0}' version '{1}' into a NuGetVersion", 
-                            pkg.Name, pkg.Version.ToString()));
+                        var message = String.Format("{0} package could not be installed with error: could not parse package '{0}' version '{1} into a NuGetVersion",
+                            pkg.Name,
+                            pkg.Version.ToString());
+                        var ex = new ArgumentException(message);
+                        var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
+                        _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                         continue;
                     }
