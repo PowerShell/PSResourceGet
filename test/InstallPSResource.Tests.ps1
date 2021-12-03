@@ -99,7 +99,9 @@ Describe 'Test Install-PSResource for Module' {
     ) {
         param($Version, $Description)
 
-        Install-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName
+        Install-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+
         $res = Get-Module "TestModule" -ListAvailable
         $res | Should -BeNullOrEmpty
     }

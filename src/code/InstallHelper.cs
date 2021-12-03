@@ -247,7 +247,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (string pkgName in _pckgNamesToInstall)
             {
-                var message = String.Format("Package {0} could not be installed as it was not found in any registered repositories", pkgName);
+                var message = String.Format("Package '{0}' with requested version range {1} could not be installed as it was not found in any registered repositories",
+                    pkgName,
+                    _versionRange.ToString());
                 var ex = new ArgumentException(message);
                 var ResourceNotFoundError = new ErrorRecord(ex, "ResourceNotFoundError", ErrorCategory.ObjectNotFound, null);
                 _cmdletPassedIn.WriteError(ResourceNotFoundError);

@@ -158,27 +158,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         _versionRange = VersionRange.All;
                     }
-                    // else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-                    // {
-                    //     var exMessage = "Argument for -Version parameter is not in the proper format.";
-                    //     var ex = new ArgumentException(exMessage);
-                    //     var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                    //     ThrowTerminatingError(IncorrectVersionFormat);
-                    // }
-                    else if (!VersionRange.TryParse(Version, out _versionRange))
+                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
                     {
                         var exMessage = "Argument for -Version parameter is not in the proper format.";
                         var ex = new ArgumentException(exMessage);
                         var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
+                    // else if (!VersionRange.TryParse(Version, out _versionRange))
+                    // {
+                    //     var exMessage = "Argument for -Version parameter is not in the proper format.";
+                    //     var ex = new ArgumentException(exMessage);
+                    //     var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                    //     ThrowTerminatingError(IncorrectVersionFormat);
+                    // }
 
                     if (_versionRange == null)
                     {
                         WriteVerbose("versionRange null!");
                     }
                     WriteVerbose("NuGet version range: " + _versionRange.ToString());
-                    
+
                     ProcessInstallHelper(
                         pkgNames: Name,
                         pkgPrerelease: Prerelease,
