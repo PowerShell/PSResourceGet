@@ -337,31 +337,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", pkg.Name));
 
-                    int activityId = 0;
-                    string activity = "";
-                    string statusDescription = "";
-
-                    if (_pkgNamesToInstall.Contains(pkg.Name, StringComparer.InvariantCultureIgnoreCase))
+                    // Will suppress progress bar if -Quiet is passed in
+                    if (!_quiet)
                     {
-                        // Installing parent package (one whose name was passed in to install)
-                        activityId = 0;
-                        activity = string.Format("Installing {0}...", pkg.Name);
-                        statusDescription = string.Format("{0}% Complete:", Math.Round(((double) totalPkgsCount/totalPkgs) * 100), 2);
-                        currentPkgNumOfDependentPkgs = pkg.Dependencies.Count();
-                        dependentPkgCount = 1;
-                    }
-                    else
-                    {
-                        // Installing dependent package
-                        activityId = 1;
-                        activity = string.Format("Installing dependent package {0}...", pkg.Name);
-                        statusDescription = string.Format("{0}% Complete:", Math.Round(((double) dependentPkgCount/currentPkgNumOfDependentPkgs) * 100), 2);
-                        dependentPkgCount++;
+                        int activityId = 0;
+                        string activity = "";
+                        string statusDescription = "";
+
+                        if (_pkgNamesToInstall.Contains(pkg.Name, StringComparer.InvariantCultureIgnoreCase))
+                        {
+                            // Installing parent package (one whose name was passed in to install)
+                            activityId = 0;
+                            activity = string.Format("Installing {0}...", pkg.Name);
+                            statusDescription = string.Format("{0}% Complete:", Math.Round(((double)totalPkgsCount / totalPkgs) * 100), 2);
+                            currentPkgNumOfDependentPkgs = pkg.Dependencies.Count();
+                            dependentPkgCount = 1;
+                        }
+                        else
+                        {
+                            // Installing dependent package
+                            activityId = 1;
+                            activity = string.Format("Installing dependent package {0}...", pkg.Name);
+                            statusDescription = string.Format("{0}% Complete:", Math.Round(((double)dependentPkgCount / currentPkgNumOfDependentPkgs) * 100), 2);
+                            dependentPkgCount++;
+                        }
+
+                        var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
+                        _cmdletPassedIn.WriteProgress(progressRecord);
                     }
 
-                    var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
-                    _cmdletPassedIn.WriteProgress(progressRecord);
-                    
                     // Create PackageIdentity in order to download
                     string createFullVersion = pkg.Version.ToString();
                     if (pkg.IsPrerelease)

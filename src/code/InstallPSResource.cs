@@ -54,49 +54,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public PSCredential Credential { get; set; }
 
         /// <summary>
         /// Specifies the scope of installation.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public ScopeType Scope { get; set; }
 
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter TrustRepository { get; set; }
         
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter Reinstall { get; set; }
 
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter AcceptLicense { get; set; }
 
         /// <summary>
         /// Prevents installing a package that contains cmdlets that already exist on the machine.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public SwitchParameter NoClobber { get; set; }
 
         /// <summary>
@@ -109,8 +103,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Passes the resource installed to the console.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter PassThru { get; set; }
 
         /// <summary>
