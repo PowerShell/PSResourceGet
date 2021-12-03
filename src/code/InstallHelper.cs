@@ -739,8 +739,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ex = new ArgumentException(message);
                 var ErrorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
 
-                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 _cmdletPassedIn.WriteError(ErrorParsingMetadata);
+                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
             }
         }
 
