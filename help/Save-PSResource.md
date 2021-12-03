@@ -12,10 +12,16 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 
 ## SYNTAX
 
+### NameParameterSet
 ```
 Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+ [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### InputObjectParameterSet
+```
+Save-PSResource [-InputObject] <PSResourceInfo> [-Credential <PSCredential>] [-AsNupkg]
+ [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -61,7 +67,7 @@ Aliases:
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByPropertyName, ByValue)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -120,11 +126,26 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Credential
+Optional credentials to be used when accessing a repository.
+
+```yaml
+Type: System.Management.Automation.PSCredential
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -AsNupkg
 Saves the resource as a zipped .nupkg file.
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -139,7 +160,7 @@ Includes the PowerShellGet metadata XML (used to verify that PowerShellGet has i
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -154,7 +175,7 @@ Specifies the path to save the resource to.
 
 ```yaml
 Type: System.String
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -164,12 +185,87 @@ Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
+### -TrustRepository
+Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository is not already set to a trusted level.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PassThru
+Passes the resource saved to the console.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SkipDependencyCheck
+Skips the check for resource dependencies, so that only found resources are saved, and not any resources the found resource depends on.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases: 
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Quiet
+Supresses progress information.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -InputObject
+Used for pipeline input.
+
+```yaml
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
+Parameter Sets: (All)
+Aliases: wi
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Confirm
 Prompts you for confirmation before running the cmdlet.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases: cf
 
 Required: False
@@ -185,7 +281,7 @@ The cmdlet is not run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases: wi
 
 Required: False

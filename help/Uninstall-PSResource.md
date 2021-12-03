@@ -12,8 +12,14 @@ Uninstalls a resource (module or script) that has been installed on the machine 
 
 ## SYNTAX
 
+### NameParameterSet
 ```
-Uninstall-PSResource [-Name] <String[]> [-Version <String>] [-Force] [-WhatIf] [<CommonParameters>]
+Uninstall-PSResource [-Name] <String[]> [-Version <String>] [-SkipDependencyCheck] [-WhatIf] [<CommonParameters>]
+```
+
+### InputObjectParameterSet
+```
+Uninstall-PSResource [-InputObject] <PSResourceInfo> [-SkipDependencyCheck] [-WhatIf] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -54,13 +60,13 @@ Name of a resource or resources that has been installed. Accepts wild card chara
 
 ```yaml
 Type: System.String[]
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByPropertyName, ByValue)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: True
 ```
 
@@ -79,13 +85,28 @@ Accept pipeline input: True
 Accept wildcard characters: False
 ```
 
-### -Force
-Skips check to see if any modules have a dependency on the resource to be uninstalled.
+### -SkipDependencyCheck
+Skips check to see if other resources are dependent on the resource being uninstalled.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -InputObject
+Used for pipeline input.
+
+```yaml
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
+Parameter Sets: (All)
+Aliases: wi
 
 Required: False
 Position: Named
@@ -100,7 +121,7 @@ The cmdlet is not run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases: wi
 
 Required: False
