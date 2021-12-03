@@ -127,13 +127,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Go through the repositories and see which is the first repository to have the pkg version available
-            List<PSResourceInfo> installedPkgs = ProcessRepositories(
+            return ProcessRepositories(
                 repository: repository,
                 trustRepository: _trustRepository,
                 credential: _credential,
                 skipDependencyCheck: skipDependencyCheck);
-
-            return installedPkgs;
         }
 
         #endregion
