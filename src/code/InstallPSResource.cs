@@ -158,7 +158,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         _versionRange = VersionRange.All;
                     }
-                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+                    // else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
+                    // {
+                    //     var exMessage = "Argument for -Version parameter is not in the proper format.";
+                    //     var ex = new ArgumentException(exMessage);
+                    //     var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                    //     ThrowTerminatingError(IncorrectVersionFormat);
+                    // }
+                    else if (!VersionRange.TryParse(Version, out _versionRange))
                     {
                         var exMessage = "Argument for -Version parameter is not in the proper format.";
                         var ex = new ArgumentException(exMessage);
@@ -166,6 +173,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
 
+                    if (_versionRange == null)
+                    {
+                        WriteVerbose("versionRange null!");
+                    }
+                    WriteVerbose("NuGet version range: " + _versionRange.ToString());
+                    
                     ProcessInstallHelper(
                         pkgNames: Name,
                         pkgPrerelease: Prerelease,
@@ -266,24 +279,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
-
-            // List<string> installedPkgNames = installedPkgs.Select(x => x.Name).ToList();
-            // foreach(string expectedPkgName in pkgNames)
-            // {
-            //     if (!installedPkgNames.Contains(expectedPkgName))
-            //     {
-            //         // WriteWarning(String.Format("Package '{0}' was not installed. Please run the cmdlet with -Verbose for more information", expectedPkgName));
-            //         var message = String.Format("Package {0} could not be installed with error: resource could not be found in any registered repositories", expectedPkgName);
-            //         var ex = new ArgumentException(message);
-            //         var ResourceNotFoundError = new ErrorRecord(ex, "resourceNotFoundError", ErrorCategory.ObjectNotFound, null);
-            //         errorRecords.Add(ResourceNotFoundError);
-            //     }
-            // }
-
-            // foreach (ErrorRecord error in errorRecords)
-            // {
-            //     WriteError(error);
-            // }
 
             if (PassThru)
             {

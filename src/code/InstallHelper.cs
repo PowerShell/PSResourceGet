@@ -50,6 +50,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _noClobber;
         private bool _savePkg;
         List<string> _pathsToSearch;
+        List<string> _pckgNamesToInstall;
 
         #endregion
 
@@ -111,6 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Create list of installation paths to search.
             _pathsToSearch = new List<string>();
+            _pckgNamesToInstall = names.ToList();
 
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
             // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
@@ -148,7 +150,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool skipDependencyCheck)
         {
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
-            List<string> pkgNamesToInstall = packageNames.ToList();
+            // List<string> pkgNamesToInstall = packageNames.ToList();
             var yesToAll = false;
             var noToAll = false;
 
@@ -158,7 +160,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (var repo in listOfRepositories)
             {
                 // If no more packages to install, then return
-                if (!pkgNamesToInstall.Any()) return allPkgsInstalled;
+                if (!_pckgNamesToInstall.Any()) return allPkgsInstalled;
 
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
@@ -190,7 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // Finds parent packages and dependencies
                 IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
-                    name: pkgNamesToInstall.ToArray(),
+                    name: _pckgNamesToInstall.ToArray(),
                     type: ResourceType.None,
                     version: _versionRange != null ? _versionRange.OriginalString : null,
                     prerelease: _prerelease,
@@ -219,19 +221,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
                 if (!_reinstall)
                 {
-                    // Removes all of the names that are already installed from the list of names to search for
-                    _cmdletPassedIn.WriteVerbose("made it to reinstall not selected condition being true");
-                    foreach(PSResourceInfo p in pkgsFromRepoToInstall)
-                    {
-                        _cmdletPassedIn.WriteVerbose("pkgs left before !reinstall removing: " + p.Name);
-                    }
-                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall, ref pkgNamesToInstall);
-                    foreach(PSResourceInfo p in pkgsFromRepoToInstall)
-                    {
-                        _cmdletPassedIn.WriteVerbose("pkgs left after !reinstall removing: " + p.Name);
-                    }
-                    // this now contains valid packages from Find minus those which would require reinstall
-                    // TODO I think: also remove names of packages which are already installed from PkgNamesToInstall here!
+                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
                 }
 
                 if (!pkgsFromRepoToInstall.Any())
@@ -242,23 +232,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 List<PSResourceInfo> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
-                    pkgNamesToInstall,
+                    // _pckgNamesToInstall,
                     repo.Url.AbsoluteUri,
                     credential,
                     isLocalRepo);
 
                 foreach (PSResourceInfo pkg in pkgsInstalled)
                 {
-                    // pkgNamesToInstall.Remove(pkg.Name);
-                    pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                    _pckgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
 
                 allPkgsInstalled.AddRange(pkgsInstalled);
             }
 
-            _cmdletPassedIn.WriteVerbose("names left in pkgNamesToInstall:" + String.Join(", ", pkgNamesToInstall));
-            // TODO: iterate through pkgNamesToInstall left and write error here tbh
-            foreach (string pkgName in pkgNamesToInstall)
+            foreach (string pkgName in _pckgNamesToInstall)
             {
                 var message = String.Format("Package {0} could not be installed as it was not found in any registered repositories", pkgName);
                 var ex = new ArgumentException(message);
@@ -270,7 +257,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
-        private IEnumerable<PSResourceInfo> FilterByInstalledPkgs(IEnumerable<PSResourceInfo> packages, ref List<string> pkgNamesToInstall)
+        private IEnumerable<PSResourceInfo> FilterByInstalledPkgs(IEnumerable<PSResourceInfo> packages)
         {
             // Create list of installation paths to search.
             List<string> _pathsToSearch = new List<string>();
@@ -312,7 +299,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkg.Version));
 
                 filteredPackages.Remove(pkg.Name);
-                pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                _pckgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
             }
 
             return filteredPackages.Values.ToArray();
@@ -320,7 +307,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private List<PSResourceInfo> InstallPackage(
             IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
-            List<string> pkgNamesToInstall, // those requested by the user to be installed
+            // List<string> pkgNamesToInstall, // those requested by the user to be installed
             string repoUrl,
             PSCredential credential,
             bool isLocalRepo)
@@ -357,7 +344,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string activity = "";
                     string statusDescription = "";
 
-                    if (pkgNamesToInstall.ToList().Contains(pkg.Name, StringComparer.InvariantCultureIgnoreCase))
+                    if (_pckgNamesToInstall.Contains(pkg.Name, StringComparer.InvariantCultureIgnoreCase))
                     {
                         // Installing parent package (one whose name was passed in to install)
                         activityId = 0;
@@ -387,10 +374,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!NuGetVersion.TryParse(createFullVersion, out NuGetVersion pkgVersion))
                     {
+                        // TODO: should this be WriteError (cause once one bad version is specified that name isn't going to be searched/installed)
+                        // i.e can't do Install-PSResource ValidPkg -Version "2-0-0-0","2.0.0.0"
                         _cmdletPassedIn.WriteVerbose(string.Format("Error parsing package '{0}' version '{1}' into a NuGetVersion", 
                             pkg.Name, pkg.Version.ToString()));
+                        _pckgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                         continue;
                     }
+                    _cmdletPassedIn.WriteVerbose("Parsed NuGet version is: " + pkgVersion.ToFullString());
                     var pkgIdentity = new PackageIdentity(pkg.Name, pkgVersion);
                     var cacheContext = new SourceCacheContext();
 
@@ -520,6 +511,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var ex = new ArgumentException(message);
                             var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                             _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
+                            _pckgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                             continue;
                         }
 
@@ -576,6 +568,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             "InstallPackageFailed",
                             ErrorCategory.InvalidOperation,
                             _cmdletPassedIn));
+                    _pckgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
                 finally
                 {
@@ -639,6 +632,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
 
                             _cmdletPassedIn.WriteError(acceptLicenseError);
+                            _pckgNamesToInstall.RemoveAll(x => x.Equals(p.Name, StringComparison.InvariantCultureIgnoreCase));
                             success = false;
                         }
 
@@ -666,6 +660,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
 
                         _cmdletPassedIn.WriteError(acceptLicenseError);
+                        _pckgNamesToInstall.RemoveAll(x => x.Equals(p.Name, StringComparison.InvariantCultureIgnoreCase));
                         success = false;
                     }
                 }
@@ -717,6 +712,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
 
                     _cmdletPassedIn.WriteError(noClobberError);
+                    _pckgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                     foundClobber = true;
 
                     return foundClobber;
@@ -743,6 +739,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ex = new ArgumentException(message);
                 var ErrorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
 
+                _pckgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 _cmdletPassedIn.WriteError(ErrorParsingMetadata);
             }
         }
