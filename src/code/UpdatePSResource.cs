@@ -100,7 +100,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Passes the resource updated to the console.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         public SwitchParameter PassThru { get; set; }
 
         /// <summary>

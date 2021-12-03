@@ -139,7 +139,7 @@ Specifies whether the repository should be trusted.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: NameParameterSet, PSGalleryParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False

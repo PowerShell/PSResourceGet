@@ -32,14 +32,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the API key that you want to use to publish a module to the online gallery.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public string ApiKey { get; set; }
 
         /// <summary>
         /// Specifies the repository to publish to.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         public string Repository { get; set; }
@@ -48,7 +48,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -75,7 +75,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to where the resource (as a nupkg) should be saved to. This parameter can be used in conjunction with the
         /// -Repository parameter to publish to a repository and also save the exact same package to the local file system.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public string DestinationPath
         {
@@ -111,21 +111,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has rights to a specific repository (used for finding dependencies).
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public PSCredential Credential { get; set; }
 
         /// <summary>
         /// Bypasses the default check that all dependencies are present.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public SwitchParameter SkipDependenciesCheck { get; set; }
         
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public Uri Proxy {
             set
@@ -142,7 +142,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public PSCredential ProxyCredential {
             set

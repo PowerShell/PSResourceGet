@@ -16,7 +16,13 @@ Installs resources (modules and scripts) from a registered repository onto the m
 ```
 Install-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease]
  [-Repository <String[]>] [-Credential <PSCredential>] [-Scope <ScopeType>] [-TrustRepository]
- [-Reinstall] [-Quiet] [-AcceptLicense] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### InputObjectParameterSet
+```
+Install-PSResource [-InputObject <PSResourceInfo>] [-Credential <PSCredential>] [-Scope <ScopeType>] [-TrustRepository]
+ [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -67,7 +73,7 @@ Aliases:
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -131,13 +137,13 @@ Optional credentials to be used when accessing a repository.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
 Position: Named
 Default value: None
-Accept pipeline input: True (ByPropertyName)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -146,7 +152,7 @@ Specifies the scope under which a user has access.
 
 ```yaml
 Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 Accepted values: CurrentUser, AllUsers
 
@@ -162,7 +168,7 @@ Suppress prompts to trust repository. The prompt to trust repository only occurs
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -177,7 +183,7 @@ Writes over any previously installed resource version that already exists on the
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -192,7 +198,7 @@ Supresses installation progress bar.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -207,8 +213,68 @@ Specifies that the resource should accept any request to accept license. This wi
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoClobber
+Prevents installing a package that contains cmdlets that already exist on the machine.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases: 
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SkipDependencyCheck
+Skips the check for resource dependencies, so that only found resources are installed, and not any resources the found resource depends on.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases: 
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PassThru
+Passes the resource installed to the console.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -InputObject
+Used for pipeline input.
+
+```yaml
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
+Parameter Sets: (All)
+Aliases: wi
 
 Required: False
 Position: Named
@@ -222,7 +288,7 @@ Prompts you for confirmation before running the cmdlet.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases: cf
 
 Required: False
@@ -238,7 +304,7 @@ The cmdlet is not run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases: wi
 
 Required: False

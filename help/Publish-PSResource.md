@@ -12,16 +12,8 @@ Publishes a specified module from the local computer to PSResource repository.
 
 ## SYNTAX
 
-### PathParameterSet
 ```
-Publish-PSResource [-APIKey <String>] [-Repository <String>] [-Path] <String>
- [-Credential <PSCredential>] [-SkipDependenciesCheck]
- [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### PathLiteralParameterSet
-```
-Publish-PSResource [-APIKey <String>] [-Repository <String>] -LiteralPath <String>
+Publish-PSResource [-APIKey <String>] [-Repository <String>] [-Path] <String> [-DestinationPath] <String>
  [-Credential <PSCredential>] [-SkipDependenciesCheck]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -54,7 +46,7 @@ Specifies the API key that you want to use to publish a resource to the online g
 
 ```yaml
 Type: System.String
-Parameter Sets: PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -69,7 +61,7 @@ Specifies the repository to publish to.
 
 ```yaml
 Type: System.String
-Parameter Sets: PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -84,22 +76,22 @@ When specified, includes prerelease versions in search.
 
 ```yaml
 Type: System.String
-Parameter Sets: PathParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByPropertyName, ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -LiteralPath
-Specifies a path to one or more locations. Unlike the Path parameter, the value of the LiteralPath parameter is used exactly as entered. No characters are interpreted as wildcards. If the path includes escape characters, enclose them in single quotation marks. Single quotation marks tell PowerShell not to interpret any characters as escape sequences.
+### -DestinationPath
+Specifies the path to where the resource (as a nupkg) should be saved to. This parameter can be used in conjunction with the -Repository parameter to publish to a repository and also save the exact same package to the local file system.
 
 ```yaml
 Type: System.String
-Parameter Sets: PathLiteralParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: True
@@ -114,7 +106,7 @@ Specifies a user account that has rights to a specific repository (used for find
 
 ```yaml
 Type: System.Management.Automation.PSCredential
-Parameter Sets: PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -129,7 +121,7 @@ Bypasses the default check that all dependencies are present on the repository w
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -144,7 +136,7 @@ Prompts you for confirmation before running the cmdlet.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 Aliases: cf
 
 Required: False
@@ -160,7 +152,7 @@ The cmdlet is not run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: PathParameterSet, PathLiteralParameterSet
+Parameter Sets: (All)
 Aliases: wi
 
 Required: False
