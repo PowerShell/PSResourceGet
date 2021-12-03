@@ -249,7 +249,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach (PSResourceInfo pkg in pkgsInstalled)
                 {
-                    pkgNamesToInstall.Remove(pkg.Name);
+                    // pkgNamesToInstall.Remove(pkg.Name);
+                    pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
 
                 allPkgsInstalled.AddRange(pkgsInstalled);
@@ -261,7 +262,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 var message = String.Format("Package {0} could not be installed as it was not found in any registered repositories", pkgName);
                 var ex = new ArgumentException(message);
-                var ResourceNotFoundError = new ErrorRecord(ex, "resourceNotFoundError", ErrorCategory.ObjectNotFound, null);
+                var ResourceNotFoundError = new ErrorRecord(ex, "ResourceNotFoundError", ErrorCategory.ObjectNotFound, null);
                 _cmdletPassedIn.WriteError(ResourceNotFoundError);
             }
 
@@ -311,7 +312,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkg.Version));
 
                 filteredPackages.Remove(pkg.Name);
-                pkgNamesToInstall.Remove(pkg.Name);
+                pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
             }
 
             return filteredPackages.Values.ToArray();

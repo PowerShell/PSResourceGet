@@ -36,7 +36,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install specific module resource by name" {
-        Install-PSResource -Name "TestModule" -Repository $TestGalleryName  
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName 
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
         $pkg.Version | Should -Be "1.3.0"
@@ -57,9 +57,11 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name NonExistantModule -Repository $TestGalleryName  
+        Install-PSResource -Name "NonExistantModule" -Repository $TestGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-Module "NonExistantModule" -ListAvailable
         $pkg.Name | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
