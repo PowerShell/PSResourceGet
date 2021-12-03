@@ -381,7 +381,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                         continue;
                     }
-                    _cmdletPassedIn.WriteVerbose("Parsed NuGet version is: " + pkgVersion.ToFullString());
+
                     var pkgIdentity = new PackageIdentity(pkg.Name, pkgVersion);
                     var cacheContext = new SourceCacheContext();
 
