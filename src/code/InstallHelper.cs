@@ -238,6 +238,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 allPkgsInstalled.AddRange(pkgsInstalled);
             }
 
+            // At this only package names left were those which could not be found in registered repositories
             foreach (string pkgName in _pkgNamesToInstall)
             {
                 var message = String.Format("Package '{0}' with requested version range {1} could not be installed as it was not found in any registered repositories",
