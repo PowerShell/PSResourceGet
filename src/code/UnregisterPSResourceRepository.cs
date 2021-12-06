@@ -45,8 +45,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         protected override void ProcessRecord()
         {
+            Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool nameContainsWildcard);
+            if (nameContainsWildcard)
+            {
+                var message = String.Format("Name: '{0}, cannot contain wildcards", String.Join(", ", Name));
+                var ex = new ArgumentException(message);
+                var NameContainsWildCardError = new ErrorRecord(ex, "nameContainsWildCardError", ErrorCategory.ReadError, null);
+                WriteError(NameContainsWildCardError);
+                return;
+            }
+
             string nameArrayAsString = string.Join(", ", Name);
-            WriteVerbose(String.Format("removing repository {0}. Calling Remove() API now", nameArrayAsString));
+            WriteVerbose(String.Format("removing repository {0}. Calling Remove() API now", string.Join(", ", Name)));
             if (!ShouldProcess(nameArrayAsString, "Unregister repositories from repository store"))
             {
                 return;
