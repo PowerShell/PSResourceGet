@@ -72,7 +72,7 @@ Describe 'Test Find-PSResource for Module' {
                 $foundTestScript = $True
             }
 
-            if(-not [string]::IsNullOrEmpty($item.PrereleaseLabel))
+            if($item.IsPrerelease)
             {
                 $foundPreview = $True
             }
@@ -101,7 +101,7 @@ Describe 'Test Find-PSResource for Module' {
                 $foundTestScript = $True
             }
 
-            if(-not [string]::IsNullOrEmpty($item.PrereleaseLabel))
+            if($item.IsPrerelease)
             {
                 $foundPreview = $True
             }
