@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             string nameArrayAsString = string.Join(", ", Name);
-            WriteVerbose(String.Format("removing repository {0}. Calling Remove() API now", string.Join(", ", Name)));
+            WriteVerbose(String.Format("removing repository {0}. Calling Remove() API now", nameArrayAsString));
             if (!ShouldProcess(nameArrayAsString, "Unregister repositories from repository store"))
             {
                 return;
