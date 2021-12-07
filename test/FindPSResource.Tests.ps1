@@ -210,10 +210,10 @@ Describe 'Test Find-PSResource for Module' {
 
     It "find resource with latest (including prerelease) version given Prerelease parameter" {
         # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
-        $res = Find-PSResource -Name "test_module" -Repository $TestGalleryName
+        $res = Find-PSResource -Name $testModuleName -Repository $TestGalleryName
         $res.Version | Should -Be "5.0.0.0"
 
-        $resPrerelease = Find-PSResource -Name "test_module" -Prerelease -Repository $TestGalleryName
+        $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $TestGalleryName
         $resPrerelease.Version | Should -Be "5.2.5.0"
         $resPrerelease.PrereleaseLabel | Should -Be "alpha001"
     }
