@@ -260,7 +260,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 includeXML: IncludeXML, 
                 skipDependencyCheck: SkipDependencyCheck,
                 savePkg: true,
-                pathsToInstallPkg: new List<string> { _path } );
+                pathsToInstallPkg: new List<string> { _path });
 
             if (PassThru)
             {
