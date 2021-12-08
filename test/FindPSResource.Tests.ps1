@@ -250,7 +250,8 @@ Describe 'Test Find-PSResource for Module' {
         }
     }
 
-    It "find all resources of Type Module when Type parameter set is used" {
+    # Skip test for now because it takes too long to run (> 60 sec)
+    It "find all resources of Type Module when Type parameter set is used" -Skip {
         $foundScript = $False
         $res = Find-PSResource -Type Module -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 1
@@ -336,7 +337,8 @@ Describe 'Test Find-PSResource for Module' {
         $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 
-    It "find resource given CommandName (CommandNameParameterSet)" {
+    # Skip test for now because it takes too run (132.24 sec)
+    It "find resource given CommandName (CommandNameParameterSet)" -Skip {
         $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
         foreach ($item in $res) {
             $item.Name | Should -Be $commandName
@@ -351,7 +353,8 @@ Describe 'Test Find-PSResource for Module' {
         $res.ParentResource.Includes.Command | Should -Contain $commandName
     }
 
-    It "find resource given DSCResourceName (DSCResourceNameParameterSet)" {
+    # Skip test for now because it takes too long to run (> 60 sec)
+    It "find resource given DSCResourceName (DSCResourceNameParameterSet)" -Skip {
         $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
         foreach ($item in $res) {
             $item.Name | Should -Be $dscResourceName
