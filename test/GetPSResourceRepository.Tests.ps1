@@ -5,6 +5,9 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe "Test Register-PSResourceRepository" {
     BeforeEach {
+        $TestRepoName1 = "testRepository"
+        $TestRepoName2 = "testRepository2"
+        $TestRepoName3 = "testRepository3"
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
@@ -22,16 +25,16 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "get single already registered repo" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        $res = Get-PSResourceRepository -Name "testRepository"
+        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
+        $res = Get-PSResourceRepository -Name $TestRepoName1
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be "testRepository"
+        $res.Name | Should -Be $TestRepoName1
     }
 
     It "get all repositories matching single wildcard name" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
-        Register-PSResourceRepository -Name "testRepository3" -URL $tmpDir3Path
+        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
+        Register-PSResourceRepository -Name $TestRepoName2 -URL $tmpDir2Path
+        Register-PSResourceRepository -Name $TestRepoName3 -URL $tmpDir3Path
         $res = Get-PSResourceRepository -Name "testReposit*"
         foreach ($entry in $res) {
             $entry.Name | Should -Match "testReposit"
@@ -39,8 +42,8 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "get all repositories matching multiple wildcard names" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
+        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
+        Register-PSResourceRepository -Name $TestRepoName2 -URL $tmpDir2Path
         Register-PSResourceRepository -Name "MyGallery" -URL $tmpDir3Path
 
         $res = Get-PSResourceRepository -Name "testReposit*","*Gallery"
@@ -50,12 +53,12 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "get all repositories matching multiple valid names provided" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
+        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
         Register-PSResourceRepository -Name "MyGallery" -URL $tmpDir2Path
 
-        $res = Get-PSResourceRepository -Name "testRepository","MyGallery"
+        $res = Get-PSResourceRepository -Name $TestRepoName1,"MyGallery"
         foreach ($entry in $res) {
-            $entry.Name | Should -BeIn "testRepository","MyGallery"
+            $entry.Name | Should -BeIn $TestRepoName1,"MyGallery"
         }
     }
 
@@ -70,16 +73,16 @@ Describe "Test Register-PSResourceRepository" {
     It "given invalid and valid Names, get valid ones and write error for non valid ones" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
 
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
+        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
+        Register-PSResourceRepository -Name $TestRepoName2 -URL $tmpDir2Path
 
-        $res = Get-PSResourceRepository -Name "testRepository",$nonRegisteredRepoName,"testRepository2" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Get-PSResourceRepository -Name $TestRepoName1,$nonRegisteredRepoName,$TestRepoName2 -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
 
         # should have successfully got the other valid/registered repositories with no error
         foreach ($entry in $res) {
-            $entry.Name | Should -BeIn "testRepository","testRepository2"
+            $entry.Name | Should -BeIn $TestRepoName1,$TestRepoName2
         }
     }
 

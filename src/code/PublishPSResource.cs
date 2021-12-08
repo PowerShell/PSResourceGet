@@ -181,8 +181,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var pkgFileOrDir = new DirectoryInfo(_path);
             bool isScript = _path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase);
 
-            // TODO: think about including the repository the resource is being published to
-            if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine.", _path)))
+            if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine", _path)))
             {
                 WriteVerbose("ShouldProcess is set to false.");
                 return;
