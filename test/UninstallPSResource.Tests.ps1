@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+$ProgressPreference = "SilentlyContinue"
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Uninstall-PSResource for Modules' {
@@ -13,9 +14,11 @@ Describe 'Test Uninstall-PSResource for Modules' {
         Get-NewPSResourceRepositoryFile
         Uninstall-PSResource -name ContosoServer -Version "*"
     }
-    BeforeEach{
+
+    BeforeEach {
         $null = Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
     }
+
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
@@ -36,14 +39,14 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall a list of modules by name" {
-        $null = Install-PSResource BaseTestPackage -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource BaseTestPackage -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue -SkipDependencyCheck
 
         Uninstall-PSResource -Name BaseTestPackage, ContosoServer 
         Get-Module ContosoServer, BaseTestPackage -ListAvailable | Should -be $null
     }
 
     It "Uninstall a specific script by name" {
-        $null = Install-PSResource Test-RPC -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource Test-RPC -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue -SkipDependencyCheck
 
         Uninstall-PSResource -name Test-RPC 
     }

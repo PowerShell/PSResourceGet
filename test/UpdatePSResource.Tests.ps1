@@ -1,12 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+$ProgressPreference = "SilentlyContinue"
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Update-PSResource' {
 
 
-    BeforeAll{
+    BeforeAll {
         $TestGalleryName = Get-PoshTestGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = "TestModule"
