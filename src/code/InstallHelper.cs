@@ -310,17 +310,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
             int totalPkgs = pkgsToInstall.Count();
 
-            // counters for tracking dependent package and current package out of total
-            int totalPkgsCount = 0;
-            int dependentPkgCount = 1;
-            // by default this is 1, because if a parent package was already installed and only the dependent package
-            // needs to be installed we don't want a default value of 0 which throws a division error.
-            // if parent package isn't already installed we'll set this value properly in the below if condition anyways
-            int currentPkgNumOfDependentPkgs = 1;
-
+            // Counters for tracking current package out of total
+            int totalInstalledPkgCount = 0;
             foreach (PSResourceInfo pkg in pkgsToInstall)
             {
-                totalPkgsCount++;
+                totalInstalledPkgCount++;
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
@@ -331,35 +325,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                                                            // TODO: check the attributes and if it's read only then set it 
                                                                            // attribute may be inherited from the parent
                                                                            // TODO:  are there Linux accommodations we need to consider here?
-                    dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+                    dir.Attributes &= ~FileAttributes.ReadOnly;
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", pkg.Name));
 
-                    // Will suppress progress bar if -Quiet is passed in
                     if (!_quiet)
                     {
                         int activityId = 0;
                         string activity = "";
                         string statusDescription = "";
 
-                        if (_pkgNamesToInstall.Contains(pkg.Name, StringComparer.InvariantCultureIgnoreCase))
-                        {
-                            // Installing parent package (one whose name was passed in to install)
-                            activityId = 0;
-                            activity = string.Format("Installing {0}...", pkg.Name);
-                            statusDescription = string.Format("{0}% Complete:", Math.Round(((double)totalPkgsCount / totalPkgs) * 100), 2);
-                            currentPkgNumOfDependentPkgs = pkg.Dependencies.Count();
-                            dependentPkgCount = 1;
-                        }
-                        else
-                        {
-                            // Installing dependent package
-                            activityId = 1;
-                            activity = string.Format("Installing dependent package {0}...", pkg.Name);
-                            statusDescription = string.Format("{0}% Complete:", Math.Round(((double)dependentPkgCount / currentPkgNumOfDependentPkgs) * 100), 2);
-                            dependentPkgCount++;
-                        }
-
+                        // Installing parent package (one whose name was passed in to install)
+                        activityId = 0;
+                        activity = string.Format("Installing {0}...", pkg.Name);
+                        statusDescription = string.Format("{0}% Complete:", Math.Round(((double)totalInstalledPkgCount / totalPkgs) * 100), 2);
+                        
                         var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
                         _cmdletPassedIn.WriteProgress(progressRecord);
                     }
