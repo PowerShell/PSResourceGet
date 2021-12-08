@@ -24,7 +24,7 @@
 - Implement CommandName and DSCResourceName parameter sets for Find-PSResource (i.e Find-PSResource -CommandName “Get-TargetResource”).
 - Add consistent pre-release version support for cmdlets, including Uninstall-PSResource and Get-PSResource. For example, running `Get-PSResource 'MyPackage' -Version '2.0.0-beta'` would only return MyPackage with version “2.0.0” and prerelease “beta”, NOT MyPackage with version “2.0.0.0” (i.e a stable version).
 - Add progress bar for installation completion for Install-PSResource, Update-PSResource and Save-PSResource.
-- Implement `-Quiet` param for Install-PSResource and Update-PSResource. This suppresses the progress bar display when passed in.
+- Implement `-Quiet` param for Install-PSResource, Save-PSResource and Update-PSResource. This suppresses the progress bar display when passed in.
 - Implement `-PassThru` parameter for all appropriate cmdlets. Install-PSResource, Save-PSResource, Update-PSResource and Unregister-PSResourceRepository cmdlets now have `-PassThru` support thus completing this goal.
 - Implement `-SkipDependencies` parameter for Install-PSResource, Save-PSResource, and Update-PSResource cmdlets.
 - Implement `-AsNupkg` and `-IncludeXML` parameters for Save-PSResource.
