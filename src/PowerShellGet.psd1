@@ -85,6 +85,8 @@ Please note, that wildcard search for AzureDevOps feed repositories is not suppo
 - Revert cmdlet name ‘Get-InstalledPSResource’ to ‘Get-PSResource’
 - Remove DSCResources from PowerShellGet.
 - Remove unnecessary assemblies.
+
+For a full list of previous changes see: https://github.com/PowerShell/PowerShellGet/blob/master/CHANGELOG.md
 '@
         }
     }
