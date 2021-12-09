@@ -1,13 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+$ProgressPreference = "SilentlyContinue"
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Install-PSResource for Module' {
 
     BeforeAll {
-        $OldProgressPreference = $ProgressPreference
-        $ProgressPreference = "SilentlyContinue"
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
@@ -23,7 +22,6 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     AfterAll {
-        $ProgressPreference = $OldProgressPreference
         Get-RevertPSResourceRepositoryFile
     }
 

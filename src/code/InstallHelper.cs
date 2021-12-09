@@ -332,16 +332,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!_quiet)
                     {
                         int activityId = 0;
-                        string activity = "";
-                        string statusDescription = "";
-
-                        // Installing parent package (one whose name was passed in to install)
-                        activityId = 0;
-                        activity = string.Format("Installing {0}...", pkg.Name);
-                        statusDescription = string.Format("{0}% Complete:", Math.Round(((double)totalInstalledPkgCount / totalPkgs) * 100), 2);
-                        
-                        var progressRecord = new ProgressRecord(activityId, activity, statusDescription);
-                        _cmdletPassedIn.WriteProgress(progressRecord);
+                        int percentComplete = ((totalInstalledPkgCount * 100) / totalPkgs);
+                        string activity = string.Format("Installing {0}...", pkg.Name);
+                        string statusDescription = string.Format("{0}% Complete", percentComplete);
+                        _cmdletPassedIn.WriteProgress(
+                            new ProgressRecord(activityId, activity, statusDescription));
                     }
 
                     // Create PackageIdentity in order to download
