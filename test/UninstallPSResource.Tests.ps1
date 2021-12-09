@@ -43,15 +43,27 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall a specific script by name" {
-        $null = Install-PSResource Test-RPC -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource "test_script" -Repository $TestGalleryName -TrustRepository
+        $res = Get-PSResource -Name "test_script"
+        $res.Name | Should -Be "test_script"
 
-        Uninstall-PSResource -name Test-RPC 
+        Uninstall-PSResource -name "test_script"
+        $res = Get-PSResource -Name "test_script"
+        $res | Should -BeNullOrEmpty
     }
 
     It "Uninstall a list of scripts by name" {
-        $null = Install-PSResource adsql, airoute -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource "test_script", "TestTestScript" -Repository $TestGalleryName -TrustRepository
+        $res = Get-PSResource -Name "test_script"
+        $res2 = Get-PSResource -Name "TestTestScript"
+        $res.Name | Should -Be "test_script"
+        $res2.Name | Should -Be "TestTestScript"
 
-        Uninstall-PSResource -Name adsql, airoute 
+        Uninstall-PSResource -Name "test_script", "TestTestScript"
+        $res = Get-PSResource -Name "test_script"
+        $res2 = Get-PSResource -Name "TestTestScript"
+        $res | Should -BeNullOrEmpty
+        $res2 | Should -BeNullOrEmpty
     }
 
     It "Uninstall a module when given name and specifying all versions" {
