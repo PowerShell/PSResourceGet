@@ -52,9 +52,11 @@ Describe 'Test Save-PSResource for PSResources' {
     }
 
     It "Should not save resource given nonexistant name" {
-        Save-PSResource -Name NonExistentModule -Repository $TestGalleryName -Path $SaveDir
+        Save-PSResource -Name NonExistentModule -Repository $TestGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "NonExistentModule"
         $pkgDir.Name | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     It "Not Save module with Name containing wildcard" {
@@ -102,9 +104,11 @@ Describe 'Test Save-PSResource for PSResources' {
     ) {
         param($Version, $Description)
 
-        Save-PSResource -Name $testModuleName2 -Version $Version -Repository $TestGalleryName -Path $SaveDir
+        Save-PSResource -Name $testModuleName2 -Version $Version -Repository $TestGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName2
         $pkgDir | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     It "Save resource when given Name, Version '*', should install the latest version" {
