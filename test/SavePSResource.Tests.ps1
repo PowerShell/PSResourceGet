@@ -1,11 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+$ProgressPreference = "SilentlyContinue"
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Save-PSResource for PSResources' {
 
-    BeforeAll{
+    BeforeAll {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
@@ -112,7 +113,7 @@ Describe 'Test Save-PSResource for PSResources' {
     }
 
     It "Save resource when given Name, Version '*', should install the latest version" {
-        Save-PSResource -Name $testModuleName2 -Version "*" -Repository $TestGalleryName -Path $SaveDir
+        Save-PSResource -Name $testModuleName2 -Version "*" -Repository $TestGalleryName -Path $SaveDir -ErrorAction SilentlyContinue
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName2
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
