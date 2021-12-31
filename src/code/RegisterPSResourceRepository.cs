@@ -85,11 +85,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public int Priority { get; set; } = defaultPriority;
 
         /// <summary>
-        /// Specifies a hashtable of vault and secret names as CredentialInfo for the repository.
+        /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        [ValidateNotNullOrEmpty]
-        public Hashtable CredentialInfo { get; set; }
+        public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
@@ -201,7 +200,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private PSRepositoryInfo AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, Hashtable repoCredentialInfo)
+        private PSRepositoryInfo AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
             repoName = repoName.Trim(' ');
@@ -215,13 +214,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
 
-            if (repoCredentialInfo != null)
+            if (repoCredentialInfo?.Credential != null)
             {
-                if (!repoCredentialInfo.ContainsKey(CredentialInfoHelper.VaultNameAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.VaultNameAttribute].ToString())
-                    || !repoCredentialInfo.ContainsKey(CredentialInfoHelper.SecretAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString()))
-                {
-                    throw new ArgumentException($"Invalid CredentialInfo, must include {CredentialInfoHelper.VaultNameAttribute} and {CredentialInfoHelper.SecretAttribute} key/(non-empty) value pairs");
-                }
+                // TODO: Try adding credential to vault, throw terminating error if vault is inaccessible, etc.
             }
 
             WriteVerbose("All required values to add to repository provided, calling internal Add() API now");
@@ -233,7 +228,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted, repoCredentialInfo);
         }
 
-        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, Hashtable repoCredentialInfo)
+        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
@@ -338,17 +333,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            Hashtable repoCredentialInfo = repo["CredentialInfo"] as Hashtable;
-            if (repoCredentialInfo != null)
-            {
-                if (!repoCredentialInfo.ContainsKey(CredentialInfoHelper.VaultNameAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.VaultNameAttribute].ToString())
-                    || !repoCredentialInfo.ContainsKey(CredentialInfoHelper.SecretAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString()))
+            PSCredentialInfo repoCredentialInfo = null;
+            if(repo.ContainsKey("CredentialInfo")) {
+                if (!Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+                    cmdletPassedIn: this,
+                    repoCredentialInfo: out repoCredentialInfo,
+                    errorRecord: out ErrorRecord errorRecord1))
                 {
-                    WriteError(new ErrorRecord(
-                        new PSInvalidOperationException($"Invalid CredentialInfo, must include {CredentialInfoHelper.VaultNameAttribute} and {CredentialInfoHelper.SecretAttribute} key/(non-empty) value pairs"),
-                        "InvalidCredentialInfo",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                    WriteError(errorRecord1);
                     return null;
                 }
             }

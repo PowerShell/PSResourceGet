@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -31,9 +30,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData), "PowerShellGet");
         private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
-
-        private static readonly string VaultNameAttribute = "VaultName";
-        private static readonly string SecretAttribute = "Secret";
 
         #endregion
 
@@ -83,7 +79,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted, Hashtable repoCredentialInfo)
+        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             try
             {
@@ -108,8 +104,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     );
 
                 if(repoCredentialInfo != null) {
-                    newElement.Add(new XAttribute(VaultNameAttribute, repoCredentialInfo[VaultNameAttribute]));
-                    newElement.Add(new XAttribute(SecretAttribute, repoCredentialInfo[SecretAttribute]));
+                    newElement.Add(new XAttribute(PSCredentialInfo.VaultNameAttribute, repoCredentialInfo.VaultName));
+                    newElement.Add(new XAttribute(PSCredentialInfo.SecretNameAttribute, repoCredentialInfo.SecretName));
                 }
 
                 root.Add(newElement);
@@ -126,10 +122,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// Updates a repository name, URL, priority, or installation policy
+        /// Updates a repository name, URL, priority, installation policy, or credential information
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted, Hashtable repoCredentialInfo)
+        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             PSRepositoryInfo updatedRepo;
             try
@@ -168,21 +164,21 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 // A null CredentialInfo value passed in signifies that CredentialInfo was not attempted to be set.
-                // So only set VaultName and Secret attributes if non-null value passed in for repoCredentialInfo
+                // So only set VaultName and SecretName attributes if non-null value passed in for repoCredentialInfo
                 if (repoCredentialInfo != null)
                 {
-                    if (node.Attribute(VaultNameAttribute) == null) {
-                        node.Add(new XAttribute(VaultNameAttribute, repoCredentialInfo[VaultNameAttribute]));
+                    if (node.Attribute(PSCredentialInfo.VaultNameAttribute) == null) {
+                        node.Add(new XAttribute(PSCredentialInfo.VaultNameAttribute, repoCredentialInfo.VaultName));
                     }
                     else {
-                        node.Attribute(VaultNameAttribute).Value = repoCredentialInfo[VaultNameAttribute].ToString();
+                        node.Attribute(PSCredentialInfo.VaultNameAttribute).Value = repoCredentialInfo.VaultName;
                     }
 
-                    if (node.Attribute(SecretAttribute) == null) {
-                        node.Add(new XAttribute(SecretAttribute, repoCredentialInfo[SecretAttribute]));
+                    if (node.Attribute(PSCredentialInfo.SecretNameAttribute) == null) {
+                        node.Add(new XAttribute(PSCredentialInfo.SecretNameAttribute, repoCredentialInfo.SecretName));
                     }
                     else {
-                        node.Attribute(SecretAttribute).Value = repoCredentialInfo[SecretAttribute].ToString();
+                        node.Attribute(PSCredentialInfo.SecretNameAttribute).Value = repoCredentialInfo.SecretName;
                     }
                 }
 
@@ -193,12 +189,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 // Create CredentialInfo based on new values or whether it was empty to begin with
-                Hashtable thisCredentialInfo = !string.IsNullOrEmpty(node.Attribute(VaultNameAttribute)?.Value) && !string.IsNullOrEmpty(node.Attribute(SecretAttribute)?.Value)
-                    ? new Hashtable() {
-                        { VaultNameAttribute, node.Attribute(VaultNameAttribute).Value },
-                        { SecretAttribute, node.Attribute(SecretAttribute).Value }
-                    }
-                    : null;
+                PSCredentialInfo thisCredentialInfo;
+                try
+                {
+                    thisCredentialInfo = new PSCredentialInfo(node.Attribute(PSCredentialInfo.VaultNameAttribute).Value, node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
+                }
+                catch (Exception)
+                {
+                    thisCredentialInfo = null;
+                }
 
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
@@ -285,30 +284,32 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         continue;
                     }
 
-                    Hashtable thisCredentialInfo = null;
-                    string authErrorMessage = $"Repository {repo.Attribute("Name")} has invalid CredentialInfo. {VaultNameAttribute} and {SecretAttribute} should both be present and non-empty";
-                    // both keys present
-                    if (repo.Attribute(VaultNameAttribute) != null && repo.Attribute(SecretAttribute) != null) {
-                        // both values non-empty
-                        // = valid credentialInfo
-                        if (!string.IsNullOrEmpty(repo.Attribute(VaultNameAttribute).Value) && !string.IsNullOrEmpty(repo.Attribute(SecretAttribute).Value)) {
-                            thisCredentialInfo = new Hashtable() {
-                                { VaultNameAttribute, repo.Attribute(VaultNameAttribute).Value },
-                                { SecretAttribute, repo.Attribute(SecretAttribute).Value }
-                            };
+                    PSCredentialInfo thisCredentialInfo;
+                    string credentialInfoErrorMessage = $"Repository {repo.Attribute("Name").Value} has invalid CredentialInfo. {PSCredentialInfo.VaultNameAttribute} and {PSCredentialInfo.SecretNameAttribute} should both be present and non-empty";
+                    // both keys are present
+                    if (repo.Attribute(PSCredentialInfo.VaultNameAttribute) != null && repo.Attribute(PSCredentialInfo.SecretNameAttribute) != null) {
+                        try
+                        {
+                            // both values are non-empty
+                            // = valid credentialInfo
+                            thisCredentialInfo = new PSCredentialInfo(repo.Attribute(PSCredentialInfo.VaultNameAttribute).Value, repo.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
                         }
-                        else {
-                            tempErrorList.Add(authErrorMessage);
+                        catch (Exception)
+                        {
+                            thisCredentialInfo = null;
+                            tempErrorList.Add(credentialInfoErrorMessage);
                             continue;
                         }
                     }
                     // both keys are missing
-                    else if (repo.Attribute(VaultNameAttribute) == null && repo.Attribute(SecretAttribute) == null) {
-                        // = valid credentialInfo, do nothing
+                    else if (repo.Attribute(PSCredentialInfo.VaultNameAttribute) == null && repo.Attribute(PSCredentialInfo.SecretNameAttribute) == null) {
+                        // = valid credentialInfo
+                        thisCredentialInfo = null;
                     }
                     // one of the keys is missing
                     else {
-                        tempErrorList.Add(authErrorMessage);
+                        thisCredentialInfo = null;
+                        tempErrorList.Add(credentialInfoErrorMessage);
                         continue;
                     }
 
@@ -338,30 +339,32 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             continue;
                         }
 
-                        Hashtable thisCredentialInfo = null;
-                        string authErrorMessage = $"Repository {node.Attribute("Name")} has invalid CredentialInfo. {VaultNameAttribute} and {SecretAttribute} should both be present and non-empty";
-                        // both keys present
-                        if (node.Attribute(VaultNameAttribute) != null && node.Attribute(SecretAttribute) != null) {
-                            // both values non-empty
-                            // = valid credentialInfo
-                            if (!string.IsNullOrEmpty(node.Attribute(VaultNameAttribute).Value) && !string.IsNullOrEmpty(node.Attribute(SecretAttribute).Value)) {
-                                thisCredentialInfo = new Hashtable() {
-                                    { VaultNameAttribute, node.Attribute(VaultNameAttribute).Value },
-                                    { SecretAttribute, node.Attribute(SecretAttribute).Value }
-                                };
+                        PSCredentialInfo thisCredentialInfo;
+                        string credentialInfoErrorMessage = $"Repository {node.Attribute("Name").Value} has invalid CredentialInfo. {PSCredentialInfo.VaultNameAttribute} and {PSCredentialInfo.SecretNameAttribute} should both be present and non-empty";
+                        // both keys are present
+                        if (node.Attribute(PSCredentialInfo.VaultNameAttribute) != null && node.Attribute(PSCredentialInfo.SecretNameAttribute) != null) {
+                            try
+                            {
+                                // both values are non-empty
+                                // = valid credentialInfo
+                                thisCredentialInfo = new PSCredentialInfo(node.Attribute(PSCredentialInfo.VaultNameAttribute).Value, node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
                             }
-                            else {
-                                tempErrorList.Add(authErrorMessage);
+                            catch (Exception)
+                            {
+                                thisCredentialInfo = null;
+                                tempErrorList.Add(credentialInfoErrorMessage);
                                 continue;
                             }
                         }
                         // both keys are missing
-                        else if (node.Attribute(VaultNameAttribute) == null && node.Attribute(SecretAttribute) == null) {
-                            // = valid credentialInfo, do nothing
+                        else if (node.Attribute(PSCredentialInfo.VaultNameAttribute) == null && node.Attribute(PSCredentialInfo.SecretNameAttribute) == null) {
+                            // = valid credentialInfo
+                            thisCredentialInfo = null;
                         }
                         // one of the keys is missing
                         else {
-                            tempErrorList.Add(authErrorMessage);
+                            thisCredentialInfo = null;
+                            tempErrorList.Add(credentialInfoErrorMessage);
                             continue;
                         }
 

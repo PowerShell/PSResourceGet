@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
@@ -14,7 +13,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted, Hashtable credentialInfo)
+        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted, PSCredentialInfo credentialInfo)
         {
             Name = name;
             Url = url;
@@ -39,6 +38,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// whether the repository is trusted
+        /// </summary>
         public bool Trusted { get; }
 
         /// <summary>
@@ -48,9 +48,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public int Priority { get; }
 
         /// <summary>
-        /// the CredentialInfo for the repository
+        /// the credential information for repository authentication
         /// </summary>
-        public Hashtable CredentialInfo { get; }
+        public PSCredentialInfo CredentialInfo { get; }
 
         #endregion
     }

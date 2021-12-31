@@ -265,7 +265,75 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion
-        
+
+        #region PSCredentialInfo methods
+
+        public static bool TryCreateValidPSCredentialInfo(
+            PSObject credentialInfoCandidate,
+            PSCmdlet cmdletPassedIn,
+            out PSCredentialInfo repoCredentialInfo,
+            out ErrorRecord errorRecord)
+        {
+            repoCredentialInfo = null;
+            errorRecord = null;
+
+            try
+            {
+                if(!string.IsNullOrEmpty((string) credentialInfoCandidate.Properties[PSCredentialInfo.VaultNameAttribute]?.Value)
+                    && !string.IsNullOrEmpty((string) credentialInfoCandidate.Properties[PSCredentialInfo.SecretNameAttribute]?.Value))
+                {
+                    PSCredential credential = null;
+                    if(credentialInfoCandidate.Properties[PSCredentialInfo.CredentialAttribute] != null)
+                    {
+                        try
+                        {
+                            credential = (PSCredential) credentialInfoCandidate.Properties[PSCredentialInfo.CredentialAttribute].Value;
+                        }
+                        catch (Exception e)
+                        {
+                            errorRecord = new ErrorRecord(
+                                new PSArgumentException($"Invalid CredentialInfo {PSCredentialInfo.CredentialAttribute}", e),
+                                "InvalidCredentialInfo",
+                                ErrorCategory.InvalidArgument,
+                                cmdletPassedIn);
+
+                            return false;
+                        }
+                    }
+
+                    repoCredentialInfo = new PSCredentialInfo(
+                        (string) credentialInfoCandidate.Properties[PSCredentialInfo.VaultNameAttribute].Value,
+                        (string) credentialInfoCandidate.Properties[PSCredentialInfo.SecretNameAttribute].Value,
+                        credential
+                    );
+
+                    return true;
+                }
+                else
+                {
+                    errorRecord = new ErrorRecord(
+                        new PSArgumentException($"Invalid CredentialInfo, must include non-empty {PSCredentialInfo.VaultNameAttribute} and {PSCredentialInfo.SecretNameAttribute}, and optionally a {PSCredentialInfo.CredentialAttribute}"),
+                        "InvalidCredentialInfo",
+                        ErrorCategory.InvalidArgument,
+                        cmdletPassedIn);
+
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(
+                    new PSArgumentException("Invalid CredentialInfo values", e),
+                    "InvalidCredentialInfo",
+                    ErrorCategory.InvalidArgument,
+                    cmdletPassedIn);
+
+                return false;
+            }
+        }
+
+        #endregion
+
         #region Path methods
 
         public static string[] GetSubDirectories(string dirPath)

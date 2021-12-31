@@ -283,7 +283,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             IEnumerable<PSResourceInfo> pkgsToInstall,
             string repoName,
             string repoUrl,
-            Hashtable repositoryCredentialInfo,
+            PSCredentialInfo repositoryCredentialInfo,
             PSCredential credential,
             bool isLocalRepo)
         {
@@ -377,12 +377,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         else if (repositoryCredentialInfo != null)
                         {
                             var authHelper = new CredentialInfoHelper(_cmdletPassedIn);
+                            // TODO: Change this to return PSCredential
                             string password = authHelper.GetRepositoryCredentialInfoPassword(
                                 repoName,
-                                repositoryCredentialInfo[CredentialInfoHelper.VaultNameAttribute].ToString(),
-                                repositoryCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString());
+                                repositoryCredentialInfo.VaultName,
+                                repositoryCredentialInfo.SecretName);
 
-                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repositoryCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString(), password, true, null);
+                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repositoryCredentialInfo.SecretName, password, true, null);
                         }
                         var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
                         SourceRepository repository = new SourceRepository(source, provider);

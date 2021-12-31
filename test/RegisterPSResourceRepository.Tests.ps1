@@ -16,6 +16,11 @@ Describe "Test Register-PSResourceRepository" {
         Get-NewTestDirs($tmpDirPaths)
 
         $relativeCurrentPath = Get-Location
+
+        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
+        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
+        $credential = New-Object System.Management.Automation.PSCredential ("testusername", $secureString)
+        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -52,13 +57,15 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "register repository given Name, URL, Trusted, Priority, CredentialInfo (NameParameterSet)" {
-        $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo @{VaultName = "testvault"; Secret = "testsecret"} -PassThru
+        $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 -PassThru
         $res.Name | Should -Be "testRepository"
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
-        $res.CredentialInfo["VaultName"] | Should -Be "testvault"
-        $res.CredentialInfo["Secret"] | Should -Be "testsecret"
+        $res.CredentialInfo.VaultName | Should -Be "testvault"
+        $res.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res.CredentialInfo.Credential | Should -Not -BeNullOrEmpty
+        $res.CredentialInfo.Credential.UserName | Should -Be "testusername"
     }
 
     It "register repository with PSGallery parameter (PSGalleryParameterSet)" {
@@ -92,7 +99,7 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable1 = @{Name = "testRepository"; URL = $tmpDir1Path}
         $hashtable2 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
         $hashtable3 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable4 = @{Name = "testRepository4"; URL = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = @{VaultName = "testvault"; Secret = "testsecret"}}
+        $hashtable4 = @{Name = "testRepository4"; URL = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret"))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Register-PSResourceRepository -Repositories $arrayOfHashtables
@@ -115,8 +122,9 @@ Describe "Test Register-PSResourceRepository" {
         $res4.URL.LocalPath | Should -Contain $tmpDir4Path
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 30
-        $res4.CredentialInfo["VaultName"] | Should -Be "testvault"
-        $res4.CredentialInfo["Secret"] | Should -Be "testsecret"
+        $res4.CredentialInfo.VaultName | Should -Be "testvault"
+        $res4.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res4.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
     It "register repositories with Repositories parameter, psgallery style repository (RepositoriesParameterSet)" {
@@ -135,7 +143,7 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable2 = @{Name = "testRepository"; URL = $tmpDir1Path}
         $hashtable3 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
         $hashtable4 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable5 = @{Name = "testRepository4"; URL = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = @{VaultName = "testvault"; Secret = "testsecret"}}
+        $hashtable5 = @{Name = "testRepository4"; URL = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", (New-Object System.Management.Automation.PSCredential ("testusername", (ConvertTo-SecureString "testpassword" -AsPlainText -Force)))))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4, $hashtable5
 
         Register-PSResourceRepository -Repositories $arrayOfHashtables
@@ -164,8 +172,11 @@ Describe "Test Register-PSResourceRepository" {
         $res5.URL.LocalPath | Should -Contain $tmpDir4Path
         $res5.Trusted | Should -Be True
         $res5.Priority | Should -Be 30
-        $res5.CredentialInfo["VaultName"] | Should -Be "testvault"
-        $res5.CredentialInfo["Secret"] | Should -Be "testsecret"
+        $res5.CredentialInfo.VaultName | Should -Be "testvault"
+        $res5.CredentialInfo.SecretName | Should -Be "testsecret"
+        # Get-PSResourceRepository does not return Credential information as it is not saved
+        # TODO: update based on how username vs secretname is saved
+        $res5.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
     It "not register repository when Name is provided but URL is not" {
@@ -184,16 +195,6 @@ Describe "Test Register-PSResourceRepository" {
         {Register-PSResourceRepository -Name " " -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
-    It "not register if CredentialInfo is missing VaultName or Secret" {
-        {Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -CredentialInfo @{Secret = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        {Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -CredentialInfo @{VaultName = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-    }
-
-    It "not register if CredentialInfo values are empty" {
-        {Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -CredentialInfo @{VaultName = "test"; Secret = ""} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        {Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -CredentialInfo @{VaultName = ""; Secret = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-    }
-
     It "not register PSGallery with NameParameterSet" {
         {Register-PSResourceRepository -Name $PSGalleryName -URL $PSGalleryURL -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
@@ -202,12 +203,12 @@ Describe "Test Register-PSResourceRepository" {
     It "not register PSGallery when PSGallery parameter provided with Name, URL or CredentialInfo" {
         {Register-PSResourceRepository -PSGallery -Name $PSGalleryName -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
         {Register-PSResourceRepository -PSGallery -URL $PSGalleryURL -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        {Register-PSResourceRepository -PSGallery -CredentialInfo @{VaultName = "testvault"; Secret = "testsecret"} -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -PSGallery -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     $testCases = @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name=$PSGalleryName}},
                  @{Type = "URL key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; URL=$PSGalleryURL}},
-                 @{Type = "CredentialInfo key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; CredentialInfo = @{VaultName = "test"; Secret = "test"}}}
+                 @{Type = "CredentialInfo key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; CredentialInfo = $credentialInfo1}}
 
     It "not register incorrectly formatted PSGallery type repo among correct ones when incorrect type is <Type>" -TestCases $testCases {
         param($Type, $IncorrectHashTable)
@@ -232,14 +233,10 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Name | Should -Be "testRepository3"
     }
 
-    $testCases2 = @{Type = "-Name is not specified";                    IncorrectHashTable = @{URL = $tmpDir1Path};                                                                              ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-Name is PSGallery";                        IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};                                                          ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL not specified";                        IncorrectHashTable = @{Name = "testRepository"};                                                                         ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL is not valid scheme";                  IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};                                                   ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-CredentialInfo is missing VaultName";      IncorrectHashTable = @{Name = "testRepository"; URL=$tmpDir1Path; CredentialInfo = @{Secret = "test"}};                  ErrorId = "InvalidCredentialInfo,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-CredentialInfo is missing Secret";         IncorrectHashTable = @{Name = "testRepository"; URL=$tmpDir1Path; CredentialInfo = @{VaultName = "test"}};               ErrorId = "InvalidCredentialInfo,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-CredentialInfo-VaultName value is empty";  IncorrectHashTable = @{Name = "testRepository"; URL=$tmpDir1Path; CredentialInfo = @{VaultName = ""; Secret = "test"}};  ErrorId = "InvalidCredentialInfo,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-CredentialInfo-Secret value is empty";     IncorrectHashTable = @{Name = "testRepository"; URL=$tmpDir1Path; CredentialInfo = @{VaultName = "test"; Secret = ""}};  ErrorId = "InvalidCredentialInfo,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
+    $testCases2 = @{Type = "-Name is not specified";                     IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-Name is PSGallery";                         IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL not specified";                         IncorrectHashTable = @{Name = "testRepository"};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL is not valid scheme";                   IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases $testCases2 {
         param($Type, $IncorrectHashTable, $ErrorId)

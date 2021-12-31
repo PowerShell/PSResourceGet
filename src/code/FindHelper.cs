@@ -197,7 +197,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private IEnumerable<PSResourceInfo> SearchFromRepository(
             string repositoryName,
             Uri repositoryUrl,
-            Hashtable repositoryCredentialInfo)
+            PSCredentialInfo repositoryCredentialInfo)
         {
             PackageSearchResource resourceSearch;
             PackageMetadataResource resourceMetadata;
@@ -244,12 +244,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else if (repositoryCredentialInfo != null)
             {
                 var authHelper = new CredentialInfoHelper(_cmdletPassedIn);
+                // TODO: Change this to return PSCredential
                 string password = authHelper.GetRepositoryCredentialInfoPassword(
                     repositoryName,
-                    repositoryCredentialInfo[CredentialInfoHelper.VaultNameAttribute].ToString(),
-                    repositoryCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString());
+                    repositoryCredentialInfo.VaultName,
+                    repositoryCredentialInfo.SecretName);
 
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repositoryCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString(), password, true, null);
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repositoryCredentialInfo.SecretName, password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);
             }
 

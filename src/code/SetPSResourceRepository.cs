@@ -83,11 +83,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public int Priority { get; set; } = DefaultPriority;
 
         /// <summary>
-        /// Specifies a hashtable of vault and secret names as CredentialInfo for the repository.
+        /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        [ValidateNotNullOrEmpty]
-        public Hashtable CredentialInfo {get; set;}
+        public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
         /// When specified, displays the successfully registered repository and its information
@@ -163,7 +162,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private PSRepositoryInfo UpdateRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, Hashtable repoCredentialInfo)
+        private PSRepositoryInfo UpdateRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             if (repoUrl != null && !(repoUrl.Scheme == Uri.UriSchemeHttp || repoUrl.Scheme == Uri.UriSchemeHttps || repoUrl.Scheme == Uri.UriSchemeFtp || repoUrl.Scheme == Uri.UriSchemeFile))
             {
@@ -193,13 +192,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // determine trusted value to pass in (true/false if set, null otherwise, hence the nullable bool variable)
             bool? _trustedNullable = isSet ? new bool?(repoTrusted) : new bool?();
 
-            if (repoCredentialInfo != null)
+            if (repoCredentialInfo?.Credential != null)
             {
-                 if (!repoCredentialInfo.ContainsKey(CredentialInfoHelper.VaultNameAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.VaultNameAttribute].ToString())
-                    || !repoCredentialInfo.ContainsKey(CredentialInfoHelper.SecretAttribute) || string.IsNullOrEmpty(repoCredentialInfo[CredentialInfoHelper.SecretAttribute].ToString()))
-                {
-                    throw new ArgumentException($"Invalid CredentialInfo, must include {CredentialInfoHelper.VaultNameAttribute} and {CredentialInfoHelper.SecretAttribute} key/(non-empty) value pairs");
-                }
+                // TODO: Try adding credential to vault, throw terminating error if vault is inaccessible, etc.
             }
 
             // determine if either 1 of 4 values are attempting to be set: URL, Priority, Trusted, CredentialInfo.
@@ -276,13 +271,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 isSet = true;
             }
 
+            PSCredentialInfo repoCredentialInfo = null;
+            if(repo.ContainsKey("CredentialInfo")) {
+                if (!Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+                    cmdletPassedIn: this,
+                    repoCredentialInfo: out repoCredentialInfo,
+                    errorRecord: out ErrorRecord errorRecord1))
+                {
+                    WriteError(errorRecord1);
+                    return null;
+                }
+            }
+
             try
             {
                 return UpdateRepositoryStoreHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repoTrusted,
-                    repo["CredentialInfo"] as Hashtable);
+                    repoCredentialInfo);
             }
             catch (Exception e)
             {

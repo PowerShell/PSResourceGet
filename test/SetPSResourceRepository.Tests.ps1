@@ -16,6 +16,10 @@ Describe "Test Set-PSResourceRepository" {
         Get-NewTestDirs($tmpDirPaths)
 
         $relativeCurrentPath = Get-Location
+
+        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
+        $credential = New-Object System.Management.Automation.PSCredential ("testusername", $secureString)
+        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -62,14 +66,17 @@ Describe "Test Set-PSResourceRepository" {
 
     It "set repository given Name and CredentialInfo parameters" {
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        Set-PSResourceRepository -Name "testRepository" -CredentialInfo @{VaultName = "test"; Secret = "test"}
+        Set-PSResourceRepository -Name "testRepository" -CredentialInfo $credentialInfo1
         $res = Get-PSResourceRepository -Name "testRepository"
         $res.Name | Should -Be "testRepository"
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
-        $res.CredentialInfo["VaultName"] | Should -Be "test"
-        $res.CredentialInfo["Secret"] | Should -Be "test"
+        $res.CredentialInfo.VaultName | Should -Be "testvault"
+        $res.CredentialInfo.SecretName | Should -Be "testsecret"
+        # Get-PSResourceRepository does not return Credential information as it is not saved
+        # TODO: update based on how username vs secretname is saved
+        $res.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
     It "not set repository and write error given just Name parameter" {
@@ -124,7 +131,7 @@ Describe "Test Set-PSResourceRepository" {
 
         $hashtable1 = @{Name = "testRepository1"; URL = $tmpDir2Path};
         $hashtable2 = @{Name = "testRepository2"; Priority = 25};
-        $hashtable3 = @{Name = "testRepository3"; CredentialInfo = @{VaultName = "test"; Secret = "test"}};
+        $hashtable3 = @{Name = "testRepository3"; CredentialInfo = [PSCustomObject] @{ VaultName = "testvault"; SecretName = "testsecret"; Credential = [PSCredential] $credential }};
         $hashtable4 = @{Name = "PSGallery"; Trusted = $True};
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
@@ -148,8 +155,11 @@ Describe "Test Set-PSResourceRepository" {
         $res3.URL.LocalPath | Should -Contain $tmpDir3Path
         $res3.Priority | Should -Be 50
         $res3.Trusted | Should -Be False
-        $res3.CredentialInfo["VaultName"] | Should -Be "test"
-        $res3.CredentialInfo["Secret"] | Should -Be "test"
+        $res3.CredentialInfo.VaultName | Should -Be "testvault"
+        $res3.CredentialInfo.SecretName | Should -Be "testsecret"
+        # Get-PSResourceRepository does not return Credential information as it is not saved
+        # TODO: update based on how username vs secretname is saved
+        $res3.CredentialInfo.Credential | Should -BeNullOrEmpty
 
         $res4 = Get-PSResourceRepository -Name $PSGalleryName
         $res4.Name | Should -Be $PSGalleryName
@@ -168,7 +178,7 @@ Describe "Test Set-PSResourceRepository" {
     It "not set and throw error for trying to set PSGallery CredentialInfo (NameParameterSet)" {
         Unregister-PSResourceRepository -Name "PSGallery"
         Register-PSResourceRepository -PSGallery
-        {Set-PSResourceRepository -Name "PSGallery" -CredentialInfo @{VaultName = "test"; Secret = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name "PSGallery" -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
     }
 
     It "not set repository and throw error for trying to set PSGallery URL (RepositoriesParameterSet)" {
@@ -207,7 +217,7 @@ Describe "Test Set-PSResourceRepository" {
 
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
 
-        $hashtable1 = @{Name = "PSGallery"; CredentialInfo = @{VaultName = "test"; Secret = "test"}}
+        $hashtable1 = @{Name = "PSGallery"; CredentialInfo = $credentialInfo1}
         $hashtable2 = @{Name = "testRepository"; Priority = 25}
         $arrayOfHashtables = $hashtable1, $hashtable2
 
@@ -220,43 +230,5 @@ Describe "Test Set-PSResourceRepository" {
         $res.Priority | Should -Be 25
         $res.Trusted | Should -Be False
         $res.CredentialInfo | Should -BeNullOrEmpty
-    }
-
-    It "not set and throw error if CredentialInfo is invalid (NameParameterSet)" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        {Set-PSResourceRepository -Name "testRepository" -CredentialInfo @{VaultName = "test"} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
-        {Set-PSResourceRepository -Name "testRepository" -CredentialInfo @{VaultName = "test"; Secret = ""} -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
-    }
-
-    It "not set and throw error if CredentialInfo is invalid (RepositoriesParameterSet)" {
-        Register-PSResourceRepository -Name "testRepository1" -URL $tmpDir1Path
-        Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
-        Register-PSResourceRepository -Name "testRepository3" -URL $tmpDir3Path
-        Register-PSResourceRepository -Name "testRepository4" -URL $tmpDir4Path
-
-        $hashtable1 = @{Name = "testRepository1"; Priority = 25}
-        $hashtable2 = @{Name = "testRepository2"; CredentialInfo = @{Secret = ""}}
-        $hashtable3 = @{Name = "testRepository3"; CredentialInfo = @{VaultName = "test"; Secret = ""}}
-        $hashtable4 = @{Name = "testRepository4"; CredentialInfo = @{}}
-        $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
-
-        Set-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingIndividualRepoFromRepositories,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
-
-        $res = Get-PSResourceRepository -Name "testRepository1"
-        $res.URL.LocalPath | Should -Contain $tmpDir1Path
-        $res.Priority | Should -Be 25
-        $res.Trusted | Should -Be False
-        $res.CredentialInfo | Should -BeNullOrEmpty
-
-        $res2 = Get-PSResourceRepository -Name "testRepository2"
-        $res2.CredentialInfo | Should -BeNullOrEmpty
-
-        $res3 = Get-PSResourceRepository -Name "testRepository3"
-        $res3.CredentialInfo | Should -BeNullOrEmpty
-
-        $res4 = Get-PSResourceRepository -Name "testRepository4"
-        $res4.CredentialInfo | Should -BeNullOrEmpty
     }
 }
