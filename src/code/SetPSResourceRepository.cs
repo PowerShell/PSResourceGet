@@ -192,9 +192,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // determine trusted value to pass in (true/false if set, null otherwise, hence the nullable bool variable)
             bool? _trustedNullable = isSet ? new bool?(repoTrusted) : new bool?();
 
-            if (repoCredentialInfo?.Credential != null)
+            if(repoCredentialInfo != null)
             {
-                // TODO: Try adding credential to vault, throw terminating error if vault is inaccessible, etc.
+                bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, this);
+
+                if (repoCredentialInfo.Credential != null)
+                {
+                    if(!isSecretManagementModuleAvailable)
+                    {
+                        WriteError(new ErrorRecord(
+                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
+                            "RepositoryCredentialSecretManagementUnavailableModule",
+                            ErrorCategory.ResourceUnavailable,
+                            this));
+                    }
+                    else
+                    {
+                        Utils.SaveRepositoryCredentialToSecretManagementVault(repoName, repoCredentialInfo, this);
+                    }
+                }
+
+                if(!isSecretManagementModuleAvailable)
+                {
+                    WriteWarning($"Make sure the Microsoft.PowerShell.SecretManagement module is set up for successfully authenticating to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                }
             }
 
             // determine if either 1 of 4 values are attempting to be set: URL, Priority, Trusted, CredentialInfo.

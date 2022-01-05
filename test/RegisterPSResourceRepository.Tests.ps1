@@ -18,9 +18,6 @@ Describe "Test Register-PSResourceRepository" {
         $relativeCurrentPath = Get-Location
 
         $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
-        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
-        $credential = New-Object System.Management.Automation.PSCredential ("testusername", $secureString)
-        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -57,15 +54,13 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "register repository given Name, URL, Trusted, Priority, CredentialInfo (NameParameterSet)" {
-        $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 -PassThru
+        $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo1 -PassThru
         $res.Name | Should -Be "testRepository"
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
         $res.CredentialInfo.VaultName | Should -Be "testvault"
         $res.CredentialInfo.SecretName | Should -Be "testsecret"
-        $res.CredentialInfo.Credential | Should -Not -BeNullOrEmpty
-        $res.CredentialInfo.Credential.UserName | Should -Be "testusername"
     }
 
     It "register repository with PSGallery parameter (PSGalleryParameterSet)" {
@@ -143,7 +138,7 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable2 = @{Name = "testRepository"; URL = $tmpDir1Path}
         $hashtable3 = @{Name = "testRepository2"; URL = $tmpDir2Path; Trusted = $True}
         $hashtable4 = @{Name = "testRepository3"; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable5 = @{Name = "testRepository4"; URL = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", (New-Object System.Management.Automation.PSCredential ("testusername", (ConvertTo-SecureString "testpassword" -AsPlainText -Force)))))}
+        $hashtable5 = @{Name = "testRepository4"; URL = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret"))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4, $hashtable5
 
         Register-PSResourceRepository -Repositories $arrayOfHashtables
@@ -174,8 +169,6 @@ Describe "Test Register-PSResourceRepository" {
         $res5.Priority | Should -Be 30
         $res5.CredentialInfo.VaultName | Should -Be "testvault"
         $res5.CredentialInfo.SecretName | Should -Be "testsecret"
-        # Get-PSResourceRepository does not return Credential information as it is not saved
-        # TODO: update based on how username vs secretname is saved
         $res5.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 

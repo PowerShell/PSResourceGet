@@ -214,9 +214,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
 
-            if (repoCredentialInfo?.Credential != null)
+            if(repoCredentialInfo != null)
             {
-                // TODO: Try adding credential to vault, throw terminating error if vault is inaccessible, etc.
+                bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, this);
+
+                if (repoCredentialInfo.Credential != null)
+                {
+                    if(!isSecretManagementModuleAvailable)
+                    {
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
+                            "RepositoryCredentialSecretManagementUnavailableModule",
+                            ErrorCategory.ResourceUnavailable,
+                            this));
+                    }
+                    else
+                    {
+                        Utils.SaveRepositoryCredentialToSecretManagementVault(repoName, repoCredentialInfo, this);
+                    }
+                }
+
+                if(!isSecretManagementModuleAvailable)
+                {
+                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be imported. Make sure it is available before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                }
             }
 
             WriteVerbose("All required values to add to repository provided, calling internal Add() API now");

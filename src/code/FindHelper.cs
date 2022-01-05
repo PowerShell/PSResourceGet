@@ -243,12 +243,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else if (repositoryCredentialInfo != null)
             {
-                var authHelper = new CredentialInfoHelper(_cmdletPassedIn);
-                // TODO: Change this to return PSCredential
-                string password = authHelper.GetRepositoryCredentialInfoPassword(
+                string password = Utils.GetRepositoryCredentialFromSecretManagement(
                     repositoryName,
-                    repositoryCredentialInfo.VaultName,
-                    repositoryCredentialInfo.SecretName);
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
 
                 source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repositoryCredentialInfo.SecretName, password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);

@@ -283,7 +283,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             IEnumerable<PSResourceInfo> pkgsToInstall,
             string repoName,
             string repoUrl,
-            PSCredentialInfo repositoryCredentialInfo,
+            PSCredentialInfo repoCredentialInfo,
             PSCredential credential,
             bool isLocalRepo)
         {
@@ -374,16 +374,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             string password = new NetworkCredential(string.Empty, credential.Password).Password;
                             source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, credential.UserName, password, true, null);
                         }
-                        else if (repositoryCredentialInfo != null)
+                        else if (repoCredentialInfo != null)
                         {
-                            var authHelper = new CredentialInfoHelper(_cmdletPassedIn);
-                            // TODO: Change this to return PSCredential
-                            string password = authHelper.GetRepositoryCredentialInfoPassword(
+                            string password = Utils.GetRepositoryCredentialFromSecretManagement(
                                 repoName,
-                                repositoryCredentialInfo.VaultName,
-                                repositoryCredentialInfo.SecretName);
+                                repoCredentialInfo,
+                                _cmdletPassedIn);
 
-                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repositoryCredentialInfo.SecretName, password, true, null);
+                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repoCredentialInfo.SecretName, password, true, null);
                         }
                         var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
                         SourceRepository repository = new SourceRepository(source, provider);

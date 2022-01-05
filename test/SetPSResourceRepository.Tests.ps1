@@ -17,9 +17,7 @@ Describe "Test Set-PSResourceRepository" {
 
         $relativeCurrentPath = Get-Location
 
-        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
-        $credential = New-Object System.Management.Automation.PSCredential ("testusername", $secureString)
-        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
+        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -74,8 +72,6 @@ Describe "Test Set-PSResourceRepository" {
         $res.Trusted | Should -Be False
         $res.CredentialInfo.VaultName | Should -Be "testvault"
         $res.CredentialInfo.SecretName | Should -Be "testsecret"
-        # Get-PSResourceRepository does not return Credential information as it is not saved
-        # TODO: update based on how username vs secretname is saved
         $res.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
@@ -131,7 +127,7 @@ Describe "Test Set-PSResourceRepository" {
 
         $hashtable1 = @{Name = "testRepository1"; URL = $tmpDir2Path};
         $hashtable2 = @{Name = "testRepository2"; Priority = 25};
-        $hashtable3 = @{Name = "testRepository3"; CredentialInfo = [PSCustomObject] @{ VaultName = "testvault"; SecretName = "testsecret"; Credential = [PSCredential] $credential }};
+        $hashtable3 = @{Name = "testRepository3"; CredentialInfo = [PSCustomObject] @{ VaultName = "testvault"; SecretName = "testsecret" }};
         $hashtable4 = @{Name = "PSGallery"; Trusted = $True};
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
@@ -157,8 +153,6 @@ Describe "Test Set-PSResourceRepository" {
         $res3.Trusted | Should -Be False
         $res3.CredentialInfo.VaultName | Should -Be "testvault"
         $res3.CredentialInfo.SecretName | Should -Be "testsecret"
-        # Get-PSResourceRepository does not return Credential information as it is not saved
-        # TODO: update based on how username vs secretname is saved
         $res3.CredentialInfo.Credential | Should -BeNullOrEmpty
 
         $res4 = Get-PSResourceRepository -Name $PSGalleryName
