@@ -63,29 +63,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has rights to save a resource from a specific repository.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public PSCredential Credential { get; set; }
         
-        /*
         /// <summary>
-        /// Saves as a .nupkg
+        /// Saves the resource as a .nupkg
         /// </summary>
-        [Parameter()]
+        [Parameter]
         public SwitchParameter AsNupkg { get; set; }
 
         /// <summary>
         /// Saves the metadata XML file with the resource
         /// </summary>
-        [Parameter()]
+        [Parameter]
         public SwitchParameter IncludeXML { get; set; }
-        */
 
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -112,16 +108,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter TrustRepository { get; set; }
-        
+
+        /// <summary>
+        /// Passes the resource saved to the console.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter PassThru { get; set; }
+
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
         [ValidateNotNullOrEmpty]
         public PSResourceInfo InputObject { get; set; }
+
+        /// <summary>
+        /// Skips the check for resource dependencies, so that only found resources are saved,
+        /// and not any resources the found resource depends on.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
+
+        /// <summary>
+        /// Suppresses progress information.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        public SwitchParameter Quiet { get; set; }
 
         #endregion
 
@@ -139,7 +154,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _path = SessionState.Path.CurrentLocation.Path;
             }
 
-            _installHelper = new InstallHelper(savePkg: true, cmdletPassedIn: this);
+            _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -229,22 +244,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            _installHelper.InstallPackages(
+            var installedPkgs = _installHelper.InstallPackages(
                 names: namesToSave, 
                 versionRange: _versionRange, 
                 prerelease: pkgPrerelease, 
                 repository: pkgRepository, 
                 acceptLicense: true, 
-                quiet: true, 
+                quiet: Quiet, 
                 reinstall: true, 
                 force: false, 
                 trustRepository: TrustRepository,
                 credential: Credential, 
                 noClobber: false, 
-                specifiedPath: _path, 
-                asNupkg: false, 
-                includeXML: false, 
-                pathsToInstallPkg: new List<string> { _path } );
+                asNupkg: AsNupkg, 
+                includeXML: IncludeXML, 
+                skipDependencyCheck: SkipDependencyCheck,
+                savePkg: true,
+                pathsToInstallPkg: new List<string> { _path });
+
+            if (PassThru)
+            {
+                foreach (PSResourceInfo pkg in installedPkgs)
+                {
+                    WriteObject(pkg);
+                }
+            }
         }
         
         #endregion

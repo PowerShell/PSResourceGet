@@ -5,6 +5,8 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe "Test Unregister-PSResourceRepository" {
     BeforeEach {
+        $TestGalleryName = Get-PoshTestGalleryName
+        $TestGalleryUrl = Get-PoshTestGalleryLocation
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
@@ -44,6 +46,14 @@ Describe "Test Unregister-PSResourceRepository" {
 
     }
 
+    It "not register when -Name contains wildcard" {
+        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
+        Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
+        Unregister-PSResourceRepository -Name "testRepository*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "nameContainsWildCardError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
+    }
+
     It "when multiple repo Names provided, if one name isn't valid unregister the rest and write error message" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
         Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
@@ -58,5 +68,15 @@ Describe "Test Unregister-PSResourceRepository" {
 
     It "throw error if Name is null" {
         {Unregister-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
+    }
+
+    It "unregister repository using -PassThru" {
+        $res = Unregister-PSResourceRepository -Name $TestGalleryName -PassThru
+        $res.Name | Should -Be $TestGalleryName
+        $res.Url | Should -Be $TestGalleryURL
+        $res = Get-PSResourceRepository -Name $TestGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
     }
 }

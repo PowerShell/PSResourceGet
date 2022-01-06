@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 
 using Dbg = System.Diagnostics.Debug;
@@ -15,7 +16,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// The Install-PSResource cmdlet installs a resource.
     /// It returns nothing.
     /// </summary>
-
     [Cmdlet(VerbsLifecycle.Install, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
     public sealed
     class InstallPSResource : PSCmdlet
@@ -54,50 +54,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a user account that has rights to find a resource from a specific repository.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public PSCredential Credential { get; set; }
 
         /// <summary>
         /// Specifies the scope of installation.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public ScopeType Scope { get; set; }
 
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter TrustRepository { get; set; }
         
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter Reinstall { get; set; }
 
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>
         /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = InputObjectParameterSet)]
+        [Parameter]
         public SwitchParameter AcceptLicense { get; set; }
 
         /// <summary>
         /// Prevents installing a package that contains cmdlets that already exist on the machine.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter]
         public SwitchParameter NoClobber { get; set; }
+
+        /// <summary>
+        /// Skips the check for resource dependencies, so that only found resources are installed,
+        /// and not any resources the found resource depends on.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
+
+        /// <summary>
+        /// Passes the resource installed to the console.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter PassThru { get; set; }
 
         /// <summary>
         /// Used for pipeline input.
@@ -130,7 +137,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
 
-            _installHelper = new InstallHelper(savePkg: false, cmdletPassedIn: this);
+            _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -235,7 +242,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            _installHelper.InstallPackages(
+            var installedPkgs = _installHelper.InstallPackages(
                 names: pkgNames,
                 versionRange: _versionRange,
                 prerelease: pkgPrerelease,
@@ -247,10 +254,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 trustRepository: TrustRepository,
                 noClobber: NoClobber,
                 credential: Credential,
-                specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
+                skipDependencyCheck: SkipDependencyCheck,
+                savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
+
+            if (PassThru)
+            {
+                foreach (PSResourceInfo pkg in installedPkgs)
+                {
+                    WriteObject(pkg);
+                }
+            }
         }
 
         #endregion

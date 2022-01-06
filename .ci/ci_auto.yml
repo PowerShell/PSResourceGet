@@ -109,8 +109,6 @@ stages:
         }
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PowerShellGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSGet.Format.ps1xml") -Dest $createdSignSrcPath -Force -Verbose
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "DscResources") -Dest $createdSignSrcPath -Recurse -Force -Verbose
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Modules") -Dest $createdSignSrcPath -Recurse -Force -Verbose
 
         $netStandardPath = Join-Path -Path $createdSignSrcPath -ChildPath "netstandard2.0"
         if (! (Test-Path -Path $netStandardPath)) {

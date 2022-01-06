@@ -275,4 +275,19 @@ Describe "Test Publish-PSResource" {
         $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath 
     }
+
+    It "Publish a module and clean up properly when file in module is readonly" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        # Create a readonly file that will throw access denied error if deletion is attempted
+        $file = Join-Path -Path $script:PublishModuleBase -ChildPath "inaccessiblefile.txt"
+        New-Item $file -Itemtype file -Force
+        Set-ItemProperty -Path $file -Name IsReadOnly -Value $true
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
+    }
 }

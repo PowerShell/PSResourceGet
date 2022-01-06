@@ -1,11 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+$ProgressPreference = "SilentlyContinue"
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Install-PSResource for Module' {
 
-    BeforeAll{
+    BeforeAll {
         $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
@@ -17,7 +18,7 @@ Describe 'Test Install-PSResource for Module' {
     AfterEach {
         Uninstall-PSResource "TestModule", "TestModule99", "myTestModule", "myTestModule2", "testModulePrerelease", 
             "testModuleWithlicense","PSGetTestModule", "PSGetTestDependency1", "TestFindModule","ClobberTestModule1",
-            "ClobberTestModule2" -Force -ErrorAction SilentlyContinue
+            "ClobberTestModule2" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -36,7 +37,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install specific module resource by name" {
-        Install-PSResource -Name "TestModule" -Repository $TestGalleryName  
+        Install-PSResource -Name "TestModule" -Repository $TestGalleryName 
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
         $pkg.Version | Should -Be "1.3.0"
@@ -57,9 +58,11 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name NonExistantModule -Repository $TestGalleryName  
+        Install-PSResource -Name "NonExistantModule" -Repository $TestGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-Module "NonExistantModule" -ListAvailable
         $pkg.Name | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
@@ -97,20 +100,22 @@ Describe 'Test Install-PSResource for Module' {
     ) {
         param($Version, $Description)
 
-        Install-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName
+        Install-PSResource -Name "TestModule" -Version $Version -Repository $TestGalleryName -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+
         $res = Get-Module "TestModule" -ListAvailable
         $res | Should -BeNullOrEmpty
     }
 
     It "Install resource when given Name, Version '*', should install the latest version" {
-        $pkg = Install-PSResource -Name "TestModule" -Version "*" -Repository $TestGalleryName
+        Install-PSResource -Name "TestModule" -Version "*" -Repository $TestGalleryName
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule"
         $pkg.Version | Should -Be "1.3.0"
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        $pkg = Install-PSResource -Name "TestModulePrerelease" -Prerelease -Repository $TestGalleryName 
+        Install-PSResource -Name "TestModulePrerelease" -Prerelease -Repository $TestGalleryName 
         $pkg = Get-Module "TestModulePrerelease" -ListAvailable
         $pkg.Name | Should -Be "TestModulePrerelease"
         $pkg.Version | Should -Be "0.0.1"
@@ -118,7 +123,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install a module with a dependency" {
-        $pkg = Install-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName 
+        Install-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName 
         $pkg = Get-Module "PSGetTestModule" -ListAvailable
         $pkg.Name | Should -Be "PSGetTestModule"
         $pkg.Version | Should -Be "2.0.2"
@@ -127,6 +132,17 @@ Describe 'Test Install-PSResource for Module' {
         $pkg = Get-Module "PSGetTestDependency1" -ListAvailable
         $pkg.Name | Should -Be "PSGetTestDependency1"
         $pkg.Version | Should -Be "1.0.0"
+    }
+
+    It "Install a module with a dependency and skip installing the dependency" {
+        Install-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName -SkipDependencyCheck
+        $pkg = Get-Module "PSGetTestModule" -ListAvailable
+        $pkg.Name | Should -Be "PSGetTestModule"
+        $pkg.Version | Should -Be "2.0.2"
+        $pkg.PrivateData.PSData.Prerelease | Should -Be "-alpha1"
+
+        $pkg = Get-Module "PSGetTestDependency1" -ListAvailable
+        $pkg | Should -BeNullOrEmpty
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {
@@ -295,6 +311,12 @@ Describe 'Test Install-PSResource for Module' {
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.1.0.0"
     }
+
+    It "Install module using -PassThru" {
+        $res = Install-PSResource -Name "TestModule" -Version "1.3.0" -Repository $TestGalleryName -PassThru
+        $res.Name | Should -Be "TestModule"
+        $res.Version | Should -Be "1.3.0.0"
+    }
 }
 
 <# Temporarily commented until -Tag is implemented for this Describe block
@@ -309,7 +331,7 @@ Describe 'Test Install-PSResource for interactive and root user scenarios' {
     }
 
     AfterEach {
-        Uninstall-PSResource "TestModule", "testModuleWithlicense" -Force -ErrorAction SilentlyContinue
+        Uninstall-PSResource "TestModule", "testModuleWithlicense" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {

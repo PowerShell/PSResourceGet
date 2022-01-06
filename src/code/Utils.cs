@@ -823,6 +823,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             foreach (var dirFilePath in Directory.GetFiles(dirPath))
             {
+                if (File.GetAttributes(dirFilePath).HasFlag(FileAttributes.ReadOnly))
+                {
+                    File.SetAttributes(dirFilePath, (File.GetAttributes(dirFilePath) & ~FileAttributes.ReadOnly));
+                }
+
                 File.Delete(dirFilePath);
             }
 

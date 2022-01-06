@@ -97,6 +97,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter Force { get; set; }
 
+        /// <summary>
+        /// Passes the resource updated to the console.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter PassThru { get; set; }
+
+        /// <summary>
+        /// Skips the check for resource dependencies, so that only found resources are updated,
+        /// and not any resources the found resource depends on.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipDependencyCheck { get; set; }
+
         #endregion
 
         #region Override Methods
@@ -114,9 +127,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 cancellationToken: _cancellationTokenSource.Token, 
                 cmdletPassedIn: this);
 
-             _installHelper = new InstallHelper(
-                savePkg: false,
-                cmdletPassedIn: this);
+             _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -151,7 +162,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            _installHelper.InstallPackages(
+            var installedPkgs = _installHelper.InstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,
                 prerelease: Prerelease,
@@ -163,10 +174,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 trustRepository: TrustRepository,
                 credential: Credential,
                 noClobber: false,
-                specifiedPath: null,
                 asNupkg: false,
                 includeXML: true,
+                skipDependencyCheck: SkipDependencyCheck,
+                savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
+
+            if (PassThru)
+            {
+                foreach (PSResourceInfo pkg in installedPkgs)
+                {
+                    WriteObject(pkg);
+                }
+            }
         }
 
         protected override void StopProcessing()
@@ -253,7 +273,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tag: null,
                 repository: Repository,
                 credential: Credential,
-                includeDependencies: false))
+                includeDependencies: !SkipDependencyCheck))
             {
                 if (!repositoryPackages.ContainsKey(foundResource.Name))
                 {

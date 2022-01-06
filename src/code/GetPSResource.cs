@@ -34,14 +34,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version of the resource to include to look for. 
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Version { get; set; }
 
         /// <summary>
         /// Specifies the path to look in. 
         /// </summary>
-        [Parameter()]
+        [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Path { get; set; }
 
