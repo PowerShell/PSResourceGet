@@ -219,7 +219,7 @@ Describe "Test Register-PSResourceRepository" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUrlAuthForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUrlCredentialInfoForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.Name | Should -Be $TestRepoName1
