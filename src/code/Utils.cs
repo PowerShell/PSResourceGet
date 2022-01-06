@@ -338,7 +338,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-        public static string GetRepositoryCredentialFromSecretManagement(
+        public static PSCredential GetRepositoryCredentialFromSecretManagement(
             string repositoryName,
             PSCredentialInfo repositoryCredentialInfo,
             PSCmdlet cmdletPassedIn)
@@ -383,29 +383,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         cmdletPassedIn));
             }
 
-            string passwordInPlainText = null;
-            switch(secretValue.GetType().Name)
+            if(secretValue is PSCredential)
             {
-                case "String":
-                    passwordInPlainText = (string) secretValue;
-                    break;
-                case "SecureString":
-                    passwordInPlainText = new NetworkCredential(string.Empty, (SecureString) secretValue).Password;
-                    break;
-                case "PSCredential":
-                    passwordInPlainText = new NetworkCredential(string.Empty, ((PSCredential) secretValue).Password).Password;
-                    break;
-                default:
-                    cmdletPassedIn.ThrowTerminatingError(
-                        new ErrorRecord(
-                            new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. Types supported are String, SecureString, and PSCredential."),
-                            "RepositoryCredentialInvalidSecretType",
-                            ErrorCategory.InvalidType,
-                            cmdletPassedIn));
-                    break;
+                return (PSCredential) secretValue;
             }
 
-            return passwordInPlainText;
+            cmdletPassedIn.ThrowTerminatingError(
+                new ErrorRecord(
+                    new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
+                    "RepositoryCredentialInvalidSecretType",
+                    ErrorCategory.InvalidType,
+                    cmdletPassedIn));
+
+            return null;
         }
 
         public static void SaveRepositoryCredentialToSecretManagementVault(

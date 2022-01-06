@@ -243,12 +243,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else if (repositoryCredentialInfo != null)
             {
-                string password = Utils.GetRepositoryCredentialFromSecretManagement(
+                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
                     repositoryName,
                     repositoryCredentialInfo,
                     _cmdletPassedIn);
 
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repositoryCredentialInfo.SecretName, password, true, null);
+                string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repoCredential.UserName, password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);
             }
 

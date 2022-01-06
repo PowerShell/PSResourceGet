@@ -411,12 +411,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         else if (repoCredentialInfo != null)
                         {
-                            string password = Utils.GetRepositoryCredentialFromSecretManagement(
+                            PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
                                 repoName,
                                 repoCredentialInfo,
                                 _cmdletPassedIn);
 
-                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repoCredentialInfo.SecretName, password, true, null);
+                            string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
+                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repoCredential.UserName, password, true, null);
                         }
                         var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
                         SourceRepository repository = new SourceRepository(source, provider);
