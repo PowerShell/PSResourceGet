@@ -248,11 +248,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     continue;
                 }
 
+                PSCredentialInfo repoCredentialInfo = null;
+                if(node.Attribute("VaultName") != null & node.Attribute("SecretName") != null)
+                {
+                    repoCredentialInfo = new PSCredentialInfo(node.Attribute("VaultName").Value, node.Attribute("SecretName").Value);
+                }
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
                         new Uri(node.Attribute("Url").Value),
                         Int32.Parse(node.Attribute("Priority").Value),
-                        Boolean.Parse(node.Attribute("Trusted").Value)));
+                        Boolean.Parse(node.Attribute("Trusted").Value),
+                        repoCredentialInfo));
                 // Remove item from file
                 node.Remove();
             }

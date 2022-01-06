@@ -9,6 +9,7 @@ Describe "Test Set-PSResourceRepository" {
         $PSGalleryURL = Get-PSGalleryLocation
         $TestRepoName1 = "testRepository"
         $TestRepoName2 = "testRepository2"
+        $TestRepoName3 = "testRepository3"
         $relativeCurrentPath = Get-Location
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
@@ -149,8 +150,8 @@ Describe "Test Set-PSResourceRepository" {
         $res2.Trusted | Should -Be False
         $res2.CredentialInfo | Should -BeNullOrEmpty
 
-        $res3 = Get-PSResourceRepository -Name "testRepository3"
-        $res3.Name | Should -Be "testRepository3"
+        $res3 = Get-PSResourceRepository -Name $TestRepoName3
+        $res3.Name | Should -Be $TestRepoName3
         $res3.URL.LocalPath | Should -Contain $tmpDir3Path
         $res3.Priority | Should -Be 50
         $res3.Trusted | Should -Be False
