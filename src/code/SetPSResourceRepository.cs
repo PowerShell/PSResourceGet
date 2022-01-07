@@ -200,7 +200,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if(!isSecretManagementModuleAvailable)
                     {
-                        WriteError(new ErrorRecord(
+                        ThrowTerminatingError(new ErrorRecord(
                             new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
                             "RepositoryCredentialSecretManagementUnavailableModule",
                             ErrorCategory.ResourceUnavailable,
@@ -214,7 +214,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if(!isSecretManagementModuleAvailable)
                 {
-                    WriteWarning($"Make sure the Microsoft.PowerShell.SecretManagement module is set up for successfully authenticating to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be imported. Make sure it is available before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
                 }
             }
 

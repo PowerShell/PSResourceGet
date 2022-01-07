@@ -22,6 +22,9 @@ Describe "Test Set-PSResourceRepository" {
         $relativeCurrentPath = Get-Location
 
         $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
+        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
+        $credential = New-Object pscredential ("testusername", $secureString)
+        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -67,10 +70,10 @@ Describe "Test Set-PSResourceRepository" {
     }
 
     It "set repository given Name and CredentialInfo parameters" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        Set-PSResourceRepository -Name "testRepository" -CredentialInfo $credentialInfo1
-        $res = Get-PSResourceRepository -Name "testRepository"
-        $res.Name | Should -Be "testRepository"
+        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
+        Set-PSResourceRepository -Name $TestRepoName1 -CredentialInfo $credentialInfo1
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+        $res.Name | Should -Be $TestRepoName1
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
@@ -174,9 +177,9 @@ Describe "Test Set-PSResourceRepository" {
     }
 
     It "not set and throw error for trying to set PSGallery CredentialInfo (NameParameterSet)" {
-        Unregister-PSResourceRepository -Name "PSGallery"
+        Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -PSGallery
-        {Set-PSResourceRepository -Name "PSGallery" -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $PSGalleryName -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
     }
 
     It "not set repository and throw error for trying to set PSGallery URL (RepositoriesParameterSet)" {
@@ -245,5 +248,24 @@ Describe "Test Set-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir2Path
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
+    }
+
+    It "prints a warning if CredentialInfo is passed in without SecretManagement module setup" {
+        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
+        $output = Set-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -CredentialInfo $credentialInfo1 3>&1
+        $output | Should -Match "Microsoft.PowerShell.SecretManagement module cannot be imported"
+
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+        $res | Should -Not -BeNullOrEmpty
+    }
+
+    It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
+        {
+            Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
+            Set-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -CredentialInfo $credentialInfo2
+        } | Should -Throw "Microsoft.PowerShell.SecretManagement module is required for saving PSResourceRepository $TestRepoName1's Credential in a vault"
+
+        $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
+        $res.CredentialInfo | Should -BeNullOrEmpty
     }
 }

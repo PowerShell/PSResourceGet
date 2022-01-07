@@ -23,6 +23,9 @@ Describe "Test Register-PSResourceRepository" {
         $relativeCurrentPath = Get-Location
 
         $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
+        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
+        $credential = New-Object pscredential ("testusername", $secureString)
+        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -59,8 +62,8 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "register repository given Name, URL, Trusted, Priority, CredentialInfo (NameParameterSet)" {
-        $res = Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo1 -PassThru
-        $res.Name | Should -Be "testRepository"
+        $res = Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo1 -PassThru
+        $res.Name | Should -Be $TestRepoName1
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
@@ -231,10 +234,10 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Name | Should -Be $TestRepoName3
     }
 
-    $testCases2 = @{Type = "-Name is not specified";                     IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-Name is PSGallery";                         IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL not specified";                         IncorrectHashTable = @{Name = "testRepository"};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL is not valid scheme";                   IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
+    $testCases2 = @{Type = "-Name is not specified";                     IncorrectHashTable = @{URL = $tmpDir1Path};                           ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-Name is PSGallery";                         IncorrectHashTable = @{Name = $PSGalleryName; URL = $tmpDir1Path};    ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL not specified";                         IncorrectHashTable = @{Name = $TestRepoName1};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL is not valid scheme";                   IncorrectHashTable = @{Name = $TestRepoName1; URL="www.google.com"};  ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases $testCases2 {
         param($Type, $IncorrectHashTable, $ErrorId)
@@ -276,5 +279,20 @@ Describe "Test Register-PSResourceRepository" {
 
         $res.Name | Should -Be "localFileShareTestRepo"
         $res.URL.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
+    }
+
+    It "prints a warning if CredentialInfo is passed in without SecretManagement module setup" {
+        $output = Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo1 3>&1
+        $output | Should -Match "Microsoft.PowerShell.SecretManagement module cannot be imported"
+
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+        $res | Should -Not -BeNullOrEmpty
+    }
+
+    It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
+        { Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 } | Should -Throw "Microsoft.PowerShell.SecretManagement module is required for saving PSResourceRepository $TestRepoName1's Credential in a vault"
+
+        $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
+        $res | Should -BeNullOrEmpty
     }
 }
