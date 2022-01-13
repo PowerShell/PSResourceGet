@@ -6,11 +6,11 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe "Create PSCredentialInfo with VaultName and SecretName" -tags 'CI' {
 
     It "Verifies VaultName is not empty" {
-        { New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("", "testsecret") } | Should -Throw "Invalid CredentialInfo, VaultName must be a non-empty string"
+        { New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("", "testsecret") } | Should -Throw -ErrorId "ConstructorInvokedThrowException,Microsoft.PowerShell.Commands.NewObjectCommand"
     }
 
     It "Verifies SecretName is not empty" {
-        { New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "") } | Should -Throw "Invalid CredentialInfo, SecretName must be a non-empty string"
+        { New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "") } | Should -Throw -ErrorId "ConstructorInvokedThrowException,Microsoft.PowerShell.Commands.NewObjectCommand"
     }
 
     It "Creates PSCredentialInfo successfully if VaultName and SecretName are non-empty" {
@@ -42,13 +42,13 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
 
     It "Throws if VaultName is null" {
         $customObject = New-Object PSObject
-        { New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo $customObject } | Should -Throw "Invalid CredentialInfo, VaultName must be a non-empty string"
+        { New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo $customObject } | Should -Throw -ErrorId "ConstructorInvokedThrowException,Microsoft.PowerShell.Commands.NewObjectCommand"
     }
 
     It "Throws if SecretName is null" {
         $customObject = New-Object PSObject
         $customObject | Add-Member -Name "VaultName" -Value "testvault" -MemberType NoteProperty
-        { New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo $customObject } | Should -Throw "Invalid CredentialInfo, SecretName must be a non-empty string"
+        { New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo $customObject } | Should -Throw -ErrorId "ConstructorInvokedThrowException,Microsoft.PowerShell.Commands.NewObjectCommand"
     }
 
     It "Creates PSCredentialInfo successfully from PSObject with VaultName and SecretName" {
