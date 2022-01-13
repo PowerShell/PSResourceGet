@@ -214,16 +214,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
 
-            if(repoCredentialInfo != null)
+            if (repoCredentialInfo != null)
             {
                 bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, this);
 
                 if (repoCredentialInfo.Credential != null)
                 {
-                    if(!isSecretManagementModuleAvailable)
+                    if (!isSecretManagementModuleAvailable)
                     {
                         ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
+                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is not found, but is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
                             "RepositoryCredentialSecretManagementUnavailableModule",
                             ErrorCategory.ResourceUnavailable,
                             this));
@@ -234,9 +234,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
 
-                if(!isSecretManagementModuleAvailable)
+                if (!isSecretManagementModuleAvailable)
                 {
-                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be imported. Make sure it is available before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be found. Make sure it is installed before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
                 }
             }
 
@@ -264,7 +264,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             Uri psGalleryUri = new Uri(PSGalleryRepoURL);
             WriteVerbose("(PSGallerySet) internal name and uri values for Add() API are hardcoded and validated, priority and trusted values, if passed in, also validated");
-            return AddToRepositoryStoreHelper(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted, null);
+            return AddToRepositoryStoreHelper(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted, repoCredentialInfo: null);
         }
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
@@ -355,15 +355,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             PSCredentialInfo repoCredentialInfo = null;
-            if(repo.ContainsKey("CredentialInfo")) {
-                if (!Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+            if (repo.ContainsKey("CredentialInfo") &&
+                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
                     cmdletPassedIn: this,
                     repoCredentialInfo: out repoCredentialInfo,
                     errorRecord: out ErrorRecord errorRecord1))
-                {
-                    WriteError(errorRecord1);
-                    return null;
-                }
+            {
+                WriteError(errorRecord1);
+                return null;
             }
 
             try

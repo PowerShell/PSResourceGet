@@ -285,11 +285,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             try
             {
-                if(!string.IsNullOrEmpty((string) credentialInfoCandidate.Properties[PSCredentialInfo.VaultNameAttribute]?.Value)
+                if (!string.IsNullOrEmpty((string) credentialInfoCandidate.Properties[PSCredentialInfo.VaultNameAttribute]?.Value)
                     && !string.IsNullOrEmpty((string) credentialInfoCandidate.Properties[PSCredentialInfo.SecretNameAttribute]?.Value))
                 {
                     PSCredential credential = null;
-                    if(credentialInfoCandidate.Properties[PSCredentialInfo.CredentialAttribute] != null)
+                    if (credentialInfoCandidate.Properties[PSCredentialInfo.CredentialAttribute] != null)
                     {
                         try
                         {
@@ -343,7 +343,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PSCredentialInfo repositoryCredentialInfo,
             PSCmdlet cmdletPassedIn)
         {
-            if(!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
+            if (!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
             {
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
@@ -383,9 +383,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         cmdletPassedIn));
             }
 
-            if(secretValue is PSCredential)
+            if (secretValue is PSCredential secretCredential)
             {
-                return (PSCredential) secretValue;
+                return secretCredential;
             }
 
             cmdletPassedIn.ThrowTerminatingError(
@@ -403,7 +403,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PSCredentialInfo repositoryCredentialInfo,
             PSCmdlet cmdletPassedIn)
         {
-            if(!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
+            if (!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
             {
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(

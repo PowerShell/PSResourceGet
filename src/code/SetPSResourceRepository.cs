@@ -192,16 +192,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // determine trusted value to pass in (true/false if set, null otherwise, hence the nullable bool variable)
             bool? _trustedNullable = isSet ? new bool?(repoTrusted) : new bool?();
 
-            if(repoCredentialInfo != null)
+            if (repoCredentialInfo != null)
             {
                 bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, this);
 
                 if (repoCredentialInfo.Credential != null)
                 {
-                    if(!isSecretManagementModuleAvailable)
+                    if (!isSecretManagementModuleAvailable)
                     {
                         ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
+                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is not found, but is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
                             "RepositoryCredentialSecretManagementUnavailableModule",
                             ErrorCategory.ResourceUnavailable,
                             this));
@@ -212,15 +212,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
 
-                if(!isSecretManagementModuleAvailable)
+                if (!isSecretManagementModuleAvailable)
                 {
-                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be imported. Make sure it is available before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be found. Make sure it is installed before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
                 }
             }
 
             // determine if either 1 of 4 values are attempting to be set: URL, Priority, Trusted, CredentialInfo.
             // if none are (i.e only Name parameter was provided, write error)
-            if(repoUrl == null && repoPriority == DefaultPriority && _trustedNullable == null && repoCredentialInfo == null)
+            if (repoUrl == null && repoPriority == DefaultPriority && _trustedNullable == null && repoCredentialInfo == null)
             {
                 throw new ArgumentException("Either URL, Priority, Trusted or CredentialInfo parameters must be requested to be set");
             }
@@ -286,22 +286,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             bool repoTrusted = false;
             isSet = false;
-            if(repo.ContainsKey("Trusted"))
+            if (repo.ContainsKey("Trusted"))
             {
                 repoTrusted = (bool) repo["Trusted"];
                 isSet = true;
             }
 
             PSCredentialInfo repoCredentialInfo = null;
-            if(repo.ContainsKey("CredentialInfo")) {
-                if (!Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+            if (repo.ContainsKey("CredentialInfo") &&
+                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
                     cmdletPassedIn: this,
                     repoCredentialInfo: out repoCredentialInfo,
                     errorRecord: out ErrorRecord errorRecord1))
-                {
-                    WriteError(errorRecord1);
-                    return null;
-                }
+            {
+                WriteError(errorRecord1);
+                return null;
             }
 
             try

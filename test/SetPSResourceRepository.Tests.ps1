@@ -253,7 +253,7 @@ Describe "Test Set-PSResourceRepository" {
     It "prints a warning if CredentialInfo is passed in without SecretManagement module setup" {
         Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
         $output = Set-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -CredentialInfo $credentialInfo1 3>&1
-        $output | Should -Match "Microsoft.PowerShell.SecretManagement module cannot be imported"
+        $output | Should -Match "Microsoft.PowerShell.SecretManagement module cannot be found"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res | Should -Not -BeNullOrEmpty
@@ -263,7 +263,7 @@ Describe "Test Set-PSResourceRepository" {
         {
             Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
             Set-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -CredentialInfo $credentialInfo2
-        } | Should -Throw "Microsoft.PowerShell.SecretManagement module is required for saving PSResourceRepository $TestRepoName1's Credential in a vault"
+        } | Should -Throw "Microsoft.PowerShell.SecretManagement module is not found, but is required for saving PSResourceRepository $TestRepoName1's Credential in a vault"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res.CredentialInfo | Should -BeNullOrEmpty

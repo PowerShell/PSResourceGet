@@ -36,7 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <param name="psObject"></param>
         public PSCredentialInfo(PSObject psObject)
         {
-            if(psObject == null)
+            if (psObject == null)
             {
                 throw new ArgumentNullException(nameof(psObject));
             }
@@ -59,9 +59,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 return _vaultName;
             }
+
             private set
             {
-                if(string.IsNullOrEmpty(value))
+                if (string.IsNullOrEmpty(value))
                 {
                     throw new ArgumentException($"Invalid CredentialInfo, {PSCredentialInfo.VaultNameAttribute} must be a non-empty string");
                 }
@@ -79,9 +80,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 return _secretName;
             }
+
             private set
             {
-                if(string.IsNullOrEmpty(value))
+                if (string.IsNullOrEmpty(value))
                 {
                     throw new ArgumentException($"Invalid CredentialInfo, {PSCredentialInfo.SecretNameAttribute} must be a non-empty string");
                 }

@@ -141,7 +141,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
                     Uri psGalleryScriptsUrl = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUrl, repositoriesToSearch[i].Priority, false, null);
+                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUrl, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteVerbose("Null Type provided, so add PSGalleryScripts repository");
@@ -161,7 +161,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
                     Uri poshTestGalleryScriptsUrl = new Uri("https://www.poshtestgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(_poshTestGalleryScriptsRepoName, poshTestGalleryScriptsUrl, repositoriesToSearch[i].Priority, false, null);
+                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(_poshTestGalleryScriptsRepoName, poshTestGalleryScriptsUrl, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteVerbose("Null Type provided, so add PoshTestGalleryScripts repository");

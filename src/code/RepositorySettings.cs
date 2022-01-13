@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoURL);
-                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted, null);
+                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted, repoCredentialInfo: null);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -103,7 +103,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     new XAttribute("Trusted", repoTrusted)
                     );
 
-                if(repoCredentialInfo != null) {
+                if (repoCredentialInfo != null)
+                {
                     newElement.Add(new XAttribute(PSCredentialInfo.VaultNameAttribute, repoCredentialInfo.VaultName));
                     newElement.Add(new XAttribute(PSCredentialInfo.SecretNameAttribute, repoCredentialInfo.SecretName));
                 }
@@ -164,20 +165,24 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 // A null CredentialInfo value passed in signifies that CredentialInfo was not attempted to be set.
-                // So only set VaultName and SecretName attributes if non-null value passed in for repoCredentialInfo
+                // Set VaultName and SecretName attributes if non-null value passed in for repoCredentialInfo
                 if (repoCredentialInfo != null)
                 {
-                    if (node.Attribute(PSCredentialInfo.VaultNameAttribute) == null) {
+                    if (node.Attribute(PSCredentialInfo.VaultNameAttribute) == null)
+                    {
                         node.Add(new XAttribute(PSCredentialInfo.VaultNameAttribute, repoCredentialInfo.VaultName));
                     }
-                    else {
+                    else
+                    {
                         node.Attribute(PSCredentialInfo.VaultNameAttribute).Value = repoCredentialInfo.VaultName;
                     }
 
-                    if (node.Attribute(PSCredentialInfo.SecretNameAttribute) == null) {
+                    if (node.Attribute(PSCredentialInfo.SecretNameAttribute) == null)
+                    {
                         node.Add(new XAttribute(PSCredentialInfo.SecretNameAttribute, repoCredentialInfo.SecretName));
                     }
-                    else {
+                    else
+                    {
                         node.Attribute(PSCredentialInfo.SecretNameAttribute).Value = repoCredentialInfo.SecretName;
                     }
                 }
@@ -192,9 +197,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 PSCredentialInfo thisCredentialInfo;
                 try
                 {
-                    thisCredentialInfo = new PSCredentialInfo(node.Attribute(PSCredentialInfo.VaultNameAttribute).Value, node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
+                    thisCredentialInfo = new PSCredentialInfo(node.Attribute(PSCredentialInfo.VaultNameAttribute)?.Value, node.Attribute(PSCredentialInfo.SecretNameAttribute)?.Value);
                 }
-                catch (Exception)
+                catch (ArgumentException)
                 {
                     thisCredentialInfo = null;
                 }
@@ -249,7 +254,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 PSCredentialInfo repoCredentialInfo = null;
-                if(node.Attribute("VaultName") != null & node.Attribute("SecretName") != null)
+                if (node.Attribute("VaultName") != null & node.Attribute("SecretName") != null)
                 {
                     repoCredentialInfo = new PSCredentialInfo(node.Attribute("VaultName").Value, node.Attribute("SecretName").Value);
                 }
@@ -301,7 +306,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     PSCredentialInfo thisCredentialInfo;
                     string credentialInfoErrorMessage = $"Repository {repo.Attribute("Name").Value} has invalid CredentialInfo. {PSCredentialInfo.VaultNameAttribute} and {PSCredentialInfo.SecretNameAttribute} should both be present and non-empty";
                     // both keys are present
-                    if (repo.Attribute(PSCredentialInfo.VaultNameAttribute) != null && repo.Attribute(PSCredentialInfo.SecretNameAttribute) != null) {
+                    if (repo.Attribute(PSCredentialInfo.VaultNameAttribute) != null && repo.Attribute(PSCredentialInfo.SecretNameAttribute) != null)
+                    {
                         try
                         {
                             // both values are non-empty
@@ -316,12 +322,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         }
                     }
                     // both keys are missing
-                    else if (repo.Attribute(PSCredentialInfo.VaultNameAttribute) == null && repo.Attribute(PSCredentialInfo.SecretNameAttribute) == null) {
+                    else if (repo.Attribute(PSCredentialInfo.VaultNameAttribute) == null && repo.Attribute(PSCredentialInfo.SecretNameAttribute) == null)
+                    {
                         // = valid credentialInfo
                         thisCredentialInfo = null;
                     }
                     // one of the keys is missing
-                    else {
+                    else
+                    {
                         thisCredentialInfo = null;
                         tempErrorList.Add(credentialInfoErrorMessage);
                         continue;
@@ -356,7 +364,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         PSCredentialInfo thisCredentialInfo;
                         string credentialInfoErrorMessage = $"Repository {node.Attribute("Name").Value} has invalid CredentialInfo. {PSCredentialInfo.VaultNameAttribute} and {PSCredentialInfo.SecretNameAttribute} should both be present and non-empty";
                         // both keys are present
-                        if (node.Attribute(PSCredentialInfo.VaultNameAttribute) != null && node.Attribute(PSCredentialInfo.SecretNameAttribute) != null) {
+                        if (node.Attribute(PSCredentialInfo.VaultNameAttribute) != null && node.Attribute(PSCredentialInfo.SecretNameAttribute) != null)
+                        {
                             try
                             {
                                 // both values are non-empty
@@ -371,12 +380,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             }
                         }
                         // both keys are missing
-                        else if (node.Attribute(PSCredentialInfo.VaultNameAttribute) == null && node.Attribute(PSCredentialInfo.SecretNameAttribute) == null) {
+                        else if (node.Attribute(PSCredentialInfo.VaultNameAttribute) == null && node.Attribute(PSCredentialInfo.SecretNameAttribute) == null)
+                        {
                             // = valid credentialInfo
                             thisCredentialInfo = null;
                         }
                         // one of the keys is missing
-                        else {
+                        else
+                        {
                             thisCredentialInfo = null;
                             tempErrorList.Add(credentialInfoErrorMessage);
                             continue;
