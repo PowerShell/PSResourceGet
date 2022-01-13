@@ -343,7 +343,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string createFullVersion = pkg.Version.ToString();
                     if (pkg.IsPrerelease)
                     {
-                        createFullVersion = pkg.Version.ToString() + "-" + pkg.PrereleaseLabel;
+                        createFullVersion = pkg.Version.ToString() + "-" + pkg.Prerelease;
                     }
 
                     if (!NuGetVersion.TryParse(createFullVersion, out NuGetVersion pkgVersion))
@@ -433,11 +433,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.      
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
-                    string normalizedVersionNoPrereleaseLabel = newVersion;
+                    string normalizedVersionNoPrerelease = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
                     {
                         // eg: 2.0.2
-                        normalizedVersionNoPrereleaseLabel = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
+                        normalizedVersionNoPrerelease = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
                     }
                     
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);

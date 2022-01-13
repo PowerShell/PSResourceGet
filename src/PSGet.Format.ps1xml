@@ -19,7 +19,7 @@
                         <TableColumnItems>
                             <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Version</PropertyName></TableColumnItem>
-                            <TableColumnItem><PropertyName>PrereleaseLabel</PropertyName></TableColumnItem>
+                            <TableColumnItem><PropertyName>Prerelease</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Repository</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Description</PropertyName></TableColumnItem>
                         </TableColumnItems>
@@ -53,7 +53,7 @@
             <TableColumnItems>
                 <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
             <TableColumnItem><ScriptBlock>$_.ParentResource.Version</ScriptBlock></TableColumnItem>
-            <TableColumnItem><ScriptBlock>$_.ParentResource.PrereleaseLabel</ScriptBlock></TableColumnItem>
+            <TableColumnItem><ScriptBlock>$_.ParentResource.Prerelease</ScriptBlock></TableColumnItem>
             <TableColumnItem><ScriptBlock>$_.ParentResource.Name</ScriptBlock></TableColumnItem>
             <TableColumnItem><ScriptBlock>$_.ParentResource.Repository</ScriptBlock></TableColumnItem>
             </TableColumnItems>

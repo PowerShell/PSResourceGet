@@ -166,7 +166,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
                     
                 case InputObjectParameterSet:
-                    string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.PrereleaseLabel);
+                    string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.Prerelease);
                     if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
                     {
                         var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", normalizedVersionString, InputObject.Name);

@@ -207,10 +207,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             string version = psGetInfo.Version.ToString();
-            string prereleaseLabel = psGetInfo.PrereleaseLabel;
+            string prerelease = psGetInfo.Prerelease;
 
             if (!NuGetVersion.TryParse(
-                    value: String.IsNullOrEmpty(prereleaseLabel) ? version : GetNormalizedVersionString(version, prereleaseLabel),
+                    value: String.IsNullOrEmpty(prerelease) ? version : GetNormalizedVersionString(version, prerelease),
                     version: out pkgNuGetVersion))
             {
                 cmdletPassedIn.WriteVerbose(String.Format("Leaf directory in path '{0}' cannot be parsed into a version.", installedPkgPath));

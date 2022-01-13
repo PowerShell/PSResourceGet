@@ -135,7 +135,7 @@ PSResourceInfo : {
     Name
     PackageManagementProvider
     PowerShellGetFormatVersion
-    PrereleaseLabel
+    Prerelease
     ProjectUri
     PublishedDate
     ReleaseNotes

@@ -247,7 +247,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Name { get; }
         public string PackageManagementProvider { get; }
         public string PowerShellGetFormatVersion { get; }
-        public string PrereleaseLabel { get; }
+        public string Prerelease { get; }
         public Uri ProjectUri { get; }
         public DateTime? PublishedDate { get; }
         public string ReleaseNotes { get; }
@@ -280,7 +280,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string name,
             string packageManagementProvider,
             string powershellGetFormatVersion,
-            string prereleaseLabel,
+            string prerelease,
             Uri projectUri,
             DateTime? publishedDate,
             string releaseNotes,
@@ -306,7 +306,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Name = name ?? string.Empty;
             PackageManagementProvider = packageManagementProvider ?? string.Empty;
             PowerShellGetFormatVersion = powershellGetFormatVersion ?? string.Empty;
-            PrereleaseLabel = prereleaseLabel ?? string.Empty;
+            Prerelease = prerelease ?? string.Empty;
             ProjectUri = projectUri;
             PublishedDate = publishedDate;
             ReleaseNotes = releaseNotes ?? string.Empty;
@@ -394,7 +394,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         filePath));
 
                 var additionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo);
-                Version version = GetVersionInfo(psObjectInfo, additionalMetadata, out string prereleaseLabel);
+                Version version = GetVersionInfo(psObjectInfo, additionalMetadata, out string prerelease);
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadata,
@@ -412,7 +412,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     name: GetStringProperty(nameof(PSResourceInfo.Name), psObjectInfo),
                     packageManagementProvider: GetStringProperty(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
                     powershellGetFormatVersion: GetStringProperty(nameof(PSResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
-                    prereleaseLabel: prereleaseLabel,
+                    prerelease: prerelease,
                     projectUri: GetProperty<Uri>(nameof(PSResourceInfo.ProjectUri), psObjectInfo),
                     publishedDate: GetProperty<DateTime>(nameof(PSResourceInfo.PublishedDate), psObjectInfo),
                     releaseNotes: GetStringProperty(nameof(PSResourceInfo.ReleaseNotes), psObjectInfo),
@@ -449,10 +449,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         private static Version GetVersionInfo(
             PSObject psObjectInfo,
             Dictionary<string, string> additionalMetadata,
-            out string prereleaseLabel)
+            out string prerelease)
         {
             string versionString = GetProperty<string>(nameof(PSResourceInfo.Version), psObjectInfo);
-            prereleaseLabel = String.Empty;
+            prerelease = String.Empty;
 
             if (!String.IsNullOrEmpty(versionString) ||
                 additionalMetadata.TryGetValue("NormalizedVersion", out versionString))
@@ -472,7 +472,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         // versionStringParsed.Length > 1 (because string contained '-' so couldn't be 0)
                         // versionString: "1.2.0-alpha1"
                         pkgVersion = versionStringParsed[0];
-                        prereleaseLabel = versionStringParsed[1];
+                        prerelease = versionStringParsed[1];
                     }
                 }
 
@@ -480,7 +480,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // parse the pkgVersion parsed out above into a System.Version object
                 if (!Version.TryParse(pkgVersion, out Version parsedVersion))
                 {
-                    prereleaseLabel = String.Empty;
+                    prerelease = String.Empty;
                     return null;
                 }
                 else
@@ -491,7 +491,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             // version could not be parsed as string, it was written to XML file as a System.Version object
             // V3 code briefly did so, I believe so we provide support for it
-            prereleaseLabel = String.Empty;
+            prerelease = String.Empty;
             return GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo);
         }
 
@@ -536,7 +536,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     name: ParseMetadataName(metadataToParse),
                     packageManagementProvider: null,
                     powershellGetFormatVersion: null,
-                    prereleaseLabel: ParsePrerelease(metadataToParse),
+                    prerelease: ParsePrerelease(metadataToParse),
                     projectUri: ParseMetadataProjectUri(metadataToParse),
                     publishedDate: ParseMetadataPublishedDate(metadataToParse),
                     releaseNotes: null,
@@ -887,7 +887,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             // 1.0.0-alpha1
             // 1.0.0.0
-            string NormalizedVersion = IsPrerelease ? ConcatenateVersionWithPrerelease(Version.ToString(), PrereleaseLabel) : Version.ToString();
+            string NormalizedVersion = IsPrerelease ? ConcatenateVersionWithPrerelease(Version.ToString(), Prerelease) : Version.ToString();
 
             var additionalMetadata = new PSObject();
 

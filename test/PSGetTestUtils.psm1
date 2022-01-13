@@ -555,7 +555,7 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.Description | Should -BeLike 'This module provides a convenient way for a user to store*'
     $psGetInfo.IconUri | Should -BeNullOrEmpty
     $psGetInfo.IsPrerelease | Should -Be $True
-    $psGetInfo.PrereleaseLabel | Should -Be "preview2"
+    $psGetInfo.Prerelease | Should -Be "preview2"
     $psGetInfo.Includes.Cmdlet | Should -HaveCount 10
     $psGetInfo.Includes.Cmdlet[0] | Should -BeExactly 'Register-SecretVault'
     $psGetInfo.InstalledDate.Year | Should -BeExactly 2021
