@@ -194,14 +194,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 // Create CredentialInfo based on new values or whether it was empty to begin with
-                PSCredentialInfo thisCredentialInfo;
-                try
+                PSCredentialInfo thisCredentialInfo = null;
+                if (node.Attribute(PSCredentialInfo.VaultNameAttribute)?.Value != null &&
+                    node.Attribute(PSCredentialInfo.SecretNameAttribute)?.Value != null)
                 {
-                    thisCredentialInfo = new PSCredentialInfo(node.Attribute(PSCredentialInfo.VaultNameAttribute)?.Value, node.Attribute(PSCredentialInfo.SecretNameAttribute)?.Value);
-                }
-                catch (ArgumentException)
-                {
-                    thisCredentialInfo = null;
+                    thisCredentialInfo = new PSCredentialInfo(
+                        node.Attribute(PSCredentialInfo.VaultNameAttribute).Value,
+                        node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
                 }
 
                 updatedRepo = new PSRepositoryInfo(repoName,
