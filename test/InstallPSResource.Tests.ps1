@@ -11,6 +11,7 @@ Describe 'Test Install-PSResource for Module' {
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = "TestModule"
+        $RequiredResourceJSONFileName = "TestRequiredResourceFile.json"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
@@ -316,6 +317,86 @@ Describe 'Test Install-PSResource for Module' {
         $res = Install-PSResource -Name "TestModule" -Version "1.3.0" -Repository $TestGalleryName -PassThru
         $res.Name | Should -Be "TestModule"
         $res.Version | Should -Be "1.3.0.0"
+    }
+
+    It "Install modules using -RequiredResource with hashtable" {
+        $rrHash = @{
+            TestModule = @{
+               version = "[0.0.1,1.3.0]"
+               repository = $TestGalleryName
+             }
+          
+             TestModulePrerelease = @{
+               version = "[0.0.0,0.0.5]"
+               repository = $TestGalleryName
+               prerelease = "true"
+             }
+          
+             TestModule99 = @{
+             }
+          }
+
+          Install-PSResource -RequiredResource $rrHash
+    
+          $res1 = Get-Module "TestModule" -ListAvailable
+          $res1.Name | Should -Be "TestModule"
+          $res1.Version | Should -Be "1.3.0"
+
+          $res2 = Get-Module "TestModulePrerelease" -ListAvailable
+          $res2.Name | Should -Be "TestModulePrerelease"
+          $res2.Version | Should -Be "0.0.1"
+
+          $res3 = Get-Module "TestModule99" -ListAvailable
+          $res3.Name | Should -Be "TestModule99"
+          $res3.Version | Should -Be "0.0.5"
+    }
+
+    It "Install modules using -RequiredResource with JSON string" {
+        $rrJSON = "{
+           'TestModule': {
+             'version': '[0.0.1,1.3.0]',
+             'repository': 'PoshTestGallery'
+           },
+           'TestModulePrerelease': {
+             'version': '[0.0.0,0.0.5]',
+             'repository': 'PoshTestGallery',
+             'prerelease': 'true'
+           },
+           'TestModule99': {
+           }
+         }"
+
+          Install-PSResource -RequiredResource $rrJSON
+    
+          $res1 = Get-Module "TestModule" -ListAvailable
+          $res1.Name | Should -Be "TestModule"
+          $res1.Version | Should -Be "1.3.0"
+
+          $res2 = Get-Module "TestModulePrerelease" -ListAvailable
+          $res2.Name | Should -Be "TestModulePrerelease"
+          $res2.Version | Should -Be "0.0.1"
+
+          $res3 = Get-Module "TestModule99" -ListAvailable
+          $res3.Name | Should -Be "TestModule99"
+          $res3.Version | Should -Be "0.0.5"
+    }
+
+    It "Install modules using -RequiredResourceFile with JSON file" {
+        $rrFileJSON = ".\$RequiredResourceJSONFileName"
+
+        Install-PSResource -RequiredResourceFile $rrFileJSON -Verbose
+
+        $res1 = Get-Module "TestModule" -ListAvailable
+        $res1.Name | Should -Be "TestModule"
+        $res1.Version | Should -Be "1.2.0"
+ 
+        $res2 = Get-Module "TestModulePrerelease" -ListAvailable
+        $res2.Name | Should -Be "TestModulePrerelease"
+        $res2.Version | Should -Be "0.0.1"
+ 
+        $res3 = Get-Module "TestModule99" -ListAvailable
+        $res3.Name | Should -Be "TestModule99"
+        $res3.Version | Should -Be "0.0.5"
     }
 }
 
