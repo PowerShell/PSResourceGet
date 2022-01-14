@@ -273,7 +273,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         pkgsInJsonFile = JsonConvert.DeserializeObject<Hashtable>(requiredResourceFileStream, new JsonSerializerSettings { MaxDepth = 6 });
 
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         var exMessage = String.Format("Argument for parameter -RequiredResourceFile is not in proper json format.  Make sure argument is either a valid json file.");
                         var ex = new ArgumentException(exMessage);
@@ -306,7 +306,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkgsInJson = JsonConvert.DeserializeObject<Hashtable>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
 
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a valid json file.");
                             var ex = new ArgumentException(exMessage);
