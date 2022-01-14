@@ -2,9 +2,12 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Newtonsoft.Json;
 using NuGet.Versioning;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Management.Automation;
 
@@ -113,6 +116,62 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public PSResourceInfo InputObject { get; set; }
 
+        /// <summary>
+        /// Installs resources based on input from a JSON file.
+        /// </summary>
+        [Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
+        [ValidateNotNullOrEmpty]
+        public String RequiredResourceFile
+        {
+            get {
+                return _requiredResourceFile;
+            }
+            set
+            {
+                string resolvedPath = string.Empty;
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+                }
+
+                if (!File.Exists(resolvedPath))
+                {
+                    var exMessage = String.Format("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json or .psd1 file");
+                    var ex = new ArgumentException(exMessage);
+                    var RequiredResourceFileDoesNotExist = new ErrorRecord(ex, "RequiredResourceFileDoesNotExist", ErrorCategory.ObjectNotFound, null);
+
+                    ThrowTerminatingError(RequiredResourceFileDoesNotExist);
+                }
+
+                _requiredResourceFile = resolvedPath;
+            }
+        }
+
+        /// <summary>
+        ///  Installs resources in a hashtable or JSON string format.
+        /// </summary>
+        [Parameter(ParameterSetName = RequiredResourceParameterSet)]
+        public Object RequiredResource  // takes either string (json) or hashtable
+        {
+            get { return _requiredResourceHash != null ? (Object)_requiredResourceHash : (Object)_requiredResourceJson; }
+
+            set
+            {
+                if (value.GetType().Name.Equals("String"))
+                {
+                    _requiredResourceJson = (String)value;
+                }
+                else if (value.GetType().Name.Equals("Hashtable"))
+                {
+                    _requiredResourceHash = (Hashtable)value;
+                }
+                else
+                {
+                    throw new ParameterBindingException("Object is not a JSON or Hashtable");
+                }
+            }
+        }
+
         #endregion
 
         #region Members
@@ -122,6 +181,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
         List<string> _pathsToInstallPkg;
+        private string _requiredResourceFile;
+        private string _requiredResourceJson;
+        private Hashtable _requiredResourceHash;
         VersionRange _versionRange;
         InstallHelper _installHelper;
 
@@ -161,8 +223,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     ProcessInstallHelper(
                         pkgNames: Name,
+                        pkgVersion: _versionRange,
                         pkgPrerelease: Prerelease,
-                        pkgRepository: Repository);
+                        pkgRepository: Repository,
+                        pkgCredential: Credential,
+                        reqResourceParams: null);
                     break;
                     
                 case InputObjectParameterSet:
@@ -177,24 +242,98 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     ProcessInstallHelper(
                         pkgNames: new string[] { InputObject.Name },
+                        pkgVersion: _versionRange,
                         pkgPrerelease: InputObject.IsPrerelease,
-                        pkgRepository: new string[]{ InputObject.Repository });
+                        pkgRepository: new string[]{ InputObject.Repository },
+                        pkgCredential: Credential,
+                        reqResourceParams: null);
                     break;
 
                 case RequiredResourceFileParameterSet:
-                    ThrowTerminatingError(new ErrorRecord(
-                                           new PSNotImplementedException("RequiredResourceFileParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                                           "CommandParameterSetNotImplementedYet",
-                                           ErrorCategory.NotImplemented,
-                                           this));
+                    /* json file contents should look like:
+                       {
+                          "Pester": {
+                            "allowPrerelease": true,
+                            "version": "[4.4.2,4.7.0]",
+                            "repository": "PSGallery",
+                            "credential": null
+                          }
+                        }
+                    */
+                    
+                    string requiredResourceFileStream = string.Empty;
+                    using (StreamReader sr = new StreamReader(_requiredResourceFile))
+                    {
+                        requiredResourceFileStream = sr.ReadToEnd();
+                    }
+                    
+                    Hashtable pkgsInJsonFile = null;
+                    try
+                    {
+                        pkgsInJsonFile = JsonConvert.DeserializeObject<Hashtable>(requiredResourceFileStream, new JsonSerializerSettings { MaxDepth = 6 });
+
+                    }
+                    catch (Exception e)
+                    {
+                        var exMessage = String.Format("Argument for parameter -RequiredResourceFile is not in proper json format.  Make sure argument is either a valid json file.");
+                        var ex = new ArgumentException(exMessage);
+                        var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceFileNotInProperJsonFormat", ErrorCategory.InvalidData, null);
+
+                        ThrowTerminatingError(RequiredResourceFileNotInProperJsonFormat);
+                    }
+                    
+                    RequiredResourceHelper(pkgsInJsonFile);
                     break;
 
                 case RequiredResourceParameterSet:
-                    ThrowTerminatingError(new ErrorRecord(
-                                           new PSNotImplementedException("RequiredResourceParameterSet is not yet implemented. Please rerun cmdlet with other parameter set."),
-                                           "CommandParameterSetNotImplementedYet",
-                                           ErrorCategory.NotImplemented,
-                                           this));
+                    if (!string.IsNullOrWhiteSpace(_requiredResourceJson))
+                    {
+                        /* json would look like:
+                           {
+                              "Pester": {
+                                "allowPrerelease": true,
+                                "version": "[4.4.2,4.7.0]",
+                                "repository": "PSGallery",
+                                "credential": null
+                              }
+                            }
+                        */
+                                              
+                        Hashtable pkgsInJson = null;
+                        try
+                        {
+                            //pkgsInJson = JsonConvert.DeserializeObject<Dictionary<string, InstallPkgParams>>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
+                            pkgsInJson = JsonConvert.DeserializeObject<Hashtable>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
+
+                        }
+                        catch (Exception e)
+                        {
+                            var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a valid json file.");
+                            var ex = new ArgumentException(exMessage);
+                            var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceFileNotInProperJsonFormat", ErrorCategory.InvalidData, null);
+
+                            ThrowTerminatingError(RequiredResourceFileNotInProperJsonFormat);
+                        }
+
+                        RequiredResourceHelper(pkgsInJson);
+                    }
+
+                    if (_requiredResourceHash != null)
+                    {
+                        /* hashtable would look like:
+                            @{
+                                "Configuration" =  @{ version = "[4.4.2,4.7.0]" }
+                                "Pester" = @{
+                                    version = "[4.4.2,4.7.0]"
+                                    repository = PSGallery
+                                    credential = $cred
+                                    prerelease = $true
+                                  }
+                            }
+                        */
+
+                        RequiredResourceHelper(_requiredResourceHash);
+                    }
                     break;
 
                 default:
@@ -202,12 +341,91 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
         }
-        
+
         #endregion
 
         #region Methods
 
-        private void ProcessInstallHelper(string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
+        private void RequiredResourceHelper(Hashtable reqResourceHash)
+        {
+            var pkgNames = reqResourceHash.Keys;
+
+            foreach (string pkgName in pkgNames)
+            {
+                var pkgParamInfo = reqResourceHash[pkgName];
+                Hashtable pkgInstallInfo = new Hashtable { };
+
+                if (pkgParamInfo is Hashtable)
+                {
+                    // Input format was Hashtable
+                    pkgInstallInfo = pkgParamInfo as Hashtable;
+                }
+                else
+                {
+                    // Input format was JSON
+                    var pkgParamJTokens = pkgParamInfo as Newtonsoft.Json.Linq.JToken;
+                    foreach (Newtonsoft.Json.Linq.JProperty val in pkgParamJTokens)
+                    {
+                        pkgInstallInfo[val.Name] = val.Value.ToString();
+                    }
+                }
+
+                if (pkgInstallInfo == null)
+                {
+                    return;
+                }
+
+                InstallPkgParams pkgParams = new InstallPkgParams();
+                var pkgParamNames = pkgInstallInfo.Keys;
+
+                PSCredential pkgCredential = Credential;
+                foreach (string paramName in pkgParamNames)
+                {
+                    if (string.Equals(paramName, "credential", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        WriteVerbose("Credential specified for required resource");
+                        pkgCredential = pkgInstallInfo[paramName] as PSCredential;
+                    }
+
+                    pkgParams.SetProperty(paramName, pkgInstallInfo[paramName] as string, out ErrorRecord IncorrectVersionFormat);
+
+                    if (IncorrectVersionFormat != null)
+                    {
+                        ThrowTerminatingError(IncorrectVersionFormat);
+                    }
+                }
+                    
+                if (pkgParams.Scope == ScopeType.AllUsers)
+                {
+                    _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope);
+                }
+
+                VersionRange pkgVersion;
+                // If no Version specified, install latest version for the package.
+                // Otherwise validate Version can be parsed out successfully.
+                if (pkgInstallInfo["version"] == null || string.IsNullOrWhiteSpace(pkgInstallInfo["version"].ToString()))
+                {
+                    pkgVersion = VersionRange.All;
+                }
+                else if (!Utils.TryParseVersionOrVersionRange(pkgInstallInfo["version"].ToString(), out pkgVersion))
+                {
+                    var exMessage = "Argument for Version parameter is not in the proper format.";
+                    var ex = new ArgumentException(exMessage);
+                    var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                    ThrowTerminatingError(IncorrectVersionFormat);
+                }
+
+                ProcessInstallHelper(
+                    pkgNames: new string[] { pkgName },
+                    pkgVersion: pkgVersion,
+                    pkgPrerelease: pkgParams.Prerelease,
+                    pkgRepository: new string[] { pkgParams.Repository },
+                    pkgCredential: pkgCredential,
+                    reqResourceParams: pkgParams);
+            }
+        }
+
+        private void ProcessInstallHelper(string[] pkgNames, VersionRange pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
         {
             var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
@@ -244,7 +462,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var installedPkgs = _installHelper.InstallPackages(
                 names: pkgNames,
-                versionRange: _versionRange,
+                versionRange: pkgVersion,
                 prerelease: pkgPrerelease,
                 repository: pkgRepository,
                 acceptLicense: AcceptLicense,
@@ -253,7 +471,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 force: false,
                 trustRepository: TrustRepository,
                 noClobber: NoClobber,
-                credential: Credential,
+                credential: pkgCredential,
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
