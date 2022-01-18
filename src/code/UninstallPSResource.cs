@@ -36,7 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Version { get; set; }
 
         /// <summary>
-        /// When specified, uninstalls prerelease versions.
+        /// When specified, only uninstalls prerelease versions.
         /// </summary>
         [Parameter]
         public SwitchParameter Prerelease { get; set; }

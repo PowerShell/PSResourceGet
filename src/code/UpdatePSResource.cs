@@ -246,12 +246,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Get all installed packages selected for updating.
             GetHelper getHelper = new GetHelper(cmdletPassedIn: this);
             var installedPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
+
+            // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, not select prerelease only.
             foreach (var installedPackage in getHelper.GetPackagesFromPath(
                 name: namesToProcess,
                 versionRange: VersionRange.All,
                 pathsToSearch: Utils.GetAllResourcePaths(this, Scope),
-                selectPrereleaseOnly: false)) // TODO: Anam come back and see if this can be changed to _prerelease
-                // TODO: Anam SelectPrereleaseOnly is false because if Prerelease is true you want to include both stable and prerelease, not select prerelease only.
+                selectPrereleaseOnly: false))
             {
                 if (!installedPackages.ContainsKey(installedPackage.Name))
                 {
