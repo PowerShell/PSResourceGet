@@ -122,19 +122,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
 
-                        // For Uninstall, for the Prerelease parameter if True you only uninstall prerelease versions. If False, you uninstall all. Prerelease (T) selects prerelease only
-                        // For Install, Prerelease parameter is used for call to FindHelper, which if True will return prerelease versions in addition to others. Prerelease (T) selects all.
-                        // For Get, there is no Prerelease parameter. Need to pass in whatever's default.
+                        // For Uninstall-PSResource Prerelease parameter equates to selecting prerelease versions only to uninstall.
+                        // For other cmdlets (Find-PSResource, Install-PSResource) Prerelease parmater equates to selecting stable and prerelease versions.
+                        // We will not just select prerelase versions. For Get-PSResource, there is no Prerelease parameter.
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
-                            if (selectPrereleaseOnly)
+                            if (!selectPrereleaseOnly)
                             {
-                                if (pkgNugetVersion.IsPrerelease)
-                                {
-                                    yield return versionPath;
-                                }
+                                yield return versionPath;
                             }
-                            else
+                            else if (pkgNugetVersion.IsPrerelease)
                             {
                                 yield return versionPath;
                             }
