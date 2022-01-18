@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
             string pkgName;
-            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete, Prerelease))
+            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete, (Prerelease == true) ? (bool ?) true : null))
             {
 
                 // TODO: Anam. If Prerelease, crack into .xml file at this path, TryRead() it

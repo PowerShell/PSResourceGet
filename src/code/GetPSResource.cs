@@ -137,7 +137,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             GetHelper getHelper = new GetHelper(this);
             WriteVerbose("Anam, version range: " + _versionRange);
-            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(namesToSearch, _versionRange, _pathsToSearch, prereleaseSwitch: false))
+            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(namesToSearch, _versionRange, _pathsToSearch, prereleaseSwitch: null))
             {
                 WriteObject(pkg);
             }
