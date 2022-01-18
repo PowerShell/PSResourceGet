@@ -250,7 +250,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 name: namesToProcess,
                 versionRange: VersionRange.All,
                 pathsToSearch: Utils.GetAllResourcePaths(this, Scope),
-                prereleaseSwitch: null)) // TODO: Anam come back and see if this can be changed to _prerelease
+                selectPrereleaseOnly: false)) // TODO: Anam come back and see if this can be changed to _prerelease
+                // TODO: Anam SelectPrereleaseOnly is false because if Prerelease is true you want to include both stable and prerelease, not select prerelease only.
             {
                 if (!installedPackages.ContainsKey(installedPackage.Name))
                 {

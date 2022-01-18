@@ -137,7 +137,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             GetHelper getHelper = new GetHelper(this);
             WriteVerbose("Anam, version range: " + _versionRange);
-            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(namesToSearch, _versionRange, _pathsToSearch, prereleaseSwitch: null))
+            // TODO: Anam: selectPrereleaseOnly is false because we want both stable and prerelease versions all the time.
+            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(namesToSearch, _versionRange, _pathsToSearch, selectPrereleaseOnly: false))
             {
                 WriteObject(pkg);
             }

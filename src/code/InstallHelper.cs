@@ -281,7 +281,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 name: filteredPackages.Keys.ToArray(),
                 versionRange: _versionRange,
                 pathsToSearch: _pathsToSearch,
-                prereleaseSwitch: null); // TODO: ANAM come back and determine if providing _prerelease will break anything. I believe not?
+                selectPrereleaseOnly: false); // TODO: ANAM come back and determine if providing _prerelease will break anything. I believe not?
+                // TODO: Anam SelectPrereleaseOnly is false because if Prerelease is true you want to include both stable and prerelease, not select prerelease only.
             if (!pkgsAlreadyInstalled.Any())
             {
                 return packages;
@@ -655,7 +656,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 name: new string[] { "*" },
                 versionRange: VersionRange.All,
                 pathsToSearch: _pathsToSearch,
-                prereleaseSwitch: null); // TODO: Anam come back and see if this can be changed to _prerelease, I think so?
+                selectPrereleaseOnly: false); // TODO: Anam come back and see if this can be changed to _prerelease, I think so?
+                // TODO: Anam SelectPrereleaseOnly is false because if Prerelease is true you want to include both stable and prerelease, not select prerelease only.
             // user parsed metadata hash
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])

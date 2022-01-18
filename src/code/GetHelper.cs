@@ -40,11 +40,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string[] name,
             VersionRange versionRange,
             List<string> pathsToSearch,
-            bool? prereleaseSwitch)
+            bool selectPrereleaseOnly)
         {
             List<string> pgkPathsByName = FilterPkgPathsByName(name, pathsToSearch);
 
-            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pgkPathsByName, prereleaseSwitch))
+            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pgkPathsByName, selectPrereleaseOnly))
             {
                 PSResourceInfo pkg = OutputPackageObject(pkgPath, _scriptDictionary);
                 if (pkg != null)
@@ -78,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Filter by user provided version
-        public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch, bool? prereleaseSwitch)
+        public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch, bool selectPrereleaseOnly)
         {
             Dbg.Assert(versionRange != null, "Version Range cannot be null");
             
@@ -120,30 +120,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        _cmdletPassedIn.WriteVerbose("ANAM: NuGetVersion--> " + pkgNugetVersion.IsPrerelease + " " + "Prerelease switch null: " + (prereleaseSwitch == null) + pkgNugetVersion.ToFullString() + " " + pkgNugetVersion.ToNormalizedString());
-
                         _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
 
-                        // if (versionRange.Satisfies(pkgNugetVersion) && (pkgNugetVersion.IsPrerelease == prereleaseSwitch))
+                        // For Uninstall, for the Prerelease parameter if True you only uninstall prerelease versions. If False, you uninstall all. Prerelease (T) selects prerelease only
+                        // For Install, Prerelease parameter is used for call to FindHelper, which if True will return prerelease versions in addition to others. Prerelease (T) selects all.
+                        // For Get, there is no Prerelease parameter. Need to pass in whatever's default.
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
-                            _cmdletPassedIn.WriteVerbose("version range SATISFIED");
-                            if (prereleaseSwitch != null)
+                            if (selectPrereleaseOnly)
                             {
-                                _cmdletPassedIn.WriteVerbose("prerelease switch not null");
-                                if (pkgNugetVersion.IsPrerelease == prereleaseSwitch)
+                                if (pkgNugetVersion.IsPrerelease)
                                 {
-                                    _cmdletPassedIn.WriteVerbose("made it to truest cond");
                                     yield return versionPath;
                                 }
                             }
                             else
                             {
-                                _cmdletPassedIn.WriteVerbose("prerelease switch null");
                                 yield return versionPath;
                             }
-                            // This will be one version or a version range.
-                            // yield results then continue with this iteration of the loop
                         }
                     }
                 }
