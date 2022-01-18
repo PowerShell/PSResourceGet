@@ -98,19 +98,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 _pathsToSearch.AddRange(versionPaths);
-                foreach (string anamPath in _pathsToSearch)
-                {
-                    WriteVerbose("currently searching path in if: " + anamPath);
-                }
             }
             else
             {
                 // retrieve all possible paths
                 _pathsToSearch = Utils.GetAllResourcePaths(this);
-                foreach (string anamPath in _pathsToSearch)
-                {
-                    WriteVerbose("currently searching path in else: " + anamPath);
-                }
             }
         }
 
@@ -136,9 +128,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             GetHelper getHelper = new GetHelper(this);
-            WriteVerbose("Anam, version range: " + _versionRange);
-            // TODO: Anam: selectPrereleaseOnly is false because we want both stable and prerelease versions all the time.
-            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(namesToSearch, _versionRange, _pathsToSearch, selectPrereleaseOnly: false))
+            // selectPrereleaseOnly is false because we want both stable and prerelease versions all the time.
+            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(
+                name: namesToSearch,
+                versionRange: _versionRange,
+                pathsToSearch: _pathsToSearch,
+                selectPrereleaseOnly: false))
             {
                 WriteObject(pkg);
             }
