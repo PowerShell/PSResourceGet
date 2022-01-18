@@ -36,6 +36,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Version { get; set; }
 
         /// <summary>
+        /// When specified, uninstalls prerelease versions.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter Prerelease { get; set; }
+
+        /// <summary>
         /// Used for pipeline input.
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
@@ -163,8 +169,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
             string pkgName;
-            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
+            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete, Prerelease))
             {
+
+                // TODO: Anam. If Prerelease, crack into .xml file at this path, TryRead() it
+                // and use Prerelease property to continue to next iteration
+                // if Prerelease is true, remove all non-prerelease pkgs
+                // GetHelper and all other cmdlets will pass in false (default) as Prerelease value, as we don't want to remove 
+                // non-prerelease version pkgs in that case. Prerelease = true gets special treatment
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))

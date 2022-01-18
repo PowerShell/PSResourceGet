@@ -280,7 +280,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: filteredPackages.Keys.ToArray(),
                 versionRange: _versionRange,
-                pathsToSearch: _pathsToSearch);
+                pathsToSearch: _pathsToSearch,
+                prereleaseSwitch: prereleaseBB);
             if (!pkgsAlreadyInstalled.Any())
             {
                 return packages;

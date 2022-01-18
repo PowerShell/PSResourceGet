@@ -39,11 +39,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public IEnumerable<PSResourceInfo> GetPackagesFromPath(
             string[] name,
             VersionRange versionRange,
-            List<string> pathsToSearch)
+            List<string> pathsToSearch,
+            bool? prereleaseSwitch)
         {
             List<string> pgkPathsByName = FilterPkgPathsByName(name, pathsToSearch);
 
-            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pgkPathsByName))
+            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pgkPathsByName, prereleaseSwitch))
             {
                 PSResourceInfo pkg = OutputPackageObject(pkgPath, _scriptDictionary);
                 if (pkg != null)
@@ -77,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Filter by user provided version
-        public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch)
+        public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch, bool? prereleaseSwitch)
         {
             Dbg.Assert(versionRange != null, "Version Range cannot be null");
             
@@ -119,13 +120,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
+                        _cmdletPassedIn.WriteVerbose("ANAM: NuGetVersion--> " + pkgNugetVersion.IsPrerelease + " " + pkgNugetVersion.ToFullString() + " " + pkgNugetVersion.ToNormalizedString());
+
                         _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
 
+                        // if (versionRange.Satisfies(pkgNugetVersion) && (pkgNugetVersion.IsPrerelease == prereleaseSwitch))
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
+                            if (prereleaseSwitch != null)
+                            {
+                                if (pkgNugetVersion.IsPrerelease == prereleaseSwitch)
+                                {
+                                    yield return versionPath;
+                                }
+                            }
+                            else
+                            {
+                                yield return versionPath;
+                            }
                             // This will be one version or a version range.
                             // yield results then continue with this iteration of the loop
-                            yield return versionPath;
                         }
                     }
                 }
