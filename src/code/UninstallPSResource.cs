@@ -171,12 +171,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string pkgName;
             foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete, selectPrereleaseOnly: Prerelease))
             {
-
-                // TODO: Anam. If Prerelease, crack into .xml file at this path, TryRead() it
-                // and use Prerelease property to continue to next iteration
-                // if Prerelease is true, remove all non-prerelease pkgs
-                // GetHelper and all other cmdlets will pass in false (default) as Prerelease value, as we don't want to remove 
-                // non-prerelease version pkgs in that case. Prerelease = true gets special treatment
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
