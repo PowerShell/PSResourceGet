@@ -277,12 +277,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // Get currently installed packages.
+            // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: filteredPackages.Keys.ToArray(),
                 versionRange: _versionRange,
                 pathsToSearch: _pathsToSearch,
-                selectPrereleaseOnly: false); // TODO: ANAM come back and determine if providing _prerelease will break anything. I believe not?
-                // TODO: Anam SelectPrereleaseOnly is false because if Prerelease is true you want to include both stable and prerelease, not select prerelease only.
+                selectPrereleaseOnly: false);
             if (!pkgsAlreadyInstalled.Any())
             {
                 return packages;
@@ -652,12 +652,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Get installed modules, then get all possible paths
             bool foundClobber = false;
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
+            // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: new string[] { "*" },
                 versionRange: VersionRange.All,
                 pathsToSearch: _pathsToSearch,
-                selectPrereleaseOnly: false); // TODO: Anam come back and see if this can be changed to _prerelease, I think so?
-                // TODO: Anam SelectPrereleaseOnly is false because if Prerelease is true you want to include both stable and prerelease, not select prerelease only.
+                selectPrereleaseOnly: false);
             // user parsed metadata hash
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
