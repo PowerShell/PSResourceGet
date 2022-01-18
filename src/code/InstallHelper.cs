@@ -281,7 +281,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 name: filteredPackages.Keys.ToArray(),
                 versionRange: _versionRange,
                 pathsToSearch: _pathsToSearch,
-                prereleaseSwitch: prereleaseBB);
+                prereleaseSwitch: null); // TODO: ANAM come back and determine if providing _prerelease will break anything. I believe not?
             if (!pkgsAlreadyInstalled.Any())
             {
                 return packages;
@@ -651,7 +651,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Get installed modules, then get all possible paths
             bool foundClobber = false;
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(new string[] { "*" }, VersionRange.All, _pathsToSearch);
+            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
+                name: new string[] { "*" },
+                versionRange: VersionRange.All,
+                pathsToSearch: _pathsToSearch,
+                prereleaseSwitch: null); // TODO: Anam come back and see if this can be changed to _prerelease, I think so?
             // user parsed metadata hash
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])

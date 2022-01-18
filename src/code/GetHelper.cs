@@ -120,22 +120,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        _cmdletPassedIn.WriteVerbose("ANAM: NuGetVersion--> " + pkgNugetVersion.IsPrerelease + " " + pkgNugetVersion.ToFullString() + " " + pkgNugetVersion.ToNormalizedString());
+                        _cmdletPassedIn.WriteVerbose("ANAM: NuGetVersion--> " + pkgNugetVersion.IsPrerelease + " " + "Prerelease switch null: " + (prereleaseSwitch == null) + pkgNugetVersion.ToFullString() + " " + pkgNugetVersion.ToNormalizedString());
 
                         _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
 
                         // if (versionRange.Satisfies(pkgNugetVersion) && (pkgNugetVersion.IsPrerelease == prereleaseSwitch))
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
+                            _cmdletPassedIn.WriteVerbose("version range SATISFIED");
                             if (prereleaseSwitch != null)
                             {
+                                _cmdletPassedIn.WriteVerbose("prerelease switch not null");
                                 if (pkgNugetVersion.IsPrerelease == prereleaseSwitch)
                                 {
+                                    _cmdletPassedIn.WriteVerbose("made it to truest cond");
                                     yield return versionPath;
                                 }
                             }
                             else
                             {
+                                _cmdletPassedIn.WriteVerbose("prerelease switch null");
                                 yield return versionPath;
                             }
                             // This will be one version or a version range.

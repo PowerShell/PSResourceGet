@@ -249,7 +249,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (var installedPackage in getHelper.GetPackagesFromPath(
                 name: namesToProcess,
                 versionRange: VersionRange.All,
-                pathsToSearch: Utils.GetAllResourcePaths(this, Scope)))
+                pathsToSearch: Utils.GetAllResourcePaths(this, Scope),
+                prereleaseSwitch: null)) // TODO: Anam come back and see if this can be changed to _prerelease
             {
                 if (!installedPackages.ContainsKey(installedPackage.Name))
                 {
