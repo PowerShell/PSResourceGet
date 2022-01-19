@@ -123,7 +123,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public String RequiredResourceFile
         {
-            get {
+            get
+            {
                 return _requiredResourceFile;
             }
             set
