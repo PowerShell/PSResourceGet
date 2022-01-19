@@ -147,7 +147,7 @@ Describe 'Test Update-PSResource' {
         {
             if ([System.Version]$pkg.Version -gt [System.Version]"1.0.2.0")
             {
-                $pkg.PrereleaseLabel | Should -Be "alpha1"
+                $pkg.Prerelease | Should -Be "alpha1"
                 $isPkgUpdated = $true
             }
         }
