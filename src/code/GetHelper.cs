@@ -42,9 +42,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> pathsToSearch,
             bool selectPrereleaseOnly)
         {
-            List<string> pgkPathsByName = FilterPkgPathsByName(name, pathsToSearch);
+            List<string> pkgPathsByName = FilterPkgPathsByName(name, pathsToSearch);
 
-            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pgkPathsByName, selectPrereleaseOnly))
+            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pkgPathsByName, selectPrereleaseOnly))
             {
                 PSResourceInfo pkg = OutputPackageObject(pkgPath, _scriptDictionary);
                 if (pkg != null)
