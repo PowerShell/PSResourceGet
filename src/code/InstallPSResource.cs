@@ -137,7 +137,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!File.Exists(resolvedPath))
                 {
-                    var exMessage = String.Format("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json or .psd1 file");
+                    var exMessage = String.Format("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json file");
                     var ex = new ArgumentException(exMessage);
                     var RequiredResourceFileDoesNotExist = new ErrorRecord(ex, "RequiredResourceFileDoesNotExist", ErrorCategory.ObjectNotFound, null);
 
@@ -154,17 +154,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = RequiredResourceParameterSet)]
         public Object RequiredResource  // takes either string (json) or hashtable
         {
-            get { return _requiredResourceHash != null ? (Object)_requiredResourceHash : (Object)_requiredResourceJson; }
+            get { return _requiredResourceHash != null ? _requiredResourceHash : (Object)_requiredResourceJson; }
 
             set
             {
-                if (value.GetType().Name.Equals("String"))
+                if (value is String jsonResource)
                 {
-                    _requiredResourceJson = (String)value;
+                    _requiredResourceJson = jsonResource;
                 }
-                else if (value.GetType().Name.Equals("Hashtable"))
+                else if (value is Hashtable hashResource)
                 {
-                    _requiredResourceHash = (Hashtable)value;
+                    _requiredResourceHash = hashResource;
                 }
                 else
                 {
@@ -300,12 +300,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
                         */
                                               
-                        Hashtable pkgsInJson = null;
+                        Hashtable pkgsHash = null;
                         try
                         {
-                            //pkgsInJson = JsonConvert.DeserializeObject<Dictionary<string, InstallPkgParams>>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
-                            pkgsInJson = JsonConvert.DeserializeObject<Hashtable>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
-
+                            pkgsHash = JsonConvert.DeserializeObject<Hashtable>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
                         }
                         catch (Exception)
                         {
@@ -316,7 +314,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             ThrowTerminatingError(RequiredResourceFileNotInProperJsonFormat);
                         }
 
-                        RequiredResourceHelper(pkgsInJson);
+                        RequiredResourceHelper(pkgsHash);
                     }
 
                     if (_requiredResourceHash != null)
@@ -354,15 +352,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (string pkgName in pkgNames)
             {
                 var pkgParamInfo = reqResourceHash[pkgName];
-                Hashtable pkgInstallInfo = new Hashtable { };
 
-                if (pkgParamInfo is Hashtable)
+                // Input format was json, and not a hashtable
+                if (!(pkgParamInfo is Hashtable pkgInstallInfo))
                 {
-                    // Input format was Hashtable
-                    pkgInstallInfo = pkgParamInfo as Hashtable;
-                }
-                else
-                {
+                    pkgInstallInfo = new Hashtable { };
+
                     // Input format was JSON
                     var pkgParamJTokens = pkgParamInfo as Newtonsoft.Json.Linq.JToken;
                     foreach (Newtonsoft.Json.Linq.JProperty val in pkgParamJTokens)
@@ -370,6 +365,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         pkgInstallInfo[val.Name] = val.Value.ToString();
                     }
                 }
+                // Otherwise, the input format is a hashtable
 
                 if (pkgInstallInfo == null)
                 {

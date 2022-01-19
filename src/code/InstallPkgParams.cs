@@ -20,7 +20,7 @@ public class InstallPkgParams
     public bool Force { get; set; }
     public bool TrustRepository { get; set; }
     public bool NoClobber { get; set; }
-public bool SkipDependencyCheck { get; set; }
+    public bool SkipDependencyCheck { get; set; }
 
 
 
@@ -94,6 +94,10 @@ public bool SkipDependencyCheck { get; set; }
             case "skipdependencycheck":
                 bool.TryParse(propertyValue, out bool skipDependencyCheckTmp);
                 SkipDependencyCheck = skipDependencyCheckTmp;
+                break;
+
+            default:
+                // write error
                 break;
         }
     }
