@@ -215,7 +215,7 @@ Describe 'Test Find-PSResource for Module' {
 
         $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $TestGalleryName
         $resPrerelease.Version | Should -Be "5.2.5.0"
-        $resPrerelease.PrereleaseLabel | Should -Be "alpha001"
+        $resPrerelease.Prerelease | Should -Be "alpha001"
     }
 
     It "find resources, including Prerelease version resources, when given Prerelease parameter" {

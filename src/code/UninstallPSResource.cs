@@ -113,8 +113,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    string inputObjectPrereleaseLabel = InputObject.PrereleaseLabel;
-                    string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrereleaseLabel) ? InputObject.Version.ToString() : Utils.GetNormalizedVersionString(versionString: InputObject.Version.ToString(), prerelease: inputObjectPrereleaseLabel);
+                    string inputObjectPrerelease = InputObject.Prerelease;
+                    string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? InputObject.Version.ToString() : Utils.GetNormalizedVersionString(versionString: InputObject.Version.ToString(), prerelease: inputObjectPrerelease);
                     if (!Utils.TryParseVersionOrVersionRange(
                         version: inputObjectVersion,
                         versionRange: out _versionRange))
