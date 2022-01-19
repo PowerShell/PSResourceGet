@@ -26,6 +26,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
         private const int DefaultPriority = -1;
         private Uri _url;
+
         #endregion
 
         #region Parameters
@@ -82,7 +83,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public int Priority { get; set; } = DefaultPriority;
 
         /// <summary>
-        /// When specified, displays the succcessfully registered repository and its information
+        /// Specifies vault and secret names as PSCredentialInfo for the repository.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public PSCredentialInfo CredentialInfo { get; set; }
+
+        /// <summary>
+        /// When specified, displays the successfully registered repository and its information
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }
@@ -114,7 +121,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case NameParameterSet:
                     try
                     {
-                        items.Add(UpdateRepositoryStoreHelper(Name, _url, Priority, Trusted));
+                        items.Add(UpdateRepositoryStoreHelper(Name, _url, Priority, Trusted, CredentialInfo));
                     }
                     catch (Exception e)
                     {
@@ -155,7 +162,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private PSRepositoryInfo UpdateRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
+        private PSRepositoryInfo UpdateRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             if (repoUrl != null && !(repoUrl.Scheme == Uri.UriSchemeHttp || repoUrl.Scheme == Uri.UriSchemeHttps || repoUrl.Scheme == Uri.UriSchemeFtp || repoUrl.Scheme == Uri.UriSchemeFile))
             {
@@ -173,17 +180,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // check PSGallery URL is not trying to be set
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) && repoUrl != null)
             {
-                throw new ArgumentException("The PSGallery repository has a pre-defined URL.  Setting the -URL parmeter for this repository is not allowed, instead try running 'Register-PSResourceRepository -PSGallery'.");
+                throw new ArgumentException("The PSGallery repository has a pre-defined URL.  Setting the -URL parameter for this repository is not allowed, instead try running 'Register-PSResourceRepository -PSGallery'.");
+            }
+
+            // check PSGallery CredentialInfo is not trying to be set
+            if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) && repoCredentialInfo != null)
+            {
+                throw new ArgumentException("The PSGallery repository does not require authentication.  Setting the -CredentialInfo parameter for this repository is not allowed, instead try running 'Register-PSResourceRepository -PSGallery'.");
             }
 
             // determine trusted value to pass in (true/false if set, null otherwise, hence the nullable bool variable)
             bool? _trustedNullable = isSet ? new bool?(repoTrusted) : new bool?();
 
-            // determine if either 1 of 3 values are attempting to be set: URL, Priority, Trusted.
-            // if none are (i.e only Name parameter was provided, write error)
-            if(repoUrl == null && repoPriority == DefaultPriority && _trustedNullable == null)
+            if (repoCredentialInfo != null)
             {
-                throw new ArgumentException("Either URL, Priority or Trusted parameters must be requested to be set");
+                bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, this);
+
+                if (repoCredentialInfo.Credential != null)
+                {
+                    if (!isSecretManagementModuleAvailable)
+                    {
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is not found, but is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
+                            "RepositoryCredentialSecretManagementUnavailableModule",
+                            ErrorCategory.ResourceUnavailable,
+                            this));
+                    }
+                    else
+                    {
+                        Utils.SaveRepositoryCredentialToSecretManagementVault(repoName, repoCredentialInfo, this);
+                    }
+                }
+
+                if (!isSecretManagementModuleAvailable)
+                {
+                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be found. Make sure it is installed before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                }
+            }
+
+            // determine if either 1 of 4 values are attempting to be set: URL, Priority, Trusted, CredentialInfo.
+            // if none are (i.e only Name parameter was provided, write error)
+            if (repoUrl == null && repoPriority == DefaultPriority && _trustedNullable == null && repoCredentialInfo == null)
+            {
+                throw new ArgumentException("Either URL, Priority, Trusted or CredentialInfo parameters must be requested to be set");
             }
 
             WriteVerbose("All required values to set repository provided, calling internal Update() API now");
@@ -191,8 +230,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 return null;
             }
-
-            return RepositorySettings.Update(repoName, repoUrl, repoPriority, _trustedNullable);
+            return RepositorySettings.Update(repoName, repoUrl, repoPriority, _trustedNullable, repoCredentialInfo);
         }
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
@@ -248,17 +286,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             bool repoTrusted = false;
             isSet = false;
-            if(repo.ContainsKey("Trusted"))
+            if (repo.ContainsKey("Trusted"))
             {
                 repoTrusted = (bool) repo["Trusted"];
                 isSet = true;
             }
+
+            PSCredentialInfo repoCredentialInfo = null;
+            if (repo.ContainsKey("CredentialInfo") &&
+                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+                    cmdletPassedIn: this,
+                    repoCredentialInfo: out repoCredentialInfo,
+                    errorRecord: out ErrorRecord errorRecord1))
+            {
+                WriteError(errorRecord1);
+                return null;
+            }
+
             try
             {
                 return UpdateRepositoryStoreHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
-                    repoTrusted);
+                    repoTrusted,
+                    repoCredentialInfo);
             }
             catch (Exception e)
             {

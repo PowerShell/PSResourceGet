@@ -13,12 +13,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted)
+        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted, PSCredentialInfo credentialInfo)
         {
             Name = name;
             Url = url;
             Priority = priority;
             Trusted = trusted;
+            CredentialInfo = credentialInfo;
         }
 
         #endregion
@@ -37,6 +38,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// whether the repository is trusted
+        /// </summary>
         public bool Trusted { get; }
 
         /// <summary>
@@ -44,6 +46,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         [ValidateRange(0, 50)]
         public int Priority { get; }
+
+        /// <summary>
+        /// the credential information for repository authentication
+        /// </summary>
+        public PSCredentialInfo CredentialInfo { get; }
 
         #endregion
     }
