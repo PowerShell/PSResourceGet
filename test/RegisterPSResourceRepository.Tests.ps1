@@ -10,20 +10,30 @@ Describe "Test Register-PSResourceRepository" {
         $TestRepoName1 = "testRepository"
         $TestRepoName2 = "testRepository2"
         $TestRepoName3 = "testRepository3"
+        $TestRepoName4 = "testRepository4"
         $relativeCurrentPath = Get-Location
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
         $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
-        $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
+        $tmpDir4Path = Join-Path -Path $TestDrive -ChildPath "tmpDir4"
+        $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path, $tmpDir4Path)
         Get-NewTestDirs($tmpDirPaths)
+
+        $relativeCurrentPath = Get-Location
+
+        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
+        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
+        $credential = New-Object pscredential ("testusername", $secureString)
+        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
         $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
-        $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
+        $tmpDir4Path = Join-Path -Path $TestDrive -ChildPath "tmpDir4"
+        $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path, $tmpDir4Path)
         Get-RemoveTestDirs($tmpDirPaths)
     }
 
@@ -49,6 +59,16 @@ Describe "Test Register-PSResourceRepository" {
         $res.URL.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
+    }
+
+    It "register repository given Name, URL, Trusted, Priority, CredentialInfo (NameParameterSet)" {
+        $res = Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo1 -PassThru
+        $res.Name | Should -Be $TestRepoName1
+        $res.URL.LocalPath | Should -Contain $tmpDir1Path
+        $res.Trusted | Should -Be True
+        $res.Priority | Should -Be 20
+        $res.CredentialInfo.VaultName | Should -Be "testvault"
+        $res.CredentialInfo.SecretName | Should -Be "testsecret"
     }
 
     It "register repository with PSGallery parameter (PSGalleryParameterSet)" {
@@ -82,7 +102,8 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable1 = @{Name = $TestRepoName1; URL = $tmpDir1Path}
         $hashtable2 = @{Name = $TestRepoName2; URL = $tmpDir2Path; Trusted = $True}
         $hashtable3 = @{Name = $TestRepoName3; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3
+        $hashtable4 = @{Name = $TestRepoName4; URL = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret"))}
+        $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Register-PSResourceRepository -Repositories $arrayOfHashtables
         $res = Get-PSResourceRepository -Name $TestRepoName1
@@ -99,6 +120,14 @@ Describe "Test Register-PSResourceRepository" {
         $res3.URL.LocalPath | Should -Contain $tmpDir3Path
         $res3.Trusted | Should -Be True
         $res3.Priority | Should -Be 20
+
+        $res4 = Get-PSResourceRepository -Name $TestRepoName4
+        $res4.URL.LocalPath | Should -Contain $tmpDir4Path
+        $res4.Trusted | Should -Be True
+        $res4.Priority | Should -Be 30
+        $res4.CredentialInfo.VaultName | Should -Be "testvault"
+        $res4.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res4.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
     It "register repositories with Repositories parameter, psgallery style repository (RepositoriesParameterSet)" {
@@ -117,7 +146,8 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable2 = @{Name = $TestRepoName1; URL = $tmpDir1Path}
         $hashtable3 = @{Name = $TestRepoName2; URL = $tmpDir2Path; Trusted = $True}
         $hashtable4 = @{Name = $TestRepoName3; URL = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
+        $hashtable5 = @{Name = $TestRepoName4; URL = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret"))}
+        $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4, $hashtable5
 
         Register-PSResourceRepository -Repositories $arrayOfHashtables
 
@@ -140,6 +170,14 @@ Describe "Test Register-PSResourceRepository" {
         $res4.URL.LocalPath | Should -Contain $tmpDir3Path
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 20
+
+        $res5 = Get-PSResourceRepository -Name $TestRepoName4
+        $res5.URL.LocalPath | Should -Contain $tmpDir4Path
+        $res5.Trusted | Should -Be True
+        $res5.Priority | Should -Be 30
+        $res5.CredentialInfo.VaultName | Should -Be "testvault"
+        $res5.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res5.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
     It "not register repository when Name is provided but URL is not" {
@@ -150,7 +188,7 @@ Describe "Test Register-PSResourceRepository" {
         {Register-PSResourceRepository -Name "" -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
-    It "not register rpeository when Name is null but URL is provided" {
+    It "not register repository when Name is null but URL is provided" {
         {Register-PSResourceRepository -Name $null -URL $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
@@ -163,13 +201,15 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     # this error message comes from the parameter cmdlet tags (earliest point of detection)
-    It "not register PSGallery when PSGallery parameter provided with Name or URL" {
+    It "not register PSGallery when PSGallery parameter provided with Name, URL or CredentialInfo" {
         {Register-PSResourceRepository -PSGallery -Name $PSGalleryName -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
         {Register-PSResourceRepository -PSGallery -URL $PSGalleryURL -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -PSGallery -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     $testCases = @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name=$PSGalleryName}},
-                 @{Type = "URL key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; URL=$PSGalleryURL}}
+                 @{Type = "URL key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; URL=$PSGalleryURL}},
+                 @{Type = "CredentialInfo key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; CredentialInfo = $credentialInfo1}}
 
     It "not register incorrectly formatted PSGallery type repo among correct ones when incorrect type is <Type>" -TestCases $testCases {
         param($Type, $IncorrectHashTable)
@@ -182,7 +222,7 @@ Describe "Test Register-PSResourceRepository" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUrlForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUrlCredentialInfoForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.Name | Should -Be $TestRepoName1
@@ -194,10 +234,10 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Name | Should -Be $TestRepoName3
     }
 
-    $testCases2 = @{Type = "-Name is not specified";                 IncorrectHashTable = @{URL = $tmpDir1Path};                             ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-Name is PSGallery";                     IncorrectHashTable = @{Name = "PSGallery"; URL = $tmpDir1Path};         ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL not specified";                     IncorrectHashTable = @{Name = "testRepository"};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-URL is not valid scheme";               IncorrectHashTable = @{Name = "testRepository"; URL="www.google.com"};  ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
+    $testCases2 = @{Type = "-Name is not specified";                     IncorrectHashTable = @{URL = $tmpDir1Path};                           ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-Name is PSGallery";                         IncorrectHashTable = @{Name = $PSGalleryName; URL = $tmpDir1Path};    ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL not specified";                         IncorrectHashTable = @{Name = $TestRepoName1};                        ErrorId = "NullURLForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
+                  @{Type = "-URL is not valid scheme";                   IncorrectHashTable = @{Name = $TestRepoName1; URL="www.google.com"};  ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases $testCases2 {
         param($Type, $IncorrectHashTable, $ErrorId)
@@ -239,5 +279,20 @@ Describe "Test Register-PSResourceRepository" {
 
         $res.Name | Should -Be "localFileShareTestRepo"
         $res.URL.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
+    }
+
+    It "prints a warning if CredentialInfo is passed in without SecretManagement module setup" {
+        $output = Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo1 3>&1
+        $output | Should -Match "Microsoft.PowerShell.SecretManagement module cannot be found"
+
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+        $res | Should -Not -BeNullOrEmpty
+    }
+
+    It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
+        { Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementUnavailableModule"
+
+        $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
+        $res | Should -BeNullOrEmpty
     }
 }

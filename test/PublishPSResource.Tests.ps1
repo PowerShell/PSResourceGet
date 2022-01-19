@@ -11,14 +11,14 @@ Describe "Test Publish-PSResource" {
         $tmpRepoPath = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath"
         New-Item $tmpRepoPath -Itemtype directory -Force
         $testRepository = "testRepository"
-        Register-PSResourceRepository -Name $testRepository -URL $tmpRepoPath -Priority 1 -ErrorAction SilentlyContinue        
-        $script:repositoryPath = (get-psresourcerepository "testRepository").Url.AbsolutePath 
+        Register-PSResourceRepository -Name $testRepository -URL $tmpRepoPath -Priority 1 -ErrorAction SilentlyContinue
+        $script:repositoryPath = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository").Url.AbsolutePath)
 
         $tmpRepoPath2 = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath2"
         New-Item $tmpRepoPath2 -Itemtype directory -Force
         $testRepository2 = "testRepository2"
         Register-PSResourceRepository -Name $testRepository2 -URL $tmpRepoPath2 -ErrorAction SilentlyContinue
-        $script:repositoryPath2 = (get-psresourcerepository "testRepository2").Url.AbsolutePath 
+        $script:repositoryPath2 = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository2").Url.AbsolutePath)
 
         # Create module 
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
@@ -38,7 +38,7 @@ Describe "Test Publish-PSResource" {
         }
 
         # Create temp destination path
-        $script:destinationPath = Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"
+        $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
         New-Item $script:destinationPath -ItemType directory -Force
     }
     AfterAll {
@@ -112,7 +112,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -SkipDependenciesCheck
 
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:repositoryPath).FullName | select-object -Last 1 | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath).FullName | select-object -Last 1 | Should -Be $expectedPath
     }
 
     <# The following tests are related to passing in parameters to customize a nuspec.
@@ -266,17 +266,14 @@ Describe "Test Publish-PSResource" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        $tmpPath = Join-Path -Path $TestDrive -ChildPath "testtmppath"
-        New-Item $tmpPath -Itemtype directory -Force
-
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -DestinationPath $tmpPath
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -DestinationPath $script:destinationPath
 
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
 
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
 
-        $expectedPath = Join-Path -Path $tmpPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $tmpPath).FullName | Should -Be $expectedPath 
+        $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath 
     }
 
     It "Publish a module and clean up properly when file in module is readonly" {

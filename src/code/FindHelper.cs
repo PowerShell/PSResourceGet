@@ -9,12 +9,14 @@ using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
+using System.Security;
 using System.Threading;
 
 using Dbg = System.Diagnostics.Debug;
@@ -139,7 +141,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
                     Uri psGalleryScriptsUrl = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUrl, repositoriesToSearch[i].Priority, false);
+                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUrl, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteVerbose("Null Type provided, so add PSGalleryScripts repository");
@@ -159,7 +161,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
                     Uri poshTestGalleryScriptsUrl = new Uri("https://www.poshtestgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(_poshTestGalleryScriptsRepoName, poshTestGalleryScriptsUrl, repositoriesToSearch[i].Priority, false);
+                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(_poshTestGalleryScriptsRepoName, poshTestGalleryScriptsUrl, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteVerbose("Null Type provided, so add PoshTestGalleryScripts repository");
@@ -180,7 +182,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
                 foreach (var pkg in SearchFromRepository(
                     repositoryName: repositoriesToSearch[i].Name,
-                    repositoryUrl: repositoriesToSearch[i].Url))
+                    repositoryUrl: repositoriesToSearch[i].Url,
+                    repositoryCredentialInfo: repositoriesToSearch[i].CredentialInfo))
                 {
                     yield return pkg;
                 }
@@ -193,7 +196,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> SearchFromRepository(
             string repositoryName,
-            Uri repositoryUrl)
+            Uri repositoryUrl,
+            PSCredentialInfo repositoryCredentialInfo)
         {
             PackageSearchResource resourceSearch;
             PackageMetadataResource resourceMetadata;
@@ -229,11 +233,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
             PackageSource source = new PackageSource(repositoryUrl.ToString());
+
+            // Explicitly passed in Credential takes precedence over repository CredentialInfo
             if (_credential != null)
             {
                 string password = new NetworkCredential(string.Empty, _credential.Password).Password;
                 source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), _credential.UserName, password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryName);
+            }
+            else if (repositoryCredentialInfo != null)
+            {
+                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                    repositoryName,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repoCredential.UserName, password, true, null);
+                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);
             }
 
             // GetCoreV3() API is able to handle V2 and V3 repository endpoints

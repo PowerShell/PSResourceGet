@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoURL);
-                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted);
+                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted, repoCredentialInfo: null);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -79,7 +79,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted)
+        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             try
             {
@@ -103,6 +103,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     new XAttribute("Trusted", repoTrusted)
                     );
 
+                if (repoCredentialInfo != null)
+                {
+                    newElement.Add(new XAttribute(PSCredentialInfo.VaultNameAttribute, repoCredentialInfo.VaultName));
+                    newElement.Add(new XAttribute(PSCredentialInfo.SecretNameAttribute, repoCredentialInfo.SecretName));
+                }
+
                 root.Add(newElement);
 
                 // Close the file
@@ -113,14 +119,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted);
+            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted, repoCredentialInfo);
         }
 
         /// <summary>
-        /// Updates a repository name, URL, priority, or installation policy
+        /// Updates a repository name, URL, priority, installation policy, or credential information
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted)
+        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             PSRepositoryInfo updatedRepo;
             try
@@ -158,16 +164,50 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     node.Attribute("Trusted").Value = repoTrusted.ToString();
                 }
 
+                // A null CredentialInfo value passed in signifies that CredentialInfo was not attempted to be set.
+                // Set VaultName and SecretName attributes if non-null value passed in for repoCredentialInfo
+                if (repoCredentialInfo != null)
+                {
+                    if (node.Attribute(PSCredentialInfo.VaultNameAttribute) == null)
+                    {
+                        node.Add(new XAttribute(PSCredentialInfo.VaultNameAttribute, repoCredentialInfo.VaultName));
+                    }
+                    else
+                    {
+                        node.Attribute(PSCredentialInfo.VaultNameAttribute).Value = repoCredentialInfo.VaultName;
+                    }
+
+                    if (node.Attribute(PSCredentialInfo.SecretNameAttribute) == null)
+                    {
+                        node.Add(new XAttribute(PSCredentialInfo.SecretNameAttribute, repoCredentialInfo.SecretName));
+                    }
+                    else
+                    {
+                        node.Attribute(PSCredentialInfo.SecretNameAttribute).Value = repoCredentialInfo.SecretName;
+                    }
+                }
+
                 // Create Uri from node Url attribute to create PSRepositoryInfo item to return.
                 if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
                 {
                     throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted URL for repo {0}", repoName));
                 }
 
+                // Create CredentialInfo based on new values or whether it was empty to begin with
+                PSCredentialInfo thisCredentialInfo = null;
+                if (node.Attribute(PSCredentialInfo.VaultNameAttribute)?.Value != null &&
+                    node.Attribute(PSCredentialInfo.SecretNameAttribute)?.Value != null)
+                {
+                    thisCredentialInfo = new PSCredentialInfo(
+                        node.Attribute(PSCredentialInfo.VaultNameAttribute).Value,
+                        node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
+                }
+
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
-                    Boolean.Parse(node.Attribute("Trusted").Value));
+                    Boolean.Parse(node.Attribute("Trusted").Value),
+                    thisCredentialInfo);
 
                 // Close the file
                 root.Save(FullRepositoryPath);
@@ -212,11 +252,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     continue;
                 }
 
+                PSCredentialInfo repoCredentialInfo = null;
+                if (node.Attribute("VaultName") != null & node.Attribute("SecretName") != null)
+                {
+                    repoCredentialInfo = new PSCredentialInfo(node.Attribute("VaultName").Value, node.Attribute("SecretName").Value);
+                }
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
                         new Uri(node.Attribute("Url").Value),
                         Int32.Parse(node.Attribute("Priority").Value),
-                        Boolean.Parse(node.Attribute("Trusted").Value)));
+                        Boolean.Parse(node.Attribute("Trusted").Value),
+                        repoCredentialInfo));
                 // Remove item from file
                 node.Remove();
             }
@@ -256,15 +302,47 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         continue;
                     }
 
+                    PSCredentialInfo thisCredentialInfo;
+                    string credentialInfoErrorMessage = $"Repository {repo.Attribute("Name").Value} has invalid CredentialInfo. {PSCredentialInfo.VaultNameAttribute} and {PSCredentialInfo.SecretNameAttribute} should both be present and non-empty";
+                    // both keys are present
+                    if (repo.Attribute(PSCredentialInfo.VaultNameAttribute) != null && repo.Attribute(PSCredentialInfo.SecretNameAttribute) != null)
+                    {
+                        try
+                        {
+                            // both values are non-empty
+                            // = valid credentialInfo
+                            thisCredentialInfo = new PSCredentialInfo(repo.Attribute(PSCredentialInfo.VaultNameAttribute).Value, repo.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
+                        }
+                        catch (Exception)
+                        {
+                            thisCredentialInfo = null;
+                            tempErrorList.Add(credentialInfoErrorMessage);
+                            continue;
+                        }
+                    }
+                    // both keys are missing
+                    else if (repo.Attribute(PSCredentialInfo.VaultNameAttribute) == null && repo.Attribute(PSCredentialInfo.SecretNameAttribute) == null)
+                    {
+                        // = valid credentialInfo
+                        thisCredentialInfo = null;
+                    }
+                    // one of the keys is missing
+                    else
+                    {
+                        thisCredentialInfo = null;
+                        tempErrorList.Add(credentialInfoErrorMessage);
+                        continue;
+                    }
+
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
-                        Boolean.Parse(repo.Attribute("Trusted").Value));
+                        Boolean.Parse(repo.Attribute("Trusted").Value),
+                        thisCredentialInfo);
 
                     foundRepos.Add(currentRepoItem);
                 }
             }
-
             else
             {
                 foreach (string repo in repoNames)
@@ -282,10 +360,43 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             continue;
                         }
 
+                        PSCredentialInfo thisCredentialInfo;
+                        string credentialInfoErrorMessage = $"Repository {node.Attribute("Name").Value} has invalid CredentialInfo. {PSCredentialInfo.VaultNameAttribute} and {PSCredentialInfo.SecretNameAttribute} should both be present and non-empty";
+                        // both keys are present
+                        if (node.Attribute(PSCredentialInfo.VaultNameAttribute) != null && node.Attribute(PSCredentialInfo.SecretNameAttribute) != null)
+                        {
+                            try
+                            {
+                                // both values are non-empty
+                                // = valid credentialInfo
+                                thisCredentialInfo = new PSCredentialInfo(node.Attribute(PSCredentialInfo.VaultNameAttribute).Value, node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
+                            }
+                            catch (Exception)
+                            {
+                                thisCredentialInfo = null;
+                                tempErrorList.Add(credentialInfoErrorMessage);
+                                continue;
+                            }
+                        }
+                        // both keys are missing
+                        else if (node.Attribute(PSCredentialInfo.VaultNameAttribute) == null && node.Attribute(PSCredentialInfo.SecretNameAttribute) == null)
+                        {
+                            // = valid credentialInfo
+                            thisCredentialInfo = null;
+                        }
+                        // one of the keys is missing
+                        else
+                        {
+                            thisCredentialInfo = null;
+                            tempErrorList.Add(credentialInfoErrorMessage);
+                            continue;
+                        }
+
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
-                            Boolean.Parse(node.Attribute("Trusted").Value));
+                            Boolean.Parse(node.Attribute("Trusted").Value),
+                            thisCredentialInfo);
 
                         foundRepos.Add(currentRepoItem);
                     }

@@ -5,14 +5,20 @@ using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
+using System.Security;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
+    #region Utils
+
     internal static class Utils
     {
         #region String fields
@@ -265,7 +271,252 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion
-        
+
+        #region PSCredentialInfo methods
+
+        public static bool TryCreateValidPSCredentialInfo(
+            PSObject credentialInfoCandidate,
+            PSCmdlet cmdletPassedIn,
+            out PSCredentialInfo repoCredentialInfo,
+            out ErrorRecord errorRecord)
+        {
+            repoCredentialInfo = null;
+            errorRecord = null;
+
+            try
+            {
+                if (!string.IsNullOrEmpty((string) credentialInfoCandidate.Properties[PSCredentialInfo.VaultNameAttribute]?.Value)
+                    && !string.IsNullOrEmpty((string) credentialInfoCandidate.Properties[PSCredentialInfo.SecretNameAttribute]?.Value))
+                {
+                    PSCredential credential = null;
+                    if (credentialInfoCandidate.Properties[PSCredentialInfo.CredentialAttribute] != null)
+                    {
+                        try
+                        {
+                            credential = (PSCredential) credentialInfoCandidate.Properties[PSCredentialInfo.CredentialAttribute].Value;
+                        }
+                        catch (Exception e)
+                        {
+                            errorRecord = new ErrorRecord(
+                                new PSArgumentException($"Invalid CredentialInfo {PSCredentialInfo.CredentialAttribute}", e),
+                                "InvalidCredentialInfo",
+                                ErrorCategory.InvalidArgument,
+                                cmdletPassedIn);
+
+                            return false;
+                        }
+                    }
+
+                    repoCredentialInfo = new PSCredentialInfo(
+                        (string) credentialInfoCandidate.Properties[PSCredentialInfo.VaultNameAttribute].Value,
+                        (string) credentialInfoCandidate.Properties[PSCredentialInfo.SecretNameAttribute].Value,
+                        credential
+                    );
+
+                    return true;
+                }
+                else
+                {
+                    errorRecord = new ErrorRecord(
+                        new PSArgumentException($"Invalid CredentialInfo, must include non-empty {PSCredentialInfo.VaultNameAttribute} and {PSCredentialInfo.SecretNameAttribute}, and optionally a {PSCredentialInfo.CredentialAttribute}"),
+                        "InvalidCredentialInfo",
+                        ErrorCategory.InvalidArgument,
+                        cmdletPassedIn);
+
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(
+                    new PSArgumentException("Invalid CredentialInfo values", e),
+                    "InvalidCredentialInfo",
+                    ErrorCategory.InvalidArgument,
+                    cmdletPassedIn);
+
+                return false;
+            }
+        }
+
+        public static PSCredential GetRepositoryCredentialFromSecretManagement(
+            string repositoryName,
+            PSCredentialInfo repositoryCredentialInfo,
+            PSCmdlet cmdletPassedIn)
+        {
+            if (!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException($"Cannot access Microsoft.PowerShell.SecretManagement vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication."),
+                        "RepositoryCredentialSecretManagementInaccessibleVault",
+                        ErrorCategory.ResourceUnavailable,
+                        cmdletPassedIn));
+                return null;
+            }
+
+            var results = PowerShellInvoker.InvokeScriptWithHost<object>(
+                cmdlet: cmdletPassedIn,
+                script: @"
+                    param (
+                        [string] $VaultName,
+                        [string] $SecretName
+                    )
+                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
+                    if ($null -eq $module) {
+                        return
+                    }
+                    & $module ""Get-Secret"" -Name $SecretName -Vault $VaultName
+                ",
+                args: new object[] { repositoryCredentialInfo.VaultName, repositoryCredentialInfo.SecretName },
+                out Exception terminatingError);
+
+            var secretValue = (results.Count == 1) ? results[0] : null;
+            if (secretValue == null)
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            innerException: terminatingError),
+                        "RepositoryCredentialCannotGetSecretFromVault",
+                        ErrorCategory.InvalidOperation,
+                        cmdletPassedIn));
+            }
+
+            if (secretValue is PSCredential secretCredential)
+            {
+                return secretCredential;
+            }
+
+            cmdletPassedIn.ThrowTerminatingError(
+                new ErrorRecord(
+                    new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
+                    "RepositoryCredentialInvalidSecretType",
+                    ErrorCategory.InvalidType,
+                    cmdletPassedIn));
+
+            return null;
+        }
+
+        public static void SaveRepositoryCredentialToSecretManagementVault(
+            string repositoryName,
+            PSCredentialInfo repositoryCredentialInfo,
+            PSCmdlet cmdletPassedIn)
+        {
+            if (!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException($"Cannot access Microsoft.PowerShell.SecretManagement vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication."),
+                        "RepositoryCredentialSecretManagementInaccessibleVault",
+                        ErrorCategory.ResourceUnavailable,
+                        cmdletPassedIn));
+                return;
+            }
+
+            PowerShellInvoker.InvokeScriptWithHost(
+                cmdlet: cmdletPassedIn,
+                script: @"
+                    param (
+                        [string] $VaultName,
+                        [string] $SecretName,
+                        [object] $SecretValue
+                    )
+                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
+                    if ($null -eq $module) {
+                        return
+                    }
+                    & $module ""Set-Secret"" -Name $SecretName -Vault $VaultName -Secret $SecretValue
+                ",
+                args: new object[] { repositoryCredentialInfo.VaultName, repositoryCredentialInfo.SecretName, repositoryCredentialInfo.Credential },
+                out Exception terminatingError);
+
+            if (terminatingError != null)
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Microsoft.PowerShell.SecretManagement\\Set-Secret encountered an error while adding secret \"{repositoryCredentialInfo.SecretName}\" to vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            innerException: terminatingError),
+                        "RepositoryCredentialCannotAddSecretToVault",
+                        ErrorCategory.InvalidOperation,
+                        cmdletPassedIn));
+            }
+        }
+
+        public static bool IsSecretManagementModuleAvailable(
+            string repositoryName,
+            PSCmdlet cmdletPassedIn)
+        {
+            var results = PowerShellInvoker.InvokeScriptWithHost<int>(
+                cmdlet: cmdletPassedIn,
+                script: @"
+                    $module = Microsoft.PowerShell.Core\Get-Module -Name Microsoft.PowerShell.SecretManagement -ErrorAction Ignore
+                    if ($null -eq $module) {
+                        $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru -ErrorAction Ignore
+                    }
+                    if ($null -eq $module) {
+                        return 1
+                    }
+                    return 0
+                ",
+                args: new object[] {},
+                out Exception terminatingError);
+
+            if (terminatingError != null)
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Cannot validate Microsoft.PowerShell.SecretManagement module setup for PSResourceRepository ({repositoryName}) authentication.",
+                            innerException: terminatingError),
+                        "RepositoryCredentialSecretManagementInvalidModule",
+                        ErrorCategory.InvalidOperation,
+                        cmdletPassedIn));
+            }
+
+            int result = (results.Count > 0) ? results[0] : 1;
+            return result == 0;
+        }
+
+        public static bool IsSecretManagementVaultAccessible(
+            string repositoryName,
+            PSCredentialInfo repositoryCredentialInfo,
+            PSCmdlet cmdletPassedIn)
+        {
+            var results = PowerShellInvoker.InvokeScriptWithHost<bool>(
+                cmdlet: cmdletPassedIn,
+                script: @"
+                    param (
+                        [string] $VaultName
+                    )
+                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
+                    if ($null -eq $module) {
+                        return
+                    }
+                    & $module ""Test-SecretVault"" -Name $VaultName
+                ",
+                args: new object[] { repositoryCredentialInfo.VaultName },
+                out Exception terminatingError);
+
+            if (terminatingError != null)
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Microsoft.PowerShell.SecretManagement\\Test-SecretVault encountered an error while validating the vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            innerException: terminatingError),
+                        "RepositoryCredentialSecretManagementInvalidVault",
+                        ErrorCategory.InvalidOperation,
+                        cmdletPassedIn));
+            }
+
+            bool result = (results.Count > 0) ? results[0] : false;
+            return result;
+        }
+
+        #endregion
+
         #region Path methods
 
         public static string[] GetSubDirectories(string dirPath)
@@ -662,4 +913,160 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
     }
+
+    #endregion
+
+    #region PowerShellInvoker
+
+    internal static class PowerShellInvoker
+    {
+        #region Members
+
+        private static bool _isHostDefault = false;
+        private const string DefaultHost = "Default Host";
+
+        private static Runspace _runspace;
+
+        #endregion Members
+
+        #region Methods
+
+        public static Collection<PSObject> InvokeScriptWithHost(
+            PSCmdlet cmdlet,
+            string script,
+            object[] args,
+            out Exception terminatingError)
+        {
+            return InvokeScriptWithHost<PSObject>(
+                cmdlet,
+                script,
+                args,
+                out terminatingError);
+        }
+
+        public static Collection<T> InvokeScriptWithHost<T>(
+            PSCmdlet cmdlet,
+            string script,
+            object[] args,
+            out Exception terminatingError)
+        {
+            Collection<T> returnCollection = new Collection<T>();
+            terminatingError = null;
+
+            // Create the runspace if it
+            //   doesn't exist
+            //   is not in a workable state
+            //   has a default host (no UI) when a non-default host is available
+            if (_runspace == null ||
+                _runspace.RunspaceStateInfo.State != RunspaceState.Opened ||
+                _isHostDefault && !cmdlet.Host.Name.Equals(DefaultHost, StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (_runspace != null)
+                {
+                    _runspace.Dispose();
+                }
+
+                _isHostDefault = cmdlet.Host.Name.Equals(DefaultHost, StringComparison.InvariantCultureIgnoreCase);
+
+                var iss = InitialSessionState.CreateDefault2();
+                // We are running trusted script.
+                iss.LanguageMode = PSLanguageMode.FullLanguage;
+                // Import the current PowerShellGet module.
+                var modPathObjects = cmdlet.InvokeCommand.InvokeScript(
+                    script: "(Get-Module -Name PowerShellGet).Path");
+                string modPath = (modPathObjects.Count > 0 &&
+                                  modPathObjects[0].BaseObject is string modPathStr)
+                                  ? modPathStr : string.Empty;
+                if (!string.IsNullOrEmpty(modPath))
+                {
+                    iss.ImportPSModule(new string[] { modPath });
+                }
+
+                try
+                {
+                    _runspace = RunspaceFactory.CreateRunspace(cmdlet.Host, iss);
+                    _runspace.Open();
+                }
+                catch (Exception ex)
+                {
+                    terminatingError = ex;
+                    return returnCollection;
+                }
+            }
+
+            using (var ps = System.Management.Automation.PowerShell.Create())
+            {
+                ps.Runspace = _runspace;
+
+                var cmd = new Command(
+                    command: script, 
+                    isScript: true, 
+                    useLocalScope: true);
+                cmd.MergeMyResults(
+                    myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
+                    toResult: PipelineResultTypes.Output);
+                ps.Commands.AddCommand(cmd);
+                foreach (var arg in args)
+                {
+                    ps.Commands.AddArgument(arg);
+                }
+                
+                try
+                {
+                    // Invoke the script.
+                    var results = ps.Invoke();
+
+                    // Extract expected output types from results pipeline.
+                    foreach (var psItem in results)
+                    {
+                        if (psItem == null || psItem.BaseObject == null) { continue; }
+
+                        switch (psItem.BaseObject)
+                        {
+                            case ErrorRecord error:
+                                cmdlet.WriteError(error);
+                                break;
+
+                            case WarningRecord warning:
+                                cmdlet.WriteWarning(warning.Message);
+                                break;
+
+                            case VerboseRecord verbose:
+                                cmdlet.WriteVerbose(verbose.Message);
+                                break;
+
+                            case DebugRecord debug:
+                                cmdlet.WriteDebug(debug.Message);
+                                break;
+
+                            case InformationRecord info:
+                                cmdlet.WriteInformation(info);
+                                break;
+                                
+                            case T result:
+                                returnCollection.Add(result);
+                                break;
+
+                            case T[] resultArray:
+                                foreach (var item in resultArray)
+                                {
+                                    returnCollection.Add(item);
+                                }
+                                break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    terminatingError = ex;
+                }
+            }
+
+            return returnCollection;
+        }
+
+        #endregion Methods
+    }
+
+    #endregion
 }

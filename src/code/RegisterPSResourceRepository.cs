@@ -85,6 +85,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public int Priority { get; set; } = defaultPriority;
 
         /// <summary>
+        /// Specifies vault and secret names as PSCredentialInfo for the repository.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public PSCredentialInfo CredentialInfo { get; set; }
+
+        /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
         /// </summary>
         [Parameter]
@@ -137,7 +143,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     try
                     {
-                        items.Add(NameParameterSetHelper(Name, _url, Priority, Trusted));
+                        items.Add(NameParameterSetHelper(Name, _url, Priority, Trusted, CredentialInfo));
                     }
                     catch (Exception e)
                     {
@@ -194,7 +200,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private PSRepositoryInfo AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
+        private PSRepositoryInfo AddToRepositoryStoreHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
             repoName = repoName.Trim(' ');
@@ -208,16 +214,42 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Invalid url, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
 
+            if (repoCredentialInfo != null)
+            {
+                bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, this);
+
+                if (repoCredentialInfo.Credential != null)
+                {
+                    if (!isSecretManagementModuleAvailable)
+                    {
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is not found, but is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
+                            "RepositoryCredentialSecretManagementUnavailableModule",
+                            ErrorCategory.ResourceUnavailable,
+                            this));
+                    }
+                    else
+                    {
+                        Utils.SaveRepositoryCredentialToSecretManagementVault(repoName, repoCredentialInfo, this);
+                    }
+                }
+
+                if (!isSecretManagementModuleAvailable)
+                {
+                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be found. Make sure it is installed before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                }
+            }
+
             WriteVerbose("All required values to add to repository provided, calling internal Add() API now");
             if (!ShouldProcess(repoName, "Register repository to repository store"))
             {
                 return null;
             }
 
-            return RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted);
+            return RepositorySettings.Add(repoName, repoUrl, repoPriority, repoTrusted, repoCredentialInfo);
         }
 
-        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted)
+        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUrl, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
@@ -225,14 +257,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery");
             }
 
-            return AddToRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted);
+            return AddToRepositoryStoreHelper(repoName, repoUrl, repoPriority, repoTrusted, repoCredentialInfo);
         }
 
         private PSRepositoryInfo PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
         {
             Uri psGalleryUri = new Uri(PSGalleryRepoURL);
             WriteVerbose("(PSGallerySet) internal name and uri values for Add() API are hardcoded and validated, priority and trusted values, if passed in, also validated");
-            return AddToRepositoryStoreHelper(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted);
+            return AddToRepositoryStoreHelper(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted, repoCredentialInfo: null);
         }
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
@@ -242,11 +274,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (repo.ContainsKey(PSGalleryRepoName))
                 {
-                    if (repo.ContainsKey("Name") || repo.ContainsKey("Url"))
+                    if (repo.ContainsKey("Name") || repo.ContainsKey("Url") || repo.ContainsKey("CredentialInfo"))
                     {
                         WriteError(new ErrorRecord(
-                                new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name and/or -URL key value pairs"),
-                                "NotProvideNameUrlForPSGalleryRepositoriesParameterSetRegistration",
+                                new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name, -URL and/or -CredentialInfo key value pairs"),
+                                "NotProvideNameUrlCredentialInfoForPSGalleryRepositoriesParameterSetRegistration",
                                 ErrorCategory.InvalidArgument,
                                 this));
                         continue;
@@ -322,13 +354,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
+            PSCredentialInfo repoCredentialInfo = null;
+            if (repo.ContainsKey("CredentialInfo") &&
+                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+                    cmdletPassedIn: this,
+                    repoCredentialInfo: out repoCredentialInfo,
+                    errorRecord: out ErrorRecord errorRecord1))
+            {
+                WriteError(errorRecord1);
+                return null;
+            }
+
             try
             {
                 WriteVerbose(String.Format("(RepositoriesParameterSet): on repo: {0}. Registers Name based repository", repo["Name"]));
                 return NameParameterSetHelper(repo["Name"].ToString(),
                     repoURL,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
-                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted);
+                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted,
+                    repoCredentialInfo);
             }
             catch (Exception e)
             {
