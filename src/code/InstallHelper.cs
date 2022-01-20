@@ -320,6 +320,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 totalInstalledPkgCount++;
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                string companyName = String.Empty;
                 try
                 {
                     // Create a temp directory to install to
@@ -513,6 +514,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
+                        companyName = parsedMetadataHashtable["CompanyName"] as string;
+                        if (!String.IsNullOrEmpty(companyName))
+                        {
+                            pkg.CompanyName = companyName;
+                        }
+
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
 
                         // Accept License verification
@@ -533,7 +540,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (_includeXML)
                     {
-                        CreateMetadataXMLFile(tempDirNameVersion, installPath, pkg, isModule);
+                        CreateMetadataXMLFile(tempDirNameVersion, installPath, companyName, pkg, isModule);
                     }
                     
                     MoveFilesIntoInstallPath(
@@ -714,7 +721,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return foundClobber;
         }
 
-        private void CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule)
+        private void CreateMetadataXMLFile(string dirNameVersion, string installPath, string companyName, PSResourceInfo pkg, bool isModule)
         {
             // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"
             // Modules will have the metadata file: "PSGetModuleInfo.xml"
@@ -723,6 +730,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             pkg.InstalledDate = DateTime.Now;
             pkg.InstalledLocation = installPath;
+            pkg.CompanyName = companyName;
 
             // Write all metadata into metadataXMLPath
             if (!pkg.TryWrite(metadataXMLPath, out string error))

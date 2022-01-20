@@ -234,7 +234,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public Dictionary<string, string> AdditionalMetadata { get; }
         public string Author { get; }
-        public string CompanyName { get; }
+        public string CompanyName { get; internal set; }
         public string Copyright { get; }
         public Dependency[] Dependencies { get; }
         public string Description { get; }
