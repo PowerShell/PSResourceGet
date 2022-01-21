@@ -117,7 +117,7 @@ $testCases =
         $res = Get-PSResource -Name $testModuleName -Version "5.2.5-alpha001"
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.2.5"
-        $res.PrereleaseLabel | Should -Be "alpha001"
+        $res.Prerelease | Should -Be "alpha001"
     }
 
     It "Get prerelease version script when version with correct prerelease label is specified" {
@@ -127,6 +127,6 @@ $testCases =
         $res = Get-PSResource -Name $testScriptName -Version "3.0.0-alpha001"
         $res.Name | Should -Be $testScriptName
         $res.Version | Should -Be "3.0.0"
-        $res.PrereleaseLabel | Should -Be "alpha001"
+        $res.Prerelease | Should -Be "alpha001"
     }
 }

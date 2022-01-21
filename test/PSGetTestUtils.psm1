@@ -214,6 +214,25 @@ function Get-RevertPSResourceRepositoryFile {
     }
 }
 
+function Get-NewPSResourceRepositoryFileWithCredentialInfo {
+    # register our own repositories with desired priority
+    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
+    $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
+    $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
+
+    if (Test-Path -Path $originalXmlFilePath) {
+        Copy-Item -Path $originalXmlFilePath -Destination $tempXmlFilePath
+        Remove-Item -Path $originalXmlFilePath -Force -ErrorAction Ignore
+    }
+
+    if (! (Test-Path -Path $powerShellGetPath)) {
+        $null = New-Item -Path $powerShellGetPath -ItemType Directory -Verbose
+    }
+
+    $fileToCopy = Join-Path -Path $PSScriptRoot -ChildPath "testRepositoriesWithCredentialInfo.xml"
+    Copy-Item -Path $fileToCopy -Destination $originalXmlFilePath -Force -Verbose
+}
+
 function Register-LocalRepos {
     $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
     $null = New-Item $repoURLAddress -ItemType Directory -Force
@@ -555,7 +574,7 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.Description | Should -BeLike 'This module provides a convenient way for a user to store*'
     $psGetInfo.IconUri | Should -BeNullOrEmpty
     $psGetInfo.IsPrerelease | Should -Be $True
-    $psGetInfo.PrereleaseLabel | Should -Be "preview2"
+    $psGetInfo.Prerelease | Should -Be "preview2"
     $psGetInfo.Includes.Cmdlet | Should -HaveCount 10
     $psGetInfo.Includes.Cmdlet[0] | Should -BeExactly 'Register-SecretVault'
     $psGetInfo.InstalledDate.Year | Should -BeExactly 2021

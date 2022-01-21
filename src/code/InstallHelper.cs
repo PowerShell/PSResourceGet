@@ -226,7 +226,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 List<PSResourceInfo> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
+                    repoName,
                     repo.Url.AbsoluteUri,
+                    repo.CredentialInfo,
                     credential,
                     isLocalRepo);
 
@@ -303,7 +305,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private List<PSResourceInfo> InstallPackage(
             IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
+            string repoName,
             string repoUrl,
+            PSCredentialInfo repoCredentialInfo,
             PSCredential credential,
             bool isLocalRepo)
         {
@@ -343,7 +347,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string createFullVersion = pkg.Version.ToString();
                     if (pkg.IsPrerelease)
                     {
-                        createFullVersion = pkg.Version.ToString() + "-" + pkg.PrereleaseLabel;
+                        createFullVersion = pkg.Version.ToString() + "-" + pkg.Prerelease;
                     }
 
                     if (!NuGetVersion.TryParse(createFullVersion, out NuGetVersion pkgVersion))
@@ -398,10 +402,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         /* Download from a non-local repository */
                         // Set up NuGet API resource for download
                         PackageSource source = new PackageSource(repoUrl);
+
+                        // Explicitly passed in Credential takes precedence over repository CredentialInfo
                         if (credential != null)
                         {
                             string password = new NetworkCredential(string.Empty, credential.Password).Password;
                             source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, credential.UserName, password, true, null);
+                        }
+                        else if (repoCredentialInfo != null)
+                        {
+                            PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                                repoName,
+                                repoCredentialInfo,
+                                _cmdletPassedIn);
+
+                            string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
+                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repoCredential.UserName, password, true, null);
                         }
                         var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
                         SourceRepository repository = new SourceRepository(source, provider);
@@ -433,11 +449,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.      
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
-                    string normalizedVersionNoPrereleaseLabel = newVersion;
+                    string normalizedVersionNoPrerelease = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
                     {
                         // eg: 2.0.2
-                        normalizedVersionNoPrereleaseLabel = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
+                        normalizedVersionNoPrerelease = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
                     }
                     
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);

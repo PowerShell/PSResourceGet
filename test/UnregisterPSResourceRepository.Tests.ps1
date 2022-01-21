@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test Register-PSResourceRepository" {
+Describe "Test Unregister-PSResourceRepository" {
     BeforeEach {
         $TestGalleryName = Get-PoshTestGalleryName
         $TestGalleryUrl = Get-PoshTestGalleryLocation
