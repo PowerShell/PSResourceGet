@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using Microsoft.PowerShell.Commands;
 
 using Dbg = System.Diagnostics.Debug;
 
@@ -271,8 +272,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Hashtable pkgsInJsonFile = null;
                     try
                     {
-                        pkgsInJsonFile = JsonConvert.DeserializeObject<Hashtable>(requiredResourceFileStream, new JsonSerializerSettings { MaxDepth = 6 });
-
+                        pkgsInJsonFile = Utils.ConvertJsonToHashtable(this, requiredResourceFileStream);
                     }
                     catch (Exception)
                     {
@@ -303,7 +303,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         Hashtable pkgsHash = null;
                         try
                         {
-                            pkgsHash = JsonConvert.DeserializeObject<Hashtable>(_requiredResourceJson, new JsonSerializerSettings { MaxDepth = 6 });
+                            pkgsHash = Utils.ConvertJsonToHashtable(this, _requiredResourceJson);
                         }
                         catch (Exception)
                         {
@@ -353,21 +353,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 var pkgParamInfo = reqResourceHash[pkgName];
 
-                // Input format was json, and not a hashtable
+                // Format should now be a hashtable, whether the original input format was json or hashtable
                 if (!(pkgParamInfo is Hashtable pkgInstallInfo))
-                {
-                    pkgInstallInfo = new Hashtable { };
-
-                    // Input format was JSON
-                    var pkgParamJTokens = pkgParamInfo as Newtonsoft.Json.Linq.JToken;
-                    foreach (Newtonsoft.Json.Linq.JProperty val in pkgParamJTokens)
-                    {
-                        pkgInstallInfo[val.Name] = val.Value.ToString();
-                    }
-                }
-                // Otherwise, the input format is a hashtable
-
-                if (pkgInstallInfo == null)
                 {
                     return;
                 }
