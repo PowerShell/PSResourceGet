@@ -125,8 +125,8 @@ function DoBuild
             }
         }
         catch {
-            # Write-Error "dotnet build failed with error: $_"
             Write-Verbose -Verbose -Message "dotnet build failed with error: $_"
+            Write-Error "dotnet build failed with error: $_"
         }
         finally {
             Pop-Location
