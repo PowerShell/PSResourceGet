@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -24,47 +25,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region String fields
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
-
-        private const string ConvertJsonToHashtableScript = @"
-            param (
-                [string] $json
-            )
-
-            function ConvertToHash
-            {
-                param (
-                    [pscustomobject] $object
-                )
-
-                $output = @{}
-                $object | Microsoft.PowerShell.Utility\Get-Member -MemberType NoteProperty | ForEach-Object {
-                    $name = $_.Name
-                    $value = $object.($name)
-
-                    if ($value -is [object[]])
-                    {
-                        $array = @()
-                        $value | ForEach-Object {
-                            $array += (ConvertToHash $_)
-                        }
-                        $output.($name) = $array
-                    }
-                    elseif ($value -is [pscustomobject])
-                    {
-                        $output.($name) = (ConvertToHash $value)
-                    }
-                    else
-                    {
-                        $output.($name) = $value
-                    }
-                }
-
-                $output
-            }
-
-            $customObject = Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject $json
-            return ConvertToHash $customObject
-        ";
 
         #endregion
 
@@ -775,6 +735,121 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return successfullyParsed;
         }
 
+        public static bool TryParseScriptFileInfo(
+            string scriptFileInfo,
+            PSCmdlet cmdletPassedIn,
+            out Hashtable parsedPSScriptInfoHashtable)
+        {
+            parsedPSScriptInfoHashtable = new Hashtable();
+            bool successfullyParsed = false;
+
+            if (scriptFileInfo.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            {
+                // Parse the script file
+                var ast = Parser.ParseFile(
+                    scriptFileInfo,
+                    out Token[] tokens,
+                    out ParseError[] errors);
+
+                if (errors.Length > 0)
+                {
+                    var message = String.Format("Could not parse '{0}' as a PowerShell script file.", scriptFileInfo);
+                    var ex = new ArgumentException(message);
+                    var psScriptFileParseError = new ErrorRecord(ex, "psScriptFileParseError", ErrorCategory.ParserError, null);
+                    cmdletPassedIn.WriteError(psScriptFileParseError);
+                    return successfullyParsed;  
+                }
+                else if (ast != null)
+                {
+                    // TODO: Anam do we still need to check if ast is not null?
+                    // Get the block/group comment beginning with <#PSScriptInfo
+                    List<Token> commentTokens = tokens.Where(a => String.Equals(a.Kind.ToString(), "Comment", StringComparison.OrdinalIgnoreCase)).ToList();
+                    string commentPattern = "<#PSScriptInfo";
+                    Regex rg = new Regex(commentPattern);
+                    List<Token> psScriptInfoCommentTokens = commentTokens.Where(a => rg.IsMatch(a.Extent.Text)).ToList();
+
+                    if (psScriptInfoCommentTokens.Count() == 0 || psScriptInfoCommentTokens[0] == null)
+                    {
+                        // TODO: Anam change to error from V2
+                        var message = String.Format("PSScriptInfo comment was missing or could not be parsed");
+                        var ex = new ArgumentException(message);
+                        var psCommentParseError = new ErrorRecord(ex, "psScriptInfoCommentParseError", ErrorCategory.ParserError, null);
+                        cmdletPassedIn.WriteError(psCommentParseError);
+                        return successfullyParsed;  
+                    }
+
+                    string[] commentLines = Regex.Split(psScriptInfoCommentTokens[0].Text, "[\r\n]");
+                    // TODO: Anam clean above up as we don't need to store empty lines for CF and newline, I think?
+                    string keyName = String.Empty;
+                    string value = String.Empty;
+
+                    /**
+                    PSScriptInfo comment will be in following format:
+                    <#PSScriptInfo
+                        .VERSION 1.0
+                        .GUID 544238e3-1751-4065-9227-be105ff11636
+                        .AUTHOR manikb
+                        .COMPANYNAME Microsoft Corporation
+                        .COPYRIGHT (c) 2015 Microsoft Corporation. All rights reserved.
+                        .TAGS Tag1 Tag2 Tag3
+                        .LICENSEURI https://contoso.com/License
+                        .PROJECTURI https://contoso.com/
+                        .ICONURI https://contoso.com/Icon
+                        .EXTERNALMODULEDEPENDENCIES ExternalModule1
+                        .REQUIREDSCRIPTS Start-WFContosoServer,Stop-ContosoServerScript
+                        .EXTERNALSCRIPTDEPENDENCIES Stop-ContosoServerScript
+                        .RELEASENOTES
+                        contoso script now supports following features
+                        Feature 1
+                        Feature 2
+                        Feature 3
+                        Feature 4
+                        Feature 5
+                        #>
+                    */
+
+                    /**
+                    If comment line count is not more than two, it doesn't have the any metadata property
+                    comment block would look like:
+
+                    <#PSScriptInfo
+                    #>
+                    */
+                    cmdletPassedIn.WriteVerbose("total comment lines: " + commentLines.Count());
+                    if (commentLines.Count() > 2)
+                    {
+                        for (int i = 1; i < commentLines.Count(); i++)
+                        {
+                            string line = commentLines[i];
+                            cmdletPassedIn.WriteVerbose("i: " + i + "line: " + line);
+                            if (String.IsNullOrEmpty(line))
+                            {
+                                continue;
+                            }
+                            // A line is starting with . conveys a new metadata property
+                            // __NEWLINE__ is used for replacing the value lines while adding the value to $PSScriptInfo object
+                            if (line.Trim().StartsWith("."))
+                            {
+                                // string partPattern = "[.\s+]";
+                                string[] parts = line.Trim().TrimStart('.').Split();
+                                keyName = parts[0];
+                                value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
+                                parsedPSScriptInfoHashtable.Add(keyName, value);
+                            }
+                        }
+                    }
+                    
+
+
+
+
+
+                }
+            }
+
+            return successfullyParsed;
+        }
+
         #endregion
 
         #region Misc methods
@@ -793,25 +868,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     args: new object[] { message });
             }
             catch { }
-        }
-
-        /// <summary>
-        /// Convert a json string into a hashtable object.
-        /// This uses custom script to perform the PSObject -> Hashtable
-        /// conversion, so that this works with WindowsPowerShell.
-        /// </summary>
-        public static Hashtable ConvertJsonToHashtable(
-            PSCmdlet cmdlet,
-            string json)
-        {
-            Collection<PSObject> results = cmdlet.InvokeCommand.InvokeScript(
-                script: ConvertJsonToHashtableScript,
-                useNewScope: true,
-                writeToPipeline: PipelineResultTypes.Error,
-                input: null,
-                args: new object[] { json });
-
-            return (results.Count == 1 && results[0] != null) ? (Hashtable)results[0].BaseObject : null;
         }
 
         #endregion

@@ -527,7 +527,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
                     }
-
+                    else
+                    {
+                        if (!Utils.TryParseScriptFileInfo(scriptPath, _cmdletPassedIn, out Hashtable parsedPSScriptInfoHashtable))
+                        {
+                            // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
+                            continue;
+                            
+                        }
+                    }
                     // Delete the extra nupkg related files that are not needed and not part of the module/script
                     DeleteExtraneousFiles(pkgIdentity, tempDirNameVersion);
 
