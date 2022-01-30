@@ -24,7 +24,7 @@ The Get-PSResourceRepository cmdlet searches for the PowerShell resource reposit
 ### Example 1
 ```
 PS C:\> Get-PSResourceRepository -Name "PSGallery"
-        Name         Url                                        Trusted   Priority
+        Name         Uri                                        Trusted   Priority
         ----         ---                                        -------   --------
         PSGallery    https://www.powershellgallery.com/api/v2     False         50
 ```
@@ -34,7 +34,7 @@ This example runs the command with the 'Name' parameter being set to "PSGallery"
 ### Example 2
 ```
 PS C:\> Get-PSResourceRepository -Name "*Gallery"
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
@@ -46,7 +46,7 @@ This example runs the command with the 'Name' parameter being set to "*Gallery" 
 ### Example 3
 ```
 PS C:\> Get-PSResourceRepository -Name "PSGallery","PoshTestGallery"
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
@@ -58,7 +58,7 @@ This example runs the command with the 'Name' parameter being set to an array of
 ### Example 4
 ```
 PS C:\> Get-PSResourceRepository -Name "*"
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
