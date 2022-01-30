@@ -587,19 +587,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             metadataElementsDictionary.Add("tags", tags);
 
-            if (parsedMetadataHash.ContainsKey("licenseuri"))
+            if (parsedMetadataHash.ContainsKey("licenseurl"))
             {
-                metadataElementsDictionary.Add("licenseUri", parsedMetadataHash["licenseuri"].ToString().Trim());
+                metadataElementsDictionary.Add("licenseUrl", parsedMetadataHash["licenseurl"].ToString().Trim());
             }
 
-            if (parsedMetadataHash.ContainsKey("projecturi"))
+            if (parsedMetadataHash.ContainsKey("projecturl"))
             {
-                metadataElementsDictionary.Add("projectUri", parsedMetadataHash["projecturi"].ToString().Trim());
+                metadataElementsDictionary.Add("projectUrl", parsedMetadataHash["projecturl"].ToString().Trim());
             }
 
-            if (parsedMetadataHash.ContainsKey("iconuri"))
+            if (parsedMetadataHash.ContainsKey("iconurl"))
             {
-                metadataElementsDictionary.Add("iconUri", parsedMetadataHash["iconuri"].ToString().Trim());
+                metadataElementsDictionary.Add("iconUrl", parsedMetadataHash["iconurl"].ToString().Trim());
             }
 
             // Example nuspec:
@@ -613,9 +613,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 <owners>Microsoft,PowerShell</owners>
                 <requireLicenseAcceptance>false</requireLicenseAcceptance>
                 <license type="expression">MIT</license>
-                <licenseUri>https://licenses.nuget.org/MIT</licenseUri>
+                <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
                 <icon>Powershell_black_64.png</icon>
-                <projectUri>https://github.com/PowerShell/PowerShell</projectUri>
+                <projectUrl>https://github.com/PowerShell/PowerShell</projectUrl>
                 <description>Example description here</description>
                 <copyright>Copyright (c) Microsoft Corporation. All rights reserved.</copyright>
                 <language>en-US</language>

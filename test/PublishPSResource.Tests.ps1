@@ -168,12 +168,12 @@ Describe "Test Publish-PSResource" {
         $expectedNuspecContents.Contains($releaseNotes) | Should Be $true
     }
 
-    It "Publish a module with -LicenseUri" {
+    It "Publish a module with -LicenseUrl" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
 
-        $licenseUri = "https://www.fakelicenseuri.com"
-        Publish-PSResource -Path $script:PublishModuleBase -LicenseUri $licenseUri
+        $licenseUrl = "https://www.fakelicenseurl.com"
+        Publish-PSResource -Path $script:PublishModuleBase -LicenseUrl $licenseUrl
 
         $expectedNupkgPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
         Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath
@@ -184,15 +184,15 @@ Describe "Test Publish-PSResource" {
 
         $expectedNuspec = Join-path -Path $expectedExpandedPath -ChildPath "$script:PublishModuleName.nuspec"
         $expectedNuspecContents =  Get-Content -Path $expectedNuspec -Raw
-        $expectedNuspecContents.Contains($licenseUri) | Should Be $true
+        $expectedNuspecContents.Contains($licenseUrl) | Should Be $true
     }
 
-    It "Publish a module with -IconUri" {
+    It "Publish a module with -IconUrl" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
 
-        $iconUri = "https://www.fakeiconuri.com"
-        Publish-PSResource -Path $script:PublishModuleBase -IconUri $iconUri
+        $iconUrl = "https://www.fakeiconurl.com"
+        Publish-PSResource -Path $script:PublishModuleBase -IconUrl $iconUrl
 
         $expectedNupkgPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
         Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath
@@ -203,16 +203,16 @@ Describe "Test Publish-PSResource" {
 
         $expectedNuspec = Join-path -Path $expectedExpandedPath -ChildPath "$script:PublishModuleName.nuspec"
         $expectedNuspecContents =  Get-Content -Path $expectedNuspec -Raw
-        $expectedNuspecContents.Contains($iconUri) | Should Be $true
+        $expectedNuspecContents.Contains($iconUrl) | Should Be $true
     }
 
 
-    It "Publish a module with -ProjectUri" {
+    It "Publish a module with -ProjectUrl" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
 
-        $projectUri = "https://www.fakeprojectUri.com"
-        Publish-PSResource -Path $script:PublishModuleBase -ProjectUri $projectUri
+        $projectUrl = "https://www.fakeprojectUrl.com"
+        Publish-PSResource -Path $script:PublishModuleBase -ProjectUrl $projectUrl
 
         $expectedNupkgPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
         Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath
@@ -223,7 +223,7 @@ Describe "Test Publish-PSResource" {
 
         $expectedNuspec = Join-path -Path $expectedExpandedPath -ChildPath "$script:PublishModuleName.nuspec"
         $expectedNuspecContents =  Get-Content -Path $expectedNuspec -Raw
-        $expectedNuspecContents.Contains($projectUri) | Should Be $true
+        $expectedNuspecContents.Contains($projectUrl) | Should Be $true
     }
 
     It "Publish a module with -Tags" {
