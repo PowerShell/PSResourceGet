@@ -879,12 +879,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             }
                         }
                     }
-                    
-
-
-
-
-
                 }
             }
 
