@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -859,6 +860,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     cmdletPassedIn.WriteVerbose("total comment lines: " + commentLines.Count());
                     if (commentLines.Count() > 2)
                     {
+                        // TODO: Anam is it an error if the metadata property is empty?
                         for (int i = 1; i < commentLines.Count(); i++)
                         {
                             string line = commentLines[i];
@@ -878,7 +880,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                                 parsedPSScriptInfoHashtable.Add(keyName, value);
                             }
                         }
+                        successfullyParsed = true;
                     }
+
+                    // CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
+                    // if (scriptCommentInfo != null && !String.IsNullOrEmpty(scriptCommentInfo.Description))
+                    // {
+
+                    // }
+
                 }
             }
 
