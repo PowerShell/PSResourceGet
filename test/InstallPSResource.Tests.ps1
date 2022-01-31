@@ -382,7 +382,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install modules using -RequiredResourceFile with JSON file" {
-        $rrFileJSON = ".\$RequiredResourceJSONFileName"
+        $rrFileJSON = Join-Path -Path $psscriptroot -ChildPath "test" -AdditionalChildPath $RequiredResourceJSONFileName
 
         Install-PSResource -RequiredResourceFile $rrFileJSON -Verbose
 

@@ -793,13 +793,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     out Token[] tokens,
                     out ParseError[] errors);
 
-                if (errors.Length > 0)
+                if (errors.Length > 0 && !String.Equals(errors[0].ErrorId, "WorkflowNotSupportedInPowerShellCore", StringComparison.OrdinalIgnoreCase))
                 {
                     var message = String.Format("Could not parse '{0}' as a PowerShell script file.", scriptFileInfo);
                     var ex = new ArgumentException(message);
                     var psScriptFileParseError = new ErrorRecord(ex, "psScriptFileParseError", ErrorCategory.ParserError, null);
                     cmdletPassedIn.WriteError(psScriptFileParseError);
-                    return successfullyParsed;  
+                    return successfullyParsed;
                 }
                 else if (ast != null)
                 {
