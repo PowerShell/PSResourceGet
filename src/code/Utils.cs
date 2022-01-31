@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -15,6 +14,7 @@ using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -25,6 +25,47 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region String fields
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
+
+        private const string ConvertJsonToHashtableScript = @"
+            param (
+                [string] $json
+            )
+
+            function ConvertToHash
+            {
+                param (
+                    [pscustomobject] $object
+                )
+
+                $output = @{}
+                $object | Microsoft.PowerShell.Utility\Get-Member -MemberType NoteProperty | ForEach-Object {
+                    $name = $_.Name
+                    $value = $object.($name)
+
+                    if ($value -is [object[]])
+                    {
+                        $array = @()
+                        $value | ForEach-Object {
+                            $array += (ConvertToHash $_)
+                        }
+                        $output.($name) = $array
+                    }
+                    elseif ($value -is [pscustomobject])
+                    {
+                        $output.($name) = (ConvertToHash $value)
+                    }
+                    else
+                    {
+                        $output.($name) = $value
+                    }
+                }
+
+                $output
+            }
+
+            $customObject = Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject $json
+            return ConvertToHash $customObject
+        ";
 
         #endregion
 
@@ -868,6 +909,25 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     args: new object[] { message });
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Convert a json string into a hashtable object.
+        /// This uses custom script to perform the PSObject -> Hashtable
+        /// conversion, so that this works with WindowsPowerShell.
+        /// </summary>
+        public static Hashtable ConvertJsonToHashtable(
+            PSCmdlet cmdlet,
+            string json)
+        {
+            Collection<PSObject> results = cmdlet.InvokeCommand.InvokeScript(
+                script: ConvertJsonToHashtableScript,
+                useNewScope: true,
+                writeToPipeline: PipelineResultTypes.Error,
+                input: null,
+                args: new object[] { json });
+
+            return (results.Count == 1 && results[0] != null) ? (Hashtable)results[0].BaseObject : null;
         }
 
         #endregion
