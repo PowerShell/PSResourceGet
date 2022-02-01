@@ -211,7 +211,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (repoUri == null || !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
             {
-                throw new ArgumentException("Invalid URI, must be one of the following URI schemes: HTTPS, HTTP, FTP, File Based");
+                throw new ArgumentException("Invalid Uri, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
 
             if (repoCredentialInfo != null)
@@ -338,7 +338,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (!repo.ContainsKey("Uri") || String.IsNullOrEmpty(repo["Uri"].ToString()))
             {
                 WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Repository URI cannot be null"),
+                        new PSInvalidOperationException("Repository Uri cannot be null"),
                         "NullUriForRepositoriesParameterSetRegistration",
                         ErrorCategory.InvalidArgument,
                         this));

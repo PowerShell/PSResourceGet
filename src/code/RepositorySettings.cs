@@ -123,7 +123,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// Updates a repository name, URI, priority, installation policy, or credential information
+        /// Updates a repository name, Uri, priority, installation policy, or credential information
         /// Returns:  void
         /// </summary>
         public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo)
@@ -143,8 +143,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Get root of XDocument (XElement)
                 var root = doc.Root;
 
-                // A null URI value passed in signifies the URI was not attempted to be set.
-                // So only set URI attribute if non-null value passed in for repoUri
+                // A null Uri value passed in signifies the Uri was not attempted to be set.
+                // So only set Uri attribute if non-null value passed in for repoUri
                 if (repoUri != null)
                 {
                     node.Attribute("Uri").Value = repoUri.AbsoluteUri;
@@ -190,7 +190,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Create Uri from node Uri attribute to create PSRepositoryInfo item to return.
                 if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
                 {
-                    throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted URI for repo {0}", repoName));
+                    throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
                 }
 
                 // Create CredentialInfo based on new values or whether it was empty to begin with
@@ -298,7 +298,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     if (!Uri.TryCreate(repo.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
                     {
-                        tempErrorList.Add(String.Format("Unable to read incorrectly formatted URI for repo {0}", repo.Attribute("Name").Value));
+                        tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repo.Attribute("Name").Value));
                         continue;
                     }
 
@@ -356,7 +356,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
                         {
                             //debug statement
-                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted URI for repo {0}", node.Attribute("Name").Value));
+                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", node.Attribute("Name").Value));
                             continue;
                         }
 

@@ -32,7 +32,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Name { get; }
 
         /// <summary>
-        /// the URI for the repository
+        /// the Uri for the repository
         /// </summary>
         public Uri Uri { get; }
 

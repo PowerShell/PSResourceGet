@@ -184,7 +184,7 @@ Describe "Test Register-PSResourceRepository" {
         {Register-PSResourceRepository -Name $TestRepoName1 -Uri "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
-    It "not register repository when Name is empty but URI is provided" {
+    It "not register repository when Name is empty but Uri is provided" {
         {Register-PSResourceRepository -Name "" -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
@@ -192,7 +192,7 @@ Describe "Test Register-PSResourceRepository" {
         {Register-PSResourceRepository -Name $null -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
-    It "not register repository when Name is just whitespace but URI is provided" {
+    It "not register repository when Name is just whitespace but Uri is provided" {
         {Register-PSResourceRepository -Name " " -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
@@ -263,7 +263,7 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Priority | Should -Be 30
     }
 
-    It "should register repository with relative location provided as URI" {
+    It "should register repository with relative location provided as Uri" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri "./"
         $res = Get-PSResourceRepository -Name $TestRepoName1
 

@@ -170,7 +170,7 @@ Describe "Test Set-PSResourceRepository" {
         $res4.CredentialInfo | Should -BeNullOrEmpty
     }
 
-    It "not set and throw error for trying to set PSGallery URI (NameParameterSet)" {
+    It "not set and throw error for trying to set PSGallery Uri (NameParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -PSGallery
         {Set-PSResourceRepository -Name $PSGalleryName -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
@@ -182,7 +182,7 @@ Describe "Test Set-PSResourceRepository" {
         {Set-PSResourceRepository -Name $PSGalleryName -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
     }
 
-    It "not set repository and throw error for trying to set PSGallery URI (RepositoriesParameterSet)" {
+    It "not set repository and throw error for trying to set PSGallery Uri (RepositoriesParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -PSGallery
 
@@ -202,7 +202,7 @@ Describe "Test Set-PSResourceRepository" {
         $res.Trusted | Should -Be False
     }
 
-    It "should set repository with relative URI provided" {
+    It "should set repository with relative Uri provided" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Set-PSResourceRepository -Name $TestRepoName1 -Uri $relativeCurrentPath
         $res = Get-PSResourceRepository -Name $TestRepoName1

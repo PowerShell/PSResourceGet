@@ -286,7 +286,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Exception ex;
             try
             {
-                // This is needed for a relative path uri string. Does not throw error for an absolute path.
+                // This is needed for a relative path Uri string. Does not throw error for an absolute path.
                 var filePath = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(uriString)[0].Path;
                 if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
                 {

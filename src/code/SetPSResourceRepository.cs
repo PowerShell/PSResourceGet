@@ -166,7 +166,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             if (repoUri != null && !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
             {
-                throw new ArgumentException("Invalid URI, must be one of the following URI schemes: HTTPS, HTTP, FTP, File Based");
+                throw new ArgumentException("Invalid Uri, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
             }
 
             // check repoName can't contain * or just be whitespace
@@ -177,10 +177,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
             }
 
-            // check PSGallery URI is not trying to be set
+            // check PSGallery Uri is not trying to be set
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) && repoUri != null)
             {
-                throw new ArgumentException("The PSGallery repository has a pre-defined URI. Setting the -Uri parameter for this repository is not allowed, instead try running 'Register-PSResourceRepository -PSGallery'.");
+                throw new ArgumentException("The PSGallery repository has a pre-defined Uri. Setting the -Uri parameter for this repository is not allowed, instead try running 'Register-PSResourceRepository -PSGallery'.");
             }
 
             // check PSGallery CredentialInfo is not trying to be set
@@ -267,7 +267,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (String.IsNullOrEmpty(repo["Uri"].ToString()))
                 {
                     WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Repository URI cannot be null if provided"),
+                            new PSInvalidOperationException("Repository Uri cannot be null if provided"),
                             "NullUriForRepositoriesParameterSetUpdate",
                             ErrorCategory.InvalidArgument,
                             this));
