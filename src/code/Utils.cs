@@ -24,6 +24,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region String fields
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
+        public static readonly string ProxyEnvName = "http_proxy";
 
         private const string ConvertJsonToHashtableScript = @"
             param (

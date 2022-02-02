@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-
+using System.Net;
 using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -26,7 +26,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         VersionRange _versionRange;
         InstallHelper _installHelper;
-        
+        private bool proxyEnvVarModified;
+        private string proxyEnv;
+
         #endregion
 
         #region Parameters 
@@ -138,12 +140,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter Quiet { get; set; }
 
+        /// <summary>
+        /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty]
+        public String Proxy { get; set; }
+
+        /// <summary>
+        /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
+        /// </summary>
+        [Parameter]
+        public PSCredential ProxyCredential { get; set; }
+
         #endregion
 
         #region Method overrides
 
         protected override void BeginProcessing()
         {
+            // First see if the env variables contain values
+            // Try reading from the environment variable http_proxy. This would be specified as http://<username>:<password>@proxy.com
+            try
+            {
+                proxyEnv = Environment.GetEnvironmentVariable(Utils.ProxyEnvName);
+            }
+            catch (Exception)
+            {
+                WriteVerbose(string.Format("Unable to retrieve environment variable '{0}'", Utils.ProxyEnvName));
+            }
+
+            // Set proxy and proxy credentials if passed in
+            if (!string.IsNullOrWhiteSpace(Proxy) && ProxyCredential != null)
+            {
+                string password = new NetworkCredential(string.Empty, ProxyCredential.Password).Password;
+                string proxyNamePassword = string.Concat(Proxy, ':', password);
+
+                // Temporarily setting the env var to the proxy and proxy credential passed in via parameters
+                try
+                {
+                    Environment.SetEnvironmentVariable(Utils.ProxyEnvName, proxyNamePassword);
+                    proxyEnvVarModified = true;
+                }
+                catch (Exception ex)
+                {
+                    // throw terminating failure, unable to use creds 
+                    throw new ArgumentException(
+                            $"Unable to set the environment variable {Utils.ProxyEnvName}: {ex.Message}",
+                            ex);
+                }
+            }
+
             // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
@@ -202,6 +249,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 default:
                     Dbg.Assert(false, "Invalid parameter set");
                     break;
+            }
+        }
+
+        protected override void EndProcessing()
+        {
+            // Set the proxy env var back to its original value
+            if (proxyEnvVarModified)
+            {
+                try
+                {
+                    Environment.SetEnvironmentVariable(Utils.ProxyEnvName, proxyEnv);
+                    proxyEnvVarModified = true;
+                }
+                catch (Exception ex)
+                {
+                    // throw terminating failure, unable to use creds 
+                    throw new ArgumentException(
+                            $"Unable to set the environment variable {Utils.ProxyEnvName} back to its original value: {ex.Message}",
+                            ex);
+                }
             }
         }
 

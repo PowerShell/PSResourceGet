@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using System.Net;
 using System.Net.Http;
 using System.Xml;
 
@@ -121,40 +122,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         [ValidateNotNullOrEmpty]
         public SwitchParameter SkipDependenciesCheck { get; set; }
-        
+
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty]
-        public Uri Proxy {
-            set
-            {
-                if (value != null)
-                {
-                    var ex = new ArgumentException("Not yet implemented.");
-                    var ProxyNotImplemented = new ErrorRecord(ex, "ProxyNotImplemented", ErrorCategory.InvalidData, null);
-                    WriteError(ProxyNotImplemented);
-                }
-            }
-        }
+        public String Proxy { get; set; }
 
         /// <summary>
         /// Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
         /// </summary>
         [Parameter]
-        [ValidateNotNullOrEmpty]
-        public PSCredential ProxyCredential {
-            set
-            {
-                if (value != null)
-                {
-                    var ex = new ArgumentException("Not yet implemented.");
-                    var ProxyCredentialNotImplemented = new ErrorRecord(ex, "ProxyCredentialNotImplemented", ErrorCategory.InvalidData, null);
-                    WriteError(ProxyCredentialNotImplemented);
-                }
-            }
-        }
+        public PSCredential ProxyCredential { get; set; }
 
         #endregion
 
@@ -163,6 +143,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private NuGetVersion _pkgVersion;
         private string _pkgName;
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+        private bool proxyEnvVarModified;
+        private string proxyEnv;
 
         #endregion
 
@@ -170,6 +152,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
+            // First see if the env variables contain values
+            // Try reading from the environment variable http_proxy. This would be specified as http://<username>:<password>@proxy.com
+            try
+            {
+                proxyEnv = Environment.GetEnvironmentVariable(Utils.ProxyEnvName);
+            }
+            catch (Exception)
+            {
+                WriteVerbose(string.Format("Unable to retrieve environment variable '{0}'", Utils.ProxyEnvName));
+            }
+
+            // Set proxy and proxy credentials if passed in
+            if (!string.IsNullOrWhiteSpace(Proxy) && ProxyCredential != null)
+            {
+                string password = new NetworkCredential(string.Empty, ProxyCredential.Password).Password;
+                string proxyNamePassword = string.Concat(Proxy, ':', password);
+
+                // Temporarily setting the env var to the proxy and proxy credential passed in via parameters
+                try
+                {
+                    Environment.SetEnvironmentVariable(Utils.ProxyEnvName, proxyNamePassword);
+                    proxyEnvVarModified = true;
+                }
+                catch (Exception ex)
+                {
+                    // throw terminating failure, unable to use creds 
+                    throw new ArgumentException(
+                            $"Unable to set the environment variable {Utils.ProxyEnvName}: {ex.Message}",
+                            ex);
+                }
+            }
+
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
@@ -409,6 +423,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
 
                 Utils.DeleteDirectory(outputDir);
+            }
+        }
+
+        protected override void EndProcessing()
+        {
+            // Set the proxy env var back to its original value
+            if (proxyEnvVarModified)
+            {
+                try
+                {
+                    Environment.SetEnvironmentVariable(Utils.ProxyEnvName, proxyEnv);
+                    proxyEnvVarModified = true;
+                }
+                catch (Exception ex)
+                {
+                    // throw terminating failure, unable to use creds 
+                    throw new ArgumentException(
+                            $"Unable to set the environment variable {Utils.ProxyEnvName} back to its original value: {ex.Message}",
+                            ex);
+                }
             }
         }
 
