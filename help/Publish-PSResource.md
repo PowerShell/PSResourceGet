@@ -14,7 +14,7 @@ Publishes a specified module from the local computer to PSResource repository.
 
 ```
 Publish-PSResource [-APIKey <String>] [-Repository <String>] [-Path] <String> [-DestinationPath] <String>
- [-Credential <PSCredential>] [-SkipDependenciesCheck]
+ [-Credential <PSCredential>] [-SkipDependenciesCheck] [-Proxy <String>] [-ProxyCredential <PSCredential>]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -121,6 +121,36 @@ Bypasses the default check that all dependencies are present on the repository w
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Proxy
+Specifies a proxy server for the request, rather than a direct connection to the internet resource.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ProxyCredential
+Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
+
+```yaml
+Type: System.Management.Automation.PSCredential
 Parameter Sets: (All)
 Aliases:
 

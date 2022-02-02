@@ -15,13 +15,13 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 ### NameParameterSet
 ```
 Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Proxy <String>] [-ProxyCredential <PSCredential>] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
 ```
 Save-PSResource [-InputObject] <PSResourceInfo> [-Credential <PSCredential>] [-AsNupkg]
- [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Proxy <String>] [-ProxyCredential <PSCredential>] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -252,6 +252,36 @@ Used for pipeline input.
 Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
 Parameter Sets: (All)
 Aliases: wi
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Proxy
+Specifies a proxy server for the request, rather than a direct connection to the internet resource.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ProxyCredential
+Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
+
+```yaml
+Type: System.Management.Automation.PSCredential
+Parameter Sets: (All)
+Aliases:
 
 Required: False
 Position: Named

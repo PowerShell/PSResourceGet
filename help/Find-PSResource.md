@@ -14,31 +14,31 @@ Searches for packages from a repository (local or remote), based on `-Name` and 
 
 ### ResourceNameParameterSet (Default)
 ``` PowerShell
-[[-Name] <string[]>] [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[[-Name] <string[]>] [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-Proxy <string>] [-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
 ``` PowerShell
 [[-CommandName] <string[]>] [-ModuleName <string[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-Proxy <string>] [-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### DscResourceNameParameterSet
 ``` PowerShell
 [[-DscResourceName] <string[]>] [-ModuleName <string[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-Proxy <string>] [-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### TagParameterSet
 ``` PowerShell
 [[-Name <string>][-Tag <string[]>] [-Prerelease]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-Proxy <string>] [-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### TypeParameterSet
 ``` PowerShell
 [[Name <string>] [-Prerelease]  [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-Proxy <string>] [-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -261,6 +261,36 @@ the version range.
 
 ```yaml
 Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Proxy
+Specifies a proxy server for the request, rather than a direct connection to the internet resource.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ProxyCredential
+Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
+
+```yaml
+Type: System.Management.Automation.PSCredential
 Parameter Sets: (All)
 Aliases:
 

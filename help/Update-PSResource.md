@@ -15,7 +15,7 @@ Updates a package already installed on the user's machine.
 ### NameParameterSet (Default)
 ```
 Update-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Scope <Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType>] [-TrustRepository] [-Credential <PSCredential>] [-Quiet] [-AcceptLicense] [-Force] [-PassThru] [-SkipDependencyCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Scope <Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType>] [-TrustRepository] [-Credential <PSCredential>] [-Quiet] [-AcceptLicense] [-Force] [-PassThru] [-SkipDependencyCheck] [-Proxy <String>] [-ProxyCredential <PSCredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -227,6 +227,36 @@ Skips the check for resource dependencies, so that only found resources are upda
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Proxy
+Specifies a proxy server for the request, rather than a direct connection to the internet resource.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ProxyCredential
+Specifies a user account that has permission to use the proxy server that is specified by the Proxy parameter.
+
+```yaml
+Type: System.Management.Automation.PSCredential
 Parameter Sets: (All)
 Aliases:
 
