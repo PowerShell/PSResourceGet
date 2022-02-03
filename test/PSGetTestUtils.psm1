@@ -234,21 +234,21 @@ function Get-NewPSResourceRepositoryFileWithCredentialInfo {
 }
 
 function Register-LocalRepos {
-    $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-    $null = New-Item $repoURLAddress -ItemType Directory -Force
+    $repoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+    $null = New-Item $repoUriAddress -ItemType Directory -Force
     $localRepoParams = @{
         Name = "psgettestlocal"
-        URL = $repoURLAddress
+        Uri = $repoUriAddress
         Priority = 40
         Trusted = $false
     }
     Register-PSResourceRepository @localRepoParams
 
-    $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
-    $null = New-Item $repoURLAddress2 -ItemType Directory -Force
+    $repoUriAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
+    $null = New-Item $repoUriAddress2 -ItemType Directory -Force
     $localRepoParams2 = @{
         Name = "psgettestlocal2"
-        URL = $repoURLAddress2
+        Uri = $repoUriAddress2
         Priority = 50
         Trusted = $false
     }
@@ -384,22 +384,22 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
 }
 
 function Register-LocalRepos {
-    $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-    $null = New-Item $repoURLAddress -ItemType Directory -Force
+    $repoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+    $null = New-Item $repoUriAddress -ItemType Directory -Force
     $localRepoParams = @{
         Name = "psgettestlocal"
-        URL = $repoURLAddress
+        Uri = $repoUriAddress
         Priority = 40
         Trusted = $false
     }
 
     Register-PSResourceRepository @localRepoParams
 
-    $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
-    $null = New-Item $repoURLAddress2 -ItemType Directory -Force
+    $repoUriAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
+    $null = New-Item $repoUriAddress2 -ItemType Directory -Force
     $localRepoParams2 = @{
         Name = "psgettestlocal2"
-        URL = $repoURLAddress2
+        Uri = $repoUriAddress2
         Priority = 50
         Trusted = $false
     }
