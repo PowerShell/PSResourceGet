@@ -151,7 +151,7 @@ Accept wildcard characters: False
 
 ### -Uri
 Specifies the location of the repository to be registered.
-URI can be of the following URI schemas: HTTPS, HTTP, FTP, file share based.
+Uri can be of the following Uri schemas: HTTPS, HTTP, FTP, file share based.
 
 ```yaml
 Type: String
@@ -227,6 +227,6 @@ Repositories are unique by 'Name'. Attempting to register a repository with same
 
 Registering the PSGallery repository must be done via the PSGalleryParameterSet (i.e by using the 'PSGallery' parameter instead of 'Name' and 'Uri' parameters).
 
-URI string input must be of one of the following URI schemes: HTTP, HTTPS, FTP, File
+Uri string input must be of one of the following Uri schemes: HTTP, HTTPS, FTP, File
 
 ## RELATED LINKS

@@ -39,7 +39,7 @@ PS C:\> Set-PSResourceRepository -Name "PoshTestGallery" -Uri "c:/code/testdir" 
         PoshTestGallery  file:///c:/code/testdir                        False         50
 ```
 
-This example first checks if the PoshTestGallery repository has been registered. We wish to set the `-Uri` value of this repository by running the Set-PSResourceRepository cmdlet with the `-Uri` parameter and a valid URI scheme URI. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Uri` of the repository was changed. We also use the `-PassThru` parameter to see the changed repository.
+This example first checks if the PoshTestGallery repository has been registered. We wish to set the `-Uri` value of this repository by running the Set-PSResourceRepository cmdlet with the `-Uri` parameter and a valid Uri scheme Uri. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Uri` of the repository was changed. We also use the `-PassThru` parameter to see the changed repository.
 
 ### Example 2
 ```powershell
