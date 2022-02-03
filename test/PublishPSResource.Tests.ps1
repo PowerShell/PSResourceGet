@@ -7,20 +7,20 @@ Describe "Test Publish-PSResource" {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
 
-        # Register temporary repositories 
+        # Register temporary repositories
         $tmpRepoPath = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath"
         New-Item $tmpRepoPath -Itemtype directory -Force
         $testRepository = "testRepository"
-        Register-PSResourceRepository -Name $testRepository -URL $tmpRepoPath -Priority 1 -ErrorAction SilentlyContinue
-        $script:repositoryPath = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository").Url.AbsolutePath)
+        Register-PSResourceRepository -Name $testRepository -Uri $tmpRepoPath -Priority 1 -ErrorAction SilentlyContinue
+        $script:repositoryPath = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository").Uri.AbsolutePath)
 
         $tmpRepoPath2 = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath2"
         New-Item $tmpRepoPath2 -Itemtype directory -Force
         $testRepository2 = "testRepository2"
-        Register-PSResourceRepository -Name $testRepository2 -URL $tmpRepoPath2 -ErrorAction SilentlyContinue
-        $script:repositoryPath2 = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository2").Url.AbsolutePath)
+        Register-PSResourceRepository -Name $testRepository2 -Uri $tmpRepoPath2 -ErrorAction SilentlyContinue
+        $script:repositoryPath2 = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository2").Uri.AbsolutePath)
 
-        # Create module 
+        # Create module
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
         $script:PublishModuleName = "PSGetTestModule"
         $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
@@ -61,7 +61,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
     It "Publish a module with -Path and -Repository" {
@@ -71,10 +71,10 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
 
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
 
-<# Temporarily comment this test out until Find Helper is complete and code within PublishPSResource is uncommented 
+<# Temporarily comment this test out until Find Helper is complete and code within PublishPSResource is uncommented
     It "Publish a module with dependencies" {
         # Create dependency module
         $dependencyVersion = "2.0.0"
@@ -89,7 +89,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -LiteralPath $script:PublishModuleBase
 
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | select-object -Last 1 | Should -Be $expectedPath 
+        Get-ChildItem $script:repositoryPath | select-object -Last 1 | Should -Be $expectedPath
     }
 #>
 
@@ -122,7 +122,7 @@ Describe "Test Publish-PSResource" {
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
 
         # Create nuspec
-        $nuspec = 
+        $nuspec =
 @'
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
@@ -140,13 +140,13 @@ Describe "Test Publish-PSResource" {
 </package>
 '@
 
-        $nuspecPath = Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.nuspec" 
+        $nuspecPath = Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.nuspec"
         New-Item $nuspecPath -ItemType File -Value $nuspec
 
         Publish-PSResource -Path $script:PublishModuleBase -Nuspec $nuspecPath
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedPath 
+        Get-ChildItem $script:repositoryPath | Should -Be $expectedPath
     }
 
     It "Publish a module with -ReleaseNotes" {
@@ -157,7 +157,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -ReleaseNotes $releaseNotes
 
         $expectedNupkgPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath 
+        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath
 
         $expectedExpandedPath = Join-Path -Path $script:repositoryPath -ChildPath "ExpandedPackage"
         New-Item -Path $expectedExpandedPath -ItemType directory
@@ -176,7 +176,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -LicenseUrl $licenseUrl
 
         $expectedNupkgPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath 
+        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath
 
         $expectedExpandedPath = Join-Path -Path $script:repositoryPath -ChildPath "ExpandedPackage"
         New-Item -Path $expectedExpandedPath -ItemType directory
@@ -195,7 +195,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -IconUrl $iconUrl
 
         $expectedNupkgPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath 
+        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath
 
         $expectedExpandedPath = Join-Path -Path $script:repositoryPath -ChildPath "ExpandedPackage"
         New-Item -Path $expectedExpandedPath -ItemType directory
@@ -206,16 +206,16 @@ Describe "Test Publish-PSResource" {
         $expectedNuspecContents.Contains($iconUrl) | Should Be $true
     }
 
-    
+
     It "Publish a module with -ProjectUrl" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
 
-        $projectUrl = "https://www.fakeprojecturl.com"
+        $projectUrl = "https://www.fakeprojectUrl.com"
         Publish-PSResource -Path $script:PublishModuleBase -ProjectUrl $projectUrl
 
         $expectedNupkgPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath 
+        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath
 
         $expectedExpandedPath = Join-Path -Path $script:repositoryPath -ChildPath "ExpandedPackage"
         New-Item -Path $expectedExpandedPath -ItemType directory
@@ -233,7 +233,7 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -Tags $tags
 
         $expectedNupkgPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath 
+        Get-ChildItem $script:repositoryPath | Should -Be $expectedNupkgPath
 
         $expectedExpandedPath = Join-Path -Path $script:repositoryPath -ChildPath "ExpandedPackage"
         New-Item -Path $expectedExpandedPath -ItemType directory
@@ -270,10 +270,10 @@ Describe "Test Publish-PSResource" {
 
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
 
-        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
 
         $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath 
+        (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath
     }
 
     It "Publish a module and clean up properly when file in module is readonly" {
@@ -288,6 +288,6 @@ Describe "Test Publish-PSResource" {
         Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
 
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath 
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
 }

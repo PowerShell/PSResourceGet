@@ -25,16 +25,16 @@ Describe "Test Get-PSResourceRepository" {
     }
 
     It "get single already registered repo" {
-        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $TestRepoName1
     }
 
     It "get all repositories matching single wildcard name" {
-        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
-        Register-PSResourceRepository -Name $TestRepoName2 -URL $tmpDir2Path
-        Register-PSResourceRepository -Name $TestRepoName3 -URL $tmpDir3Path
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
+        Register-PSResourceRepository -Name $TestRepoName3 -Uri $tmpDir3Path
         $res = Get-PSResourceRepository -Name "testReposit*"
         foreach ($entry in $res) {
             $entry.Name | Should -Match "testReposit"
@@ -42,9 +42,9 @@ Describe "Test Get-PSResourceRepository" {
     }
 
     It "get all repositories matching multiple wildcard names" {
-        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
-        Register-PSResourceRepository -Name $TestRepoName2 -URL $tmpDir2Path
-        Register-PSResourceRepository -Name "MyGallery" -URL $tmpDir3Path
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
+        Register-PSResourceRepository -Name "MyGallery" -Uri $tmpDir3Path
 
         $res = Get-PSResourceRepository -Name "testReposit*","*Gallery"
         foreach ($entry in $res) {
@@ -53,8 +53,8 @@ Describe "Test Get-PSResourceRepository" {
     }
 
     It "get all repositories matching multiple valid names provided" {
-        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
-        Register-PSResourceRepository -Name "MyGallery" -URL $tmpDir2Path
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        Register-PSResourceRepository -Name "MyGallery" -Uri $tmpDir2Path
 
         $res = Get-PSResourceRepository -Name $TestRepoName1,"MyGallery"
         foreach ($entry in $res) {
@@ -73,8 +73,8 @@ Describe "Test Get-PSResourceRepository" {
     It "given invalid and valid Names, get valid ones and write error for non valid ones" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
 
-        Register-PSResourceRepository -Name $TestRepoName1 -URL $tmpDir1Path
-        Register-PSResourceRepository -Name $TestRepoName2 -URL $tmpDir2Path
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
 
         $res = Get-PSResourceRepository -Name $TestRepoName1,$nonRegisteredRepoName,$TestRepoName2 -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
