@@ -883,12 +883,48 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         successfullyParsed = true;
                     }
 
-                    // CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
-                    // if (scriptCommentInfo != null && !String.IsNullOrEmpty(scriptCommentInfo.Description))
+                    // get .DESCRIPTION comment
+                    CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
+                    if (scriptCommentInfo != null && !String.IsNullOrEmpty(scriptCommentInfo.Description))
+                    {
+                        parsedPSScriptInfoHashtable.Add("DESCRIPTION", scriptCommentInfo.Description);
+                    }
+
+                    // get RequiredModules
+                    ScriptRequirements parsedScriptRequirements = ast.ScriptRequirements;
+                    if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
+                    {
+                        ReadOnlyCollection<Commands.ModuleSpecification> parsedRequiredModules = parsedScriptRequirements.RequiredModules;
+                        parsedPSScriptInfoHashtable.Add("RequiredModules", parsedRequiredModules);
+                    }
+
+                    // get all defined functions and populate DefinedCommands, DefinedFunctions, DefinedWorkflow
+                    // TODO: Anam DefinedWorkflow is no longer supported as of PowerShellCore 6+, do we ignore error or reject script?
+                    // List<Ast> parsedFunctionAst = ast.FindAll(a => a.GetType().Name == "FunctionDefinitionAst", true).ToList();
+                    // foreach (var p in parsedFunctionAst)
                     // {
-
+                    //     Console.WriteLine(p.Parent.Extent.Text);
+                    //     p.
                     // }
+                    var parsedFunctionAst = ast.FindAll(a => a is FunctionDefinitionAst, true);
+                    List<FunctionDefinitionAst> allCommands = new List<FunctionDefinitionAst>();
+                    if (allCommands.Count() > 0)
+                    {
+                        foreach (var function in parsedFunctionAst)
+                        {
+                            allCommands.Add((FunctionDefinitionAst) function);
+                        }
 
+                        List<string> allCommandNames = allCommands.Select(a => a.Name).Distinct().ToList();
+                        parsedPSScriptInfoHashtable.Add("DefinedCommands", allCommandNames);
+
+                        // b.Body.Extent.Text to get actual content. So "Function b.Name c.Body.Extent.Text" is that whole line lol
+                        List<string> allFunctionNames = allCommands.Where(a => !a.IsWorkflow).Select(b => b.Name).Distinct().ToList();
+                        parsedPSScriptInfoHashtable.Add("DefinedFunctions", allFunctionNames);
+
+                        List<string> allWorkflowNames = allCommands.Where(a => a.IsWorkflow).Select(b => b.Name).Distinct().ToList();
+                        parsedPSScriptInfoHashtable.Add("DefinedWorkflows", allWorkflowNames);
+                    }
                 }
             }
 
