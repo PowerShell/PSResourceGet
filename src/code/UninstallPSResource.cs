@@ -36,6 +36,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Version { get; set; }
 
         /// <summary>
+        /// When specified, only uninstalls prerelease versions.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter Prerelease { get; set; }
+
+        /// <summary>
         /// Used for pipeline input.
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
@@ -163,7 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
             string pkgName;
-            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
+            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete, selectPrereleaseOnly: Prerelease))
             {
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 

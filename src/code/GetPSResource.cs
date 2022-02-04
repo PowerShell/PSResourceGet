@@ -128,7 +128,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             GetHelper getHelper = new GetHelper(this);
-            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(namesToSearch, _versionRange, _pathsToSearch))
+            // selectPrereleaseOnly is false because we want both stable and prerelease versions all the time.
+            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(
+                name: namesToSearch,
+                versionRange: _versionRange,
+                pathsToSearch: _pathsToSearch,
+                selectPrereleaseOnly: false))
             {
                 WriteObject(pkg);
             }
