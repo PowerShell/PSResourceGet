@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -5,6 +6,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -152,6 +154,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter PassThru { get; set; }
 
+        /// <summary>
+        /// If used with Path parameter and .ps1 file specified at the path exists, it rewrites the file
+        /// </summary>
+        [Parameter]
+        public SwitchParameter Force { get; set; }
+
         #endregion
 
         #region Methods
@@ -166,8 +174,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // if not Path, is PassThru provided?
-            // what does PassThru do in lieu of Path?
+            if (!String.IsNullOrEmpty(Path) && !Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            {
+                var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
+                var ex = new ArgumentException(exMessage);
+                var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(InvalidPathError);
+            }
+            
+            if (!String.IsNullOrEmpty(Path) && File.Exists(Path) && !Force)
+            {
+                // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
+                var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
+                var ex = new ArgumentException(exMessage);
+                var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
+            } 
+            
+            // at this point, we've verified Path was passed in and doesn't exist or does and uses Force.
+            // OR, Path isn't passed in, which is also ok.
+
+            PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
+                
+            )
 
             // for all non mandatory params, set default value
 

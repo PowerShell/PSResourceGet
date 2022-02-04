@@ -1,8 +1,10 @@
+using Microsoft.VisualBasic.CompilerServices;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
 using System.Management.Automation;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -11,55 +13,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     /// </summary>
     public sealed class PSScriptFileInfo
     {
-        #region Constructor
-
-        public PSScriptFileInfo(string name, Uri url, int priority, bool trusted, PSCredentialInfo credentialInfo)
-        {
-            Name = name;
-            Url = url;
-            Priority = priority;
-            Trusted = trusted;
-            CredentialInfo = credentialInfo;
-        }
-
-        /***
-
-                    <#PSScriptInfo
-                        .VERSION 1.0
-                        .GUID 544238e3-1751-4065-9227-be105ff11636
-                        .AUTHOR manikb
-                        .COMPANYNAME Microsoft Corporation
-                        .COPYRIGHT (c) 2015 Microsoft Corporation. All rights reserved.
-                        .TAGS Tag1 Tag2 Tag3
-                        .LICENSEURI https://contoso.com/License
-                        .PROJECTURI https://contoso.com/
-                        .ICONURI https://contoso.com/Icon
-                        .EXTERNALMODULEDEPENDENCIES ExternalModule1
-                        .REQUIREDSCRIPTS Start-WFContosoServer,Stop-ContosoServerScript
-                        .EXTERNALSCRIPTDEPENDENCIES Stop-ContosoServerScript
-                        .RELEASENOTES
-                        contoso script now supports following features
-                        Feature 1
-                        Feature 2
-                        Feature 3
-                        Feature 4
-                        Feature 5
-                        #>
-                        */
-
-        #endregion
-
         #region Properties
 
         /// <summary>
         /// the Version of the script
         /// </summary>
-        public string Version { get; }
+        public Version Version { get; }
 
         /// <summary>
         /// the GUID for the script
         /// </summary>
-        public string Guid { get; }
+        public Guid Guid { get; }
 
         /// <summary>
         /// the author for the script
@@ -115,9 +79,92 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the release notes relating to the script
         /// </summary>
-        public string ReleaseNotes { get; }
+        public string[] ReleaseNotes { get; }
+
+        /// <summary>
+        /// The private data associated with the script
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty()]
+        public string PrivateData { get; set; }
+
+        /// <summary>
+        /// The description of the script
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string Description { get; set; }
 
         #endregion
+
+
+        #region Constructor
+        private PSScriptFileInfo() {}
+        public PSScriptFileInfo(
+            string version,
+            Guid guid,
+            string author,
+            string companyName,
+            string copyright,
+            string[] tags,
+            Uri licenseUri,
+            Uri projectUri,
+            Uri iconUri,
+            string[] externalModuleDependencies,
+            string[] requiredScripts,
+            string[] externalScriptDependencies,
+            string[] releaseNotes,
+            string privateData,
+            string description
+        )
+        {
+            if (String.IsNullOrEmpty(author))
+            {
+                author = Environment.UserName;
+            }
+            Version = !String.IsNullOrEmpty(version) ? new Version (version) : new Version("1.0.0.0");
+            Guid = (guid == null || guid == Guid.Empty) ? new Guid() : guid;
+            Author = !String.IsNullOrEmpty(author) ? author : Environment.UserName;
+            CompanyName = companyName;
+            Copyright = copyright;
+            Tags = tags ?? Utils.EmptyStrArray;
+            LicenseUri = licenseUri;
+            ProjectUri = projectUri;
+            IconUri = iconUri;
+            ExternalModuleDependencies = externalModuleDependencies ?? Utils.EmptyStrArray;
+            RequiredScripts = requiredScripts ?? Utils.EmptyStrArray;
+            ExternalScriptDependencies = externalScriptDependencies ?? Utils.EmptyStrArray;
+            ReleaseNotes = releaseNotes ?? Utils.EmptyStrArray;
+            PrivateData = privateData;
+            Description = description;
+        }
+        /***
+
+                    <#PSScriptInfo
+                        .VERSION 1.0
+                        .GUID 544238e3-1751-4065-9227-be105ff11636
+                        .AUTHOR manikb
+                        .COMPANYNAME Microsoft Corporation
+                        .COPYRIGHT (c) 2015 Microsoft Corporation. All rights reserved.
+                        .TAGS Tag1 Tag2 Tag3
+                        .LICENSEURI https://contoso.com/License
+                        .PROJECTURI https://contoso.com/
+                        .ICONURI https://contoso.com/Icon
+                        .EXTERNALMODULEDEPENDENCIES ExternalModule1
+                        .REQUIREDSCRIPTS Start-WFContosoServer,Stop-ContosoServerScript
+                        .EXTERNALSCRIPTDEPENDENCIES Stop-ContosoServerScript
+                        .RELEASENOTES
+                        contoso script now supports following features
+                        Feature 1
+                        Feature 2
+                        Feature 3
+                        Feature 4
+                        Feature 5
+                        #>
+                        */
+
+        #endregion
+
     }
 
     #region Public Static Methods
