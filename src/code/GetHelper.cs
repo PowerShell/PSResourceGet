@@ -127,11 +127,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // We will not just select prerelase versions. For Get-PSResource, there is no Prerelease parameter.
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
-                            if (!selectPrereleaseOnly)
-                            {
-                                yield return versionPath;
-                            }
-                            else if (pkgNugetVersion.IsPrerelease)
+                            if (!selectPrereleaseOnly || pkgNugetVersion.IsPrerelease)
                             {
                                 yield return versionPath;
                             }
