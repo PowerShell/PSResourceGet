@@ -15,13 +15,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It retrieves a resource that was installed with Install-PSResource
     /// Returns a single resource or multiple resource.
     /// </summary>
-    [Cmdlet(VerbsCommon.New, "ScriptFileInfo")]
-    public sealed class NewScriptFileInfo : PSCmdlet
+    [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
+    public sealed class NewPSScriptFileInfo : PSCmdlet
     {
         #region Members
-
-        private VersionRange _versionRange;
-        private List<string> _pathsToSearch;
+        private Uri _projectUri;
+        private Uri _licenseUri;
+        private Uri _iconUri;
 
         #endregion
 
@@ -117,21 +117,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public Uri ProjectUri { get; set; }
+        public string ProjectUri { get; set; }
 
         /// <summary>
         /// The Uri for the license associated with the script
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public Uri LicenseUri { get; set; }
+        public string LicenseUri { get; set; }
 
         /// <summary>
         /// The Uri for the icon associated with the script
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public Uri IconUri { get; set; }
+        public string IconUri { get; set; }
 
         /// <summary>
         /// The release notes for the script
@@ -164,16 +164,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
-        protected override void BeginProcessing()
-        {
-            // do Uri's come in as string or Uri?
-            // validate if it comes in as string
-
-            // validate string           
-        }
-
         protected override void ProcessRecord()
         {
+            WriteVerbose("In Anam's cmdlet!");
+            // validate Uri related parameters passed in as strings
+            if (!String.IsNullOrEmpty(ProjectUri) && !Utils.TryCreateValidUrl(uriString: ProjectUri,
+                cmdletPassedIn: this,
+                uriResult: out _projectUri,
+                errorRecord: out ErrorRecord projectErrorRecord))
+            {
+                ThrowTerminatingError(projectErrorRecord);
+            }
+
+            if (!String.IsNullOrEmpty(LicenseUri) && !Utils.TryCreateValidUrl(uriString: LicenseUri,
+                cmdletPassedIn: this,
+                uriResult: out _licenseUri,
+                errorRecord: out ErrorRecord licenseErrorRecord))
+            {
+                ThrowTerminatingError(licenseErrorRecord);
+            }
+
+            if (!String.IsNullOrEmpty(IconUri) && !Utils.TryCreateValidUrl(uriString: IconUri,
+                cmdletPassedIn: this,
+                uriResult: out _iconUri,
+                errorRecord: out ErrorRecord iconErrorRecord))
+            {
+                ThrowTerminatingError(iconErrorRecord);
+            }
+
+            WriteVerbose("past Uri validation");
+
+            // determine whether script contents will be written out to .ps1 file or to console
+            // case 1: Path passed in. If path already exists Force required to overwrite. Else write error.
+            // case 2: no Path passed in. PassThru required to print script file contents to console.
             if (!String.IsNullOrEmpty(Path) && !Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
@@ -189,16 +212,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ex = new ArgumentException(exMessage);
                 var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
-            } 
-            
-            // at this point, we've verified Path was passed in and doesn't exist or does and uses Force.
-            // OR, Path isn't passed in, which is also ok.
+            }
+
+            WriteVerbose("past path validation stuff");
 
             PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
-                
-            )
+                version: Version,
+                guid: Guid,
+                author: Author,
+                companyName: CompanyName,
+                copyright: Copyright,
+                tags: Tags,
+                licenseUri: _licenseUri,
+                projectUri: _projectUri,
+                iconUri: _iconUri,
+                externalModuleDependencies: ExternalModuleDependencies,
+                requiredScripts: RequiredScripts,
+                externalScriptDependencies: ExternalScriptDependencies,
+                releaseNotes: ReleaseNotes,
+                privateData: PrivateData,
+                description: Description);
 
-            // for all non mandatory params, set default value
+            if (currentScriptInfo.TryCreatePSScriptInfoString(out string psScriptInfoString))
+            {
+                WriteVerbose(psScriptInfoString);
+            }
 
             // get PSScriptInfo string --> take PSScriptInfo comment keys (from params passed in) and validate and turn into string
             // get Requires string --> from params passed in

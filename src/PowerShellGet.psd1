@@ -24,7 +24,8 @@
         'Publish-PSResource',
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
-        'Update-PSResource')
+        'Update-PSResource',
+        'New-PSScriptFileInfo')
 
     VariablesToExport = 'PSGetPath'
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
