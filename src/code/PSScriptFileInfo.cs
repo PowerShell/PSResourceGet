@@ -82,27 +82,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public ModuleSpecification[] RequiredModules { get; set; }
+        public ModuleSpecification[] RequiredModules { get; set; } = new ModuleSpecification[]{};
 
         /// <summary>
         /// the list of external module dependencies for the script
         /// </summary>
-        public string[] ExternalModuleDependencies { get; }
+        public string[] ExternalModuleDependencies { get; } = new string[]{};
 
         /// <summary>
         /// the list of required scripts for the parent script
         /// </summary>
-        public string[] RequiredScripts { get; }
+        public string[] RequiredScripts { get; } = new string[]{};
 
         /// <summary>
         /// the list of external script dependencies for the script
         /// </summary>
-        public string[] ExternalScriptDependencies { get; }
+        public string[] ExternalScriptDependencies { get; } = new string[]{};
 
         /// <summary>
         /// the release notes relating to the script
         /// </summary>
-        public string[] ReleaseNotes { get; }
+        public string[] ReleaseNotes { get; } = new string[]{};
 
         /// <summary>
         /// The private data associated with the script
@@ -131,56 +131,56 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public string[] Example { get; set; }
+        public string[] Example { get; set; } = new string[]{};
 
         /// <summary>
         /// The inputs to the script
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public string[] Inputs { get; set; }
+        public string[] Inputs { get; set; } = new string[]{};
 
         /// <summary>
         /// The outputs to the script
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public string[] Outputs { get; set; }
+        public string[] Outputs { get; set; } = new string[]{};
 
         /// <summary>
         /// The notes for the script
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public string[] Notes { get; set; }
+        public string[] Notes { get; set; } = new string[]{};
 
         /// <summary>
         /// The links for the script
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public string[] Links { get; set; }
+        public string[] Links { get; set; } = new string[]{};
 
         /// <summary>
         /// TODO: what is this?
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public string[] Component { get; set; }
+        public string[] Component { get; set; } = new string[]{};
 
         /// <summary>
         /// TODO: what is this?
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public string[] Role { get; set; }
+        public string[] Role { get; set; } = new string[]{};
 
         /// <summary>
         /// TODO: what is this?
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public string[] Functionality { get; set; }
+        public string[] Functionality { get; set; } = new string[]{};
 
         #endregion
 
@@ -422,6 +422,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 PSScriptFileString += psRequiresString;
             }
 
+            if (!GetScriptCommentHelpInfo(out string psHelpInfo))
+            {
+                Console.WriteLine("GetScriptCommentHelpInfo returned false");
+                return fileContentsSuccessfullyCreated;
+            }
+            else
+            {
+                Console.WriteLine("GetScriptCommentHelpInfo returned true");
+                PSScriptFileString += "\n";
+                PSScriptFileString += psHelpInfo;
+            }
+
             return fileContentsSuccessfullyCreated;
         }
 
@@ -486,8 +498,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psHelpInfo = String.Empty;
             bool psHelpInfoSuccessfullyCreated = false;
             List<string> psHelpInfoLines = new List<string>();
+            if (String.IsNullOrEmpty(Description))
+            {
+                Console.WriteLine("Description was null or empty?");
+                return psHelpInfoSuccessfullyCreated;
+            }
+
+            psHelpInfoSuccessfullyCreated = true;
+
             psHelpInfoLines.Add("<#\n");
             psHelpInfoLines.Add(String.Format(".DESCRIPTION {0}", Description));
+
             if (!String.IsNullOrEmpty(Synopsis))
             {
                 psHelpInfoLines.Add(String.Format(".SYNOPSIS {0}", Synopsis));
@@ -498,42 +519,44 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 psHelpInfoLines.Add(String.Format(".EXAMPLE {0}", currentExample));
             }
 
-            foreach (string input in Inputs)
-            {
-                psHelpInfoLines.Add(String.Format(".INPUTS {0}", input));
-            }
 
-            foreach (string output in Outputs)
-            {
-                psHelpInfoLines.Add(String.Format(".OUTPUTS {0}", output));
-            }
+            // foreach (string input in Inputs)
+            // {
+            //     psHelpInfoLines.Add(String.Format(".INPUTS {0}", input));
+            // }
 
-            if (Notes.Length > 0)
-            {
-                psHelpInfoLines.Add(String.Format(".NOTES\n{0}", String.Join("\n", Notes)));
-            }
+            // foreach (string output in Outputs)
+            // {
+            //     psHelpInfoLines.Add(String.Format(".OUTPUTS {0}", output));
+            // }
 
-            foreach (string link in Links)
-            {
-                psHelpInfoLines.Add(String.Format(".LINK {0}", link));
-            }
+            // if (Notes.Length > 0)
+            // {
+            //     psHelpInfoLines.Add(String.Format(".NOTES\n{0}", String.Join("\n", Notes)));
+            // }
 
-            if (Component.Length > 0)
-            {
-                psHelpInfoLines.Add(String.Format(".COMPONENT\n{0}", String.Join("\n", Component)));
-            }
+            // foreach (string link in Links)
+            // {
+            //     psHelpInfoLines.Add(String.Format(".LINK {0}", link));
+            // }
+
+            // if (Component.Length > 0)
+            // {
+            //     psHelpInfoLines.Add(String.Format(".COMPONENT\n{0}", String.Join("\n", Component)));
+            // }
             
-            if (Role.Length > 0)
-            {
-                psHelpInfoLines.Add(String.Format(".ROLE\n{0}", String.Join("\n", Role)));
-            }
+            // if (Role.Length > 0)
+            // {
+            //     psHelpInfoLines.Add(String.Format(".ROLE\n{0}", String.Join("\n", Role)));
+            // }
             
-            if (Functionality.Length > 0)
-            {
-                psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
-            }
+            // if (Functionality.Length > 0)
+            // {
+            //     psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
+            // }
 
             psHelpInfoLines.Add("#>");
+            psHelpInfo = String.Join("\n", psHelpInfoLines);
             return psHelpInfoSuccessfullyCreated;
         }
 
