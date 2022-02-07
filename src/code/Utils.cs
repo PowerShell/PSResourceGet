@@ -973,177 +973,96 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return (results.Count == 1 && results[0] != null) ? (Hashtable)results[0].BaseObject : null;
         }
 
-        public static void CreateModuleSpecification(
-            Hashtable[] moduleSpecHashtables,
-            out List<ModuleSpecification> validatedModuleSpecs,
-            out ErrorRecord[] errors
-        )
-        {
-            // bool successfullyCreatedModuleSpecs = false;
-            List<ErrorRecord> errorList = new List<ErrorRecord>();
-            List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
+        // public static void CreateModuleSpecification(
+        //     Hashtable[] moduleSpecHashtables,
+        //     out List<ModuleSpecification> validatedModuleSpecs,
+        //     out ErrorRecord[] errors
+        // )
+        // {
+        //     // bool successfullyCreatedModuleSpecs = false;
+        //     List<ErrorRecord> errorList = new List<ErrorRecord>();
+        //     List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
 
-            foreach(Hashtable moduleSpec in moduleSpecHashtables)
-            {
-                if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
-                {
-                    var exMessage = "RequiredModules Hashtable entry is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
-                    var ex = new ArgumentException(exMessage);
-                    var NameMissingModuleSpecError = new ErrorRecord(ex, "NameMissingInModuleSpecification", ErrorCategory.InvalidArgument, null);
-                    errorList.Add(NameMissingModuleSpecError);
-                    continue;
-                }
+        //     foreach(Hashtable moduleSpec in moduleSpecHashtables)
+        //     {
+        //         if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
+        //         {
+        //             var exMessage = "RequiredModules Hashtable entry is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
+        //             var ex = new ArgumentException(exMessage);
+        //             var NameMissingModuleSpecError = new ErrorRecord(ex, "NameMissingInModuleSpecification", ErrorCategory.InvalidArgument, null);
+        //             errorList.Add(NameMissingModuleSpecError);
+        //             continue;
+        //         }
 
-                // at this point it must contain ModuleName key.
-                string moduleSpecName = (string) moduleSpec["ModuleName"];
-                ModuleSpecification currentModuleSpec = null;
-                if (moduleSpec.Keys.Count == 1 || (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion") && !moduleSpec.ContainsKey("Guid")))
-                {
-                    // pass to ModuleSpecification(string) constructor
-                    currentModuleSpec = new ModuleSpecification(moduleSpecName);
-                    if (currentModuleSpec != null)
-                    {
-                        moduleSpecsList.Add(currentModuleSpec);
-                    }
-                    else
-                    {
-                        var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
-                        var ex = new ArgumentException(exMessage);
-                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
-                        errorList.Add(ModuleSpecNotCreatedError);
-                    }
-                }
-                else
-                {
-                    // TODO: ANAM perhaps not else
-                    string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaxiumumVersion"] : String.Empty;
-                    string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
-                    string moduleSpecRequiredVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
-                    Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty; // TODO: ANAM this can be the default
+        //         // at this point it must contain ModuleName key.
+        //         string moduleSpecName = (string) moduleSpec["ModuleName"];
+        //         ModuleSpecification currentModuleSpec = null;
+        //         if (moduleSpec.Keys.Count == 1 || (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion") && !moduleSpec.ContainsKey("Guid")))
+        //         {
+        //             // pass to ModuleSpecification(string) constructor
+        //             currentModuleSpec = new ModuleSpecification(moduleSpecName);
+        //             if (currentModuleSpec != null)
+        //             {
+        //                 moduleSpecsList.Add(currentModuleSpec);
+        //             }
+        //             else
+        //             {
+        //                 var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
+        //                 var ex = new ArgumentException(exMessage);
+        //                 var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+        //                 errorList.Add(ModuleSpecNotCreatedError);
+        //             }
+        //         }
+        //         else
+        //         {
+        //             // TODO: ANAM perhaps not else
+        //             string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaxiumumVersion"] : String.Empty;
+        //             string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
+        //             string moduleSpecRequiredVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
+        //             Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty; // TODO: ANAM this can be the default
 
-                    Hashtable moduleSpecHash = new Hashtable();
+        //             Hashtable moduleSpecHash = new Hashtable();
 
-                    moduleSpecHash.Add("ModuleName", moduleSpecName);
-                    if (moduleSpecGuid != Guid.Empty)
-                    {
-                        moduleSpecHash.Add("Guid", moduleSpecGuid);
-                    }
+        //             moduleSpecHash.Add("ModuleName", moduleSpecName);
+        //             if (moduleSpecGuid != Guid.Empty)
+        //             {
+        //                 moduleSpecHash.Add("Guid", moduleSpecGuid);
+        //             }
 
-                    if (!String.IsNullOrEmpty(moduleSpecMaxVersion))
-                    {
-                        moduleSpecHash.Add("MaximumVersion", moduleSpecMaxVersion);
-                    }
+        //             if (!String.IsNullOrEmpty(moduleSpecMaxVersion))
+        //             {
+        //                 moduleSpecHash.Add("MaximumVersion", moduleSpecMaxVersion);
+        //             }
 
-                    if (!String.IsNullOrEmpty(moduleSpecModuleVersion))
-                    {
-                        moduleSpecHash.Add("ModuleVersion", moduleSpecModuleVersion);
-                    }
+        //             if (!String.IsNullOrEmpty(moduleSpecModuleVersion))
+        //             {
+        //                 moduleSpecHash.Add("ModuleVersion", moduleSpecModuleVersion);
+        //             }
 
-                    if (!String.IsNullOrEmpty(moduleSpecRequiredVersion))
-                    {
-                        moduleSpecHash.Add("RequiredVersion", moduleSpecRequiredVersion);
-                    }
+        //             if (!String.IsNullOrEmpty(moduleSpecRequiredVersion))
+        //             {
+        //                 moduleSpecHash.Add("RequiredVersion", moduleSpecRequiredVersion);
+        //             }
 
-                    currentModuleSpec = new ModuleSpecification(moduleSpecHash);
-                    if (currentModuleSpec != null)
-                    {
-                        moduleSpecsList.Add(currentModuleSpec);
-                    }
-                    else
-                    {
-                        var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
-                        var ex = new ArgumentException(exMessage);
-                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
-                        errorList.Add(ModuleSpecNotCreatedError);
-                    }
-                }
+        //             currentModuleSpec = new ModuleSpecification(moduleSpecHash);
+        //             if (currentModuleSpec != null)
+        //             {
+        //                 moduleSpecsList.Add(currentModuleSpec);
+        //             }
+        //             else
+        //             {
+        //                 var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
+        //                 var ex = new ArgumentException(exMessage);
+        //                 var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+        //                 errorList.Add(ModuleSpecNotCreatedError);
+        //             }
+        //         }
+        //     }
 
-                // NuGetVersion moduleSpecMaxVersion = null;
-                // NuGetVersion moduleSpecModuleVersion = null;
-                // NuGetVersion moduleSpecRequiredVersion = null;
-
-                // // validate the module version, maximum version, required version are valid versions
-                // if (!String.IsNullOrEmpty(moduleSpecMaxVersionString))
-                // {
-                //     bool parsedSuccessfully = NuGetVersion.TryParse(moduleSpecMaxVersionString, out moduleSpecMaxVersion);
-                //     if (!parsedSuccessfully)
-                //     {
-                //         var exMessage = "RequiredModules Hashtable entry had a key 'MaximumVersion' but value is not a valid NuGetVersion";
-                //         var ex = new ArgumentException(exMessage);
-                //         var MaxVersionNotValidVersionInModuleSpecError = new ErrorRecord(ex, "MaxVersionNotValidVersionInModuleSpecification", ErrorCategory.InvalidArgument, null);
-                //         errorList.Add(MaxVersionNotValidVersionInModuleSpecError);
-                //         continue;
-                //     }
-                // }
-
-                // if (!String.IsNullOrEmpty(moduleSpecModuleVersionString))
-                // {
-                //     bool parsedSuccessfully = NuGetVersion.TryParse(moduleSpecMaxVersionString, out moduleSpecModuleVersion);
-                //     if (!parsedSuccessfully)
-                //     {
-                //         var exMessage = "RequiredModules Hashtable entry had a key 'ModuleVersion' but value is not a valid NuGetVersion";
-                //         var ex = new ArgumentException(exMessage);
-                //         var ModuleVersionNotValidVersionInModuleSpecError = new ErrorRecord(ex, "ModuleVersionNotValidVersionInModuleSpecification", ErrorCategory.InvalidArgument, null);
-                //         errorList.Add(ModuleVersionNotValidVersionInModuleSpecError);
-                //         continue;
-                //     }
-                // }
-
-                // if (!String.IsNullOrEmpty(moduleSpecRequiredVersionString))
-                // {
-                //     bool parsedSuccessfully = NuGetVersion.TryParse(moduleSpecMaxVersionString, out moduleSpecRequiredVersion);
-                //     if (!parsedSuccessfully)
-                //     {
-                //         var exMessage = "RequiredModules Hashtable entry had a key 'RequiredVersion' but value is not a valid NuGetVersion";
-                //         var ex = new ArgumentException(exMessage);
-                //         var RequiredVersionNotValidVersionInModuleSpecError = new ErrorRecord(ex, "RequiredVersionNotValidVersionInModuleSpecification", ErrorCategory.InvalidArgument, null);
-                //         errorList.Add(RequiredVersionNotValidVersionInModuleSpecError);
-                //         continue;
-                //     }
-                // }
-
-                // Hashtable moduleSpecHash = new Hashtable();
-
-                // moduleSpecHash.Add("ModuleName", moduleSpecName);
-                // if (moduleSpecGuid != Guid.Empty)
-                // {
-                //     moduleSpecHash.Add("Guid", moduleSpecGuid);
-                // }
-
-                // if (moduleSpecMaxVersion != null)
-                // {
-                //     moduleSpecHash.Add("MaximumVersion", moduleSpecMaxVersion.ToString());
-                // }
-
-                // if (moduleSpecModuleVersion != null)
-                // {
-                //     moduleSpecHash.Add("ModuleVersion", moduleSpecModuleVersion.ToString());
-                // }
-
-                // if (moduleSpecRequiredVersion != null)
-                // {
-                //     moduleSpecHash.Add("RequiredVersion", moduleSpecRequiredVersion.ToString());
-                // }
-
-                // ModuleSpecification currentModuleSpec = new ModuleSpecification(moduleSpecHash);
-                // if (currentModuleSpec != null)
-                // {
-                //     moduleSpecsList.Add(currentModuleSpec);
-                // }
-                // else
-                // {
-                //     var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
-                //     var ex = new ArgumentException(exMessage);
-                //     var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
-                //     errorList.Add(ModuleSpecNotCreatedError);
-                // }
-
-            }
-
-            errors = errorList.ToArray();
-            validatedModuleSpecs = moduleSpecsList;
-            // return successfullyCreatedModuleSpecs;
-        }
+        //     errors = errorList.ToArray();
+        //     validatedModuleSpecs = moduleSpecsList;
+        //     // return successfullyCreatedModuleSpecs;
+        // }
 
         #endregion
 

@@ -225,15 +225,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             WriteVerbose("past path validation stuff");
 
-            List<ModuleSpecification> validatedModuleSpecs = new List<ModuleSpecification>();
-            if (RequiredModules.Length > 0)
-            {
-                Utils.CreateModuleSpecification(RequiredModules, out validatedModuleSpecs, out ErrorRecord[] errors);
-                foreach (ErrorRecord err in errors)
-                {
-                    WriteError(err);
-                } 
-            }
+            // List<ModuleSpecification> validatedModuleSpecs = new List<ModuleSpecification>();
+            // if (RequiredModules.Length > 0)
+            // {
+            //     Utils.CreateModuleSpecification(RequiredModules, out validatedModuleSpecs, out ErrorRecord[] errors);
+            //     foreach (ErrorRecord err in errors)
+            //     {
+            //         WriteError(err);
+            //     } 
+            // }
 
             PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
                 version: Version,
@@ -245,24 +245,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 licenseUri: _licenseUri,
                 projectUri: _projectUri,
                 iconUri: _iconUri,
-                requiredModules: validatedModuleSpecs.ToArray(),
+                // requiredModules: validatedModuleSpecs.ToArray(),
+                requiredModules: RequiredModules,
                 externalModuleDependencies: ExternalModuleDependencies,
                 requiredScripts: RequiredScripts,
                 externalScriptDependencies: ExternalScriptDependencies,
                 releaseNotes: ReleaseNotes,
                 privateData: PrivateData,
-                description: Description);
+                description: Description,
+                cmdletPassedIn: this);
 
-            if (currentScriptInfo.GetPSScriptInfoString(out string psScriptInfoString))
+            // if (currentScriptInfo.GetPSScriptInfoString(out string psScriptInfoString))
+            // {
+            //     WriteVerbose(psScriptInfoString);
+            // }
+
+            // currentScriptInfo.GetRequiresString(out string psRequiresString);
+            // if (!String.IsNullOrEmpty(psRequiresString))
+            // {
+            //     WriteVerbose(psRequiresString);
+            // }
+
+            if (!currentScriptInfo.TryCreateScriptFileInfoString(out string psScriptFileContents))
             {
-                WriteVerbose(psScriptInfoString);
+                // TODO: error handle
             }
 
-            currentScriptInfo.GetRequiresString(out string psRequiresString);
-            if (!String.IsNullOrEmpty(psRequiresString))
-            {
-                WriteVerbose(psRequiresString);
-            }
+            WriteVerbose(String.Format("\n{0}", psScriptFileContents));
             // get PSScriptInfo string --> take PSScriptInfo comment keys (from params passed in) and validate and turn into string
             // get Requires string --> from params passed in
             // get CommentHelpInfo string --> from params passed in
