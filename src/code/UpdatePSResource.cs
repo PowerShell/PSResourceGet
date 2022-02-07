@@ -28,8 +28,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private CancellationTokenSource _cancellationTokenSource;
         private FindHelper _findHelper;
         private InstallHelper _installHelper;
-        private bool proxyEnvVarModified;
-        private string proxyEnv;
+        string nugetConfig;
+        string nugetConfigOriginal;
+        private bool savednugetConfigFileExistsOnMachine;
 
         #endregion
 
@@ -133,35 +134,69 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            // First see if the env variables contain values
-            // Try reading from the environment variable http_proxy. This would be specified as http://<username>:<password>@proxy.com
-            try
-            {
-                proxyEnv = Environment.GetEnvironmentVariable(Utils.ProxyEnvName);
-            }
-            catch (Exception)
-            {
-                WriteVerbose(string.Format("Unable to retrieve environment variable '{0}'", Utils.ProxyEnvName));
-            }
+            // ENV variable can be used:            
+            // http://<IP-address>
+            // http://<IP-address>:<port>
+            // http://<username>:<password>@<proxy-URL>
+            // http://<username>:<password>@<proxy-URL>:<port>
+            // all of the above can use http or https
+            // or parameters can be passed in:
+
+            // open nuget.config file, save contents
+            // then write the current proxy values to file 
+            // in EndProcessing() revert the file to its original contents
+            // OR
+            // if no nuget.config file exits, create it and then delete it in EndProcessing()
 
             // Set proxy and proxy credentials if passed in
-            if (!string.IsNullOrWhiteSpace(Proxy) && ProxyCredential != null)
+            if (!string.IsNullOrWhiteSpace(Proxy) || (ProxyCredential != null))
             {
-                string password = new NetworkCredential(string.Empty, ProxyCredential.Password).Password;
-                string proxyNamePassword = string.Concat(Proxy, ':', password);
+                /*
+                 @"<config>
+                        <add key="http_proxy" value="http://my.proxy.address:port" />
+                        <add key="http_proxy.user" value="mydomain\myUserName" />
+                        <add key="http_proxy.password" value="base64encodedEncryptedPassword" />
+                  <config>"
+                  */
 
-                // Temporarily setting the env var to the proxy and proxy credential passed in via parameters
-                try
+
+                var content = string.Empty;
+                if (!string.IsNullOrWhiteSpace(Proxy))
                 {
-                    Environment.SetEnvironmentVariable(Utils.ProxyEnvName, proxyNamePassword);
-                    proxyEnvVarModified = true;
+                    var httpProxy = $"<add key = \"http_proxy\" value=\"{Proxy}\" />";
+                    content = httpProxy + "\n";
                 }
-                catch (Exception ex)
+                if (ProxyCredential != null)
                 {
-                    // throw terminating failure, unable to use creds 
-                    throw new ArgumentException(
-                            $"Unable to set the environment variable {Utils.ProxyEnvName}: {ex.Message}",
-                            ex);
+                    var username = $"<add key=\"http_proxy.user\" value=\"{ProxyCredential.UserName}\" />";
+                    var password = $"<add key=\"http_proxy.password\" value=\"{ProxyCredential.Password}\" />";
+                    content = content + username + "\n" + password + "\n";
+                }
+                var configContent = "<?xml version=\"1.0\" encoding=\"utf-8\"?> \n" +
+                                 "<configuration> \n" +
+                                     "<config> \n" +
+                                         $"{content}" +
+                                     "</config> \n" +
+                                 "</configuration>";
+
+                // %appdata%\NuGet
+                // TODO: check that this is the correct path for unix systems
+                nugetConfig = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "NuGet", "nuget.config");
+                nugetConfigOriginal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "NuGet", "nuget.config-original");
+
+                if (File.Exists(nugetConfig))
+                {
+                    // rename file to nuget.config-original
+                    // in EndProcessing make sure nuget.config-original exists, swap names back
+                    savednugetConfigFileExistsOnMachine = true;
+                    File.Move(nugetConfig, nugetConfigOriginal);
+                }
+                // in EndpRocessing just delete the file 
+
+                // create a new nuget.config file and write contents to it
+                using (StreamWriter outputFile = new StreamWriter(nugetConfig))
+                {
+                    outputFile.WriteLine(configContent);
                 }
             }
 
@@ -248,20 +283,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _cancellationTokenSource.Dispose();
             _cancellationTokenSource = null;
             
-            // Set the proxy env var back to its original value
-            if (proxyEnvVarModified)
+            if (!string.IsNullOrWhiteSpace(Proxy) || (ProxyCredential != null))
             {
-                try
+                File.Delete(nugetConfig);
+                if (savednugetConfigFileExistsOnMachine)
                 {
-                    Environment.SetEnvironmentVariable(Utils.ProxyEnvName, proxyEnv);
-                    proxyEnvVarModified = true;
-                }
-                catch (Exception ex)
-                {
-                    // throw terminating failure, unable to use creds 
-                    throw new ArgumentException(
-                            $"Unable to set the environment variable {Utils.ProxyEnvName} back to its original value: {ex.Message}",
-                            ex);
+                    // rename file to back to nuget.config
+                    File.Move(nugetConfigOriginal, nugetConfig);
                 }
             }
         }
