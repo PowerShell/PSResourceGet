@@ -1,3 +1,4 @@
+using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -203,24 +204,59 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             WriteVerbose("past Uri validation");
 
-            // determine whether script contents will be written out to .ps1 file or to console
-            // case 1: Path passed in. If path already exists Force required to overwrite. Else write error.
-            // case 2: no Path passed in. PassThru required to print script file contents to console.
-            if (!String.IsNullOrEmpty(Path) && !Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
-            {
-                var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
-                var ex = new ArgumentException(exMessage);
-                var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathError);
-            }
+            // // determine whether script contents will be written out to .ps1 file or to console
+            // // case 1: Path passed in. If path already exists Force required to overwrite. Else write error.
+            // // case 2: no Path passed in. PassThru required to print script file contents to console.
+            // if (!String.IsNullOrEmpty(Path) && !Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            // {
+            //     var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
+            //     var ex = new ArgumentException(exMessage);
+            //     var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
+            //     ThrowTerminatingError(InvalidPathError);
+            // }
             
-            if (!String.IsNullOrEmpty(Path) && File.Exists(Path) && !Force)
+            // if (!String.IsNullOrEmpty(Path) && File.Exists(Path) && !Force)
+            // {
+            //     // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
+            //     var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
+            //     var ex = new ArgumentException(exMessage);
+            //     var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
+            //     ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
+            // }
+
+            bool usePath = false;
+            if (!String.IsNullOrEmpty(Path))
             {
-                // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
-                var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
+                if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+                {
+                    var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
+                    var ex = new ArgumentException(exMessage);
+                    var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
+                    ThrowTerminatingError(InvalidPathError);   
+                }
+                else if (File.Exists(Path) && !Force)
+                {
+                    // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
+                    var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
+                    var ex = new ArgumentException(exMessage);
+                    var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
+                    ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
+                }
+
+                // if neither of those cases, Path is non-null and valid.
+                usePath = true;
+            }
+            else if (PassThru)
+            {
+                usePath = false;
+            }
+            else
+            {
+                // Either valid Path or PassThru parameter must be supplied.
+                var exMessage = "Either -Path parameter or -PassThru parameter value must be supplied to output script file contents to.";
                 var ex = new ArgumentException(exMessage);
-                var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
+                var PathOrPassThruParameterRequiredError = new ErrorRecord(ex, "PathOrPassThruParameterRequired", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(PathOrPassThruParameterRequiredError);
             }
 
             WriteVerbose("past path validation stuff");
@@ -255,23 +291,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 description: Description,
                 cmdletPassedIn: this);
 
-            // if (currentScriptInfo.GetPSScriptInfoString(out string psScriptInfoString))
-            // {
-            //     WriteVerbose(psScriptInfoString);
-            // }
-
-            // currentScriptInfo.GetRequiresString(out string psRequiresString);
-            // if (!String.IsNullOrEmpty(psRequiresString))
-            // {
-            //     WriteVerbose(psRequiresString);
-            // }
-
             if (!currentScriptInfo.TryCreateScriptFileInfoString(out string psScriptFileContents))
             {
-                // TODO: error handle
+                var exMessage = "Script file contents could not be created"; // TODO: Anam probably some error message here?
+                var ex = new ArgumentException(exMessage);
+                var ScriptContentCouldNotBeCreatedError = new ErrorRecord(ex, "ScriptContentCouldNotBeCreated", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(ScriptContentCouldNotBeCreatedError);
             }
 
-            WriteVerbose(String.Format("\n{0}", psScriptFileContents));
+            if (usePath)
+            {
+                File.WriteAllText(Path, psScriptFileContents); // TODO: Anam better way to do this?
+            }
+            
+            if (!usePath || PassThru)
+            {
+                // TODO: Anam do we also write to console if Path AND PassThru used together?
+                WriteObject(psScriptFileContents);
+            }
             // get PSScriptInfo string --> take PSScriptInfo comment keys (from params passed in) and validate and turn into string
             // get Requires string --> from params passed in
             // get CommentHelpInfo string --> from params passed in

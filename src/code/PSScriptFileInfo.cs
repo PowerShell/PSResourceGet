@@ -1,4 +1,3 @@
-using System.Reflection;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -224,7 +223,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             Version = !String.IsNullOrEmpty(version) ? new Version (version) : new Version("1.0.0.0");
-            Guid = (guid == null || guid == Guid.Empty) ? new Guid() : guid;
+            Guid = (guid == null || guid == Guid.Empty) ? Guid.NewGuid() : guid;
             Author = !String.IsNullOrEmpty(author) ? author : Environment.UserName;
             CompanyName = companyName;
             Copyright = copyright;
@@ -410,14 +409,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             bool fileContentsSuccessfullyCreated = false;
             if (!GetPSScriptInfoString(out string psScriptInfoCommentString))
             {
+                Console.WriteLine("PSScriptInfo returned false");
                 return fileContentsSuccessfullyCreated;
             }
 
+            fileContentsSuccessfullyCreated = true;
             PSScriptFileString = psScriptInfoCommentString;
 
             GetRequiresString(out string psRequiresString);
             if (!String.IsNullOrEmpty(psRequiresString))
             {
+                Console.WriteLine("Requires wasn't empty upon return");
                 PSScriptFileString += "\n";
                 PSScriptFileString += psRequiresString;
             }
@@ -425,7 +427,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (!GetScriptCommentHelpInfo(out string psHelpInfo))
             {
                 Console.WriteLine("GetScriptCommentHelpInfo returned false");
-                return fileContentsSuccessfullyCreated;
+                return false;
             }
             else
             {
