@@ -519,41 +519,40 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 psHelpInfoLines.Add(String.Format(".EXAMPLE {0}", currentExample));
             }
 
+            foreach (string input in Inputs)
+            {
+                psHelpInfoLines.Add(String.Format(".INPUTS {0}", input));
+            }
 
-            // foreach (string input in Inputs)
-            // {
-            //     psHelpInfoLines.Add(String.Format(".INPUTS {0}", input));
-            // }
+            foreach (string output in Outputs)
+            {
+                psHelpInfoLines.Add(String.Format(".OUTPUTS {0}", output));
+            }
 
-            // foreach (string output in Outputs)
-            // {
-            //     psHelpInfoLines.Add(String.Format(".OUTPUTS {0}", output));
-            // }
+            if (Notes.Length > 0)
+            {
+                psHelpInfoLines.Add(String.Format(".NOTES\n{0}", String.Join("\n", Notes)));
+            }
 
-            // if (Notes.Length > 0)
-            // {
-            //     psHelpInfoLines.Add(String.Format(".NOTES\n{0}", String.Join("\n", Notes)));
-            // }
+            foreach (string link in Links)
+            {
+                psHelpInfoLines.Add(String.Format(".LINK {0}", link));
+            }
 
-            // foreach (string link in Links)
-            // {
-            //     psHelpInfoLines.Add(String.Format(".LINK {0}", link));
-            // }
-
-            // if (Component.Length > 0)
-            // {
-            //     psHelpInfoLines.Add(String.Format(".COMPONENT\n{0}", String.Join("\n", Component)));
-            // }
+            if (Component.Length > 0)
+            {
+                psHelpInfoLines.Add(String.Format(".COMPONENT\n{0}", String.Join("\n", Component)));
+            }
             
-            // if (Role.Length > 0)
-            // {
-            //     psHelpInfoLines.Add(String.Format(".ROLE\n{0}", String.Join("\n", Role)));
-            // }
+            if (Role.Length > 0)
+            {
+                psHelpInfoLines.Add(String.Format(".ROLE\n{0}", String.Join("\n", Role)));
+            }
             
-            // if (Functionality.Length > 0)
-            // {
-            //     psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
-            // }
+            if (Functionality.Length > 0)
+            {
+                psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
+            }
 
             psHelpInfoLines.Add("#>");
             psHelpInfo = String.Join("\n", psHelpInfoLines);
