@@ -1,13 +1,14 @@
-using System.Runtime.CompilerServices;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using NuGet.Versioning;
+
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
+using Microsoft.PowerShell.Commands;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -76,13 +77,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty()]
         public string Copyright { get; set; }
 
+        // /// <summary>
+        // /// The list of modules required by the script
+        // /// TODO: in V2 this had type Object[]
+        // /// </summary>
+        // [Parameter]
+        // [ValidateNotNullOrEmpty()]
+        // public string[] RequiredModules { get; set; }
+
         /// <summary>
         /// The list of modules required by the script
         /// TODO: in V2 this had type Object[]
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public string[] RequiredModules { get; set; }
+        public Hashtable[] RequiredModules { get; set; }
 
         /// <summary>
         /// The list of external module dependencies taken by this script
@@ -216,6 +225,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             WriteVerbose("past path validation stuff");
 
+            List<ModuleSpecification> validatedModuleSpecs = new List<ModuleSpecification>();
+            if (RequiredModules.Length > 0)
+            {
+                Utils.CreateModuleSpecification(RequiredModules, out validatedModuleSpecs, out ErrorRecord[] errors);
+                foreach (ErrorRecord err in errors)
+                {
+                    WriteError(err);
+                } 
+            }
+
             PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
                 version: Version,
                 guid: Guid,
@@ -226,6 +245,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 licenseUri: _licenseUri,
                 projectUri: _projectUri,
                 iconUri: _iconUri,
+                requiredModules: validatedModuleSpecs.ToArray(),
                 externalModuleDependencies: ExternalModuleDependencies,
                 requiredScripts: RequiredScripts,
                 externalScriptDependencies: ExternalScriptDependencies,
@@ -233,11 +253,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 privateData: PrivateData,
                 description: Description);
 
-            if (currentScriptInfo.TryCreatePSScriptInfoString(out string psScriptInfoString))
+            if (currentScriptInfo.GetPSScriptInfoString(out string psScriptInfoString))
             {
                 WriteVerbose(psScriptInfoString);
             }
 
+            currentScriptInfo.GetRequiresString(out string psRequiresString);
+            if (!String.IsNullOrEmpty(psRequiresString))
+            {
+                WriteVerbose(psRequiresString);
+            }
             // get PSScriptInfo string --> take PSScriptInfo comment keys (from params passed in) and validate and turn into string
             // get Requires string --> from params passed in
             // get CommentHelpInfo string --> from params passed in

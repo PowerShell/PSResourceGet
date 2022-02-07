@@ -1,3 +1,4 @@
+using System.Reflection;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -10,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Collections.ObjectModel;
+using Microsoft.PowerShell.Commands;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -66,6 +68,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public Uri IconUri { get; }
 
+        // /// <summary>
+        // /// The list of modules required by the script
+        // /// TODO: in V2 this had type Object[]
+        // /// </summary>
+        // [Parameter]
+        // [ValidateNotNullOrEmpty()]
+        // public string[] RequiredModules { get; set; }
+
+        /// <summary>
+        /// The list of modules required by the script
+        /// Hashtable keys: GUID, MaxVersion, Name (Required), RequiredVersion, Version
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty()]
+        public ModuleSpecification[] RequiredModules { get; set; }
+
         /// <summary>
         /// the list of external module dependencies for the script
         /// </summary>
@@ -100,6 +118,70 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         [ValidateNotNullOrEmpty()]
         public string Description { get; set; }
 
+        // TODO: seem to be optional keys for help comment, where would they be passed in from? constructor/New-X cmdlet?
+        /// <summary>
+        /// The synopsis of the script
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string Synopsis { get; set; }
+
+        /// <summary>
+        /// The example(s) relating to the script's usage
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string[] Example { get; set; }
+
+        /// <summary>
+        /// The inputs to the script
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string[] Inputs { get; set; }
+
+        /// <summary>
+        /// The outputs to the script
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string[] Outputs { get; set; }
+
+        /// <summary>
+        /// The notes for the script
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string[] Notes { get; set; }
+
+        /// <summary>
+        /// The links for the script
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string[] Links { get; set; }
+
+        /// <summary>
+        /// TODO: what is this?
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string[] Component { get; set; }
+
+        /// <summary>
+        /// TODO: what is this?
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string[] Role { get; set; }
+
+        /// <summary>
+        /// TODO: what is this?
+        /// </summary>
+        [Parameter(Mandatory = true)]
+        [ValidateNotNullOrEmpty()]
+        public string[] Functionality { get; set; }
+
         #endregion
 
 
@@ -115,6 +197,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Uri licenseUri,
             Uri projectUri,
             Uri iconUri,
+            ModuleSpecification[] requiredModules, // TODO: in V2 this was Object[]
             string[] externalModuleDependencies,
             string[] requiredScripts,
             string[] externalScriptDependencies,
@@ -136,6 +219,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             LicenseUri = licenseUri;
             ProjectUri = projectUri;
             IconUri = iconUri;
+            RequiredModules = requiredModules; // TODO: ANAM need a default value?
             ExternalModuleDependencies = externalModuleDependencies ?? Utils.EmptyStrArray;
             RequiredScripts = requiredScripts ?? Utils.EmptyStrArray;
             ExternalScriptDependencies = externalScriptDependencies ?? Utils.EmptyStrArray;
@@ -311,12 +395,23 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             PSScriptFileString = String.Empty;
             bool fileContentsSuccessfullyCreated = false;
+            if (!GetPSScriptInfoString(out string psScriptInfoCommentString))
+            {
+                return fileContentsSuccessfullyCreated;
+            }
 
+            PSScriptFileString = psScriptInfoCommentString;
+
+            GetRequiresString(out string psRequiresString);
+            if (!String.IsNullOrEmpty(psRequiresString))
+            {
+                PSScriptFileString += psRequiresString;
+            }
 
             return fileContentsSuccessfullyCreated;
         }
 
-        public bool TryCreatePSScriptInfoString(
+        public bool GetPSScriptInfoString(
             out string pSScriptInfoString
         )
         {
@@ -329,7 +424,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             List<string> psScriptInfoLines = new List<string>();
-            psScriptInfoLines.Add("PSScriptInfo");
+            psScriptInfoLines.Add("<#PSScriptInfo");
             psScriptInfoLines.Add(String.Format(".VERSION {0}", Version.ToString()));
             psScriptInfoLines.Add(String.Format(".GUID {0}", Guid.ToString()));
             psScriptInfoLines.Add(String.Format(".AUTHOR {0}", Author));
@@ -349,6 +444,85 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             pSScriptInfoSuccessfullyCreated = true;
             return pSScriptInfoSuccessfullyCreated;
         }
+
+        public void GetRequiresString(
+            out string psRequiresString
+        )
+        {
+            psRequiresString = String.Empty;
+
+            if (RequiredModules.Length > 0)
+            {
+                List<string> psRequiresLines = new List<string>();
+                psRequiresLines.Add("<#\n");
+                foreach (ModuleSpecification moduleSpec in RequiredModules)
+                {
+                    psRequiresLines.Add(String.Format("Requires -Module {0}", moduleSpec.ToString()));
+                }
+                psRequiresLines.Add("#>");
+                psRequiresString = String.Join("\n", psRequiresLines);
+                // TODO: where does the GUID come in?
+            }
+        }
+
+        public bool GetScriptCommentHelpInfo(
+            out string psHelpInfo
+        )
+        {
+            psHelpInfo = String.Empty;
+            bool psHelpInfoSuccessfullyCreated = false;
+            List<string> psHelpInfoLines = new List<string>();
+            psHelpInfoLines.Add("<#\n");
+            psHelpInfoLines.Add(String.Format(".DESCRIPTION {0}", Description));
+            if (!String.IsNullOrEmpty(Synopsis))
+            {
+                psHelpInfoLines.Add(String.Format(".SYNOPSIS {0}", Synopsis));
+            }
+
+            foreach (string currentExample in Example)
+            {
+                psHelpInfoLines.Add(String.Format(".EXAMPLE {0}", currentExample));
+            }
+
+            foreach (string input in Inputs)
+            {
+                psHelpInfoLines.Add(String.Format(".INPUTS {0}", input));
+            }
+
+            foreach (string output in Outputs)
+            {
+                psHelpInfoLines.Add(String.Format(".OUTPUTS {0}", output));
+            }
+
+            if (Notes.Length > 0)
+            {
+                psHelpInfoLines.Add(String.Format(".NOTES\n{0}", String.Join("\n", Notes)));
+            }
+
+            foreach (string link in Links)
+            {
+                psHelpInfoLines.Add(String.Format(".LINK {0}", link));
+            }
+
+            if (Component.Length > 0)
+            {
+                psHelpInfoLines.Add(String.Format(".COMPONENT\n{0}", String.Join("\n", Component)));
+            }
+            
+            if (Role.Length > 0)
+            {
+                psHelpInfoLines.Add(String.Format(".ROLE\n{0}", String.Join("\n", Role)));
+            }
+            
+            if (Functionality.Length > 0)
+            {
+                psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
+            }
+
+            psHelpInfoLines.Add("#>");
+            return psHelpInfoSuccessfullyCreated;
+        }
+
         #endregion
 
     }
