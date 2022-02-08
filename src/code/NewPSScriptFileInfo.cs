@@ -78,17 +78,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ValidateNotNullOrEmpty()]
         public string Copyright { get; set; }
 
-        // /// <summary>
-        // /// The list of modules required by the script
-        // /// TODO: in V2 this had type Object[]
-        // /// </summary>
-        // [Parameter]
-        // [ValidateNotNullOrEmpty()]
-        // public string[] RequiredModules { get; set; }
-
         /// <summary>
         /// The list of modules required by the script
-        /// TODO: in V2 this had type Object[]
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
@@ -176,7 +167,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            WriteVerbose("In Anam's cmdlet!");
             // validate Uri related parameters passed in as strings
             if (!String.IsNullOrEmpty(ProjectUri) && !Utils.TryCreateValidUrl(uriString: ProjectUri,
                 cmdletPassedIn: this,
@@ -201,28 +191,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 ThrowTerminatingError(iconErrorRecord);
             }
-
-            WriteVerbose("past Uri validation");
-
-            // // determine whether script contents will be written out to .ps1 file or to console
-            // // case 1: Path passed in. If path already exists Force required to overwrite. Else write error.
-            // // case 2: no Path passed in. PassThru required to print script file contents to console.
-            // if (!String.IsNullOrEmpty(Path) && !Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
-            // {
-            //     var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
-            //     var ex = new ArgumentException(exMessage);
-            //     var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-            //     ThrowTerminatingError(InvalidPathError);
-            // }
-            
-            // if (!String.IsNullOrEmpty(Path) && File.Exists(Path) && !Force)
-            // {
-            //     // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
-            //     var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
-            //     var ex = new ArgumentException(exMessage);
-            //     var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
-            //     ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
-            // }
 
             bool usePath = false;
             if (!String.IsNullOrEmpty(Path))
@@ -259,18 +227,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(PathOrPassThruParameterRequiredError);
             }
 
-            WriteVerbose("past path validation stuff");
-
-            // List<ModuleSpecification> validatedModuleSpecs = new List<ModuleSpecification>();
-            // if (RequiredModules.Length > 0)
-            // {
-            //     Utils.CreateModuleSpecification(RequiredModules, out validatedModuleSpecs, out ErrorRecord[] errors);
-            //     foreach (ErrorRecord err in errors)
-            //     {
-            //         WriteError(err);
-            //     } 
-            // }
-
             PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
                 version: Version,
                 guid: Guid,
@@ -281,7 +237,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 licenseUri: _licenseUri,
                 projectUri: _projectUri,
                 iconUri: _iconUri,
-                // requiredModules: validatedModuleSpecs.ToArray(),
                 requiredModules: RequiredModules,
                 externalModuleDependencies: ExternalModuleDependencies,
                 requiredScripts: RequiredScripts,
@@ -291,12 +246,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 description: Description,
                 cmdletPassedIn: this);
 
-            if (!currentScriptInfo.TryCreateScriptFileInfoString(out string psScriptFileContents))
+            if (!currentScriptInfo.TryCreateScriptFileInfoString(
+                pSScriptFileString: out string psScriptFileContents,
+                errors: out ErrorRecord[] errors))
             {
-                var exMessage = "Script file contents could not be created"; // TODO: Anam probably some error message here?
-                var ex = new ArgumentException(exMessage);
-                var ScriptContentCouldNotBeCreatedError = new ErrorRecord(ex, "ScriptContentCouldNotBeCreated", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(ScriptContentCouldNotBeCreatedError);
+                foreach (ErrorRecord err in errors)
+                {
+                    WriteError(err);
+                }
+
+                return;
+                // TODO: Anam, currently only one error and you return. So maybe this shouldn't be a list? But for extensability makes sense.
             }
 
             if (usePath)
@@ -308,16 +268,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // TODO: Anam do we also write to console if Path AND PassThru used together?
                 WriteObject(psScriptFileContents);
-            }
-            // get PSScriptInfo string --> take PSScriptInfo comment keys (from params passed in) and validate and turn into string
-            // get Requires string --> from params passed in
-            // get CommentHelpInfo string --> from params passed in
-            
-            // commpose totalMetadata string, which contains PSScriptInfo string + Requires string + CommentHelpInfo string
-
-            // write to file at path. Call Test-ScriptFileInfo.
-            // If PassThru write content of file
-            
+            }            
         }
 
         #endregion

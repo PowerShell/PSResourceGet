@@ -231,7 +231,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             LicenseUri = licenseUri;
             ProjectUri = projectUri;
             IconUri = iconUri;
-            RequiredModules = validatedModuleSpecs.ToArray(); // TODO: ANAM need a default value?
+            RequiredModules = validatedModuleSpecs.ToArray() ?? new ModuleSpecification[]{};
             ExternalModuleDependencies = externalModuleDependencies ?? Utils.EmptyStrArray;
             RequiredScripts = requiredScripts ?? Utils.EmptyStrArray;
             ExternalScriptDependencies = externalScriptDependencies ?? Utils.EmptyStrArray;
@@ -402,55 +402,82 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Public Methods
         public bool TryCreateScriptFileInfoString(
-            out string PSScriptFileString
+            out string pSScriptFileString,
+            out ErrorRecord[] errors
         )
         {
-            PSScriptFileString = String.Empty;
+            errors = new ErrorRecord[]{};
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+
+            pSScriptFileString = String.Empty;
             bool fileContentsSuccessfullyCreated = false;
-            if (!GetPSScriptInfoString(out string psScriptInfoCommentString))
+
+            // this string/block is required
+            // this can only have one error (i.e Author or Version is missing)
+            if (!GetPSScriptInfoString(
+                pSScriptInfoString: out string psScriptInfoCommentString,
+                out ErrorRecord scriptInfoError))
             {
-                Console.WriteLine("PSScriptInfo returned false");
+                if (scriptInfoError != null)
+                {
+                    errorsList.Add(scriptInfoError);
+                    errors = errorsList.ToArray();
+                }
+
                 return fileContentsSuccessfullyCreated;
             }
 
-            fileContentsSuccessfullyCreated = true;
-            PSScriptFileString = psScriptInfoCommentString;
+            pSScriptFileString = psScriptInfoCommentString;
 
-            GetRequiresString(out string psRequiresString);
+            // populating this block is not required to fulfill .ps1 script requirements.
+            // this won't report any errors.
+            GetRequiresString(psRequiresString: out string psRequiresString);
             if (!String.IsNullOrEmpty(psRequiresString))
             {
-                Console.WriteLine("Requires wasn't empty upon return");
-                PSScriptFileString += "\n";
-                PSScriptFileString += psRequiresString;
+                pSScriptFileString += "\n";
+                pSScriptFileString += psRequiresString;
             }
 
-            if (!GetScriptCommentHelpInfo(out string psHelpInfo))
+            // this string/block will contain Description, which is required
+            // this can only have one error (i.e Description is missing)
+            if (!GetScriptCommentHelpInfo(
+                psHelpInfo: out string psHelpInfo,
+                error: out ErrorRecord commentHelpInfoError))
             {
-                Console.WriteLine("GetScriptCommentHelpInfo returned false");
-                return false;
-            }
-            else
-            {
-                Console.WriteLine("GetScriptCommentHelpInfo returned true");
-                PSScriptFileString += "\n";
-                PSScriptFileString += psHelpInfo;
+                if (commentHelpInfoError != null)
+                {
+                    errorsList.Add(commentHelpInfoError);
+                    errors = errorsList.ToArray();
+                }
+
+                return fileContentsSuccessfullyCreated;
             }
 
+            pSScriptFileString += "\n" + psHelpInfo;
+
+            fileContentsSuccessfullyCreated = true;
             return fileContentsSuccessfullyCreated;
         }
 
         public bool GetPSScriptInfoString(
-            out string pSScriptInfoString
+            out string pSScriptInfoString,
+            out ErrorRecord error
         )
         {
+            error = null;
             bool pSScriptInfoSuccessfullyCreated = false;
             pSScriptInfoString = String.Empty;
-            if (String.IsNullOrEmpty(Author) || String.IsNullOrEmpty(Description) || Version == null)
+
+            if (String.IsNullOrEmpty(Author) || Version == null)
             {
-                // write/throw error?
+                var exMessage = "PSScriptInfo must contain values for Author and Version. Ensure both of these are present.";
+                var ex = new ArgumentException(exMessage);
+                var PSScriptInfoMissingAuthorOrVersionError = new ErrorRecord(ex, "PSScriptInfoMissingAuthorOrVersion", ErrorCategory.InvalidArgument, null);
+                error = PSScriptInfoMissingAuthorOrVersionError;
                 return pSScriptInfoSuccessfullyCreated;
             }
 
+            pSScriptInfoSuccessfullyCreated = true;
             List<string> psScriptInfoLines = new List<string>();
             psScriptInfoLines.Add("<#PSScriptInfo");
             psScriptInfoLines.Add(String.Format(".VERSION {0}", Version.ToString()));
@@ -469,7 +496,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psScriptInfoLines.Add("#>");
 
             pSScriptInfoString = String.Join("\n\n", psScriptInfoLines);
-            pSScriptInfoSuccessfullyCreated = true;
             return pSScriptInfoSuccessfullyCreated;
         }
 
@@ -487,27 +513,33 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     psRequiresLines.Add(String.Format("Requires -Module {0}", moduleSpec.ToString()));
                 }
+
                 psRequiresLines.Add("#>");
                 psRequiresString = String.Join("\n", psRequiresLines);
-                // TODO: where does the GUID come in?
+                // TODO: ANAM where does the GUID come in?
             }
         }
 
         public bool GetScriptCommentHelpInfo(
-            out string psHelpInfo
+            out string psHelpInfo,
+            out ErrorRecord error
         )
         {
+            error = null;
             psHelpInfo = String.Empty;
             bool psHelpInfoSuccessfullyCreated = false;
             List<string> psHelpInfoLines = new List<string>();
+
             if (String.IsNullOrEmpty(Description))
             {
-                Console.WriteLine("Description was null or empty?");
+                var exMessage = "PSScript file must contain value for Description. Ensure value for Description is passed in and try again.";
+                var ex = new ArgumentException(exMessage);
+                var PSScriptInfoMissingDescriptionError = new ErrorRecord(ex, "PSScriptInfoMissingDescription", ErrorCategory.InvalidArgument, null);
+                error = PSScriptInfoMissingDescriptionError;
                 return psHelpInfoSuccessfullyCreated;
             }
 
             psHelpInfoSuccessfullyCreated = true;
-
             psHelpInfoLines.Add("<#\n");
             psHelpInfoLines.Add(String.Format(".DESCRIPTION {0}", Description));
 
