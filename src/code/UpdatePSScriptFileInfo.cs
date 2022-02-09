@@ -192,84 +192,84 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
-            bool usePath = false;
-            if (!String.IsNullOrEmpty(Path))
-            {
-                if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
-                {
-                    var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
-                    var ex = new ArgumentException(exMessage);
-                    var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(InvalidPathError);   
-                }
-                else if (File.Exists(Path) && !Force)
-                {
-                    // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
-                    var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
-                    var ex = new ArgumentException(exMessage);
-                    var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
-                }
+            // bool usePath = false;
+            // if (!String.IsNullOrEmpty(Path))
+            // {
+            //     if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            //     {
+            //         var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
+            //         var ex = new ArgumentException(exMessage);
+            //         var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
+            //         ThrowTerminatingError(InvalidPathError);   
+            //     }
+            //     else if (File.Exists(Path) && !Force)
+            //     {
+            //         // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
+            //         var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
+            //         var ex = new ArgumentException(exMessage);
+            //         var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
+            //         ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
+            //     }
 
-                // if neither of those cases, Path is non-null and valid.
-                usePath = true;
-            }
-            else if (PassThru)
-            {
-                usePath = false;
-            }
-            else
-            {
-                // Either valid Path or PassThru parameter must be supplied.
-                var exMessage = "Either -Path parameter or -PassThru parameter value must be supplied to output script file contents to.";
-                var ex = new ArgumentException(exMessage);
-                var PathOrPassThruParameterRequiredError = new ErrorRecord(ex, "PathOrPassThruParameterRequired", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(PathOrPassThruParameterRequiredError);
-            }
+            //     // if neither of those cases, Path is non-null and valid.
+            //     usePath = true;
+            // }
+            // else if (PassThru)
+            // {
+            //     usePath = false;
+            // }
+            // else
+            // {
+            //     // Either valid Path or PassThru parameter must be supplied.
+            //     var exMessage = "Either -Path parameter or -PassThru parameter value must be supplied to output script file contents to.";
+            //     var ex = new ArgumentException(exMessage);
+            //     var PathOrPassThruParameterRequiredError = new ErrorRecord(ex, "PathOrPassThruParameterRequired", ErrorCategory.InvalidArgument, null);
+            //     ThrowTerminatingError(PathOrPassThruParameterRequiredError);
+            // }
 
-            PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
-                version: Version,
-                guid: Guid,
-                author: Author,
-                companyName: CompanyName,
-                copyright: Copyright,
-                tags: Tags,
-                licenseUri: _licenseUri,
-                projectUri: _projectUri,
-                iconUri: _iconUri,
-                requiredModules: RequiredModules,
-                externalModuleDependencies: ExternalModuleDependencies,
-                requiredScripts: RequiredScripts,
-                externalScriptDependencies: ExternalScriptDependencies,
-                releaseNotes: ReleaseNotes,
-                privateData: PrivateData,
-                description: Description,
-                cmdletPassedIn: this);
+            // PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
+            //     version: Version,
+            //     guid: Guid,
+            //     author: Author,
+            //     companyName: CompanyName,
+            //     copyright: Copyright,
+            //     tags: Tags,
+            //     licenseUri: _licenseUri,
+            //     projectUri: _projectUri,
+            //     iconUri: _iconUri,
+            //     requiredModules: RequiredModules,
+            //     externalModuleDependencies: ExternalModuleDependencies,
+            //     requiredScripts: RequiredScripts,
+            //     externalScriptDependencies: ExternalScriptDependencies,
+            //     releaseNotes: ReleaseNotes,
+            //     privateData: PrivateData,
+            //     description: Description,
+            //     cmdletPassedIn: this);
 
-            if (!currentScriptInfo.TryCreateScriptFileInfoString(
-                pSScriptFileString: out string psScriptFileContents,
-                errors: out ErrorRecord[] errors))
-            {
-                foreach (ErrorRecord err in errors)
-                {
-                    WriteError(err);
-                }
+            // if (!currentScriptInfo.TryCreateScriptFileInfoString(
+            //     pSScriptFileString: out string psScriptFileContents,
+            //     errors: out ErrorRecord[] errors))
+            // {
+            //     foreach (ErrorRecord err in errors)
+            //     {
+            //         WriteError(err);
+            //     }
 
-                return;
-                // TODO: Anam, currently only one error and you return. So maybe this shouldn't be a list?
-                // But for extensability makes sense.
-            }
+            //     return;
+            //     // TODO: Anam, currently only one error and you return. So maybe this shouldn't be a list?
+            //     // But for extensability makes sense.
+            // }
 
-            if (usePath)
-            {
-                File.WriteAllText(Path, psScriptFileContents); // TODO: Anam better way to do this?
-            }
+            // if (usePath)
+            // {
+            //     File.WriteAllText(Path, psScriptFileContents); // TODO: Anam better way to do this?
+            // }
             
-            if (!usePath || PassThru)
-            {
-                // TODO: Anam do we also write to console if Path AND PassThru used together?
-                WriteObject(psScriptFileContents);
-            }            
+            // if (!usePath || PassThru)
+            // {
+            //     // TODO: Anam do we also write to console if Path AND PassThru used together?
+            //     WriteObject(psScriptFileContents);
+            // }            
         }
 
         #endregion

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
@@ -24,6 +25,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Uri _projectUri;
         private Uri _licenseUri;
         private Uri _iconUri;
+        private List<ModuleSpecification> validatedRequiredModuleSpecifications;
 
         #endregion
 
@@ -192,6 +194,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
+            if (RequiredModules.Length > 0)
+            {
+                // TODO: ANAM have this return array not list for mod specs
+                Utils.CreateModuleSpecification(
+                    moduleSpecHashtables: RequiredModules,
+                    out validatedRequiredModuleSpecifications,
+                    out ErrorRecord[] moduleSpecErrors);
+                if (moduleSpecErrors.Length > 0)
+                {
+                    foreach (ErrorRecord err in moduleSpecErrors)
+                    {
+                        WriteError(err);
+                    }
+                }
+            }
+
             bool usePath = false;
             if (!String.IsNullOrEmpty(Path))
             {
@@ -237,7 +255,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 licenseUri: _licenseUri,
                 projectUri: _projectUri,
                 iconUri: _iconUri,
-                requiredModules: RequiredModules,
+                requiredModules: validatedRequiredModuleSpecifications.ToArray(),
+                // requiredModules: RequiredModules,
                 externalModuleDependencies: ExternalModuleDependencies,
                 requiredScripts: RequiredScripts,
                 externalScriptDependencies: ExternalScriptDependencies,

@@ -984,6 +984,96 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return (results.Count == 1 && results[0] != null) ? (Hashtable)results[0].BaseObject : null;
         }
 
+        public static void CreateModuleSpecification(
+            Hashtable[] moduleSpecHashtables,
+            out List<ModuleSpecification> validatedModuleSpecs,
+            out ErrorRecord[] errors)
+        {
+            // bool successfullyCreatedModuleSpecs = false;
+            List<ErrorRecord> errorList = new List<ErrorRecord>();
+            List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
+
+            foreach(Hashtable moduleSpec in moduleSpecHashtables)
+            {
+                if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
+                {
+                    var exMessage = "RequiredModules Hashtable entry is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
+                    var ex = new ArgumentException(exMessage);
+                    var NameMissingModuleSpecError = new ErrorRecord(ex, "NameMissingInModuleSpecification", ErrorCategory.InvalidArgument, null);
+                    errorList.Add(NameMissingModuleSpecError);
+                    continue;
+                }
+
+                // at this point it must contain ModuleName key.
+                string moduleSpecName = (string) moduleSpec["ModuleName"];
+                ModuleSpecification currentModuleSpec = null;
+                if (moduleSpec.Keys.Count == 1 || (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion") && !moduleSpec.ContainsKey("Guid")))
+                {
+                    // pass to ModuleSpecification(string) constructor
+                    currentModuleSpec = new ModuleSpecification(moduleSpecName);
+                    if (currentModuleSpec != null)
+                    {
+                        moduleSpecsList.Add(currentModuleSpec);
+                    }
+                    else
+                    {
+                        var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
+                        var ex = new ArgumentException(exMessage);
+                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(ModuleSpecNotCreatedError);
+                    }
+                }
+                else
+                {
+                    // TODO: ANAM perhaps not else
+                    string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaxiumumVersion"] : String.Empty;
+                    string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
+                    string moduleSpecRequiredVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
+                    Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty; // TODO: ANAM this can be the default
+
+                    Hashtable moduleSpecHash = new Hashtable();
+
+                    moduleSpecHash.Add("ModuleName", moduleSpecName);
+                    if (moduleSpecGuid != Guid.Empty)
+                    {
+                        moduleSpecHash.Add("Guid", moduleSpecGuid);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecMaxVersion))
+                    {
+                        moduleSpecHash.Add("MaximumVersion", moduleSpecMaxVersion);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecModuleVersion))
+                    {
+                        moduleSpecHash.Add("ModuleVersion", moduleSpecModuleVersion);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecRequiredVersion))
+                    {
+                        moduleSpecHash.Add("RequiredVersion", moduleSpecRequiredVersion);
+                    }
+
+                    currentModuleSpec = new ModuleSpecification(moduleSpecHash);
+                    if (currentModuleSpec != null)
+                    {
+                        moduleSpecsList.Add(currentModuleSpec);
+                    }
+                    else
+                    {
+                        var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
+                        var ex = new ArgumentException(exMessage);
+                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(ModuleSpecNotCreatedError);
+                    }
+                }
+            }
+
+            errors = errorList.ToArray();
+            validatedModuleSpecs = moduleSpecsList;
+            // return successfullyCreatedModuleSpecs;
+        }
+
         #endregion
 
         #region Directory and File
