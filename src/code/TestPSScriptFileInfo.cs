@@ -8,8 +8,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using Microsoft.PowerShell.Commands;
+using System.Collections.ObjectModel;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -63,53 +65,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var resolvedPath = resolvedPaths[0].Path;
 
-            bool isValidPSScriptFile = PSScriptFileInfo.TryParseScriptFileInfo(
+            if (!PSScriptFileInfo.TryParseScriptFileInfo(
                 scriptFileInfo: resolvedPath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
-                moduleSpecErrors: out ErrorRecord[] errors,
-                parsedPSScriptInfoHashtable: out Hashtable parsedHash,
-                cmdletPassedIn: this);
-
-            WriteVerbose("is valid: " + isValidPSScriptFile);
-
-
-
-
-
-
-
-            // PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
-            //     version: Version,
-            //     guid: Guid,
-            //     author: Author,
-            //     companyName: CompanyName,
-            //     copyright: Copyright,
-            //     tags: Tags,
-            //     licenseUri: _licenseUri,
-            //     projectUri: _projectUri,
-            //     iconUri: _iconUri,
-            //     requiredModules: RequiredModules,
-            //     externalModuleDependencies: ExternalModuleDependencies,
-            //     requiredScripts: RequiredScripts,
-            //     externalScriptDependencies: ExternalScriptDependencies,
-            //     releaseNotes: ReleaseNotes,
-            //     privateData: PrivateData,
-            //     description: Description,
-            //     cmdletPassedIn: this);
-
-            // if (!currentScriptInfo.TryCreateScriptFileInfoString(
-            //     pSScriptFileString: out string psScriptFileContents,
-            //     errors: out ErrorRecord[] errors))
-            // {
-            //     foreach (ErrorRecord err in errors)
-            //     {
-            //         WriteError(err);
-            //     }
-
-            //     return;
-            //     // TODO: Anam, currently only one error and you return. So maybe this shouldn't be a list?
-            //     // But for extensability makes sense.
-            // }            
+                moduleSpecErrors: out ErrorRecord[] errors))
+            {
+                foreach (ErrorRecord error in errors)
+                {
+                    WriteError(error);
+                }
+            }
+            else
+            {
+                WriteObject(parsedScriptInfo);
+            }          
         }
 
         #endregion

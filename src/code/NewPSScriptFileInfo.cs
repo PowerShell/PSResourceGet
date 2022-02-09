@@ -262,8 +262,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 externalScriptDependencies: ExternalScriptDependencies,
                 releaseNotes: ReleaseNotes,
                 privateData: PrivateData,
-                description: Description,
-                cmdletPassedIn: this);
+                description: Description);
 
             if (!currentScriptInfo.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,

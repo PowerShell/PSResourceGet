@@ -195,24 +195,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string[] externalScriptDependencies,
             string[] releaseNotes,
             string privateData,
-            string description,
-            PSCmdlet cmdletPassedIn
+            string description
         )
         {
             if (String.IsNullOrEmpty(author))
             {
                 author = Environment.UserName;
             }
-
-            // List<ModuleSpecification> validatedModuleSpecs = new List<ModuleSpecification>();
-            // if (requiredModules.Length > 0)
-            // {
-            //     CreateModuleSpecification(requiredModules, out validatedModuleSpecs, out ErrorRecord[] errors);
-            //     foreach (ErrorRecord err in errors)
-            //     {
-            //         cmdletPassedIn.WriteError(err);
-            //     } 
-            // }
 
             Version = !String.IsNullOrEmpty(version) ? new Version (version) : new Version("1.0.0.0");
             Guid = (guid == null || guid == Guid.Empty) ? Guid.NewGuid() : guid;
@@ -264,12 +253,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static bool TryParseScriptFileInfo(
             string scriptFileInfo,
             out PSScriptFileInfo parsedScript,
-            out Hashtable parsedPSScriptInfoHashtable, // TODO: Anam, remove?
-            out ErrorRecord[] moduleSpecErrors,
-            PSCmdlet cmdletPassedIn)
+            out ErrorRecord[] moduleSpecErrors)
         {
             parsedScript = null;
-            parsedPSScriptInfoHashtable = new Hashtable();
             moduleSpecErrors = new ErrorRecord[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
             bool successfullyParsed = false;
@@ -297,10 +283,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     return successfullyParsed;
                 }
                 else if (ast != null)
-                {
-                    // TODO: Anam do we still need to check if ast is not null?
-        
+                {        
                     // Get the block/group comment beginning with <#PSScriptInfo
+                    Hashtable parsedPSScriptInfoHashtable = new Hashtable();
                     List<Token> commentTokens = tokens.Where(a => String.Equals(a.Kind.ToString(), "Comment", StringComparison.OrdinalIgnoreCase)).ToList();
                     string commentPattern = "<#PSScriptInfo";
                     Regex rg = new Regex(commentPattern);
@@ -367,7 +352,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             var ex = new ArgumentException(message);
                             var psScriptMissingDescriptionPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingDescription", ErrorCategory.ParserError, null);
                             errorsList.Add(psScriptMissingDescriptionPropertyError);
-                            return false;
+                            successfullyParsed = false;
+                            return successfullyParsed;
                         }
                     }
 
@@ -378,10 +364,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
                     {
                         ReadOnlyCollection<Commands.ModuleSpecification> parsedRequiredModules = parsedScriptRequirements.RequiredModules;
-                        parsedPSScriptInfoHashtable.Add("RequiredModules", parsedRequiredModules);
-                        Console.WriteLine(parsedRequiredModules.ToString());
-                        Console.WriteLine("and as a value:");
-                        Console.WriteLine((ReadOnlyCollection<ModuleSpecification>) parsedPSScriptInfoHashtable["RequiredModules"]);
                         if (parsedPSScriptInfoHashtable.ContainsKey("RequiredModules"))
                         {
                             parsedModules = (ReadOnlyCollection<ModuleSpecification>) parsedPSScriptInfoHashtable["RequiredModules"];
@@ -414,12 +396,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     string parsedVersion = (string) parsedPSScriptInfoHashtable["VERSION"];
                     string parsedAuthor = (string) parsedPSScriptInfoHashtable["AUTHOR"];
                     Guid parsedGuid = String.IsNullOrEmpty((string)parsedPSScriptInfoHashtable["GUID"]) ? Guid.NewGuid() : new Guid((string) parsedPSScriptInfoHashtable["GUID"]);
-                    if (!String.IsNullOrEmpty(parsedVersion) || !String.IsNullOrEmpty(parsedAuthor) || parsedGuid == Guid.Empty)
+                    if (String.IsNullOrEmpty(parsedVersion) || String.IsNullOrEmpty(parsedAuthor) || parsedGuid == Guid.Empty)
                     {
                         var message = String.Format("PSScript file is missing one of the following required properties: Version, Author, Guid");
                         var ex = new ArgumentException(message);
                         var psScriptMissingRequiredPropertyError = new ErrorRecord(ex, "psScriptMissingRequiredProperty", ErrorCategory.ParserError, null);
                         errorsList.Add(psScriptMissingRequiredPropertyError);
+                        successfullyParsed = false;
+                        return successfullyParsed;
                     }
 
                     try
@@ -430,11 +414,26 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         string[] parsedRequiredScripts = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["REQUIREDSCRIPTS"]);
                         string[] parsedExternalScriptDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["EXTERNALSCRIPTDEPENDENCIES"]);
                         string[] parsedReleaseNotes = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["RELEASENOTES"]);
-                        Uri parsedLicenseUri = new Uri((string) parsedPSScriptInfoHashtable["LICENSEURI"]);
-                        Uri parsedProjectUri = new Uri((string) parsedPSScriptInfoHashtable["PROJECTURI"]);
-                        Uri parsedIconUri = new Uri((string) parsedPSScriptInfoHashtable["ICONURI"]);
+                        Uri parsedLicenseUri = null;
+                        Uri parsedProjectUri = null;
+                        Uri parsedIconUri = null;
 
-                        // TODO: Anam Hashtable should contain all keys, but values may be String.empty
+                        if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["LICENSEURI"]))
+                        {
+                            Uri.TryCreate((string) parsedPSScriptInfoHashtable["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri);
+                        }
+
+                        if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["PROJECTURI"]))
+                        {
+                            Uri.TryCreate((string) parsedPSScriptInfoHashtable["PROJECTURI"], UriKind.Absolute, out parsedProjectUri);
+                        }
+
+                        if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["ICONURI"]))
+                        {
+                            Uri.TryCreate((string) parsedPSScriptInfoHashtable["ICONURI"], UriKind.Absolute, out parsedProjectUri);
+                        }
+
+                        // parsedPSScriptInfoHashtable should contain all keys, but values may be empty (i.e empty array, String.empty)
                         parsedScript = new PSScriptFileInfo(
                             version: parsedVersion,
                             guid: parsedGuid,
@@ -451,8 +450,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             externalScriptDependencies: parsedExternalScriptDependencies,
                             releaseNotes: parsedReleaseNotes,
                             privateData: (string) parsedPSScriptInfoHashtable["PRIVATEDATA"],
-                            description: scriptCommentInfo.Description,
-                            cmdletPassedIn: cmdletPassedIn);
+                            description: scriptCommentInfo.Description);
                     }
                     catch (Exception e)
                     {
@@ -460,6 +458,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         var ex = new ArgumentException(message);
                         var PSScriptFileInfoObjectNotCreatedFromFileError = new ErrorRecord(ex, "PSScriptFileInfoObjectNotCreatedFromFile", ErrorCategory.ParserError, null);
                         errorsList.Add(PSScriptFileInfoObjectNotCreatedFromFileError);
+                        successfullyParsed = false;
                     }
                 }
                 else
@@ -618,26 +617,26 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             psHelpInfoSuccessfullyCreated = true;
             psHelpInfoLines.Add("<#\n");
-            psHelpInfoLines.Add(String.Format(".DESCRIPTION {0}", Description));
+            psHelpInfoLines.Add(String.Format(".DESCRIPTION\n{0}", Description));
 
             if (!String.IsNullOrEmpty(Synopsis))
             {
-                psHelpInfoLines.Add(String.Format(".SYNOPSIS {0}", Synopsis));
+                psHelpInfoLines.Add(String.Format(".SYNOPSIS\n{0}", Synopsis));
             }
 
             foreach (string currentExample in Example)
             {
-                psHelpInfoLines.Add(String.Format(".EXAMPLE {0}", currentExample));
+                psHelpInfoLines.Add(String.Format(".EXAMPLE\n{0}", currentExample));
             }
 
             foreach (string input in Inputs)
             {
-                psHelpInfoLines.Add(String.Format(".INPUTS {0}", input));
+                psHelpInfoLines.Add(String.Format(".INPUTS\n{0}", input));
             }
 
             foreach (string output in Outputs)
             {
-                psHelpInfoLines.Add(String.Format(".OUTPUTS {0}", output));
+                psHelpInfoLines.Add(String.Format(".OUTPUTS\n{0}", output));
             }
 
             if (Notes.Length > 0)
@@ -647,7 +646,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             foreach (string link in Links)
             {
-                psHelpInfoLines.Add(String.Format(".LINK {0}", link));
+                psHelpInfoLines.Add(String.Format(".LINK\n{0}", link));
             }
 
             if (Component.Length > 0)
@@ -669,97 +668,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psHelpInfo = String.Join("\n", psHelpInfoLines);
             return psHelpInfoSuccessfullyCreated;
         }
-
-        // public static void CreateModuleSpecification(
-        //     Hashtable[] moduleSpecHashtables,
-        //     out List<ModuleSpecification> validatedModuleSpecs,
-        //     out ErrorRecord[] errors
-        // )
-        // {
-        //     // bool successfullyCreatedModuleSpecs = false;
-        //     List<ErrorRecord> errorList = new List<ErrorRecord>();
-        //     List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
-
-        //     foreach(Hashtable moduleSpec in moduleSpecHashtables)
-        //     {
-        //         if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
-        //         {
-        //             var exMessage = "RequiredModules Hashtable entry is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
-        //             var ex = new ArgumentException(exMessage);
-        //             var NameMissingModuleSpecError = new ErrorRecord(ex, "NameMissingInModuleSpecification", ErrorCategory.InvalidArgument, null);
-        //             errorList.Add(NameMissingModuleSpecError);
-        //             continue;
-        //         }
-
-        //         // at this point it must contain ModuleName key.
-        //         string moduleSpecName = (string) moduleSpec["ModuleName"];
-        //         ModuleSpecification currentModuleSpec = null;
-        //         if (moduleSpec.Keys.Count == 1 || (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion") && !moduleSpec.ContainsKey("Guid")))
-        //         {
-        //             // pass to ModuleSpecification(string) constructor
-        //             currentModuleSpec = new ModuleSpecification(moduleSpecName);
-        //             if (currentModuleSpec != null)
-        //             {
-        //                 moduleSpecsList.Add(currentModuleSpec);
-        //             }
-        //             else
-        //             {
-        //                 var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
-        //                 var ex = new ArgumentException(exMessage);
-        //                 var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
-        //                 errorList.Add(ModuleSpecNotCreatedError);
-        //             }
-        //         }
-        //         else
-        //         {
-        //             // TODO: ANAM perhaps not else
-        //             string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaxiumumVersion"] : String.Empty;
-        //             string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
-        //             string moduleSpecRequiredVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
-        //             Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty; // TODO: ANAM this can be the default
-
-        //             Hashtable moduleSpecHash = new Hashtable();
-
-        //             moduleSpecHash.Add("ModuleName", moduleSpecName);
-        //             if (moduleSpecGuid != Guid.Empty)
-        //             {
-        //                 moduleSpecHash.Add("Guid", moduleSpecGuid);
-        //             }
-
-        //             if (!String.IsNullOrEmpty(moduleSpecMaxVersion))
-        //             {
-        //                 moduleSpecHash.Add("MaximumVersion", moduleSpecMaxVersion);
-        //             }
-
-        //             if (!String.IsNullOrEmpty(moduleSpecModuleVersion))
-        //             {
-        //                 moduleSpecHash.Add("ModuleVersion", moduleSpecModuleVersion);
-        //             }
-
-        //             if (!String.IsNullOrEmpty(moduleSpecRequiredVersion))
-        //             {
-        //                 moduleSpecHash.Add("RequiredVersion", moduleSpecRequiredVersion);
-        //             }
-
-        //             currentModuleSpec = new ModuleSpecification(moduleSpecHash);
-        //             if (currentModuleSpec != null)
-        //             {
-        //                 moduleSpecsList.Add(currentModuleSpec);
-        //             }
-        //             else
-        //             {
-        //                 var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
-        //                 var ex = new ArgumentException(exMessage);
-        //                 var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
-        //                 errorList.Add(ModuleSpecNotCreatedError);
-        //             }
-        //         }
-        //     }
-
-        //     errors = errorList.ToArray();
-        //     validatedModuleSpecs = moduleSpecsList;
-        //     // return successfullyCreatedModuleSpecs;
-        // }
 
         #endregion
 
