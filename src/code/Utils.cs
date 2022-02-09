@@ -114,6 +114,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return strArray;
         }
 
+        public static string[] GetStringArrayFromString(char[] delimeter, string stringToConvertToArray)
+        {
+            // this will be a string where entries are separated by space
+            if (String.IsNullOrEmpty(stringToConvertToArray))
+            {
+                return new string[]{};
+            }
+
+            return stringToConvertToArray.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
+        }
+
         public static string[] ProcessNameWildcards(
             string[] pkgNames,
             out string[] errorMsgs,

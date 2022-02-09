@@ -17,8 +17,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It retrieves a resource that was installed with Install-PSResource
     /// Returns a single resource or multiple resource.
     /// </summary>
-    [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
-    public sealed class NewPSScriptFileInfo : PSCmdlet
+    [Cmdlet(VerbsData.Update, "PSScriptFileInfo")]
+    public sealed class UpdatePSScriptFileInfo : PSCmdlet
     {
         #region Members
         private Uri _projectUri;
@@ -30,39 +30,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Parameters
 
         /// <summary>
-        /// The path the .ps1 script info file will be created at
-        /// </summary>
-        [Parameter(Position = 0)]
-        [ValidateNotNullOrEmpty]
-        public string Path { get; set; }
-
-        /// <summary>
-        /// The version of the script
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty()]
-        public string Version { get; set; }
-
-        /// <summary>
         /// The author of the script
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Author { get; set; }
-
-        /// <summary>
-        /// The description of the script
-        /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
-        public string Description { get; set; }
-
-        /// <summary>
-        /// The GUID for the script
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty()]
-        public Guid Guid { get; set; }
 
         /// <summary>
         /// The name of the company owning the script
@@ -79,11 +51,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Copyright { get; set; }
 
         /// <summary>
-        /// The list of modules required by the script
+        /// The description of the script
         /// </summary>
-        [Parameter]
+        [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
-        public Hashtable[] RequiredModules { get; set; }
+        public string Description { get; set; }
 
         /// <summary>
         /// The list of external module dependencies taken by this script
@@ -93,13 +65,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] ExternalModuleDependencies { get; set; }
 
         /// <summary>
-        /// The list of scripts required by the script
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty()]
-        public string[] RequiredScripts { get; set; }
-
-        /// <summary>
         /// The list of external script dependencies taken by this script
         /// </summary>
         [Parameter]
@@ -107,25 +72,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] ExternalScriptDependencies { get; set; }
 
         /// <summary>
-        /// The tags associated with the script
+        /// If used with Path parameter and .ps1 file specified at the path exists, it rewrites the file
         /// </summary>
         [Parameter]
-        [ValidateNotNullOrEmpty()]
-        public string[] Tags { get; set; }
+        public SwitchParameter Force { get; set; }
 
         /// <summary>
-        /// The Uri for the project associated with the script
+        /// The GUID for the script
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public string ProjectUri { get; set; }
-
-        /// <summary>
-        /// The Uri for the license associated with the script
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty()]
-        public string LicenseUri { get; set; }
+        public Guid Guid { get; set; }
 
         /// <summary>
         /// The Uri for the icon associated with the script
@@ -135,18 +92,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string IconUri { get; set; }
 
         /// <summary>
-        /// The release notes for the script
+        /// The Uri for the license associated with the script
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public string[] ReleaseNotes { get; set; }
-
-        /// <summary>
-        /// The private data associated with the script
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty()]
-        public string PrivateData { get; set; }
+        public string LicenseUri { get; set; }
 
         /// <summary>
         /// If specified, passes the contents of the created .ps1 file to the console
@@ -156,10 +106,60 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter PassThru { get; set; }
 
         /// <summary>
-        /// If used with Path parameter and .ps1 file specified at the path exists, it rewrites the file
+        /// The path the .ps1 script info file will be created at
+        /// </summary>
+        [Parameter(Position = 0)]
+        [ValidateNotNullOrEmpty]
+        public string Path { get; set; }
+
+        /// <summary>
+        /// The private data associated with the script
         /// </summary>
         [Parameter]
-        public SwitchParameter Force { get; set; }
+        [ValidateNotNullOrEmpty()]
+        public string PrivateData { get; set; }
+
+        /// <summary>
+        /// The Uri for the project associated with the script
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty()]
+        public string ProjectUri { get; set; }
+
+        /// <summary>
+        /// The release notes for the script
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty()]
+        public string[] ReleaseNotes { get; set; }
+
+        /// <summary>
+        /// The list of modules required by the script
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty()]
+        public Hashtable[] RequiredModules { get; set; }
+
+        /// <summary>
+        /// The list of scripts required by the script
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty()]
+        public string[] RequiredScripts { get; set; }
+
+        /// <summary>
+        /// The tags associated with the script
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty()]
+        public string[] Tags { get; set; }
+
+        /// <summary>
+        /// The version of the script
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty()]
+        public string Version { get; set; }
 
         #endregion
 
