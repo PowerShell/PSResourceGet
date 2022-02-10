@@ -24,6 +24,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Uri _projectUri;
         private Uri _licenseUri;
         private Uri _iconUri;
+        private List<ModuleSpecification> validatedRequiredModuleSpecifications;
 
         #endregion
 
@@ -108,7 +109,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The path the .ps1 script info file will be created at
         /// </summary>
-        [Parameter(Position = 0)]
+        [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -192,84 +193,116 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
-            // bool usePath = false;
-            // if (!String.IsNullOrEmpty(Path))
-            // {
-            //     if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
-            //     {
-            //         var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
-            //         var ex = new ArgumentException(exMessage);
-            //         var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-            //         ThrowTerminatingError(InvalidPathError);   
-            //     }
-            //     else if (File.Exists(Path) && !Force)
-            //     {
-            //         // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
-            //         var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
-            //         var ex = new ArgumentException(exMessage);
-            //         var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
-            //         ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
-            //     }
+            if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase) || !File.Exists(Path))
+            {
+                    var exMessage = "Path needs to exist and end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
+                    var ex = new ArgumentException(exMessage);
+                    var InvalidOrNonExistantPathError = new ErrorRecord(ex, "InvalidOrNonExistantPath", ErrorCategory.InvalidArgument, null);
+                    ThrowTerminatingError(InvalidOrNonExistantPathError);   
+            }
 
-            //     // if neither of those cases, Path is non-null and valid.
-            //     usePath = true;
-            // }
-            // else if (PassThru)
-            // {
-            //     usePath = false;
-            // }
-            // else
-            // {
-            //     // Either valid Path or PassThru parameter must be supplied.
-            //     var exMessage = "Either -Path parameter or -PassThru parameter value must be supplied to output script file contents to.";
-            //     var ex = new ArgumentException(exMessage);
-            //     var PathOrPassThruParameterRequiredError = new ErrorRecord(ex, "PathOrPassThruParameterRequired", ErrorCategory.InvalidArgument, null);
-            //     ThrowTerminatingError(PathOrPassThruParameterRequiredError);
-            // }
+            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
+            if (resolvedPaths.Count != 1)
+            {
+                var exMessage = "Error: Could not resolve provided Path argument into a single path.";
+                var ex = new PSArgumentException(exMessage);
+                var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(InvalidPathArgumentError);
+            }
 
-            // PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
-            //     version: Version,
-            //     guid: Guid,
-            //     author: Author,
-            //     companyName: CompanyName,
-            //     copyright: Copyright,
-            //     tags: Tags,
-            //     licenseUri: _licenseUri,
-            //     projectUri: _projectUri,
-            //     iconUri: _iconUri,
-            //     requiredModules: RequiredModules,
-            //     externalModuleDependencies: ExternalModuleDependencies,
-            //     requiredScripts: RequiredScripts,
-            //     externalScriptDependencies: ExternalScriptDependencies,
-            //     releaseNotes: ReleaseNotes,
-            //     privateData: PrivateData,
-            //     description: Description,
-            //     cmdletPassedIn: this);
+            string resolvedPath = resolvedPaths[0].Path;
 
-            // if (!currentScriptInfo.TryCreateScriptFileInfoString(
-            //     pSScriptFileString: out string psScriptFileContents,
-            //     errors: out ErrorRecord[] errors))
-            // {
-            //     foreach (ErrorRecord err in errors)
-            //     {
-            //         WriteError(err);
-            //     }
+            if (RequiredModules.Length > 0)
+            {
+                // TODO: ANAM have this return array not list for mod specs
+                Utils.CreateModuleSpecification(
+                    moduleSpecHashtables: RequiredModules,
+                    out validatedRequiredModuleSpecifications,
+                    out ErrorRecord[] moduleSpecErrors);
+                if (moduleSpecErrors.Length > 0)
+                {
+                    foreach (ErrorRecord err in moduleSpecErrors)
+                    {
+                        WriteError(err);
+                    }
+                }
+            }
 
-            //     return;
-            //     // TODO: Anam, currently only one error and you return. So maybe this shouldn't be a list?
-            //     // But for extensability makes sense.
-            // }
+            // get PSScriptFileInfo object for current script contents
+            if (!PSScriptFileInfo.TryParseScriptFileInfo(
+                scriptFileInfoPath: resolvedPath,
+                out PSScriptFileInfo parsedScriptFileInfo,
+                out ErrorRecord[] errors))
+            {
+                WriteWarning("The .ps1 script file passed in was not valid due to the following error(s) listed below");
+                foreach (ErrorRecord error in errors)
+                {
+                    WriteError(error);
+                }
 
-            // if (usePath)
-            // {
-            //     File.WriteAllText(Path, psScriptFileContents); // TODO: Anam better way to do this?
-            // }
-            
-            // if (!usePath || PassThru)
-            // {
-            //     // TODO: Anam do we also write to console if Path AND PassThru used together?
-            //     WriteObject(psScriptFileContents);
-            // }            
+                return; // TODO: should this be a terminating error instead?
+            }
+            else
+            {
+                // update requested field
+                if (!PSScriptFileInfo.TryUpdateRequestedFields(
+                    ref parsedScriptFileInfo,
+                    out ErrorRecord[] updateErrors,
+                    out string updatedPSScriptFileContents,
+                    version:  Version,
+                    guid: Guid,
+                    author: Author,
+                    companyName: CompanyName,
+                    copyright: Copyright,
+                    tags: Tags,
+                    licenseUri: _licenseUri,
+                    projectUri: _projectUri,
+                    iconUri: _iconUri,
+                    requiredModules: validatedRequiredModuleSpecifications.ToArray(),
+                    externalModuleDependencies: ExternalModuleDependencies,
+                    requiredScripts: RequiredScripts,
+                    externalScriptDependencies: ExternalScriptDependencies,
+                    releaseNotes: ReleaseNotes,
+                    privateData: PrivateData,
+                    description: Description))
+                {
+                    WriteWarning("Could not update the specified file due to the following error(s):");
+                    foreach (ErrorRecord error in updateErrors)
+                    {
+                        WriteError(error);
+                    }
+                }
+                else
+                {
+                    // now have updated script contents as a string.
+                    var tempScriptFilePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString(), "TempScript.ps1");
+                    File.WriteAllText(tempScriptFilePath, updatedPSScriptFileContents);
+
+                    if (!PSScriptFileInfo.TryParseScriptFileInfo(
+                        scriptFileInfoPath: tempScriptFilePath,
+                        out PSScriptFileInfo updatedPSScriptInfo,
+                        out ErrorRecord[] testErrors))
+                    {
+                        WriteWarning("The updated test file created is invalid due to the following error(s):");
+                        foreach (ErrorRecord error in testErrors)
+                        {
+                            WriteError(error);
+                        }
+                    }
+                    else
+                    {
+                        // write out updated script file's contents to original script file
+                        // TODO: do I need to provide permissions here?
+                        File.WriteAllText(resolvedPath, updatedPSScriptFileContents);
+                        File.Delete(tempScriptFilePath);
+                        if (PassThru)
+                        {
+                            WriteObject(updatedPSScriptInfo);
+                        }
+                    }
+
+                }
+            }         
         }
 
         #endregion

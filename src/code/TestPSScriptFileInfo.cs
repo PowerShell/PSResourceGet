@@ -68,8 +68,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (!PSScriptFileInfo.TryParseScriptFileInfo(
                 scriptFileInfo: resolvedPath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
-                moduleSpecErrors: out ErrorRecord[] errors))
+                errors: out ErrorRecord[] errors))
             {
+                WriteWarning("The .ps1 script file passed in was not valid due to the following error(s) listed below");
                 foreach (ErrorRecord error in errors)
                 {
                     WriteError(error);

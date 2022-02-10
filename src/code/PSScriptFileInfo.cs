@@ -24,48 +24,48 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the Version of the script
         /// </summary>
-        public Version Version { get; }
+        public Version Version { get; set; }
 
         /// <summary>
         /// the GUID for the script
         /// </summary>
-        public Guid Guid { get; }
+        public Guid Guid { get; set; }
 
         /// <summary>
         /// the author for the script
         /// </summary>
-        public string Author { get; }
+        public string Author { get; set; }
 
         /// <summary>
         /// the name of the company owning the script
         /// </summary>
         [ValidateRange(0, 50)]
-        public string CompanyName { get; }
+        public string CompanyName { get; set; }
 
         /// <summary>
         /// the copyright information for the script
         /// </summary>
-        public string Copyright { get; }
+        public string Copyright { get; set; }
 
         /// <summary>
         /// the tags for the script
         /// </summary>
-        public string[] Tags { get; }
+        public string[] Tags { get; set; }
 
         /// <summary>
         /// the Uri for the license of the script
         /// </summary>
-        public Uri LicenseUri { get; }
+        public Uri LicenseUri { get; set; }
 
         /// <summary>
         /// the Uri for the project relating to the script
         /// </summary>
-        public Uri ProjectUri { get; }
+        public Uri ProjectUri { get; set; }
 
         /// <summary>
         /// the Uri for the icon relating to the script
         /// </summary>
-        public Uri IconUri { get; }
+        public Uri IconUri { get; set; }
 
         /// <summary>
         /// The list of modules required by the script
@@ -78,22 +78,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the list of external module dependencies for the script
         /// </summary>
-        public string[] ExternalModuleDependencies { get; } = new string[]{};
+        public string[] ExternalModuleDependencies { get; set; } = new string[]{};
 
         /// <summary>
         /// the list of required scripts for the parent script
         /// </summary>
-        public string[] RequiredScripts { get; } = new string[]{};
+        public string[] RequiredScripts { get; set; } = new string[]{};
 
         /// <summary>
         /// the list of external script dependencies for the script
         /// </summary>
-        public string[] ExternalScriptDependencies { get; } = new string[]{};
+        public string[] ExternalScriptDependencies { get; set; } = new string[]{};
 
         /// <summary>
         /// the release notes relating to the script
         /// </summary>
-        public string[] ReleaseNotes { get; } = new string[]{};
+        public string[] ReleaseNotes { get; set; } = new string[]{};
 
         /// <summary>
         /// The private data associated with the script
@@ -251,30 +251,30 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Public Static Methods
 
         public static bool TryParseScriptFileInfo(
-            string scriptFileInfo,
+            string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
-            out ErrorRecord[] moduleSpecErrors)
+            out ErrorRecord[] errors)
         {
             parsedScript = null;
-            moduleSpecErrors = new ErrorRecord[]{};
+            errors = new ErrorRecord[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
             bool successfullyParsed = false;
 
-            if (scriptFileInfo.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            if (scriptFileInfoPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the script file
                 var ast = Parser.ParseFile(
-                    scriptFileInfo,
+                    scriptFileInfoPath,
                     out Token[] tokens,
                     out ParseError[] parserErrors);
 
                 if (parserErrors.Length > 0 && !String.Equals(parserErrors[0].ErrorId, "WorkflowNotSupportedInPowerShellCore", StringComparison.OrdinalIgnoreCase))
                 {
-                    // TODO: Anam - do we want to completely ignore WorkFlowNotSupportedInPowerShellCore error (not even write)
+                    // TODO: do we want to completely ignore WorkFlowNotSupportedInPowerShellCore error (not even write)
                     // or do we want to write, but not return if it's just that error?
                     foreach (ParseError err in parserErrors)
                     {
-                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to {1}.", scriptFileInfo, err.Message);
+                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to {1}.", scriptFileInfoPath, err.Message);
                         var ex = new ArgumentException(message);
                         var psScriptFileParseError = new ErrorRecord(ex, err.ErrorId, ErrorCategory.ParserError, null);
                         errorsList.Add(psScriptFileParseError);  
@@ -298,7 +298,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         var psCommentMissingError = new ErrorRecord(ex, "psScriptInfoCommentMissingError", ErrorCategory.ParserError, null);
                         errorsList.Add(psCommentMissingError);
 
-                        moduleSpecErrors = errorsList.ToArray();
+                        errors = errorsList.ToArray();
                         return successfullyParsed;  
                     }
 
@@ -316,7 +316,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                     if (commentLines.Count() > 2)
                     {
-                        // TODO: Anam is it an error if the metadata property is empty?
+                        // TODO: is it an error if the metadata property is empty?
                         for (int i = 1; i < commentLines.Count(); i++)
                         {
                             string line = commentLines[i];
@@ -371,7 +371,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
 
                     // get all defined functions and populate DefinedCommands, DefinedFunctions, DefinedWorkflow
-                    // TODO: Anam DefinedWorkflow is no longer supported as of PowerShellCore 6+, do we ignore error or reject script?
+                    // TODO: DefinedWorkflow is no longer supported as of PowerShellCore 6+, do we ignore error or reject script?
                     var parsedFunctionAst = ast.FindAll(a => a is FunctionDefinitionAst, true);
                     List<FunctionDefinitionAst> allCommands = new List<FunctionDefinitionAst>();
                     if (allCommands.Count() > 0)
@@ -384,7 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         List<string> allCommandNames = allCommands.Select(a => a.Name).Distinct().ToList();
                         parsedPSScriptInfoHashtable.Add("DefinedCommands", allCommandNames);
 
-                        // b.Body.Extent.Text to get actual content. So "Function b.Name c.Body.Extent.Text" is that whole line lol
+                        // b.Body.Extent.Text to get actual content. So "Function b.Name c.Body.Extent.Text" is that whole line
                         List<string> allFunctionNames = allCommands.Where(a => !a.IsWorkflow).Select(b => b.Name).Distinct().ToList();
                         parsedPSScriptInfoHashtable.Add("DefinedFunctions", allFunctionNames);
 
@@ -474,6 +474,152 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return successfullyParsed;
         }
 
+        public static bool TryUpdateRequestedFields(
+            ref PSScriptFileInfo parsedScript,
+            out ErrorRecord[] errors,
+            out string updatedPSScriptFileContents,
+            string version,
+            Guid guid,
+            string author,
+            string companyName,
+            string copyright,
+            string[] tags,
+            Uri licenseUri,
+            Uri projectUri,
+            Uri iconUri,
+            ModuleSpecification[] requiredModules,
+            string[] externalModuleDependencies,
+            string[] requiredScripts,
+            string[] externalScriptDependencies,
+            string[] releaseNotes,
+            string privateData,
+            string description)
+        {
+            bool successfullyUpdated = false;
+            updatedPSScriptFileContents = String.Empty;
+            errors = new ErrorRecord[]{};
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+
+            if (parsedScript == null)
+            {
+                var message = String.Format("PSScriptFileInfo object to update is null.");
+                var ex = new ArgumentException(message);
+                var nullPSScriptFileInfoObjectToUpdateError = new ErrorRecord(ex, "NullPSScriptFileInfoObjectToUpdate", ErrorCategory.ParserError, null);
+                errorsList.Add(nullPSScriptFileInfoObjectToUpdateError);  
+                errors = errorsList.ToArray();
+                return successfullyUpdated;
+            }
+
+            PSScriptFileInfo tempScriptFileInfoObject = new PSScriptFileInfo();
+            
+            // create new PSScriptFileInfo with updated fields
+            try
+            {
+                if (!String.IsNullOrEmpty(version))
+                {
+                    if (!System.Version.TryParse(version, out Version updatedVersion))
+                    {
+                        tempScriptFileInfoObject.Version = new Version("2.0.0.0");
+                    }
+                    else
+                    {
+                        tempScriptFileInfoObject.Version = updatedVersion;
+                    }
+                }
+
+                if (guid != Guid.Empty)
+                {
+                    tempScriptFileInfoObject.Guid = guid;
+                }
+
+                if (!String.IsNullOrEmpty(author))
+                {
+                    tempScriptFileInfoObject.Author = author;
+                }
+
+                if (!String.IsNullOrEmpty(companyName)){
+                    tempScriptFileInfoObject.CompanyName = companyName;
+                }
+
+                if (!String.IsNullOrEmpty(copyright)){
+                    tempScriptFileInfoObject.Copyright = copyright;
+                }
+
+                if (tags != null && tags.Length != 0){
+                    tempScriptFileInfoObject.Tags = tags;
+                }
+
+                if (licenseUri != null && !licenseUri.Equals(default(Uri))){
+                    tempScriptFileInfoObject.LicenseUri = licenseUri;
+                }
+
+                if (projectUri != null && !projectUri.Equals(default(Uri))){
+                    tempScriptFileInfoObject.ProjectUri = projectUri;
+                }
+
+                if (iconUri != null && !iconUri.Equals(default(Uri))){
+                    tempScriptFileInfoObject.IconUri = iconUri;
+                }
+
+                if (requiredModules != null && requiredModules.Length != 0){
+                    tempScriptFileInfoObject.RequiredModules = requiredModules;
+                }
+
+                if (externalModuleDependencies != null && externalModuleDependencies.Length != 0){
+                    tempScriptFileInfoObject.ExternalModuleDependencies = externalModuleDependencies;                
+                }
+
+                if (requiredScripts != null && requiredScripts.Length != 0)
+                {
+                    tempScriptFileInfoObject.RequiredScripts = requiredScripts;
+                }
+
+                if (externalScriptDependencies != null && externalScriptDependencies.Length != 0){
+                    tempScriptFileInfoObject.ExternalScriptDependencies = externalScriptDependencies;                
+                }
+
+                if (releaseNotes != null && releaseNotes.Length != 0)
+                {
+                    tempScriptFileInfoObject.ReleaseNotes = releaseNotes;
+                }
+
+                if (!String.IsNullOrEmpty(privateData))
+                {
+                    tempScriptFileInfoObject.PrivateData = privateData;
+                }
+
+                if (!String.IsNullOrEmpty(description))
+                {
+                    tempScriptFileInfoObject.Description = description;
+                }
+            }
+            catch (Exception exception)
+            {
+                var message = String.Format(".ps1 file and associated PSScriptFileInfo object's field could not be updated due to {0}.", exception.Message);
+                var ex = new ArgumentException(message);
+                var PSScriptFileInfoFieldCouldNotBeUpdatedError = new ErrorRecord(ex, "PSScriptFileInfoFieldCouldNotBeUpdated", ErrorCategory.ParserError, null);
+                errorsList.Add(PSScriptFileInfoFieldCouldNotBeUpdatedError);  
+                errors = errorsList.ToArray();
+                return successfullyUpdated;
+            }
+
+
+            // create string contents for .ps1 file
+            if (tempScriptFileInfoObject.TryCreateScriptFileInfoString(
+                pSScriptFileString: out string psScriptFileContents,
+                errors: out ErrorRecord[] createFileContentErrors))
+            {
+                errorsList.AddRange(createFileContentErrors);
+                errors = errorsList.ToArray();
+                return successfullyUpdated;
+            }
+
+            // TODO: must also add Ast.EndBlock.Extent.Text or last n lines from file.
+            successfullyUpdated = true;
+            updatedPSScriptFileContents = psScriptFileContents;
+            return successfullyUpdated;
+        }
+
         #endregion
 
         #region Public Methods
@@ -526,6 +672,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     errors = errorsList.ToArray();
                 }
 
+                pSScriptFileString = String.Empty;
                 return fileContentsSuccessfullyCreated;
             }
 
@@ -592,7 +739,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 psRequiresLines.Add("\n");
                 psRequiresString = String.Join("\n", psRequiresLines);
-                // TODO: ANAM where does the GUID come in?
+                // TODO: Does the GUID come in for ModuleSpecification(string) constructed object's ToString() output?
             }
         }
 
