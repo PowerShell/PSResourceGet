@@ -66,7 +66,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var resolvedPath = resolvedPaths[0].Path;
 
             if (!PSScriptFileInfo.TryParseScriptFileInfo(
-                scriptFileInfo: resolvedPath,
+                scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
                 errors: out ErrorRecord[] errors))
             {

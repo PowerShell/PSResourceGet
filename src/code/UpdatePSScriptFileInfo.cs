@@ -1,4 +1,3 @@
-using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -24,7 +23,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Uri _projectUri;
         private Uri _licenseUri;
         private Uri _iconUri;
-        private List<ModuleSpecification> validatedRequiredModuleSpecifications;
 
         #endregion
 
@@ -54,7 +52,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The description of the script
         /// </summary>
-        [Parameter(Mandatory = true)]
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
         public string Description { get; set; }
 
@@ -211,8 +209,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             string resolvedPath = resolvedPaths[0].Path;
-
-            if (RequiredModules.Length > 0)
+            
+            List<ModuleSpecification> validatedRequiredModuleSpecifications = new List<ModuleSpecification>();
+            if (RequiredModules != null && RequiredModules.Length > 0)
             {
                 // TODO: ANAM have this return array not list for mod specs
                 Utils.CreateModuleSpecification(
@@ -274,8 +273,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
+                    WriteVerbose("scriptFileContents: \n" + updatedPSScriptFileContents);
                     // now have updated script contents as a string.
-                    var tempScriptFilePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString(), "TempScript.ps1");
+                    var tempScriptDirPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+                    var tempScriptFilePath = System.IO.Path.Combine(tempScriptDirPath, "tempScript.ps1");
+                    if (!Directory.Exists(tempScriptFilePath))
+                    {
+                        Directory.CreateDirectory(tempScriptFilePath);
+                    }
+
+                    WriteObject(updatedPSScriptFileContents);
+
+                    File.Create(tempScriptFilePath);
                     File.WriteAllText(tempScriptFilePath, updatedPSScriptFileContents);
 
                     if (!PSScriptFileInfo.TryParseScriptFileInfo(
@@ -292,9 +301,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         // write out updated script file's contents to original script file
-                        // TODO: do I need to provide permissions here?
-                        File.WriteAllText(resolvedPath, updatedPSScriptFileContents);
-                        File.Delete(tempScriptFilePath);
+                        // TODO: fix permissions to write to temp folder!
+                        // File.WriteAllText(resolvedPath, updatedPSScriptFileContents);
+                        // File.Delete(tempScriptFilePath);
+                        // Utils.DeleteDirectory(tempScriptDirPath);
+
                         if (PassThru)
                         {
                             WriteObject(updatedPSScriptInfo);

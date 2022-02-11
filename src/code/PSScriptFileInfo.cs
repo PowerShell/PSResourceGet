@@ -39,7 +39,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the name of the company owning the script
         /// </summary>
-        [ValidateRange(0, 50)]
         public string CompanyName { get; set; }
 
         /// <summary>
@@ -188,8 +187,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Uri licenseUri,
             Uri projectUri,
             Uri iconUri,
-            ModuleSpecification[] requiredModules, // TODO: in V2 this was Object[]
-            // Hashtable[] requiredModules,
+            ModuleSpecification[] requiredModules,
             string[] externalModuleDependencies,
             string[] requiredScripts,
             string[] externalScriptDependencies,
@@ -222,31 +220,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion
-
-        /**
-        PSScriptInfo comment will be in following format:
-        <#PSScriptInfo
-            .VERSION 1.0
-            .GUID 544238e3-1751-4065-9227-be105ff11636
-            .AUTHOR manikb
-            .COMPANYNAME Microsoft Corporation
-            .COPYRIGHT (c) 2015 Microsoft Corporation. All rights reserved.
-            .TAGS Tag1 Tag2 Tag3
-            .LICENSEURI https://contoso.com/License
-            .PROJECTURI https://contoso.com/
-            .ICONURI https://contoso.com/Icon
-            .EXTERNALMODULEDEPENDENCIES ExternalModule1
-            .REQUIREDSCRIPTS Start-WFContosoServer,Stop-ContosoServerScript
-            .EXTERNALSCRIPTDEPENDENCIES Stop-ContosoServerScript
-            .RELEASENOTES
-            contoso script now supports following features
-            Feature 1
-            Feature 2
-            Feature 3
-            Feature 4
-            Feature 5
-            #>
-        */
 
         #region Public Static Methods
 
@@ -510,7 +483,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return successfullyUpdated;
             }
 
-            PSScriptFileInfo tempScriptFileInfoObject = new PSScriptFileInfo();
+            PSScriptFileInfo tempScriptFileInfoObject = parsedScript;
             
             // create new PSScriptFileInfo with updated fields
             try
@@ -562,6 +535,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 if (requiredModules != null && requiredModules.Length != 0){
+                    Console.WriteLine("made it to reset requiredmodules");
                     tempScriptFileInfoObject.RequiredModules = requiredModules;
                 }
 
@@ -605,7 +579,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
 
             // create string contents for .ps1 file
-            if (tempScriptFileInfoObject.TryCreateScriptFileInfoString(
+            if (!tempScriptFileInfoObject.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
                 errors: out ErrorRecord[] createFileContentErrors))
             {
@@ -690,6 +664,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             error = null;
             bool pSScriptInfoSuccessfullyCreated = false;
             pSScriptInfoString = String.Empty;
+
+            /**
+            PSScriptInfo comment will be in following format:
+            <#PSScriptInfo
+                .VERSION 1.0
+                .GUID 544238e3-1751-4065-9227-be105ff11636
+                .AUTHOR manikb
+                .COMPANYNAME Microsoft Corporation
+                .COPYRIGHT (c) 2015 Microsoft Corporation. All rights reserved.
+                .TAGS Tag1 Tag2 Tag3
+                .LICENSEURI https://contoso.com/License
+                .PROJECTURI https://contoso.com/
+                .ICONURI https://contoso.com/Icon
+                .EXTERNALMODULEDEPENDENCIES ExternalModule1
+                .REQUIREDSCRIPTS Start-WFContosoServer,Stop-ContosoServerScript
+                .EXTERNALSCRIPTDEPENDENCIES Stop-ContosoServerScript
+                .RELEASENOTES
+                contoso script now supports following features
+                Feature 1
+                Feature 2
+                Feature 3
+                Feature 4
+                Feature 5
+                #>
+            */
 
             if (String.IsNullOrEmpty(Author) || Version == null)
             {

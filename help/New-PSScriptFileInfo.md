@@ -8,16 +8,16 @@ schema: 2.0.0
 # New-ScriptFileInfo
 
 ## SYNOPSIS
-Returns resources (modules and scripts) installed on the machine via PowerShellGet.
+Creates a new .ps1 file containing metadata for the script, which is used when publishing a script package.
 
 ## SYNTAX
 
 ```
-New-ScriptFileInfo [-Path <String>] [<CommonParameters>]
+New-PSScriptFileInfo [-Path <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-WhatIf] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-PSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript cmdlets from V2. It performs a search within module or script installation paths based on the -Name parameter argument. It returns PSResourceInfo objects which describes each resource item found. Other parameters allow the returned results to be filtered by version and path.
+The New-PSScriptFileInfo cmdlet creates a .ps1 file containing metadata for the script.
 
 ## EXAMPLES
 
@@ -32,7 +32,7 @@ Type: System.String
 Parameter Sets:
 Aliases:
 
-Required: ??
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: False
@@ -47,7 +47,7 @@ Type: System.String
 Parameter Sets:
 Aliases:
 
-Required: ??
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -62,7 +62,7 @@ Type: System.String
 Parameter Sets:
 Aliases:
 
-Required: ??
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -77,7 +77,7 @@ Type: System.String
 Parameter Sets:
 Aliases:
 
-Required: ??
+Required: True
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -88,11 +88,11 @@ Accept wildcard characters: False
 The GUID for the script.
 
 ```yaml
-Type: System.String
+Type: System.Guid
 Parameter Sets:
 Aliases:
 
-Required: ??
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -107,7 +107,7 @@ Type: System.String
 Parameter Sets:
 Aliases:
 
-Required: ??
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -133,7 +133,7 @@ Accept wildcard characters: False
 The list of modules required for the script.
 
 ```yaml
-Type: System.String[] # this was Object[] in V2 TODO, determine type
+Type: Microsoft.PowerShell.Commands.ModuleSpecification[]
 Parameter Sets:
 Aliases:
 
@@ -286,32 +286,32 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
 ```
-PSResourceInfo : {
-    AdditionalMetadata
+PSScriptFileInfo : {
+    Version
+    Guid
     Author
     CompanyName
     Copyright
-    Dependencies
-    Description
-    IconUri
-    Includes
-    InstalledDate
-    InstalledLocation
-    IsPrerelease
-    LicenseUri
-    Name
-    PackageManagementProvider
-    PowerShellGetFormatVersion
-    Prerelease
-    ProjectUri
-    PublishedDate
-    ReleaseNotes
-    Repository
-    RepositorySourceLocation
     Tags
-    Type
-    UpdatedDate
-    Version
+    LicenseUri
+    ProjectUri
+    IconUri
+    RequiredModules
+    ExternalModuleDependencies
+    RequiredScripts
+    ExternalScriptDependencies
+    ReleaseNotes
+    PrivateData
+    Description
+    Synopsis
+    Example
+    Inputs
+    Outputs
+    Notes
+    Links
+    Component
+    Role
+    Functionality
 }
 ```
 

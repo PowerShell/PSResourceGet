@@ -25,7 +25,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Uri _projectUri;
         private Uri _licenseUri;
         private Uri _iconUri;
-        private List<ModuleSpecification> validatedRequiredModuleSpecifications;
 
         #endregion
 
@@ -194,7 +193,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
-            if (RequiredModules.Length > 0)
+            List<ModuleSpecification> validatedRequiredModuleSpecifications = new List<ModuleSpecification>();
+            if (RequiredModules != null && RequiredModules.Length > 0)
             {
                 // TODO: ANAM have this return array not list for mod specs
                 Utils.CreateModuleSpecification(
