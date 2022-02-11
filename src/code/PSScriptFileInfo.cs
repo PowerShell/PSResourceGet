@@ -223,6 +223,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Public Static Methods
 
+        /// <summary>
+        /// Tests the contents of the .ps1 file at the provided path
+        /// </summary>
         public static bool TryParseScriptFileInfo(
             string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
@@ -447,6 +450,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return successfullyParsed;
         }
 
+        /// <summary>
+        /// Updates the contents of the .ps1 file at the provided path with the properties provided
+        /// and writes new updated script file contents to a string and updates the original PSScriptFileInfo object
+        /// </summary>        
         public static bool TryUpdateRequestedFields(
             ref PSScriptFileInfo parsedScript,
             out ErrorRecord[] errors,
@@ -597,6 +604,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Create .ps1 file contents with PSScriptFileInfo object's properties and output content as a string
+        /// </summary>
         public bool TryCreateScriptFileInfoString(
             out string pSScriptFileString,
             out ErrorRecord[] errors
@@ -656,6 +667,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return fileContentsSuccessfullyCreated;
         }
 
+        /// <summary>
+        /// Used when creating .ps1 file's contents.
+        /// This creates the <#PSScriptInfo ... #> comment string
+        /// </summary>
         public bool GetPSScriptInfoString(
             out string pSScriptInfoString,
             out ErrorRecord error
@@ -721,6 +736,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return pSScriptInfoSuccessfullyCreated;
         }
 
+        /// <summary>
+        /// Used when creating .ps1 file's contents.
+        /// This creates the #Requires comment string
+        /// </summary>
         public void GetRequiresString(
             out string psRequiresString
         )
@@ -742,6 +761,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        /// <summary>
+        /// Used when creating .ps1 file's contents.
+        /// This creates the help comment string: <# \n .DESCRIPTION #>
+        /// </summary>
         public bool GetScriptCommentHelpInfo(
             out string psHelpInfo,
             out ErrorRecord error
@@ -816,6 +839,5 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion
-
     }
 }
