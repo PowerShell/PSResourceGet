@@ -728,7 +728,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Manifest methods
 
-        public static bool TryParseModuleManifest(
+        public static bool TryParsePsd1(
             string moduleFileInfo,
             PSCmdlet cmdletPassedIn,
             out Hashtable parsedMetadataHashtable)

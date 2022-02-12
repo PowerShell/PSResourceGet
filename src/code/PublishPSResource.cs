@@ -470,7 +470,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (!isScript)
             {
                 // Parse the module manifest and *replace* the passed-in metadata with the module manifest metadata.
-                if (!Utils.TryParseModuleManifest(
+                if (!Utils.TryParsePsd1(
                     moduleFileInfo: filePath,
                     cmdletPassedIn: this,
                     parsedMetadataHashtable: out parsedMetadataHash))

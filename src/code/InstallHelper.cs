@@ -509,7 +509,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        if (!Utils.TryParseModuleManifest(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
+                        if (!Utils.TryParsePsd1(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
                         {
                             // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
                             continue;
