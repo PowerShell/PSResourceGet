@@ -13,7 +13,7 @@ Creates a new .ps1 file containing metadata for the script, which is used when p
 ## SYNTAX
 
 ```
-New-PSScriptFileInfo [-Path <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-WhatIf] [<CommonParameters>]
+New-PSScriptFileInfo [-FilePath <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-PassThru] [-WhatIf] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -24,7 +24,7 @@ The New-PSScriptFileInfo cmdlet creates a .ps1 file containing metadata for the 
 
 ## PARAMETERS
 
-### -Path
+### -FilePath
 The path the .ps1 script info file will be created at.
 
 ```yaml
@@ -32,7 +32,7 @@ Type: System.String
 Parameter Sets:
 Aliases:
 
-Required: False
+Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False

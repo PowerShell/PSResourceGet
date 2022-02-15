@@ -13,7 +13,7 @@ Tests a .ps1 file at the specified path to ensure it is valid.
 ## SYNTAX
 
 ```
-Tes-PSScriptFileInfo [-Path <String>] [<CommonParameters>]
+Test-PSScriptFileInfo [-FilePath <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -24,7 +24,7 @@ The Test-PSScriptFileInfo cmdlet tests a .ps1 file at the specified path to ensu
 
 ## PARAMETERS
 
-### -Path
+### -FilePath
 The path the .ps1 script info file will be created at.
 
 ```yaml

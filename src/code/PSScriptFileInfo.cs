@@ -339,11 +339,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                     if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
                     {
-                        ReadOnlyCollection<Commands.ModuleSpecification> parsedRequiredModules = parsedScriptRequirements.RequiredModules;
-                        if (parsedPSScriptInfoHashtable.ContainsKey("RequiredModules"))
-                        {
-                            parsedModules = (ReadOnlyCollection<ModuleSpecification>) parsedPSScriptInfoHashtable["RequiredModules"];
-                        }
+                        // ReadOnlyCollection<Commands.ModuleSpecification> parsedRequiredModules = parsedScriptRequirements.RequiredModules;
+                        parsedModules = parsedScriptRequirements.RequiredModules;
+                        // TODO: Anam was there any importance for this?
+                        // if (parsedPSScriptInfoHashtable.ContainsKey("RequiredModules"))
+                        // {
+                        //     parsedModules = (ReadOnlyCollection<ModuleSpecification>) parsedPSScriptInfoHashtable["RequiredModules"];
+                        // }
+                        parsedPSScriptInfoHashtable.Add("RequiredModules", parsedModules);
                     }
 
                     // get all defined functions and populate DefinedCommands, DefinedFunctions, DefinedWorkflow

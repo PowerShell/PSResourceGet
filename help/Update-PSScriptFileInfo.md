@@ -13,18 +13,17 @@ Updates an existing .ps1 file with requested properties and ensures it's valid.
 ## SYNTAX
 
 ```
-Update-PSScriptFileInfo [-Path <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-WhatIf] [<CommonParameters>] [-Path <String>] [<CommonParameters>]
+Update-PSScriptFileInfo [-FilePath <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-WhatIf] [-Validate] [<CommonParameters>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-PSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript cmdlets from V2. It performs a search within module or script installation paths based on the -Name parameter argument. It returns PSResourceInfo objects which describes each resource item found. Other parameters allow the returned results to be filtered by version and path.
+TODOs
 
 ## EXAMPLES
 
-
 ## PARAMETERS
 
-### -Path
+### -FilePath
 The path the .ps1 script info file will be created at.
 
 ```yaml
