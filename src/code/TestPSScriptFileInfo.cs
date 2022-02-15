@@ -1,4 +1,3 @@
-using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -29,7 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
-        public string Path { get; set; }
+        public string FilePath { get; set; }
 
         #endregion
 
@@ -37,16 +36,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            if (!File.Exists(Path))
+            if (!File.Exists(FilePath))
             {
-                // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
                 var exMessage = "A file does not exist at the location specified";
                 var ex = new ArgumentException(exMessage);
                 var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(FileDoesNotExistError);
             }
 
-            if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
                 var ex = new ArgumentException(exMessage);
@@ -54,7 +52,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathError);   
             }
 
-            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
+            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
             if (resolvedPaths.Count != 1)
             {
                 var exMessage = "Error: Could not resolve provided Path argument into a single path.";
@@ -63,10 +61,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathArgumentError);
             }
 
-            var resolvedPath = resolvedPaths[0].Path;
+            var resolvedFilePath = resolvedPaths[0].Path;
 
             if (!PSScriptFileInfo.TryParseScriptFileInfo(
-                scriptFileInfoPath: resolvedPath,
+                scriptFileInfoPath: resolvedFilePath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
                 errors: out ErrorRecord[] errors))
             {
