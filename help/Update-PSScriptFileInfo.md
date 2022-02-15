@@ -17,7 +17,7 @@ Update-PSScriptFileInfo [-FilePath <String>] [-Version <string>] [-Author <strin
 ```
 
 ## DESCRIPTION
-TODOs
+Updates an existing .ps1 script file with the requested properties and ensures it's valid.
 
 ## EXAMPLES
 

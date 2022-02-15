@@ -109,7 +109,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
-        public string Path { get; set; }
+        public string FilePath { get; set; }
 
         /// <summary>
         /// The private data associated with the script
@@ -191,7 +191,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
-            if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase) || !File.Exists(Path))
+            if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase) || !File.Exists(FilePath))
             {
                     var exMessage = "Path needs to exist and end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
                     var ex = new ArgumentException(exMessage);
@@ -199,7 +199,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ThrowTerminatingError(InvalidOrNonExistantPathError);   
             }
 
-            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
+            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
             if (resolvedPaths.Count != 1)
             {
                 var exMessage = "Error: Could not resolve provided Path argument into a single path.";
@@ -208,7 +208,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathArgumentError);
             }
 
-            string resolvedPath = resolvedPaths[0].Path;
+            string resolvedFilePath = resolvedPaths[0].Path;
             
             List<ModuleSpecification> validatedRequiredModuleSpecifications = new List<ModuleSpecification>();
             if (RequiredModules != null && RequiredModules.Length > 0)
@@ -229,7 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // get PSScriptFileInfo object for current script contents
             if (!PSScriptFileInfo.TryParseScriptFileInfo(
-                scriptFileInfoPath: resolvedPath,
+                scriptFileInfoPath: resolvedFilePath,
                 out PSScriptFileInfo parsedScriptFileInfo,
                 out ErrorRecord[] errors))
             {
@@ -275,8 +275,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     WriteVerbose("scriptFileContents: \n" + updatedPSScriptFileContents);
                     // now have updated script contents as a string.
-                    var tempScriptDirPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-                    var tempScriptFilePath = System.IO.Path.Combine(tempScriptDirPath, "tempScript.ps1");
+                    var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                    var tempScriptFilePath = Path.Combine(tempScriptDirPath, "tempScript.ps1");
                     if (!Directory.Exists(tempScriptFilePath))
                     {
                         Directory.CreateDirectory(tempScriptFilePath);
