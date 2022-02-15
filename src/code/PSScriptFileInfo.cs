@@ -1,3 +1,4 @@
+using System.Runtime.Serialization;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -171,6 +172,26 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
         public string[] Functionality { get; set; } = new string[]{};
+
+        /// <summary>
+        /// Optional end of file contents describing parameters
+        /// </summary>
+        public ParamBlockAst ParamBlock { get; set; }
+
+        /// <summary>
+        /// Optional end of file contents describing begin block
+        /// </summary>
+        private NamedBlockAst BeginBlock { get; set; }
+
+        /// <summary>
+        /// Optional end of file contents describing process block
+        /// </summary>
+        private NamedBlockAst ProcessBlock { get; set; }
+
+        /// <summary>
+        /// Optional end of file contents describing end block
+        /// </summary>
+        private NamedBlockAst EndBlock { get; set; }
 
         #endregion
 
@@ -371,6 +392,37 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         parsedPSScriptInfoHashtable.Add("DefinedWorkflows", allWorkflowNames);
                     }
 
+                    // // see if there's any additional content in the file
+                    // string optionalEndOfFileContents = String.Empty;
+                    // if (ast.ParamBlock != null)
+                    // {
+                        
+                    //     if (ast.ParamBlock.Attributes != null && ast.ParamBlock.Attributes.Count > 0 && ast.ParamBlock.Attributes[0].Extent != null)
+                    //     {
+                    //         optionalEndOfFileContents += "\n" + ast.ParamBlock.Attributes[0].Extent.Text;
+                    //     }
+
+                    //     if (ast.ParamBlock.Extent != null)
+                    //     {
+                    //         optionalEndOfFileContents += "\n" + ast.ParamBlock.Extent.Text;
+                    //     }
+                    // }
+
+                    // if (ast.BeginBlock != null)
+                    // {
+                    //     optionalEndOfFileContents += "\n" + ast.BeginBlock.Extent.Text;
+                    // }
+
+                    // if (ast.ProcessBlock != null)
+                    // {
+                    //     optionalEndOfFileContents += "\n" + ast.ProcessBlock.Extent.Text;
+                    // }
+
+                    // if (ast.EndBlock != null)
+                    // {
+                    //     optionalEndOfFileContents += "\n" + ast.EndBlock.Extent.Text;
+                    // }
+
 
                     string parsedVersion = (string) parsedPSScriptInfoHashtable["VERSION"];
                     string parsedAuthor = (string) parsedPSScriptInfoHashtable["AUTHOR"];
@@ -430,6 +482,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             releaseNotes: parsedReleaseNotes,
                             privateData: (string) parsedPSScriptInfoHashtable["PRIVATEDATA"],
                             description: scriptCommentInfo.Description);
+
+                            // populate Ast block related properties in case the file has end of file content
+                            if (ast.ParamBlock != null)
+                            {
+                                parsedScript.ParamBlock = ast.ParamBlock;
+                            }
+
+                            if (ast.BeginBlock != null)
+                            {
+                                parsedScript.BeginBlock = ast.BeginBlock;
+                            }
+
+                            if (ast.ProcessBlock != null)
+                            {
+                                parsedScript.ProcessBlock = ast.ProcessBlock;
+                            }
+
+                            if (ast.EndBlock != null)
+                            {
+                                parsedScript.EndBlock = ast.EndBlock;
+                            }
                     }
                     catch (Exception e)
                     {
@@ -545,7 +618,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 if (requiredModules != null && requiredModules.Length != 0){
-                    Console.WriteLine("made it to reset requiredmodules");
                     tempScriptFileInfoObject.RequiredModules = requiredModules;
                 }
 
@@ -599,6 +671,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             // TODO: must also add Ast.EndBlock.Extent.Text or last n lines from file.
+
             successfullyUpdated = true;
             updatedPSScriptFileContents = psScriptFileContents;
             return successfullyUpdated;
@@ -665,6 +738,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             pSScriptFileString += "\n" + psHelpInfo;
+
+            GetEndOfFileContent(out string endOfFileAstContent);
+            if (!String.IsNullOrEmpty(endOfFileAstContent))
+            {
+                pSScriptFileString += "\n" + endOfFileAstContent;
+            }
 
             fileContentsSuccessfullyCreated = true;
             return fileContentsSuccessfullyCreated;
@@ -839,6 +918,40 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psHelpInfoLines.Add("#>");
             psHelpInfo = String.Join("\n", psHelpInfoLines);
             return psHelpInfoSuccessfullyCreated;
+        }
+
+        public void GetEndOfFileContent(
+            out string endOfFileContent
+        )
+        {
+            endOfFileContent = String.Empty;
+            if (ParamBlock != null)
+            {
+                if (ParamBlock.Attributes != null && ParamBlock.Attributes.Count > 0 && ParamBlock.Attributes[0].Extent != null)
+                {
+                    endOfFileContent += "\n" + ParamBlock.Attributes[0].Extent.Text;
+                }
+
+                if (ParamBlock.Extent != null)
+                {
+                    endOfFileContent += "\n" + ParamBlock.Extent.Text;
+                }
+            }
+
+            if (BeginBlock != null)
+            {
+                endOfFileContent += "\n" + BeginBlock.Extent.Text;
+            }
+
+            if (ProcessBlock != null)
+            {
+                endOfFileContent += "\n" + ProcessBlock.Extent.Text;
+            }
+
+            if (EndBlock != null)
+            {
+                endOfFileContent += "\n" + EndBlock.Extent.Text;
+            }
         }
 
         #endregion
