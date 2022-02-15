@@ -33,7 +33,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
-        public string Path { get; set; }
+        public string FilePath { get; set; }
 
         /// <summary>
         /// The version of the script
@@ -191,6 +191,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
+            if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            {
+                var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
+                var ex = new ArgumentException(exMessage);
+                var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(InvalidPathError);   
+            }
+            else if (File.Exists(FilePath) && !Force)
+            {
+                // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
+                var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
+                var ex = new ArgumentException(exMessage);
+                var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
+            }
+
+            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
+            if (resolvedPaths.Count != 1)
+            {
+                var exMessage = "Error: Could not resolve provided Path argument into a single path.";
+                var ex = new PSArgumentException(exMessage);
+                var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(InvalidPathArgumentError);
+            }
+
+            var resolvedFilePath = resolvedPaths[0].Path;
+
             List<ModuleSpecification> validatedRequiredModuleSpecifications = new List<ModuleSpecification>();
             if (RequiredModules != null && RequiredModules.Length > 0)
             {
@@ -208,41 +235,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            bool usePath = false;
-            if (!String.IsNullOrEmpty(Path))
-            {
-                if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
-                {
-                    var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
-                    var ex = new ArgumentException(exMessage);
-                    var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(InvalidPathError);   
-                }
-                else if (File.Exists(Path) && !Force)
-                {
-                    // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
-                    var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
-                    var ex = new ArgumentException(exMessage);
-                    var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
-                }
-
-                // if neither of those cases, Path is non-null and valid.
-                usePath = true;
-            }
-            else if (PassThru)
-            {
-                usePath = false;
-            }
-            else
-            {
-                // Either valid Path or PassThru parameter must be supplied.
-                var exMessage = "Either -Path parameter or -PassThru parameter value must be supplied to output script file contents to.";
-                var ex = new ArgumentException(exMessage);
-                var PathOrPassThruParameterRequiredError = new ErrorRecord(ex, "PathOrPassThruParameterRequired", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(PathOrPassThruParameterRequiredError);
-            }
-
             PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
                 version: Version,
                 guid: Guid,
@@ -254,7 +246,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 projectUri: _projectUri,
                 iconUri: _iconUri,
                 requiredModules: validatedRequiredModuleSpecifications.ToArray(),
-                // requiredModules: RequiredModules,
                 externalModuleDependencies: ExternalModuleDependencies,
                 requiredScripts: RequiredScripts,
                 externalScriptDependencies: ExternalScriptDependencies,
@@ -276,14 +267,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // But for extensability makes sense.
             }
 
-            if (usePath)
+            File.WriteAllText(resolvedFilePath, psScriptFileContents); // TODO: Anam better way to do this?
+
+            if (PassThru)
             {
-                File.WriteAllText(Path, psScriptFileContents); // TODO: Anam better way to do this?
-            }
-            
-            if (!usePath || PassThru)
-            {
-                // TODO: Anam do we also write to console if Path AND PassThru used together?
                 WriteObject(psScriptFileContents);
             }            
         }
