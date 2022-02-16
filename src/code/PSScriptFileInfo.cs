@@ -531,8 +531,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// and writes new updated script file contents to a string and updates the original PSScriptFileInfo object
         /// </summary>        
         public static bool TryUpdateRequestedFields(
-            PSScriptFileInfo originalScript,
-            out PSScriptFileInfo updatedScript,
+            ref PSScriptFileInfo originalScript,
             out string updatedPSScriptFileContents,
             out ErrorRecord[] errors,
             string version,
@@ -553,7 +552,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string description)
         {
             bool successfullyUpdated = false;
-            updatedScript = null;
+            // updatedScript = null;
             updatedPSScriptFileContents = String.Empty;
             errors = new ErrorRecord[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
@@ -568,9 +567,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return successfullyUpdated;
             }
 
-            originalScript = null;
-
-            updatedScript = originalScript;
+            PSScriptFileInfo updatedScript = originalScript;
             
             // create new PSScriptFileInfo with updated fields
             try
@@ -652,6 +649,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     updatedScript.Description = description;
                 }
+
+                originalScript = updatedScript;
             }
             catch (Exception exception)
             {

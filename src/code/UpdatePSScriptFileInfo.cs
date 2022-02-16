@@ -251,8 +251,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // update requested field
                 if (!PSScriptFileInfo.TryUpdateRequestedFields(
-                    parsedScriptFileInfo, // TODO: ANam change this to be out, or if we keep the same scenario pass as regular arg
-                    out PSScriptFileInfo updatedScript,
+                    ref parsedScriptFileInfo,
                     out string updatedPSScriptFileContents,
                     out ErrorRecord[] updateErrors,
                     version:  Version,
@@ -279,12 +278,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
                 else
-                {
-                    parsedScriptFileInfo = updatedScript;
-                    
+                {                    
                     // write string of file contents to a temp file
-                    var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-                    var tempScriptFilePath = Path.Combine(tempScriptDirPath, "tempScript.ps1");
+                    // var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                    WriteObject(parsedScriptFileInfo);
+                    WriteObject(updatedPSScriptFileContents);
+                    var tempScriptFilePath = Path.Combine("./", "tempScript.ps1");
                     if (!Directory.Exists(tempScriptFilePath))
                     {
                         Directory.CreateDirectory(tempScriptFilePath);
@@ -319,7 +318,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (PassThru)
                     {
                         WriteObject(parsedScriptFileInfo);
-                        WriteObject(updatedScript);
                     }
                 }
                 // else
