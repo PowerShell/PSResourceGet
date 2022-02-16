@@ -740,11 +740,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             pSScriptFileString += "\n" + psHelpInfo;
 
-            // GetEndOfFileContent(out string endOfFileAstContent);
-            // if (!String.IsNullOrEmpty(endOfFileAstContent))
-            // {
-            //     pSScriptFileString += "\n" + endOfFileAstContent;
-            // }
+            GetEndOfFileContent(out string endOfFileAstContent);
+            if (!String.IsNullOrEmpty(endOfFileAstContent))
+            {
+                pSScriptFileString += "\n" + endOfFileAstContent;
+            }
 
             fileContentsSuccessfullyCreated = true;
             return fileContentsSuccessfullyCreated;
@@ -928,12 +928,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             endOfFileContent = String.Empty;
             if (ParamBlock != null)
             {
+                string paramBlockAttributes = String.Empty;
                 if (ParamBlock.Attributes != null && ParamBlock.Attributes.Count > 0 && ParamBlock.Attributes[0].Extent != null)
                 {
-                    endOfFileContent += "\n" + ParamBlock.Attributes[0].Extent.Text;
+                    paramBlockAttributes = ParamBlock.Attributes[0].Extent.Text;
+                    endOfFileContent += "\n" + paramBlockAttributes;
                 }
 
-                if (ParamBlock.Extent != null)
+                if (ParamBlock.Extent != null && !String.Equals(paramBlockAttributes, ParamBlock.Extent.Text, StringComparison.OrdinalIgnoreCase))
                 {
                     endOfFileContent += "\n" + ParamBlock.Extent.Text;
                 }
