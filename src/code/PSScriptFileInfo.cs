@@ -740,11 +740,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             pSScriptFileString += "\n" + psHelpInfo;
 
-            GetEndOfFileContent(out string endOfFileAstContent);
-            if (!String.IsNullOrEmpty(endOfFileAstContent))
-            {
-                pSScriptFileString += "\n" + endOfFileAstContent;
-            }
+            // GetEndOfFileContent(out string endOfFileAstContent);
+            // if (!String.IsNullOrEmpty(endOfFileAstContent))
+            // {
+            //     pSScriptFileString += "\n" + endOfFileAstContent;
+            // }
 
             fileContentsSuccessfullyCreated = true;
             return fileContentsSuccessfullyCreated;

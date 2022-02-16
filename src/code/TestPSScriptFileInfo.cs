@@ -73,12 +73,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     WriteWarning("The .ps1 script file passed in was not valid due to: " + error);
                 }
-                // return false;
+                
+                WriteObject(false);
             }
             else
             {
                 // WriteObject(parsedScriptInfo);
-                // return true;
+                WriteObject(true);
             }          
         }
 

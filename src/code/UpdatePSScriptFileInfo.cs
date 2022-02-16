@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
+using System.Text;
 using Microsoft.PowerShell.Commands;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -280,17 +281,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {                    
                     // write string of file contents to a temp file
-                    // var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                    var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                     WriteObject(parsedScriptFileInfo);
                     WriteObject(updatedPSScriptFileContents);
-                    var tempScriptFilePath = Path.Combine("./", "tempScript.ps1");
-                    if (!Directory.Exists(tempScriptFilePath))
+                    var tempScriptFilePath = Path.Combine(tempScriptDirPath, "tempScript.ps1");
+                    if (!Directory.Exists(tempScriptDirPath))
                     {
-                        Directory.CreateDirectory(tempScriptFilePath);
+                        Directory.CreateDirectory(tempScriptDirPath);
                     }
 
-                    File.Create(tempScriptFilePath);
-                    File.WriteAllText(tempScriptFilePath, updatedPSScriptFileContents);
+                    using(FileStream fs = File.Create(tempScriptFilePath))
+                    {
+                        byte[] info = new UTF8Encoding(true).GetBytes(updatedPSScriptFileContents);
+                        fs.Write(info, 0, info.Length);
+                    }
+
                     WriteObject(updatedPSScriptFileContents);
 
                     if (Validate)
@@ -309,11 +314,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
-                    // write out updated script file's contents to original script file
-                    // TODO: fix permissions to write to temp folder!
-                    // File.WriteAllText(resolvedPath, updatedPSScriptFileContents);
+                    File.Copy(tempScriptFilePath, resolvedFilePath, true);
+                    Utils.DeleteDirectory(tempScriptDirPath);
                     // File.Delete(tempScriptFilePath);
                     // Utils.DeleteDirectory(tempScriptDirPath);
+
 
                     if (PassThru)
                     {
