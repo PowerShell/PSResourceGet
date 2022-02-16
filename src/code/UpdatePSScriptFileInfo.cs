@@ -154,6 +154,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] Tags { get; set; }
 
         /// <summary>
+        /// If specified, it validates the updated script
+        /// </summary>
+        [Parameter]
+        public SwitchParameter Validate { get; set; }
+
+        /// <summary>
         /// The version of the script
         /// </summary>
         [Parameter]
@@ -245,9 +251,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // update requested field
                 if (!PSScriptFileInfo.TryUpdateRequestedFields(
-                    ref parsedScriptFileInfo,
-                    out ErrorRecord[] updateErrors,
+                    parsedScriptFileInfo, // TODO: ANam change this to be out, or if we keep the same scenario pass as regular arg
+                    out PSScriptFileInfo updatedScript,
                     out string updatedPSScriptFileContents,
+                    out ErrorRecord[] updateErrors,
                     version:  Version,
                     guid: Guid,
                     author: Author,
@@ -273,8 +280,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    WriteVerbose("scriptFileContents: \n" + updatedPSScriptFileContents);
-                    // now have updated script contents as a string.
+                    parsedScriptFileInfo = updatedScript;
+                    
+                    // write string of file contents to a temp file
                     var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                     var tempScriptFilePath = Path.Combine(tempScriptDirPath, "tempScript.ps1");
                     if (!Directory.Exists(tempScriptFilePath))
@@ -282,37 +290,83 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         Directory.CreateDirectory(tempScriptFilePath);
                     }
 
-                    WriteObject(updatedPSScriptFileContents);
-
                     File.Create(tempScriptFilePath);
                     File.WriteAllText(tempScriptFilePath, updatedPSScriptFileContents);
+                    WriteObject(updatedPSScriptFileContents);
 
-                    if (!PSScriptFileInfo.TryParseScriptFileInfo(
-                        scriptFileInfoPath: tempScriptFilePath,
-                        out PSScriptFileInfo updatedPSScriptInfo,
-                        out ErrorRecord[] testErrors))
+                    if (Validate)
                     {
-                        WriteWarning("The updated test file created is invalid due to the following error(s):");
-                        foreach (ErrorRecord error in testErrors)
+                        if (!PSScriptFileInfo.TryParseScriptFileInfo(
+                            scriptFileInfoPath: tempScriptFilePath,
+                            out parsedScriptFileInfo,
+                            out ErrorRecord[] testErrors))
                         {
-                            WriteError(error);
-                        }
-                    }
-                    else
-                    {
-                        // write out updated script file's contents to original script file
-                        // TODO: fix permissions to write to temp folder!
-                        // File.WriteAllText(resolvedPath, updatedPSScriptFileContents);
-                        // File.Delete(tempScriptFilePath);
-                        // Utils.DeleteDirectory(tempScriptDirPath);
-
-                        if (PassThru)
-                        {
-                            WriteObject(updatedPSScriptInfo);
+                            WriteWarning("The updated test file created is invalid due to the following error(s):");
+                            foreach (ErrorRecord error in testErrors)
+                            {
+                                WriteError(error);
+                            }
+                            return; // TODO: Anam do we need this
                         }
                     }
 
+                    // write out updated script file's contents to original script file
+                    // TODO: fix permissions to write to temp folder!
+                    // File.WriteAllText(resolvedPath, updatedPSScriptFileContents);
+                    // File.Delete(tempScriptFilePath);
+                    // Utils.DeleteDirectory(tempScriptDirPath);
+
+                    if (PassThru)
+                    {
+                        WriteObject(parsedScriptFileInfo);
+                        WriteObject(updatedScript);
+                    }
                 }
+                // else
+                // {
+                //     WriteVerbose("scriptFileContents: \n" + updatedPSScriptFileContents); // TODO: Anam remove
+                    
+                //     // write string of file contents to a temp file
+                //     var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                //     var tempScriptFilePath = Path.Combine(tempScriptDirPath, "tempScript.ps1");
+                //     if (!Directory.Exists(tempScriptFilePath))
+                //     {
+                //         Directory.CreateDirectory(tempScriptFilePath);
+                //     }
+
+                //     File.Create(tempScriptFilePath);
+                //     File.WriteAllText(tempScriptFilePath, updatedPSScriptFileContents);
+                //     WriteObject(updatedPSScriptFileContents); // TODO: Anam remove
+
+                //     // if Validate, additionally validate this file's contents
+                //     // if testing fails write errors and return-ish
+                //     // if testing passes continue to copy temp file contents to permenant file and check for passthru
+                //     if (!PSScriptFileInfo.TryParseScriptFileInfo(
+                //         scriptFileInfoPath: tempScriptFilePath,
+                //         out PSScriptFileInfo updatedPSScriptInfo,
+                //         out ErrorRecord[] testErrors))
+                //     {
+                //         WriteWarning("The updated test file created is invalid due to the following error(s):");
+                //         foreach (ErrorRecord error in testErrors)
+                //         {
+                //             WriteError(error);
+                //         }
+                //     }
+                //     else
+                //     {
+                //         // write out updated script file's contents to original script file
+                //         // TODO: fix permissions to write to temp folder!
+                //         // File.WriteAllText(resolvedPath, updatedPSScriptFileContents);
+                //         // File.Delete(tempScriptFilePath);
+                //         // Utils.DeleteDirectory(tempScriptDirPath);
+
+                //         if (PassThru)
+                //         {
+                //             WriteObject(updatedPSScriptInfo);
+                //         }
+                //     }
+
+                // }
             }         
         }
 

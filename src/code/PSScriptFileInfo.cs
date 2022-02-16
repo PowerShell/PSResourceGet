@@ -531,9 +531,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// and writes new updated script file contents to a string and updates the original PSScriptFileInfo object
         /// </summary>        
         public static bool TryUpdateRequestedFields(
-            ref PSScriptFileInfo parsedScript,
-            out ErrorRecord[] errors,
+            PSScriptFileInfo originalScript,
+            out PSScriptFileInfo updatedScript,
             out string updatedPSScriptFileContents,
+            out ErrorRecord[] errors,
             string version,
             Guid guid,
             string author,
@@ -552,11 +553,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string description)
         {
             bool successfullyUpdated = false;
+            updatedScript = null;
             updatedPSScriptFileContents = String.Empty;
             errors = new ErrorRecord[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
-            if (parsedScript == null)
+            if (originalScript == null)
             {
                 var message = String.Format("PSScriptFileInfo object to update is null.");
                 var ex = new ArgumentException(message);
@@ -566,7 +568,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return successfullyUpdated;
             }
 
-            PSScriptFileInfo tempScriptFileInfoObject = parsedScript;
+            originalScript = null;
+
+            updatedScript = originalScript;
             
             // create new PSScriptFileInfo with updated fields
             try
@@ -575,78 +579,78 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     if (!System.Version.TryParse(version, out Version updatedVersion))
                     {
-                        tempScriptFileInfoObject.Version = new Version("2.0.0.0");
+                        updatedScript.Version = new Version("2.0.0.0");
                     }
                     else
                     {
-                        tempScriptFileInfoObject.Version = updatedVersion;
+                        updatedScript.Version = updatedVersion;
                     }
                 }
 
                 if (guid != Guid.Empty)
                 {
-                    tempScriptFileInfoObject.Guid = guid;
+                    updatedScript.Guid = guid;
                 }
 
                 if (!String.IsNullOrEmpty(author))
                 {
-                    tempScriptFileInfoObject.Author = author;
+                    updatedScript.Author = author;
                 }
 
                 if (!String.IsNullOrEmpty(companyName)){
-                    tempScriptFileInfoObject.CompanyName = companyName;
+                    updatedScript.CompanyName = companyName;
                 }
 
                 if (!String.IsNullOrEmpty(copyright)){
-                    tempScriptFileInfoObject.Copyright = copyright;
+                    updatedScript.Copyright = copyright;
                 }
 
                 if (tags != null && tags.Length != 0){
-                    tempScriptFileInfoObject.Tags = tags;
+                    updatedScript.Tags = tags;
                 }
 
                 if (licenseUri != null && !licenseUri.Equals(default(Uri))){
-                    tempScriptFileInfoObject.LicenseUri = licenseUri;
+                    updatedScript.LicenseUri = licenseUri;
                 }
 
                 if (projectUri != null && !projectUri.Equals(default(Uri))){
-                    tempScriptFileInfoObject.ProjectUri = projectUri;
+                    updatedScript.ProjectUri = projectUri;
                 }
 
                 if (iconUri != null && !iconUri.Equals(default(Uri))){
-                    tempScriptFileInfoObject.IconUri = iconUri;
+                    updatedScript.IconUri = iconUri;
                 }
 
                 if (requiredModules != null && requiredModules.Length != 0){
-                    tempScriptFileInfoObject.RequiredModules = requiredModules;
+                    updatedScript.RequiredModules = requiredModules;
                 }
 
                 if (externalModuleDependencies != null && externalModuleDependencies.Length != 0){
-                    tempScriptFileInfoObject.ExternalModuleDependencies = externalModuleDependencies;                
+                    updatedScript.ExternalModuleDependencies = externalModuleDependencies;                
                 }
 
                 if (requiredScripts != null && requiredScripts.Length != 0)
                 {
-                    tempScriptFileInfoObject.RequiredScripts = requiredScripts;
+                    updatedScript.RequiredScripts = requiredScripts;
                 }
 
                 if (externalScriptDependencies != null && externalScriptDependencies.Length != 0){
-                    tempScriptFileInfoObject.ExternalScriptDependencies = externalScriptDependencies;                
+                    updatedScript.ExternalScriptDependencies = externalScriptDependencies;                
                 }
 
                 if (releaseNotes != null && releaseNotes.Length != 0)
                 {
-                    tempScriptFileInfoObject.ReleaseNotes = releaseNotes;
+                    updatedScript.ReleaseNotes = releaseNotes;
                 }
 
                 if (!String.IsNullOrEmpty(privateData))
                 {
-                    tempScriptFileInfoObject.PrivateData = privateData;
+                    updatedScript.PrivateData = privateData;
                 }
 
                 if (!String.IsNullOrEmpty(description))
                 {
-                    tempScriptFileInfoObject.Description = description;
+                    updatedScript.Description = description;
                 }
             }
             catch (Exception exception)
@@ -661,7 +665,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
 
             // create string contents for .ps1 file
-            if (!tempScriptFileInfoObject.TryCreateScriptFileInfoString(
+            if (!updatedScript.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
                 errors: out ErrorRecord[] createFileContentErrors))
             {
@@ -669,8 +673,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 errors = errorsList.ToArray();
                 return successfullyUpdated;
             }
-
-            // TODO: must also add Ast.EndBlock.Extent.Text or last n lines from file.
 
             successfullyUpdated = true;
             updatedPSScriptFileContents = psScriptFileContents;

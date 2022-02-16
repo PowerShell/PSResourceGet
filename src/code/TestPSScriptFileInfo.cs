@@ -19,6 +19,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// Returns a single resource or multiple resource.
     /// </summary>
     [Cmdlet(VerbsDiagnostic.Test, "PSScriptFileInfo")]
+    [OutputType(typeof(bool))]
     public sealed class TestPSScriptFileInfo : PSCmdlet
     {
         #region Parameters
@@ -68,15 +69,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
                 errors: out ErrorRecord[] errors))
             {
-                WriteWarning("The .ps1 script file passed in was not valid due to the following error(s) listed below");
                 foreach (ErrorRecord error in errors)
                 {
-                    WriteError(error);
+                    WriteWarning("The .ps1 script file passed in was not valid due to: " + error);
                 }
+                // return false;
             }
             else
             {
-                WriteObject(parsedScriptInfo);
+                // WriteObject(parsedScriptInfo);
+                // return true;
             }          
         }
 
