@@ -273,7 +273,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     privateData: PrivateData,
                     description: Description))
                 {
-                    WriteWarning("Could not update the specified file due to the following error(s):");
+                    WriteWarning("Updating the specified script file failed due to the following error(s):");
                     foreach (ErrorRecord error in updateErrors)
                     {
                         WriteError(error);
@@ -302,7 +302,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             out parsedScriptFileInfo,
                             out ErrorRecord[] testErrors))
                         {
-                            WriteWarning("The updated test file created is invalid due to the following error(s):");
+                            WriteWarning("Validating the updated script file failed due to the following error(s):");
                             foreach (ErrorRecord error in testErrors)
                             {
                                 WriteError(error);
