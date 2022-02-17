@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             // validate Uri related parameters passed in as strings
-            if (!String.IsNullOrEmpty(ProjectUri) && !Utils.TryCreateValidUrl(uriString: ProjectUri,
+            if (!String.IsNullOrEmpty(ProjectUri) && !Utils.TryCreateValidUri(uriString: ProjectUri,
                 cmdletPassedIn: this,
                 uriResult: out _projectUri,
                 errorRecord: out ErrorRecord projectErrorRecord))
@@ -177,7 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(projectErrorRecord);
             }
 
-            if (!String.IsNullOrEmpty(LicenseUri) && !Utils.TryCreateValidUrl(uriString: LicenseUri,
+            if (!String.IsNullOrEmpty(LicenseUri) && !Utils.TryCreateValidUri(uriString: LicenseUri,
                 cmdletPassedIn: this,
                 uriResult: out _licenseUri,
                 errorRecord: out ErrorRecord licenseErrorRecord))
@@ -185,7 +185,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(licenseErrorRecord);
             }
 
-            if (!String.IsNullOrEmpty(IconUri) && !Utils.TryCreateValidUrl(uriString: IconUri,
+            if (!String.IsNullOrEmpty(IconUri) && !Utils.TryCreateValidUri(uriString: IconUri,
                 cmdletPassedIn: this,
                 uriResult: out _iconUri,
                 errorRecord: out ErrorRecord iconErrorRecord))
