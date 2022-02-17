@@ -55,61 +55,21 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "should find all resources given Name that equals wildcard, '*'" {
-        $foundPreview = $False
-        $foundTestScript = $False
-        $foundTestModule = $False
-        $res = Find-PSResource -Name "*" -Repository $TestGalleryName
-        #should find Module and Script resources
-        foreach ($item in $res)
-        {
-            if ($item.Name -eq $testModuleName)
-            {
-                $foundTestModule = $True
-            }
+        $foundResources = Find-PSResource -Name "*" -Repository "PoshTestGallery"
 
-            if ($item.Name -eq $testScriptName)
-            {
-                $foundTestScript = $True
-            }
-
-            if($item.IsPrerelease)
-            {
-                $foundPreview = $True
-            }
-        }
-
-        $foundPreview | Should -Be $False
-        $foundTestScript | Should -Be $True
-        $foundTestModule | Should -Be $True
+        # Should find Module and Script resources but no prerelease resources
+        $foundResources | where-object Name -eq "test_module" | Should -Not -BeNullOrEmpty -Because "test_module should exist in PoshTestGallery"
+        $foundResources | where-object Name -eq "test_script" | Should -Not -BeNullOrEmpty -Because "test_script should exist in PoshTestGallery"
+        $foundResources | where-object IsPrerelease -eq $true | Should -BeNullOrEmpty -Because "No prerelease resources should be returned"
     }
 
     It "should find all resources (including prerelease) given Name that equals wildcard, '*' and Prerelease parameter" {
-        $foundPreview = $False
-        $foundTestScript = $False
-        $foundTestModule = $False
-        $res = Find-PSResource -Name "*" -Prerelease -Repository $TestGalleryName
-        #should find Module and Script resources
-        foreach ($item in $res)
-        {
-            if ($item.Name -eq $testModuleName)
-            {
-                $foundTestModule = $True
-            }
+        $foundResources = Find-PSResource -Name "*" -Prerelease -Repository "PoshTestGallery"
 
-            if ($item.Name -eq $testScriptName)
-            {
-                $foundTestScript = $True
-            }
-
-            if($item.IsPrerelease)
-            {
-                $foundPreview = $True
-            }
-        }
-
-        $foundPreview | Should -Be $True
-        $foundTestScript | Should -Be $True
-        $foundTestModule | Should -Be $True
+        # Should find Module and Script resources inlcuding prerelease resources
+        $foundResources | where-object Name -eq "test_module" | Should -Not -BeNullOrEmpty -Because "test_module should exist in PoshTestGallery"
+        $foundResources | where-object Name -eq "test_script" | Should -Not -BeNullOrEmpty -Because "test_script should exist in PoshTestGallery"
+        $foundResources | where-object IsPrerelease -eq $true | Should -Not -BeNullOrEmpty -Because "Prerelease resources should be returned"
     }
 
     It "find resource given Name from V3 endpoint repository (NuGetGallery)" {

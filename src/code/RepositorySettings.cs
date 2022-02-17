@@ -23,7 +23,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // File name for a user's repository store file is 'PSResourceRepository.xml'
         // The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
         private const string PSGalleryRepoName = "PSGallery";
-        private const string PSGalleryRepoURL = "https://www.powershellgallery.com/api/v2";
+        private const string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
         private const int defaultPriority = 50;
         private const bool defaultTrusted = false;
         private const string RepositoryFileName = "PSResourceRepository.xml";
@@ -59,7 +59,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 // Add PSGallery to the newly created store
-                Uri psGalleryUri = new Uri(PSGalleryRepoURL);
+                Uri psGalleryUri = new Uri(PSGalleryRepoUri);
                 Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted, repoCredentialInfo: null);
             }
 
@@ -79,7 +79,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryInfo Add(string repoName, Uri repoURL, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
+        public static PSRepositoryInfo Add(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             try
             {
@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XElement newElement = new XElement(
                     "Repository",
                     new XAttribute("Name", repoName),
-                    new XAttribute("Url", repoURL),
+                    new XAttribute("Uri", repoUri),
                     new XAttribute("Priority", repoPriority),
                     new XAttribute("Trusted", repoTrusted)
                     );
@@ -119,14 +119,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            return new PSRepositoryInfo(repoName, repoURL, repoPriority, repoTrusted, repoCredentialInfo);
+            return new PSRepositoryInfo(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo);
         }
 
         /// <summary>
-        /// Updates a repository name, URL, priority, installation policy, or credential information
+        /// Updates a repository name, Uri, priority, installation policy, or credential information
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoURL, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo)
+        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo)
         {
             PSRepositoryInfo updatedRepo;
             try
@@ -143,11 +143,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // Get root of XDocument (XElement)
                 var root = doc.Root;
 
-                // A null URL value passed in signifies the URL was not attempted to be set.
-                // So only set Url attribute if non-null value passed in for repoUrl
-                if (repoURL != null)
+                // A null Uri value passed in signifies the Uri was not attempted to be set.
+                // So only set Uri attribute if non-null value passed in for repoUri
+                if (repoUri != null)
                 {
-                    node.Attribute("Url").Value = repoURL.AbsoluteUri;
+                    node.Attribute("Uri").Value = repoUri.AbsoluteUri;
                 }
 
                 // A negative Priority value passed in signifies the Priority value was not attempted to be set.
@@ -187,10 +187,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                 }
 
-                // Create Uri from node Url attribute to create PSRepositoryInfo item to return.
-                if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                // Create Uri from node Uri attribute to create PSRepositoryInfo item to return.
+                if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
                 {
-                    throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted URL for repo {0}", repoName));
+                    throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
                 }
 
                 // Create CredentialInfo based on new values or whether it was empty to begin with
@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 updatedRepo = new PSRepositoryInfo(repoName,
-                    thisUrl,
+                    thisUri,
                     Int32.Parse(node.Attribute("Priority").Value),
                     Boolean.Parse(node.Attribute("Trusted").Value),
                     thisCredentialInfo);
@@ -259,7 +259,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
-                        new Uri(node.Attribute("Url").Value),
+                        new Uri(node.Attribute("Uri").Value),
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
                         repoCredentialInfo));
@@ -270,7 +270,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Close the file
             root.Save(FullRepositoryPath);
             errorList = tempErrorList.ToArray();
-            
+
             return removedRepos;
         }
 
@@ -296,9 +296,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // iterate through the doc
                 foreach (XElement repo in doc.Descendants("Repository"))
                 {
-                    if (!Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                    if (!Uri.TryCreate(repo.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
                     {
-                        tempErrorList.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", repo.Attribute("Name").Value));
+                        tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repo.Attribute("Name").Value));
                         continue;
                     }
 
@@ -335,7 +335,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
 
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
-                        thisUrl,
+                        thisUri,
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
                         thisCredentialInfo);
@@ -353,10 +353,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     foreach (var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
                     {
                         repoMatch = true;
-                        if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out Uri thisUrl))
+                        if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
                         {
                             //debug statement
-                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted URL for repo {0}", node.Attribute("Name").Value));
+                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", node.Attribute("Name").Value));
                             continue;
                         }
 
@@ -393,7 +393,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         }
 
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
-                            thisUrl,
+                            thisUri,
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
                             thisCredentialInfo);

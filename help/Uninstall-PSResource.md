@@ -47,11 +47,24 @@ Uninstalls version 1.0.0 of the Az module.
 ### Example 3
 ```powershell
 PS C:\> Uninstall-PSResource -name Az -version "(1.0.0, 3.0.0)"
-
-Uninstalls all versions within the specified version range.
 ```
 
-Uninstalls version 1.0.0 of the Az module.
+Uninstalls all versions within the specified version range.
+
+### Example 4
+```powershell
+PS C:\> Uninstall-PSResource -name Az -version "[4.0.1, 4.1.0]"
+```
+
+Assume that the following versions are already installed for package Az: 4.0.1-preview, 4.1.0, 4.0.2-preview installed, this will uninstall all versions (stable and prerelease) which fall within the specified version range. Per NuGetVersion rules, a prerelease version is less than a stable version, so 4.0.1-preview is actually less than the 4.0.1 specified version so 4.0.1-preview does not fall within the specified version range and won't be removed. Versions 4.1.0 and 4.0.2-preview do fall in the range and will both be removed.
+
+### Example 4
+```powershell
+PS C:\> Uninstall-PSResource -name Az -version "[4.0.1, 4.1.0]" -Prerelease
+```
+
+Assume that the following versions are already installed for package Az: 4.0.1-preview, 4.1.0, 4.0.2-preview installed. This is the same example as above, except the added `-Prerelease` parameter means only prerelease versions which fall within this range will be removed. Again, per NuGetVersion rules, a prerelease version is less than a stable version, so 4.0.1-preview is actually less than the 4.0.1 specified version. Therefore 4.0.1-preview does not fall within the specified version range and won't be removed. Version 4.1.0 does fall in range however it is not a prerelease version so it will remain installed. Version 4.0.2-preview does fall in the range and is prerelease so it will be removed.
+
 
 ## PARAMETERS
 

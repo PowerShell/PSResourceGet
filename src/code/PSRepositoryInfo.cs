@@ -13,10 +13,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri url, int priority, bool trusted, PSCredentialInfo credentialInfo)
+        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo)
         {
             Name = name;
-            Url = url;
+            Uri = uri;
             Priority = priority;
             Trusted = trusted;
             CredentialInfo = credentialInfo;
@@ -32,9 +32,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Name { get; }
 
         /// <summary>
-        /// the Url for the repository
+        /// the Uri for the repository
         /// </summary>
-        public Uri Url { get; }
+        public Uri Uri { get; }
 
         /// <summary>
         /// whether the repository is trusted

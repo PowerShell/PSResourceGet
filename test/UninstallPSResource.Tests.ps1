@@ -13,6 +13,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
         Uninstall-PSResource -name ContosoServer -Version "*"
+        Uninstall-PSResource -Name $testModuleName -Version "*"
     }
 
     BeforeEach {
@@ -181,6 +182,44 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $res = Get-PSResource -Name $testScriptName -Version "2.5.0.0"
         $res.Name | Should -Be $testScriptName
         $res.Version | Should -Be "2.5.0.0"
+    }
+
+    It "uninstall all prerelease versions (which satisfy the range) when -Version '*' and -Prerelease parameter is specified" {
+        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "3.5.2-beta001" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "4.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "4.5.2-alpha001" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $TestGalleryName
+        $res = Get-PSResource -Name $testModuleName
+        $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
+        $prereleaseVersionPkgs.Count | Should -Be 2
+
+        Uninstall-PSResource -Name $testModuleName -Version "*" -Prerelease
+        $res = Get-PSResource -Name $testModuleName
+        $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
+        $prereleaseVersionPkgs.Count | Should -Be 0
+        $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
+        $stableVersionPkgs.Count | Should -Be 3
+    }
+
+    It "uninstall all prerelease versions (which satisfy the range) when -Version range and -Prerelease parameter is specified" {
+        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "3.5.2-beta001" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "4.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "4.5.2-alpha001" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $TestGalleryName
+        $res = Get-PSResource -Name $testModuleName
+        $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
+        $prereleaseVersionPkgs.Count | Should -Be 2
+
+        Uninstall-PSResource -Name $testModuleName -Version "[3.0.0, 4.0.0]" -Prerelease
+        $res = Get-PSResource -Name $testModuleName
+        # should only uninstall 3.5.2-beta001, 4.5.2-alpha001 is out of range and should remain installed
+        $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
+        $prereleaseVersionPkgs.Count | Should -Be 1
+        $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
+        # versions 3.0.0 and 4.0.0 fall in range but should not be uninstalled as Prerelease parameter only selects prerelease versions for uninstallation
+        $stableVersionPkgs.Count | Should -Be 3
     }
 
     It "Uninstall module using -WhatIf, should not uninstall the module" {

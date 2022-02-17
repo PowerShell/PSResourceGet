@@ -49,5 +49,5 @@ See change log (CHANGELOG.md) at https://github.com/PowerShell/PowerShellGet
         }
     }
 
-    HelpInfoURI       = 'http://go.microsoft.com/fwlink/?linkid=855963'
+    HelpInfoUri       = 'http://go.microsoft.com/fwlink/?linkid=855963'
 }

@@ -14,7 +14,7 @@ Sets information for a registered repository.
 
 ### NameParameterSet (Default)
 ```
-Set-PSResourceRepository [-Name] <String> [-URL <String>] [-Trusted] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository [-Name] <String> [-Uri <String>] [-Trusted] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
@@ -30,43 +30,43 @@ These examples are run independently of each other and assume the repositories u
 ### Example 1
 ```powershell
 PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
-PS C:\> Set-PSResourceRepository -Name "PoshTestGallery" -URL "c:/code/testdir" -PassThru
-        Name             Url                                          Trusted   Priority
+PS C:\> Set-PSResourceRepository -Name "PoshTestGallery" -Uri "c:/code/testdir" -PassThru
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PoshTestGallery  file:///c:/code/testdir                        False         50
 ```
 
-This example first checks if the PoshTestGallery repository has been registered. We wish to set the `-URL` value of this repository by running the Set-PSResourceRepository cmdlet with the `-URL` parameter and a valid Uri scheme url. We run the Get-PSResourceRepository cmdlet again to ensure that the `-URL` of the repository was changed. We also use the `-PassThru` parameter to see the changed repository.
+This example first checks if the PoshTestGallery repository has been registered. We wish to set the `-Uri` value of this repository by running the Set-PSResourceRepository cmdlet with the `-Uri` parameter and a valid Uri scheme Uri. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Uri` of the repository was changed. We also use the `-PassThru` parameter to see the changed repository.
 
 ### Example 2
 ```powershell
 PS C:\> Get-PSResourceRepository -Name "PSGallery"
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
 PS C:\> Set-PSResourceRepository -Name "PSGallery" -Priority 25 -Trusted -PassThru
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2        True         25
 ```
 
-This example first checks if the PSGallery repository has been registered. We wish to set the `-Priority` and `-Trusted` values of this repository by running the Set-PSResourceRepository cmdlet with the `-Priority` parameter set to a value between 0 and 50 and by using the `-Trusted` parameter switch. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Priority` and `-Trusted` values of the repository were changed. An important note here is that just for the default PSGallery repository, the `-URL` value can't be changed/set. We also use the `-PassThru` parameter to see the changed repository.
+This example first checks if the PSGallery repository has been registered. We wish to set the `-Priority` and `-Trusted` values of this repository by running the Set-PSResourceRepository cmdlet with the `-Priority` parameter set to a value between 0 and 50 and by using the `-Trusted` parameter switch. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Priority` and `-Trusted` values of the repository were changed. An important note here is that just for the default PSGallery repository, the `-Uri` value can't be changed/set. We also use the `-PassThru` parameter to see the changed repository.
 
 ### Example 3
 ```powershell
 PS C:\> Get-PSResourceRepository -Name "*"
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
         PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
 
-PS C:\> $arrayOfHashtables = @{Name = "PSGallery"; Trusted = $True},@{Name = "PoshTestGallery"; URL = "c:/code/testdir"}
+PS C:\> $arrayOfHashtables = @{Name = "PSGallery"; Trusted = $True}, @{Name = "PoshTestGallery"; Uri = "c:/code/testdir"}
 
 PS C:\> Set-PSResourceRepository -Repositories $arrayOfHashtables -PassThru
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2        True         50
         PoshTestGallery  file:///c:/code/testdir                        False         50
@@ -121,7 +121,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -URL
+### -Uri
 Specifies the location of the repository to be set.
 
 ```yaml
