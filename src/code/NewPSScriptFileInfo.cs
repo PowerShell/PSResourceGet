@@ -1,3 +1,4 @@
+using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -8,6 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
+using System.Text;
 using Microsoft.PowerShell.Commands;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -264,15 +266,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 return;
-                // TODO: Anam, currently only one error and you return. So maybe this shouldn't be a list?
-                // But for extensability makes sense.
             }
 
-            File.WriteAllText(resolvedFilePath, psScriptFileContents); // TODO: Anam better way to do this?
+            using(FileStream fs = File.Create(resolvedFilePath))
+            {
+                byte[] info = new UTF8Encoding(true).GetBytes(psScriptFileContents);
+                fs.Write(info, 0, info.Length);
+            }
 
             if (PassThru)
             {
-                // WriteObject(psScriptFileContents);
+                WriteObject(psScriptFileContents);
             }            
         }
 
