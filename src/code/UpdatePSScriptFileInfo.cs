@@ -236,7 +236,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // get PSScriptFileInfo object for current script contents
-            if (!PSScriptFileInfo.TryParseScriptFileInfo(
+            if (!PSScriptFileInfo.TryParseScriptFile(
                 scriptFileInfoPath: resolvedFilePath,
                 out PSScriptFileInfo parsedScriptFileInfo,
                 out ErrorRecord[] errors))
@@ -251,7 +251,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                if (!PSScriptFileInfo.TryUpdateRequestedFields(
+                if (!PSScriptFileInfo.TryUpdateScriptFile(
                     originalScript: ref parsedScriptFileInfo,
                     updatedPSScriptFileContents: out string updatedPSScriptFileContents,
                     filePath: resolvedFilePath,
@@ -297,7 +297,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (Validate)
                     {
-                        if (!PSScriptFileInfo.TryParseScriptFileInfo(
+                        if (!PSScriptFileInfo.TryParseScriptFile(
                             scriptFileInfoPath: tempScriptFilePath,
                             out parsedScriptFileInfo,
                             out ErrorRecord[] testErrors))

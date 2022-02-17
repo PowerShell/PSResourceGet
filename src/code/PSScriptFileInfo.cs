@@ -1,4 +1,3 @@
-using System.Runtime.Serialization;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -70,7 +69,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// The list of modules required by the script
-        /// Hashtable keys: GUID, MaxVersion, Name (Required), RequiredVersion, Version
+        /// Hashtable keys: GUID, MaxVersion, ModuleName (Required), RequiredVersion, Version
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
@@ -110,7 +109,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         [ValidateNotNullOrEmpty()]
         public string Description { get; set; }
 
-        // TODO: seem to be optional keys for help comment, where would they be passed in from? constructor/New-X cmdlet?
         /// <summary>
         /// The synopsis of the script
         /// </summary>
@@ -227,7 +225,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Tests the contents of the .ps1 file at the provided path
         /// </summary>
-        public static bool TryParseScriptFileInfo(
+        public static bool TryParseScriptFile(
             string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
             out ErrorRecord[] errors)
@@ -254,7 +252,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         var message = String.Format("Could not parse '{0}' as a PowerShell script file due to {1}.", scriptFileInfoPath, err.Message);
                         var ex = new ArgumentException(message);
                         var psScriptFileParseError = new ErrorRecord(ex, err.ErrorId, ErrorCategory.ParserError, null);
-                        errorsList.Add(psScriptFileParseError);  
+                        errorsList.Add(psScriptFileParseError);
+                        errors = errorsList.ToArray();
+
                     }
 
                     return successfullyParsed;
@@ -340,13 +340,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                     if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
                     {
-                        // ReadOnlyCollection<Commands.ModuleSpecification> parsedRequiredModules = parsedScriptRequirements.RequiredModules;
                         parsedModules = parsedScriptRequirements.RequiredModules;
-                        // TODO: Anam was there any importance for this?
-                        // if (parsedPSScriptInfoHashtable.ContainsKey("RequiredModules"))
-                        // {
-                        //     parsedModules = (ReadOnlyCollection<ModuleSpecification>) parsedPSScriptInfoHashtable["RequiredModules"];
-                        // }
                         parsedPSScriptInfoHashtable.Add("RequiredModules", parsedModules);
                     }
 
@@ -457,7 +451,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Updates the contents of the .ps1 file at the provided path with the properties provided
         /// and writes new updated script file contents to a string and updates the original PSScriptFileInfo object
         /// </summary>        
-        public static bool TryUpdateRequestedFields(
+        public static bool TryUpdateScriptFile(
             ref PSScriptFileInfo originalScript,
             out string updatedPSScriptFileContents,
             string filePath,
