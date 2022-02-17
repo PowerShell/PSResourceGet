@@ -1,3 +1,4 @@
+using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -250,12 +251,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
+                Console.WriteLine("file content after test: " + File.ReadAllText(resolvedFilePath));
                 // update requested field
                 if (!PSScriptFileInfo.TryUpdateRequestedFields(
-                    ref parsedScriptFileInfo,
-                    out string updatedPSScriptFileContents,
-                    out ErrorRecord[] updateErrors,
-                    version:  Version,
+                    originalScript: ref parsedScriptFileInfo,
+                    updatedPSScriptFileContents: out string updatedPSScriptFileContents,
+                    filePath: resolvedFilePath,
+                    errors: out ErrorRecord[] updateErrors,
+                    version: Version,
                     guid: Guid,
                     author: Author,
                     companyName: CompanyName,
@@ -282,8 +285,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {                    
                     // write string of file contents to a temp file
                     var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-                    WriteObject(parsedScriptFileInfo);
-                    WriteObject(updatedPSScriptFileContents);
                     var tempScriptFilePath = Path.Combine(tempScriptDirPath, "tempScript.ps1");
                     if (!Directory.Exists(tempScriptDirPath))
                     {
@@ -295,8 +296,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         byte[] info = new UTF8Encoding(true).GetBytes(updatedPSScriptFileContents);
                         fs.Write(info, 0, info.Length);
                     }
-
-                    WriteObject(updatedPSScriptFileContents);
 
                     if (Validate)
                     {

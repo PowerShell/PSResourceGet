@@ -5,6 +5,7 @@ using System.Runtime.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Runtime.InteropServices;
@@ -19,7 +20,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     /// This class contains information for a repository item.
     /// </summary>
     public sealed class PSScriptFileInfo
-    {
+    {        
         #region Properties
 
         /// <summary>
@@ -173,28 +174,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         [ValidateNotNullOrEmpty()]
         public string[] Functionality { get; set; } = new string[]{};
 
-        /// <summary>
-        /// Optional end of file contents describing parameters
-        /// </summary>
-        public ParamBlockAst ParamBlock { get; set; }
-
-        /// <summary>
-        /// Optional end of file contents describing begin block
-        /// </summary>
-        private NamedBlockAst BeginBlock { get; set; }
-
-        /// <summary>
-        /// Optional end of file contents describing process block
-        /// </summary>
-        private NamedBlockAst ProcessBlock { get; set; }
-
-        /// <summary>
-        /// Optional end of file contents describing end block
-        /// </summary>
-        private NamedBlockAst EndBlock { get; set; }
-
         #endregion
-
 
         #region Constructor
         private PSScriptFileInfo() {}
@@ -280,7 +260,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     return successfullyParsed;
                 }
                 else if (ast != null)
-                {        
+                {
                     // Get the block/group comment beginning with <#PSScriptInfo
                     Hashtable parsedPSScriptInfoHashtable = new Hashtable();
                     List<Token> commentTokens = tokens.Where(a => String.Equals(a.Kind.ToString(), "Comment", StringComparison.OrdinalIgnoreCase)).ToList();
@@ -392,38 +372,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         parsedPSScriptInfoHashtable.Add("DefinedWorkflows", allWorkflowNames);
                     }
 
-                    // // see if there's any additional content in the file
-                    // string optionalEndOfFileContents = String.Empty;
-                    // if (ast.ParamBlock != null)
-                    // {
-                        
-                    //     if (ast.ParamBlock.Attributes != null && ast.ParamBlock.Attributes.Count > 0 && ast.ParamBlock.Attributes[0].Extent != null)
-                    //     {
-                    //         optionalEndOfFileContents += "\n" + ast.ParamBlock.Attributes[0].Extent.Text;
-                    //     }
-
-                    //     if (ast.ParamBlock.Extent != null)
-                    //     {
-                    //         optionalEndOfFileContents += "\n" + ast.ParamBlock.Extent.Text;
-                    //     }
-                    // }
-
-                    // if (ast.BeginBlock != null)
-                    // {
-                    //     optionalEndOfFileContents += "\n" + ast.BeginBlock.Extent.Text;
-                    // }
-
-                    // if (ast.ProcessBlock != null)
-                    // {
-                    //     optionalEndOfFileContents += "\n" + ast.ProcessBlock.Extent.Text;
-                    // }
-
-                    // if (ast.EndBlock != null)
-                    // {
-                    //     optionalEndOfFileContents += "\n" + ast.EndBlock.Extent.Text;
-                    // }
-
-
                     string parsedVersion = (string) parsedPSScriptInfoHashtable["VERSION"];
                     string parsedAuthor = (string) parsedPSScriptInfoHashtable["AUTHOR"];
                     Guid parsedGuid = String.IsNullOrEmpty((string)parsedPSScriptInfoHashtable["GUID"]) ? Guid.NewGuid() : new Guid((string) parsedPSScriptInfoHashtable["GUID"]);
@@ -482,27 +430,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             releaseNotes: parsedReleaseNotes,
                             privateData: (string) parsedPSScriptInfoHashtable["PRIVATEDATA"],
                             description: scriptCommentInfo.Description);
-
-                            // populate Ast block related properties in case the file has end of file content
-                            if (ast.ParamBlock != null)
-                            {
-                                parsedScript.ParamBlock = ast.ParamBlock;
-                            }
-
-                            if (ast.BeginBlock != null)
-                            {
-                                parsedScript.BeginBlock = ast.BeginBlock;
-                            }
-
-                            if (ast.ProcessBlock != null)
-                            {
-                                parsedScript.ProcessBlock = ast.ProcessBlock;
-                            }
-
-                            if (ast.EndBlock != null)
-                            {
-                                parsedScript.EndBlock = ast.EndBlock;
-                            }
                     }
                     catch (Exception e)
                     {
@@ -533,6 +460,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static bool TryUpdateRequestedFields(
             ref PSScriptFileInfo originalScript,
             out string updatedPSScriptFileContents,
+            string filePath,
             out ErrorRecord[] errors,
             string version,
             Guid guid,
@@ -666,6 +594,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // create string contents for .ps1 file
             if (!updatedScript.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
+                filePath: filePath,
                 errors: out ErrorRecord[] createFileContentErrors))
             {
                 errorsList.AddRange(createFileContentErrors);
@@ -686,6 +615,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Create .ps1 file contents with PSScriptFileInfo object's properties and output content as a string
         /// </summary>
         public bool TryCreateScriptFileInfoString(
+            string filePath,
             out string pSScriptFileString,
             out ErrorRecord[] errors
         )
@@ -740,7 +670,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             pSScriptFileString += "\n" + psHelpInfo;
 
-            GetEndOfFileContent(out string endOfFileAstContent);
+            Console.WriteLine("made it here");
+            GetEndOfFileLinesContent(
+                filePath: filePath,
+                endOfFileContent: out string endOfFileAstContent);
             if (!String.IsNullOrEmpty(endOfFileAstContent))
             {
                 pSScriptFileString += "\n" + endOfFileAstContent;
@@ -921,39 +854,26 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return psHelpInfoSuccessfullyCreated;
         }
 
-        public void GetEndOfFileContent(
-            out string endOfFileContent
-        )
+
+        public void GetEndOfFileLinesContent(
+            string filePath,
+            out string endOfFileContent)
         {
             endOfFileContent = String.Empty;
-            if (ParamBlock != null)
-            {
-                string paramBlockAttributes = String.Empty;
-                if (ParamBlock.Attributes != null && ParamBlock.Attributes.Count > 0 && ParamBlock.Attributes[0].Extent != null)
-                {
-                    paramBlockAttributes = ParamBlock.Attributes[0].Extent.Text;
-                    endOfFileContent += "\n" + paramBlockAttributes;
-                }
 
-                if (ParamBlock.Extent != null && !String.Equals(paramBlockAttributes, ParamBlock.Extent.Text, StringComparison.OrdinalIgnoreCase))
-                {
-                    endOfFileContent += "\n" + ParamBlock.Extent.Text;
-                }
+            if (String.IsNullOrEmpty(filePath) || !filePath.EndsWith(".ps1"))
+            {
+                return;
             }
 
-            if (BeginBlock != null)
-            {
-                endOfFileContent += "\n" + BeginBlock.Extent.Text;
-            }
+            string[] totalFileContents = File.ReadAllLines(filePath);
+            var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
 
-            if (ProcessBlock != null)
-            {
-                endOfFileContent += "\n" + ProcessBlock.Extent.Text;
-            }
+            var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
 
-            if (EndBlock != null)
+            if (contentAfterDescription.Count() > 0)
             {
-                endOfFileContent += "\n" + EndBlock.Extent.Text;
+                endOfFileContent = String.Join("\n", contentAfterDescription);
             }
         }
 

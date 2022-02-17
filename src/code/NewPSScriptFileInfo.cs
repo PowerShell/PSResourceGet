@@ -254,6 +254,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 description: Description);
 
             if (!currentScriptInfo.TryCreateScriptFileInfoString(
+                filePath: resolvedFilePath,
                 pSScriptFileString: out string psScriptFileContents,
                 errors: out ErrorRecord[] errors))
             {
@@ -271,7 +272,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (PassThru)
             {
-                WriteObject(psScriptFileContents);
+                // WriteObject(psScriptFileContents);
             }            
         }
 
