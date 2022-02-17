@@ -64,23 +64,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var resolvedFilePath = resolvedPaths[0].Path;
 
-            if (!PSScriptFileInfo.TryParseScriptFileInfo(
+            bool isValidScript = PSScriptFileInfo.TryParseScriptFileInfo(
                 scriptFileInfoPath: resolvedFilePath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
-                errors: out ErrorRecord[] errors))
+                errors: out ErrorRecord[] errors);
+
+            if (!isValidScript)
             {
                 foreach (ErrorRecord error in errors)
                 {
-                    WriteWarning("The .ps1 script file passed in was not valid due to: " + error);
+                    WriteWarning("The .ps1 script file passed in was not valid due to: " + error.Exception.Message);
                 }
-                
-                WriteObject(false);
             }
-            else
-            {
-                // WriteObject(parsedScriptInfo);
-                WriteObject(true);
-            }          
+
+            WriteObject(isValidScript);      
         }
 
         #endregion
