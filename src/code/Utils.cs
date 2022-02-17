@@ -831,11 +831,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static void CreateModuleSpecification(
             Hashtable[] moduleSpecHashtables,
-            out List<ModuleSpecification> validatedModuleSpecs,
+            out ModuleSpecification[] validatedModuleSpecs,
             out ErrorRecord[] errors)
         {
-            // bool successfullyCreatedModuleSpecs = false;
             List<ErrorRecord> errorList = new List<ErrorRecord>();
+            validatedModuleSpecs = new ModuleSpecification[]{};
             List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
 
             foreach(Hashtable moduleSpec in moduleSpecHashtables)
@@ -851,7 +851,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // at this point it must contain ModuleName key.
                 string moduleSpecName = (string) moduleSpec["ModuleName"];
-                ModuleSpecification currentModuleSpec = null;
+                ModuleSpecification currentModuleSpec;
                 if (moduleSpec.Keys.Count == 1 || (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion") && !moduleSpec.ContainsKey("Guid")))
                 {
                     // pass to ModuleSpecification(string) constructor
@@ -870,7 +870,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
                 else
                 {
-                    // TODO: ANAM perhaps not else
                     string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaxiumumVersion"] : String.Empty;
                     string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
                     string moduleSpecRequiredVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
@@ -915,8 +914,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             errors = errorList.ToArray();
-            validatedModuleSpecs = moduleSpecsList;
-            // return successfullyCreatedModuleSpecs;
+            validatedModuleSpecs = moduleSpecsList.ToArray();
         }
 
         #endregion

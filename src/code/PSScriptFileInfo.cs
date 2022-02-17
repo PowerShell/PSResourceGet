@@ -663,7 +663,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             pSScriptFileString += "\n" + psHelpInfo;
 
-            Console.WriteLine("made it here");
             GetEndOfFileLinesContent(
                 filePath: filePath,
                 endOfFileContent: out string endOfFileAstContent);

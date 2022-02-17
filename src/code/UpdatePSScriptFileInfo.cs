@@ -217,10 +217,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             string resolvedFilePath = resolvedPaths[0].Path;
             
-            List<ModuleSpecification> validatedRequiredModuleSpecifications = new List<ModuleSpecification>();
+            ModuleSpecification[] validatedRequiredModuleSpecifications = new ModuleSpecification[]{};
             if (RequiredModules != null && RequiredModules.Length > 0)
             {
-                // TODO: ANAM have this return array not list for mod specs
                 Utils.CreateModuleSpecification(
                     moduleSpecHashtables: RequiredModules,
                     out validatedRequiredModuleSpecifications,
@@ -264,7 +263,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     licenseUri: _licenseUri,
                     projectUri: _projectUri,
                     iconUri: _iconUri,
-                    requiredModules: validatedRequiredModuleSpecifications.ToArray(),
+                    requiredModules: validatedRequiredModuleSpecifications,
                     externalModuleDependencies: ExternalModuleDependencies,
                     requiredScripts: RequiredScripts,
                     externalScriptDependencies: ExternalScriptDependencies,
@@ -307,7 +306,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 WriteError(error);
                             }
 
-                            return; // TODO: Anam do we need this
+                            return; // TODO: if Validation was requested and fails, do we still write out updated file PSScriptFileInfo object?
                         }
                     }
 
