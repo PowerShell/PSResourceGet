@@ -319,16 +319,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
                     if (scriptCommentInfo != null)
                     {
-                        if (!String.IsNullOrEmpty(scriptCommentInfo.Description))
+                        if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
                         {
                             parsedPSScriptInfoHashtable.Add("DESCRIPTION", scriptCommentInfo.Description);
                         }
                         else
                         {
-                            var message = String.Format("PSScript is missing the required Description property");
+                            var message = String.Format("PSScript is missing the required Description property or Description value contains '<#' or '#>' which is invalid");
                             var ex = new ArgumentException(message);
-                            var psScriptMissingDescriptionPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingDescription", ErrorCategory.ParserError, null);
-                            errorsList.Add(psScriptMissingDescriptionPropertyError);
+                            var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingOrInvalidDescription", ErrorCategory.ParserError, null);
+                            errorsList.Add(psScriptMissingDescriptionOrInvalidPropertyError);
                             successfullyParsed = false;
                             return successfullyParsed;
                         }
@@ -474,7 +474,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string description)
         {
             bool successfullyUpdated = false;
-            // updatedScript = null;
             updatedPSScriptFileContents = String.Empty;
             errors = new ErrorRecord[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
@@ -794,6 +793,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return psHelpInfoSuccessfullyCreated;
             }
 
+            if (stringContainsComment(Description))
+            {
+                var exMessage = "PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again.";
+                var ex = new ArgumentException(exMessage);
+                var DescriptionContainsCommentError = new ErrorRecord(ex, "DescriptionContainsComment", ErrorCategory.InvalidArgument, null);
+                error = DescriptionContainsCommentError;
+                return psHelpInfoSuccessfullyCreated; 
+            }
+
             psHelpInfoSuccessfullyCreated = true;
             psHelpInfoLines.Add("<#\n");
             psHelpInfoLines.Add(String.Format(".DESCRIPTION\n{0}", Description));
@@ -869,6 +877,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 endOfFileContent = String.Join("\n", contentAfterDescription);
             }
+        }
+
+        /// <summary>
+        /// Ensure no fields (passed as stringToValidate) contains '<#' or '#>' (would break comment section)
+        /// </summary>
+        public bool stringContainsComment(string stringToValidate)
+        {
+            return stringToValidate.Contains("<#") || stringToValidate.Contains("#>");
         }
 
         #endregion
