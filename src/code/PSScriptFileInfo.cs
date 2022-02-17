@@ -793,7 +793,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return psHelpInfoSuccessfullyCreated;
             }
 
-            if (stringContainsComment(Description))
+            if (StringContainsComment(Description))
             {
                 var exMessage = "PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again.";
                 var ex = new ArgumentException(exMessage);
@@ -882,7 +882,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Ensure no fields (passed as stringToValidate) contains '<#' or '#>' (would break comment section)
         /// </summary>
-        public bool stringContainsComment(string stringToValidate)
+        public bool StringContainsComment(string stringToValidate)
         {
             return stringToValidate.Contains("<#") || stringToValidate.Contains("#>");
         }
