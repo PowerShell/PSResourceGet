@@ -1,4 +1,3 @@
-using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -150,8 +149,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string PrivateData { get; set; }
 
         /// <summary>
-        /// If specified, passes the contents of the created .ps1 file to the console
-        /// If -Path is not specified, then .ps1 contents will just be written out for the user
+        /// If specified, the .ps1 file contents are additionally written out to the console
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }
