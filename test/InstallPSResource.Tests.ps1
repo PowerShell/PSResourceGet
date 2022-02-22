@@ -383,7 +383,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install modules using -RequiredResourceFile with PSD1 file" {
-        $rrFilePSD1 = Join-Path -Path $psscriptroot -ChildPath "test" -AdditionalChildPath $RequiredResourcePSD1FileName
+        $rrFilePSD1 = Join-Path -Path $psscriptroot -ChildPath $RequiredResourcePSD1FileName
 
         Install-PSResource -RequiredResourceFile $rrFilePSD1
 
@@ -401,7 +401,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Install modules using -RequiredResourceFile with JSON file" {
-        $rrFileJSON = Join-Path -Path $psscriptroot -ChildPath "test" -AdditionalChildPath $RequiredResourceJSONFileName
+        $rrFileJSON = Join-Path -Path $psscriptroot -ChildPath $RequiredResourceJSONFileName
 
         Install-PSResource -RequiredResourceFile $rrFileJSON
 

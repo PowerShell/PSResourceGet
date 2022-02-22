@@ -145,8 +145,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ThrowTerminatingError(RequiredResourceFileDoesNotExist);
                 }
 
-                if (!resolvedPath.EndsWith(JsonFileExt, StringComparison.InvariantCultureIgnoreCase) && !resolvedPath.EndsWith(PSDataFileExt, StringComparison.InvariantCultureIgnoreCase))
+                if (resolvedPath.EndsWith(".json", StringComparison.InvariantCultureIgnoreCase))
                 {
+                    _resourceFileType = ResourceFileType.JsonFile;
+                }
+                else if (resolvedPath.EndsWith(".psd1", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    _resourceFileType = ResourceFileType.PSDataFile;
+                }
+                else
+                {
+                    // Throw here because no further processing can be done.
                     var exMessage = String.Format("The RequiredResourceFile must have either a '.json' or '.psd1' extension.  Please try specifying a path to a valid .json or .psd1 file");
                     var ex = new ArgumentException(exMessage);
                     var RequiredResourceFileNotValid = new ErrorRecord(ex, "RequiredResourceFileNotValid", ErrorCategory.ObjectNotFound, null);
@@ -185,20 +194,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
+        #region Enums
+        public enum ResourceFileType
+        {
+            UnknownFile,
+            JsonFile,
+            PSDataFile
+        }
+
+        #endregion
+
         #region Members
 
         private const string NameParameterSet = "NameParameterSet";
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
-        public const string JsonFileExt = ".json";
-        public const string PSDataFileExt = ".psd1";
         List<string> _pathsToInstallPkg;
         private string _requiredResourceFile;
         private string _requiredResourceJson;
         private Hashtable _requiredResourceHash;
         VersionRange _versionRange;
         InstallHelper _installHelper;
+        ResourceFileType _resourceFileType;
 
         #endregion
 
@@ -295,7 +313,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Hashtable pkgsInFile = null;
                     try
                     {
-                        if (_requiredResourceFile.EndsWith(JsonFileExt, StringComparison.InvariantCultureIgnoreCase))
+                        if (_resourceFileType.Equals(ResourceFileType.JsonFile))
                         {
                             pkgsInFile = Utils.ConvertJsonToHashtable(this, requiredResourceFileStream);
                         }
