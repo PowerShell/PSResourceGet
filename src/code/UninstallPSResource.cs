@@ -60,6 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private const string NameParameterSet = "NameParameterSet";
         private const string InputObjectParameterSet = "InputObjectParameterSet";
+        public const string PSScriptFileExt = ".ps1";
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
@@ -180,7 +181,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 ErrorRecord errRecord = null;
-                if (pkgPath.EndsWith(".ps1"))
+                if (pkgPath.EndsWith(PSScriptFileExt))
                 {
                     successfullyUninstalled = UninstallScriptHelper(pkgPath, pkgName, out errRecord);
                 }

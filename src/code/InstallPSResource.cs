@@ -145,7 +145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ThrowTerminatingError(RequiredResourceFileDoesNotExist);
                 }
 
-                if (!resolvedPath.EndsWith(".json") && !resolvedPath.EndsWith(".psd1"))
+                if (!resolvedPath.EndsWith(JsonFileExt, StringComparison.InvariantCultureIgnoreCase) && !resolvedPath.EndsWith(PSDataFileExt, StringComparison.InvariantCultureIgnoreCase))
                 {
                     var exMessage = String.Format("The RequiredResourceFile must have either a '.json' or '.psd1' extension.  Please try specifying a path to a valid .json or .psd1 file");
                     var ex = new ArgumentException(exMessage);
@@ -191,6 +191,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
+        public const string JsonFileExt = ".json";
+        public const string PSDataFileExt = ".psd1";
         List<string> _pathsToInstallPkg;
         private string _requiredResourceFile;
         private string _requiredResourceJson;
@@ -293,16 +295,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Hashtable pkgsInFile = null;
                     try
                     {
-                        if (_requiredResourceFile.EndsWith(".json"))
+                        if (_requiredResourceFile.EndsWith(JsonFileExt, StringComparison.InvariantCultureIgnoreCase))
                         {
                             pkgsInFile = Utils.ConvertJsonToHashtable(this, requiredResourceFileStream);
                         }
                         else
                         {
                             // must be a .psd1 file
-                            if (!Utils.TryParsePsd1(_requiredResourceFile, this, out pkgsInFile))
+                            if (!Utils.TryParsePSDataFile(_requiredResourceFile, this, out pkgsInFile))
                             {
-                                // Ran into errors parsing the .psd1 file which was found in Utils.TryParsePsd1() and written.
+                                // Ran into errors parsing the .psd1 file which was found in Utils.TryParsePSDataFile() and written.
                                 return;
                             }
                         }
