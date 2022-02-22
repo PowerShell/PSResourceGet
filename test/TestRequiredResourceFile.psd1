@@ -10,6 +10,5 @@
         prerelease = "true"
       }
    
-    TestModule99 = @{
-    }
+    TestModule99 = @{}
 }
