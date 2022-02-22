@@ -22,6 +22,9 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 
+using Microsoft.PowerShell.Commands;
+using System.Collections.ObjectModel;
+
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
@@ -449,6 +452,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
 
+                    // Run authenticode validation 
+                    if (!SkipPublisherCheck && !PublisherValidation(new string[]{ pkg.Name },  _versionRange, _pathsToSearch))
+                    {
+
+                    }
+
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
                     string normalizedVersionNoPrerelease = newVersion;
@@ -584,6 +593,101 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return pkgsSuccessfullyInstalled;
+        }
+
+        private bool PublisherValidation(String[] pkgName, VersionRange versionRange, List<string> pathsToSearch)
+        {
+            // 1) See if the current module that is trying to be installed is already installed
+            // call Get-PSResource
+            GetHelper getHelper = new GetHelper(this);
+            var pkgVersionsAlreadyInstalled = getHelper.GetPackagesFromPath(pkgName, versionRange, pathsToSearch, _prerelease);
+
+
+
+            // 2) If the module is already installed (an earlier version of the module, or same version being reinstalled, get the authenticode signature
+            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
+            try
+            {
+                authenticodeSignature = this.InvokeCommand.InvokeScript(
+                    script: $"param ([string] $signedFilePath) Get-AuthenticodeSignature -FilePaath $signedFilePath",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { signedFilePath });
+            }
+            catch { }
+
+            Signature signature = (authenticodeSignature.Any() 0 && authenticodeSignature[0] != null) ? (Signature)authenticodeSignature[0].BaseObject : null;
+
+            if (signature == null)
+            {
+                return false;
+            }
+
+            // 2b)  If you're able to get the authenticode signature, get the module details 
+
+
+
+            // 3) Validate the catalog signature for the current module being installed
+            Collection<PSObject> catalogAuthenticodeSignature = new Collection<PSObject>();
+            try
+            {
+                catalogAuthenticodeSignature = this.InvokeCommand.InvokeScript(
+                    script: $"param ([string] $catalogFilePath) Get-AuthenticodeSignature -FilePaath $catalogFilePath",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { catalogFilePath });
+            }
+            catch { }
+
+            Signature catalogSignature = (catalogAuthenticodeSignature.Any() && catalogAuthenticodeSignature[0] != null) ? (Signature)catalogAuthenticodeSignature[0].BaseObject : null;
+
+            if (catalogSignature == null || !catalogSignature.Status.Equals(SignatureStatus.Valid))
+            {
+                return false;
+            }
+
+            // Run catalog validation
+            //Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
+            try
+            {
+                var TestFileCatalogResult = this.InvokeCommand.InvokeScript(
+                    script: $"param ([string] $catalogFilePath) Test-FileCatalog -Path $moduleBasePath" +
+                                                                              $" -CatalogFilePath $CatalogFilePath" +
+                                                                              $" -FilesToSkip $script: PSGetItemInfoFileName,'*.cat','*.nupkg','*.nuspec'" +
+                                                                              $" -Detailed" +
+                                                                              $" -ErrorAction SilentlyContinue",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { catalogFilePath });
+
+               var catalogValidation = (TestFileCatalogResult.Any() && TestFileCatalogResult[0] != null) ? (Signature)TestFileCatalogResult[0].BaseObject : null;
+
+            }
+            catch { }
+
+             //catalogValidation = (TestFileCatalogResult.Any() && TestFileCatalogResult[0] != null) ? (CatalogInformation)TestFileCatalogResult[0].BaseObject : null;
+                                                                 `
+            if (catalogValidation == null || !catalogValidation.Status.Equals(SignatureStatus.Valid) || !catalogValidation.Signature.Status.Equals(SignatureStatus.Valid))
+            {
+                return false;
+            }                                                                 `
+                                                                                   
+
+        
+
+            // 5) if there is an installed module, and we have the info for the current module,
+            // test these scenarios:
+            //  $InstalledModuleAuthenticodePublisher  ==    $InstalledModuleDetails.Publisher
+            // $InstalledModuleRootCA = $InstalledModuleDetails.RootCertificateAuthority
+            // ???? $IsInstalledModuleSignedByMicrosoft = $InstalledModuleDetails.IsMicrosoftCertificate
+            // $InstalledModuleVersion = $InstalledModuleDetails.Version
+
+            
+
+            return true;
         }
 
         private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion)

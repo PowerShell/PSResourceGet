@@ -268,7 +268,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         requiredResourceFileStream = sr.ReadToEnd();
                     }
-                    
+
                     Hashtable pkgsInJsonFile = null;
                     try
                     {
