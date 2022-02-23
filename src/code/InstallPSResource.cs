@@ -118,7 +118,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public PSResourceInfo InputObject { get; set; }
 
         /// <summary>
-        /// Installs resources based on input from a JSON file.
+        /// Installs resources based on input from a .psd1 (hashtable) or .json file.
         /// </summary>
         [Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
         [ValidateNotNullOrEmpty]
@@ -138,11 +138,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!File.Exists(resolvedPath))
                 {
-                    var exMessage = String.Format("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json file");
+                    var exMessage = String.Format("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json or .psd1 file");
                     var ex = new ArgumentException(exMessage);
                     var RequiredResourceFileDoesNotExist = new ErrorRecord(ex, "RequiredResourceFileDoesNotExist", ErrorCategory.ObjectNotFound, null);
 
                     ThrowTerminatingError(RequiredResourceFileDoesNotExist);
+                }
+
+                if (resolvedPath.EndsWith(".json", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    _resourceFileType = ResourceFileType.JsonFile;
+                }
+                else if (resolvedPath.EndsWith(".psd1", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    _resourceFileType = ResourceFileType.PSDataFile;
+                }
+                else
+                {
+                    // Throw here because no further processing can be done.
+                    var exMessage = String.Format("The RequiredResourceFile must have either a '.json' or '.psd1' extension.  Please try specifying a path to a valid .json or .psd1 file");
+                    var ex = new ArgumentException(exMessage);
+                    var RequiredResourceFileNotValid = new ErrorRecord(ex, "RequiredResourceFileNotValid", ErrorCategory.ObjectNotFound, null);
+
+                    ThrowTerminatingError(RequiredResourceFileNotValid);
                 }
 
                 _requiredResourceFile = resolvedPath;
@@ -176,6 +194,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
+        #region Enums
+
+        private enum ResourceFileType
+        {
+            UnknownFile,
+            JsonFile,
+            PSDataFile
+        }
+
+        #endregion
+
         #region Members
 
         private const string NameParameterSet = "NameParameterSet";
@@ -188,6 +217,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Hashtable _requiredResourceHash;
         VersionRange _versionRange;
         InstallHelper _installHelper;
+        ResourceFileType _resourceFileType;
 
         #endregion
 
@@ -252,7 +282,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case RequiredResourceFileParameterSet:
-                    /* json file contents should look like:
+                    /* .json file contents should look like:
                        {
                           "Pester": {
                             "allowPrerelease": true,
@@ -262,28 +292,52 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                           }
                         }
                     */
-                    
+
+                    /* .psd1 file contents should look like:
+                       @{
+                          "Configuration" =  @{ version = "[4.4.2,4.7.0]" }
+                          "Pester" = @{
+                             version = "[4.4.2,4.7.0]"
+                             repository = PSGallery
+                             credential = $cred
+                             prerelease = $true
+                          }
+                       }
+                    */
+
                     string requiredResourceFileStream = string.Empty;
                     using (StreamReader sr = new StreamReader(_requiredResourceFile))
                     {
                         requiredResourceFileStream = sr.ReadToEnd();
                     }
                     
-                    Hashtable pkgsInJsonFile = null;
+                    Hashtable pkgsInFile = null;
                     try
                     {
-                        pkgsInJsonFile = Utils.ConvertJsonToHashtable(this, requiredResourceFileStream);
+                        if (_resourceFileType.Equals(ResourceFileType.JsonFile))
+                        {
+                            pkgsInFile = Utils.ConvertJsonToHashtable(this, requiredResourceFileStream);
+                        }
+                        else
+                        {
+                            // must be a .psd1 file
+                            if (!Utils.TryParsePSDataFile(_requiredResourceFile, this, out pkgsInFile))
+                            {
+                                // Ran into errors parsing the .psd1 file which was found in Utils.TryParsePSDataFile() and written.
+                                return;
+                            }
+                        }
                     }
                     catch (Exception)
                     {
-                        var exMessage = String.Format("Argument for parameter -RequiredResourceFile is not in proper json format.  Make sure argument is either a valid json file.");
+                        var exMessage = String.Format("Argument for parameter -RequiredResourceFile is not in proper json or hashtable format.  Make sure argument is either a valid .json or .psd1 file.");
                         var ex = new ArgumentException(exMessage);
                         var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceFileNotInProperJsonFormat", ErrorCategory.InvalidData, null);
 
                         ThrowTerminatingError(RequiredResourceFileNotInProperJsonFormat);
                     }
                     
-                    RequiredResourceHelper(pkgsInJsonFile);
+                    RequiredResourceHelper(pkgsInFile);
                     break;
 
                 case RequiredResourceParameterSet:
