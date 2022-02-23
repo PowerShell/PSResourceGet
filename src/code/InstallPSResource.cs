@@ -195,7 +195,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Enums
-        public enum ResourceFileType
+
+        private enum ResourceFileType
         {
             UnknownFile,
             JsonFile,
