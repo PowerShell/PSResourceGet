@@ -12,6 +12,7 @@ Describe 'Test Install-PSResource for Module' {
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = "TestModule"
         $RequiredResourceJSONFileName = "TestRequiredResourceFile.json"
+        $RequiredResourcePSD1FileName = "TestRequiredResourceFile.psd1"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
@@ -381,10 +382,28 @@ Describe 'Test Install-PSResource for Module' {
           $res3.Version | Should -Be "0.0.5"
     }
 
-    It "Install modules using -RequiredResourceFile with JSON file" {
-        $rrFileJSON = ".\$RequiredResourceJSONFileName"
+    It "Install modules using -RequiredResourceFile with PSD1 file" {
+        $rrFilePSD1 = Join-Path -Path $psscriptroot -ChildPath $RequiredResourcePSD1FileName
 
-        Install-PSResource -RequiredResourceFile $rrFileJSON -Verbose
+        Install-PSResource -RequiredResourceFile $rrFilePSD1
+
+        $res1 = Get-Module "TestModule" -ListAvailable
+        $res1.Name | Should -Be "TestModule"
+        $res1.Version | Should -Be "1.3.0"
+
+        $res2 = Get-Module "TestModulePrerelease" -ListAvailable
+        $res2.Name | Should -Be "TestModulePrerelease"
+        $res2.Version | Should -Be "0.0.1"
+
+        $res3 = Get-Module "TestModule99" -ListAvailable
+        $res3.Name | Should -Be "TestModule99"
+        $res3.Version | Should -Be "0.0.5"
+    }
+
+    It "Install modules using -RequiredResourceFile with JSON file" {
+        $rrFileJSON = Join-Path -Path $psscriptroot -ChildPath $RequiredResourceJSONFileName
+
+        Install-PSResource -RequiredResourceFile $rrFileJSON
 
         $res1 = Get-Module "TestModule" -ListAvailable
         $res1.Name | Should -Be "TestModule"
