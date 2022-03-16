@@ -24,6 +24,7 @@
         'New-PSScriptFileInfo',
         'Publish-PSResource',
         'Test-PSScriptFileInfo',
+        'Test-VersionEquality',
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
         'Update-PSResource',
