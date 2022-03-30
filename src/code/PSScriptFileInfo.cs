@@ -609,7 +609,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public bool TryCreateScriptFileInfoString(
             string filePath,
-            out string pSScriptFileString,
+            out string pSScriptFileString, // this is the string with the contents we want to put in the new ps1 file
             out ErrorRecord[] errors
         )
         {
@@ -663,13 +663,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             pSScriptFileString += "\n" + psHelpInfo;
 
-            GetEndOfFileLinesContent(
-                filePath: filePath,
-                endOfFileContent: out string endOfFileAstContent);
-            if (!String.IsNullOrEmpty(endOfFileAstContent))
-            {
-                pSScriptFileString += "\n" + endOfFileAstContent;
-            }
+            // GetEndOfFileLinesContent2(
+
+            // )
+            
+
+            // GetEndOfFileLinesContent(
+            //     filePath: filePath,
+            //     endOfFileContent: out string endOfFileAstContent);
+            // if (!String.IsNullOrEmpty(endOfFileAstContent))
+            // {
+            //     pSScriptFileString += "\n" + endOfFileAstContent;
+            // }
 
             fileContentsSuccessfullyCreated = true;
             return fileContentsSuccessfullyCreated;
@@ -856,26 +861,45 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
 
+        // public void GetEndOfFileLinesContent2(
+        //     string totalFileContents2,
+        //     out string endOfFileContent)
+        // {
+        //     // if (String.IsNullOrEmpty(filePath) || !filePath.EndsWith(".ps1"))
+        //     // {
+        //     //     return;
+        //     // }
+
+        //     // string[] totalFileContents = File.ReadAllLines(filePath);
+        //     // var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
+
+        //     // var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
+
+        //     // if (contentAfterDescription.Count() > 0)
+        //     // {
+        //     //     endOfFileContent = String.Join("\n", contentAfterDescription);
+        //     // }
+        // }
         public void GetEndOfFileLinesContent(
             string filePath,
             out string endOfFileContent)
         {
             endOfFileContent = String.Empty;
 
-            if (String.IsNullOrEmpty(filePath) || !filePath.EndsWith(".ps1"))
-            {
-                return;
-            }
+            // if (String.IsNullOrEmpty(filePath) || !filePath.EndsWith(".ps1"))
+            // {
+            //     return;
+            // }
 
-            string[] totalFileContents = File.ReadAllLines(filePath);
-            var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
+            // string[] totalFileContents = File.ReadAllLines(filePath);
+            // var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
 
-            var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
+            // var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
 
-            if (contentAfterDescription.Count() > 0)
-            {
-                endOfFileContent = String.Join("\n", contentAfterDescription);
-            }
+            // if (contentAfterDescription.Count() > 0)
+            // {
+            //     endOfFileContent = String.Join("\n", contentAfterDescription);
+            // }
         }
 
         /// <summary>
