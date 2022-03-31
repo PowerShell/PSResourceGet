@@ -899,6 +899,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
             }
 
+            // TODO: add newline before #> or will that just inflate it with newlines each round?
             psHelpInfoLines.Add("#>");
             psHelpInfo = String.Join("\n", psHelpInfoLines);
             return psHelpInfoSuccessfullyCreated;

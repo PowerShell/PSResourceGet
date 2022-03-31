@@ -21,7 +21,6 @@ Describe "Test New-PSScriptFileInfo" {
 
     It "create .ps1 file with minimal required fields" {    
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript2.ps1"
-        Write-Host $scriptFilePath
         $scriptDescription = "this is a test script"
         $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -PassThru
         Write-host $res
@@ -29,4 +28,39 @@ Describe "Test New-PSScriptFileInfo" {
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
     }
+
+    It "create .ps1 file with relative path" {
+        $relativeCurrentPath = Get-Location
+        $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "testScript2.ps1"
+        $scriptDescription = "this is a test script"
+        $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -PassThru
+        Write-host $res
+        $res | Should -Not -BeNullOrEmpty
+
+        Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
+        Remove-Item -Path (Join-Path -Path $relativeCurrentPath -ChildPath "testScript2.ps1")
+    }
+
+    It "create .ps1 file with RequiredModules" {
+        $hashtable1 = @{ModuleName = "ReqModule1"}
+        $hashtable2 = @{ModuleName = "ReqModule2"; ModuleVersion = "1.0.0.0"}
+        $requiredModulesHashtables = $hashtable1, $hashtable2
+
+        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript2.ps1"
+        $scriptDescription = "this is a test script"
+        $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -RequiredModules $requiredModulesHashtables -PassThru
+        Write-Host $res
+        $res | Should -Not -BeNullOrEmpty
+
+        Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
+        #MaximumVersion, #RequiredVersion, #ModuleVersion
+        # $reqModsActual = @(@{"ModuleName" = "ReqModule1"},@{"ModuleVersion"="1.0.0.0";"ModuleName"="ReqModule2"})
+    }
+
+    # test with required modules
+    # test with each param really....would be easier to test if we returned PSSriptFileInfoobject
+
+
+
+    
 }
