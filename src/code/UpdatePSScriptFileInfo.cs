@@ -198,9 +198,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
-            if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase) || !File.Exists(FilePath))
+            // TODO: must resolve relative paths before checking if path exists
+            if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                    var exMessage = "Path needs to exist and end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
+                    var exMessage = "File path needs to end with a .ps1 extension. Example: C:/Users/john/x/MyScript.ps1";
                     var ex = new ArgumentException(exMessage);
                     var InvalidOrNonExistantPathError = new ErrorRecord(ex, "InvalidOrNonExistantPath", ErrorCategory.InvalidArgument, null);
                     ThrowTerminatingError(InvalidOrNonExistantPathError);   
@@ -216,6 +217,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             string resolvedFilePath = resolvedPaths[0].Path;
+
+            if (!File.Exists(resolvedFilePath))
+            {
+                var exMessage = "A file does not exist at the location specified";
+                var ex = new ArgumentException(exMessage);
+                var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(FileDoesNotExistError);
+            }
             
             ModuleSpecification[] validatedRequiredModuleSpecifications = new ModuleSpecification[]{};
             if (RequiredModules != null && RequiredModules.Length > 0)
@@ -252,7 +261,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (!PSScriptFileInfo.TryUpdateScriptFile(
                     originalScript: ref parsedScriptFileInfo,
                     updatedPSScriptFileContents: out string updatedPSScriptFileContents,
-                    filePath: resolvedFilePath,
+                    // filePath: resolvedFilePath,
                     errors: out ErrorRecord[] updateErrors,
                     version: Version,
                     guid: Guid,

@@ -1,3 +1,4 @@
+using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -37,13 +38,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            if (!File.Exists(FilePath))
-            {
-                var exMessage = "A file does not exist at the location specified";
-                var ex = new ArgumentException(exMessage);
-                var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(FileDoesNotExistError);
-            }
+            // if (!File.Exists(FilePath))
+            // {
+            //     var exMessage = "A file does not exist at the location specified";
+            //     var ex = new ArgumentException(exMessage);
+            //     var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
+            //     ThrowTerminatingError(FileDoesNotExistError);
+            // }
 
             if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
@@ -53,6 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathError);   
             }
 
+            // var resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath).First().Path;
             var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
             if (resolvedPaths.Count != 1)
             {
@@ -63,6 +65,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             var resolvedFilePath = resolvedPaths[0].Path;
+
+            if (!File.Exists(resolvedFilePath))
+            {
+                var exMessage = "A file does not exist at the location specified";
+                var ex = new ArgumentException(exMessage);
+                var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(FileDoesNotExistError);
+            }
 
             bool isValidScript = PSScriptFileInfo.TryParseScriptFile(
                 scriptFileInfoPath: resolvedFilePath,

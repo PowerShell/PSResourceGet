@@ -20,6 +20,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     /// </summary>
     public sealed class PSScriptFileInfo
     {        
+        #region Members
+        private string[] fileContents = new string[]{};
+        #endregion
+
         #region Properties
 
         /// <summary>
@@ -220,6 +224,25 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
+        #region Public Methods
+        public string[] GetFileContents()
+        {
+            if (fileContents == null || fileContents.Length == 0)
+            {
+                fileContents = Utils.EmptyStrArray;
+            }
+
+            return fileContents;
+        }
+
+        public void SetFileContents(string[] newFileContents)
+        {
+            // TODO: new file contents is a misleading name...rename
+            fileContents = newFileContents;
+        }
+
+        #endregion
+        
         #region Public Static Methods
 
         /// <summary>
@@ -424,6 +447,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             releaseNotes: parsedReleaseNotes,
                             privateData: (string) parsedPSScriptInfoHashtable["PRIVATEDATA"],
                             description: scriptCommentInfo.Description);
+
+                        // TODO: get file contents and set member of PSScriptFileInfo instance
+                        // Or should I get end of file contents just right here?
+                        string[] totalFileContents = File.ReadAllLines(scriptFileInfoPath);
+                        var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
+                        var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
+                        if (contentAfterDescription.Count() > 0)
+                        {
+                            parsedScript.SetFileContents(contentAfterDescription.ToArray());
+                        }
+
                     }
                     catch (Exception e)
                     {
@@ -450,11 +484,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Updates the contents of the .ps1 file at the provided path with the properties provided
         /// and writes new updated script file contents to a string and updates the original PSScriptFileInfo object
+        /// TODO: should this really be static? I think not, but also we create a new instance for the updated PSScriptFileInfo so as to not data loss
         /// </summary>        
         public static bool TryUpdateScriptFile(
             ref PSScriptFileInfo originalScript,
             out string updatedPSScriptFileContents,
-            string filePath,
+            // string filePath,
             out ErrorRecord[] errors,
             string version,
             Guid guid,
@@ -587,12 +622,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // create string contents for .ps1 file
             if (!updatedScript.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
-                filePath: filePath,
+                // filePath: filePath,
                 errors: out ErrorRecord[] createFileContentErrors))
             {
                 errorsList.AddRange(createFileContentErrors);
                 errors = errorsList.ToArray();
                 return successfullyUpdated;
+            }
+
+            // TODO: get end of file contents here
+            if (updatedScript.GetFileContents() != null && updatedScript.GetFileContents().Length > 0)
+            {
+                psScriptFileContents += "\n" + String.Join("\n", updatedScript.GetFileContents());
             }
 
             successfullyUpdated = true;
@@ -605,10 +646,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Public Methods
 
         /// <summary>
-        /// Create .ps1 file contents with PSScriptFileInfo object's properties and output content as a string
+        /// Create .ps1 file contents as a string from PSScriptFileInfo object's properties
+        /// end of file contents are not yet added to the string contents of the file
         /// </summary>
         public bool TryCreateScriptFileInfoString(
-            string filePath,
+            // string filePath,
             out string pSScriptFileString, // this is the string with the contents we want to put in the new ps1 file
             out ErrorRecord[] errors
         )
@@ -661,6 +703,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return fileContentsSuccessfullyCreated;
             }
 
+            pSScriptFileString += "\n"; // need a newline after last #> and before <# for script comment block
+            // or else not recongnized as a valid comment help info block when parsing the created ps1 later
             pSScriptFileString += "\n" + psHelpInfo;
 
             // GetEndOfFileLinesContent2(

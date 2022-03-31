@@ -208,16 +208,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
             }
 
-            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
-            if (resolvedPaths.Count != 1)
-            {
-                var exMessage = "Error: Could not resolve provided Path argument into a single path.";
-                var ex = new PSArgumentException(exMessage);
-                var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathArgumentError);
-            }
+            // var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
+            // if (resolvedPaths.Count != 1)
+            // {
+            //     var exMessage = "Error: Could not resolve provided Path argument into a single path.";
+            //     var ex = new PSArgumentException(exMessage);
+            //     var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
+            //     ThrowTerminatingError(InvalidPathArgumentError);
+            // }
 
-            var resolvedFilePath = resolvedPaths[0].Path;
+            // var resolvedFilePath = resolvedPaths[0].Path;
 
             ModuleSpecification[] validatedRequiredModuleSpecifications = new ModuleSpecification[]{};
             if (RequiredModules != null && RequiredModules.Length > 0)
@@ -254,7 +254,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 description: Description);
 
             if (!currentScriptInfo.TryCreateScriptFileInfoString(
-                filePath: resolvedFilePath,
+                // filePath: resolvedFilePath,
                 pSScriptFileString: out string psScriptFileContents,
                 errors: out ErrorRecord[] errors))
             {
@@ -266,7 +266,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            using(FileStream fs = File.Create(resolvedFilePath))
+            using(FileStream fs = File.Create(FilePath))
             {
                 byte[] info = new UTF8Encoding(true).GetBytes(psScriptFileContents);
                 fs.Write(info, 0, info.Length);
