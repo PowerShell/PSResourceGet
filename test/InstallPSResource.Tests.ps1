@@ -294,21 +294,22 @@ Describe 'Test Install-PSResource for Module' {
     #     $res.Path.Contains("Modules") | Should -Be $true
     # }
 
-    # It "Install module using -NoClobber, should throw clobber error and not install the module" {
-    #     Install-PSResource -Name "ClobberTestModule1" -Repository $TestGalleryName  
+    It "Install module using -NoClobber, should throw clobber error and not install the module" {
+        Install-PSResource -Name "ClobberTestModule1" -Repository $PSGalleryName -TrustRepository
     
-    #     $res = Get-Module "ClobberTestModule1" -ListAvailable
-    #     $res.Name | Should -Be "ClobberTestModule1"
+        $res = Get-PSResource "ClobberTestModule1"
+        $res.Name | Should -Be "ClobberTestModule1"
 
-    #     Install-PSResource -Name "ClobberTestModule2" -Repository $TestGalleryName -NoClobber -ErrorAction SilentlyContinue
-    #     $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
-    # }
-    #     It "Install PSResourceInfo object piped in" {
-    #     Find-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName | Install-PSResource
-    #     $res = Get-PSResource -Name $testModuleName
-    #     $res.Name | Should -Be $testModuleName
-    #     $res.Version | Should -Be "1.1.0.0"
-    # }
+        Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+
+    It "Install PSResourceInfo object piped in" {
+        Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName | Install-PSResource -TrustRepository
+        $res = Get-PSResource -Name $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "1.0.0.0"
+    }
 
     It "Install module using -PassThru" {
         $res = Install-PSResource -Name $testModuleName -Repository $PSGalleryName -PassThru -TrustRepository
