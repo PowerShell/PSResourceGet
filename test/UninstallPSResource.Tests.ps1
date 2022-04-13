@@ -8,7 +8,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName
-        $testModuleName = "test_module"
+        $testModuleName = "test_module2"
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
         Uninstall-PSResource -Name $testModuleName -Version "*"
@@ -235,7 +235,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Do not Uninstall module that is a dependency for another module" {
-        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
     
         Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
 
