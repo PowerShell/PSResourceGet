@@ -1,14 +1,16 @@
  @{
-    TestModule = @{
-        version = "[0.0.1,1.3.0]"
-        repository = "PoshTestGallery"
+    test_module = @{
+        version = "[1.0.0,5.0.0)"
+        repository = "PSGallery"
       }
    
-      TestModulePrerelease = @{
-        version = "[0.0.0,0.0.5]"
-        repository = "PoshTestGallery"
-        prerelease = "true"
-      }
+    test_module2 = @{
+      version = "[1.0.0,3.0.0)"
+      repository = "PSGallery"
+      prerelease = "true"
+    }
    
-    TestModule99 = @{}
+    TestModule99 = @{
+      repository = "PSGallery"
+    }
 }
