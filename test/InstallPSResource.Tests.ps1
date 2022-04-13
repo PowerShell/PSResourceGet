@@ -19,9 +19,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "TestModule", "TestModule99", "myTestModule", "myTestModule2", "testModulePrerelease", 
-            "testModuleWithlicense","PSGetTestModule", "PSGetTestDependency1", "TestFindModule","ClobberTestModule1",
-            "ClobberTestModule2" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
