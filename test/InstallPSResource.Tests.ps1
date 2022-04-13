@@ -255,17 +255,17 @@ Describe 'Test Install-PSResource for Module' {
     # }
 
 
-    # It "Install resource with cmdlet names from a module already installed (should clobber)" {
-    #     Install-PSResource -Name "myTestModule" -Repository $TestGalleryName  
-    #     $pkg = Get-PSResource "myTestModule"
-    #     $pkg.Name | Should -Be "myTestModule" 
-    #     $pkg.Version | Should -Be "0.0.3.0"
+    It "Install resource with cmdlet names from a module already installed (should clobber)" {
+        Install-PSResource -Name "CLobberTestModule1" -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-PSResource "ClobberTestModule1"
+        $pkg.Name | Should -Be "ClobberTestModule1" 
+        $pkg.Version | Should -Be "0.0.1.0"
 
-    #     Install-PSResource -Name "myTestModule2" -Repository $TestGalleryName  
-    #     $pkg = Get-PSResource "myTestModule2"
-    #     $pkg.Name | Should -Be "myTestModule2" 
-    #     $pkg.Version | Should -Be "0.0.1.0"
-    # }
+        Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-PSResource "ClobberTestModule2"
+        $pkg.Name | Should -Be "ClobberTestModule2" 
+        $pkg.Version | Should -Be "0.0.1.0"
+    }
 
     It "Install resource from local repository given Repository parameter" {
         $publishModuleName = "TestFindModule"
