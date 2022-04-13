@@ -286,13 +286,13 @@ Describe 'Test Install-PSResource for Module' {
         $res | Should -BeNullOrEmpty
     }
 
-    # It "Validates that a module with module-name script files (like Pester) installs under Modules path" {
+    It "Validates that a module with module-name script files (like Pester) installs under Modules path" {
 
-    #     Install-PSResource -Name "testModuleWithScript" -Repository $TestGalleryName
+        Install-PSResource -Name "testModuleWithScript" -Repository $PSGalleryName -TrustRepository
     
-    #     $res = Get-Module "testModuleWithScript" -ListAvailable
-    #     $res.Path.Contains("Modules") | Should -Be $true
-    # }
+        $res = Get-PSResource "testModuleWithScript"
+        $res.InstalledLocation.ToString().Contains("Modules") | Should -Be $true
+    }
 
     It "Install module using -NoClobber, should throw clobber error and not install the module" {
         Install-PSResource -Name "ClobberTestModule1" -Repository $PSGalleryName -TrustRepository
