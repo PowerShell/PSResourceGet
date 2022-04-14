@@ -8,15 +8,17 @@ Describe 'Test Update-PSResource' {
 
 
     BeforeAll {
-        $TestGalleryName = Get-PoshTestGalleryName
+        $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
-        $testModuleName = "TestModule"
+        $testModuleName = "test_module"
+        $testModuleName2 = "test_module2"
+        $testModuleName3 = "TestModule99"
         Get-NewPSResourceRepositoryFile
         Get-PSResourceRepository
     }
 
     AfterEach {
-        Uninstall-PSResource "TestModule", "TestModule99", "TestModuleWithLicense", "PSGetTestModule"
+        Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithLicense", "test_module2", "test_script"
     }
 
     AfterAll {
@@ -24,15 +26,15 @@ Describe 'Test Update-PSResource' {
     }
 
     It "update resource installed given Name parameter" {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        Update-PSResource -Name $testModuleName -Repository $TestGalleryName
+        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $isPkgUpdated = $true
             }
@@ -42,43 +44,43 @@ Describe 'Test Update-PSResource' {
     }
 
     It "update resources installed given Name (with wildcard) parameter" {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
-        Install-PSResource -Name "TestModule99" -Version "0.0.4.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName2 -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        Update-PSResource -Name "TestModule*" -Repository $TestGalleryName
-        $res = Get-PSResource -Name "TestModule*"
+        Update-PSResource -Name "test_mod*" -Repository $PSGalleryName -TrustRepository
+        $res = Get-PSResource -Name "test_mod*" -Version "5.0.0.0"
 
-        $inputHashtable = @{TestModule = "1.1.0.0"; TestModule99 = "0.0.4.0"}
-        $isTestModuleUpdated = $false
-        $isTestModule99Updated = $false
+        $inputHashtable = @{test_module = "1.0.0.0"; test_module2 = "1.0.0.0"}
+        $isTest_ModuleUpdated = $false
+        $isTest_Module2Updated = $false
         foreach ($item in $res)
         {
             if ([System.Version]$item.Version -gt [System.Version]$inputHashtable[$item.Name])
             {
                 if ($item.Name -like $testModuleName)
                 {
-                    $isTestModuleUpdated = $true
+                    $isTest_ModuleUpdated = $true
                 }
-                elseif ($item.Name -like "TestModule99")
+                elseif ($item.Name -like $testModuleName2)
                 {
-                    $isTestModule99Updated = $true
+                    $isTest_Module2Updated = $true
                 }
             }
         }
 
-        $isTestModuleUpdated | Should -BeTrue
-        $isTestModule99Updated | Should -BeTrue
+        $isTest_ModuleUpdated | Should -BeTrue
+        $isTest_Module2Updated | Should -BeTrue
     }
 
     It "update resource installed given Name and Version (specific) parameters" {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        Update-PSResource -Name $testModuleName -Version "1.2.0.0" -Repository $TestGalleryName
+        Update-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
         $res = Get-PSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -eq [System.Version]"1.2.0.0")
+            if ([System.Version]$pkg.Version -eq [System.Version]"5.0.0.0")
             {
                 $isPkgUpdated = $true
             }
@@ -87,22 +89,22 @@ Describe 'Test Update-PSResource' {
         $isPkgUpdated | Should -BeTrue
     }
 
-    $testCases2 = @{Version="[1.3.0.0]";           ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, exact match"},
-                  @{Version="1.3.0.0";             ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.1.1.0, 1.3.0.0]";  ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, exact range inclusive"},
-                  @{Version="(1.1.1.0, 1.3.0.0)";  ExpectedVersions=@("1.1.0.0", "1.2.0.0"); Reason="validate version, exact range exclusive"},
-                  @{Version="(1.1.1.0,)";          ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.1.1.0,)";          ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, minimum version inclusive"},
-                  @{Version="(,1.3.0.0)";          ExpectedVersions=@("1.1.0.0", "1.2.0.0"); Reason="validate version, maximum version exclusive"},
-                  @{Version="(,1.3.0.0]";          ExpectedVersions=@("1.1.0.0", "1.3.0.0"); Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.1.1.0, 1.3.0.0)";  ExpectedVersions=@("1.1.0.0", "1.2.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.1.1.0, 1.3.0.0]";  ExpectedVersions=@("1.1.0.0", "1.2.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version="[3.0.0.0]";           ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, exact match"},
+                  @{Version="3.0.0.0";             ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[3.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason="validate version, exact range inclusive"},
+                  @{Version="(3.0.0.0, 6.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason="validate version, exact range exclusive"},
+                  @{Version="(3.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "5.0.0.0"); Reason="validate version, minimum version exclusive"},
+                  @{Version="[3.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason="validate version, minimum version inclusive"},
+                  @{Version="(,5.0.0.0)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, maximum version exclusive"},
+                  @{Version="(,5.0.0.0]";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason="validate version, maximum version inclusive"},
+                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(1.0.0.0, 3.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "update resource when given Name to <Reason> <Version>" -TestCases $testCases2{
         param($Version, $ExpectedVersions)
 
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
-        Update-PSResource -Name $testModuleName -Version $Version -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -113,20 +115,20 @@ Describe 'Test Update-PSResource' {
     }
 
     $testCases = @(
-        @{Version='(1.2.0.0)';       Description="exclusive version (2.10.0.0)"},
-        @{Version='[1-2-0-0]';       Description="version formatted with invalid delimiter [1-2-0-0]"}
+        @{Version='(3.0.0.0)';       Description="exclusive version (3.0.0.0)"},
+        @{Version='[3-0-0-0]';       Description="version formatted with invalid delimiter [3-0-0-0]"}
     )
     It "Should not update resource with incorrectly formatted version such as <Description>" -TestCases $testCases{
         param($Version, $Description)
 
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
-        Update-PSResource -Name $testModuleName -Version $Version -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $isPkgUpdated = $true
             }
@@ -136,18 +138,16 @@ Describe 'Test Update-PSResource' {
     }
 
     It "update resource with latest (including prerelease) version given Prerelease parameter" {
-        # PSGetTestModule resource's latest version is a prerelease version, before that it has a non-prerelease version
-
-        Install-PSResource -Name "PSGetTestModule" -Version "1.0.2.0" -Repository $TestGalleryName
-        Update-PSResource -Name "PSGetTestModule" -Prerelease -Repository $TestGalleryName
-        $res = Get-PSResource -Name "PSGetTestModule"
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -Prerelease -Repository $PSGalleryName -TrustRepository
+        $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.2.0")
+            if ([System.Version]$pkg.Version -ge [System.Version]"5.2.5")
             {
-                $pkg.Prerelease | Should -Be "alpha1"
+                $pkg.Prerelease | Should -Be "alpha001"
                 $isPkgUpdated = $true
             }
         }
@@ -158,17 +158,17 @@ Describe 'Test Update-PSResource' {
     # Windows only
     It "update resource under CurrentUser scope" -skip:(!$IsWindows) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Version "1.2.0.0" -Repository $TestGalleryName -Scope CurrentUser
+        Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
                 $isPkgUpdated = $true
@@ -180,16 +180,16 @@ Describe 'Test Update-PSResource' {
 
     # Windows only
     It "update resource under AllUsers scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Version "1.2.0.0" -Repository $TestGalleryName -Scope AllUsers
+        Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
 
         $res = Get-PSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $pkg.InstalledLocation.Contains("Program Files") | Should -Be $true
                 $isPkgUpdated = $true
@@ -201,15 +201,15 @@ Describe 'Test Update-PSResource' {
 
     # Windows only
     It "update resource under no specified scope" -skip:(!$IsWindows) {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
-        Update-PSResource -Name $testModuleName -Version "1.2.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
                 $isPkgUpdated = $true
@@ -224,16 +224,16 @@ Describe 'Test Update-PSResource' {
     It "Update resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
         # this line is commented out because AllUsers scope requires sudo and that isn't supported in CI yet
         # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $TestGalleryName -Scope CurrentUser
+        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
                 $isPkgUpdated = $true
@@ -247,17 +247,17 @@ Describe 'Test Update-PSResource' {
     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
     # this test is skipped because it requires sudo to run and has yet to be resolved in CI
     It "Update resource under AllUsers scope - Unix only" -Skip:($true) {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $TestGalleryName -Scope AllUsers
+        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
 
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $pkg.InstalledLocation.Contains("usr") | Should -Be $true
                 $isPkgUpdated = $true
@@ -272,16 +272,16 @@ Describe 'Test Update-PSResource' {
     It "Update resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
         # this is commented out because it requires sudo to run with AllUsers scope and this hasn't been resolved in CI yet
         # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $TestGalleryName
+        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
                 $isPkgUpdated = $true
@@ -291,54 +291,33 @@ Describe 'Test Update-PSResource' {
         $isPkgUpdated | Should -Be $true
     }
 
-    It "update resource that requires accept license with -AcceptLicense flag" {
-        Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
-        Update-PSResource -Name "TestModuleWithLicense" -Repository $TestGalleryName -AcceptLicense
-        $res = Get-PSResource "TestModuleWithLicense"
+    # It "update resource that requires accept license with -AcceptLicense flag" {
+    #     Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
+    #     Update-PSResource -Name "TestModuleWithLicense" -Repository $TestGalleryName -AcceptLicense
+    #     $res = Get-PSResource "TestModuleWithLicense"
 
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"0.0.1.0")
-            {
-                $isPkgUpdated = $true
-            }
-        }
+    #     $isPkgUpdated = $false
+    #     foreach ($pkg in $res)
+    #     {
+    #         if ([System.Version]$pkg.Version -gt [System.Version]"0.0.1.0")
+    #         {
+    #             $isPkgUpdated = $true
+    #         }
+    #     }
 
-        $isPkgUpdated | Should -Be $true
-    }
-
-    It "update resource should not prompt 'trust repository' if repository is not trusted but -TrustRepository is used" {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
-
-        Set-PSResourceRepository PoshTestGallery -Trusted:$false
-
-        Update-PSResource -Name $testModuleName -Version "1.2.0.0" -Repository $TestGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testModuleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
-            {
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -BeTrue
-        Set-PSResourceRepository PoshTestGallery -Trusted
-    }
+    #     $isPkgUpdated | Should -Be $true
+    # }
 
     It "Update module using -WhatIf, should not update the module" {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
-        Update-PSResource -Name $testModuleName -WhatIf
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -WhatIf -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.1.0.0")
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
             {
                 $isPkgUpdated = $true
             }
@@ -348,10 +327,10 @@ Describe 'Test Update-PSResource' {
     }
 
     It "update resource installed given -Name and -PassThru parameters" {
-        Install-PSResource -Name $testModuleName -Version "1.1.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        $res = Update-PSResource -Name $testModuleName -Version "1.3.0.0" -Repository $TestGalleryName -PassThru
-        $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "1.3.0.0"
+        $res = Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -PassThru
+        $res.Name | Should -Contain $testModuleName
+        $res.Version | Should -Contain "3.0.0.0"
     }
 }

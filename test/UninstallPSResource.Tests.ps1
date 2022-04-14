@@ -7,17 +7,20 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe 'Test Uninstall-PSResource for Modules' {
 
     BeforeAll{
-        $TestGalleryName = Get-PoshTestGalleryName
         $PSGalleryName = Get-PSGalleryName
-        $testModuleName = "test_module"
+        $testModuleName = "test_module2"
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
-        Uninstall-PSResource -name ContosoServer -Version "*"
         Uninstall-PSResource -Name $testModuleName -Version "*"
+        Uninstall-PSResource -Name $testScriptName -Version "*"
     }
 
     BeforeEach {
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
+    }
+
+    AfterEach {
+        Uninstall-PSResource -Name $testModuleName -Version "*"
     }
 
     AfterAll {
@@ -25,8 +28,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall a specific module by name" {
-        Uninstall-PSResource -name ContosoServer 
-        Get-Module ContosoServer -ListAvailable | Should -Be $null
+        Uninstall-PSResource -name $testModuleName
+        Get-PSResource $testModuleName | Should -BeNullOrEmpty
     }
 
     $testCases = @{Name="Test?Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"},
@@ -40,129 +43,131 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall a list of modules by name" {
-        $null = Install-PSResource BaseTestPackage -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue -SkipDependencyCheck
+        $null = Install-PSResource "RequiredModule1" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue -SkipDependencyCheck
 
-        Uninstall-PSResource -Name BaseTestPackage, ContosoServer 
-        Get-Module ContosoServer, BaseTestPackage -ListAvailable | Should -be $null
+        Uninstall-PSResource -Name $testModuleName, "RequiredModule1" 
+        Get-PSResource $testModuleName, "RequiredModule1" | Should -BeNullOrEmpty
     }
 
     It "Uninstall a specific script by name" {
-        $null = Install-PSResource "test_script" -Repository $TestGalleryName -TrustRepository
-        $res = Get-PSResource -Name "test_script"
-        $res.Name | Should -Be "test_script"
+        $null = Install-PSResource $testScriptName -Repository $PSGalleryName -TrustRepository
+        $res = Get-PSResource -Name $testScriptName
+        $res.Name | Should -Be $testScriptName
 
-        Uninstall-PSResource -name "test_script"
-        $res = Get-PSResource -Name "test_script"
+        Uninstall-PSResource -Name $testScriptName
+        $res = Get-PSResource -Name $testScriptName
         $res | Should -BeNullOrEmpty
     }
 
     It "Uninstall a list of scripts by name" {
-        $null = Install-PSResource "test_script", "TestTestScript" -Repository $TestGalleryName -TrustRepository
-        $res = Get-PSResource -Name "test_script"
-        $res2 = Get-PSResource -Name "TestTestScript"
-        $res.Name | Should -Be "test_script"
-        $res2.Name | Should -Be "TestTestScript"
+        $null = Install-PSResource $testScriptName, "Required-Script1" -Repository $PSGalleryName -TrustRepository
+        $res = Get-PSResource -Name $testScriptName
+        $res.Name | Should -Be $testScriptName
+        $res2 = Get-PSResource -Name "Required-Script1"
+        $res2.Name | Should -Be "Required-Script1"
 
-        Uninstall-PSResource -Name "test_script", "TestTestScript"
-        $res = Get-PSResource -Name "test_script"
-        $res2 = Get-PSResource -Name "TestTestScript"
+        Uninstall-PSResource -Name $testScriptName, "Required-Script1"
+        $res = Get-PSResource -Name $testScriptName
         $res | Should -BeNullOrEmpty
+        $res2 = Get-PSResource -Name "Required-Script1"
         $res2 | Should -BeNullOrEmpty
     }
 
     It "Uninstall a module when given name and specifying all versions" {
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "3.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "5.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name ContosoServer -version "*"
-        $pkgs = Get-Module ContosoServer -ListAvailable
+        Uninstall-PSResource -Name $testModuleName -version "*"
+        $pkgs = Get-PSResource $testModuleName
         $pkgs.Version | Should -Not -Contain "1.0.0"
-        $pkgs.Version | Should -Not -Contain "1.5.0"
-        $pkgs.Version | Should -Not -Contain "2.0.0"
-        $pkgs.Version | Should -Not -Contain "2.5.0"
+        $pkgs.Version | Should -Not -Contain "3.0.0"
+        $pkgs.Version | Should -Not -Contain "5.0.0"
     }
 
     It "Uninstall a module when given name and using the default version (ie all versions, not explicitly specified)" {
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "3.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "5.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name ContosoServer
-        $pkgs = Get-Module ContosoServer -ListAvailable
+        Uninstall-PSResource -Name $testModuleName
+        $pkgs = Get-PSResource $testModuleName
         $pkgs.Version | Should -Not -Contain "1.0.0"
-        $pkgs.Version | Should -Not -Contain "1.5.0"
-        $pkgs.Version | Should -Not -Contain "2.0.0"
-        $pkgs.Version | Should -Not -Contain "2.5.0"
+        $pkgs.Version | Should -Not -Contain "3.0.0"
+        $pkgs.Version | Should -Not -Contain "5.0.0"
     }
 
     It "Uninstall module when given Name and specifying exact version" {
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "3.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "5.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name "ContosoServer" -Version "1.0.0"
-        $pkgs = Get-Module ContosoServer -ListAvailable
+        Uninstall-PSResource -Name $testModuleName -Version "3.0.0"
+        $pkgs = Get-PSResource -Name $testModuleName
         $pkgs.Version | Should -Not -Contain "1.0.0"
     }
 
-    $testCases = @{Version="[2.0.0.0]";          ExpectedVersion="2.0.0.0"; Reason="validate version, exact match"},
-                @{Version="2.0.0.0";            ExpectedVersion="2.0.0.0"; Reason="validate version, exact match without bracket syntax"},
-                @{Version="[1.0.0.0, 2.5.0.0]"; ExpectedVersion="2.5.0.0"; Reason="validate version, exact range inclusive"},
-                @{Version="(1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, exact range exclusive"},
-                @{Version="(1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version exclusive"},
-                @{Version="[1.0.0.0,)";         ExpectedVersion="2.5.0.0"; Reason="validate version, minimum version inclusive"},
-                @{Version="(,1.5.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
-                @{Version="(,1.5.0.0]";         ExpectedVersion="1.5.0.0"; Reason="validate version, maximum version inclusive"},
-                @{Version="[1.0.0.0, 2.5.0.0)"; ExpectedVersion="2.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    $testCases = @{Version="[1.0.0.0]";          ExpectedVersion="1.0.0.0"; Reason="validate version, exact match"},
+                 @{Version="1.0.0.0";            ExpectedVersion="1.0.0.0"; Reason="validate version, exact match without bracket syntax"},
+                 @{Version="[1.0.0.0, 5.0.0.0]"; ExpectedVersion="5.0.0.0"; Reason="validate version, exact range inclusive"},
+                 @{Version="(1.0.0.0, 5.0.0.0)"; ExpectedVersion="3.0.0.0"; Reason="validate version, exact range exclusive"},
+                 @{Version="(1.0.0.0,)";         ExpectedVersion="5.0.0.0"; Reason="validate version, minimum version exclusive"},
+                 @{Version="[1.0.0.0,)";         ExpectedVersion="5.0.0.0"; Reason="validate version, minimum version inclusive"},
+                 @{Version="(,3.0.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
+                 @{Version="(,3.0.0.0]";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version inclusive"},
+                 @{Version="[1.0.0.0, 5.0.0.0)"; ExpectedVersion="3.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
                 
     It "Uninstall module when given Name to <Reason> <Version>" -TestCases $testCases {
         param($Version, $ExpectedVersion)
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "1.5.0" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource ContosoServer -Repository $TestGalleryName -Version "2.0.0" -TrustRepository -WarningAction SilentlyContinue
+        Uninstall-PSResource -Name $testModuleName -Version "*"
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "3.0.0" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "5.0.0" -TrustRepository -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name ContosoServer -Version $Version
-        $pkgs = Get-Module ContosoServer -ListAvailable
+        Uninstall-PSResource -Name $testModuleName -Version $Version
+        $pkgs = Get-PSResource $testModuleName
         $pkgs.Version | Should -Not -Contain $Version
     }
 
     $testCases2 =  @{Version='[1.*.0]';         Description="version with wilcard in middle"},
-                @{Version='[*.5.0.0]';       Description="version with wilcard at start"},
+                @{Version='[*.0.0.0]';       Description="version with wilcard at start"},
                 @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
-                @{Version='[1.5.*.0]';       Description="version with wildcard at third digit"}
-                @{Version='[1.5.0.*]';       Description="version with wildcard at end"},
+                @{Version='[1.0.*.0]';       Description="version with wildcard at third digit"}
+                @{Version='[1.0.0.*]';       Description="version with wildcard at end"},
                 @{Version='[1..0.0]';        Description="version with missing digit in middle"},
-                @{Version='[1.5.0.]';        Description="version with missing digit at end"},
-                @{Version='[1.5.0.0.0]';     Description="version with more than 4 digits"}
+                @{Version='[1.0.0.]';        Description="version with missing digit at end"},
+                @{Version='[1.0.0.0.0]';     Description="version with more than 4 digits"}
 
     It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases $testCases2 {
         param($Version, $Description)
 
-        {Uninstall-PSResource -Name "ContosoServer" -Version $Version} | Should -Throw "Argument for -Version parameter is not in the proper format."
+        {Uninstall-PSResource -Name $testModuleName -Version $Version} | Should -Throw "Argument for -Version parameter is not in the proper format."
     }
 
-    $testCases3 =  @{Version='(2.5.0.0)';       Description="exclusive version (8.1.0.0)"},
-                @{Version='[2-5-0-0]';       Description="version formatted with invalid delimiter"}
+    $testCases3 =  @{Version='(1.0.0.0)';       Description="exclusive version (1.0.0.0)"},
+                @{Version='[1-0-0-0]';       Description="version formatted with invalid delimiter"}
 
     It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases $testCases3 {
         param($Version, $Description)
 
-        Uninstall-PSResource -Name "ContosoServer" -Version $Version
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        $pkg = Get-Module ContosoServer -ListAvailable
-        $pkg.Version | Should -Be "2.5"
+        Uninstall-PSResource -Name $testModuleName -Version $Version
+        $pkg = Get-PSResource $testModuleName -Version "1.0.0.0"
+        $pkg.Version | Should -Be "1.0.0.0"
     }
 
     It "Uninstall prerelease version module when prerelease version specified" {
-        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $TestGalleryName
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName -TrustRepository
         Uninstall-PSResource -Name $testModuleName -Version "5.2.5-alpha001"
         $res = Get-PSResource $testModuleName -Version "5.2.5-alpha001"
         $res | Should -BeNullOrEmpty
     }
 
     It "Not uninstall non-prerelease version module when similar prerelease version is specified" {
-        Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $TestGalleryName
+        # test_module has a version 5.0.0.0, but no version 5.0.0-preview.
+        # despite the core version part being the same this uninstall on a nonexistant prerelease version should not be successful
+        Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
         Uninstall-PSResource -Name $testModuleName -Version "5.0.0-preview"
         $res = Get-PSResource -Name $testModuleName -Version "5.0.0.0"
         $res.Name | Should -Be $testModuleName
@@ -170,14 +175,14 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall prerelease version script when prerelease version specified" {
-        Install-PSResource -Name $testScriptName -Version "3.0.0-alpha001" -Repository $TestGalleryName
-        Uninstall-PSResource -Name $testScriptName -Version "3.0.0-alpha001"
+        Install-PSResource -Name $testScriptName -Version "3.0.0-alpha" -Repository $PSGalleryName -TrustRepository
+        Uninstall-PSResource -Name $testScriptName -Version "3.0.0-alpha"
         $res = Get-PSResource -Name $testScriptName
         $res | Should -BeNullOrEmpty
     }
 
     It "Not uninstall non-prerelease version module when prerelease version specified" {
-        Install-PSResource -Name $testScriptName -Version "2.5.0.0" -Repository $TestGalleryName
+        Install-PSResource -Name $testScriptName -Version "2.5.0.0" -Repository $PSGalleryName -TrustRepository
         Uninstall-PSResource -Name $testScriptName -Version "2.5.0-alpha001"
         $res = Get-PSResource -Name $testScriptName -Version "2.5.0.0"
         $res.Name | Should -Be $testScriptName
@@ -185,11 +190,11 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "uninstall all prerelease versions (which satisfy the range) when -Version '*' and -Prerelease parameter is specified" {
-        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $TestGalleryName
-        Install-PSResource -Name $testModuleName -Version "3.5.2-beta001" -Repository $TestGalleryName
-        Install-PSResource -Name $testModuleName -Version "4.0.0" -Repository $TestGalleryName
-        Install-PSResource -Name $testModuleName -Version "4.5.2-alpha001" -Repository $TestGalleryName
-        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $TestGalleryName
+        Uninstall-PSResource -Name $testModuleName -Version "*"
+        Install-PSResource -Name $testModuleName -Version "2.5.0-beta" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName -TrustRepository
         $res = Get-PSResource -Name $testModuleName
         $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
         $prereleaseVersionPkgs.Count | Should -Be 2
@@ -199,66 +204,67 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
         $prereleaseVersionPkgs.Count | Should -Be 0
         $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
-        $stableVersionPkgs.Count | Should -Be 3
+        $stableVersionPkgs.Count | Should -Be 2
     }
 
     It "uninstall all prerelease versions (which satisfy the range) when -Version range and -Prerelease parameter is specified" {
-        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $TestGalleryName
-        Install-PSResource -Name $testModuleName -Version "3.5.2-beta001" -Repository $TestGalleryName
-        Install-PSResource -Name $testModuleName -Version "4.0.0" -Repository $TestGalleryName
-        Install-PSResource -Name $testModuleName -Version "4.5.2-alpha001" -Repository $TestGalleryName
-        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $TestGalleryName
+        Uninstall-PSResource -Name $testModuleName -Version "*"
+        Install-PSResource -Name $testModuleName -Version "2.5.0-beta" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName -TrustRepository
+
         $res = Get-PSResource -Name $testModuleName
         $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
         $prereleaseVersionPkgs.Count | Should -Be 2
 
-        Uninstall-PSResource -Name $testModuleName -Version "[3.0.0, 4.0.0]" -Prerelease
+        Uninstall-PSResource -Name $testModuleName -Version "[2.0.0, 5.0.0]" -Prerelease
         $res = Get-PSResource -Name $testModuleName
-        # should only uninstall 3.5.2-beta001, 4.5.2-alpha001 is out of range and should remain installed
+        # should only uninstall 2.5.0-beta, 5.2.5-alpha001 is out of range and should remain installed
         $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
         $prereleaseVersionPkgs.Count | Should -Be 1
         $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
-        # versions 3.0.0 and 4.0.0 fall in range but should not be uninstalled as Prerelease parameter only selects prerelease versions for uninstallation
-        $stableVersionPkgs.Count | Should -Be 3
+        # versions 3.0.0 falls in range but should not be uninstalled as Prerelease parameter only selects prerelease versions to uninstall
+        $stableVersionPkgs.Count | Should -Be 2
     }
 
     It "Uninstall module using -WhatIf, should not uninstall the module" {
-        Uninstall-PSResource -Name "ContosoServer" -WhatIf
-        $pkg = Get-Module ContosoServer -ListAvailable
-        $pkg.Version | Should -Be "2.5"
+        Uninstall-PSResource -Name $testModuleName -WhatIf
+        $pkg = Get-PSResource $testModuleName -Version "5.0.0.0"
+        $pkg.Version | Should -Be "5.0.0.0"
     }
 
     It "Do not Uninstall module that is a dependency for another module" {
-        $null = Install-PSResource $testModuleName -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
     
         Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
 
-        $pkg = Get-Module "RequiredModule1" -ListAvailable
+        $pkg = Get-PSResource "RequiredModule1"
         $pkg | Should -Not -Be $null
 
         $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsaDependency,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
     }
 
     It "Uninstall module that is a dependency for another module using -SkipDependencyCheck" {
-        $null = Install-PSResource $testModuleName -Repository $TestGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
 
         Uninstall-PSResource -Name "RequiredModule1" -SkipDependencyCheck
         
-        $pkg = Get-Module "RequiredModule1" -ListAvailable
+        $pkg = Get-PSResource "RequiredModule1"
         $pkg | Should -BeNullOrEmpty
     }
 
     It "Uninstall PSResourceInfo object piped in" {
-        Install-PSResource -Name "ContosoServer" -Version "1.5.0.0" -Repository $TestGalleryName
-        Get-PSResource -Name "ContosoServer" -Version "1.5.0.0" | Uninstall-PSResource
-        $res = Get-PSResource -Name "ContosoServer" -Version "1.5.0.0"
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Get-PSResource -Name $testModuleName -Version "1.0.0.0" | Uninstall-PSResource
+        $res = Get-PSResource -Name "ContosoServer" -Version "1.0.0.0"
         $res | Should -BeNullOrEmpty
     }
 
     It "Uninstall PSResourceInfo object piped in for prerelease version object" {
-        Install-PSResource -Name $testModuleName -Version "4.5.2-alpha001" -Repository $TestGalleryName
-        Get-PSResource -Name $testModuleName -Version "4.5.2-alpha001" | Uninstall-PSResource
-        $res = Get-PSResource -Name $testModuleName -Version "4.5.2-alpha001"
+        Install-PSResource -Name $testModuleName -Version "2.5.0-beta" -Repository $PSGalleryName -TrustRepository
+        Get-PSResource -Name $testModuleName -Version "2.5.0-beta" | Uninstall-PSResource
+        $res = Get-PSResource -Name $testModuleName -Version "2.5.0-beta"
         $res | Should -BeNullOrEmpty
     }
 }
