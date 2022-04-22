@@ -1119,7 +1119,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                         innerException: terminatingError),
                                     "InstallPSResourceCannotReadCertFromStore",
                                     ErrorCategory.InvalidResult,
-                                    this));
+                                    _cmdletPassedIn));
                         }
 
                         X509Certificate2 rootCertificateAuthority = results.Any() ? (X509Certificate2)results.FirstOrDefault() : null;
@@ -1157,8 +1157,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    // throw
-
+                    ThrowTerminatingError(
+                            new ErrorRecord(
+                                new PSInvalidOperationException(
+                                    message: $"Install-PSResource encountered an error while checking if the module uses a valid Microsoft certificate.",
+                                    innerException: e.InnerException),
+                                "InstallPSResourceFailedToCheckIfMicrosoftCert",
+                                ErrorCategory.InvalidResult,
+                                _cmdletPassedIn));
                 }
 
                 if (safex509ChainHandle != null)
