@@ -177,6 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
+                skipPublisherCheck: true,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
