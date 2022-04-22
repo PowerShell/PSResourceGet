@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
 
-         #region Enums
+        #region Enums
 
         public struct CERT_CHAIN_POLICY_PARA
         {
@@ -544,7 +544,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (isModule)
                     {
-                        
                         if (!_skipPublisherCheck && !PublisherValidation(pkg.Name, tempDirNameVersion, _versionRange, _pathsToSearch, installPath))
                         {
                             _cmdletPassedIn.WriteVerbose("Publisher validation failed.");
@@ -670,12 +669,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 signedFilePath = Path.Combine(resourceObj.InstalledLocation, catalogFileName);
 
-                if (!File.Exists(signedFilePath)) {
+                if (!File.Exists(signedFilePath))
+                {
 
-                    return true; 
+                    return true;
                 }
             }
-   
+
             // 2) If the module is already installed (an earlier version of the module, or same version being reinstalled, get the authenticode signature
             Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
             try
@@ -687,7 +687,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     input: null,
                     args: new object[] { signedFilePath });
             }
-            catch (Exception e){
+            catch (Exception e)
+            {
 
                 _cmdletPassedIn.WriteVerbose(e.Message);
             }
@@ -1232,7 +1233,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return isMicrosoftRoot;
         }
 
-        [DllImport("Crypt32.dll", CharSet=CharSet.Auto, SetLastError=true)]
+        [DllImport("Crypt32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public extern static
         bool CertVerifyCertificateChainPolicy(
             IntPtr pszPolicyOID,
