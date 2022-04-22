@@ -24,7 +24,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region String fields
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
-
+        public const string PSDataFileExt = ".psd1";
         private const string ConvertJsonToHashtableScript = @"
             param (
                 [string] $json
@@ -728,7 +728,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Manifest methods
 
-        public static bool TryParseModuleManifest(
+        public static bool TryParsePSDataFile(
             string moduleFileInfo,
             PSCmdlet cmdletPassedIn,
             out Hashtable parsedMetadataHashtable)
@@ -738,7 +738,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             // A script will already  have the metadata parsed into the parsedMetadatahash,
             // a module will still need the module manifest to be parsed.
-            if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
+            if (moduleFileInfo.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
             {
                 // Parse the module manifest
                 var ast = Parser.ParseFile(
