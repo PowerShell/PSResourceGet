@@ -425,13 +425,13 @@ Describe 'Test Install-PSResource for Module' {
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
         $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.3"
+        $res1.Version | Should -Be "1.4.3.0"
 
         Install-PSResource -Name $PackageManagement  -Version "1.4.4" -Repository $PSGalleryName -TrustRepository
 
         $res2 = Get-PSResource $PackageManagement -Version "1.4.4"
         $res2.Name | Should -Be $PackageManagement
-        $res2.Version | Should -Be "1.4.4"
+        $res2.Version | Should -Be "1.4.4.0"
     }
 
     # First install module 1.4.7 (with NO catalog file)
@@ -442,13 +442,13 @@ Describe 'Test Install-PSResource for Module' {
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
         $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.7"
+        $res1.Version | Should -Be "1.4.7.0"
  
         Install-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
 
         $res2 = Get-PSResource $PackageManagement -Version "1.4.3"
         $res2.Name | Should -Be $PackageManagement
-        $res2.Version | Should -Be "1.4.3"
+        $res2.Version | Should -Be "1.4.3.0"
     }
 
     # First install module 1.4.3 (with catalog file)
@@ -459,7 +459,7 @@ Describe 'Test Install-PSResource for Module' {
  
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
         $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.3"
+        $res1.Version | Should -Be "1.4.3.0"
  
         Install-PSResource -Name $PackageManagement -Version "1.4.7" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
@@ -473,7 +473,7 @@ Describe 'Test Install-PSResource for Module' {
  
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
         $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.3"
+        $res1.Version | Should -Be "1.4.3.0"
 
         Install-PSResource -Name $PackageManagement -Version "1.4.4.1" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPSResourcePublisherValidation,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
