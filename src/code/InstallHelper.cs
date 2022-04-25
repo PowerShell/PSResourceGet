@@ -653,30 +653,66 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var pkgVersionsAlreadyInstalled = getHelper.GetPackagesFromPath(new string[] { pkgName }, VersionRange.All, new List<string> { moduleInstallPath }, _prerelease);
 
             string signedFilePath = string.Empty;
-            var catalogFileName = pkgName + ".cat";
-            string moduleBasePath = string.Empty;
+            var installedModuleManifest = pkgName + ".psd1";
 
+            Signature installedSignature = null;
             PSResourceInfo resourceObj = null;
-            if (pkgVersionsAlreadyInstalled != null)  // && pkgVersionsAlreadyInstalled.FirstOrDefault() != null)
+            Hashtable installedModuleDetails = null;
+
+            resourceObj = pkgVersionsAlreadyInstalled.FirstOrDefault();
+            if (resourceObj != null)
             {
-
-                resourceObj = pkgVersionsAlreadyInstalled.FirstOrDefault();
-
-                if (resourceObj == null)
-                {
-                    return true;
-                }
-
-                signedFilePath = Path.Combine(resourceObj.InstalledLocation, catalogFileName);
-
+                // If there is no version of this package already installed, just validate that any signatures are valid.
+                // 2a) If the module is already installed (an earlier version of the module, or same version being reinstalled) get the authenticode signature of that module
+                // Use the module manifest to validate that the signature is valid
+                signedFilePath = Path.Combine(resourceObj.InstalledLocation, installedModuleManifest);
                 if (!File.Exists(signedFilePath))
                 {
-
                     return true;
                 }
+
+                Collection<PSObject> installedAuthenticodeSignature = new Collection<PSObject>();
+                try
+                {
+                    installedAuthenticodeSignature = _cmdletPassedIn.InvokeCommand.InvokeScript(
+                        script: $"param ([string] $signedFilePath) Get-AuthenticodeSignature -FilePath $signedFilePath",
+                        useNewScope: true,
+                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                        input: null,
+                        args: new object[] { signedFilePath });
+                }
+                catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteVerbose(e.Message);
+                        //eror?
+                }
+
+                installedSignature = (installedAuthenticodeSignature.Any() && installedAuthenticodeSignature[0] != null) ? (Signature)installedAuthenticodeSignature[0].BaseObject : null;
+                
+                // 2b)  If you're able to get the authenticode signature, get the module details for the previously installed module                
+                if (installedSignature != null)
+                {
+
+                    installedModuleDetails = new Hashtable();
+
+                    installedModuleDetails.Add("AuthenticodeSignature", installedSignature);
+
+                    var installedIsMicrosoftCert = IsMicrosoftCert(installedSignature);
+                    installedModuleDetails.Add("IsMicrosoftCertificate", installedIsMicrosoftCert);
+
+                    var installedPublisherDetails = GetAuthenticodePublisher(installedSignature, pkgName);
+                    if (installedPublisherDetails.Count == 2)
+                    {
+                        installedModuleDetails.Add("Publisher", installedPublisherDetails["Publisher"]);
+                        installedModuleDetails.Add("RootCertificateAuthority", installedPublisherDetails["PublisherRootCA"]);
+                    }
+                }
+
+                // All done validating previously installed module
             }
 
-            // 2) If the module is already installed (an earlier version of the module, or same version being reinstalled, get the authenticode signature
+            // 3) Validate the authenticode signature for the current module being installed
+            signedFilePath = Path.Combine(tempDirNameVersion, installedModuleManifest);
             Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
             try
             {
@@ -689,29 +725,88 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
-
                 _cmdletPassedIn.WriteVerbose(e.Message);
             }
 
             Signature signature = (authenticodeSignature.Any() && authenticodeSignature[0] != null) ? (Signature)authenticodeSignature[0].BaseObject : null;
 
-            if (signature == null)
+            // If the authenticode signature is not valid, return false
+            if (signature == null || (!signature.Status.Equals(SignatureStatus.Valid) && !signature.Status.Equals(SignatureStatus.NotSigned)))
             {
                 return false;
             }
 
-            // 2b)  If you're able to get the authenticode signature, get the module details 
+            // Check that the catalog file is signed properly
+            string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
+            if (File.Exists(catalogFilePath))
+            {
+                Collection<PSObject> catalogAuthenticodeSignature = new Collection<PSObject>();
+                try
+                {
+                    catalogAuthenticodeSignature = _cmdletPassedIn.InvokeCommand.InvokeScript(
+                        script: $"param ([string] $catalogFilePath) Get-AuthenticodeSignature -FilePath $catalogFilePath",
+                        useNewScope: true,
+                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                        input: null,
+                        args: new object[] { catalogFilePath });
+                }
+                catch
+                {
+
+                }
+
+                Signature catalogSignature = (catalogAuthenticodeSignature.Any() && catalogAuthenticodeSignature[0] != null) ? (Signature)catalogAuthenticodeSignature[0].BaseObject : null;
+
+                if (catalogSignature == null || !catalogSignature.Status.Equals(SignatureStatus.Valid))
+                {
+                    return false;
+                }
+
+                // Run catalog validation
+                Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
+                string moduleBasePath = tempDirNameVersion;
+                try
+                {
+                    TestFileCatalogResult = _cmdletPassedIn.InvokeCommand.InvokeScript(
+                        script: @"param (
+                                      [string] $moduleBasePath, 
+                                      [string] $catalogFilePath
+                                 ) 
+                                $catalogValidation = Test-FileCatalog -Path $moduleBasePath -CatalogFilePath $CatalogFilePath `
+                                                 -FilesToSkip '*.cat','*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
+                                                 -Detailed -ErrorAction SilentlyContinue
+        
+                                if ($catalogValidation.Status.ToString() -eq 'valid' -and $catalogValidation.Signature.Status -eq 'valid') {
+                                    return $true
+                                }
+                                else {
+                                    return $false
+                                }
+                        ",
+                        useNewScope: true,
+                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                        input: null,
+                        args: new object[] { moduleBasePath, catalogFilePath });                    
+                }
+                catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteVerbose(e.Message);
+                }
+
+                
+                bool catalogValidation = (TestFileCatalogResult[0] != null) ? (bool)TestFileCatalogResult[0].BaseObject : false;
+                 
+                if (!catalogValidation)
+                {
+                    return false;
+                }
+            }
+
             Hashtable moduleDetails = new Hashtable();
 
             moduleDetails.Add("AuthenticodeSignature", signature);
-            moduleDetails.Add("Version", resourceObj.Version.ToString());
-            moduleDetails.Add("ModuleBase", moduleBasePath);
-
-            // Microsoft cert check is working well!
             var isMicrosoftCert = IsMicrosoftCert(signature);
             moduleDetails.Add("IsMicrosoftCertificate", isMicrosoftCert);
-
-            /// UP TO HERE LOOKS GOOD!
 
             var publisherDetails = GetAuthenticodePublisher(signature, pkgName);
             if (publisherDetails.Count == 2)
@@ -720,62 +815,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 moduleDetails.Add("RootCertificateAuthority", publisherDetails["PublisherRootCA"]);
             }
 
-
-
-            // 3) Validate the catalog signature for the current module being installed
-            string catalogFilePath = Path.Combine(tempDirNameVersion, catalogFileName);
-            Collection<PSObject> catalogAuthenticodeSignature = new Collection<PSObject>();
-            try
-            {
-                catalogAuthenticodeSignature = _cmdletPassedIn.InvokeCommand.InvokeScript(
-                    script: $"param ([string] $catalogFilePath) Get-AuthenticodeSignature -FilePath $catalogFilePath",
-                    useNewScope: true,
-                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                    input: null,
-                    args: new object[] { catalogFilePath });
-            }
-            catch { }
-
-            Signature catalogSignature = (catalogAuthenticodeSignature.Any() && catalogAuthenticodeSignature[0] != null) ? (Signature)catalogAuthenticodeSignature[0].BaseObject : null;
-
-            if (catalogSignature == null || !catalogSignature.Status.Equals(SignatureStatus.Valid))
+            // 5) if there is an installed module, and we have the info for the current module, test these scenarios:
+            if (!signature.Status.Equals(SignatureStatus.Valid) && !signature.Status.Equals(SignatureStatus.NotSigned))
             {
                 return false;
             }
 
-            // Run catalog validation
-            Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
-            CatalogInformation catalogValidation = null;
-            try
-            {
-                TestFileCatalogResult = _cmdletPassedIn.InvokeCommand.InvokeScript(
-                    script: $"param ([string] $moduleBasePath, [string] $catalogFilePath) Test-FileCatalog -Path $moduleBasePath" +
-                                                                              $" -CatalogFilePath $CatalogFilePath" +
-                                                                              $" -FilesToSkip $script: PSGetItemInfoFileName,'*.cat','*.nupkg','*.nuspec'" +
-                                                                              $" -Detailed" +
-                                                                              $" -ErrorAction SilentlyContinue",
-                    useNewScope: true,
-                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                    input: null,
-                    args: new object[] { moduleBasePath, catalogFilePath });
-
-                catalogValidation = (TestFileCatalogResult.Any() && TestFileCatalogResult[0] != null) ? (CatalogInformation)TestFileCatalogResult[0].BaseObject : null;
-            }
-            catch { }
-
-            if (catalogValidation == null || !catalogValidation.Status.Equals(SignatureStatus.Valid)
-                || (catalogValidation.Signature != null && !catalogValidation.Signature.Status.Equals(SignatureStatus.Valid)))
+            // Issuer is the name of the certificate authority that issued the certificate
+            if (installedSignature != null && signature != null && !signature.SignerCertificate.Issuer.Equals(installedSignature.SignerCertificate.Issuer))
             {
                 return false;
             }
 
-            // 5) if there is an installed module, and we have the info for the current module,
-            // test these scenarios:
-            //  $InstalledModuleAuthenticodePublisher  ==    $InstalledModuleDetails.Publisher
-            // $InstalledModuleVersion = $InstalledModuleDetails.Version
+            // A) Signed by Microsoft is a match? if the installed version was signed by ms and the new one isn't throw error
+            if (installedModuleDetails  != null && moduleDetails != null && (bool)installedModuleDetails["IsMicrosoftCertificate"] && (bool)moduleDetails["IsMicrosoftCertificate"])
+            {
+                //Throw
+            }
 
-            // $InstalledModuleRootCA = $InstalledModuleDetails.RootCertificateAuthority
-            // ???? $IsInstalledModuleSignedByMicrosoft = $InstalledModuleDetails.IsMicrosoftCertificate
+
+
+
+            // B) Authenticode publisher is a match
+            if (installedModuleDetails != null && publisherDetails != null)
+            {
+                if (!publisherDetails["Publisher"].Equals(installedModuleDetails["Publisher"]))
+                {
+                    return false;
+                }
+
+                // C) RootCertificateAuthority is a match
+                if (!publisherDetails["PublisherRootCA"].Equals(installedModuleDetails["PublisherRootCA"]))
+                {
+                    return false;
+                }
+            }
 
             return true;
         }
@@ -1097,7 +1171,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     foreach (var certStoreLocation in certStoreLocations)
                     {
-                        // TODO:  come back and update this 
                         var results = PowerShellInvoker.InvokeScriptWithHost<object>(
                                         cmdlet: _cmdletPassedIn,
                                         script: @"
