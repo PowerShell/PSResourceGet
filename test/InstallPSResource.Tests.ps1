@@ -20,7 +20,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -420,7 +420,7 @@ Describe 'Test Install-PSResource for Module' {
     # First install module 1.4.3 (with catalog file)
     # Then install module 1.4.4 (with catalog file)
     # Should install both successfully 
-    It "Install modules using publisher validation" {
+    It "Install modules with catalog file using publisher validation" {
         Install-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
@@ -437,7 +437,7 @@ Describe 'Test Install-PSResource for Module' {
     # First install module 1.4.7 (with NO catalog file)
     # Then install install 1.4.3 (with catalog file)
     # Should install both successfully 
-    It "Install modules using publisher validation" {
+    It "Install module with catalog file over module with no catalog file" {
         Install-PSResource -Name $PackageManagement -Version "1.4.7" -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
@@ -453,22 +453,25 @@ Describe 'Test Install-PSResource for Module' {
 
     # First install module 1.4.3 (with catalog file)
     # Then try to install 1.4.7 (with NO catalog file)
-    # Should install the first module successfully, then FAIL to install the second module
-    It "Install modules using publisher validation" {
+    # Should install both successfully
+    It "Install module with no catalog file, should" {
         Install-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
  
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.3.0"
- 
-        Install-PSResource -Name $PackageManagement -Version "1.4.7" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+
+        Install-PSResource -Name $PackageManagement -Version "1.4.7" -Repository $PSGalleryName -TrustRepository
+
+        $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
+        $res1.Name | Should -Be $PackageManagement
+        $res1.Version | Should -Be "1.4.7.0"
     }
 
     # First install module 1.4.3 (with catalog file)
     # Then try to install 1.4.4.1 (with incorrect catalog file)
     # Should install the first module successfully, then FAIL to install the second module
-    It "Install modules using publisher validation" {
+    It "Install module with incorrect catalog file" {
         Install-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
  
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
@@ -476,7 +479,7 @@ Describe 'Test Install-PSResource for Module' {
         $res1.Version | Should -Be "1.4.3.0"
 
         Install-PSResource -Name $PackageManagement -Version "1.4.4.1" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPSResourcePublisherValidation,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 }
 
