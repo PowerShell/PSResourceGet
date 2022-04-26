@@ -417,68 +417,73 @@ Describe 'Test Install-PSResource for Module' {
         $res3.Version | Should -Be "0.0.93.0"
     }
 
-    # First install module 1.4.3 (with catalog file)
-    # Then install module 1.4.4 (with catalog file)
-    # Should install both successfully 
+    # Install module 1.4.3 (is authenticode signed and has catalog file)
+    # Should install successfully 
     It "Install modules with catalog file using publisher validation" {
         Install-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.3.0"
-
-        Install-PSResource -Name $PackageManagement  -Version "1.4.4" -Repository $PSGalleryName -TrustRepository
-
-        $res2 = Get-PSResource $PackageManagement -Version "1.4.4"
-        $res2.Name | Should -Be $PackageManagement
-        $res2.Version | Should -Be "1.4.4.0"
     }
 
-    # First install module 1.4.7 (with NO catalog file)
-    # Then install install 1.4.3 (with catalog file)
-    # Should install both successfully 
-    It "Install module with catalog file over module with no catalog file" {
+    # Install module 1.4.7 (is authenticode signed and has NO catalog file)
+    # Should not install successfully 
+    It "Install module with no catalog file" {
         Install-PSResource -Name $PackageManagement -Version "1.4.7" -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
         $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.7.0"
- 
-        Install-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
-
-        $res2 = Get-PSResource $PackageManagement -Version "1.4.3"
-        $res2.Name | Should -Be $PackageManagement
-        $res2.Version | Should -Be "1.4.3.0"
+        $res1.Version | Should -Be "1.4.7.0"    
     }
 
-    # First install module 1.4.3 (with catalog file)
-    # Then try to install 1.4.7 (with NO catalog file)
-    # Should install both successfully
-    It "Install module with no catalog file, should" {
-        Install-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
- 
-        $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
-        $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.3.0"
-
-        Install-PSResource -Name $PackageManagement -Version "1.4.7" -Repository $PSGalleryName -TrustRepository
+    # Install module 1.4.3 (with NO catalog file)
+    # Should install successfully
+    It "Install module with no catalog file and with -SkipPackageValidation" {
+        Install-PSResource -Name $PackageManagement -Version "1.4.7" -SkipPublisherCheck -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.7.0"
     }
 
-    # First install module 1.4.3 (with catalog file)
-    # Then try to install 1.4.4.1 (with incorrect catalog file)
-    # Should install the first module successfully, then FAIL to install the second module
+    # Install module that is not authenticode signed
+    # Should FAIL to install the  module
+    It "Install module that is not authenticode signed" {
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+    # Install 1.4.4.1 (with incorrect catalog file)
+    # Should FAIL to install the  module
     It "Install module with incorrect catalog file" {
-        Install-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
- 
-        $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
-        $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.3.0"
-
         Install-PSResource -Name $PackageManagement -Version "1.4.4.1" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+
+    # Install script that is signed
+    # Should install successfully 
+    It "Install script that is authenticode signed" {
+        Install-PSResource -Name "Install-VSCode" -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
+
+        $res1 = Get-PSResource "Install-VSCode" -Version "1.4.2"
+        $res1.Name | Should -Be "Install-VSCode"
+        $res1.Version | Should -Be "1.4.2.0"
+    }
+
+    # Install script that is signed
+    # Should install successfully 
+    It "Install script that is not authenticode signed with -SkipPublisherCheck" {
+        Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -SkipPublisherCheck -Repository $PSGalleryName -TrustRepository
+
+        $res1 = Get-PSResource "TestTestScript" -Version "1.3.1.1"
+        $res1.Name | Should -Be "TestTestScript"
+        $res1.Version | Should -Be "1.3.1.1"
+    }
+
+    # Install script that is not signed
+    # Should throw
+    It "Install script that is not signed" {
+        Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 }
