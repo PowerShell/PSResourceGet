@@ -542,20 +542,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
                     }
 
+                    if (!_skipPublisherCheck && !PackageValidation(pkg.Name, tempDirNameVersion, _versionRange, _pathsToSearch, installPath, out ErrorRecord errorRecord))
+                    {
+                        ThrowTerminatingError(errorRecord);
+                    }
+
                     if (isModule)
                     {
-                        if (!_skipPublisherCheck && !PublisherValidation(pkg.Name, tempDirNameVersion, _versionRange, _pathsToSearch, installPath))
-                        {
-                            _cmdletPassedIn.WriteVerbose("Publisher validation failed.");
-                            ThrowTerminatingError(
-                                new ErrorRecord(
-                                    new PSInvalidOperationException(
-                                        message: $"Install-PSResource publisher validation is invalid."),
-                                    "InstallPSResourcePublisherValidation",
-                                    ErrorCategory.InvalidResult,
-                                    _cmdletPassedIn));
-                        }
-
                         var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + PSDataFileExt);
                         if (!File.Exists(moduleManifest))
                         {
@@ -645,135 +638,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return pkgsSuccessfullyInstalled;
         }
 
-        private bool PublisherValidation(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath)
+        private bool PackageValidation(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath, out ErrorRecord errorRecord)
         {
-            // 1) See if the current module that is trying to be installed is already installed
-            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
-            var moduleInstallPath = Path.Combine(installPath, pkgName);
-            var pkgVersionsAlreadyInstalled = getHelper.GetPackagesFromPath(new string[] { pkgName }, VersionRange.All, new List<string> { moduleInstallPath }, _prerelease);
+            errorRecord = null;
 
-            string signedFilePath = string.Empty;
-            var installedModuleManifest = pkgName + ".psd1";
-
-            Signature installedSignature = null;
-            PSResourceInfo resourceObj = null;
-            Hashtable installedModuleDetails = null;
-
-            resourceObj = pkgVersionsAlreadyInstalled.FirstOrDefault();
-            if (resourceObj != null)
+            // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // If there is no version of this package already installed, just validate that any signatures are valid.
-                // 2a) If the module is already installed (an earlier version of the module, or same version being reinstalled) get the authenticode signature of that module
-                // Use the module manifest to validate that the signature is valid
-                signedFilePath = Path.Combine(resourceObj.InstalledLocation, installedModuleManifest);
-                if (!File.Exists(signedFilePath))
-                {
-                    return true;
-                }
-
-                Collection<PSObject> installedAuthenticodeSignature = new Collection<PSObject>();
-                try
-                {
-                    installedAuthenticodeSignature = _cmdletPassedIn.InvokeCommand.InvokeScript(
-                        script: $"param ([string] $signedFilePath) Get-AuthenticodeSignature -FilePath $signedFilePath",
-                        useNewScope: true,
-                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                        input: null,
-                        args: new object[] { signedFilePath });
-                }
-                catch (Exception e)
-                {
-                    _cmdletPassedIn.WriteVerbose(e.Message);
-                        //eror?
-                }
-
-                installedSignature = (installedAuthenticodeSignature.Any() && installedAuthenticodeSignature[0] != null) ? (Signature)installedAuthenticodeSignature[0].BaseObject : null;
-                
-                // 2b)  If you're able to get the authenticode signature, get the module details for the previously installed module                
-                if (installedSignature != null)
-                {
-
-                    installedModuleDetails = new Hashtable();
-
-                    installedModuleDetails.Add("AuthenticodeSignature", installedSignature);
-
-                    var installedIsMicrosoftCert = IsMicrosoftCert(installedSignature);
-                    installedModuleDetails.Add("IsMicrosoftCertificate", installedIsMicrosoftCert);
-
-                    var installedPublisherDetails = GetAuthenticodePublisher(installedSignature, pkgName);
-                    if (installedPublisherDetails.Count == 2)
-                    {
-                        installedModuleDetails.Add("Publisher", installedPublisherDetails["Publisher"]);
-                        installedModuleDetails.Add("RootCertificateAuthority", installedPublisherDetails["PublisherRootCA"]);
-                    }
-                }
-
-                // All done validating previously installed module
+                return true;
             }
-
-            // 3) Validate the authenticode signature for the current module being installed
-            signedFilePath = Path.Combine(tempDirNameVersion, installedModuleManifest);
-            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
-            try
-            {
-                authenticodeSignature = _cmdletPassedIn.InvokeCommand.InvokeScript(
-                    script: $"param ([string] $signedFilePath) Get-AuthenticodeSignature -FilePath $signedFilePath",
-                    useNewScope: true,
-                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                    input: null,
-                    args: new object[] { signedFilePath });
-            }
-            catch (Exception e)
-            {
-                _cmdletPassedIn.WriteVerbose(e.Message);
-            }
-
-            Signature signature = (authenticodeSignature.Any() && authenticodeSignature[0] != null) ? (Signature)authenticodeSignature[0].BaseObject : null;
-
-            // If the authenticode signature is not valid, return false
-            if (signature == null || (!signature.Status.Equals(SignatureStatus.Valid) && !signature.Status.Equals(SignatureStatus.NotSigned)))
-            {
-                return false;
-            }
-
+           
             // Check that the catalog file is signed properly
             string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
             if (File.Exists(catalogFilePath))
             {
-                Collection<PSObject> catalogAuthenticodeSignature = new Collection<PSObject>();
-                try
-                {
-                    catalogAuthenticodeSignature = _cmdletPassedIn.InvokeCommand.InvokeScript(
-                        script: $"param ([string] $catalogFilePath) Get-AuthenticodeSignature -FilePath $catalogFilePath",
-                        useNewScope: true,
-                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                        input: null,
-                        args: new object[] { catalogFilePath });
-                }
-                catch
-                {
-
-                }
-
-                Signature catalogSignature = (catalogAuthenticodeSignature.Any() && catalogAuthenticodeSignature[0] != null) ? (Signature)catalogAuthenticodeSignature[0].BaseObject : null;
-
-                if (catalogSignature == null || !catalogSignature.Status.Equals(SignatureStatus.Valid))
-                {
-                    return false;
-                }
-
                 // Run catalog validation
                 Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
                 string moduleBasePath = tempDirNameVersion;
                 try
                 {
+                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files
                     TestFileCatalogResult = _cmdletPassedIn.InvokeCommand.InvokeScript(
                         script: @"param (
                                       [string] $moduleBasePath, 
                                       [string] $catalogFilePath
                                  ) 
                                 $catalogValidation = Test-FileCatalog -Path $moduleBasePath -CatalogFilePath $CatalogFilePath `
-                                                 -FilesToSkip '*.cat','*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
+                                                 -FilesToSkip '*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
                                                  -Detailed -ErrorAction SilentlyContinue
         
                                 if ($catalogValidation.Status.ToString() -eq 'valid' -and $catalogValidation.Signature.Status -eq 'valid') {
@@ -786,68 +677,80 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         useNewScope: true,
                         writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
                         input: null,
-                        args: new object[] { moduleBasePath, catalogFilePath });                    
+                        args: new object[] { moduleBasePath, catalogFilePath });
                 }
                 catch (Exception e)
                 {
-                    _cmdletPassedIn.WriteVerbose(e.Message);
+                    errorRecord = new ErrorRecord(new ArgumentException(e.Message), "TestFileCatalogError", ErrorCategory.InvalidResult, null);
                 }
 
-                
                 bool catalogValidation = (TestFileCatalogResult[0] != null) ? (bool)TestFileCatalogResult[0].BaseObject : false;
-                 
                 if (!catalogValidation)
                 {
+                    var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
+                    var ex = new ArgumentException(exMessage);
+
+                    errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, null);
                     return false;
                 }
             }
 
-            Hashtable moduleDetails = new Hashtable();
 
-            moduleDetails.Add("AuthenticodeSignature", signature);
-            var isMicrosoftCert = IsMicrosoftCert(signature);
-            moduleDetails.Add("IsMicrosoftCertificate", isMicrosoftCert);
-
-            var publisherDetails = GetAuthenticodePublisher(signature, pkgName);
-            if (publisherDetails.Count == 2)
+            // TODO: validate all files (need to figure out what all files are (ie what files shouldn't be validated) : list of extensions
+            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
+            try
             {
-                moduleDetails.Add("Publisher", publisherDetails["Publisher"]);
-                moduleDetails.Add("RootCertificateAuthority", publisherDetails["PublisherRootCA"]);
+                string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
+                authenticodeSignature = _cmdletPassedIn.InvokeCommand.InvokeScript(
+                    script: @"param (
+                                      [string] $tempDirNameVersion, 
+                                      [string[]] $listOfExtensions
+                                 ) 
+                                 Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { tempDirNameVersion, listOfExtensions });
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(new ArgumentException(e.Message), "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, null);
             }
 
-            // 5) if there is an installed module, and we have the info for the current module, test these scenarios:
-            if (!signature.Status.Equals(SignatureStatus.Valid) && !signature.Status.Equals(SignatureStatus.NotSigned))
+            // If the authenticode signature is not valid, return false
+            if (authenticodeSignature.Any() && authenticodeSignature[0] != null)
             {
-                return false;
-            }
-
-            // Issuer is the name of the certificate authority that issued the certificate
-            if (installedSignature != null && signature != null && !signature.SignerCertificate.Issuer.Equals(installedSignature.SignerCertificate.Issuer))
-            {
-                return false;
-            }
-
-            // A) Signed by Microsoft is a match? if the installed version was signed by ms and the new one isn't throw error
-            if (installedModuleDetails  != null && moduleDetails != null && (bool)installedModuleDetails["IsMicrosoftCertificate"] && (bool)moduleDetails["IsMicrosoftCertificate"])
-            {
-                //Throw
-            }
-
-
-
-
-            // B) Authenticode publisher is a match
-            if (installedModuleDetails != null && publisherDetails != null)
-            {
-                if (!publisherDetails["Publisher"].Equals(installedModuleDetails["Publisher"]))
+                foreach (var signature in authenticodeSignature)
                 {
-                    return false;
+                    Signature sign = (Signature) signature.BaseObject;
+                    if (!sign.Status.Equals(SignatureStatus.Valid))
+                    {
+                        var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, sign.Status.ToString());
+                        var ex = new ArgumentException(exMessage);
+                        errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, null);
+
+                        return false;
+                    }
                 }
 
-                // C) RootCertificateAuthority is a match
-                if (!publisherDetails["PublisherRootCA"].Equals(installedModuleDetails["PublisherRootCA"]))
+                var isMicrosoftCert = IsMicrosoftCert((Signature)authenticodeSignature[0].BaseObject);
+                if (isMicrosoftCert)
                 {
-                    return false;
+                    _cmdletPassedIn.WriteVerbose(string.Format("Package '{0}' is signed by a Microsoft certificate.", pkgName));
+                }
+
+                var publisherDetails = GetAuthenticodePublisher((Signature)authenticodeSignature[0].BaseObject, pkgName);
+                if (publisherDetails.Count == 2)
+                {
+                    if (!string.IsNullOrEmpty(publisherDetails["Publisher"].ToString()))
+                    {
+                        _cmdletPassedIn.WriteVerbose(string.Format("Package '{0}' is published by publisher '{1}'.", pkgName, publisherDetails["Publisher"].ToString()));
+                    }
+
+                    if (!string.IsNullOrEmpty(publisherDetails["PublisherRootCA"].ToString()))
+                    {
+                        _cmdletPassedIn.WriteVerbose(string.Format("Package '{0}' has the publisher root certificate authority of '{1}'.", pkgName, publisherDetails["PublisherRootCA"].ToString()));
+                    }
                 }
             }
 
