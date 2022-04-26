@@ -105,11 +105,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter SkipDependencyCheck { get; set; }
         
         /// <summary>
-        /// Skips the check for resource dependencies, so that only found resources are installed,
-        /// and not any resources the found resource depends on.
+        /// Skips the check for package validation.
         /// </summary>
         [Parameter]
-        public SwitchParameter SkipPublisherCheck { get; set; }
+        public SwitchParameter SkipPackageValidation { get; set; }
 
         /// <summary>
         /// Passes the resource installed to the console.
@@ -520,7 +519,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
-                skipPublisherCheck: SkipPublisherCheck,
+                skipPackageValidation: SkipPackageValidation,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
