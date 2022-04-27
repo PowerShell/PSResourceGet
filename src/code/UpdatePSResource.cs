@@ -110,6 +110,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
 
+        /// <summary>
+        /// Skips the check for package validation.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipPackageValidation { get; set; }
+
         #endregion
 
         #region Override Methods
@@ -177,7 +183,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
-                skipPublisherCheck: true,
+                skipPackageValidation: SkipPackageValidation,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
