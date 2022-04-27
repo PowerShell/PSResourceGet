@@ -30,7 +30,7 @@ Describe 'Test Install-PSResource for Module' {
     $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
                  @{Name="Test_Module*";               ErrorId="NameContainsWildcard"},
                  @{Name="Test?Module","Test[Module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
-
+<#
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
         Install-PSResource -Name $Name -ErrorVariable err -ErrorAction SilentlyContinue
@@ -416,7 +416,7 @@ Describe 'Test Install-PSResource for Module' {
         $res3.Name | Should -Be $testModuleName2
         $res3.Version | Should -Be "0.0.93.0"
     }
-
+#>
     # Install module 1.4.3 (is authenticode signed and has catalog file)
     # Should install successfully 
     It "Install modules with catalog file using publisher validation" {
@@ -440,7 +440,7 @@ Describe 'Test Install-PSResource for Module' {
     # Install module 1.4.3 (with NO catalog file)
     # Should install successfully
     It "Install module with no catalog file and with -SkipPackageValidation" {
-        Install-PSResource -Name $PackageManagement -Version "1.4.7" -SkipPublisherCheck -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $PackageManagement -Version "1.4.7" -SkipPackageValidation -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
         $res1.Name | Should -Be $PackageManagement
@@ -473,7 +473,7 @@ Describe 'Test Install-PSResource for Module' {
     # Install script that is signed
     # Should install successfully 
     It "Install script that is not authenticode signed with -SkipPublisherCheck" {
-        Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -SkipPublisherCheck -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -SkipPackageValidation -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource "TestTestScript" -Version "1.3.1.1"
         $res1.Name | Should -Be "TestTestScript"

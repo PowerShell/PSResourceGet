@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _asNupkg;
         private bool _includeXML;
         private bool _noClobber;
-        private bool _skipPublisherCheck;
+        private bool _skipPackageValidation;
         private bool _savePkg;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
@@ -123,7 +123,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool asNupkg,
             bool includeXML,
             bool skipDependencyCheck,
-            bool skipPublisherCheck,
+            bool skipPackageValidation,
             bool savePkg,
             List<string> pathsToInstallPkg)
         {
@@ -145,7 +145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _versionRange = versionRange;
             _prerelease = prerelease;
             _acceptLicense = acceptLicense || force;
-            _skipPublisherCheck = skipPublisherCheck || force;
+            _skipPackageValidation = skipPackageValidation || force;
             _quiet = quiet;
             _reinstall = reinstall;
             _force = force;
@@ -542,7 +542,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
                     }
 
-                    if (!_skipPublisherCheck && !PackageValidation(pkg.Name, tempDirNameVersion, _versionRange, _pathsToSearch, installPath, out ErrorRecord errorRecord))
+                    if (!_skipPackageValidation && !PackageValidation(pkg.Name, tempDirNameVersion, _versionRange, _pathsToSearch, installPath, out ErrorRecord errorRecord))
                     {
                         ThrowTerminatingError(errorRecord);
                     }
