@@ -132,6 +132,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter SkipDependencyCheck { get; set; }
 
         /// <summary>
+        /// Skips the check for package validation.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipPackageValidation { get; set; }
+
+        /// <summary>
         /// Suppresses progress information.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
@@ -259,7 +265,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: AsNupkg, 
                 includeXML: IncludeXML, 
                 skipDependencyCheck: SkipDependencyCheck,
-                skipPublisherCheck: true,
+                skipPackageValidation: SkipPackageValidation,
                 savePkg: true,
                 pathsToInstallPkg: new List<string> { _path });
 

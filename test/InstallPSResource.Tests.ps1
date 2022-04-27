@@ -30,7 +30,7 @@ Describe 'Test Install-PSResource for Module' {
     $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
                  @{Name="Test_Module*";               ErrorId="NameContainsWildcard"},
                  @{Name="Test?Module","Test[Module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
-<#
+
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
         Install-PSResource -Name $Name -ErrorVariable err -ErrorAction SilentlyContinue
@@ -416,7 +416,7 @@ Describe 'Test Install-PSResource for Module' {
         $res3.Name | Should -Be $testModuleName2
         $res3.Version | Should -Be "0.0.93.0"
     }
-#>
+
     # Install module 1.4.3 (is authenticode signed and has catalog file)
     # Should install successfully 
     It "Install modules with catalog file using publisher validation" {
