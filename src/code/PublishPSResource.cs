@@ -63,7 +63,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _path = resolvedPath;
                 }
-                else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+                else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
                 {
                     _path = resolvedPath;
                 }
@@ -163,6 +163,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private NuGetVersion _pkgVersion;
         private string _pkgName;
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+        public const string PSDataFileExt = ".psd1";
+        public const string PSScriptFileExt = ".ps1";
 
         #endregion
 
@@ -179,7 +181,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // Returns the name of the file or the name of the directory, depending on path
             var pkgFileOrDir = new DirectoryInfo(_path);
-            bool isScript = _path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase);
+            bool isScript = _path.EndsWith(PSScriptFileExt, StringComparison.OrdinalIgnoreCase);
 
             if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine", _path)))
             {
@@ -233,7 +235,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else
             {
                 _pkgName = pkgFileOrDir.Name;
-                resourceFilePath = System.IO.Path.Combine(_path, _pkgName + ".psd1");
+                resourceFilePath = System.IO.Path.Combine(_path, _pkgName + PSDataFileExt);
 
                 // Validate that there's a module manifest
                 if (!File.Exists(resourceFilePath))
@@ -332,7 +334,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (isScript)
                 {
                     // copy the script file to the temp directory
-                    File.Copy(_path, System.IO.Path.Combine(outputDir, _pkgName + ".ps1"), true);
+                    File.Copy(_path, System.IO.Path.Combine(outputDir, _pkgName + PSDataFileExt), true);
                 }
                 else
                 {
@@ -470,7 +472,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (!isScript)
             {
                 // Parse the module manifest and *replace* the passed-in metadata with the module manifest metadata.
-                if (!Utils.TryParseModuleManifest(
+                if (!Utils.TryParsePSDataFile(
                     moduleFileInfo: filePath,
                     cmdletPassedIn: this,
                     parsedMetadataHashtable: out parsedMetadataHash))

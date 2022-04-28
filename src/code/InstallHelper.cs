@@ -31,6 +31,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
+        public const string PSDataFileExt = ".psd1";
+        public const string PSScriptFileExt = ".ps1";
         private const string MsgRepositoryNotTrusted = "Untrusted repository";
         private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
 
@@ -461,8 +463,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
                     string moduleManifestVersion = string.Empty;
-                    var scriptPath = Path.Combine(tempDirNameVersion, pkg.Name + ".ps1");
-                    var modulePath = Path.Combine(tempDirNameVersion, pkg.Name + ".psd1");
+                    var scriptPath = Path.Combine(tempDirNameVersion, pkg.Name + PSScriptFileExt);
+                    var modulePath = Path.Combine(tempDirNameVersion, pkg.Name + PSDataFileExt);
                     // Check if the package is a module or a script
                     var isModule = File.Exists(modulePath);
 
@@ -497,7 +499,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (isModule)
                     {
-                        var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + ".psd1");
+                        var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + PSDataFileExt);
                         if (!File.Exists(moduleManifest))
                         {
                             var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgIdentity.Id, moduleManifest);
@@ -509,7 +511,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        if (!Utils.TryParseModuleManifest(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
+                        if (!Utils.TryParsePSDataFile(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
                         {
                             // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
                             continue;
@@ -878,16 +880,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
 
                     // Need to delete old script file, if that exists
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1"))));
-                    if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1")))
+                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
+                    if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)))
                     {
                         _cmdletPassedIn.WriteVerbose(string.Format("Deleting script file"));
-                        File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1"));
+                        File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
                     }
                 }
 
-                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1")));
-                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1"));
+                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
+                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
             }
         }
 

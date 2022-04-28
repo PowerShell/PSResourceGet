@@ -1,0 +1,16 @@
+ @{
+    test_module = @{
+        version = "[1.0.0,5.0.0)"
+        repository = "PSGallery"
+      }
+   
+    test_module2 = @{
+      version = "[1.0.0,3.0.0)"
+      repository = "PSGallery"
+      prerelease = "true"
+    }
+   
+    TestModule99 = @{
+      repository = "PSGallery"
+    }
+}

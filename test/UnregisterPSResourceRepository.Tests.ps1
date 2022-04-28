@@ -5,8 +5,8 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe "Test Unregister-PSResourceRepository" {
     BeforeEach {
-        $TestGalleryName = Get-PoshTestGalleryName
-        $TestGalleryUri = Get-PoshTestGalleryLocation
+        $PSGalleryName = Get-PSGalleryName
+        $PSGalleryUri = Get-PSGalleryLocation
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
@@ -71,10 +71,10 @@ Describe "Test Unregister-PSResourceRepository" {
     }
 
     It "unregister repository using -PassThru" {
-        $res = Unregister-PSResourceRepository -Name $TestGalleryName -PassThru
-        $res.Name | Should -Be $TestGalleryName
-        $Res.Uri | Should -Be $TestGalleryUri
-        $res = Get-PSResourceRepository -Name $TestGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Unregister-PSResourceRepository -Name $PSGalleryName -PassThru
+        $res.Name | Should -Be $PSGalleryName
+        $Res.Uri | Should -Be $PSGalleryUri
+        $res = Get-PSResourceRepository -Name $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"

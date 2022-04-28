@@ -21,6 +21,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private readonly PSCmdlet _cmdletPassedIn;
         private readonly Dictionary<string, PSResourceInfo> _scriptDictionary;
+        public const string PSScriptFileExt = ".ps1";
 
         #endregion
 
@@ -222,7 +223,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ./Modules/Microsoft.PowerShell.Test-Module     : Microsoft.PowerShell.Test-Module
             // ./Scripts/Microsoft.PowerShell.Test-Script.ps1 : Microsoft.PowerShell.Test-Script
             var resourceName = Path.GetFileName(path);
-            return Path.GetExtension(resourceName).Equals(".ps1", StringComparison.OrdinalIgnoreCase)
+            return Path.GetExtension(resourceName).Equals(PSScriptFileExt, StringComparison.OrdinalIgnoreCase)
                 ? Path.GetFileNameWithoutExtension(resourceName) : resourceName;
         }
 
