@@ -42,9 +42,11 @@ Describe "Test New-PSScriptFileInfo" {
     }
 
     It "create .ps1 file with RequiredModules" {
-        $hashtable1 = @{ModuleName = "ReqModule1"}
-        $hashtable2 = @{ModuleName = "ReqModule2"; ModuleVersion = "1.0.0.0"}
-        $requiredModulesHashtables = $hashtable1, $hashtable2
+        $hashtable1 = @{ModuleName = "RequiredModule1"}
+        $hashtable2 = @{ModuleName = "RequiredModule2"; ModuleVersion = "1.0.0.0"}
+        $hashtable3 = @{ModuleName = "RequiredModule3"; RequiredVersion = "2.5.0.0"}
+        $hashtable4 = @{ModuleName = "RequiredModule4"; ModuleVersion = "1.1.0.0"; MaximumVersion = "2.0.0.0"}
+        $requiredModulesHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript2.ps1"
         $scriptDescription = "this is a test script"

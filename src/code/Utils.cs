@@ -840,6 +840,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             foreach(Hashtable moduleSpec in moduleSpecHashtables)
             {
+                // ModuleSpecification(string) constructor for creating a ModuleSpecification when only ModuleName is provided
                 if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
                 {
                     var exMessage = "RequiredModules Hashtable entry is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
@@ -870,10 +871,21 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
                 else
                 {
-                    string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaxiumumVersion"] : String.Empty;
+                    // ModuleSpecification(Hashtable) constructor for when ModuleName + {Required,Maximum,Module}Version value is also provided
+                    string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaximumVersion"] : String.Empty;
                     string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
-                    string moduleSpecRequiredVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
+                    string moduleSpecRequiredVersion = moduleSpec.ContainsKey("RequiredVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
                     Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty; // TODO: ANAM this can be the default
+
+                    if (String.IsNullOrEmpty(moduleSpecMaxVersion) && String.IsNullOrEmpty(moduleSpecModuleVersion) && String.IsNullOrEmpty(moduleSpecRequiredVersion))
+                    {
+                        var exMessage = String.Format("ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {0}", moduleSpecName);
+                        var ex = new ArgumentException(exMessage);
+                        var MissingModuleSpecificationMemberError = new ErrorRecord(ex, "MissingModuleSpecificationMember", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(MissingModuleSpecificationMemberError);
+
+                        continue;
+                    }
 
                     Hashtable moduleSpecHash = new Hashtable();
 
