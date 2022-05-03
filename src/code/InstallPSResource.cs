@@ -108,7 +108,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Skips the check for package validation.
         /// </summary>
         [Parameter]
-        public SwitchParameter SkipPackageValidation { get; set; }
+        public SwitchParameter AuthenticodeCheck { get; set; }
 
         /// <summary>
         /// Passes the resource installed to the console.
@@ -519,7 +519,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
-                skipPackageValidation: SkipPackageValidation,
+                AuthenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 

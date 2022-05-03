@@ -243,8 +243,8 @@ Describe 'Test Save-PSResource for PSResources' {
 
     # Save module 1.4.3 (with NO catalog file)
     # Should save successfully
-    It "Save module with no catalog file and with -SkipPackageValidation" {
-        Save-PSResource -Name $PackageManagement -Version "1.4.7" -SkipPackageValidation -Repository $PSGalleryName -TrustRepository -Path $SaveDir
+    It "Save module with no catalog file and with -AuthenticodeCheck" {
+        Save-PSResource -Name $PackageManagement -Version "1.4.7" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $PackageManagement
         $pkgDir | Should -Not -BeNullOrEmpty
@@ -280,7 +280,7 @@ Describe 'Test Save-PSResource for PSResources' {
     # Save script that is signed
     # Should save successfully 
     It "FAILING-- ssSave script that is not authenticode signed with -SkipPublisherCheck" {
-        Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -SkipPackageValidation -Repository $PSGalleryName -TrustRepository -Path $SaveDir
+        Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestTestScript.ps1" 
         $pkgDir | Should -Not -BeNullOrEmpty
