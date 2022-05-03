@@ -16,11 +16,11 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     BeforeEach {
-        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
     }
 
     AfterEach {
-        Uninstall-PSResource -Name $testModuleName -Version "*"
+        Uninstall-PSResource -Name $testModuleName -Version "5.0.0.0"
     }
 
     AfterAll {
@@ -28,7 +28,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall a specific module by name" {
-        Uninstall-PSResource -name $testModuleName
+        Uninstall-PSResource -name $testModuleName -Version "5.0.0.0"
         Get-PSResource $testModuleName | Should -BeNullOrEmpty
     }
 
