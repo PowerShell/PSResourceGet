@@ -169,10 +169,9 @@ Describe 'Test Install-PSResource for Module' {
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
-        $pkg = Get-Module "testmodule99"
+        $pkg = Get-PSResource "testmodule99" -ListAvailable
         $pkg.Name | Should -Be "testmodule99"
-        $pkg.Path | Should -Contain ("Program Files")
-        #$pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
+        $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
     }
 
     # Windows only
@@ -224,7 +223,7 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         $pkg = Get-Module $testModuleName -ListAvailable
         $pkg.Name | Should -Contain $testModuleName
-        $pkg.Version | Should -Be "5.0.0.0"
+        $pkg.Version | Should -Contain "5.0.0.0"
 
         $resourcePath = Split-Path -Path $pkg.Path -Parent
         $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
