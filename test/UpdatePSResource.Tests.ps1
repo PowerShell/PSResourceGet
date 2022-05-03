@@ -184,9 +184,9 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "testmodule99" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
         Install-PSResource -Name "testmodule99" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser -Verbose
 
-        Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
+        Update-PSResource -Name "testmodule99" -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
 
-        $res = Get-PSResource -Name $testModuleName -Version "3.0.0.0"
+        $res = Get-PSResource -Name "testmodule99" -Version "3.0.0.0"
         $res | Should -Not -BeNullOrEmpty
     }
 

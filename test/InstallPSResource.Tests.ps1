@@ -169,7 +169,7 @@ Describe 'Test Install-PSResource for Module' {
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
-        $pkg = Get-PSResource "testmodule99" -ListAvailable
+        $pkg = Get-PSResource "testmodule99"
         $pkg.Name | Should -Be "testmodule99"
         $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
     }
