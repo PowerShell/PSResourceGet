@@ -185,19 +185,8 @@ Describe 'Test Update-PSResource' {
 
         Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
 
-        $res = Get-PSResource -Name $testModuleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
-                $pkg.InstalledLocation.Contains("Program Files") | Should -Be $true
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -Be $true
+        $res = Get-PSResource -Name $testModuleName -Version "3.0.0.0"
+        $res | Should -Not -BeNullOrEmpty
     }
 
     # Windows only
