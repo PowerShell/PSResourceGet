@@ -178,15 +178,14 @@ Describe 'Test Update-PSResource' {
         $isPkgUpdated | Should -Be $true
     }
 
-    <###>
     # Windows only
     It "update resource under AllUsers scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
-        Install-PSResource -Name "testmodule99" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
-        Install-PSResource -Name "testmodule99" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser -Verbose
+        Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
+        Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser -Verbose
 
-        Update-PSResource -Name "testmodule99" -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
+        Update-PSResource -Name "testmodule99" -Version "0.0.93" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
 
-        $res = Get-PSResource -Name "testmodule99" -Version "3.0.0.0"
+        $res = Get-PSResource -Name "testmodule99" -Version "0.0.93"
         $res | Should -Not -BeNullOrEmpty
     }
 
