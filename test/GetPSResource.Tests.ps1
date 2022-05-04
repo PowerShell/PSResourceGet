@@ -164,9 +164,9 @@ $testCases =
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
     It "Get resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
-        $pkg = Get-PSResource $testModuleName -Scope CurrentUser
-        $pkg.Name | Should -contain $testModuleName
-        $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
+        Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        $pkg = Get-PSResource "testmodule99" -Scope CurrentUser
+        $pkg.Name | Should -contain "testmodule99"
+        $pkg.InstalledLocation.ToString().Contains("/.local") | Should -Be $true
     }
 }
