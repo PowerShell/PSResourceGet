@@ -185,8 +185,9 @@ Describe 'Test Update-PSResource' {
 
         Update-PSResource -Name "testmodule99" -Version "0.0.93" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
 
-        $res = Get-PSResource -Name "testmodule99" -Version "0.0.93"
+        $res = Get-PSResource -Name "testmodule99"
         $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Contain "0.0.93"
     }
 
     # Windows only

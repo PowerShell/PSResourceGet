@@ -171,7 +171,7 @@ Describe 'Test Install-PSResource for Module' {
         Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
         $pkg = Get-Module "testmodule99" -ListAvailable
         $pkg.Name | Should -Be "testmodule99"
-        $pkg.Path | Should -Contain "Program Files"
+        $pkg.Path.ToString().Contains("Program Files")
     }
 
     # Windows only
