@@ -452,7 +452,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             message = "No verison was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
                         }
                     }
-                    else
+
+                    if (string.IsNullOrEmpty(message))
                     {
                         // This will handle version errors
                         var error = pwsh.Streams.Error;

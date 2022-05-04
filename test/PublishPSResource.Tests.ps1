@@ -74,32 +74,29 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
 
-<# Temporarily comment this test out until Find Helper is complete and code within PublishPSResource is uncommented
     It "Publish a module with dependencies" {
         # Create dependency module
         $dependencyVersion = "2.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:DependencyModuleBase -ChildPath "$script:DependencyModuleName.psd1") -ModuleVersion $dependencyVersion -Description "$script:DependencyModuleName module"
 
-        Publish-PSResource -LiteralPath $script:DependencyModuleBase
+        Publish-PSResource -Path $script:DependencyModuleBase
 
         # Create module to test
         $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -NestedModules "$script:PublishModuleName.psm1" -RequiredModules @{ModuleName = "$script:DependencyModuleName"; ModuleVersion = "$dependencyVersion" }
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '2.0.0' })
 
-        Publish-PSResource -LiteralPath $script:PublishModuleBase
+        Publish-PSResource -Path $script:PublishModuleBase
 
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         Get-ChildItem $script:repositoryPath | select-object -Last 1 | Should -Be $expectedPath
     }
-#>
 
     It "Publish a module with a dependency that is not published, should throw" {
         $version = "1.0.0"
         $dependencyVersion = "2.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName="PackageManagement"; ModuleVersion="$dependencyVersion"})
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '1.4.4' })
 
-        Publish-PSResource -Path $script:PublishModuleBase -ErrorAction SilentlyContinue
-
+        Publish-PSResource -Path $script:PublishModuleBase -Verbose -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "DependencyNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 
