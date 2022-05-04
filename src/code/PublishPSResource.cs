@@ -17,6 +17,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Net.Http;
+using System.Threading;
 using System.Xml;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -160,9 +161,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Members
 
+        private CancellationToken _cancellationToken;
         private NuGetVersion _pkgVersion;
         private string _pkgName;
-        private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+        private static char[] _PathSeparators = new[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
         public const string PSDataFileExt = ".psd1";
         public const string PSScriptFileExt = ".ps1";
 
@@ -172,6 +174,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
+            _cancellationToken = new CancellationToken();
+
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
@@ -317,15 +321,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
-                string repositoryUri = repository.Uri.AbsoluteUri;
-
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and
                 // 2) the -SkipDependenciesCheck flag is not passed in
                 if (dependencies != null && !SkipDependenciesCheck)
                 {
                     // If error gets thrown, exit process record
-                    if (!CheckDependenciesExist(dependencies, repositoryUri))
+                    if (!CheckDependenciesExist(dependencies, repository.Name))
                     {
                         return;
                     }
@@ -366,14 +368,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // pack into a nupkg
                 try
                 {
-                     if (!PackNupkg(outputDir, outputNupkgDir, nuspec))
-                     {
+                    if (!PackNupkg(outputDir, outputNupkgDir, nuspec))
+                    {
                         return;
-                     }
+                    }
                 }
                 catch (Exception e)
                 {
-                    var message =  string.Format("Error packing into .nupkg: '{0}'.", e.Message);
+                    var message = string.Format("Error packing into .nupkg: '{0}'.", e.Message);
                     var ex = new ArgumentException(message);
                     var ErrorPackingIntoNupkg = new ErrorRecord(ex, "ErrorPackingIntoNupkg", ErrorCategory.NotSpecified, null);
                     WriteError(ErrorPackingIntoNupkg);
@@ -403,6 +405,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // This call does not throw any exceptions, but it will write unsuccessful responses to the console
+                string repositoryUri = repository.Uri.AbsoluteUri;
                 PushNupkg(outputNupkgDir, repository.Name, repositoryUri);
 
             }
@@ -433,19 +436,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (pwsh.HadErrors)
                 {
                     var message = string.Empty;
-                    if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Author))
+
+                    if (results.Any())
                     {
-                        message = "No author was provided in the module manifest. The module manifest must specify a version, author and description.";
-                    }
-                    else if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Description))
-                    {
-                        message = "No description was provided in the module manifest. The module manifest must specify a version, author and description.";
+                        if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Author))
+                        {
+                            message = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                        else if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Description))
+                        {
+                            message = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                        else if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Version.ToString()))
+                        {
+                            message = "No verison was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
                     }
                     else
                     {
                         // This will handle version errors
                         var error = pwsh.Streams.Error;
-                        message = error[0].ToString();
+                        message = error[0].ToString() + "Run 'Test-ModuleManifest' to validate the module manifest.";
                     }
                     var ex = new ArgumentException(message);
                     var InvalidModuleManifest = new ErrorRecord(ex, "InvalidModuleManifest", ErrorCategory.InvalidData, null);
@@ -569,7 +580,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 metadataElementsDictionary.Add("description", parsedMetadataHash["description"].ToString().Trim());
             }
 
-           if (parsedMetadataHash.ContainsKey("releasenotes"))
+            if (parsedMetadataHash.ContainsKey("releasenotes"))
             {
                 metadataElementsDictionary.Add("releaseNotes", parsedMetadataHash["releasenotes"].ToString().Trim());
             }
@@ -579,7 +590,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 metadataElementsDictionary.Add("copyright", parsedMetadataHash["copyright"].ToString().Trim());
             }
 
-            string tags = isScript ?  "PSScript" : "PSModule";
+            string tags = isScript ? "PSScript" : "PSModule";
             if (parsedMetadataHash.ContainsKey("tags"))
             {
                 if (parsedMetadataHash["tags"] != null)
@@ -762,7 +773,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // expecting only one or two comments
                         var commentText = token.Text;
-                        parsedComments.AddRange(commentText.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries) );
+                        parsedComments.AddRange(commentText.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries));
                     }
                 }
 
@@ -775,7 +786,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         var key = newlist[0].TrimStart(TrimBeginning);
                         var value = newlist.Length > 1 ? newlist[1].Trim() : string.Empty;
-                        parsedMetadataHash.Add(key,value);
+                        parsedMetadataHash.Add(key, value);
                     }
                 }
             }
@@ -792,15 +803,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // Need to make individual calls since we're look for exact version numbers or ranges.
                 var depName = new[] { (string)dependency };
-                var depVersion = (string)dependencies[dependency];
-                var type = new[] { "module", "script" };
+                // test version 
+                string depVersion = dependencies[dependency] as string;
+                depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
+
+                VersionRange versionRange = null;
+                if (!Utils.TryParseVersionOrVersionRange(depVersion, out versionRange))
+                {
+                    this.ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("Dependency version is not in the proper format"),
+                        "IncorrectVersionFormat",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+
+                bool depPrerelease = depVersion.Contains("-") ? true : false;
+
                 var repository = new[] { repositoryUri };
 
                 // Search for and return the dependency if it's in the repository.
-                // TODO: When find is complete, uncomment beginFindHelper method below  (resourceNameParameterHelper)
-                //var dependencyFound = findHelper.beginFindHelper(depName, type, depVersion, true, null, null, repository, Credential, false, false);
-                // TODO: update the type from PSObject to PSResourceInfo
-                List<PSObject> dependencyFound = null;
+                FindHelper findHelper = new FindHelper(_cancellationToken, this);
+                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, depVersion, true, null, repository, Credential, false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                     var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryUri);
