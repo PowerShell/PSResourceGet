@@ -87,8 +87,8 @@ Describe "Test Publish-PSResource" {
 
         Publish-PSResource -Path $script:PublishModuleBase
 
-        $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath | select-object -Last 1 | Should -Be $expectedPath
+        $nupkg = Get-ChildItem $script:repositoryPath | select-object -Last 1
+        $nupk.Name | Should Be "$script:PublishModuleName.$version.nupkg"
     }
 
     It "Publish a module with a dependency that is not published, should throw" {
