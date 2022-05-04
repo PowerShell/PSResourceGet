@@ -166,7 +166,7 @@ $testCases =
     It "Get resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
         $pkg = Get-PSResource $testModuleName -Scope CurrentUser
-        $pkg.Name | Should -Be $testModuleName
+        $pkg.Name | Should -contain $testModuleName
         $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
     }
 }
