@@ -46,7 +46,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $null = Install-PSResource "testmodule99" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue -SkipDependencyCheck
 
         Uninstall-PSResource -Name $testModuleName, "testmodule99" 
-        Get-Module $testModuleName, "testmodule99" | Should -BeNullOrEmpty
+        Get-PSResource $testModuleName, "testmodule99" | Should -BeNullOrEmpty
     }
 
     It "Uninstall a specific script by name" {
