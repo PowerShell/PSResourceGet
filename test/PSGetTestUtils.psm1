@@ -315,18 +315,27 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
-        $scriptName
+        $scriptName,
+
+        [string]
+        $scriptRepoName,
+
+        [string]
+        $scriptVersion
     )
     Get-TestDriveSetUp
+
+    # $publishScriptBase = Join-Path $script:testIndividualResourceFolder $scriptName
+    # $null = New-Item -Path $publishScriptBase -ItemType Directory -Force
 
     $scriptFilePath = Join-Path -Path $script:testIndividualResourceFolder -ChildPath "$scriptName.ps1"
     $null = New-Item -Path $scriptFilePath -ItemType File -Force
 
-    $version = "1.0.0"
+    # $version = "1.0.0"
     $params = @{
                 #Path = $scriptFilePath
-                Version = $version
-                #GUID =
+                Version = $scriptVersion
+                GUID = [guid]::NewGuid()
                 Author = 'Jane'
                 CompanyName = 'Microsoft Corporation'
                 Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
@@ -334,14 +343,24 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
                 LicenseUri = "https://$scriptName.com/license"
                 IconUri = "https://$scriptName.com/icon"
                 ProjectUri = "https://$scriptName.com"
-                Tags = @('Tag1','Tag2', "Tag-$scriptName-$version")
+                Tags = @('Tag1','Tag2', "Tag-$scriptName-$scriptVersion")
                 ReleaseNotes = "$scriptName release notes"
                 }
 
     $scriptMetadata = Create-PSScriptMetadata @params
+    Write-Host "metadata:"
+    Write-Host $scriptMetadata
     Set-Content -Path $scriptFilePath -Value $scriptMetadata
-
-    Publish-PSResource -path $scriptFilePath -Repository psgettestlocal
+    Write-Host "in Utils" $scriptName
+    Write-Host $scriptFilePath
+    Write-Host $scriptRepoName
+    Write-Host $scriptVersion
+    $a = Get-PSResourceRepository $scriptRepoName
+    Write-Host "repo name" $a.Name
+    Write-Host "repo url:" $a.Uri
+    Write-Host "file dump:"
+    Write-Host (Get-Content $scriptFilePath)
+    Publish-PSResource -Path $scriptFilePath -Repository $scriptRepoName -Verbose
 }
 
 function Get-CommandResourcePublishedToLocalRepoTestDrive
@@ -369,7 +388,10 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
         $moduleName,
 
         [string]
-        $repoName
+        $repoName,
+
+        [string]
+        $moduleVersion
     )
     Get-TestDriveSetUp
 
@@ -377,8 +399,8 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    $version = "1.0"
-    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+    # $version = "1.0"
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $moduleVersion -Description "$publishModuleName module"
 
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
@@ -507,8 +529,6 @@ function Create-PSScriptMetadata
 
 .COPYRIGHT$(if ($Copyright) {" $Copyright"})
 
-.DESCRIPTION$(if ($Description) {" $Description"})
-
 .TAGS$(if ($Tags) {" $Tags"})
 
 .LICENSEURI$(if ($LicenseUri) {" $LicenseUri"})
@@ -525,8 +545,14 @@ function Create-PSScriptMetadata
 
 .RELEASENOTES
 $($ReleaseNotes -join "`r`n")
-
 .PRIVATEDATA$(if ($PrivateData) {" $PrivateData"})
+
+#>
+
+<#
+
+.DESCRIPTION
+$(if ($Description) {" $Description"})
 
 #>
 "@
