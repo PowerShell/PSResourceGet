@@ -53,7 +53,6 @@ Describe "Test Publish-PSResource" {
      # Remove-Item $pkgsToDelete -Recurse
     }
 
-
     It "Publish a module with -Path to the highest priority repo" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
@@ -96,8 +95,7 @@ Describe "Test Publish-PSResource" {
         $dependencyVersion = "2.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '1.4.4' })
 
-        Publish-PSResource -Path $script:PublishModuleBase -Verbose -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "DependencyNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "DependencyNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 
 
@@ -111,7 +109,7 @@ Describe "Test Publish-PSResource" {
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:repositoryPath).FullName | select-object -Last 1 | Should -Be $expectedPath
     }
-
+    
     <# The following tests are related to passing in parameters to customize a nuspec.
      # These parameters are not going in the current release, but is open for discussion to include in the future.
     It "Publish a module with -Nuspec" {
@@ -287,4 +285,27 @@ Describe "Test Publish-PSResource" {
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
+
+    <# The following tests required manual testing because New-ModuleManifest will not allow for incorrect syntax/formatting,
+        At the moment, 'Update-ModuleManifest' is not yet complete, but that too should call 'Test-ModuleManifest', which also 
+        does not allow for incorrect syntax. 
+        It's still important to validate these scenarios because users may alter the module manifest manually, or the file may
+        get corrupted. #>
+    <#
+    It "Publish a module with that has an invalid version format, should throw -- Requires Manual testing" {
+        $incorrectVersion = '1..0.0'
+        $correctVersion = '1.0.0.0'
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $incorrectVersion -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = $correctVersion })
+
+        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+    }
+
+    It "Publish a module with a dependency that has an invalid version format, should throw -- Requires Manual testing" {
+        $correctVersion = '1.0.0'
+        $incorrectVersion = '1..0.0'
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $correctVersion -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = $incorrectVersion })
+
+        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+    }
+    #>
 }
