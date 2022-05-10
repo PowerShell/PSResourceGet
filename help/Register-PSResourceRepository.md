@@ -26,7 +26,7 @@ Register-PSResourceRepository [-PSGallery] [-Trusted] [-Priority <Int32>] [-Pass
 
 ### RepositoriesParameterSet
 ```
-Register-PSResourceRepository -Repositories <Hashtable[]> [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Register-PSResourceRepository -Repository <Hashtable[]> [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -59,7 +59,7 @@ This example registers the "PSGallery" repository, with the 'PSGallery' paramete
 ### Example 3
 ```
 PS C:\> $arrayOfHashtables = @{Name = "psgettestlocal"; Uri = "c:/code/testdir"}, @{PSGallery = $True}
-PS C:\> Register-PSResourceRepository -Repositories $arrayOfHashtables
+PS C:\> Register-PSResourceRepository -Repository $arrayOfHashtables
 PS C:\> Get-PSResourceRepository
         Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
@@ -68,7 +68,7 @@ PS C:\> Get-PSResourceRepository
 
 ```
 
-This example registers multiple repositories at once. To do so, we use the `-Repositories` parameter and provide an array of hashtables. Each hashtable can only have keys associated with parameters for the NameParameterSet or the PSGalleryParameterSet. Upon running the command we can see that the "psgettestlocal" and "PSGallery" repositories have been succesfully registered.
+This example registers multiple repositories at once. To do so, we use the `-Repository` parameter and provide an array of hashtables. Each hashtable can only have keys associated with parameters for the NameParameterSet or the PSGalleryParameterSet. Upon running the command we can see that the "psgettestlocal" and "PSGallery" repositories have been succesfully registered.
 
 ## PARAMETERS
 
@@ -119,7 +119,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Repositories
+### -Repository
 Specifies an array of hashtables which contains repository information and is used to register multiple repositories at once.
 
 ```yaml
