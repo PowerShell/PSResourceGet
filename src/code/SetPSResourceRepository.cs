@@ -236,7 +236,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
         {
             List<PSRepositoryInfo> reposUpdatedFromHashtable = new List<PSRepositoryInfo>();
-            foreach (Hashtable repo in Repositories)
+            foreach (Hashtable repo in Repository)
             {
                 if (!repo.ContainsKey("Name") || repo["Name"] == null || String.IsNullOrEmpty(repo["Name"].ToString()))
                 {
