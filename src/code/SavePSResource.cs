@@ -265,7 +265,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: AsNupkg, 
                 includeXML: IncludeXML, 
                 skipDependencyCheck: SkipDependencyCheck,
-                AuthenticodeCheck: AuthenticodeCheck,
+                authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
                 pathsToInstallPkg: new List<string> { _path });
 

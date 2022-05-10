@@ -519,7 +519,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
-                AuthenticodeCheck: AuthenticodeCheck,
+                authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
