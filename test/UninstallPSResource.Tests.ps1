@@ -43,10 +43,10 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall a list of modules by name" {
-        $null = Install-PSResource "RequiredModule1" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue -SkipDependencyCheck
+        $null = Install-PSResource "testmodule99" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue -SkipDependencyCheck
 
-        Uninstall-PSResource -Name $testModuleName, "RequiredModule1" 
-        Get-PSResource $testModuleName, "RequiredModule1" | Should -BeNullOrEmpty
+        Uninstall-PSResource -Name $testModuleName, "testmodule99" 
+        Get-PSResource $testModuleName, "testmodule99" | Should -BeNullOrEmpty
     }
 
     It "Uninstall a specific script by name" {
@@ -266,5 +266,25 @@ Describe 'Test Uninstall-PSResource for Modules' {
         Get-PSResource -Name $testModuleName -Version "2.5.0-beta" | Uninstall-PSResource
         $res = Get-PSResource -Name $testModuleName -Version "2.5.0-beta"
         $res | Should -BeNullOrEmpty
+    }
+
+    # Windows only
+    It "Uninstall resource under CurrentUser scope only- Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Reinstall
+        Uninstall-PSResource -Name $testModuleName -Scope CurrentUser 
+        
+        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Path.ToString().Contains("Program Files") | Should -Be $true
+    }
+
+    # Windows only
+    It "Uninstall resource under AllUsers scope only- Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
+        Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Reinstall
+        Uninstall-PSResource -Name $testModuleName -Scope AllUsers 
+
+        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Path.ToString().Contains("Documents") | Should -Be $true
     }
 }

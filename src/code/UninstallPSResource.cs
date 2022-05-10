@@ -54,6 +54,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
 
+        /// <summary>
+        /// Specifies the scope of installation.
+        /// </summary>
+        [Parameter]
+        public ScopeType Scope { get; set; }
+
         #endregion
 
         #region Members
@@ -71,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            _pathsToSearch = Utils.GetAllResourcePaths(this);
+            _pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
         }
 
         protected override void ProcessRecord()

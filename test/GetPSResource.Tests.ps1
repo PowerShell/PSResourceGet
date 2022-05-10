@@ -131,4 +131,42 @@ $testCases =
         $res.Version | Should -Be "3.0.0"
         $res.Prerelease | Should -Be "alpha"
     }
+
+     # Windows only
+     It "Get resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
+        $pkg = Get-PSResource -Name $testModuleName -Scope CurrentUser
+        $pkg[0].Name | Should -Be $testModuleName
+        $pkg[0].InstalledLocation.ToString().Contains("Documents") | Should -Be $true
+    }
+
+    # Windows only
+    It "Get resource under AllUsers scope when module is installed under CurrentUser - Windows only" -Skip:(!(Get-IsWindows)) {
+        $pkg = Get-PSResource -Name $testModuleName -Scope AllUsers
+        $pkg | Should -BeNullOrEmpty
+    }
+
+    # Windows only
+    It "Get resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        $pkg = Get-PSResource -Name $testModuleName -Scope AllUsers
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
+    }
+
+    # Windows only
+    It "Get resource under CurrentUser scope when module is installed under AllUsers - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
+        Uninstall-PSResource -Name $testModuleName -Version "*"
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        $pkg = Get-PSResource -Name $testModuleName -Scope CurrentUser
+        $pkg | Should -BeNullOrEmpty
+    }
+
+    # Unix only
+    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
+    It "Get resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        $pkg = Get-PSResource "testmodule99" -Scope CurrentUser
+        $pkg.Name | Should -contain "testmodule99"
+        $pkg.InstalledLocation.ToString().Contains("/.local") | Should -Be $true
+    }
 }
