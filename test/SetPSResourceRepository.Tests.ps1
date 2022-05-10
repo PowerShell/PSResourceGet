@@ -112,7 +112,7 @@ Describe "Test Set-PSResourceRepository" {
         $incorrectHashTable = @{Name = $Name; Trusted = $True}
         $arrayOfHashtables = $hashtable1, $incorrectHashTable, $hashtable2
 
-        Set-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+        Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
@@ -138,7 +138,7 @@ Describe "Test Set-PSResourceRepository" {
         $hashtable4 = @{Name = $PSGalleryName; Trusted = $True};
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
-        Set-PSResourceRepository -Repositories $arrayOfHashtables
+        Set-PSResourceRepository -Repository $arrayOfHashtables
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.Name | Should -Be $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir2Path
@@ -192,7 +192,7 @@ Describe "Test Set-PSResourceRepository" {
         $hashtable2 = @{Name = $TestRepoName1; Priority = 25}
         $arrayOfHashtables = $hashtable1, $hashtable2
 
-        Set-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+        Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingIndividualRepoFromRepositories,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
@@ -222,7 +222,7 @@ Describe "Test Set-PSResourceRepository" {
         $hashtable2 = @{Name = $TestRepoName1; Priority = 25}
         $arrayOfHashtables = $hashtable1, $hashtable2
 
-        Set-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+        Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingIndividualRepoFromRepositories,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 

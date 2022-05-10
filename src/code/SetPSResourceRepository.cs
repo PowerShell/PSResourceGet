@@ -51,7 +51,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = RepositoriesParameterSet)]
         [ValidateNotNullOrEmpty]
-        public Hashtable[] Repositories { get; set; }
+        public Hashtable[] Repository { get; set; }
 
         /// <summary>
         /// Specifies whether the repository should be trusted.
