@@ -219,10 +219,14 @@ Describe 'Test Save-PSResource for PSResources' {
         $res.Version | Should -Be "1.0.0.0"
     }
 
+
+
+
+
     # Save module 1.4.3 (is authenticode signed and has catalog file)
     # Should save successfully 
     It "Save modules with catalog file using publisher validation" {
-        Save-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository -Path $SaveDir
+        Save-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $PackageManagement
         $pkgDir | Should -Not -BeNullOrEmpty
@@ -233,17 +237,6 @@ Describe 'Test Save-PSResource for PSResources' {
     # Save module 1.4.7 (is authenticode signed and has NO catalog file)
     # Should save successfully 
     It "Save module with no catalog file" {
-        Save-PSResource -Name $PackageManagement -Version "1.4.7" -Repository $PSGalleryName -TrustRepository -Path $SaveDir
-
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $PackageManagement
-        $pkgDir | Should -Not -BeNullOrEmpty
-        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
-        $pkgDirVersion.Name | Should -Be "1.4.7" 
-    }
-
-    # Save module 1.4.3 (with NO catalog file)
-    # Should save successfully
-    It "Save module with no catalog file and with -AuthenticodeCheck" {
         Save-PSResource -Name $PackageManagement -Version "1.4.7" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $PackageManagement
@@ -255,21 +248,21 @@ Describe 'Test Save-PSResource for PSResources' {
     # Save module that is not authenticode signed
     # Should FAIL to save the module
     It "Save module that is not authenticode signed" {
-        Save-PSResource -Name $testModuleName -Version "5.0.0" -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue
+        Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     # Save 1.4.4.1 (with incorrect catalog file)
     # Should FAIL to save the module
     It "Save module with incorrect catalog file" {
-        Save-PSResource -Name $PackageManagement -Version "1.4.4.1" -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue
+        Save-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     # Save script that is signed
     # Should save successfully 
-    It "FAILIN-- Save script that is authenticode signed" {
-        Save-PSResource -Name "Install-VSCode" -Version "1.4.2" -Repository $PSGalleryName -TrustRepository -Path $SaveDir
+    It "Save script that is authenticode signed" {
+        Save-PSResource -Name "Install-VSCode" -Version "1.4.2" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "Install-VSCode.ps1" 
         $pkgDir | Should -Not -BeNullOrEmpty
@@ -277,21 +270,10 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgName.Name | Should -Be "Install-VSCode.ps1" 
     }
 
-    # Save script that is signed
-    # Should save successfully 
-    It "FAILING-- ssSave script that is not authenticode signed with -SkipPublisherCheck" {
-        Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
-
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "TestTestScript.ps1" 
-        $pkgDir | Should -Not -BeNullOrEmpty
-        $pkgName = Get-ChildItem -Path $pkgDir.FullName
-        $pkgName.Name | Should -Be "TestTestScript.ps1"
-    }
-
     # Save script that is not signed
     # Should throw
     It "Save script that is not signed" {
-        Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 

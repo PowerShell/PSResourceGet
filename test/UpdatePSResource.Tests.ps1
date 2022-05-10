@@ -339,7 +339,7 @@ Describe 'Test Update-PSResource' {
     # Should update successfully 
     It "Update module with catalog file using publisher validation" {
         Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $PackageManagement -Version "1.4.3" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
         $res1.Name | Should -Be $PackageManagement
@@ -349,17 +349,6 @@ Describe 'Test Update-PSResource' {
     # Update to module 1.4.7 (is authenticode signed and has NO catalog file)
     # Should update successfully 
     It "Install module with no catalog file" {
-        Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $PackageManagement -Version "1.4.7" -Repository $PSGalleryName -TrustRepository
-
-        $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
-        $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.7.0"
-    }
-
-    # Update to module 1.4.3 (with NO catalog file)
-    # Should update successfully
-    It "Update module with no catalog file and with -AuthenticodeCheck" {
         Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $PackageManagement -Version "1.4.7" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
 
@@ -372,7 +361,7 @@ Describe 'Test Update-PSResource' {
     # Should FAIL to update the module
     It "Update module with incorrect catalog file" {
         Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $PackageManagement -Version "1.4.4.1" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        Update-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     }
 
@@ -380,7 +369,7 @@ Describe 'Test Update-PSResource' {
     # Should update successfully 
     It "Update script that is authenticode signed" {
         Install-PSResource -Name "Install-VSCode" -Version "1.4.1" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name "Install-VSCode" -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name "Install-VSCode" -Version "1.4.2" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource "Install-VSCode" -Version "1.4.2"
         $res1.Name | Should -Be "Install-VSCode"
@@ -388,21 +377,10 @@ Describe 'Test Update-PSResource' {
     }
 
     # Update script that is not signed
-    # Should update successfully 
-    It "Update script that is not authenticode signed with -AuthenticodeCheck" {
-        Install-PSResource -Name "TestTestScript" -Version "1.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
-
-        $res1 = Get-PSResource "TestTestScript" -Version "1.3.1.1"
-        $res1.Name | Should -Be "TestTestScript"
-        $res1.Version | Should -Be "1.3.1.1"
-    }
-
-    # Update script that is not signed
     # Should throw
     It "Update script that is not signed" {
-        Install-PSResource -Name "TestTestScript" -Version "1.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        Install-PSResource -Name "TestTestScript" -Version "1.0" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     }
 }
