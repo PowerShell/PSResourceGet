@@ -44,6 +44,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Path { get; set; }
+        
+        /// <summary>
+        /// Specifies the scope of installation.
+        /// </summary>
+        [Parameter]
+        public ScopeType Scope { get; set; }
 
         #endregion
 
@@ -102,7 +108,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else
             {
                 // retrieve all possible paths
-                _pathsToSearch = Utils.GetAllResourcePaths(this);
+                _pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
             }
         }
 
