@@ -40,17 +40,24 @@ Describe "Test Publish-PSResource" {
         # Create temp destination path
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
         New-Item $script:destinationPath -ItemType directory -Force
+
+        #Create folder where we shall place all script files used in these tests
+        $script:tmpScriptsFolderPath = Join-Path -Path $TestDrive -ChildPath "tmpScriptsPath"
+        if(!(Test-Path $script:tmpScriptsFolderPath))
+        {
+            New-Item -Path $script:tmpScriptsFolderPath -ItemType Directory -Force
+        }
     }
     AfterAll {
     #    Get-RevertPSResourceRepositoryFile
     }
     AfterEach {
-      # Delete all contents of the repository without deleting the repository directory itself
-     # $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"
-     # Remove-Item $pkgsToDelete -Recurse
+        # Delete all contents of the repository without deleting the repository directory itself
+        $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"
+        Remove-Item $pkgsToDelete -Recurse
 
-     # $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
-     # Remove-Item $pkgsToDelete -Recurse
+        $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
+        Remove-Item $pkgsToDelete -Recurse
     }
 
 
@@ -289,5 +296,32 @@ Describe "Test Publish-PSResource" {
 
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "publish a script locally"{
+        $scriptName = "PSGetTestScript"
+        $scriptVersion = "1.0.0"
+
+        $params = @{
+            Version = $scriptVersion
+            GUID = [guid]::NewGuid()
+            Author = 'Jane'
+            CompanyName = 'Microsoft Corporation'
+            Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
+            Description = "Description for the $scriptName script"
+            LicenseUri = "https://$scriptName.com/license"
+            IconUri = "https://$scriptName.com/icon"
+            ProjectUri = "https://$scriptName.com"
+            Tags = @('Tag1','Tag2', "Tag-$scriptName-$scriptVersion")
+            ReleaseNotes = "$scriptName release notes"
+            }
+        
+            $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
+            New-ScriptFileInfo @params -Path $scriptPath
+
+            Publish-PSResource -Path $scriptPath
+
+            $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+            (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 }
