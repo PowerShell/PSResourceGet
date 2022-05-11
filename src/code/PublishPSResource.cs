@@ -170,6 +170,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static char[] _PathSeparators = new [] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
         public const string PSDataFileExt = ".psd1";
         public const string PSScriptFileExt = ".ps1";
+        private const string PSScriptInfoCommentString = "<#PSScriptInfo";
 
         #endregion
 
@@ -449,6 +450,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // pack into a nupkg
                 try
                 {
+                    // TODO: Anam, per Paul's code review comments, what does false mean here, specifically? Can we write error?
                     if (!PackNupkg(outputDir, outputNupkgDir, nuspec))
                     {
                     return;
@@ -822,6 +824,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         parseMetadataErrors.Add(psScriptFileParseError);
                     }
                 }
+
                 errors = parseMetadataErrors.ToArray();
                 return false;
             }
@@ -840,7 +843,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Get the block/group comment beginning with <#PSScriptInfo
             List<System.Management.Automation.Language.Token> commentTokens = tokens.Where(a => String.Equals(a.Kind.ToString(), "Comment", StringComparison.OrdinalIgnoreCase)).ToList();
-            string commentPattern = "<#PSScriptInfo";
+            string commentPattern = PSScriptInfoCommentString;
             Regex rg = new Regex(commentPattern);
             List<System.Management.Automation.Language.Token> psScriptInfoCommentTokens = commentTokens.Where(a => rg.IsMatch(a.Extent.Text)).ToList();
 
