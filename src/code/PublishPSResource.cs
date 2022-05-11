@@ -633,9 +633,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     return;
                 }
-                else if(repository.Uri.Scheme == Uri.UriSchemeFile && !Directory.Exists(repository.Uri.AbsoluteUri))
+                else if(repository.Uri.Scheme == Uri.UriSchemeFile && !Directory.Exists(repository.Uri.LocalPath))
                 {
-                    //TODO: would this include localhost tho?
+                    //TODO: would this include localhost?
                     var message = String.Format("The repository '{0}' with uri: {1} is not a valid folder path which exists. If providing a file based repository, provide a repository with a path that exists.", Repository, repository.Uri.AbsoluteUri);
                     var ex = new ArgumentException(message);
                     var fileRepositoryPathDoesNotExistError = new ErrorRecord(ex, "repositoryPathDoesNotExist", ErrorCategory.ObjectNotFound, null);

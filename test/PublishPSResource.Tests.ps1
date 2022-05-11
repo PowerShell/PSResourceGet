@@ -49,7 +49,7 @@ Describe "Test Publish-PSResource" {
         }
     }
     AfterAll {
-    #    Get-RevertPSResourceRepositoryFile
+       Get-RevertPSResourceRepositoryFile
     }
     AfterEach {
         # Delete all contents of the repository without deleting the repository directory itself
