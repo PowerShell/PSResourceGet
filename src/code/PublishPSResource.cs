@@ -353,23 +353,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 var outputNupkgDir = System.IO.Path.Combine(outputDir, "nupkg");
 
-                // pack into a nupkg
-                try
+                // pack into .nupkg
+                if (!PackNupkg(outputDir, outputNupkgDir, nuspec, out ErrorRecord error))
                 {
-                    // TODO: Anam, per Paul's code review comments, what does false mean here, specifically? Can we write error?
-                    if (!PackNupkg(outputDir, outputNupkgDir, nuspec))
-                    {
-                    return;
-                    }
-                }
-                catch (Exception e)
-                {
-                    var message =  string.Format("Error packing into .nupkg: '{0}'.", e.Message);
-                    var ex = new ArgumentException(message);
-                    var ErrorPackingIntoNupkg = new ErrorRecord(ex, "ErrorPackingIntoNupkg", ErrorCategory.NotSpecified, null);
-                    WriteError(ErrorPackingIntoNupkg);
-
-                    // exit process record
+                    WriteError(error);
+                    // exit out of processing
                     return;
                 }
 
@@ -880,11 +868,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return true;
         }
 
-        private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile)
+        private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile, out ErrorRecord error)
         {
-            // Pack the module or script into a nupkg given a nuspec.
+            // Pack the module or script into a nupkg given a nuspec.   
             var builder = new PackageBuilder();
-            var runner = new PackCommandRunner(
+            try
+            {
+                var runner = new PackCommandRunner(
                     new PackArgs
                     {
                         CurrentDirectory = outputDir,
@@ -896,18 +886,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     },
                     MSBuildProjectFactory.ProjectCreator,
                     builder);
-
-            bool success = runner.RunPackageBuild();
-            if (success)
-            {
-                WriteVerbose("Successfully packed the resource into a .nupkg");
+                bool success = runner.RunPackageBuild();
+                
+                if (success)
+                {
+                    WriteVerbose("Successfully packed the resource into a .nupkg");
+                }
+                else
+                {
+                    var message = String.Format("Not able to successfully pack the resource into a .nupkg");
+                    var ex = new InvalidOperationException(message);
+                    var failedToPackIntoNupkgError = new ErrorRecord(ex, "failedToPackIntoNupkg", ErrorCategory.ObjectNotFound, null);
+                    error = failedToPackIntoNupkgError;
+                    return false;
+                }
             }
-            else
+            catch (Exception e)
             {
-                WriteVerbose("Not able to successfully pack the resource into a .nupkg");
+                var message =  string.Format("Unexpectd error packing into .nupkg: '{0}'.", e.Message);
+                var ex = new ArgumentException(message);
+                var ErrorPackingIntoNupkg = new ErrorRecord(ex, "ErrorPackingIntoNupkg", ErrorCategory.NotSpecified, null);
+
+                error = ErrorPackingIntoNupkg;
+                // exit process record
+                return false;
             }
 
-            return success;
+            error = null;
+            return true;
         }
 
         private void PushNupkg(string outputNupkgDir, string repoName, string repoUri)
