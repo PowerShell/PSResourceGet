@@ -316,12 +316,12 @@ Describe "Test Publish-PSResource" {
             ReleaseNotes = "$scriptName release notes"
             }
         
-            $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
-            New-ScriptFileInfo @params -Path $scriptPath
+        $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
+        New-ScriptFileInfo @params -Path $scriptPath
 
-            Publish-PSResource -Path $scriptPath
+        Publish-PSResource -Path $scriptPath
 
-            $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
-            (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 }

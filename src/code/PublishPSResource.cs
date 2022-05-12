@@ -52,28 +52,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter (Mandatory = true)]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
-        // public string Path
-        // {
-        //     get
-        //     { return _path; }
-
-        //     set
-        //     {
-        //         // string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
-
-        //         // if (Directory.Exists(resolvedPath))
-        //         // {
-        //         //     // we point to a folder when publishing a module
-        //         //     _path = resolvedPath;
-        //         // }
-        //         // else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(PSScriptFileExt, StringComparison.OrdinalIgnoreCase))
-        //         // {
-        //         //     // we can point to .ps1 file directly when publishing a script, but not to .psd1 file (for publishing a module)
-        //         //     _path = resolvedPath;
-        //         // }
-        //     }
-        // }
-        // private string _path;
 
         /// <summary>
         /// Specifies the path to where the resource (as a nupkg) should be saved to. This parameter can be used in conjunction with the
@@ -81,36 +59,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty]
-        public string DestinationPath
-        {
-            get
-            { return _destinationPath; }
-
-            set
-            {
-                string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
-
-                if (Directory.Exists(resolvedPath))
-                {
-                    _destinationPath = resolvedPath;
-                }
-                else
-                {
-                    try
-                    {
-                        Directory.CreateDirectory(value);
-                    }
-                    catch (Exception e)
-                    {
-                        var exMessage = string.Format("Destination path does not exist and cannot be created: {0}", e.Message);
-                        var ex = new ArgumentException(exMessage);
-                        var InvalidDestinationPath = new ErrorRecord(ex, "InvalidDestinationPath", ErrorCategory.InvalidArgument, null);
-                        ThrowTerminatingError(InvalidDestinationPath);
-                    }
-                }
-            }
-        }
-        private string _destinationPath;
+        public string DestinationPath { get; set; }
 
         /// <summary>
         /// Specifies a user account that has rights to a specific repository (used for finding dependencies).
@@ -184,14 +133,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
 
-            if (Directory.Exists(resolvedPath))
+            if (Directory.Exists(resolvedPath) || 
+                (File.Exists(resolvedPath) && resolvedPath.EndsWith(PSScriptFileExt, StringComparison.OrdinalIgnoreCase)))
             {
-                // we point to a folder when publishing a module
-                _path = resolvedPath;
-            }
-            else if (File.Exists(resolvedPath) && resolvedPath.EndsWith(PSScriptFileExt, StringComparison.OrdinalIgnoreCase))
-            {
-                // we can point to .ps1 file directly when publishing a script, but not to .psd1 file (for publishing a module)
+                // condition 1: we point to a folder when publishing a module
+                // condition 2: we point to a .ps1 file directly when publishing a script, but not to .psd1 file (for publishing a module)
                 _path = resolvedPath;
             }
             else
@@ -209,7 +155,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (Directory.Exists(resolvedDestinationPath))
                 {
-                    _destinationPath = resolvedDestinationPath;
+                    DestinationPath = resolvedDestinationPath;
                 }
                 else
                 {
@@ -227,6 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
         }
+
         protected override void EndProcessing()
         {
             // Returns the name of the file or the name of the directory, depending on path
@@ -243,10 +190,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable parsedMetadata;
             if (isScript)
             {
-                resourceFilePath = pkgFileOrDir.FullName;  // TODO: Anam is this already resolved? Needed?
+                resourceFilePath = pkgFileOrDir.FullName;
 
                 // Check that script metadata is valid
-                // ParseScriptMetadata will write non-terminating error if it's unsuccessful in parsing
                 if (!TryParseScriptMetadata(
                     out parsedMetadata,
                     resourceFilePath,
@@ -256,48 +202,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         WriteError(err);
                     }
-
-                    return;
-                }
-
-                // Check that the value is valid input
-                // If it does not contain 'Version' or the Version empty or whitespace, write error
-                if (!parsedMetadata.ContainsKey("version") || String.IsNullOrWhiteSpace(parsedMetadata["version"].ToString()))
-                {
-                    var message = "No version was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
-                    var ex = new ArgumentException(message);
-                    var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
-                    WriteError(InvalidScriptMetadata);
-
-                    return;
-                }
-
-                if (!parsedMetadata.ContainsKey("author") || String.IsNullOrWhiteSpace(parsedMetadata["author"].ToString()))
-                {
-                    var message = "No author was provided in the script metadata. Script metadata must specify a version, author, description, and Guid";
-                    var ex = new ArgumentException(message);
-                    var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
-                    WriteError(InvalidScriptMetadata);
-
-                    return;
-                }
-
-                if (!parsedMetadata.ContainsKey("description") || String.IsNullOrWhiteSpace(parsedMetadata["description"].ToString()))
-                {
-                    var message = "No description was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
-                    var ex = new ArgumentException(message);
-                    var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
-                    WriteError(InvalidScriptMetadata);
-
-                    return;
-                }
-
-                if (!parsedMetadata.ContainsKey("guid") || String.IsNullOrWhiteSpace(parsedMetadata["guid"].ToString()))
-                {
-                    var message = "No Guid was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
-                    var ex = new ArgumentException(message);
-                    var InvalidScriptMetadata = new ErrorRecord(ex, "InvalidScriptMetadata", ErrorCategory.InvalidData, null);
-                    WriteError(InvalidScriptMetadata);
 
                     return;
                 }
@@ -392,7 +296,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else if(repository.Uri.Scheme == Uri.UriSchemeFile && !Directory.Exists(repository.Uri.LocalPath))
                 {
-                    //TODO: Anam would this include localhost?
+                    //TODO: Anam would this include localhost? Test this.
                     var message = String.Format("The repository '{0}' with uri: {1} is not a valid folder path which exists. If providing a file based repository, provide a repository with a path that exists.", Repository, repository.Uri.AbsoluteUri);
                     var ex = new ArgumentException(message);
                     var fileRepositoryPathDoesNotExistError = new ErrorRecord(ex, "repositoryPathDoesNotExist", ErrorCategory.ObjectNotFound, null);
@@ -468,15 +372,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // If -DestinationPath is specified then also publish the .nupkg there
-                if (!string.IsNullOrWhiteSpace(_destinationPath))
+                if (!string.IsNullOrWhiteSpace(DestinationPath))
                 {
                     try
                     {
                         var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
-                        File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(_destinationPath, nupkgName));
+                        File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(DestinationPath, nupkgName));
                     }
                     catch (Exception e) {
-                        var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", _destinationPath, e.Message);
+                        var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", DestinationPath, e.Message);
 
                         var ex = new ArgumentException(message);
                         var ErrorMovingNupkg = new ErrorRecord(ex, "ErrorMovingNupkg", ErrorCategory.NotSpecified, null);
@@ -811,7 +715,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 out System.Management.Automation.Language.Token[] tokens,
                 out ParseError[] parserErrors);
 
-            if (parserErrors.Length > 0 && !String.Equals(parserErrors[0].ErrorId, "WorkflowNotSupportedInPowerShellCore", StringComparison.OrdinalIgnoreCase))
+            if (parserErrors.Length > 0)
             {
                 foreach (ParseError err in parserErrors)
                 {
@@ -870,7 +774,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (commentLines.Count() > 2)
             {
-                // TODO: is it an error if the metadata property is empty?
                 for (int i = 1; i < commentLines.Count(); i++)
                 {
                     string line = commentLines[i];
@@ -909,18 +812,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
+            // Check that the mandatory properites for a script are there (version, author, guid, in addition to description)
+            if (!parsedMetadata.ContainsKey("version") || String.IsNullOrWhiteSpace(parsedMetadata["version"].ToString()))
+            {
+                var message = "No version was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
+                var ex = new ArgumentException(message);
+                var MissingVersionInScriptMetadataError = new ErrorRecord(ex, "MissingVersionInScriptMetadata", ErrorCategory.InvalidData, null);
+                parseMetadataErrors.Add(MissingVersionInScriptMetadataError);
+                errors = parseMetadataErrors.ToArray();
+                return false;
+            }
+
+            if (!parsedMetadata.ContainsKey("author") || String.IsNullOrWhiteSpace(parsedMetadata["author"].ToString()))
+            {
+                var message = "No author was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
+                var ex = new ArgumentException(message);
+                var MissingAuthorInScriptMetadataError = new ErrorRecord(ex, "MissingAuthorInScriptMetadata", ErrorCategory.InvalidData, null);
+                parseMetadataErrors.Add(MissingAuthorInScriptMetadataError);
+                errors = parseMetadataErrors.ToArray();
+                return false;
+            }
+
+            if (!parsedMetadata.ContainsKey("guid") || String.IsNullOrWhiteSpace(parsedMetadata["guid"].ToString()))
+            {
+                var message = "No guid was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
+                var ex = new ArgumentException(message);
+                var MissingGuidInScriptMetadataError = new ErrorRecord(ex, "MissingGuidInScriptMetadata", ErrorCategory.InvalidData, null);
+                parseMetadataErrors.Add(MissingGuidInScriptMetadataError);
+                errors = parseMetadataErrors.ToArray();
+                return false;
+            }
+
             errors = parseMetadataErrors.ToArray();
             return true;
-
-            // // get RequiredModules
-            // ScriptRequirements parsedScriptRequirements = ast.ScriptRequirements;
-            // ReadOnlyCollection<ModuleSpecification> parsedModules = new List<ModuleSpecification>().AsReadOnly();
-
-            // if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
-            // {
-            //     parsedModules = parsedScriptRequirements.RequiredModules;
-            //     parsedPSScriptInfoHashtable.Add("RequiredModules", parsedModules);
-            // }
         }
 
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryUri)
