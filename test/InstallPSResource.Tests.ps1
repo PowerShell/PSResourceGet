@@ -168,10 +168,10 @@ Describe 'Test Install-PSResource for Module' {
 
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
-        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers 
-        $pkg = Get-PSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
-        $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
+        Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
+        $pkg = Get-Module "testmodule99" -ListAvailable
+        $pkg.Name | Should -Be "testmodule99"
+        $pkg.Path.ToString().Contains("Program Files")
     }
 
     # Windows only
@@ -222,8 +222,8 @@ Describe 'Test Install-PSResource for Module' {
     It "Restore resource after reinstall fails" {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         $pkg = Get-Module $testModuleName -ListAvailable
-        $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "5.0.0.0"
+        $pkg.Name | Should -Contain $testModuleName
+        $pkg.Version | Should -Contain "5.0.0.0"
 
         $resourcePath = Split-Path -Path $pkg.Path -Parent
         $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
