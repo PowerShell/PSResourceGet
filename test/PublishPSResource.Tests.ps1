@@ -324,4 +324,69 @@ Describe "Test Publish-PSResource" {
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
+
+    It "should write error and not publish script when Author property is missing" {
+        $scriptName = "InvalidScriptMissingAuthor.ps1"
+        $scriptVersion = "1.0.0"
+
+        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingAuthorInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        Test-Path -Path $publishedPath | Should -Be $false
+    }
+
+    It "should write error and not publish script when Version property is missing" {
+        $scriptName = "InvalidScriptMissingVersion.ps1"
+
+        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingVersionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPkgs = Get-ChildItem -Path $script:repositoryPath -Filter *.nupkg
+        $publishedPkgs.Count | Should -Be 0
+    }
+
+    It "should write error and not publish script when Guid property is missing" {
+        $scriptName = "InvalidScriptMissingGuid.ps1"
+        $scriptVersion = "1.0.0"
+
+        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingGuidInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        Test-Path -Path $publishedPath | Should -Be $false
+    }
+
+    It "should write error and not publish script when Description property is missing" {
+        $scriptName = "InvalidScriptMissingDescription.ps1"
+        $scriptVersion = "1.0.0"
+
+        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingOrInvalidDescriptionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        Test-Path -Path $publishedPath | Should -Be $false
+    }
+
+    It "should write error and not publish script when Description block altogether is missing" {
+        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo commment block
+        $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
+        $scriptVersion = "1.0.0"
+
+        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptMissingHelpContentCommentBlock,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        Test-Path -Path $publishedPath | Should -Be $false
+    }
 }

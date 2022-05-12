@@ -785,22 +785,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // get .DESCRIPTION comment
             CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
-            if (scriptCommentInfo != null)
+            if (scriptCommentInfo == null)
             {
-                if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
-                {
-                    parsedMetadata.Add("description", scriptCommentInfo.Description);
-                }
-                else
-                {
-                    var message = String.Format("PSScript is missing the required Description property or Description value contains '<#' or '#>' which is invalid");
-                    var ex = new ArgumentException(message);
-                    var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingOrInvalidDescription", ErrorCategory.ParserError, null);
-                    parseMetadataErrors.Add(psScriptMissingDescriptionOrInvalidPropertyError);
-                    errors = parseMetadataErrors.ToArray();
-                    return false;
-                }
+                var message = String.Format("PSScript file is missing the required Description comment block in the script contents.");
+                var ex = new ArgumentException(message);
+                var psScriptMissingHelpContentCommentBlockError = new ErrorRecord(ex, "PSScriptMissingHelpContentCommentBlock", ErrorCategory.ParserError, null);
+                parseMetadataErrors.Add(psScriptMissingHelpContentCommentBlockError);
+                errors = parseMetadataErrors.ToArray();
+                return false;
             }
+
+            if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
+            {
+                parsedMetadata.Add("description", scriptCommentInfo.Description);
+            }
+            else
+            {
+                var message = String.Format("PSScript is missing the required Description property or Description value contains '<#' or '#>' which is invalid");
+                var ex = new ArgumentException(message);
+                var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "MissingOrInvalidDescriptionInScriptMetadata", ErrorCategory.ParserError, null);
+                parseMetadataErrors.Add(psScriptMissingDescriptionOrInvalidPropertyError);
+                errors = parseMetadataErrors.ToArray();
+                return false;
+            }
+            
 
             // Check that the mandatory properites for a script are there (version, author, guid, in addition to description)
             if (!parsedMetadata.ContainsKey("version") || String.IsNullOrWhiteSpace(parsedMetadata["version"].ToString()))
