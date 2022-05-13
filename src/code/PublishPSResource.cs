@@ -296,7 +296,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     return;
                 }
-                else if(repository.Uri.Scheme == Uri.UriSchemeFile && !Directory.Exists(repository.Uri.LocalPath))
+                else if(repository.Uri.Scheme == Uri.UriSchemeFile && !repository.Uri.IsUnc && !Directory.Exists(repository.Uri.LocalPath))
                 {
                     //TODO: Anam would this include localhost? Test this.
                     var message = String.Format("The repository '{0}' with uri: {1} is not a valid folder path which exists. If providing a file based repository, provide a repository with a path that exists.", Repository, repository.Uri.AbsoluteUri);
@@ -354,9 +354,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var outputNupkgDir = System.IO.Path.Combine(outputDir, "nupkg");
 
                 // pack into .nupkg
-                if (!PackNupkg(outputDir, outputNupkgDir, nuspec, out ErrorRecord error))
+                if (!PackNupkg(outputDir, outputNupkgDir, nuspec, out ErrorRecord packNupkgError))
                 {
-                    WriteError(error);
+                    WriteError(packNupkgError);
                     // exit out of processing
                     return;
                 }
@@ -382,7 +382,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // This call does not throw any exceptions, but it will write unsuccessful responses to the console
-                PushNupkg(outputNupkgDir, repository.Name, repositoryUri);
+                if (!PushNupkg(outputNupkgDir, repository.Name, repositoryUri, out ErrorRecord pushNupkgError))
+                {
+                    WriteError(packNupkgError);
+                    // exit out of processing
+                    return;
+                }
 
             }
             finally
@@ -924,7 +929,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return true;
         }
 
-        private void PushNupkg(string outputNupkgDir, string repoName, string repoUri)
+        private bool PushNupkg(string outputNupkgDir, string repoName, string repoUri, out ErrorRecord error)
         {
             // Push the nupkg to the appropriate repository
             // Pkg version is parsed from .ps1 file or .psd1 file
@@ -938,7 +943,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
             ILogger log = new NuGetLogger();
-            var success = true;
+            var success = false;
             try
             {
                 PushRunner.Run(
@@ -959,6 +964,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
+                WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
                 //  look in PS repo for how httpRequestExceptions are handled
 
                 // Unfortunately there is no response message  are no status codes provided with the exception and no
@@ -970,49 +976,54 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var message = String.Format("{0} Please try running again with the -ApiKey parameter and specific API key for the repository specified.", e.Message);
                         ex = new ArgumentException(message);
                         var ApiKeyError = new ErrorRecord(ex, "ApiKeyError", ErrorCategory.AuthenticationError, null);
-                        WriteError(ApiKeyError);
+                        error = ApiKeyError;
+                        // WriteError(ApiKeyError);
                     }
                     else
                     {
                         var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
-                        WriteError(Error401);
+                        error = Error401;
+                        // WriteError(Error401);
                     }
                 }
                 else if (e.Message.Contains("403"))
                 {
                     var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                    error = Error403;
                     WriteError(Error403);
                 }
                 else if (e.Message.Contains("409"))
                 {
                     var Error409 = new ErrorRecord(ex, "409Error", ErrorCategory.PermissionDenied, null);
+                    error = Error409;
                     WriteError(Error409);
                 }
                 else
                 {
                     var HTTPRequestError = new ErrorRecord(ex, "HTTPRequestError", ErrorCategory.PermissionDenied, null);
+                    error = HTTPRequestError;
                     WriteError(HTTPRequestError);
                 }
 
-                success = false;
+                return success;
             }
             catch (Exception e)
             {
+                WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
                 var ex = new ArgumentException(e.Message);
                 var PushNupkgError = new ErrorRecord(ex, "PushNupkgError", ErrorCategory.InvalidResult, null);
-                WriteError(PushNupkgError);
+                error = PushNupkgError;
+                // WriteError(PushNupkgError);
 
-                success = false;
+                return success;
             }
 
-            if (success)
-            {
-                WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUri));
-            }
-            else
-            {
-                WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
-            }
+
+            WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUri));
+            error = null;
+            success = true;
+            return success;
+
         }
     }
 

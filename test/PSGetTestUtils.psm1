@@ -348,18 +348,7 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
                 }
 
     $scriptMetadata = Create-PSScriptMetadata @params
-    Write-Host "metadata:"
-    Write-Host $scriptMetadata
     Set-Content -Path $scriptFilePath -Value $scriptMetadata
-    Write-Host "in Utils" $scriptName
-    Write-Host $scriptFilePath
-    Write-Host $scriptRepoName
-    Write-Host $scriptVersion
-    $a = Get-PSResourceRepository $scriptRepoName
-    Write-Host "repo name" $a.Name
-    Write-Host "repo url:" $a.Uri
-    Write-Host "file dump:"
-    Write-Host (Get-Content $scriptFilePath)
     Publish-PSResource -Path $scriptFilePath -Repository $scriptRepoName -Verbose
 }
 
@@ -388,10 +377,7 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
         $moduleName,
 
         [string]
-        $repoName,
-
-        [string]
-        $moduleVersion
+        $repoName
     )
     Get-TestDriveSetUp
 
@@ -399,8 +385,8 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    # $version = "1.0"
-    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $moduleVersion -Description "$publishModuleName module"
+    $version = "1.0"
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
 
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
