@@ -384,7 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // This call does not throw any exceptions, but it will write unsuccessful responses to the console
                 if (!PushNupkg(outputNupkgDir, repository.Name, repositoryUri, out ErrorRecord pushNupkgError))
                 {
-                    WriteError(packNupkgError);
+                    WriteError(pushNupkgError);
                     // exit out of processing
                     return;
                 }
@@ -977,32 +977,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ex = new ArgumentException(message);
                         var ApiKeyError = new ErrorRecord(ex, "ApiKeyError", ErrorCategory.AuthenticationError, null);
                         error = ApiKeyError;
-                        // WriteError(ApiKeyError);
                     }
                     else
                     {
                         var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
                         error = Error401;
-                        // WriteError(Error401);
                     }
                 }
                 else if (e.Message.Contains("403"))
                 {
                     var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
                     error = Error403;
-                    WriteError(Error403);
                 }
                 else if (e.Message.Contains("409"))
                 {
                     var Error409 = new ErrorRecord(ex, "409Error", ErrorCategory.PermissionDenied, null);
                     error = Error409;
-                    WriteError(Error409);
                 }
                 else
                 {
                     var HTTPRequestError = new ErrorRecord(ex, "HTTPRequestError", ErrorCategory.PermissionDenied, null);
                     error = HTTPRequestError;
-                    WriteError(HTTPRequestError);
                 }
 
                 return success;
@@ -1013,7 +1008,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ex = new ArgumentException(e.Message);
                 var PushNupkgError = new ErrorRecord(ex, "PushNupkgError", ErrorCategory.InvalidResult, null);
                 error = PushNupkgError;
-                // WriteError(PushNupkgError);
 
                 return success;
             }
