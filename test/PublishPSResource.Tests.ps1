@@ -41,12 +41,16 @@ Describe "Test Publish-PSResource" {
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
         New-Item $script:destinationPath -ItemType directory -Force
 
-        #Create folder where we shall place all script files used in these tests
+        #Create folder where we shall place all script files to be published for these tests
         $script:tmpScriptsFolderPath = Join-Path -Path $TestDrive -ChildPath "tmpScriptsPath"
         if(!(Test-Path $script:tmpScriptsFolderPath))
         {
             New-Item -Path $script:tmpScriptsFolderPath -ItemType Directory -Force
         }
+
+        #Path to folder, within our test folder, where we store invalid script files used for testing
+        $script:testFilesFolderPath = Join-Path $psscriptroot -ChildPath "testFiles"
+        $script:testScriptFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
     }
     AfterAll {
        Get-RevertPSResourceRepositoryFile
@@ -329,7 +333,7 @@ Describe "Test Publish-PSResource" {
         $scriptName = "InvalidScriptMissingAuthor.ps1"
         $scriptVersion = "1.0.0"
 
-        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingAuthorInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -341,7 +345,7 @@ Describe "Test Publish-PSResource" {
     It "should write error and not publish script when Version property is missing" {
         $scriptName = "InvalidScriptMissingVersion.ps1"
 
-        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingVersionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -354,7 +358,7 @@ Describe "Test Publish-PSResource" {
         $scriptName = "InvalidScriptMissingGuid.ps1"
         $scriptVersion = "1.0.0"
 
-        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingGuidInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -367,7 +371,7 @@ Describe "Test Publish-PSResource" {
         $scriptName = "InvalidScriptMissingDescription.ps1"
         $scriptVersion = "1.0.0"
 
-        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingOrInvalidDescriptionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -381,7 +385,7 @@ Describe "Test Publish-PSResource" {
         $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
         $scriptVersion = "1.0.0"
 
-        $scriptFilePath = Join-Path $psscriptroot -ChildPath "testFiles" -AdditionalChildPath "testScripts",$scriptName
+        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptMissingHelpContentCommentBlock,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
