@@ -369,7 +369,13 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
         $moduleName,
 
         [string]
-        $repoName
+        $repoName,
+
+        [string]
+        $moduleVersion,
+
+        [string]
+        $prereleaseLabel
     )
     Get-TestDriveSetUp
 
@@ -377,8 +383,15 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
-    $version = "1.0"
-    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+    if ($prereleaseLabel)
+    {
+        New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $moduleVersion -Prerelease $prereleaseLabel -Description "$publishModuleName module"
+    }
+    else
+    {
+        New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $moduleVersion -Description "$publishModuleName module"
+    }
+
 
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
