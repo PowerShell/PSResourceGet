@@ -19,7 +19,7 @@ Set-PSResourceRepository [-Name] <String> [-Uri <String>] [-Trusted] [-Priority 
 
 ### RepositoriesParameterSet
 ```
-Set-PSResourceRepository -Repositories <Hashtable[]> [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository -Repository <Hashtable[]> [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -65,14 +65,14 @@ PS C:\> Get-PSResourceRepository -Name "*"
 
 PS C:\> $arrayOfHashtables = @{Name = "PSGallery"; Trusted = $True}, @{Name = "PoshTestGallery"; Uri = "c:/code/testdir"}
 
-PS C:\> Set-PSResourceRepository -Repositories $arrayOfHashtables -PassThru
+PS C:\> Set-PSResourceRepository -Repository $arrayOfHashtables -PassThru
         Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2        True         50
         PoshTestGallery  file:///c:/code/testdir                        False         50
 ```
 
-This example first checks for all registered repositories. We wish to set the properties for multiple repositories at once (i.e the PSGallery and PoshTestGallery repositories), so we run Set-PSResourceRepository with the `-Repositories` parameter. This parameter takes an array of hashtables, where each hashtable contains information for a repository we wish to set information for. We also use the `-PassThru` parameter to see the changed repositories.
+This example first checks for all registered repositories. We wish to set the properties for multiple repositories at once (i.e the PSGallery and PoshTestGallery repositories), so we run Set-PSResourceRepository with the `-Repository` parameter. This parameter takes an array of hashtables, where each hashtable contains information for a repository we wish to set information for. We also use the `-PassThru` parameter to see the changed repositories.
 
 ## PARAMETERS
 
