@@ -325,15 +325,10 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
     )
     Get-TestDriveSetUp
 
-    # $publishScriptBase = Join-Path $script:testIndividualResourceFolder $scriptName
-    # $null = New-Item -Path $publishScriptBase -ItemType Directory -Force
-
     $scriptFilePath = Join-Path -Path $script:testIndividualResourceFolder -ChildPath "$scriptName.ps1"
     $null = New-Item -Path $scriptFilePath -ItemType File -Force
 
-    # $version = "1.0.0"
     $params = @{
-                #Path = $scriptFilePath
                 Version = $scriptVersion
                 GUID = [guid]::NewGuid()
                 Author = 'Jane'
