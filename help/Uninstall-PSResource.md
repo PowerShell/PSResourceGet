@@ -14,7 +14,7 @@ Uninstalls a resource (module or script) that has been installed on the machine 
 
 ### NameParameterSet
 ```
-Uninstall-PSResource [-Name] <String[]> [-Version <String>] [-SkipDependencyCheck] [-WhatIf] [<CommonParameters>]
+Uninstall-PSResource [-Name] <String[]> [-Version <String>] [-Scope <ScopeType>] [-SkipDependencyCheck] [-WhatIf] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
