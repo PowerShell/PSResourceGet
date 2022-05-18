@@ -13,7 +13,7 @@ Returns resources (modules and scripts) installed on the machine via PowerShellG
 ## SYNTAX
 
 ```
-Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [<CommonParameters>]
+Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-Scope <ScopeType>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
