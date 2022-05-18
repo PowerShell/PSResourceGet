@@ -195,8 +195,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable parsedMetadata;
             if (isScript)
             {
-                // this converts from System.IO.DirectoryInfo to string. resourceFilePath needs to be set for later use though
-                // alternatively could use resourceFilePath = _path
                 resourceFilePath = pkgFileOrDir.FullName;
 
                 // Check that script metadata is valid
