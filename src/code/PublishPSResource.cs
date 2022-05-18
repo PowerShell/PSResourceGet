@@ -728,6 +728,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             parsedMetadata = new Hashtable();
             List<ErrorRecord> parseMetadataErrors = new List<ErrorRecord>();
+
+            // a valid example script will have this format:
+            /* <#PSScriptInfo
+                .VERSION 1.6
+                .GUID abf490023 - 9128 - 4323 - sdf9a - jf209888ajkl
+                .AUTHOR Jane Doe
+                .COMPANYNAME Microsoft
+                .COPYRIGHT
+                .TAGS Windows MacOS
+                #>
+                
+                <#
+
+                .SYNOPSIS
+                 Synopsis description here
+                .DESCRIPTION
+                 Description here
+                .PARAMETER Name
+                .EXAMPLE
+                 Example cmdlet here
+
+                #>
+            */
+
             // Parse the script file
             var ast = Parser.ParseFile(
                 filePath,
