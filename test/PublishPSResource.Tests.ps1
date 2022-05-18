@@ -6,6 +6,7 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe "Test Publish-PSResource" {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
+        $relativeCurrentPath = Get-Location
 
         # Register temporary repositories
         $tmpRepoPath = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath"
@@ -286,26 +287,23 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
 
-    <# The following tests required manual testing because New-ModuleManifest will not allow for incorrect syntax/formatting,
-        At the moment, 'Update-ModuleManifest' is not yet complete, but that too should call 'Test-ModuleManifest', which also 
-        does not allow for incorrect syntax. 
-        It's still important to validate these scenarios because users may alter the module manifest manually, or the file may
-        get corrupted. #>
-    <#
-    It "Publish a module with that has an invalid version format, should throw -- Requires Manual testing" {
-        $incorrectVersion = '1..0.0'
-        $correctVersion = '1.0.0.0'
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $incorrectVersion -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = $correctVersion })
-
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+    It "Publish a module with that has an invalid version format, should throw" {
+        $testFileFolder = "testFiles"
+        $testModulesFolder = "testModules"
+        $moduleName = "incorrectmoduleversion"
+        $testModulesPath = Join-Path -Path $relativeCurrentPath -ChildPath $testFileFolder -AdditionalChildPath $testModulesFolder 
+        $incorrectmoduleversion = Join-Path -Path $testModulesPath -ChildPath $moduleName
+        
+        {Publish-PSResource -Path $incorrectmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 
-    It "Publish a module with a dependency that has an invalid version format, should throw -- Requires Manual testing" {
-        $correctVersion = '1.0.0'
-        $incorrectVersion = '1..0.0'
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $correctVersion -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = $incorrectVersion })
+    It "Publish a module with a dependency that has an invalid version format, should throw" {
+        $testFileFolder = "testFiles"
+        $testModulesFolder = "testModules"
+        $moduleName = "incorrectdepmoduleversion"
+        $testModulesPath = Join-Path -Path $relativeCurrentPath -ChildPath $testFileFolder -AdditionalChildPath $testModulesFolder 
+        $incorrectdepmoduleversion = Join-Path -Path $testModulesPath -ChildPath $moduleName
 
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
-    #>
 }
