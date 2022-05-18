@@ -15,7 +15,7 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 ### NameParameterSet
 ```
 Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
@@ -199,6 +199,19 @@ Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
+ ### -AuthenticodeCheck
+Does a check to to validate signed files and catalog files on Windows.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases: 
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
 
 ### -PassThru
 Passes the resource saved to the console.
