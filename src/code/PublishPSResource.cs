@@ -834,7 +834,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 
                 // Search for and return the dependency if it's in the repository.
                 FindHelper findHelper = new FindHelper(_cancellationToken, this);
-                bool depPrerelease = depVersion.Contains("-") ? true : false;
+                bool depPrerelease = depVersion.Contains("-");
+
                 var repository = new[] { repositoryName };
                 var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, depVersion, depPrerelease, null, repository, Credential, false);
                 if (dependencyFound == null || !dependencyFound.Any())
