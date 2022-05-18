@@ -98,6 +98,21 @@ Accept pipeline input: True
 Accept wildcard characters: False
 ```
 
+### -Scope
+Specifies the scope of the resource to uninstall.
+
+```yaml
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType
+Parameter Sets: (All)
+Aliases:
+Accepted values: CurrentUser, AllUsers
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+
 ### -SkipDependencyCheck
 Skips check to see if other resources are dependent on the resource being uninstalled.
 
