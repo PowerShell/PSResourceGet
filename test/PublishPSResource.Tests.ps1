@@ -41,14 +41,7 @@ Describe "Test Publish-PSResource" {
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
         New-Item $script:destinationPath -ItemType directory -Force
 
-        #Create folder where we shall place all module files to be published for these tests
-        $script:tmpModulesFolderPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
-        if(!(Test-Path $script:tmpModulesFolderPath))
-        {
-            New-Item -Path $script:tmpModulesFolderPath -ItemType Directory -Force
-        }
-
-        #Path to folder, within our test folder, where we store invalid module files used for testing
+        # Path to folder, within our test folder, where we store invalid module files used for testing
         $script:testFilesFolderPath = Join-Path $psscriptroot -ChildPath "testFiles"
         $script:testModulesFolderPath = Join-Path $testFilesFolderPath -ChildPath "testModules"
     }
@@ -305,10 +298,9 @@ Describe "Test Publish-PSResource" {
     }
 
     It "Publish a module with a dependency that has an invalid version format, should throw" {
-        $moduleName = "incorrectmoduleversion"
+        $moduleName = "incorrectdepmoduleversion"
         $incorrectdepmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
 
-        $script:testModulesFolderPath
         {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 }
