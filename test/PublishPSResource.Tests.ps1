@@ -308,7 +308,6 @@ Describe "Test Publish-PSResource" {
         $moduleName = "incorrectmoduleversion"
         $incorrectdepmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
 
-        $script:testModulesFolderPath
         {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 }
