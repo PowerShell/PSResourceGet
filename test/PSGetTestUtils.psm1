@@ -526,6 +526,7 @@ function Create-PSScriptMetadata
 
 .RELEASENOTES
 $($ReleaseNotes -join "`r`n")
+
 .PRIVATEDATA$(if ($PrivateData) {" $PrivateData"})
 
 #>
