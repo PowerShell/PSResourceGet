@@ -48,9 +48,14 @@ Describe "Test Publish-PSResource" {
             New-Item -Path $script:tmpScriptsFolderPath -ItemType Directory -Force
         }
 
-        #Path to folder, within our test folder, where we store invalid script files used for testing
+        # Path to folder, within our test folder, where we store invalid module and script files used for testing
         $script:testFilesFolderPath = Join-Path $psscriptroot -ChildPath "testFiles"
-        $script:testScriptFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
+
+        # Path to specifically to that invalid test modules folder
+        $script:testModulesFolderPath = Join-Path $testFilesFolderPath -ChildPath "testModules"
+
+        # Path to specifically to that invalid test scripts folder
+        $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
     }
     AfterAll {
        Get-RevertPSResourceRepositoryFile
@@ -328,7 +333,7 @@ Describe "Test Publish-PSResource" {
         $scriptName = "InvalidScriptMissingAuthor.ps1"
         $scriptVersion = "1.0.0"
 
-        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingAuthorInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -340,7 +345,7 @@ Describe "Test Publish-PSResource" {
     It "should write error and not publish script when Version property is missing" {
         $scriptName = "InvalidScriptMissingVersion.ps1"
 
-        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingVersionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -353,7 +358,7 @@ Describe "Test Publish-PSResource" {
         $scriptName = "InvalidScriptMissingGuid.ps1"
         $scriptVersion = "1.0.0"
 
-        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingGuidInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -366,7 +371,7 @@ Describe "Test Publish-PSResource" {
         $scriptName = "InvalidScriptMissingDescription.ps1"
         $scriptVersion = "1.0.0"
 
-        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingOrInvalidDescriptionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -380,7 +385,7 @@ Describe "Test Publish-PSResource" {
         $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
         $scriptVersion = "1.0.0"
 
-        $scriptFilePath = Join-Path $script:testScriptFolderPath -ChildPath $scriptName
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptMissingHelpContentCommentBlock,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -388,26 +393,18 @@ Describe "Test Publish-PSResource" {
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
     }
-    <# The following tests required manual testing because New-ModuleManifest will not allow for incorrect syntax/formatting,
-        At the moment, 'Update-ModuleManifest' is not yet complete, but that too should call 'Test-ModuleManifest', which also 
-        does not allow for incorrect syntax. 
-        It's still important to validate these scenarios because users may alter the module manifest manually, or the file may
-        get corrupted. #>
-    <#
-    It "Publish a module with that has an invalid version format, should throw -- Requires Manual testing" {
-        $incorrectVersion = '1..0.0'
-        $correctVersion = '1.0.0.0'
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $incorrectVersion -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = $correctVersion })
 
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+    It "Publish a module with that has an invalid version format, should throw" {
+        $moduleName = "incorrectmoduleversion"
+        $incorrectmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
+        
+        {Publish-PSResource -Path $incorrectmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 
-    It "Publish a module with a dependency that has an invalid version format, should throw -- Requires Manual testing" {
-        $correctVersion = '1.0.0'
-        $incorrectVersion = '1..0.0'
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $correctVersion -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = $incorrectVersion })
+    It "Publish a module with a dependency that has an invalid version format, should throw" {
+        $moduleName = "incorrectdepmoduleversion"
+        $incorrectdepmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
 
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
-    #>
 }
