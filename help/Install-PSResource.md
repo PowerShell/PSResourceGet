@@ -14,7 +14,7 @@ Installs resources (modules and scripts) from a registered repository onto the m
 
 ### NameParameterSet
 ```
-Install-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease]
+Install-PSResource [-Name <String[]>] [-Version <String>] [-Prerelease]
  [-Repository <String[]>] [-Credential <PSCredential>] [-Scope <ScopeType>] [-TrustRepository]
  [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
