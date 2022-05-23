@@ -25,6 +25,12 @@ Install-PSResource [-InputObject <PSResourceInfo>] [-Credential <PSCredential>] 
  [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
  
+### RequiredResourceParameterSet
+```
+Install-PSResource [-RequiredResource <RequiredResource>] [-Credential <PSCredential>] [-Scope <ScopeType>] [-TrustRepository]
+ [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+ 
 ### RequiredResourceFileParameterSet
 ```
 Install-PSResource [-RequiredResourceFile <ResourceFile>] [-Credential <PSCredential>] [-Scope <ScopeType>] [-TrustRepository]
@@ -72,6 +78,26 @@ PS C:\> Install-PSResource -RequiredResourceFile myRequiredModules.psd1
 ```
 
 Installs the PSResources specified in the psd1 file.
+ 
+ ### Example 5
+```powershell
+PS C:\> Install-PSResource -RequiredResource  @{
+    TestModule = @{
+        version = "[0.0.1,1.3.0]"
+        repository = "PSGallery"
+      }
+
+      TestModulePrerelease = @{
+        version = "[0.0.0,0.0.5]"
+        repository = "PSGallery"
+        prerelease = "true"
+      }
+
+    TestModule99 = @{}
+}
+```
+
+Installs the PSResources specified in the hashtable.
 
 ## PARAMETERS
 
@@ -144,6 +170,54 @@ Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
+### -RequiredResource
+A hashtable or json string which specifies resources to install. Does not accept wildcard characters or a null value.
+
+The hashtable will take a format with the module attributes like the following example
+```Powershell
+ @{
+    TestModule = @{
+        version = "[0.0.1,1.3.0]"
+        repository = "PSGallery"
+      }
+
+      TestModulePrerelease = @{
+        version = "[0.0.0,0.0.5]"
+        repository = "PSGallery"
+        prerelease = "true"
+      }
+
+    TestModule99 = @{}
+}
+```
+A json string will take the following example format 
+```json
+{
+  "TestModule": {
+    "version": "[0.0.1,1.3.0)",
+    "repository": "PSGallery"
+  },
+  "TestModulePrerelease": {
+    "version": "[0.0.0,0.0.5]",
+    "repository": "PSGallery",
+    "prerelease": "true"
+  },
+  "TestModule99": {}
+}
+```
+
+```yaml
+Type: RequiredResource
+Parameter Sets: RequiredResource
+Aliases:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+``` 
+ 
 ### -RequiredResourceFile
 Path to a psd1 or json which specifies resources to install. Does not accept wildcard characters or a null value.
 
