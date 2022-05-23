@@ -111,7 +111,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter SkipDependencyCheck { get; set; }
 
         /// <summary>
-        /// Skips the check for package validation.
+        /// Check validation for signed and catalog files
+
         /// </summary>
         [Parameter]
         public SwitchParameter AuthenticodeCheck { get; set; }
