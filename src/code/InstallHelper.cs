@@ -695,8 +695,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-
-            // TODO: validate all files (need to figure out what all files are (ie what files shouldn't be validated) : list of extensions
             Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
             try
             {
