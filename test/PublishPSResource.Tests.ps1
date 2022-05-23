@@ -40,17 +40,33 @@ Describe "Test Publish-PSResource" {
         # Create temp destination path
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
         New-Item $script:destinationPath -ItemType directory -Force
+
+        #Create folder where we shall place all script files to be published for these tests
+        $script:tmpScriptsFolderPath = Join-Path -Path $TestDrive -ChildPath "tmpScriptsPath"
+        if(!(Test-Path $script:tmpScriptsFolderPath))
+        {
+            New-Item -Path $script:tmpScriptsFolderPath -ItemType Directory -Force
+        }
+
+        # Path to folder, within our test folder, where we store invalid module and script files used for testing
+        $script:testFilesFolderPath = Join-Path $psscriptroot -ChildPath "testFiles"
+
+        # Path to specifically to that invalid test modules folder
+        $script:testModulesFolderPath = Join-Path $testFilesFolderPath -ChildPath "testModules"
+
+        # Path to specifically to that invalid test scripts folder
+        $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
     }
     AfterAll {
-    #    Get-RevertPSResourceRepositoryFile
+       Get-RevertPSResourceRepositoryFile
     }
     AfterEach {
-      # Delete all contents of the repository without deleting the repository directory itself
-     # $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"
-     # Remove-Item $pkgsToDelete -Recurse
+        # Delete all contents of the repository without deleting the repository directory itself
+        $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"
+        Remove-Item $pkgsToDelete -Recurse
 
-     # $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
-     # Remove-Item $pkgsToDelete -Recurse
+        $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
+        Remove-Item $pkgsToDelete -Recurse
     }
 
     It "Publish a module with -Path to the highest priority repo" {
@@ -286,26 +302,109 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
 
-    <# The following tests required manual testing because New-ModuleManifest will not allow for incorrect syntax/formatting,
-        At the moment, 'Update-ModuleManifest' is not yet complete, but that too should call 'Test-ModuleManifest', which also 
-        does not allow for incorrect syntax. 
-        It's still important to validate these scenarios because users may alter the module manifest manually, or the file may
-        get corrupted. #>
-    <#
-    It "Publish a module with that has an invalid version format, should throw -- Requires Manual testing" {
-        $incorrectVersion = '1..0.0'
-        $correctVersion = '1.0.0.0'
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $incorrectVersion -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = $correctVersion })
+    It "publish a script locally"{
+        $scriptName = "PSGetTestScript"
+        $scriptVersion = "1.0.0"
 
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $params = @{
+            Version = $scriptVersion
+            GUID = [guid]::NewGuid()
+            Author = 'Jane'
+            CompanyName = 'Microsoft Corporation'
+            Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
+            Description = "Description for the $scriptName script"
+            LicenseUri = "https://$scriptName.com/license"
+            IconUri = "https://$scriptName.com/icon"
+            ProjectUri = "https://$scriptName.com"
+            Tags = @('Tag1','Tag2', "Tag-$scriptName-$scriptVersion")
+            ReleaseNotes = "$scriptName release notes"
+            }
+        
+        $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
+        New-ScriptFileInfo @params -Path $scriptPath
+
+        Publish-PSResource -Path $scriptPath
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
-    It "Publish a module with a dependency that has an invalid version format, should throw -- Requires Manual testing" {
-        $correctVersion = '1.0.0'
-        $incorrectVersion = '1..0.0'
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $correctVersion -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = $incorrectVersion })
+    It "should write error and not publish script when Author property is missing" {
+        $scriptName = "InvalidScriptMissingAuthor.ps1"
+        $scriptVersion = "1.0.0"
 
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingAuthorInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        Test-Path -Path $publishedPath | Should -Be $false
     }
-    #>
+
+    It "should write error and not publish script when Version property is missing" {
+        $scriptName = "InvalidScriptMissingVersion.ps1"
+
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingVersionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPkgs = Get-ChildItem -Path $script:repositoryPath -Filter *.nupkg
+        $publishedPkgs.Count | Should -Be 0
+    }
+
+    It "should write error and not publish script when Guid property is missing" {
+        $scriptName = "InvalidScriptMissingGuid.ps1"
+        $scriptVersion = "1.0.0"
+
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingGuidInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        Test-Path -Path $publishedPath | Should -Be $false
+    }
+
+    It "should write error and not publish script when Description property is missing" {
+        $scriptName = "InvalidScriptMissingDescription.ps1"
+        $scriptVersion = "1.0.0"
+
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingOrInvalidDescriptionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        Test-Path -Path $publishedPath | Should -Be $false
+    }
+
+    It "should write error and not publish script when Description block altogether is missing" {
+        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo commment block
+        $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
+        $scriptVersion = "1.0.0"
+
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+        Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptMissingHelpContentCommentBlock,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+
+        $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        Test-Path -Path $publishedPath | Should -Be $false
+    }
+
+    It "Publish a module with that has an invalid version format, should throw" {
+        $moduleName = "incorrectmoduleversion"
+        $incorrectmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
+        
+        {Publish-PSResource -Path $incorrectmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+    }
+
+    It "Publish a module with a dependency that has an invalid version format, should throw" {
+        $moduleName = "incorrectdepmoduleversion"
+        $incorrectdepmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
+
+        {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+    }
 }
