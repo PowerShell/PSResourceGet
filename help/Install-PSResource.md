@@ -16,7 +16,7 @@ Installs resources (modules and scripts) from a registered repository onto the m
 ```
 Install-PSResource [-Name <String[]>] [-Version <String>] [-Prerelease]
  [-Repository <String[]>] [-Credential <PSCredential>] [-Scope <ScopeType>] [-TrustRepository]
- [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
@@ -375,20 +375,6 @@ Accept wildcard characters: False
 
 ### -SkipDependencyCheck
 Skips the check for resource dependencies, so that only found resources are installed, and not any resources the found resource depends on.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases: 
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-### -AuthenticodeCheck
-Does a check to to validate signed files and catalog files on Windows.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
