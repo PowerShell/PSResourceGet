@@ -321,15 +321,32 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
         $scriptRepoName,
 
         [string]
-        $scriptVersion
+        $scriptVersion,
+
+        [string]
+        $prereleaseLabel
     )
     Get-TestDriveSetUp
 
     $scriptFilePath = Join-Path -Path $script:testIndividualResourceFolder -ChildPath "$scriptName.ps1"
     $null = New-Item -Path $scriptFilePath -ItemType File -Force
 
+    $version = $scriptVersion
+    if ($prereleaseLabel)
+    {
+        if ($scriptVersion.Split('.').Count -lt 4)
+        {
+            $version = $scriptVersion + "-" + $prereleaseLabel
+        }
+        else
+        {
+            $version = $scriptVersion.Substring(0, $scriptVersion.LastIndexOf('.')) + "-" + $prereleaseLabel
+        }
+
+    }
+
     $params = @{
-                Version = $scriptVersion
+                Version = $version
                 GUID = [guid]::NewGuid()
                 Author = 'Jane'
                 CompanyName = 'Microsoft Corporation'
