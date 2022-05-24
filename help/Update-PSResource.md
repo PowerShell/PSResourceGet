@@ -15,7 +15,7 @@ Updates a package already installed on the user's machine.
 ### NameParameterSet (Default)
 ```
 Update-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Scope <Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType>] [-TrustRepository] [-Credential <PSCredential>] [-Quiet] [-AcceptLicense] [-Force] [-PassThru] [-AuthenticodeCheck] [-SkipDependencyCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Scope <Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType>] [-TrustRepository] [-Credential <PSCredential>] [-Quiet] [-AcceptLicense] [-Force] [-PassThru] [-SkipDependencyCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -214,20 +214,6 @@ Passes the resource updated to the console.
 Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
 Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-### -AuthenticodeCheck
-Does a check to to validate signed files and catalog files on Windows.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases: 
 
 Required: False
 Position: Named
