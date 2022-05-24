@@ -98,14 +98,14 @@ Describe "Test Register-PSResourceRepository" {
         $res.Priority | Should -Be 20
     }
 
-    It "register repositories with Repositories parameter, all name parameter style repositories (RepositoriesParameterSet)" {
+    It "register repositories with -Repository parameter, all name parameter style repositories (RepositoriesParameterSet)" {
         $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
         $hashtable2 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $hashtable3 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
         $hashtable4 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret"))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
-        Register-PSResourceRepository -Repositories $arrayOfHashtables
+        Register-PSResourceRepository -Repository $arrayOfHashtables
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
         $res.Trusted | Should -Be False
@@ -130,17 +130,17 @@ Describe "Test Register-PSResourceRepository" {
         $res4.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
-    It "register repositories with Repositories parameter, psgallery style repository (RepositoriesParameterSet)" {
+    It "register repositories with -Repository parameter, psgallery style repository (RepositoriesParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         $hashtable1 = @{PSGallery = $True}
-        Register-PSResourceRepository -Repositories $hashtable1
+        Register-PSResourceRepository -Repository $hashtable1
         $res = Get-PSResourceRepository -Name $PSGalleryName
         $res.Uri | Should -Be $PSGalleryUri
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
     }
 
-    It "register repositories with Repositories parameter, name and psgallery parameter styles (RepositoriesParameterSet)" {
+    It "register repositories with -Repository parameter, name and psgallery parameter styles (RepositoriesParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         $hashtable1 = @{PSGallery = $True}
         $hashtable2 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
@@ -149,7 +149,7 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable5 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret"))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4, $hashtable5
 
-        Register-PSResourceRepository -Repositories $arrayOfHashtables
+        Register-PSResourceRepository -Repository $arrayOfHashtables
 
         $res1 = Get-PSResourceRepository -Name $PSGalleryName
         $res1.Uri | Should -Be $PSGalleryUri
@@ -220,7 +220,7 @@ Describe "Test Register-PSResourceRepository" {
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
 
         Unregister-PSResourceRepository -Name $PSGalleryName
-        Register-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+        Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUriCredentialInfoForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
 
@@ -248,7 +248,7 @@ Describe "Test Register-PSResourceRepository" {
 
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
         Unregister-PSResourceRepository -Name $PSGalleryName
-        Register-PSResourceRepository -Repositories $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+        Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly $ErrorId
 
