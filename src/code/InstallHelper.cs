@@ -40,7 +40,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public const string PSScriptFileExt = ".ps1";
         private const string MsgRepositoryNotTrusted = "Untrusted repository";
         private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
-        private readonly string[] certStoreLocations = { "cert:\\LocalMachine\\Root", "cert:\\LocalMachine\\AuthRoot", "cert:\\CurrentUser\\Root", "cert:\\CurrentUser\\AuthRoot" };
+        private readonly string[] CertStoreLocations = { "cert:\\LocalMachine\\Root", "cert:\\LocalMachine\\AuthRoot", "cert:\\CurrentUser\\Root", "cert:\\CurrentUser\\AuthRoot" };
+
 
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
