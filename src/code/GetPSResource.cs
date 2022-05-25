@@ -28,6 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the desired name for the resource to look for.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(Position = 0, ValueFromPipeline = true)]
         public string[] Name { get; set; }
 
