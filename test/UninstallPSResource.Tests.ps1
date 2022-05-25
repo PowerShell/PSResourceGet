@@ -41,8 +41,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     AfterEach {
-        Uninstall-PSResource -Name "TestMyLocalModule" -Version "1.0.0.0"
-        Uninstall-PSResource -Name "TestMyLocalScript" -Version "1.0.0.0"
+        Uninstall-PSResource -Name $testLocalModuleName -Version "1.0.0.0"
+        Uninstall-PSResource -Name $testLocalScriptName -Version "1.0.0.0"
     }
 
     AfterAll {
