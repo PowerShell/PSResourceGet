@@ -9,21 +9,24 @@ Describe 'Test Uninstall-PSResource for Modules' {
     BeforeAll{
         $testModuleName = "test_module2"
         $testScriptName = "test_script"
+        $testLocalModuleName = "TestMyLocalModule"
+        $testLocalScriptName = "TestMyLocalScripts"
 
         Get-NewPSResourceRepositoryFile
         Uninstall-PSResource -Name $testModuleName -Version "*"
         Uninstall-PSResource -Name $testScriptName -Version "*"
+        Uninstall-PSResource -Name $testLocalModuleName -Version "*"
+        Uninstall-PSResource -Name $testLocalScriptName -Version "*"
         Register-LocalRepos
 
-        $testLocalModuleName = "TestMyLocalModule"
-        $testLocalScriptName = "TestMyLocalScripts"
+
         $PSGalleryName = Get-PSGalleryName
         $localRepoName = "psgettestlocal"
-        $emptyPrereleaseLabel = ""
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "1.0.0.0" $emptyPrereleaseLabel
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "3.0.0.0" $emptyPrereleaseLabel
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "1.0.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "3.0.0.0"
         Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "4.0.0.0" "alpha"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "5.0.0.0" $emptyPrereleaseLabel
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "4.3.0.0" "beta"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "5.0.0.0"
 
         Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $localRepoName "1.0.0.0"
         Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $localRepoName "3.0.0.0"
@@ -33,8 +36,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     BeforeEach {
-        $null = Install-PSResource $testLocalModuleName -Version "1.0.0.0" -Repository $localRepoName -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource $testLocalScriptName -Version "1.0.0.0" -Repository $localRepoName -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testLocalModuleName -Version "1.0.0.0" -Repository $localRepoName -TrustRepository
+        $null = Install-PSResource $testLocalScriptName -Version "1.0.0.0" -Repository $localRepoName -TrustRepository
     }
 
     AfterEach {
@@ -48,7 +51,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
     It "Uninstall a specific module by name" {
         Uninstall-PSResource -name $testLocalModuleName -Version "1.0.0.0"
-        Get-PSResource $testModuleName | Should -BeNullOrEmpty
+        Get-PSResource $testLocalModuleName | Should -BeNullOrEmpty
     }
 
     $testCases = @{Name="Test?Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"},
@@ -61,12 +64,12 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource"
     }
 
-    It "Uninstall a list of modules by name" {
-        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue -SkipDependencyCheck
+    # It "Uninstall a list of modules by name" {
+    #     $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -SkipDependencyCheck
 
-        Uninstall-PSResource -Name $testLocalModuleName, $testModuleName
-        Get-PSResource $testLocalModuleName, $testModuleName | Should -BeNullOrEmpty
-    }
+    #     Uninstall-PSResource -Name $testLocalModuleName, $testModuleName
+    #     Get-PSResource $testLocalModuleName, $testModuleName | Should -BeNullOrEmpty
+    # }
 
     It "Uninstall a specific script by name" {
         Uninstall-PSResource -Name $testLocalScriptName
@@ -74,17 +77,17 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $res | Should -BeNullOrEmpty
     }
 
-    It "Uninstall a list of scripts by name" {
-        $null = Install-PSResource $testScriptName -Repository $PSGalleryName -TrustRepository
+    # It "Uninstall a list of scripts by name" {
+    #     $null = Install-PSResource "Required-Script1" -Repository $PSGalleryName -TrustRepository
 
-        Uninstall-PSResource -Name $testScriptName, $testLocalScriptName
-        Get-PSResource -Name $testScriptName, $testLocalScriptName | Should -BeNullOrEmpty
-    }
+    #     Uninstall-PSResource -Name "Required-Script1", $testLocalScriptName
+    #     Get-PSResource -Name "Required-Script1", $testLocalScriptName | Should -BeNullOrEmpty
+    # }
 
     It "Uninstall a module when given name and specifying all versions" {
         # Module TestMyLocalModule (stored in variable $testLocalModuleName) version 1.0.0 is already installed locally in BeforeEach       
-        $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository $localRepoName -TrustRepository
+        $null = Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository $localRepoName -TrustRepository
 
         Uninstall-PSResource -Name $testLocalModuleName -version "*"
         $pkgs = Get-PSResource $testLocalModuleName
@@ -95,8 +98,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
     It "Uninstall a module when given name and using the default version (ie all versions, not explicitly specified)" {
         # Module TestMyLocalModule (stored in variable $testLocalModuleName) version 1.0.0 is already installed locally in BeforeEach       
-        $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository $localRepoName -TrustRepository
+        $null = Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository $localRepoName -TrustRepository
 
         Uninstall-PSResource -Name $testLocalModuleName -version "*"
         $pkgs = Get-PSResource $testLocalModuleName
@@ -107,12 +110,11 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
     It "Uninstall module when given Name and specifying exact version" {
         # Module TestMyLocalModule (stored in variable $testLocalModuleName) version 1.0.0 is already installed locally in BeforeEach       
-        $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository $localRepoName -TrustRepository
+        $null = Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository $localRepoName -TrustRepository
 
         Uninstall-PSResource -Name $testLocalModuleName -Version "3.0.0"
-        $pkgs = Get-PSResource -Name $testModuleName
-        $pkgs.Version | Should -Not -Contain "3.0.0"
+        Get-PSResource -Name $testLocalModuleName -Version "3.0.0.0" | Should -BeNullOrEmpty
     }
 
     $testCases = @{Version="[1.0.0.0]";          ExpectedVersion="1.0.0.0"; Reason="validate version, exact match"},
@@ -127,11 +129,11 @@ Describe 'Test Uninstall-PSResource for Modules' {
                 
     It "Uninstall module when given Name to <Reason> <Version>" -TestCases $testCases {
         param($Version, $ExpectedVersion)
-        Uninstall-PSResource -Name $testModuleName -Version "*"
+        # Uninstall-PSResource -Name $testModuleName -Version "*"
 
         # Module TestMyLocalModule (stored in variable $testLocalModuleName) version 1.0.0 is already installed locally in BeforeEach       
-        $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
-        $null = Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
+        $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository $localRepoName -TrustRepository
+        $null = Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository $localRepoName -TrustRepository
 
         Uninstall-PSResource -Name $testLocalModuleName -Version $Version
         $pkgs = Get-PSResource $testLocalModuleName
@@ -165,15 +167,15 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     It "Uninstall prerelease version module when prerelease version specified" {
-        Install-PSResource -Name $testModuleName -Version "4.0.0-alpha" -Repository $localRepoName -TrustRepository
-        Uninstall-PSResource -Name $testModuleName -Version "4.0.0-alpha"
-        Get-PSResource $testModuleName -Version "4.0.0-alpha" | Should -BeNullOrEmpty
+        Install-PSResource -Name $testLocalModuleName -Version "4.0.0-alpha" -Repository $localRepoName -TrustRepository
+        Uninstall-PSResource -Name $testLocalModuleName -Version "4.0.0-alpha"
+        Get-PSResource $testLocalModuleName -Version "4.0.0-alpha" | Should -BeNullOrEmpty
     }
 
     It "Not uninstall non-prerelease version module when similar prerelease version is specified" {
         # test_module has a version 5.0.0.0, but no version 5.0.0-preview.
         # despite the core version part being the same this uninstall on a nonexistant prerelease version should not be successful
-        Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository $localRepoName -TrustRepository -WarningAction SilentlyContinue
+        Install-PSResource $testLocalModuleName -Version "5.0.0.0" -Repository $localRepoName -TrustRepository
         Uninstall-PSResource -Name $testLocalModuleName -Version "5.0.0-preview"
         $res = Get-PSResource -Name $testLocalModuleName -Version "5.0.0.0"
         $res.Name | Should -Be $testLocalModuleName
@@ -190,8 +192,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
     It "Not uninstall non-prerelease version module when prerelease version specified" {
         Install-PSResource -Name $testLocalScriptName -Version "3.0.0.0" -Repository $localRepoName -TrustRepository
         Uninstall-PSResource -Name $testLocalScriptName -Version "3.0.0-alpha"
-        $res = Get-PSResource -Name $testScriptName -Version "3.0.0.0"
-        $res.Name | Should -Be $testScriptName
+        $res = Get-PSResource -Name $testLocalScriptName -Version "3.0.0.0"
+        $res.Name | Should -Be $testLocalScriptName
         $res.Version | Should -Be "3.0.0.0"
     }
 
@@ -200,13 +202,14 @@ Describe 'Test Uninstall-PSResource for Modules' {
         Install-PSResource -Name $testLocalModuleName -Version "1.0.0.0" -Repository $localRepoName -TrustRepository
         Install-PSResource -Name $testLocalModuleName -Version "3.0.0.0" -Repository $localRepoName -TrustRepository
         Install-PSResource -Name $testLocalModuleName -Version "4.0.0-alpha" -Repository $localRepoName -TrustRepository
+        Install-PSResource -Name $testLocalModuleName -Version "4.3.0-beta" -Repository $localRepoName -TrustRepository
         Install-PSResource -Name $testLocalModuleName -Version "5.0.0.0" -Repository $localRepoName -TrustRepository
         $res = Get-PSResource -Name $testLocalModuleName
         $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
-        $prereleaseVersionPkgs.Count | Should -Be 1
+        $prereleaseVersionPkgs.Count | Should -Be 2
 
         Uninstall-PSResource -Name $testLocalModuleName -Version "*" -Prerelease
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-PSResource -Name $testLocalModuleName
         $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
         $prereleaseVersionPkgs.Count | Should -Be 0
         $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
@@ -240,25 +243,25 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg.Version | Should -Be "5.0.0.0"
     }
 
-    It "Do not Uninstall module that is a dependency for another module" {
-        $null = Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
+    # It "Do not Uninstall module that is a dependency for another module" {
+    #     $null = Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository
     
-        Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
+    #     Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
 
-        $pkg = Get-PSResource "RequiredModule1"
-        $pkg | Should -Not -Be $null
+    #     $pkg = Get-PSResource "RequiredModule1"
+    #     $pkg | Should -Not -Be $null
 
-        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsaDependency,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
-    }
+    #     $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsaDependency,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
+    # }
 
-    It "Uninstall module that is a dependency for another module using -SkipDependencyCheck" {
-        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
+    # It "Uninstall module that is a dependency for another module using -SkipDependencyCheck" {
+    #     $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository
 
-        Uninstall-PSResource -Name "RequiredModule1" -SkipDependencyCheck
+    #     Uninstall-PSResource -Name "RequiredModule1" -SkipDependencyCheck
         
-        $pkg = Get-PSResource "RequiredModule1"
-        $pkg | Should -BeNullOrEmpty
-    }
+    #     $pkg = Get-PSResource "RequiredModule1"
+    #     $pkg | Should -BeNullOrEmpty
+    # }
 
     It "Uninstall PSResourceInfo object piped in" {
         Install-PSResource -Name $testLocalModuleName -Version "3.0.0.0" -Repository $localRepoName -TrustRepository
@@ -281,7 +284,6 @@ Describe 'Test Uninstall-PSResource for Modules' {
         
         $pkg = Get-PSResource $testLocalModuleName
         $pkg.Name | Should -Be $testLocalModuleName
-        # $pkg.Path.ToString().Contains("Program Files") | Should -Be $true
         $pkg.InstalledLocation.Contains("Program Files") | Should -Be $true
     }
 
@@ -292,7 +294,6 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
         $pkg = Get-PSResource $testLocalModuleName
         $pkg.Name | Should -Be $testModuleName
-        # $pkg.Path.ToString().Contains("Documents") | Should -Be $true
         $pkg.InstalledLocation.Contains("Documents") | Should -Be $trur
     }
 }
