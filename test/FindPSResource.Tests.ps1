@@ -15,6 +15,14 @@ Describe 'Test Find-PSResource for Module' {
         $parentModuleName = "SystemLocaleDsc"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
+
+        $testLocalModuleName = "TestMyLocalModule"
+        $testLocalModuleName2 = "TestMyLocalModule2"
+        $localRepoName = "psgettestlocal"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "1.0.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "3.0.0.0"
+
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName2 $localRepoName "1.0.0.0" "alpha"
     }
 
     AfterAll {
@@ -151,19 +159,17 @@ Describe 'Test Find-PSResource for Module' {
     }
 
     It "find resources when given Name with wildcard, Version not null --> '*'" {
-        $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "*" -Repository $PSGalleryName
-        $moduleA = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyA"}
-        $moduleA.Count | Should -BeGreaterOrEqual 3
-        $moduleB = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyB"}
-        $moduleB.Count | Should -BeGreaterOrEqual 2
-        $moduleC = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyC"}
-        $moduleC.Count | Should -BeGreaterOrEqual 3
-        $moduleD = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyD"}
-        $moduleD.Count | Should -BeGreaterOrEqual 2
-        $moduleE = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyE"}
-        $moduleE.Count | Should -BeGreaterOrEqual 1        
-        $moduleF = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyF"}
-        $moduleF.Count | Should -BeGreaterOrEqual 1
+        $res = Find-PSResource -Name "RequiredMod*" -Version "*" -Repository $PSGalleryName
+        $module1 = $res | Where-Object {$_.Name -eq "RequiredModule1"}
+        $module1.Count | Should -Be 1
+        $module2 = $res | Where-Object {$_.NAME -eq "RequiredModule2"}
+        $module2.Count | Should -Be 1
+        $module2 = $res | Where-Object {$_.NAME -eq "RequiredModule3"}
+        $module2.Count | Should -Be 1
+        $module2 = $res | Where-Object {$_.NAME -eq "RequiredModule4"}
+        $module2.Count | Should -Be 2
+        $module2 = $res | Where-Object {$_.NAME -eq "RequiredModule5"}
+        $module2.Count | Should -Be 1
     }
 
     It "find resources when given Name with wildcard, Version range" {
@@ -324,7 +330,7 @@ Describe 'Test Find-PSResource for Module' {
     It "find resource in local repository given Repository parameter" {
         $publishModuleName = "TestFindModule"
         $repoName = "psgettestlocal"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName "1.0.0.0"
 
         $res = Find-PSResource -Name $publishModuleName -Repository $repoName
         $res | Should -Not -BeNullOrEmpty
@@ -337,8 +343,8 @@ Describe 'Test Find-PSResource for Module' {
         $repoHigherPriorityRanking = "psgettestlocal"
         $repoLowerPriorityRanking = "psgettestlocal2"
 
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoHigherPriorityRanking
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoLowerPriorityRanking
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoHigherPriorityRanking "1.0.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $repoLowerPriorityRanking "1.0.0.0"
 
         $res = Find-PSResource -Name $moduleName
         $res.Repository | Should -Be $repoHigherPriorityRanking

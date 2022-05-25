@@ -396,6 +396,7 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
         [string]
         $prereleaseLabel
     )
+
     Get-TestDriveSetUp
 
     $publishModuleName = $moduleName
