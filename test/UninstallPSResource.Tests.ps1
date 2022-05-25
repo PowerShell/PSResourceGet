@@ -10,8 +10,6 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $testModuleName = "test_module2"
         $testScriptName = "test_script"
 
-
-
         Get-NewPSResourceRepositoryFile
         Uninstall-PSResource -Name $testModuleName -Version "*"
         Uninstall-PSResource -Name $testScriptName -Version "*"
@@ -19,25 +17,22 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
         $testLocalModuleName = "TestMyLocalModule"
         $testLocalScriptName = "TestMyLocalScripts"
-
-        # $publishModuleName = "TestMyLocalModule"
+        $PSGalleryName = Get-PSGalleryName
         $localRepoName = "psgettestlocal"
         $emptyPrereleaseLabel = ""
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $repoName "1.0.0.0" $emptyPrereleaseLabel
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $repoName "3.0.0.0" $emptyPrereleaseLabel
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $repoName "4.0.0.0" "alpha"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $repoName "5.0.0.0" $emptyPrereleaseLabel
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "1.0.0.0" $emptyPrereleaseLabel
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "3.0.0.0" $emptyPrereleaseLabel
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "4.0.0.0" "alpha"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testLocalModuleName $localRepoName "5.0.0.0" $emptyPrereleaseLabel
 
-        # $publishScriptName = "TestMyLocalScript"
-        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $repoName "1.0.0.0"
-        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $repoName "3.0.0.0"
-        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $repoName "4.0.0.0" "alpha"
-        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $repoName "4.3.0.0" "beta"
-        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $repoName "5.0.0.0"
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $localRepoName "1.0.0.0"
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $localRepoName "3.0.0.0"
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $localRepoName "4.0.0.0" "alpha"
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $localRepoName "4.3.0.0" "beta"
+        Get-ScriptResourcePublishedToLocalRepoTestDrive $testLocalScriptName $localRepoName "5.0.0.0"
     }
 
     BeforeEach {
-        # $null = Install-PSResource $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
         $null = Install-PSResource $testLocalModuleName -Version "1.0.0.0" -Repository $localRepoName -TrustRepository -WarningAction SilentlyContinue
         $null = Install-PSResource $testLocalScriptName -Version "1.0.0.0" -Repository $localRepoName -TrustRepository -WarningAction SilentlyContinue
     }
@@ -133,9 +128,6 @@ Describe 'Test Uninstall-PSResource for Modules' {
     It "Uninstall module when given Name to <Reason> <Version>" -TestCases $testCases {
         param($Version, $ExpectedVersion)
         Uninstall-PSResource -Name $testModuleName -Version "*"
-        # $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
-        # $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "3.0.0" -TrustRepository -WarningAction SilentlyContinue
-        # $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "5.0.0" -TrustRepository -WarningAction SilentlyContinue
 
         # Module TestMyLocalModule (stored in variable $testLocalModuleName) version 1.0.0 is already installed locally in BeforeEach       
         $null = Install-PSResource $testLocalModuleName -Version "3.0.0.0" -Repository "psgettestlocal" -TrustRepository -WarningAction SilentlyContinue
