@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Win32.SafeHandles;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -14,6 +15,7 @@ using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -1126,6 +1128,370 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion Methods
+    }
+
+    #endregion
+
+    #region AuthenticodeSignature
+
+    internal static class AuthenticodeSignature
+    {
+        // TODO:  ADDD COMMENTS
+        #region Members
+        static readonly string[] CertStoreLocations = { "cert:\\LocalMachine\\Root", "cert:\\LocalMachine\\AuthRoot", "cert:\\CurrentUser\\Root", "cert:\\CurrentUser\\AuthRoot" };
+        #endregion
+
+
+        #region Enums
+
+        public struct CERT_CHAIN_POLICY_PARA
+        {
+            public CERT_CHAIN_POLICY_PARA(int size)
+            {
+                cbSize = (uint)size;
+                dwFlags = 0;
+                pvExtraPolicyPara = IntPtr.Zero;
+            }
+            public uint cbSize;
+            public uint dwFlags;
+            public IntPtr pvExtraPolicyPara;
+        }
+
+        public struct CERT_CHAIN_POLICY_STATUS
+        {
+            public CERT_CHAIN_POLICY_STATUS(int size)
+            {
+                cbSize = (uint)size;
+                dwError = 0;
+                lChainIndex = IntPtr.Zero;
+                lElementIndex = IntPtr.Zero;
+                pvExtraPolicyStatus = IntPtr.Zero;
+            }
+            public uint cbSize;
+            public uint dwError;
+            public IntPtr lChainIndex;
+            public IntPtr lElementIndex;
+            public IntPtr pvExtraPolicyStatus;
+        }
+
+        #endregion
+
+        #region Methods
+
+        internal static bool CheckAuthenticodeSignature(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        {
+            errorRecord = null;
+
+            // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return true;
+            }
+
+            // Check that the catalog file is signed properly
+            string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
+            if (File.Exists(catalogFilePath))
+            {
+                // Run catalog validation
+                Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
+                string moduleBasePath = tempDirNameVersion;
+                try
+                {
+                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files
+                    TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
+                        script: @"param (
+                                      [string] $moduleBasePath, 
+                                      [string] $catalogFilePath
+                                 ) 
+                                $catalogValidation = Test-FileCatalog -Path $moduleBasePath -CatalogFilePath $CatalogFilePath `
+                                                 -FilesToSkip '*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
+                                                 -Detailed -ErrorAction SilentlyContinue
+        
+                                if ($catalogValidation.Status.ToString() -eq 'valid' -and $catalogValidation.Signature.Status -eq 'valid') {
+                                    return $true
+                                }
+                                else {
+                                    return $false
+                                }
+                        ",
+                        useNewScope: true,
+                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                        input: null,
+                        args: new object[] { moduleBasePath, catalogFilePath });
+                }
+                catch (Exception e)
+                {
+                    errorRecord = new ErrorRecord(new ArgumentException(e.Message), "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    return false;
+                }
+
+                bool catalogValidation = (TestFileCatalogResult[0] != null) ? (bool)TestFileCatalogResult[0].BaseObject : false;
+                if (!catalogValidation)
+                {
+                    var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
+                    var ex = new ArgumentException(exMessage);
+
+                    errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    return false;
+                }
+            }
+
+            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
+            try
+            {
+                string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
+                authenticodeSignature = cmdletPassedIn.InvokeCommand.InvokeScript(
+                    script: @"param (
+                                      [string] $tempDirNameVersion, 
+                                      [string[]] $listOfExtensions
+                                 ) 
+                                 Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { tempDirNameVersion, listOfExtensions });
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(new ArgumentException(e.Message), "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                return false;
+            }
+
+            // If the authenticode signature is not valid, return false
+            if (authenticodeSignature.Any() && authenticodeSignature[0] != null)
+            {
+                // Create a cache for checking if a cert is signed by Microsoft
+                Dictionary<string,bool> isMSCertCache = new Dictionary<string, bool> { };
+
+                foreach (var sign in authenticodeSignature)
+                {
+                    Signature signature = (Signature)sign.BaseObject;
+                    if (!signature.Status.Equals(SignatureStatus.Valid))
+                    {
+                        var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
+                        var ex = new ArgumentException(exMessage);
+                        errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+
+                        return false;
+                    }
+
+                    string fileName = new FileInfo(signature.Path).Name;
+
+                    bool isMicrosoftCert;
+                    if (isMSCertCache.ContainsKey(signature.SignerCertificate.Thumbprint))
+                    {
+                        isMicrosoftCert = isMSCertCache[signature.SignerCertificate.Thumbprint];
+                    }
+                    else
+                    {
+                        isMicrosoftCert = IsMicrosoftCert(signature, cmdletPassedIn, errorRecord);
+
+                        // Add new information to the cache
+                        isMSCertCache.Add(signature.SignerCertificate.Thumbprint, isMicrosoftCert);
+                    }
+                    
+                    if (isMicrosoftCert)
+                    {
+                        cmdletPassedIn.WriteVerbose(string.Format("File '{0}' from package '{1}' is signed by a Microsoft certificate.", fileName, pkgName));
+                    }
+
+                    // Create a cache for retrieving the publisher details of a cert
+                    Dictionary<string, Hashtable> publisherDetailsCache = new Dictionary<string, Hashtable> { };
+                    
+                    Hashtable publisherDetails;
+                    if (publisherDetailsCache.ContainsKey(signature.SignerCertificate.Thumbprint))
+                    {
+                        publisherDetails = publisherDetailsCache[signature.SignerCertificate.Thumbprint];
+                    }
+                    else
+                    {
+                        publisherDetails = GetAuthenticodePublisher(signature, pkgName, cmdletPassedIn, errorRecord);
+
+                        // Add new information to the cache
+                        publisherDetailsCache.Add(signature.SignerCertificate.Thumbprint, publisherDetails);
+                    }
+
+                    if (publisherDetails.Count > 0)
+                    {
+                        if (publisherDetails.ContainsKey("Publisher") && !string.IsNullOrEmpty(publisherDetails["Publisher"].ToString()))
+                        {
+                            cmdletPassedIn.WriteVerbose(string.Format("File '{0}' from package '{1}' is published by publisher '{2}'.", fileName, pkgName, publisherDetails["Publisher"].ToString()));
+                        }
+
+                        if (publisherDetails.ContainsKey("PublisherRootCA") && !string.IsNullOrEmpty(publisherDetails["PublisherRootCA"].ToString()))
+                        {
+                            cmdletPassedIn.WriteVerbose(string.Format("File '[0}' from package '{1}' has the publisher root certificate authority of '{2}'.", fileName, pkgName, publisherDetails["PublisherRootCA"].ToString()));
+                        }
+                    }
+                }
+                
+            }
+
+            return true;
+        }
+        
+        internal static Hashtable GetAuthenticodePublisher(Signature authenticodeSignature, string pkgName, PSCmdlet cmdletPassedIn, ErrorRecord errorRecord)
+        {
+            Hashtable publisherInfo = new Hashtable();
+            if (authenticodeSignature.SignerCertificate != null)
+            {
+                X509Chain chain = new X509Chain();
+                chain.Build(authenticodeSignature.SignerCertificate);
+
+                foreach (X509ChainElement element in chain.ChainElements)
+                {
+                    foreach (var certStoreLocation in CertStoreLocations)
+                    {
+                        var results = PowerShellInvoker.InvokeScriptWithHost<object>(
+                                        cmdlet: cmdletPassedIn,
+                                        script: @"
+                                            param ([string] $certStoreLocation )
+
+                                            Microsoft.PowerShell.Management\Get-ChildItem -Path $certStoreLocation |
+                                                Microsoft.PowerShell.Core\Where-Object { ($_.Subject -eq $element.Certificate.Subject) -and ($_.thumbprint -eq $element.Certificate.Thumbprint) }
+                                            ",
+                                        args: new object[] { certStoreLocation, element },
+                                        out Exception terminatingError);
+                        
+                        if (terminatingError != null)
+                        {
+                            errorRecord = new ErrorRecord(
+                                    new PSInvalidOperationException(
+                                        message: $"Install-PSResource encountered an error while authenticating certificate for \"{pkgName}\" from certificate store \"{certStoreLocation}\".",
+                                        innerException: terminatingError),
+                                    "InstallPSResourceCannotReadCertFromStore",
+                                    ErrorCategory.InvalidResult,
+                                    cmdletPassedIn);
+
+                            return publisherInfo;
+                        }
+
+                        X509Certificate2 rootCertificateAuthority = results.Count > 0 ? (X509Certificate2)results.FirstOrDefault() : null;
+
+                        if (rootCertificateAuthority != null)
+                        {
+                            publisherInfo.Add("Publisher", authenticodeSignature.SignerCertificate.Subject);
+                            publisherInfo.Add("PublisherRootCA", rootCertificateAuthority);
+
+                            return publisherInfo;
+                        }
+                    }
+                }
+            }
+
+            return publisherInfo;
+        }
+
+        internal static bool IsMicrosoftCert(Signature authenticodeSignature, PSCmdlet cmdletPassedIn, ErrorRecord errorRecord)
+        {
+            bool isMicrosoftCert = false;
+            if (authenticodeSignature.SignerCertificate != null)
+            {
+                SafeX509ChainHandle safex509ChainHandle = null;
+                try
+                {
+                    X509Chain chain = new X509Chain();
+                    chain.Build(authenticodeSignature.SignerCertificate);
+
+                    // safehandle is available with dotnet api https://docs.microsoft.com/en-us/dotnet/api/microsoft.win32.safehandles?view=net-6.0
+                    safex509ChainHandle = chain.SafeHandle;
+
+                    isMicrosoftCert = IsValidatedMicrosoftCert(safex509ChainHandle);
+
+                }
+                catch (Exception e)
+                {
+                    errorRecord = new ErrorRecord(
+                                new PSInvalidOperationException(
+                                    message: $"Install-PSResource encountered an error while checking if the module uses a valid Microsoft certificate.",
+                                    innerException: e.InnerException),
+                                "InstallPSResourceFailedToCheckIfMicrosoftCert",
+                                ErrorCategory.InvalidResult,
+                                cmdletPassedIn);
+
+                    return false;
+                }
+
+                if (safex509ChainHandle != null)
+                {
+                    safex509ChainHandle.Dispose();
+                }
+            }
+
+            return isMicrosoftCert;
+        }
+
+        internal static bool IsValidatedMicrosoftCert(SafeX509ChainHandle pChainContext)
+        {
+            //-------------------------------------------------------------------------
+            //  CERT_CHAIN_POLICY_MICROSOFT_ROOT
+            //
+            //  Checks if the last element of the first simple chain contains a
+            //  Microsoft root public key. If it doesn't contain a Microsoft root
+            //  public key, dwError is set to CERT_E_UNTRUSTEDROOT.
+            //
+            //  pPolicyPara is optional. However,
+            //  MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG can be set in
+            //  the dwFlags in pPolicyPara to also check for the Microsoft Test Roots.
+            //
+            //  MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG can be set
+            //  in the dwFlags in pPolicyPara to check for the Microsoft root for
+            //  application signing instead of the Microsoft product root. This flag
+            //  explicitly checks for the application root only and cannot be combined
+            //  with the test root flag.
+            //
+            //  MICROSOFT_ROOT_CERT_CHAIN_POLICY_DISABLE_FLIGHT_ROOT_FLAG can be set
+            //  in the dwFlags in pPolicyPara to always disable the Flight root.
+            //
+            //  pvExtraPolicyPara and pvExtraPolicyStatus aren't used and must be set
+            //  to NULL.
+            //--------------------------------------------------------------------------
+            const uint MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG = 0x00010000;
+            const uint MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG = 0x00020000;
+            //const uint MICROSOFT_ROOT_CERT_CHAIN_POLICY_DISABLE_FLIGHT_ROOT_FLAG    = 0x00040000;
+            CERT_CHAIN_POLICY_PARA PolicyPara = new CERT_CHAIN_POLICY_PARA(Marshal.SizeOf(typeof(CERT_CHAIN_POLICY_PARA)));
+            CERT_CHAIN_POLICY_STATUS PolicyStatus = new CERT_CHAIN_POLICY_STATUS(Marshal.SizeOf(typeof(CERT_CHAIN_POLICY_STATUS)));
+            int CERT_CHAIN_POLICY_MICROSOFT_ROOT = 7;
+            PolicyPara.dwFlags = (uint)MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG;
+            bool isMicrosoftRoot = false;
+            if (CertVerifyCertificateChainPolicy(new IntPtr(CERT_CHAIN_POLICY_MICROSOFT_ROOT),
+                                                pChainContext,
+                                                ref PolicyPara,
+                                                ref PolicyStatus))
+            {
+                isMicrosoftRoot = (PolicyStatus.dwError == 0);
+            }
+            // Also check for the Microsoft root for application signing if the Microsoft product root verification is unsuccessful.
+            if (!isMicrosoftRoot)
+            {
+                // Some Microsoft modules can be signed with Microsoft Application Root instead of Microsoft Product Root,
+                // So we need to use the MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG for the certificate verification.
+                // MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG can not be used
+                // with MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG,
+                // so additional CertVerifyCertificateChainPolicy call is required to verify the given certificate is in Microsoft Application Root.
+                //
+                CERT_CHAIN_POLICY_PARA PolicyPara2 = new CERT_CHAIN_POLICY_PARA(Marshal.SizeOf(typeof(CERT_CHAIN_POLICY_PARA)));
+                CERT_CHAIN_POLICY_STATUS PolicyStatus2 = new CERT_CHAIN_POLICY_STATUS(Marshal.SizeOf(typeof(CERT_CHAIN_POLICY_STATUS)));
+                PolicyPara2.dwFlags = (uint)MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG;
+                if (CertVerifyCertificateChainPolicy(new IntPtr(CERT_CHAIN_POLICY_MICROSOFT_ROOT),
+                                                    pChainContext,
+                                                    ref PolicyPara2,
+                                                    ref PolicyStatus2))
+                {
+                    isMicrosoftRoot = (PolicyStatus2.dwError == 0);
+                }
+            }
+            return isMicrosoftRoot;
+        }
+
+        [DllImport("Crypt32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public extern static bool CertVerifyCertificateChainPolicy(
+            IntPtr pszPolicyOID,
+            SafeX509ChainHandle pChainContext,
+            ref CERT_CHAIN_POLICY_PARA pPolicyPara,
+            ref CERT_CHAIN_POLICY_STATUS pPolicyStatus);
+
+        #endregion
     }
 
     #endregion
