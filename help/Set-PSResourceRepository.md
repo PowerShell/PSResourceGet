@@ -14,7 +14,7 @@ Sets information for a registered repository.
 
 ### NameParameterSet (Default)
 ```
-Set-PSResourceRepository [-Name] <String> [-Uri <String>] [-Trusted] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository [-Name] <String> [-Uri <String>][CredentialInfo <PSCredentialInfo>] [-Trusted] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
@@ -126,6 +126,24 @@ Specifies the location of the repository to be set.
 
 ```yaml
 Type: String
+Parameter Sets: NameParameterSet
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+### -CredentialInfo
+Specifies where a credential is stored to access the PSResourceRepository for Find/Install/Update commands.
+Takes a PSCredentialInfo Objects which takes in a vault name and secret name.
+This parameter utilizes the Microsoft.PowerShell.SecretManagement module for interfacing with the stored credential.
+
+`New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("VaultName", "SecretName")`
+
+```yaml
+Type: PSCredentialInfo
 Parameter Sets: NameParameterSet
 Aliases:
 
