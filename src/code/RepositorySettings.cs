@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XElement newElement = new XElement(
                     "Repository",
                     new XAttribute("Name", repoName),
-                    new XAttribute("Uri", repoUri),
+                    new XAttribute("Url", repoUri),
                     new XAttribute("Priority", repoPriority),
                     new XAttribute("Trusted", repoTrusted)
                     );
@@ -139,16 +139,59 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     throw new ArgumentException("Cannot find the repository because it does not exist. Try registering the repository using 'Register-PSResourceRepository'");
                 }
 
+                // Check that repository node we are attempting to update has all required attributes: Name, Url (or Uri), Priority, Trusted.
+                // Name attribute is already checked for in FindRepositoryElement()
+
+                if (node.Attribute("Priority") == null)
+                {
+                    throw new ArgumentException("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath);
+                }
+                
+                if (node.Attribute("Trusted") == null)
+                {
+                    throw new ArgumentException("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath);
+                }                
+
+                bool urlAttributeExists = node.Attribute("Url") != null;
+                bool uriAttributeExists = node.Attribute("Uri") != null;
+                if (!urlAttributeExists && !uriAttributeExists)
+                {
+                    throw new ArgumentException("Repository element does not contain neccessary 'Url' attribute (or alternatively 'Uri' attribute), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath); 
+                }
+
                 // Else, keep going
                 // Get root of XDocument (XElement)
                 var root = doc.Root;
 
-                // A null Uri value passed in signifies the Uri was not attempted to be set.
+                // A null Uri (or Url) value passed in signifies the Uri was not attempted to be set.
                 // So only set Uri attribute if non-null value passed in for repoUri
+
+                // determine if existing repository node (which we wish to update) had Url to Uri attribute
+                Uri thisUrl = null;
                 if (repoUri != null)
                 {
-                    node.Attribute("Uri").Value = repoUri.AbsoluteUri;
+                    if (urlAttributeExists)
+                    {
+                        node.Attribute("Url").Value = repoUri.AbsoluteUri;
+                        // Create Uri from node Uri attribute to create PSRepositoryInfo item to return.
+                        if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
+                        {
+                            throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
+                        }
+                    }
+                    else
+                    {
+                        // Uri attribute exists
+                        node.Attribute("Uri").Value = repoUri.AbsoluteUri;
+                        if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
+                        {
+                            throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
+                        }
+                    }
                 }
+
+
+
 
                 // A negative Priority value passed in signifies the Priority value was not attempted to be set.
                 // So only set Priority attribute if non-null value passed in for repoPriority
@@ -187,12 +230,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                 }
 
-                // Create Uri from node Uri attribute to create PSRepositoryInfo item to return.
-                if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
-                {
-                    throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
-                }
-
                 // Create CredentialInfo based on new values or whether it was empty to begin with
                 PSCredentialInfo thisCredentialInfo = null;
                 if (node.Attribute(PSCredentialInfo.VaultNameAttribute)?.Value != null &&
@@ -204,7 +241,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 updatedRepo = new PSRepositoryInfo(repoName,
-                    thisUri,
+                    thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
                     Boolean.Parse(node.Attribute("Trusted").Value),
                     thisCredentialInfo);
@@ -257,9 +294,32 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     repoCredentialInfo = new PSCredentialInfo(node.Attribute("VaultName").Value, node.Attribute("SecretName").Value);
                 }
+
+                if (node.Attribute("Priority") == null)
+                {
+                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                    continue;
+                }
+                
+                if (node.Attribute("Trusted") == null)
+                {
+                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                    continue;
+                }
+
+                // determine if repo had Url or Uri (less likely) attribute
+                bool urlAttributeExists = node.Attribute("Url") != null;
+                bool uriAttributeExists = node.Attribute("Uri") != null;
+                if (!urlAttributeExists && !uriAttributeExists)
+                {
+                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one per Repository), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                    continue;  
+                }
+
+                string attributeUrlUriName = urlAttributeExists ? "Url" : "Uri";
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
-                        new Uri(node.Attribute("Uri").Value),
+                        new Uri(node.Attribute(attributeUrlUriName).Value),
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
                         repoCredentialInfo));
@@ -304,7 +364,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                     if (repo.Attribute("Priority") == null)
                     {
-                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Name' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                        continue;
+                    }
+                    
+                    if (repo.Attribute("Trusted") == null)
+                    {
+                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                         continue;
                     }
 
@@ -385,14 +451,49 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     bool repoMatch = false;
                     WildcardPattern nameWildCardPattern = new WildcardPattern(repo, WildcardOptions.IgnoreCase);
 
-                    foreach (var node in doc.Descendants("Repository").Where(e => nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
+                    foreach (var node in doc.Descendants("Repository").Where(e => e.Attribute("Name") != null && nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
                     {
-                        repoMatch = true;
-                        if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
+                        if (node.Attribute("Priority") == null)
                         {
-                            //debug statement
-                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", node.Attribute("Name").Value));
+                            tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                             continue;
+                        }
+                        
+                        if (node.Attribute("Trusted") == null)
+                        {
+                            tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                            continue;
+                        }
+
+                        repoMatch = true;
+                        bool urlAttributeExists = node.Attribute("Url") != null;
+                        bool uriAttributeExists = node.Attribute("Uri") != null;
+
+                        // case: neither Url nor Uri attributes exist
+                        if (!urlAttributeExists && !uriAttributeExists)
+                        {
+                            tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                            continue;   
+                        }
+
+                        Uri thisUrl = null;
+                        // case: either attribute Uri or Url exists
+                        // TODO: do we only allow both to exist, across repositories? (i.e if a file has Uri attribute for one repo and Url attribute for another --> is that invalid?)
+                        if (urlAttributeExists)
+                        {
+                            if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
+                            {
+                                tempErrorList.Add(String.Format("Unable to read incorrectly formatted Url for repo {0}", node.Attribute("Name").Value));
+                                continue;
+                            }
+                        }
+                        else if (uriAttributeExists)
+                        {
+                            if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
+                            {
+                                tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", node.Attribute("Name").Value));
+                                continue;
+                            }
                         }
 
                         PSCredentialInfo thisCredentialInfo;
@@ -428,7 +529,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         }
 
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
-                            thisUri,
+                            thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
                             thisCredentialInfo);
@@ -456,7 +557,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         private static XElement FindRepositoryElement(XDocument doc, string name)
         {
             return doc.Descendants("Repository").Where(
-                e => string.Equals(
+                e => e.Attribute("Name") != null && 
+                    string.Equals(
                     e.Attribute("Name").Value,
                     name,
                     StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
