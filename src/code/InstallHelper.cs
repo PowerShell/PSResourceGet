@@ -189,7 +189,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
 
                 // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
-                var isLocalRepo = repo.Uri.Scheme == Uri.UriSchemeFile;
+                var isLocalRepo = repo.Uri.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
 
                 // Finds parent packages and dependencies
                 IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
@@ -467,8 +467,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
                     string moduleManifestVersion = string.Empty;
-                    var scriptPath = Path.Combine(tempDirNameVersion, pkg.Name + ".ps1");
-                    var modulePath = Path.Combine(tempDirNameVersion, pkg.Name + ".psd1");
+                    var scriptPath = Path.Combine(tempDirNameVersion, pkg.Name + PSScriptFileExt);
+                    var modulePath = Path.Combine(tempDirNameVersion, pkg.Name + PSDataFileExt);
                     // Check if the package is a module or a script
                     var isModule = File.Exists(modulePath);
 
@@ -546,7 +546,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (_includeXML)
                     {
-                        CreateMetadataXMLFile(tempDirNameVersion, installPath, newVersion, pkg, isModule);
+                        CreateMetadataXMLFile(tempDirNameVersion, installPath, pkg, isModule);
                     }
 
                     MoveFilesIntoInstallPath(
@@ -732,7 +732,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return foundClobber;
         }
 
-        private void CreateMetadataXMLFile(string dirNameVersion, string installPath, string pkgVersion, PSResourceInfo pkg, bool isModule)
+        private void CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule)
         {
             // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"
             // Modules will have the metadata file: "PSGetModuleInfo.xml"
@@ -740,7 +740,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 : Path.Combine(dirNameVersion, (pkg.Name + "_InstalledScriptInfo.xml"));
 
             pkg.InstalledDate = DateTime.Now;
-            pkg.InstalledLocation = Path.Combine(installPath, pkg.Name, pkgVersion);
+            pkg.InstalledLocation = installPath;
 
             // Write all metadata into metadataXMLPath
             if (!pkg.TryWrite(metadataXMLPath, out string error))
