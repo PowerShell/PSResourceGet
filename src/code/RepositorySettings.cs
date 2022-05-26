@@ -290,16 +290,51 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Loading repository store failed: {0}", e.Message));
             }
 
-            if (repoNames == null || !repoNames.Any() || string.Equals(repoNames[0], "*") || repoNames[0] == null)
+            if (repoNames == null || repoNames.Length == 0 || string.Equals(repoNames[0], "*") || repoNames[0] == null)
             {
                 // Name array or single value is null so we will list all repositories registered
                 // iterate through the doc
                 foreach (XElement repo in doc.Descendants("Repository"))
                 {
-                    if (!Uri.TryCreate(repo.Attribute("Uri").Value, UriKind.Absolute, out Uri thisUri))
+                    if (repo.Attribute("Name") == null)
                     {
-                        tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repo.Attribute("Name").Value));
+                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Name' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                         continue;
+                    }
+
+                    if (repo.Attribute("Priority") == null)
+                    {
+                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Name' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                        continue;
+                    }
+
+                    bool urlAttributeExists = repo.Attribute("Url") != null;
+                    bool uriAttributeExists = repo.Attribute("Uri") != null;
+                    // case: neither Url nor Uri attributes exist
+                    if (!urlAttributeExists && !uriAttributeExists)
+                    {
+                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                        continue;   
+                    }
+
+                    Uri thisUrl = null;
+                    // case: either attribute Uri or Url exists
+                    // TODO: do we only allow both to exist, across repositories? (i.e if a file has Uri attribute for one repo and Url attribute for another --> is that invalid?)
+                    if (urlAttributeExists)
+                    {
+                        if (!Uri.TryCreate(repo.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
+                        {
+                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted Url for repo {0}", repo.Attribute("Name").Value));
+                            continue;
+                        }
+                    }
+                    else if (uriAttributeExists)
+                    {
+                        if (!Uri.TryCreate(repo.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
+                        {
+                            tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repo.Attribute("Name").Value));
+                            continue;
+                        }
                     }
 
                     PSCredentialInfo thisCredentialInfo;
@@ -335,7 +370,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
 
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
-                        thisUri,
+                        thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
                         thisCredentialInfo);
