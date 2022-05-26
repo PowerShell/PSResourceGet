@@ -1136,46 +1136,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     internal static class AuthenticodeSignature
     {
-        // TODO:  ADDD COMMENTS
-        #region Members
-        static readonly string[] CertStoreLocations = { "cert:\\LocalMachine\\Root", "cert:\\LocalMachine\\AuthRoot", "cert:\\CurrentUser\\Root", "cert:\\CurrentUser\\AuthRoot" };
-        #endregion
-
-
-        #region Enums
-
-        public struct CERT_CHAIN_POLICY_PARA
-        {
-            public CERT_CHAIN_POLICY_PARA(int size)
-            {
-                cbSize = (uint)size;
-                dwFlags = 0;
-                pvExtraPolicyPara = IntPtr.Zero;
-            }
-            public uint cbSize;
-            public uint dwFlags;
-            public IntPtr pvExtraPolicyPara;
-        }
-
-        public struct CERT_CHAIN_POLICY_STATUS
-        {
-            public CERT_CHAIN_POLICY_STATUS(int size)
-            {
-                cbSize = (uint)size;
-                dwError = 0;
-                lChainIndex = IntPtr.Zero;
-                lElementIndex = IntPtr.Zero;
-                pvExtraPolicyStatus = IntPtr.Zero;
-            }
-            public uint cbSize;
-            public uint dwError;
-            public IntPtr lChainIndex;
-            public IntPtr lElementIndex;
-            public IntPtr pvExtraPolicyStatus;
-        }
-
-        #endregion
-
         #region Methods
 
         internal static bool CheckAuthenticodeSignature(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
@@ -1260,9 +1220,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // If the authenticode signature is not valid, return false
             if (authenticodeSignature.Any() && authenticodeSignature[0] != null)
             {
-                // Create a cache for checking if a cert is signed by Microsoft
-                Dictionary<string,bool> isMSCertCache = new Dictionary<string, bool> { };
-
                 foreach (var sign in authenticodeSignature)
                 {
                     Signature signature = (Signature)sign.BaseObject;
@@ -1274,57 +1231,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                         return false;
                     }
-
-                    string fileName = new FileInfo(signature.Path).Name;
-
-                    bool isMicrosoftCert;
-                    if (isMSCertCache.ContainsKey(signature.SignerCertificate.Thumbprint))
-                    {
-                        isMicrosoftCert = isMSCertCache[signature.SignerCertificate.Thumbprint];
-                    }
-                    else
-                    {
-                        isMicrosoftCert = IsMicrosoftCert(signature, cmdletPassedIn, errorRecord);
-
-                        // Add new information to the cache
-                        isMSCertCache.Add(signature.SignerCertificate.Thumbprint, isMicrosoftCert);
-                    }
-                    
-                    if (isMicrosoftCert)
-                    {
-                        cmdletPassedIn.WriteVerbose(string.Format("File '{0}' from package '{1}' is signed by a Microsoft certificate.", fileName, pkgName));
-                    }
-
-                    // Create a cache for retrieving the publisher details of a cert
-                    Dictionary<string, Hashtable> publisherDetailsCache = new Dictionary<string, Hashtable> { };
-                    
-                    Hashtable publisherDetails;
-                    if (publisherDetailsCache.ContainsKey(signature.SignerCertificate.Thumbprint))
-                    {
-                        publisherDetails = publisherDetailsCache[signature.SignerCertificate.Thumbprint];
-                    }
-                    else
-                    {
-                        publisherDetails = GetAuthenticodePublisher(signature, pkgName, cmdletPassedIn, errorRecord);
-
-                        // Add new information to the cache
-                        publisherDetailsCache.Add(signature.SignerCertificate.Thumbprint, publisherDetails);
-                    }
-
-                    if (publisherDetails.Count > 0)
-                    {
-                        if (publisherDetails.ContainsKey("Publisher") && !string.IsNullOrEmpty(publisherDetails["Publisher"].ToString()))
-                        {
-                            cmdletPassedIn.WriteVerbose(string.Format("File '{0}' from package '{1}' is published by publisher '{2}'.", fileName, pkgName, publisherDetails["Publisher"].ToString()));
-                        }
-
-                        if (publisherDetails.ContainsKey("PublisherRootCA") && !string.IsNullOrEmpty(publisherDetails["PublisherRootCA"].ToString()))
-                        {
-                            cmdletPassedIn.WriteVerbose(string.Format("File '[0}' from package '{1}' has the publisher root certificate authority of '{2}'.", fileName, pkgName, publisherDetails["PublisherRootCA"].ToString()));
-                        }
-                    }
                 }
-                
             }
 
             return true;
