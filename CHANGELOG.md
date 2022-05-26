@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 3.0.14-beta14
+
+### Bug Fixes
+- Bug fix for repository store (#661)
+
 ## 3.0.13-beta
 
 ### New Features
