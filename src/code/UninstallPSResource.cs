@@ -24,6 +24,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to uninstall.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
@@ -54,6 +55,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
 
+        /// <summary>
+        /// Specifies the scope of installation.
+        /// </summary>
+        [Parameter]
+        public ScopeType Scope { get; set; }
+
         #endregion
 
         #region Members
@@ -71,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            _pathsToSearch = Utils.GetAllResourcePaths(this);
+            _pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
         }
 
         protected override void ProcessRecord()
