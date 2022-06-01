@@ -111,6 +111,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
 
+        /// <summary>
+        /// Check validation for signed and catalog files
+
+        /// </summary>
+        [Parameter]
+        public SwitchParameter AuthenticodeCheck { get; set; }
+
         #endregion
 
         #region Override Methods
@@ -178,6 +185,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
+                authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
