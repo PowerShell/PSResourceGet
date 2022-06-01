@@ -3,7 +3,7 @@
 
 @{
     RootModule        = './netstandard2.0/PowerShellGet.dll'
-    ModuleVersion     = '3.0.13'
+    ModuleVersion     = '3.0.14'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'
     CompanyName       = 'Microsoft Corporation'
@@ -30,7 +30,7 @@
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData = @{
         PSData = @{
-            Prerelease = 'beta'
+            Prerelease = 'beta14'
             Tags = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -40,6 +40,11 @@
             ProjectUri = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 3.0.14-beta14
+
+### Bug Fixes
+- Bug fix for repository store (#661)
+
 ## 3.0.13-beta
 
 ### New Features
