@@ -42,6 +42,7 @@ Describe "Test New-PSScriptFileInfo" {
     }
 
     It "create .ps1 file with RequiredModules" {
+        #MaximumVersion, #RequiredVersion, #ModuleVersion
         $hashtable1 = @{ModuleName = "RequiredModule1"}
         $hashtable2 = @{ModuleName = "RequiredModule2"; ModuleVersion = "1.0.0.0"}
         $hashtable3 = @{ModuleName = "RequiredModule3"; RequiredVersion = "2.5.0.0"}
@@ -55,12 +56,14 @@ Describe "Test New-PSScriptFileInfo" {
         $res | Should -Not -BeNullOrEmpty
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
-        #MaximumVersion, #RequiredVersion, #ModuleVersion
-        # $reqModsActual = @(@{"ModuleName" = "ReqModule1"},@{"ModuleVersion"="1.0.0.0";"ModuleName"="ReqModule2"})
     }
 
-    # test with required modules
     # test with each param really....would be easier to test if we returned PSSriptFileInfoobject
+    # FilePath, Version, Author, Description, Guid, CompanyName, Copyright, RequiredModules,
+    # ExternalModuleDependencies, RequiredScripts, ExternalScriptDependencies, Tags
+    # ProjectUri, LicenseUri, IconUri, ReleaseNotes, PrivateData, PassThru, Force
+
+    # currently testing with: FilePath, RequiredModules
 
 
 

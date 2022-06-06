@@ -38,14 +38,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // if (!File.Exists(FilePath))
-            // {
-            //     var exMessage = "A file does not exist at the location specified";
-            //     var ex = new ArgumentException(exMessage);
-            //     var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
-            //     ThrowTerminatingError(FileDoesNotExistError);
-            // }
-
             if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
@@ -54,7 +46,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathError);   
             }
 
-            // var resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath).First().Path;
             var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
             if (resolvedPaths.Count != 1)
             {

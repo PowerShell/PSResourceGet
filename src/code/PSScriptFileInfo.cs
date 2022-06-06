@@ -340,22 +340,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                     // get .DESCRIPTION comment
                     CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
-                    if (scriptCommentInfo != null)
+                    if (scriptCommentInfo == null)
                     {
-                        if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
-                        {
-                            parsedPSScriptInfoHashtable.Add("DESCRIPTION", scriptCommentInfo.Description);
-                        }
-                        else
-                        {
-                            var message = String.Format("PSScript is missing the required Description property or Description value contains '<#' or '#>' which is invalid");
-                            var ex = new ArgumentException(message);
-                            var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingOrInvalidDescription", ErrorCategory.ParserError, null);
-                            errorsList.Add(psScriptMissingDescriptionOrInvalidPropertyError);
-                            successfullyParsed = false;
-                            return successfullyParsed;
-                        }
+                        var message = String.Format("PSScript file is missing the required Description comment block in the script contents.");
+                        var ex = new ArgumentException(message);
+                        var psScriptMissingHelpContentCommentBlockError = new ErrorRecord(ex, "PSScriptMissingHelpContentCommentBlock", ErrorCategory.ParserError, null);
+                        errorsList.Add(psScriptMissingHelpContentCommentBlockError);
+                        errors = errorsList.ToArray();
+                        return false;
                     }
+
+                    if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
+                    {
+                        parsedPSScriptInfoHashtable.Add("DESCRIPTION", scriptCommentInfo.Description);
+                    }
+                    else
+                    {
+                        var message = String.Format("PSScript is missing the required Description property or Description value contains '<#' or '#>' which is invalid");
+                        var ex = new ArgumentException(message);
+                        var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingOrInvalidDescription", ErrorCategory.ParserError, null);
+                        errorsList.Add(psScriptMissingDescriptionOrInvalidPropertyError);
+                        errors = errorsList.ToArray();
+                        successfullyParsed = false;
+                        return successfullyParsed;
+                    }
+
 
                     // get RequiredModules
                     ScriptRequirements parsedScriptRequirements = ast.ScriptRequirements;
@@ -389,18 +398,54 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         parsedPSScriptInfoHashtable.Add("DefinedWorkflows", allWorkflowNames);
                     }
 
-                    string parsedVersion = (string) parsedPSScriptInfoHashtable["VERSION"];
-                    string parsedAuthor = (string) parsedPSScriptInfoHashtable["AUTHOR"];
-                    Guid parsedGuid = String.IsNullOrEmpty((string)parsedPSScriptInfoHashtable["GUID"]) ? Guid.NewGuid() : new Guid((string) parsedPSScriptInfoHashtable["GUID"]);
-                    if (String.IsNullOrEmpty(parsedVersion) || String.IsNullOrEmpty(parsedAuthor) || parsedGuid == Guid.Empty)
+                    if (!parsedPSScriptInfoHashtable.ContainsKey("VERSION") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["VERSION"]))
                     {
-                        var message = String.Format("PSScript file is missing one of the following required properties: Version, Author, Guid");
+                        var message = String.Format("PSScript file is missing the required Version property");
                         var ex = new ArgumentException(message);
-                        var psScriptMissingRequiredPropertyError = new ErrorRecord(ex, "psScriptMissingRequiredProperty", ErrorCategory.ParserError, null);
-                        errorsList.Add(psScriptMissingRequiredPropertyError);
+                        var psScriptMissingVersionError = new ErrorRecord(ex, "psScriptMissingVersion", ErrorCategory.ParserError, null);
+                        errorsList.Add(psScriptMissingVersionError);
+                        errors = errorsList.ToArray();
                         successfullyParsed = false;
                         return successfullyParsed;
                     }
+
+                    if (!parsedPSScriptInfoHashtable.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["AUTHOR"]))
+                    {
+                        var message = String.Format("PSScript file is missing the required Author property");
+                        var ex = new ArgumentException(message);
+                        var psScriptMissingAuthorError = new ErrorRecord(ex, "psScriptMissingAuthor", ErrorCategory.ParserError, null);
+                        errorsList.Add(psScriptMissingAuthorError);
+                        errors = errorsList.ToArray();
+                        successfullyParsed = false;
+                        return successfullyParsed;
+                    }
+
+                    if (!parsedPSScriptInfoHashtable.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["GUID"]))
+                    {
+                        var message = String.Format("PSScript file is missing the required Guid property");
+                        var ex = new ArgumentException(message);
+                        var psScriptMissingGuidError = new ErrorRecord(ex, "psScriptMissingGuid", ErrorCategory.ParserError, null);
+                        errorsList.Add(psScriptMissingGuidError);
+                        errors = errorsList.ToArray();
+                        successfullyParsed = false;
+                        return successfullyParsed;
+                    }
+
+
+                    string parsedVersion = (string) parsedPSScriptInfoHashtable["VERSION"];
+                    string parsedAuthor = (string) parsedPSScriptInfoHashtable["AUTHOR"];
+                    Guid parsedGuid = new Guid((string) parsedPSScriptInfoHashtable["GUID"]);
+
+                    // if (String.IsNullOrEmpty(parsedVersion) || String.IsNullOrEmpty(parsedAuthor) || parsedGuid == Guid.Empty)
+                    // {
+                    //     var message = String.Format("PSScript file is missing one of the following required properties: Version, Author, Guid");
+                    //     var ex = new ArgumentException(message);
+                    //     var psScriptMissingRequiredPropertyError = new ErrorRecord(ex, "psScriptMissingRequiredProperty", ErrorCategory.ParserError, null);
+                    //     errorsList.Add(psScriptMissingRequiredPropertyError);
+                    //     errors = errorsList.ToArray();
+                    //     successfullyParsed = false;
+                    //     return successfullyParsed;
+                    // }
 
                     try
                     {
