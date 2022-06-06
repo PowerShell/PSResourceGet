@@ -40,6 +40,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies name of a resource or resources to find. Accepts wild card characters.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(Position = 0, 
                    ValueFromPipeline = true,
                    ParameterSetName = ResourceNameParameterSet)]

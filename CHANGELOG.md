@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 3.0.14-beta14
+
+### Bug Fixes
+- Bug fix for repository store (#661)
+
+## 3.0.13-beta
+
+### New Features
+- Implementation of -RequiredResourceFile and -RequiredResource parameters for Install-PSResource (#610, #592)
+- Scope parameters for Get-PSResource and Uninstall-PSResource (#639)
+- Support for credential persistence (#480 Thanks @cansuerdogan!)
+
+### Bug Fixes
+- Bug fix for publishing scripts (#642)
+- Bug fix for publishing modules with 'RequiredModules' specified in the module manifest (#640)
+
+### Changes
+- 'SupportsWildcard' attribute added to Find-PSResource, Get-PSResource, Get-PSResourceRepository, Uninstall-PSResource, and Update-PSResource (#658)
+- Updated help documentation (#651)
+- -Repositories parameter changed to singular -Repository in Register-PSResource and Set-PSResource (#645)
+- Better prerelease support for Uninstall-PSResource (#593)
+- Rename PSResourceInfo's PrereleaseLabel property to match Prerelease column displayed (#591)
+- Renaming of parameters -Url to -Uri (#551 Thanks @fsackur!)
+
 ## 3.0.12-beta
 
 ### Changes

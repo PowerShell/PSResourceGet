@@ -14,12 +14,12 @@ Sets information for a registered repository.
 
 ### NameParameterSet (Default)
 ```
-Set-PSResourceRepository [-Name] <String> [-Uri <String>] [-Trusted] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository [-Name] <String> [-Uri <String>][CredentialInfo <PSCredentialInfo>] [-Trusted] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
 ```
-Set-PSResourceRepository -Repositories <Hashtable[]> [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository -Repository <Hashtable[]> [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -65,14 +65,14 @@ PS C:\> Get-PSResourceRepository -Name "*"
 
 PS C:\> $arrayOfHashtables = @{Name = "PSGallery"; Trusted = $True}, @{Name = "PoshTestGallery"; Uri = "c:/code/testdir"}
 
-PS C:\> Set-PSResourceRepository -Repositories $arrayOfHashtables -PassThru
+PS C:\> Set-PSResourceRepository -Repository $arrayOfHashtables -PassThru
         Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2        True         50
         PoshTestGallery  file:///c:/code/testdir                        False         50
 ```
 
-This example first checks for all registered repositories. We wish to set the properties for multiple repositories at once (i.e the PSGallery and PoshTestGallery repositories), so we run Set-PSResourceRepository with the `-Repositories` parameter. This parameter takes an array of hashtables, where each hashtable contains information for a repository we wish to set information for. We also use the `-PassThru` parameter to see the changed repositories.
+This example first checks for all registered repositories. We wish to set the properties for multiple repositories at once (i.e the PSGallery and PoshTestGallery repositories), so we run Set-PSResourceRepository with the `-Repository` parameter. This parameter takes an array of hashtables, where each hashtable contains information for a repository we wish to set information for. We also use the `-PassThru` parameter to see the changed repositories.
 
 ## PARAMETERS
 
@@ -126,6 +126,24 @@ Specifies the location of the repository to be set.
 
 ```yaml
 Type: String
+Parameter Sets: NameParameterSet
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+### -CredentialInfo
+Specifies where a credential is stored to access the PSResourceRepository for Find/Install/Update commands.
+Takes a PSCredentialInfo Objects which takes in a vault name and secret name.
+This parameter utilizes the Microsoft.PowerShell.SecretManagement module for interfacing with the stored credential.
+
+`New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("VaultName", "SecretName")`
+
+```yaml
+Type: PSCredentialInfo
 Parameter Sets: NameParameterSet
 Aliases:
 

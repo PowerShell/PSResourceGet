@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Win32.SafeHandles;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -16,6 +17,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Text.RegularExpressions;
 using Microsoft.PowerShell.Commands;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -1241,6 +1243,116 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion Methods
+    }
+
+    #endregion
+
+    #region AuthenticodeSignature
+
+    internal static class AuthenticodeSignature
+    {
+        #region Methods
+
+        internal static bool CheckAuthenticodeSignature(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        {
+            errorRecord = null;
+
+            // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return true;
+            }
+
+            // Check that the catalog file is signed properly
+            string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
+            if (File.Exists(catalogFilePath))
+            {
+                // Run catalog validation
+                Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
+                string moduleBasePath = tempDirNameVersion;
+                try
+                {
+                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files
+                    TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
+                        script: @"param (
+                                      [string] $moduleBasePath, 
+                                      [string] $catalogFilePath
+                                 ) 
+                                $catalogValidation = Test-FileCatalog -Path $moduleBasePath -CatalogFilePath $CatalogFilePath `
+                                                 -FilesToSkip '*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
+                                                 -Detailed -ErrorAction SilentlyContinue
+        
+                                if ($catalogValidation.Status.ToString() -eq 'valid' -and $catalogValidation.Signature.Status -eq 'valid') {
+                                    return $true
+                                }
+                                else {
+                                    return $false
+                                }
+                        ",
+                        useNewScope: true,
+                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                        input: null,
+                        args: new object[] { moduleBasePath, catalogFilePath });
+                }
+                catch (Exception e)
+                {
+                    errorRecord = new ErrorRecord(new ArgumentException(e.Message), "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    return false;
+                }
+
+                bool catalogValidation = (TestFileCatalogResult[0] != null) ? (bool)TestFileCatalogResult[0].BaseObject : false;
+                if (!catalogValidation)
+                {
+                    var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
+                    var ex = new ArgumentException(exMessage);
+
+                    errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    return false;
+                }
+            }
+
+            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
+            try
+            {
+                string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
+                authenticodeSignature = cmdletPassedIn.InvokeCommand.InvokeScript(
+                    script: @"param (
+                                      [string] $tempDirNameVersion, 
+                                      [string[]] $listOfExtensions
+                                 ) 
+                                 Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { tempDirNameVersion, listOfExtensions });
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(new ArgumentException(e.Message), "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                return false;
+            }
+
+            // If the authenticode signature is not valid, return false
+            if (authenticodeSignature.Any() && authenticodeSignature[0] != null)
+            {
+                foreach (var sign in authenticodeSignature)
+                {
+                    Signature signature = (Signature)sign.BaseObject;
+                    if (!signature.Status.Equals(SignatureStatus.Valid))
+                    {
+                        var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
+                        var ex = new ArgumentException(exMessage);
+                        errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+       
+        #endregion
     }
 
     #endregion

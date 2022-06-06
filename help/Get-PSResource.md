@@ -13,7 +13,7 @@ Returns resources (modules and scripts) installed on the machine via PowerShellG
 ## SYNTAX
 
 ```
-Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [<CommonParameters>]
+Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-Scope <ScopeType>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -124,6 +124,21 @@ the version range.
 Type: System.String
 Parameter Sets: NameParameterSet
 Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+### -Scope
+Specifies the scope of the resource.
+
+```yaml
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType
+Parameter Sets: (All)
+Aliases:
+Accepted values: CurrentUser, AllUsers
 
 Required: False
 Position: Named

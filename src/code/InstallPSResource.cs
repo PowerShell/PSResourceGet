@@ -103,6 +103,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
+        
+        /// <summary>
+        /// Check validation for signed and catalog files
+        /// </summary>
+        [Parameter]
+        public SwitchParameter AuthenticodeCheck { get; set; }
 
         /// <summary>
         /// Passes the resource installed to the console.
@@ -310,7 +316,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         requiredResourceFileStream = sr.ReadToEnd();
                     }
-                    
+
                     Hashtable pkgsInFile = null;
                     try
                     {
@@ -513,6 +519,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
+                authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 

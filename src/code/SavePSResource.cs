@@ -132,6 +132,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter SkipDependencyCheck { get; set; }
 
         /// <summary>
+        /// Check validation for signed and catalog files
+
+        /// </summary>
+        [Parameter]
+        public SwitchParameter AuthenticodeCheck { get; set; }
+
+        /// <summary>
         /// Suppresses progress information.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
@@ -259,6 +266,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: AsNupkg, 
                 includeXML: IncludeXML, 
                 skipDependencyCheck: SkipDependencyCheck,
+                authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
                 pathsToInstallPkg: new List<string> { _path });
 

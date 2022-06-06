@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = RepositoriesParameterSet)]
         [ValidateNotNullOrEmpty]
-        public Hashtable[] Repositories {get; set;}
+        public Hashtable[] Repository {get; set;}
 
         /// <summary>
         /// Specifies whether the repository should be trusted.
@@ -270,7 +270,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
         {
             List<PSRepositoryInfo> reposAddedFromHashTable = new List<PSRepositoryInfo>();
-            foreach (Hashtable repo in Repositories)
+            foreach (Hashtable repo in Repository)
             {
                 if (repo.ContainsKey(PSGalleryRepoName))
                 {

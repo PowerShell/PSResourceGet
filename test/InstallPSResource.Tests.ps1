@@ -12,6 +12,7 @@ Describe 'Test Install-PSResource for Module' {
         $testModuleName = "test_module"
         $testModuleName2 = "TestModule99"
         $testScriptName = "test_script"
+        $PackageManagement = "PackageManagement"
         $RequiredResourceJSONFileName = "TestRequiredResourceFile.json"
         $RequiredResourcePSD1FileName = "TestRequiredResourceFile.psd1"
         Get-NewPSResourceRepositoryFile
@@ -19,7 +20,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -168,10 +169,10 @@ Describe 'Test Install-PSResource for Module' {
 
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
-        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers 
-        $pkg = Get-PSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
-        $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
+        Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
+        $pkg = Get-Module "testmodule99" -ListAvailable
+        $pkg.Name | Should -Be "testmodule99"
+        $pkg.Path.ToString().Contains("Program Files")
     }
 
     # Windows only
@@ -222,8 +223,8 @@ Describe 'Test Install-PSResource for Module' {
     It "Restore resource after reinstall fails" {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         $pkg = Get-Module $testModuleName -ListAvailable
-        $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "5.0.0.0"
+        $pkg.Name | Should -Contain $testModuleName
+        $pkg.Version | Should -Contain "5.0.0.0"
 
         $resourcePath = Split-Path -Path $pkg.Path -Parent
         $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
@@ -414,6 +415,56 @@ Describe 'Test Install-PSResource for Module' {
         $res3 = Get-PSResource $testModuleName2
         $res3.Name | Should -Be $testModuleName2
         $res3.Version | Should -Be "0.0.93.0"
+    }
+
+    # Install module 1.4.3 (is authenticode signed and has catalog file)
+    # Should install successfully 
+    It "Install modules with catalog file using publisher validation" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
+
+        $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
+        $res1.Name | Should -Be $PackageManagement
+        $res1.Version | Should -Be "1.4.3.0"
+    }
+
+    # Install module 1.4.7 (is authenticode signed and has no catalog file)
+    # Should not install successfully 
+    It "Install module with no catalog file" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $PackageManagement -Version "1.4.7" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
+
+        $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
+        $res1.Name | Should -Be $PackageManagement
+        $res1.Version | Should -Be "1.4.7.0"    
+    }
+
+    # Install module that is not authenticode signed
+    # Should FAIL to install the  module
+    It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+    # Install 1.4.4.1 (with incorrect catalog file)
+    # Should FAIL to install the  module
+    It "Install module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+
+    # Install script that is signed
+    # Should install successfully 
+    It "Install script that is authenticode signed" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name "Install-VSCode" -Version "1.4.2" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
+
+        $res1 = Get-PSResource "Install-VSCode" -Version "1.4.2"
+        $res1.Name | Should -Be "Install-VSCode"
+        $res1.Version | Should -Be "1.4.2.0"
+    }
+
+    # Install script that is not signed
+    # Should throw
+    It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 }
 
