@@ -11,6 +11,13 @@ Describe "Test New-PSScriptFileInfo" {
         $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
         Get-NewTestDirs($tmpDirPaths)
     }
+    AfterEach {
+        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript.ps1"
+        if (Test-Path -Path $scriptFilePath)
+        {
+            Remove-Item $scriptFilePath
+        }
+    }
     AfterAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
@@ -20,10 +27,9 @@ Describe "Test New-PSScriptFileInfo" {
     }
 
     It "create .ps1 file with minimal required fields" {    
-        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript2.ps1"
+        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript.ps1"
         $scriptDescription = "this is a test script"
         $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -PassThru
-        Write-host $res
         $res | Should -Not -BeNullOrEmpty
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
@@ -31,14 +37,13 @@ Describe "Test New-PSScriptFileInfo" {
 
     It "create .ps1 file with relative path" {
         $relativeCurrentPath = Get-Location
-        $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "testScript2.ps1"
+        $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "testScript.ps1"
         $scriptDescription = "this is a test script"
         $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -PassThru
-        Write-host $res
         $res | Should -Not -BeNullOrEmpty
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
-        Remove-Item -Path (Join-Path -Path $relativeCurrentPath -ChildPath "testScript2.ps1")
+        Remove-Item -Path (Join-Path -Path $relativeCurrentPath -ChildPath "testScript.ps1")
     }
 
     It "create .ps1 file with RequiredModules" {
@@ -52,20 +57,15 @@ Describe "Test New-PSScriptFileInfo" {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript2.ps1"
         $scriptDescription = "this is a test script"
         $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -RequiredModules $requiredModulesHashtables -PassThru
-        Write-Host $res
         $res | Should -Not -BeNullOrEmpty
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
     }
 
-    # test with each param really....would be easier to test if we returned PSSriptFileInfoobject
+    # TODO: test with each param really....would be easier to test if we returned PSSriptFileInfoObject with PassThru
     # FilePath, Version, Author, Description, Guid, CompanyName, Copyright, RequiredModules,
     # ExternalModuleDependencies, RequiredScripts, ExternalScriptDependencies, Tags
     # ProjectUri, LicenseUri, IconUri, ReleaseNotes, PrivateData, PassThru, Force
 
     # currently testing with: FilePath, RequiredModules
-
-
-
-    
 }

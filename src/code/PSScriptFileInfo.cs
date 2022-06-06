@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.Collections.ObjectModel;
 using Microsoft.PowerShell.Commands;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -29,7 +30,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the Version of the script
         /// </summary>
-        public Version Version { get; set; }
+        public NuGetVersion Version { get; set; }
 
         /// <summary>
         /// the GUID for the script
@@ -204,7 +205,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 author = Environment.UserName;
             }
 
-            Version = !String.IsNullOrEmpty(version) ? new Version (version) : new Version("1.0.0.0");
+            Version = !String.IsNullOrEmpty(version) ? new NuGetVersion (version) : new NuGetVersion("1.0.0.0");
             Guid = (guid == null || guid == Guid.Empty) ? Guid.NewGuid() : guid;
             Author = !String.IsNullOrEmpty(author) ? author : Environment.UserName;
             CompanyName = companyName;
@@ -235,10 +236,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return fileContents;
         }
 
-        public void SetFileContents(string[] newFileContents)
+        public void SetFileContents(string[] fileUpdatedContents)
         {
-            // TODO: new file contents is a misleading name...rename
-            fileContents = newFileContents;
+            fileContents = fileUpdatedContents;
         }
 
         #endregion
@@ -258,270 +258,291 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
             bool successfullyParsed = false;
 
-            if (scriptFileInfoPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
-            {
-                // Parse the script file
-                var ast = Parser.ParseFile(
-                    scriptFileInfoPath,
-                    out Token[] tokens,
-                    out ParseError[] parserErrors);
+            // a valid example script will have this format:
+            /* <#PSScriptInfo
+                .VERSION 1.6
+                .GUID abf490023 - 9128 - 4323 - sdf9a - jf209888ajkl
+                .AUTHOR Jane Doe
+                .COMPANYNAME Microsoft
+                .COPYRIGHT
+                .TAGS Windows MacOS
+                #>
+                
+                <#
 
-                if (parserErrors.Length > 0 && !String.Equals(parserErrors[0].ErrorId, "WorkflowNotSupportedInPowerShellCore", StringComparison.OrdinalIgnoreCase))
+                .SYNOPSIS
+                 Synopsis description here
+                .DESCRIPTION
+                 Description here
+                .PARAMETER Name
+                .EXAMPLE
+                 Example cmdlet here
+
+                #>
+            */
+
+            if (!scriptFileInfoPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            {
+                var message = String.Format("File passed in: {0} does not have a .ps1 extension as required", scriptFileInfoPath);
+                var ex = new ArgumentException(message);
+                var psScriptFileParseError = new ErrorRecord(ex, "ps1FileRequiredError", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptFileParseError);
+            }
+
+            // Parse the script file
+            var ast = Parser.ParseFile(
+                scriptFileInfoPath,
+                out Token[] tokens,
+                out ParseError[] parserErrors);
+
+            if (parserErrors.Length > 0)
+            {
+                foreach (ParseError err in parserErrors)
                 {
-                    // TODO: do we want to completely ignore WorkFlowNotSupportedInPowerShellCore error (not even write)
-                    // or do we want to write, but not return if it's just that error?
-                    foreach (ParseError err in parserErrors)
+                    // we ignore WorkFlowNotSupportedInPowerShellCore errors, as this is common in scripts currently on PSGallery
+                    if (!String.Equals(err.ErrorId, "WorkflowNotSupportedInPowerShellCore", StringComparison.OrdinalIgnoreCase))
                     {
                         var message = String.Format("Could not parse '{0}' as a PowerShell script file due to {1}.", scriptFileInfoPath, err.Message);
                         var ex = new ArgumentException(message);
                         var psScriptFileParseError = new ErrorRecord(ex, err.ErrorId, ErrorCategory.ParserError, null);
                         errorsList.Add(psScriptFileParseError);
-                        errors = errorsList.ToArray();
-
-                    }
-
-                    return successfullyParsed;
-                }
-                else if (ast != null)
-                {
-                    // Get the block/group comment beginning with <#PSScriptInfo
-                    Hashtable parsedPSScriptInfoHashtable = new Hashtable();
-                    List<Token> commentTokens = tokens.Where(a => String.Equals(a.Kind.ToString(), "Comment", StringComparison.OrdinalIgnoreCase)).ToList();
-                    string commentPattern = "<#PSScriptInfo";
-                    Regex rg = new Regex(commentPattern);
-                    List<Token> psScriptInfoCommentTokens = commentTokens.Where(a => rg.IsMatch(a.Extent.Text)).ToList();
-
-                    if (psScriptInfoCommentTokens.Count() == 0 || psScriptInfoCommentTokens[0] == null)
-                    {
-                        var message = String.Format("PSScriptInfo comment was missing or could not be parsed");
-                        var ex = new ArgumentException(message);
-                        var psCommentMissingError = new ErrorRecord(ex, "psScriptInfoCommentMissingError", ErrorCategory.ParserError, null);
-                        errorsList.Add(psCommentMissingError);
-
-                        errors = errorsList.ToArray();
-                        return successfullyParsed;  
-                    }
-
-                    string[] commentLines = Regex.Split(psScriptInfoCommentTokens[0].Text, "[\r\n]");
-                    string keyName = String.Empty;
-                    string value = String.Empty;
-
-                    /**
-                    If comment line count is not more than two, it doesn't have the any metadata property
-                    comment block would look like:
-
-                    <#PSScriptInfo
-                    #>
-                    */
-
-                    if (commentLines.Count() > 2)
-                    {
-                        // TODO: is it an error if the metadata property is empty?
-                        for (int i = 1; i < commentLines.Count(); i++)
-                        {
-                            string line = commentLines[i];
-                            if (String.IsNullOrEmpty(line))
-                            {
-                                continue;
-                            }
-
-                            // A line is starting with . conveys a new metadata property
-                            if (line.Trim().StartsWith("."))
-                            {
-                                string[] parts = line.Trim().TrimStart('.').Split();
-                                keyName = parts[0];
-                                value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
-                                parsedPSScriptInfoHashtable.Add(keyName, value);
-                            }
-                        }
-
-                        successfullyParsed = true;
-                    }
-
-                    // get .DESCRIPTION comment
-                    CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
-                    if (scriptCommentInfo == null)
-                    {
-                        var message = String.Format("PSScript file is missing the required Description comment block in the script contents.");
-                        var ex = new ArgumentException(message);
-                        var psScriptMissingHelpContentCommentBlockError = new ErrorRecord(ex, "PSScriptMissingHelpContentCommentBlock", ErrorCategory.ParserError, null);
-                        errorsList.Add(psScriptMissingHelpContentCommentBlockError);
-                        errors = errorsList.ToArray();
-                        return false;
-                    }
-
-                    if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
-                    {
-                        parsedPSScriptInfoHashtable.Add("DESCRIPTION", scriptCommentInfo.Description);
-                    }
-                    else
-                    {
-                        var message = String.Format("PSScript is missing the required Description property or Description value contains '<#' or '#>' which is invalid");
-                        var ex = new ArgumentException(message);
-                        var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingOrInvalidDescription", ErrorCategory.ParserError, null);
-                        errorsList.Add(psScriptMissingDescriptionOrInvalidPropertyError);
-                        errors = errorsList.ToArray();
-                        successfullyParsed = false;
-                        return successfullyParsed;
-                    }
-
-
-                    // get RequiredModules
-                    ScriptRequirements parsedScriptRequirements = ast.ScriptRequirements;
-                    ReadOnlyCollection<ModuleSpecification> parsedModules = new List<ModuleSpecification>().AsReadOnly();
-
-                    if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
-                    {
-                        parsedModules = parsedScriptRequirements.RequiredModules;
-                        parsedPSScriptInfoHashtable.Add("RequiredModules", parsedModules);
-                    }
-
-                    // get all defined functions and populate DefinedCommands, DefinedFunctions, DefinedWorkflow
-                    // TODO: DefinedWorkflow is no longer supported as of PowerShellCore 6+, do we ignore error or reject script?
-                    var parsedFunctionAst = ast.FindAll(a => a is FunctionDefinitionAst, true);
-                    List<FunctionDefinitionAst> allCommands = new List<FunctionDefinitionAst>();
-                    if (allCommands.Count() > 0)
-                    {
-                        foreach (var function in parsedFunctionAst)
-                        {
-                            allCommands.Add((FunctionDefinitionAst) function);
-                        }
-
-                        List<string> allCommandNames = allCommands.Select(a => a.Name).Distinct().ToList();
-                        parsedPSScriptInfoHashtable.Add("DefinedCommands", allCommandNames);
-
-                        // b.Body.Extent.Text to get actual content. So "Function b.Name c.Body.Extent.Text" is that whole line
-                        List<string> allFunctionNames = allCommands.Where(a => !a.IsWorkflow).Select(b => b.Name).Distinct().ToList();
-                        parsedPSScriptInfoHashtable.Add("DefinedFunctions", allFunctionNames);
-
-                        List<string> allWorkflowNames = allCommands.Where(a => a.IsWorkflow).Select(b => b.Name).Distinct().ToList();
-                        parsedPSScriptInfoHashtable.Add("DefinedWorkflows", allWorkflowNames);
-                    }
-
-                    if (!parsedPSScriptInfoHashtable.ContainsKey("VERSION") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["VERSION"]))
-                    {
-                        var message = String.Format("PSScript file is missing the required Version property");
-                        var ex = new ArgumentException(message);
-                        var psScriptMissingVersionError = new ErrorRecord(ex, "psScriptMissingVersion", ErrorCategory.ParserError, null);
-                        errorsList.Add(psScriptMissingVersionError);
-                        errors = errorsList.ToArray();
-                        successfullyParsed = false;
-                        return successfullyParsed;
-                    }
-
-                    if (!parsedPSScriptInfoHashtable.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["AUTHOR"]))
-                    {
-                        var message = String.Format("PSScript file is missing the required Author property");
-                        var ex = new ArgumentException(message);
-                        var psScriptMissingAuthorError = new ErrorRecord(ex, "psScriptMissingAuthor", ErrorCategory.ParserError, null);
-                        errorsList.Add(psScriptMissingAuthorError);
-                        errors = errorsList.ToArray();
-                        successfullyParsed = false;
-                        return successfullyParsed;
-                    }
-
-                    if (!parsedPSScriptInfoHashtable.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["GUID"]))
-                    {
-                        var message = String.Format("PSScript file is missing the required Guid property");
-                        var ex = new ArgumentException(message);
-                        var psScriptMissingGuidError = new ErrorRecord(ex, "psScriptMissingGuid", ErrorCategory.ParserError, null);
-                        errorsList.Add(psScriptMissingGuidError);
-                        errors = errorsList.ToArray();
-                        successfullyParsed = false;
-                        return successfullyParsed;
-                    }
-
-
-                    string parsedVersion = (string) parsedPSScriptInfoHashtable["VERSION"];
-                    string parsedAuthor = (string) parsedPSScriptInfoHashtable["AUTHOR"];
-                    Guid parsedGuid = new Guid((string) parsedPSScriptInfoHashtable["GUID"]);
-
-                    // if (String.IsNullOrEmpty(parsedVersion) || String.IsNullOrEmpty(parsedAuthor) || parsedGuid == Guid.Empty)
-                    // {
-                    //     var message = String.Format("PSScript file is missing one of the following required properties: Version, Author, Guid");
-                    //     var ex = new ArgumentException(message);
-                    //     var psScriptMissingRequiredPropertyError = new ErrorRecord(ex, "psScriptMissingRequiredProperty", ErrorCategory.ParserError, null);
-                    //     errorsList.Add(psScriptMissingRequiredPropertyError);
-                    //     errors = errorsList.ToArray();
-                    //     successfullyParsed = false;
-                    //     return successfullyParsed;
-                    // }
-
-                    try
-                    {
-                        char[] spaceDelimeter = new char[]{' '};
-                        string[] parsedTags = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["TAGS"]);
-                        string[] parsedExternalModuleDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["EXTERNALMODULEDEPENDENCIES"]);
-                        string[] parsedRequiredScripts = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["REQUIREDSCRIPTS"]);
-                        string[] parsedExternalScriptDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["EXTERNALSCRIPTDEPENDENCIES"]);
-                        string[] parsedReleaseNotes = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["RELEASENOTES"]);
-                        Uri parsedLicenseUri = null;
-                        Uri parsedProjectUri = null;
-                        Uri parsedIconUri = null;
-
-                        if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["LICENSEURI"]))
-                        {
-                            Uri.TryCreate((string) parsedPSScriptInfoHashtable["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri);
-                        }
-
-                        if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["PROJECTURI"]))
-                        {
-                            Uri.TryCreate((string) parsedPSScriptInfoHashtable["PROJECTURI"], UriKind.Absolute, out parsedProjectUri);
-                        }
-
-                        if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["ICONURI"]))
-                        {
-                            Uri.TryCreate((string) parsedPSScriptInfoHashtable["ICONURI"], UriKind.Absolute, out parsedProjectUri);
-                        }
-
-                        // parsedPSScriptInfoHashtable should contain all keys, but values may be empty (i.e empty array, String.empty)
-                        parsedScript = new PSScriptFileInfo(
-                            version: parsedVersion,
-                            guid: parsedGuid,
-                            author: parsedAuthor,
-                            companyName: (string) parsedPSScriptInfoHashtable["COMPANYNAME"],
-                            copyright: (string) parsedPSScriptInfoHashtable["COPYRIGHT"],
-                            tags: parsedTags,
-                            licenseUri: parsedLicenseUri,
-                            projectUri: parsedProjectUri,
-                            iconUri: parsedIconUri,
-                            requiredModules: parsedModules.ToArray(),
-                            externalModuleDependencies: parsedExternalModuleDependencies,
-                            requiredScripts: parsedRequiredScripts,
-                            externalScriptDependencies: parsedExternalScriptDependencies,
-                            releaseNotes: parsedReleaseNotes,
-                            privateData: (string) parsedPSScriptInfoHashtable["PRIVATEDATA"],
-                            description: scriptCommentInfo.Description);
-
-                        // TODO: get file contents and set member of PSScriptFileInfo instance
-                        // Or should I get end of file contents just right here?
-                        string[] totalFileContents = File.ReadAllLines(scriptFileInfoPath);
-                        var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
-                        var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
-                        if (contentAfterDescription.Count() > 0)
-                        {
-                            parsedScript.SetFileContents(contentAfterDescription.ToArray());
-                        }
-
-                    }
-                    catch (Exception e)
-                    {
-                        var message = String.Format("PSScriptFileInfo object could not be created from passed in file due to {0}", e.Message);
-                        var ex = new ArgumentException(message);
-                        var PSScriptFileInfoObjectNotCreatedFromFileError = new ErrorRecord(ex, "PSScriptFileInfoObjectNotCreatedFromFile", ErrorCategory.ParserError, null);
-                        errorsList.Add(PSScriptFileInfoObjectNotCreatedFromFileError);
-                        successfullyParsed = false;
                     }
                 }
-                else
-                {
-                    var message = String.Format(".ps1 file was parsed but AST was null");
-                    var ex = new ArgumentException(message);
-                    var astCouldNotBeCreatedError = new ErrorRecord(ex, "ASTCouldNotBeCreated", ErrorCategory.ParserError, null);
-                    errorsList.Add(astCouldNotBeCreatedError);
-                    return successfullyParsed; 
-                }
+
+                errors = errorsList.ToArray();
+                return successfullyParsed;
             }
+
+            if (ast == null)
+            {
+                var astNullMessage = String.Format(".ps1 file was parsed but AST was null");
+                var astNullEx = new ArgumentException(astNullMessage);
+                var astCouldNotBeCreatedError = new ErrorRecord(astNullEx, "ASTCouldNotBeCreated", ErrorCategory.ParserError, null);
+
+                errorsList.Add(astCouldNotBeCreatedError);
+                errors = errorsList.ToArray();
+                return successfullyParsed;
+            }
+
+            // Get the block/group comment beginning with <#PSScriptInfo
+            Hashtable parsedPSScriptInfoHashtable = new Hashtable();
+            List<Token> commentTokens = tokens.Where(a => String.Equals(a.Kind.ToString(), "Comment", StringComparison.OrdinalIgnoreCase)).ToList();
+            string commentPattern = "<#PSScriptInfo";
+            Regex rg = new Regex(commentPattern);
+            List<Token> psScriptInfoCommentTokens = commentTokens.Where(a => rg.IsMatch(a.Extent.Text)).ToList();
+
+            if (psScriptInfoCommentTokens.Count() == 0 || psScriptInfoCommentTokens[0] == null)
+            {
+                var message = String.Format("PSScriptInfo comment was missing or could not be parsed");
+                var ex = new ArgumentException(message);
+                var psCommentMissingError = new ErrorRecord(ex, "psScriptInfoCommentMissingError", ErrorCategory.ParserError, null);
+                errorsList.Add(psCommentMissingError);
+
+                errors = errorsList.ToArray();
+                return successfullyParsed;  
+            }
+
+            string[] commentLines = Regex.Split(psScriptInfoCommentTokens[0].Text, "[\r\n]");
+            string keyName = String.Empty;
+            string value = String.Empty;
+
+            /**
+            If comment line count is not more than two, it doesn't have the any metadata property
+            comment block would look like:
+
+            <#PSScriptInfo
+            #>
+            */
+
+            if (commentLines.Count() > 2)
+            {
+                // TODO: is it an error if the aforementioned metadata property is empty?
+                for (int i = 1; i < commentLines.Count(); i++)
+                {
+                    string line = commentLines[i];
+                    if (String.IsNullOrEmpty(line))
+                    {
+                        continue;
+                    }
+
+                    // A line is starting with . conveys a new metadata property
+                    if (line.Trim().StartsWith("."))
+                    {
+                        string[] parts = line.Trim().TrimStart('.').Split();
+                        keyName = parts[0];
+                        value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
+                        parsedPSScriptInfoHashtable.Add(keyName, value);
+                    }
+                }
+
+                successfullyParsed = true;
+            }
+
+            // get .DESCRIPTION comment
+            CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
+            if (scriptCommentInfo == null)
+            {
+                var message = String.Format("PSScript file is missing the required Description comment block in the script contents.");
+                var ex = new ArgumentException(message);
+                var psScriptMissingHelpContentCommentBlockError = new ErrorRecord(ex, "PSScriptMissingHelpContentCommentBlock", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptMissingHelpContentCommentBlockError);
+                errors = errorsList.ToArray();
+                successfullyParsed = false;
+                return successfullyParsed;
+            }
+
+            if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
+            {
+                parsedPSScriptInfoHashtable.Add("DESCRIPTION", scriptCommentInfo.Description);
+            }
+            else
+            {
+                var message = String.Format("PSScript is missing the required Description property or Description value contains '<#' or '#>' which is invalid");
+                var ex = new ArgumentException(message);
+                var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingOrInvalidDescription", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptMissingDescriptionOrInvalidPropertyError);
+                errors = errorsList.ToArray();
+                successfullyParsed = false;
+                return successfullyParsed;
+            }
+
+
+            // get RequiredModules
+            ScriptRequirements parsedScriptRequirements = ast.ScriptRequirements;
+            ReadOnlyCollection<ModuleSpecification> parsedModules = new List<ModuleSpecification>().AsReadOnly();
+
+            if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
+            {
+                parsedModules = parsedScriptRequirements.RequiredModules;
+                parsedPSScriptInfoHashtable.Add("RequiredModules", parsedModules);
+            }
+
+            // get all defined functions and populate DefinedCommands, DefinedFunctions, DefinedWorkflow
+            // DefinedWorkflow is no longer supported as of PowerShellCore 6+, but we ignore error
+            var parsedFunctionAst = ast.FindAll(a => a is FunctionDefinitionAst, true);
+            List<FunctionDefinitionAst> allCommands = new List<FunctionDefinitionAst>();
+            if (allCommands.Count() > 0)
+            {
+                foreach (var function in parsedFunctionAst)
+                {
+                    allCommands.Add((FunctionDefinitionAst) function);
+                }
+
+                List<string> allCommandNames = allCommands.Select(a => a.Name).Distinct().ToList();
+                parsedPSScriptInfoHashtable.Add("DefinedCommands", allCommandNames);
+
+                // b.Body.Extent.Text to get actual content. So "Function b.Name c.Body.Extent.Text" is that whole line
+                List<string> allFunctionNames = allCommands.Where(a => !a.IsWorkflow).Select(b => b.Name).Distinct().ToList();
+                parsedPSScriptInfoHashtable.Add("DefinedFunctions", allFunctionNames);
+
+                List<string> allWorkflowNames = allCommands.Where(a => a.IsWorkflow).Select(b => b.Name).Distinct().ToList();
+                parsedPSScriptInfoHashtable.Add("DefinedWorkflows", allWorkflowNames);
+            }
+
+            if (!parsedPSScriptInfoHashtable.ContainsKey("VERSION") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["VERSION"]))
+            {
+                var message = String.Format("PSScript file is missing the required Version property");
+                var ex = new ArgumentException(message);
+                var psScriptMissingVersionError = new ErrorRecord(ex, "psScriptMissingVersion", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptMissingVersionError);
+                errors = errorsList.ToArray();
+                successfullyParsed = false;
+                return successfullyParsed;
+            }
+
+            if (!parsedPSScriptInfoHashtable.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["AUTHOR"]))
+            {
+                var message = String.Format("PSScript file is missing the required Author property");
+                var ex = new ArgumentException(message);
+                var psScriptMissingAuthorError = new ErrorRecord(ex, "psScriptMissingAuthor", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptMissingAuthorError);
+                errors = errorsList.ToArray();
+                successfullyParsed = false;
+                return successfullyParsed;
+            }
+
+            if (!parsedPSScriptInfoHashtable.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["GUID"]))
+            {
+                var message = String.Format("PSScript file is missing the required Guid property");
+                var ex = new ArgumentException(message);
+                var psScriptMissingGuidError = new ErrorRecord(ex, "psScriptMissingGuid", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptMissingGuidError);
+                errors = errorsList.ToArray();
+                successfullyParsed = false;
+                return successfullyParsed;
+            }
+
+            string parsedVersion = (string) parsedPSScriptInfoHashtable["VERSION"];
+            string parsedAuthor = (string) parsedPSScriptInfoHashtable["AUTHOR"];
+            Guid parsedGuid = new Guid((string) parsedPSScriptInfoHashtable["GUID"]);
+
+
+            try
+            {
+                char[] spaceDelimeter = new char[]{' '};
+                string[] parsedTags = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["TAGS"]);
+                string[] parsedExternalModuleDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["EXTERNALMODULEDEPENDENCIES"]);
+                string[] parsedRequiredScripts = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["REQUIREDSCRIPTS"]);
+                string[] parsedExternalScriptDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["EXTERNALSCRIPTDEPENDENCIES"]);
+                string[] parsedReleaseNotes = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedPSScriptInfoHashtable["RELEASENOTES"]);
+                Uri parsedLicenseUri = null;
+                Uri parsedProjectUri = null;
+                Uri parsedIconUri = null;
+
+                if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["LICENSEURI"]))
+                {
+                    Uri.TryCreate((string) parsedPSScriptInfoHashtable["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri);
+                }
+
+                if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["PROJECTURI"]))
+                {
+                    Uri.TryCreate((string) parsedPSScriptInfoHashtable["PROJECTURI"], UriKind.Absolute, out parsedProjectUri);
+                }
+
+                if (!String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["ICONURI"]))
+                {
+                    Uri.TryCreate((string) parsedPSScriptInfoHashtable["ICONURI"], UriKind.Absolute, out parsedProjectUri);
+                }
+
+                // parsedPSScriptInfoHashtable should contain all keys, but values may be empty (i.e empty array, String.empty)
+                parsedScript = new PSScriptFileInfo(
+                    version: parsedVersion,
+                    guid: parsedGuid,
+                    author: parsedAuthor,
+                    companyName: (string) parsedPSScriptInfoHashtable["COMPANYNAME"],
+                    copyright: (string) parsedPSScriptInfoHashtable["COPYRIGHT"],
+                    tags: parsedTags,
+                    licenseUri: parsedLicenseUri,
+                    projectUri: parsedProjectUri,
+                    iconUri: parsedIconUri,
+                    requiredModules: parsedModules.ToArray(),
+                    externalModuleDependencies: parsedExternalModuleDependencies,
+                    requiredScripts: parsedRequiredScripts,
+                    externalScriptDependencies: parsedExternalScriptDependencies,
+                    releaseNotes: parsedReleaseNotes,
+                    privateData: (string) parsedPSScriptInfoHashtable["PRIVATEDATA"],
+                    description: scriptCommentInfo.Description);
+
+                // get file contents and set member of PSScriptFileInfo instance
+                string[] totalFileContents = File.ReadAllLines(scriptFileInfoPath);
+                var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
+                var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
+                if (contentAfterDescription.Count() > 0)
+                {
+                    parsedScript.SetFileContents(contentAfterDescription.ToArray());
+                }
+
+            }
+            catch (Exception e)
+            {
+                var message = String.Format("PSScriptFileInfo object could not be created from passed in file due to {0}", e.Message);
+                var ex = new ArgumentException(message);
+                var PSScriptFileInfoObjectNotCreatedFromFileError = new ErrorRecord(ex, "PSScriptFileInfoObjectNotCreatedFromFile", ErrorCategory.ParserError, null);
+                errorsList.Add(PSScriptFileInfoObjectNotCreatedFromFileError);
+                errors = errorsList.ToArray();
+                successfullyParsed = false;
+            }
+
 
             return successfullyParsed;
         }
@@ -529,7 +550,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Updates the contents of the .ps1 file at the provided path with the properties provided
         /// and writes new updated script file contents to a string and updates the original PSScriptFileInfo object
-        /// TODO: should this really be static? I think not, but also we create a new instance for the updated PSScriptFileInfo so as to not data loss
         /// </summary>        
         public static bool TryUpdateScriptFile(
             ref PSScriptFileInfo originalScript,
@@ -575,14 +595,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 if (!String.IsNullOrEmpty(version))
                 {
-                    if (!System.Version.TryParse(version, out Version updatedVersion))
+                    if (!NuGetVersion.TryParse(version, out NuGetVersion updatedVersion))
                     {
-                        updatedScript.Version = new Version("2.0.0.0");
+                        var message = String.Format("Version provided for update could not be parsed successfully into NuGetVersion");
+                        var ex = new ArgumentException(message);
+                        var versionParseIntoNuGetVersionError = new ErrorRecord(ex, "VersionParseIntoNuGetVersion", ErrorCategory.ParserError, null);
+                        errorsList.Add(versionParseIntoNuGetVersionError);  
+                        errors = errorsList.ToArray();
+                        return successfullyUpdated;
                     }
-                    else
-                    {
-                        updatedScript.Version = updatedVersion;
-                    }
+                    updatedScript.Version = updatedVersion;
                 }
 
                 if (guid != Guid.Empty)
@@ -675,7 +697,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return successfullyUpdated;
             }
 
-            // TODO: get end of file contents here
             if (updatedScript.GetFileContents() != null && updatedScript.GetFileContents().Length > 0)
             {
                 psScriptFileContents += "\n" + String.Join("\n", updatedScript.GetFileContents());
@@ -804,6 +825,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 Feature 3
                 Feature 4
                 Feature 5
+                .PRIVATEDATA
                 #>
             */
 
@@ -832,6 +854,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psScriptInfoLines.Add(String.Format(".REQUIREDSCRIPTS {0}", String.Join(" ", RequiredScripts)));
             psScriptInfoLines.Add(String.Format(".EXTERNALSCRIPTDEPENDENCIES {0}", String.Join(" ", ExternalScriptDependencies)));
             psScriptInfoLines.Add(String.Format(".RELEASENOTES\n{0}", String.Join("\n", ReleaseNotes)));
+            psScriptInfoLines.Add(String.Format(".PRIVATEDATA\n{0}", PrivateData));
             psScriptInfoLines.Add("#>");
 
             pSScriptInfoString = String.Join("\n\n", psScriptInfoLines);
@@ -944,52 +967,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
             }
 
-            // TODO: add newline before #> or will that just inflate it with newlines each round?
             psHelpInfoLines.Add("#>");
             psHelpInfo = String.Join("\n", psHelpInfoLines);
             return psHelpInfoSuccessfullyCreated;
-        }
-
-
-        // public void GetEndOfFileLinesContent2(
-        //     string totalFileContents2,
-        //     out string endOfFileContent)
-        // {
-        //     // if (String.IsNullOrEmpty(filePath) || !filePath.EndsWith(".ps1"))
-        //     // {
-        //     //     return;
-        //     // }
-
-        //     // string[] totalFileContents = File.ReadAllLines(filePath);
-        //     // var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
-
-        //     // var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
-
-        //     // if (contentAfterDescription.Count() > 0)
-        //     // {
-        //     //     endOfFileContent = String.Join("\n", contentAfterDescription);
-        //     // }
-        // }
-        public void GetEndOfFileLinesContent(
-            string filePath,
-            out string endOfFileContent)
-        {
-            endOfFileContent = String.Empty;
-
-            // if (String.IsNullOrEmpty(filePath) || !filePath.EndsWith(".ps1"))
-            // {
-            //     return;
-            // }
-
-            // string[] totalFileContents = File.ReadAllLines(filePath);
-            // var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
-
-            // var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
-
-            // if (contentAfterDescription.Count() > 0)
-            // {
-            //     endOfFileContent = String.Join("\n", contentAfterDescription);
-            // }
         }
 
         /// <summary>

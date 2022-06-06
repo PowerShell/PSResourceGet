@@ -26,15 +26,10 @@ Describe "Test New-PSScriptFileInfo" {
         Get-RemoveTestDirs($tmpDirPaths)
     }
 
-    It "determine script file with minimal required fields as valid" {
-        $pathTestRes = Test-Path $tmpDir1Path
-        $pathTestRes | Should -Be $true
-        Write-Host $pathTestRes        
-        $basicScriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "basicTestScript.ps1"
-        Write-Host $basicScriptFilePath
+    It "determine script file with minimal required fields as valid" {    
+        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "basicTestScript.ps1"
         $scriptDescription = "this is a test script"
-        $res = New-PSScriptFileInfo -FilePath $basicScriptFilePath -Description $scriptDescription -PassThru
-        Write-Host $res
+        New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription
         Test-PSScriptFileInfo $basicScriptFilePath | Should -Be $true
     }
 

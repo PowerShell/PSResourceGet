@@ -198,7 +198,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
-            // TODO: must resolve relative paths before checking if path exists
             if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                     var exMessage = "File path needs to end with a .ps1 extension. Example: C:/Users/john/x/MyScript.ps1";
@@ -324,7 +323,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (PassThru)
                     {
-                        WriteObject(parsedScriptFileInfo);
+                        WriteObject(updatedPSScriptFileContents);
                     }
                 }
             }         

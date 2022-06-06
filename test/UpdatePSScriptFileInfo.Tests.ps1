@@ -18,6 +18,20 @@ Describe "Test New-PSScriptFileInfo" {
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
     }
 
+    BeforeEach {
+        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
+        $scriptDescription = "this is a test script"
+        New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -PassThru
+    }
+
+    AfterEach {
+        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
+        if (Test-Path -Path $scriptFilePath)
+        {
+            Remove-Item $scriptFilePath
+        }
+    }
+
     AfterAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
@@ -26,55 +40,108 @@ Describe "Test New-PSScriptFileInfo" {
         Get-RemoveTestDirs($tmpDirPaths)
     }
 
-    It "determine script file with minimal required fields as valid" {
-        $pathTestRes = Test-Path $tmpDir1Path
-        $pathTestRes | Should -Be $true
-        Write-Host $pathTestRes        
-        $basicScriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "basicTestScript.ps1"
-        Write-Host $basicScriptFilePath
-        $scriptDescription = "this is a test script"
-        $res = New-PSScriptFileInfo -FilePath $basicScriptFilePath -Description $scriptDescription -PassThru
-        Write-Host $res
-        Test-PSScriptFileInfo $basicScriptFilePath | Should -Be $true
+    It "update script file Author property" {    
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Author "JohnDoe"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
-    It "not determine script file with Author field missing as valid" {
-        $scriptName = "InvalidScriptMissingAuthor.ps1"
-        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
-
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (psScriptMissingAuthor)
+    It "update script file Version property" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Version "2.0.0.0"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
-    It "not determine script file with Description field missing as valid" {
-        $scriptName = "InvalidScriptMissingDescription.ps1"
-        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
-
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (psScriptMissingDescription)
+    It "update script file Version property with prerelease version" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Version "3.0.0-alpha"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
-    It "not determine script that is missing Description block altogether as valid" {
-        $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
-        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
-
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (PSScriptMissingHelpContentCommentBlock)
+    It "not update script file with invalid version" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Version "4.0.0.0.0" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "VersionParseIntoNuGetVersion,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSScriptFileInfo"
     }
 
-    It "not determine script file Guid as valid" {
-        $scriptName = "InvalidScriptMissingGuid.ps1"
-        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
-
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (psScriptMissingGuid)
+    It "update script file Description property" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Description "this is an updated test script"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
-    It "not determine script file missing Version as valid" {
-        $scriptName = "InvalidScriptMissingVersion.ps1"
-        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
-
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (psScriptMissingVersion)
+    It "update script file Guid property" {
+        $testGuid = [Guid]::NewGuid();
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Guid $testGuid
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
+
+    It "update script file CompanyName property" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -CompanyName "Microsoft Corporation"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file Copyright property" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Copyright "(c) 2022 Microsoft Corporation. All rights reserved"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file ExternalModuleDependencies property" {
+        $testExternalModuleDependencies = @("PowerShellGet", "PackageManagement")
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -ExternalModuleDependencies $testExternalModuleDependencies
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file ExternalScriptDependencies property" {
+        $testExternalScriptDependencies = @("Required-Script1", "Required-Script2")
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -ExternalScriptDependencies $testExternalScriptDependencies
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file IconUri property" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -IconUri "https://testscript.com/icon"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file LicenseUri property" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -LicenseUri "https://testscript.com/license"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file ProjectUri property" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -ProjectUri "https://testscript.com/"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file PrivateData property" {
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -PrivateData "this is some private data"
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file ReleaseNotes property" {
+        $testReleaseNotes = @("release 3.0.12 includes bug fixes", "release 3.0.13 includes feature requests")
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -ReleaseNotes $testReleaseNotes
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file RequiredModules property" {
+        $hashtable1 = @{ModuleName = "RequiredModule1"}
+        $hashtable2 = @{ModuleName = "RequiredModule2"; ModuleVersion = "1.0.0.0"}
+        $hashtable3 = @{ModuleName = "RequiredModule3"; RequiredVersion = "2.5.0.0"}
+        $hashtable4 = @{ModuleName = "RequiredModule4"; ModuleVersion = "1.1.0.0"; MaximumVersion = "2.0.0.0"}
+        $testRequiredModules = $hashtable1, $hashtable2, $hashtable3, $hashtable4 
+
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -RequiredModules $testRequiredModules
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file RequiredScripts property" {
+        $testRequiredScripts = @("Required-Script1", "Required-Script2")
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -RequiredScripts $testRequiredScripts
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "update script file Tags property" {
+        $testTags = @("Tag1", "Tag2")
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Tags $testTags
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    # Validate param needs to be tested
 }
