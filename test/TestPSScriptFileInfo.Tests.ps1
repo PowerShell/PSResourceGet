@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test New-PSScriptFileInfo" {
+Describe "Test Test-PSScriptFileInfo" {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
@@ -27,10 +27,10 @@ Describe "Test New-PSScriptFileInfo" {
     }
 
     It "determine script file with minimal required fields as valid" {    
-        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "basicTestScript.ps1"
+        $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
         New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription
-        Test-PSScriptFileInfo $basicScriptFilePath | Should -Be $true
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
     It "not determine script file with Author field missing as valid" {
