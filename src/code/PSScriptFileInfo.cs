@@ -17,12 +17,14 @@ using NuGet.Versioning;
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     /// <summary>
-    /// This class contains information for a repository item.
+    /// This class contains information for a PSScriptFileInfo (representing a .ps1 file contents)
     /// </summary>
     public sealed class PSScriptFileInfo
     {        
         #region Members
+
         private string[] fileContents = new string[]{};
+
         #endregion
 
         #region Properties
@@ -76,8 +78,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// The list of modules required by the script
         /// Hashtable keys: GUID, MaxVersion, ModuleName (Required), RequiredVersion, Version
         /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty()]
         public ModuleSpecification[] RequiredModules { get; set; } = new ModuleSpecification[]{};
 
         /// <summary>
@@ -103,83 +103,62 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// The private data associated with the script
         /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty()]
         public string PrivateData { get; set; }
 
         /// <summary>
         /// The description of the script
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string Description { get; set; }
 
         /// <summary>
         /// The synopsis of the script
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string Synopsis { get; set; }
 
         /// <summary>
         /// The example(s) relating to the script's usage
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string[] Example { get; set; } = new string[]{};
 
         /// <summary>
         /// The inputs to the script
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string[] Inputs { get; set; } = new string[]{};
 
         /// <summary>
         /// The outputs to the script
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string[] Outputs { get; set; } = new string[]{};
 
         /// <summary>
         /// The notes for the script
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string[] Notes { get; set; } = new string[]{};
 
         /// <summary>
         /// The links for the script
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string[] Links { get; set; } = new string[]{};
 
         /// <summary>
         /// TODO: what is this?
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string[] Component { get; set; } = new string[]{};
 
         /// <summary>
         /// TODO: what is this?
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string[] Role { get; set; } = new string[]{};
 
         /// <summary>
         /// TODO: what is this?
         /// </summary>
-        [Parameter(Mandatory = true)]
-        [ValidateNotNullOrEmpty()]
         public string[] Functionality { get; set; } = new string[]{};
 
         #endregion
 
         #region Constructor
+
         private PSScriptFileInfo() {}
         public PSScriptFileInfo(
             string version,
@@ -243,21 +222,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
         
-        #region Public Static Methods
+        #region Internal Static Methods
 
         /// <summary>
         /// Tests the contents of the .ps1 file at the provided path
         /// </summary>
-        public static bool TryParseScriptFile(
+        internal static bool TryParseScriptFile(
             string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
             out ErrorRecord[] errors)
         {
-            parsedScript = null;
-            errors = new ErrorRecord[]{};
-            List<ErrorRecord> errorsList = new List<ErrorRecord>();
-            bool successfullyParsed = false;
-
             // a valid example script will have this format:
             /* <#PSScriptInfo
                 .VERSION 1.6
@@ -281,12 +255,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 #>
             */
 
+            parsedScript = null;
+            errors = new ErrorRecord[]{};
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+
             if (!scriptFileInfoPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 var message = String.Format("File passed in: {0} does not have a .ps1 extension as required", scriptFileInfoPath);
                 var ex = new ArgumentException(message);
                 var psScriptFileParseError = new ErrorRecord(ex, "ps1FileRequiredError", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptFileParseError);
+                errors = errorsList.ToArray();
+                return false;
             }
 
             // Parse the script file
@@ -294,34 +274,39 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 scriptFileInfoPath,
                 out Token[] tokens,
                 out ParseError[] parserErrors);
-
+            
             if (parserErrors.Length > 0)
             {
+                bool parseSuccessful = true;
                 foreach (ParseError err in parserErrors)
                 {
                     // we ignore WorkFlowNotSupportedInPowerShellCore errors, as this is common in scripts currently on PSGallery
                     if (!String.Equals(err.ErrorId, "WorkflowNotSupportedInPowerShellCore", StringComparison.OrdinalIgnoreCase))
                     {
                         var message = String.Format("Could not parse '{0}' as a PowerShell script file due to {1}.", scriptFileInfoPath, err.Message);
-                        var ex = new ArgumentException(message);
+                        var ex = new InvalidOperationException(message);
                         var psScriptFileParseError = new ErrorRecord(ex, err.ErrorId, ErrorCategory.ParserError, null);
                         errorsList.Add(psScriptFileParseError);
+                        parseSuccessful = false;
                     }
                 }
 
-                errors = errorsList.ToArray();
-                return successfullyParsed;
+                if (!parseSuccessful)
+                {
+                    errors = errorsList.ToArray();
+                    return parseSuccessful;
+                }
             }
 
             if (ast == null)
             {
-                var astNullMessage = String.Format(".ps1 file was parsed but AST was null");
-                var astNullEx = new ArgumentException(astNullMessage);
-                var astCouldNotBeCreatedError = new ErrorRecord(astNullEx, "ASTCouldNotBeCreated", ErrorCategory.ParserError, null);
+                var astNullInnerEx = new ParseException("Parsed AST was null for .ps1 file");
+                var parseFileEx = new InvalidOperationException("Cannot parse .ps1 file", astNullInnerEx); //TODO: nest this formatting wise with named args
+                var astCouldNotBeCreatedError = new ErrorRecord(parseFileEx, "ASTCouldNotBeCreated", ErrorCategory.ParserError, null);
 
                 errorsList.Add(astCouldNotBeCreatedError);
                 errors = errorsList.ToArray();
-                return successfullyParsed;
+                return false;
             }
 
             // Get the block/group comment beginning with <#PSScriptInfo
