@@ -324,7 +324,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 errorsList.Add(psCommentMissingError);
 
                 errors = errorsList.ToArray();
-                return successfullyParsed;  
+                return false;  
             }
 
             string[] commentLines = Regex.Split(psScriptInfoCommentTokens[0].Text, "[\r\n]");
@@ -359,8 +359,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         parsedPSScriptInfoHashtable.Add(keyName, value);
                     }
                 }
-
-                successfullyParsed = true;
             }
 
             // get .DESCRIPTION comment
@@ -372,8 +370,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var psScriptMissingHelpContentCommentBlockError = new ErrorRecord(ex, "PSScriptMissingHelpContentCommentBlock", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptMissingHelpContentCommentBlockError);
                 errors = errorsList.ToArray();
-                successfullyParsed = false;
-                return successfullyParsed;
+                return false;
             }
 
             if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
@@ -387,8 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "psScriptDescriptionMissingOrInvalidDescription", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptMissingDescriptionOrInvalidPropertyError);
                 errors = errorsList.ToArray();
-                successfullyParsed = false;
-                return successfullyParsed;
+                return false;
             }
 
 
@@ -431,8 +427,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var psScriptMissingVersionError = new ErrorRecord(ex, "psScriptMissingVersion", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptMissingVersionError);
                 errors = errorsList.ToArray();
-                successfullyParsed = false;
-                return successfullyParsed;
+                return false;
             }
 
             if (!parsedPSScriptInfoHashtable.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["AUTHOR"]))
@@ -442,8 +437,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var psScriptMissingAuthorError = new ErrorRecord(ex, "psScriptMissingAuthor", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptMissingAuthorError);
                 errors = errorsList.ToArray();
-                successfullyParsed = false;
-                return successfullyParsed;
+                return false;;
             }
 
             if (!parsedPSScriptInfoHashtable.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedPSScriptInfoHashtable["GUID"]))
@@ -453,8 +447,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var psScriptMissingGuidError = new ErrorRecord(ex, "psScriptMissingGuid", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptMissingGuidError);
                 errors = errorsList.ToArray();
-                successfullyParsed = false;
-                return successfullyParsed;
+                return false;
             }
 
             string parsedVersion = (string) parsedPSScriptInfoHashtable["VERSION"];
@@ -525,11 +518,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var PSScriptFileInfoObjectNotCreatedFromFileError = new ErrorRecord(ex, "PSScriptFileInfoObjectNotCreatedFromFile", ErrorCategory.ParserError, null);
                 errorsList.Add(PSScriptFileInfoObjectNotCreatedFromFileError);
                 errors = errorsList.ToArray();
-                successfullyParsed = false;
+                return false;
             }
 
 
-            return successfullyParsed;
+            return true;
         }
 
         /// <summary>
