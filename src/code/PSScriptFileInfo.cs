@@ -536,7 +536,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 string[] parsedRequiredScripts = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["REQUIREDSCRIPTS"]);
                 string[] parsedExternalScriptDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["EXTERNALSCRIPTDEPENDENCIES"]);
                 string[] parsedReleaseNotes = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["RELEASENOTES"]);
-                ReadOnlyCollection<ModuleSpecification> parsedModules = (ReadOnlyCollection<ModuleSpecification>) parsedScriptMetadata["REQUIREDMODULES"]; // TODO: does this work?
+
+                ReadOnlyCollection<ModuleSpecification> parsedModules = parsedScriptMetadata["REQUIREDMODULES"] == null ? new ReadOnlyCollection<ModuleSpecification>(new List<ModuleSpecification>()) : (ReadOnlyCollection<ModuleSpecification>) parsedScriptMetadata["REQUIREDMODULES"]; // TODO: does this work?
+                ModuleSpecification[] parsedModulesArray = parsedModules.Count == 0 ? new ModuleSpecification[]{} : parsedModules.ToArray();
+
                 Uri parsedLicenseUri = null;
                 Uri parsedProjectUri = null;
                 Uri parsedIconUri = null;
@@ -576,7 +579,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     licenseUri: parsedLicenseUri,
                     projectUri: parsedProjectUri,
                     iconUri: parsedIconUri,
-                    requiredModules: parsedModules.ToArray(),
+                    requiredModules: parsedModulesArray,
                     externalModuleDependencies: parsedExternalModuleDependencies,
                     requiredScripts: parsedRequiredScripts,
                     externalScriptDependencies: parsedExternalScriptDependencies,

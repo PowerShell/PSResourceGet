@@ -65,10 +65,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(FileDoesNotExistError);
             }
 
-            bool isValidScript = PSScriptFileInfo.TryParseScriptFile(
+            // bool isValidScript = PSScriptFileInfo.TryParseScriptFile(
+            //     scriptFileInfoPath: resolvedFilePath,
+            //     parsedScript: out PSScriptFileInfo parsedScriptInfo,
+            //     errors: out ErrorRecord[] errors);
+
+            bool isValidScript = PSScriptFileInfo.TryParseScriptIntoPSScriptInfo(
                 scriptFileInfoPath: resolvedFilePath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
-                errors: out ErrorRecord[] errors);
+                errors: out ErrorRecord[] errors,
+                out string[] verboseMsgs);               
 
             if (!isValidScript)
             {
@@ -76,6 +82,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     WriteWarning("The .ps1 script file passed in was not valid due to: " + error.Exception.Message);
                 }
+            }
+
+            foreach (string msg in verboseMsgs)
+            {
+                WriteVerbose(msg);
             }
 
             WriteObject(isValidScript);      
