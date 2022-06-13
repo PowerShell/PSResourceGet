@@ -65,11 +65,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(FileDoesNotExistError);
             }
 
-            // bool isValidScript = PSScriptFileInfo.TryParseScriptFile(
-            //     scriptFileInfoPath: resolvedFilePath,
-            //     parsedScript: out PSScriptFileInfo parsedScriptInfo,
-            //     errors: out ErrorRecord[] errors);
-
             bool isValidScript = PSScriptFileInfo.TryParseScriptIntoPSScriptInfo(
                 scriptFileInfoPath: resolvedFilePath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,

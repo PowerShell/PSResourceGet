@@ -241,24 +241,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            // get PSScriptFileInfo object for current script contents
-            if (!PSScriptFileInfo.TryParseScriptFile(
+            if (!PSScriptFileInfo.TryParseScriptIntoPSScriptInfo(
                 scriptFileInfoPath: resolvedFilePath,
-                out PSScriptFileInfo parsedScriptFileInfo,
-                out ErrorRecord[] errors))
+                parsedScript: out PSScriptFileInfo parsedScriptInfo,
+                errors: out ErrorRecord[] errors,
+                out string[] verboseMsgs))
             {
+                foreach (string msg in verboseMsgs)
+                {
+                    WriteVerbose(msg);
+                }
+
                 WriteWarning("The .ps1 script file passed in was not valid due to the following error(s) listed below");
                 foreach (ErrorRecord error in errors)
                 {
                     WriteError(error);
                 }
 
-                return; // TODO: should this be a terminating error instead?
+                return; 
             }
             else
             {
                 if (!PSScriptFileInfo.TryUpdateScriptFile(
-                    originalScript: ref parsedScriptFileInfo,
+                    originalScript: ref parsedScriptInfo,
                     updatedPSScriptFileContents: out string updatedPSScriptFileContents,
                     // filePath: resolvedFilePath,
                     errors: out ErrorRecord[] updateErrors,
@@ -305,11 +310,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // perhaps remove Validate, look in V2
                     if (Validate)
                     {
-                        if (!PSScriptFileInfo.TryParseScriptFile(
+                        if (!PSScriptFileInfo.TryParseScriptIntoPSScriptInfo(
                             scriptFileInfoPath: tempScriptFilePath,
-                            out parsedScriptFileInfo,
-                            out ErrorRecord[] testErrors))
+                            out parsedScriptInfo,
+                            out ErrorRecord[] testErrors,
+                            out string[] verboseValidationMsgs))
                         {
+                            foreach (string validationMsg in verboseValidationMsgs)
+                            {
+                                WriteVerbose(validationMsg);
+                            }
+
                             WriteWarning("Validating the updated script file failed due to the following error(s):");
                             foreach (ErrorRecord error in testErrors)
                             {
