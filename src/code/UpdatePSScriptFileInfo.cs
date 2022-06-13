@@ -301,6 +301,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         fs.Write(info, 0, info.Length);
                     }
 
+                    // TODO: update should do validation when it updates
+                    // perhaps remove Validate, look in V2
                     if (Validate)
                     {
                         if (!PSScriptFileInfo.TryParseScriptFile(
