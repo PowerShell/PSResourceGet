@@ -620,7 +620,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Updates the contents of the .ps1 file at the provided path with the properties provided
         /// and writes new updated script file contents to a string and updates the original PSScriptFileInfo object
         /// </summary>        
-        public static bool TryUpdateScriptFile(
+        internal static bool TryUpdateScriptFile(
             ref PSScriptFileInfo originalScript,
             out string updatedPSScriptFileContents,
             out ErrorRecord[] errors,
