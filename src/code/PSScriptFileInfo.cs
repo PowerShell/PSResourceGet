@@ -111,6 +111,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Description { get; set; }
 
         /// <summary>
+        /// End of file contents for the .ps1 file
+        /// </summary>
+        public string[] EndOfFileContents { get; set; } = new string[]{};        
+
+        /// <summary>
         /// The synopsis of the script
         /// </summary>
         public string Synopsis { get; set; }
@@ -176,7 +181,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string[] externalScriptDependencies,
             string[] releaseNotes,
             string privateData,
-            string description
+            string description,
+            string[] endOfFileContents
         )
         {
             if (String.IsNullOrEmpty(author))
@@ -200,25 +206,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             ReleaseNotes = releaseNotes ?? Utils.EmptyStrArray;
             PrivateData = privateData;
             Description = description;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public string[] GetFileContents()
-        {
-            if (fileContents == null || fileContents.Length == 0)
-            {
-                fileContents = Utils.EmptyStrArray;
-            }
-
-            return fileContents;
-        }
-
-        public void SetFileContents(string[] fileUpdatedContents)
-        {
-            fileContents = fileUpdatedContents;
+            EndOfFileContents = endOfFileContents;
         }
 
         #endregion
@@ -328,7 +316,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string commentPattern = "<#PSScriptInfo";
             Regex rg = new Regex(commentPattern);
 
-            Token psScriptInfoCommentToken = commentTokens.Where(a => rg.IsMatch(a.Extent.Text)).First();
+            Token psScriptInfoCommentToken = commentTokens.Where(a => rg.IsMatch(a.Extent.Text)).FirstOrDefault();
             if (psScriptInfoCommentToken == null)
             {
                 var message = String.Format("PSScriptInfo comment was missing or could not be parsed");
@@ -340,7 +328,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;  
             }
 
-            // TODO: discuss with Paul, psScriptInfoCommentToken.text looks like this, why match to beginning of line?
+            // TODO: add ^
             // that would get each line that matches <#PSScriptInfo at the start, which is only line 1
             /**
             <#PSScriptInfo
@@ -388,6 +376,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             <#PSScriptInfo
             #>
+
             */
 
             if (commentLines.Count() <= 2)
@@ -437,6 +426,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             out ErrorRecord[] errors
         )
         {
+            // TODO: retuan all errors at once, wait til end
+
             // required properties for script file (.ps1 file) are: Author, Version, Guid, Description
             // Description gets validated in TryParseScript() when getting the property
             // TODO: I think hashtable keys should be lower cased
@@ -536,9 +527,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 string parsedVersion = (string) parsedScriptMetadata["VERSION"];
                 string parsedAuthor = (string) parsedScriptMetadata["AUTHOR"];
                 string parsedDescription = (string) parsedScriptMetadata["DESCRIPTION"];
-                string parsedCompanyName = (string) parsedScriptMetadata["COMPANYNAME"];
-                string parsedCopyright = (string) parsedScriptMetadata["COPYRIGHT"];
-                string parsedPrivateData = (string) parsedScriptMetadata["PRIVATEDATA"]; // TODO: fix PrivateData bug? or already fixed?
+
+
+                string parsedCompanyName = (string) parsedScriptMetadata["COMPANYNAME"] ?? String.Empty;
+                string parsedCopyright = (string) parsedScriptMetadata["COPYRIGHT"] ?? String.Empty;
+                string parsedPrivateData = (string) parsedScriptMetadata["PRIVATEDATA"] ?? String.Empty; // TODO: fix PrivateData bug? or already fixed?
 
                 string[] parsedTags = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["TAGS"]);
                 string[] parsedExternalModuleDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["EXTERNALMODULEDEPENDENCIES"]);
@@ -546,36 +539,37 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 string[] parsedExternalScriptDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["EXTERNALSCRIPTDEPENDENCIES"]);
                 string[] parsedReleaseNotes = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["RELEASENOTES"]);
 
-                ReadOnlyCollection<ModuleSpecification> parsedModules = parsedScriptMetadata["REQUIREDMODULES"] == null ? new ReadOnlyCollection<ModuleSpecification>(new List<ModuleSpecification>()) : (ReadOnlyCollection<ModuleSpecification>) parsedScriptMetadata["REQUIREDMODULES"]; // TODO: does this work?
+                ReadOnlyCollection<ModuleSpecification> parsedModules = (ReadOnlyCollection<ModuleSpecification>) parsedScriptMetadata["REQUIREDMODULES"] ??
+                    new ReadOnlyCollection<ModuleSpecification>(new List<ModuleSpecification>());
+
                 ModuleSpecification[] parsedModulesArray = parsedModules.Count() == 0 ? new ModuleSpecification[]{} : parsedModules.ToArray();
 
                 Uri parsedLicenseUri = null;
+                if (!String.IsNullOrEmpty((string) parsedScriptMetadata["LICENSEURI"]))
+                {
+                    if (!Uri.TryCreate((string) parsedScriptMetadata["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri))
+                    {
+                        verboseMsgsList.Add("LicenseUri property could not be created as a Uri");   
+                    }
+                }
+
                 Uri parsedProjectUri = null;
+                if (!String.IsNullOrEmpty((string) parsedScriptMetadata["PROJECTURI"]))
+                {
+                    if (!Uri.TryCreate((string) parsedScriptMetadata["PROJECTURI"], UriKind.Absolute, out parsedProjectUri))
+                    {
+                        verboseMsgsList.Add("ProjectUri property could not be created as Uri");
+                    }
+                }
+
                 Uri parsedIconUri = null;
-
-            if (!String.IsNullOrEmpty((string) parsedScriptMetadata["LICENSEURI"]))
-            {
-                if (!Uri.TryCreate((string) parsedScriptMetadata["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri))
+                if (!String.IsNullOrEmpty((string) parsedScriptMetadata["ICONURI"]))
                 {
-                    verboseMsgsList.Add("LicenseUri property with value: '{0}' could not be created as a Uri");   
+                    if (!Uri.TryCreate((string) parsedScriptMetadata["ICONURI"], UriKind.Absolute, out parsedIconUri))
+                    {
+                        verboseMsgsList.Add("IconUri property could not be created as Uri");
+                    }
                 }
-            }
-
-            if (!String.IsNullOrEmpty((string) parsedScriptMetadata["PROJECTURI"]))
-            {
-                if (!Uri.TryCreate((string) parsedScriptMetadata["PROJECTURI"], UriKind.Absolute, out parsedProjectUri))
-                {
-                    verboseMsgsList.Add("ProjectUri property with value: '{1} could not be created as Uri");
-                }
-            }
-
-            if (!String.IsNullOrEmpty((string) parsedScriptMetadata["ICONURI"]))
-            {
-                if (!Uri.TryCreate((string) parsedScriptMetadata["ICONURI"], UriKind.Absolute, out parsedIconUri))
-                {
-                    verboseMsgsList.Add("ProjectUri property with value: '{1} could not be created as Uri");
-                }
-            }
 
                 // parsedScriptMetadata should contain all keys, but values may be empty (i.e empty array, String.empty)
                 parsedScript = new PSScriptFileInfo(
@@ -594,14 +588,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     externalScriptDependencies: parsedExternalScriptDependencies,
                     releaseNotes: parsedReleaseNotes,
                     privateData: parsedPrivateData,
-                    description: parsedDescription);
-
-                // get file contents and set member of PSScriptFileInfo instance
-                if (endofFileContents != null && endofFileContents.Length > 0)
-                {
-                    parsedScript.SetFileContents(endofFileContents);
-                }
-
+                    description: parsedDescription,
+                    endOfFileContents: endofFileContents);
             }
             catch (Exception e)
             {
@@ -620,8 +608,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Updates the contents of the .ps1 file at the provided path with the properties provided
         /// and writes new updated script file contents to a string and updates the original PSScriptFileInfo object
         /// </summary>        
-        internal static bool TryUpdateScriptFile(
-            ref PSScriptFileInfo originalScript,
+        internal static bool TryUpdateScriptFileContents(
+            PSScriptFileInfo scriptInfo,
             out string updatedPSScriptFileContents,
             out ErrorRecord[] errors,
             string version,
@@ -641,137 +629,114 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string privateData,
             string description)
         {
-            bool successfullyUpdated = false;
             updatedPSScriptFileContents = String.Empty;
             errors = new ErrorRecord[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
-            if (originalScript == null)
+            if (scriptInfo == null)
             {
-                var message = String.Format("PSScriptFileInfo object to update is null.");
-                var ex = new ArgumentException(message);
-                var nullPSScriptFileInfoObjectToUpdateError = new ErrorRecord(ex, "NullPSScriptFileInfoObjectToUpdate", ErrorCategory.ParserError, null);
-                errorsList.Add(nullPSScriptFileInfoObjectToUpdateError);  
-                errors = errorsList.ToArray();
-                return successfullyUpdated;
+                throw new ArgumentNullException(nameof(scriptInfo));
             }
-
-            PSScriptFileInfo updatedScript = originalScript;
             
             // create new PSScriptFileInfo with updated fields
-            try
+            if (!String.IsNullOrEmpty(version))
             {
-                if (!String.IsNullOrEmpty(version))
+                if (!NuGetVersion.TryParse(version, out NuGetVersion updatedVersion))
                 {
-                    if (!NuGetVersion.TryParse(version, out NuGetVersion updatedVersion))
-                    {
-                        var message = String.Format("Version provided for update could not be parsed successfully into NuGetVersion");
-                        var ex = new ArgumentException(message);
-                        var versionParseIntoNuGetVersionError = new ErrorRecord(ex, "VersionParseIntoNuGetVersion", ErrorCategory.ParserError, null);
-                        errorsList.Add(versionParseIntoNuGetVersionError);  
-                        errors = errorsList.ToArray();
-                        return successfullyUpdated;
-                    }
-                    updatedScript.Version = updatedVersion;
+                    var message = String.Format("Version provided for update could not be parsed successfully into NuGetVersion");
+                    var ex = new ArgumentException(message);
+                    var versionParseIntoNuGetVersionError = new ErrorRecord(ex, "VersionParseIntoNuGetVersion", ErrorCategory.ParserError, null);
+                    errorsList.Add(versionParseIntoNuGetVersionError);  
+                    errors = errorsList.ToArray();
+                    return false;
                 }
-
-                if (guid != Guid.Empty)
-                {
-                    updatedScript.Guid = guid;
-                }
-
-                if (!String.IsNullOrEmpty(author))
-                {
-                    updatedScript.Author = author;
-                }
-
-                if (!String.IsNullOrEmpty(companyName)){
-                    updatedScript.CompanyName = companyName;
-                }
-
-                if (!String.IsNullOrEmpty(copyright)){
-                    updatedScript.Copyright = copyright;
-                }
-
-                if (tags != null && tags.Length != 0){
-                    updatedScript.Tags = tags;
-                }
-
-                if (licenseUri != null && !licenseUri.Equals(default(Uri))){
-                    updatedScript.LicenseUri = licenseUri;
-                }
-
-                if (projectUri != null && !projectUri.Equals(default(Uri))){
-                    updatedScript.ProjectUri = projectUri;
-                }
-
-                if (iconUri != null && !iconUri.Equals(default(Uri))){
-                    updatedScript.IconUri = iconUri;
-                }
-
-                if (requiredModules != null && requiredModules.Length != 0){
-                    updatedScript.RequiredModules = requiredModules;
-                }
-
-                if (externalModuleDependencies != null && externalModuleDependencies.Length != 0){
-                    updatedScript.ExternalModuleDependencies = externalModuleDependencies;                
-                }
-
-                if (requiredScripts != null && requiredScripts.Length != 0)
-                {
-                    updatedScript.RequiredScripts = requiredScripts;
-                }
-
-                if (externalScriptDependencies != null && externalScriptDependencies.Length != 0){
-                    updatedScript.ExternalScriptDependencies = externalScriptDependencies;                
-                }
-
-                if (releaseNotes != null && releaseNotes.Length != 0)
-                {
-                    updatedScript.ReleaseNotes = releaseNotes;
-                }
-
-                if (!String.IsNullOrEmpty(privateData))
-                {
-                    updatedScript.PrivateData = privateData;
-                }
-
-                if (!String.IsNullOrEmpty(description))
-                {
-                    updatedScript.Description = description;
-                }
-
-                originalScript = updatedScript;
-            }
-            catch (Exception exception)
-            {
-                var message = String.Format(".ps1 file and associated PSScriptFileInfo object's field could not be updated due to {0}.", exception.Message);
-                var ex = new ArgumentException(message);
-                var PSScriptFileInfoFieldCouldNotBeUpdatedError = new ErrorRecord(ex, "PSScriptFileInfoFieldCouldNotBeUpdated", ErrorCategory.ParserError, null);
-                errorsList.Add(PSScriptFileInfoFieldCouldNotBeUpdatedError);  
-                errors = errorsList.ToArray();
-                return successfullyUpdated;
+                scriptInfo.Version = updatedVersion;
             }
 
+            if (guid != Guid.Empty)
+            {
+                scriptInfo.Guid = guid;
+            }
+
+            if (!String.IsNullOrEmpty(author))
+            {
+                scriptInfo.Author = author;
+            }
+
+            if (!String.IsNullOrEmpty(companyName)){
+                scriptInfo.CompanyName = companyName;
+            }
+
+            if (!String.IsNullOrEmpty(copyright)){
+                scriptInfo.Copyright = copyright;
+            }
+
+            if (tags != null && tags.Length != 0){
+                scriptInfo.Tags = tags;
+            }
+
+            if (licenseUri != null && !licenseUri.Equals(default(Uri))){
+                scriptInfo.LicenseUri = licenseUri;
+            }
+
+            if (projectUri != null && !projectUri.Equals(default(Uri))){
+                scriptInfo.ProjectUri = projectUri;
+            }
+
+            if (iconUri != null && !iconUri.Equals(default(Uri))){
+                scriptInfo.IconUri = iconUri;
+            }
+
+            if (requiredModules != null && requiredModules.Length != 0){
+                scriptInfo.RequiredModules = requiredModules;
+            }
+
+            if (externalModuleDependencies != null && externalModuleDependencies.Length != 0){
+                scriptInfo.ExternalModuleDependencies = externalModuleDependencies;                
+            }
+
+            if (requiredScripts != null && requiredScripts.Length != 0)
+            {
+                scriptInfo.RequiredScripts = requiredScripts;
+            }
+
+            if (externalScriptDependencies != null && externalScriptDependencies.Length != 0){
+                scriptInfo.ExternalScriptDependencies = externalScriptDependencies;                
+            }
+
+            if (releaseNotes != null && releaseNotes.Length != 0)
+            {
+                scriptInfo.ReleaseNotes = releaseNotes;
+            }
+
+            if (!String.IsNullOrEmpty(privateData))
+            {
+                scriptInfo.PrivateData = privateData;
+            }
+
+            if (!String.IsNullOrEmpty(description))
+            {
+                scriptInfo.Description = description;
+            }
 
             // create string contents for .ps1 file
-            if (!updatedScript.TryCreateScriptFileInfoString(
+            if (!scriptInfo.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
                 errors: out ErrorRecord[] createFileContentErrors))
             {
                 errorsList.AddRange(createFileContentErrors);
                 errors = errorsList.ToArray();
-                return successfullyUpdated;
+                return false;
             }
 
-            if (updatedScript.GetFileContents() != null && updatedScript.GetFileContents().Length > 0)
+            // TODO: move into TryCreateScriptFileInfoString, if it exists then add, if not you dont
+            if (scriptInfo.EndOfFileContents.Length > 0)
             {
-                psScriptFileContents += "\n" + String.Join("\n", updatedScript.GetFileContents());
+                psScriptFileContents += "\n" + String.Join("\n", scriptInfo.EndOfFileContents);
             }
 
-            successfullyUpdated = true;
             updatedPSScriptFileContents = psScriptFileContents;
-            return successfullyUpdated;
+            return true;
         }
 
         #endregion

@@ -20,6 +20,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     public sealed class UpdatePSScriptFileInfo : PSCmdlet
     {
         #region Members
+        // TODO: make these variables
         private Uri _projectUri;
         private Uri _licenseUri;
         private Uri _iconUri;
@@ -259,85 +260,64 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 return; 
             }
-            else
+            
+            if (!PSScriptFileInfo.TryUpdateScriptFileContents(
+                scriptInfo: parsedScriptInfo,
+                updatedPSScriptFileContents: out string updatedPSScriptFileContents,
+                errors: out ErrorRecord[] updateErrors,
+                version: Version,
+                guid: Guid,
+                author: Author,
+                companyName: CompanyName,
+                copyright: Copyright,
+                tags: Tags,
+                licenseUri: _licenseUri,
+                projectUri: _projectUri,
+                iconUri: _iconUri,
+                requiredModules: validatedRequiredModuleSpecifications,
+                externalModuleDependencies: ExternalModuleDependencies,
+                requiredScripts: RequiredScripts,
+                externalScriptDependencies: ExternalScriptDependencies,
+                releaseNotes: ReleaseNotes,
+                privateData: PrivateData,
+                description: Description))
             {
-                if (!PSScriptFileInfo.TryUpdateScriptFile(
-                    originalScript: ref parsedScriptInfo,
-                    updatedPSScriptFileContents: out string updatedPSScriptFileContents,
-                    errors: out ErrorRecord[] updateErrors,
-                    version: Version,
-                    guid: Guid,
-                    author: Author,
-                    companyName: CompanyName,
-                    copyright: Copyright,
-                    tags: Tags,
-                    licenseUri: _licenseUri,
-                    projectUri: _projectUri,
-                    iconUri: _iconUri,
-                    requiredModules: validatedRequiredModuleSpecifications,
-                    externalModuleDependencies: ExternalModuleDependencies,
-                    requiredScripts: RequiredScripts,
-                    externalScriptDependencies: ExternalScriptDependencies,
-                    releaseNotes: ReleaseNotes,
-                    privateData: PrivateData,
-                    description: Description))
+                WriteWarning("Updating the specified script file failed due to the following error(s):");
+                foreach (ErrorRecord error in updateErrors)
                 {
-                    WriteWarning("Updating the specified script file failed due to the following error(s):");
-                    foreach (ErrorRecord error in updateErrors)
-                    {
-                        WriteError(error);
-                    }
+                    WriteError(error);
                 }
-                else
-                {                    
-                    // write string of file contents to a temp file
-                    var tempScriptDirPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-                    var tempScriptFilePath = Path.Combine(tempScriptDirPath, "tempScript.ps1");
-                    if (!Directory.Exists(tempScriptDirPath))
-                    {
-                        Directory.CreateDirectory(tempScriptDirPath);
-                    }
 
-                    using(FileStream fs = File.Create(tempScriptFilePath))
-                    {
-                        byte[] info = new UTF8Encoding(true).GetBytes(updatedPSScriptFileContents);
-                        fs.Write(info, 0, info.Length);
-                    }
+                return;
+            }
+                  
+            // TODO: put this in a try catch
+            // write string of file contents to a temp file
+            string tempScriptFilePath = null;
+            try
+            {
+                tempScriptFilePath = Path.GetTempFileName();
 
-                    // TODO: update should do validation when it updates
-                    // perhaps remove Validate, look in V2
-                    if (Validate)
-                    {
-                        if (!PSScriptFileInfo.TryParseScriptIntoPSScriptInfo(
-                            scriptFileInfoPath: tempScriptFilePath,
-                            out parsedScriptInfo,
-                            out ErrorRecord[] testErrors,
-                            out string[] verboseValidationMsgs))
-                        {
-                            foreach (string validationMsg in verboseValidationMsgs)
-                            {
-                                WriteVerbose(validationMsg);
-                            }
-
-                            WriteWarning("Validating the updated script file failed due to the following error(s):");
-                            foreach (ErrorRecord error in testErrors)
-                            {
-                                WriteError(error);
-                            }
-
-                            return; // TODO: if Validation was requested and fails, do we still write out updated file PSScriptFileInfo object?
-                        }
-                    }
-
-                    File.Copy(tempScriptFilePath, resolvedFilePath, true);
-                    Utils.DeleteDirectory(tempScriptDirPath);
-
-                    if (PassThru)
-                    {
-                        WriteObject(updatedPSScriptFileContents);
-                    }
+                File.WriteAllText(tempScriptFilePath, updatedPSScriptFileContents); 
+                File.Copy(tempScriptFilePath, resolvedFilePath, overwrite: true);     
+            }
+            catch(Exception e)
+            {
+                // TODO
+            }
+            finally
+            {
+                if (tempScriptFilePath != null)
+                {
+                    File.Delete(tempScriptFilePath);
                 }
-            }         
+            }
+
+            // TODO: ceck with Sydney if we wnat to return PSScriptFileInfo obj?
+            if (PassThru)
+            {
+                WriteObject(updatedPSScriptFileContents);
+            }      
         }
 
         #endregion
