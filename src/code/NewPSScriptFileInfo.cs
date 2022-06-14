@@ -14,8 +14,7 @@ using Microsoft.PowerShell.Commands;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// It retrieves a resource that was installed with Install-PSResource
-    /// Returns a single resource or multiple resource.
+    /// Creates a new .ps1 file with script information required for publishing a script
     /// </summary>
     [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
     public sealed class NewPSScriptFileInfo : PSCmdlet
@@ -208,17 +207,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
             }
 
-            // var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
-            // if (resolvedPaths.Count != 1)
-            // {
-            //     var exMessage = "Error: Could not resolve provided Path argument into a single path.";
-            //     var ex = new PSArgumentException(exMessage);
-            //     var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
-            //     ThrowTerminatingError(InvalidPathArgumentError);
-            // }
-
-            // var resolvedFilePath = resolvedPaths[0].Path;
-
             ModuleSpecification[] validatedRequiredModuleSpecifications = new ModuleSpecification[]{};
             if (RequiredModules != null && RequiredModules.Length > 0)
             {
@@ -254,7 +242,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 description: Description);
 
             if (!currentScriptInfo.TryCreateScriptFileInfoString(
-                // filePath: resolvedFilePath,
                 pSScriptFileString: out string psScriptFileContents,
                 errors: out ErrorRecord[] errors))
             {
@@ -266,6 +253,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
+            // File.Create handles relative and absolute paths
             using(FileStream fs = File.Create(FilePath))
             {
                 byte[] info = new UTF8Encoding(true).GetBytes(psScriptFileContents);

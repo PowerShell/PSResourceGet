@@ -623,7 +623,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static bool TryUpdateScriptFile(
             ref PSScriptFileInfo originalScript,
             out string updatedPSScriptFileContents,
-            // string filePath,
             out ErrorRecord[] errors,
             string version,
             Guid guid,
@@ -758,7 +757,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // create string contents for .ps1 file
             if (!updatedScript.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
-                // filePath: filePath,
                 errors: out ErrorRecord[] createFileContentErrors))
             {
                 errorsList.AddRange(createFileContentErrors);
@@ -842,28 +840,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // or else not recongnized as a valid comment help info block when parsing the created ps1 later
             pSScriptFileString += "\n" + psHelpInfo;
 
-            // GetEndOfFileLinesContent2(
-
-            // )
-            
-
-            // GetEndOfFileLinesContent(
-            //     filePath: filePath,
-            //     endOfFileContent: out string endOfFileAstContent);
-            // if (!String.IsNullOrEmpty(endOfFileAstContent))
-            // {
-            //     pSScriptFileString += "\n" + endOfFileAstContent;
-            // }
-
             fileContentsSuccessfullyCreated = true;
             return fileContentsSuccessfullyCreated;
         }
 
+        #endregion
+
+        #region Private Methods
         /// <summary>
         /// Used when creating .ps1 file's contents.
         /// This creates the <#PSScriptInfo ... #> comment string
         /// </summary>
-        public bool GetPSScriptInfoString(
+        private bool GetPSScriptInfoString(
             out string pSScriptInfoString,
             out ErrorRecord error
         )
@@ -934,7 +922,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Used when creating .ps1 file's contents.
         /// This creates the #Requires comment string
         /// </summary>
-        public void GetRequiresString(
+        private void GetRequiresString(
             out string psRequiresString
         )
         {
@@ -959,7 +947,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Used when creating .ps1 file's contents.
         /// This creates the help comment string: <# \n .DESCRIPTION #>
         /// </summary>
-        public bool GetScriptCommentHelpInfo(
+        private bool GetScriptCommentHelpInfo(
             out string psHelpInfo,
             out ErrorRecord error
         )
@@ -1044,7 +1032,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Ensure no fields (passed as stringToValidate) contains '<#' or '#>' (would break comment section)
         /// </summary>
-        public bool StringContainsComment(string stringToValidate)
+        private bool StringContainsComment(string stringToValidate)
         {
             return stringToValidate.Contains("<#") || stringToValidate.Contains("#>");
         }

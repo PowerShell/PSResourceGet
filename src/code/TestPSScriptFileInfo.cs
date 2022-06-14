@@ -16,8 +16,8 @@ using System.Collections.ObjectModel;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// It retrieves a resource that was installed with Install-PSResource
-    /// Returns a single resource or multiple resource.
+    /// Tests the contents of a .ps1 file to see if it has all properties and is in correct format
+    /// for publishing the script with the file.
     /// </summary>
     [Cmdlet(VerbsDiagnostic.Test, "PSScriptFileInfo")]
     [OutputType(typeof(bool))]

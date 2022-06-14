@@ -14,8 +14,7 @@ using Microsoft.PowerShell.Commands;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// It retrieves a resource that was installed with Install-PSResource
-    /// Returns a single resource or multiple resource.
+    /// Updates a .ps1 file with specified properties
     /// </summary>
     [Cmdlet(VerbsData.Update, "PSScriptFileInfo")]
     public sealed class UpdatePSScriptFileInfo : PSCmdlet
@@ -265,7 +264,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (!PSScriptFileInfo.TryUpdateScriptFile(
                     originalScript: ref parsedScriptInfo,
                     updatedPSScriptFileContents: out string updatedPSScriptFileContents,
-                    // filePath: resolvedFilePath,
                     errors: out ErrorRecord[] updateErrors,
                     version: Version,
                     guid: Guid,
