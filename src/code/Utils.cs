@@ -777,6 +777,98 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return successfullyParsed;
         }
 
+        public static bool IsValidModuleManifest(string moduleManifestPath, PSCmdlet cmdletPassedIn)
+        {
+            var isValid = true;
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+            {
+                // use PowerShell cmdlet Test-ModuleManifest
+                // TODO: Test-ModuleManifest will throw an error if RequiredModules specifies a module that does not exist
+                // locally on the machine. Consider adding a -Syntax param to Test-ModuleManifest so that it only checks that
+                // the syntax is correct. In build/release pipelines for example, the modules listed under RequiredModules may
+                // not be locally available, but we still want to allow the user to publish.
+                Collection<PSObject> results = null;
+                try
+                {
+                    results = pwsh.AddCommand("Test-ModuleManifest").AddParameter("Path", moduleManifestPath).Invoke();
+                }
+                catch (Exception e)
+                {
+                    cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                       new ArgumentException($"Error occured while running 'Test-ModuleManifest': {e.Message}"),
+                       "ErrorExecutingTestModuleManifest",
+                       ErrorCategory.InvalidArgument,
+                       cmdletPassedIn));
+                }
+
+                if (pwsh.HadErrors)
+                {
+                    var message = string.Empty;
+
+                    if (results.Any())
+                    {
+                        if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Author))
+                        {
+                            message = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                        else if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Description))
+                        {
+                            message = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                        else if ((results[0].BaseObject as PSModuleInfo).Version == null)
+                        {
+                            message = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(message) && pwsh.Streams.Error.Count > 0)
+                    {
+                        // This will handle version errors
+                        message = $"{pwsh.Streams.Error[0].ToString()} Run 'Test-ModuleManifest' to validate the module manifest.";
+                    }
+                    
+                    cmdletPassedIn.ThrowTerminatingError(
+                                            new ErrorRecord(
+                                                    new ArgumentException(message),
+                                                    "InvalidModuleManifest",
+                                                    ErrorCategory.InvalidData,
+                                                    cmdletPassedIn));
+                    isValid = false;
+                }
+            }
+
+            return isValid;
+        }
+
+        public static bool TestModuleManifestReturnsPSObject(
+            string moduleManifestPath,
+            PSCmdlet cmdletPassedIn)
+        {
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+            {
+                Collection<PSObject> results = null;
+                try
+                {
+                    results = pwsh.AddCommand("Test-ModuleManifest").AddParameter("Path", moduleManifestPath).Invoke();
+                }
+                catch (Exception e)
+                {
+                    cmdletPassedIn.ThrowTerminatingError(
+                        new ErrorRecord(
+                           new ArgumentException("Error occured while running 'Test-ModuleManifest': " + e.Message),
+                            "ErrorExecutingTestModuleManifest",
+                            ErrorCategory.InvalidArgument,
+                            cmdletPassedIn));
+                }
+
+                if (results[0].BaseObject is PSModuleInfo)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
         #endregion
 
         #region Misc methods
