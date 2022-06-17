@@ -88,8 +88,9 @@ Describe 'Test Update-ModuleManifest' {
 
     It "Update module manifest given Prerelease parameter" {
         $Description = "Test Description"
+        $ModuleVersion = "1.0.0"
         $Prerelease = "preview"
-        New-ModuleManifest -Path $script:testManifestPath -Description $Description
+        New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion
         Update-ModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
@@ -161,7 +162,7 @@ Describe 'Test Update-ModuleManifest' {
         $ExternalModuleDep1 = "TestDependency1"
         $ExternalModuleDep2 = "TestDependency2"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -ExternalModuleDependencies $ExternalModuleDep1, $ExternalModuleDep2
+        Update-ModuleManifest -Path $script:testManifestPath -ExternalModuleDependencies $ExternalModuleDep1, $ExternalModuleDep2 -ErrorAction SilentlyContinue
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.ExternalModuleDependencies | Should -Be @($ExternalModuleDep1, $ExternalModuleDep2)
@@ -169,7 +170,7 @@ Describe 'Test Update-ModuleManifest' {
 
     It "Update module manifest given PowerShellHostName parameter" {
         $Description = "PowerShellGet test description"
-        $PowerShellHostName = "Default Host"
+        $PowerShellHostName = $Host.Name
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-ModuleManifest -Path $script:testManifestPath -PowerShellHostName $PowerShellHostName
 
@@ -396,10 +397,11 @@ Describe 'Test Update-ModuleManifest' {
 
     It "Update module manifest should not overwrite over old data unless explcitly specified" {
         $Description = "Test Description"
-        $Prerelease = "Preview"
+        $ModuleVersion = "2.0.0"
         $Author = "Leto Atriedes"
         $ProjectUri = "https://www.arrakis.gov/"
-        New-ModuleManifest -Path $script:testManifestPath -Description $Description -Author $Author -ProjectUri $ProjectUri
+        $Prerelease = "Preview"
+        New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion -Author $Author -ProjectUri $ProjectUri
         Update-ModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
