@@ -159,11 +159,21 @@ Describe 'Test Update-ModuleManifest' {
 
     It "Update module manifest given ExternalModuleDependencies parameter" {
         $Description = "Test Description"
-        $ExternalModuleDep1 = "TestDependency1"
-        $ExternalModuleDep2 = "TestDependency2"
-        New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -ExternalModuleDependencies $ExternalModuleDep1, $ExternalModuleDep2 -ErrorAction SilentlyContinue
+        $ExternalModuleDep1 = "ExternalModuleDep1"
+        $ExternalModuleDep2 = "ExternalModuleDep2"
+        $ExternalModuleDep1FileName = "ExternalModuleDep1.psm1"
+        $ExternalModuleDep2FileName = "ExternalModuleDep2.psm1"
+        $ExternalModuleDepPath1 = Microsoft.PowerShell.Management\Join-Path -Path $script:UpdateModuleManifestBase -ChildPath $ExternalModuleDep1FileName
+        $ExternalModuleDepPath2 = Microsoft.PowerShell.Management\Join-Path -Path $script:UpdateModuleManifestBase -ChildPath $ExternalModuleDep2FileName
 
+        $null = New-Item -Path $ExternalModuleDepPath1 -ItemType File -Force
+        $null = New-Item -Path $ExternalModuleDepPath2 -ItemType File -Force
+
+        New-ModuleManifest -Path $script:testManifestPath -Description $Description -NestedModules $ExternalModuleDep1, $ExternalModuleDep2
+        $results = Test-ModuleManifest -Path $script:testManifestPath
+        $results.PrivateData.PSData.ExternalModuleDependencies | Should -Be $null
+
+        Update-ModuleManifest -Path $script:testManifestPath -ExternalModuleDependencies $ExternalModuleDep1, $ExternalModuleDep2
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.ExternalModuleDependencies | Should -Be @($ExternalModuleDep1, $ExternalModuleDep2)
     }
@@ -382,6 +392,7 @@ Describe 'Test Update-ModuleManifest' {
         $results.Contains($CmdletToExport2) | Should -Be $true
     }
 
+<#
     It "Update module manifest given DscResourcesToExport parameters" {
         $Description = "Test Description"
         $DscResourcesToExport1 = "DscResourcesToExport1"
@@ -394,7 +405,7 @@ Describe 'Test Update-ModuleManifest' {
         $results.Contains($DscResourcesToExport1) | Should -Be $true
         $results.Contains($DscResourcesToExport2) | Should -Be $true
     }
-
+#>
     It "Update module manifest should not overwrite over old data unless explcitly specified" {
         $Description = "Test Description"
         $ModuleVersion = "2.0.0"
