@@ -255,6 +255,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter RequireLicenseAcceptance { get; set; }
 
+        /// <summary>
+        /// Specifies data that is passed to the module when it's imported. 
+        /// </summary>
+        [Parameter]
+        public Hashtable PrivateData { get; set; }
         #endregion
 
         #region Members
@@ -286,16 +291,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void EndProcessing()
         {
-            // Run Test-ModuleManifest, throw an error only if Test-ModuleManifest did not return the PSModuleInfo object
-            if (!Utils.TestModuleManifestReturnsPSObject(ResolvedManifestPath, this))
-            {
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                         new ArgumentException(String.Format("File '{0}' does not return a valid PSModuleInfo object. Please run 'Test-ModuleManifest' to validate the file.", ResolvedManifestPath)),
-                        "invalidModuleManifest",
-                         ErrorCategory.InvalidData,
-                         this));
-            }
+            // Write test for if passed in path is not a valid module manifest
 
             // Parse the module manifest
             if (!Utils.TryParsePSDataFile(ResolvedManifestPath, this, out Hashtable parsedMetadata))
@@ -308,6 +304,90 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                        this));
             }
 
+            // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance, 
+            // and ExternalModuleDependencies are all properties within a hashtable property called 'PSData' 
+            // which is within another hashtable property called 'PrivateData' 
+            // All of the properties mentioned above have their own parameter in 'New-ModuleManifest', so 
+            // we will parse out these values from the parsedMetadata and create entries for each one in individualy.
+            // This way any values that were previously specified here will get transfered over to the new manifest.
+            // Example of the contents of PSData:
+            // PrivateData = @{
+            //         PSData = @{
+            //                  # Tags applied to this module. These help with module discovery in online galleries.
+            //                  Tags = @('Tag1', 'Tag2')
+            //
+            //                  # A URL to the license for this module.
+            //                  LicenseUri = 'https://www.licenseurl.com/'
+            //
+            //                  # A URL to the main website for this project.
+            //                  ProjectUri = 'https://www.projecturi.com/'
+            //
+            //                  # A URL to an icon representing this module.
+            //                  IconUri = 'https://iconuri.com/'
+            //
+            //                  # ReleaseNotes of this module.
+            //                  ReleaseNotes = 'These are the release notes of this module.'
+            //
+            //                  # Prerelease string of this module.
+            //                  Prerelease = 'preview'
+            //
+            //                  # Flag to indicate whether the module requires explicit user acceptance for install/update/save.
+            //                  RequireLicenseAcceptance = $false
+            //
+            //                  # External dependent modules of this module
+            //                  ExternalModuleDependencies = @('ModuleDep1, 'ModuleDep2')
+            //
+            //         } # End of PSData hashtable
+            //
+            // } # End of PrivateData hashtable
+            var PrivateData = parsedMetadata["PrivateData"] as Hashtable;
+            var PSData = PrivateData["PSData"] as Hashtable;
+
+            if (PSData.ContainsKey("Prerelease"))
+            {
+                parsedMetadata["Prerelease"] = PSData["Prerelease"];
+            }
+
+            if (PSData.ContainsKey("ReleaseNotes"))
+            {
+                parsedMetadata["ReleaseNotes"] = PSData["ReleaseNotes"];
+            }
+
+            if (PSData.ContainsKey("Tags"))
+            {
+                parsedMetadata["Tags"] = PSData["Tags"];
+            }
+
+            if (PSData.ContainsKey("ProjectUri"))
+            {
+                parsedMetadata["ProjectUri"] = PSData["ProjectUri"];
+            }
+
+            if (PSData.ContainsKey("LicenseUri"))
+            {
+                parsedMetadata["LicenseUri"] = PSData["LicenseUri"];
+            }
+
+            if (PSData.ContainsKey("IconUri"))
+            {
+                parsedMetadata["IconUri"] = PSData["IconUri"];
+            }
+
+            if (PSData.ContainsKey("RequireLicenseAcceptance"))
+            {
+                parsedMetadata["RequireLicenseAcceptance"] = PSData["RequireLicenseAcceptance"];
+            }
+
+            if (PSData.ContainsKey("ExternalModuleDependencies"))
+            {
+                parsedMetadata["ExternalModuleDependencies"] = PSData["ExternalModuleDependencies"];
+            }
+            
+            // Now we need to remove 'PSData' becaues if we leave this value in the hashtable, 
+            // New-ModuleManifest will keep this value and also attempt to create a new value for 'PSData'
+            // and then complain that there's two keys within the PrivateData hashtable.
+            PrivateData.Remove("PSData");
+
             // After getting the original module manifest contentes, migrate all the fields to the new module manifest, 
             // adding in any new values specified via cmdlet parameters.
             // Set up params to pass to New-ModuleManifest module
@@ -317,46 +397,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 parsedMetadata["NestedModules"] = NestedModules;
             }
+
             if (Guid != Guid.Empty)
             {
                 parsedMetadata["Guid"] = Guid;
             }
+
             if (!string.IsNullOrWhiteSpace(Author))
             {
                 parsedMetadata["Author"] = Author;
             }
+
             if (CompanyName != null)
             {
                 parsedMetadata["CompanyName"] = CompanyName;
             }
+
             if (Copyright != null)
             {
                 parsedMetadata["Copyright"] = Copyright;
             }
+
             if (RootModule != null)
             {
                 parsedMetadata["RootModule"] = RootModule;
             }
+
             if (ModuleVersion != null)
             {
                 parsedMetadata["ModuleVersion"] = ModuleVersion;
             }
+
             if (Description != null)
             {
                 parsedMetadata["Description"] = Description;
             }
+
             if (ProcessorArchitecture != ProcessorArchitecture.None)
             {
                 parsedMetadata["ProcessorArchitecture"] = ProcessorArchitecture;
             }
+
             if (PowerShellVersion != null)
             {
                 parsedMetadata["PowerShellVersion"] = PowerShellVersion;
             }
+
             if (ClrVersion != null)
             {
                 parsedMetadata["ClrVersion"] = ClrVersion;
             }
+
             if (DotNetFrameworkVersion != null)
             {
                 parsedMetadata["DotNetFrameworkVersion"] = DotNetFrameworkVersion;
@@ -366,98 +457,122 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 parsedMetadata["PowerShellHostName"] = PowerShellHostName;
             }
+
             if (PowerShellHostVersion != null)
             {
                 parsedMetadata["PowerShellHostVersion"] = PowerShellHostVersion;
             }
+
             if (RequiredModules != null)
             {
                 parsedMetadata["RequiredModules"] = RequiredModules;
             }
+
             if (TypesToProcess != null)
             {
                 parsedMetadata["TypesToProcess"] = TypesToProcess;
             }
+
             if (FormatsToProcess != null)
             {
                 parsedMetadata["FormatsToProcess"] = FormatsToProcess;
             }
+
             if (ScriptsToProcess != null)
             {
                 parsedMetadata["ScriptsToProcess"] = ScriptsToProcess;
             }
+
             if (RequiredAssemblies != null)
             {
                 parsedMetadata["RequiredAssemblies"] = RequiredAssemblies;
             }
+
             if (FileList != null)
             {
                 parsedMetadata["FileList"] = FileList;
             }
+
             if (ModuleList != null)
             {
                 parsedMetadata["ModuleList"] = ModuleList;
             }
+
             if (FunctionsToExport != null)
             {
                 parsedMetadata["FunctionsToExport"] = FunctionsToExport;
             }
+
             if (AliasesToExport != null)
             {
                 parsedMetadata["AliasesToExport"] = AliasesToExport;
             }
+
             if (VariablesToExport != null)
             {
                 parsedMetadata["VariablesToExport"] = VariablesToExport;
             }
+
             if (CmdletsToExport != null)
             {
                 parsedMetadata["CmdletsToExport"] = CmdletsToExport;
             }
+
             if (DscResourcesToExport != null)
             {
                 parsedMetadata["DscResourcesToExport"] = DscResourcesToExport;
             }
+
             if (CompatiblePSEditions != null)
             {
                 parsedMetadata["CompatiblePSEditions"] = CompatiblePSEditions;
             }
+
             if (HelpInfoUri != null)
             {
                 parsedMetadata["HelpInfoUri"] = HelpInfoUri;
             }
+
             if (DefaultCommandPrefix != null)
             {
                 parsedMetadata["DefaultCommandPrefix"] = DefaultCommandPrefix;
             }
+
             if (Tags != null)
             {
                 parsedMetadata["Tags"] = Tags;
             }
+
             if (LicenseUri != null)
             {
                 parsedMetadata["LicenseUri"] = LicenseUri;
             }
+
             if (ProjectUri != null)
             {
                 parsedMetadata["ProjectUri"] = ProjectUri;
             }
+
             if (IconUri != null)
             {
                 parsedMetadata["IconUri"] = IconUri;
             }
+
             if (ReleaseNotes != null)
             {
                 parsedMetadata["ReleaseNotes"] = ReleaseNotes;
             }
+
             if (Prerelease != null)
             {
                 parsedMetadata["Prerelease"] = Prerelease;
             }
+
             if (RequireLicenseAcceptance != null)
             {
                 parsedMetadata["RequireLicenseAcceptance"] = RequireLicenseAcceptance;
             }
+
             if (ExternalModuleDependencies != null)
             {
                 parsedMetadata["ExternalModuleDependencies"] = ExternalModuleDependencies;
@@ -483,13 +598,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
             }
-            string tmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, System.IO.Path.GetFileName(ResolvedManifestPath));
-            
-            WriteVerbose($"Temp path created for new module manifest is: {tmpModuleManifestPath}");
-            parsedMetadata["Path"] = tmpModuleManifestPath;
 
-            parsedMetadata.Remove("PrivateData");
-            
+            string tmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, System.IO.Path.GetFileName(ResolvedManifestPath));
+            parsedMetadata["Path"] = tmpModuleManifestPath;
+            WriteVerbose($"Temp path created for new module manifest is: {tmpModuleManifestPath}");
+
             using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
             {
                 try
@@ -516,40 +629,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this));
                 }
             }
-
-            // copy the contents of the parent directory into the temp path
-            DirectoryInfo parentDirInfo = new DirectoryInfo(System.IO.Path.GetDirectoryName(ResolvedManifestPath));
-            var filesInParentDir = parentDirInfo.GetFiles();
-            foreach (var fileInfo in filesInParentDir)
-            {
-
-                var fileName = System.IO.Path.GetFileName(fileInfo.Name);
-                if (string.Equals(fileName, System.IO.Path.GetFileName(parsedMetadata["Path"].ToString())))
-                {
-                    continue;
-                }
-
-
-                WriteVerbose($"FileName is: {fileName}");
-                var parentTempDir = System.IO.Path.GetDirectoryName(parsedMetadata["Path"].ToString());
-                WriteVerbose($"parentTempDir is: {parentTempDir}");
-                var tempFile = System.IO.Path.Combine(parentTempDir, fileName);
-                WriteVerbose($"Copying file from {fileInfo.FullName} to {tempFile}");
-
-                File.Copy(fileInfo.FullName, tempFile, false);
-            }
-
-            // Test that new module manifest is valid
-            if (!Utils.IsValidModuleManifest(parsedMetadata["Path"].ToString(), this))
-            {
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                         new ArgumentException($"File '{ResolvedManifestPath}' does not return a valid PSModuleInfo object. Updating the module manifest has failed."),
-                        "invalidModuleManifest",
-                         ErrorCategory.InvalidData,
-                         this));
-            }
-
+            
             // Move to the new module manifest back to the original location
             WriteVerbose($"Moving '{tmpModuleManifestPath}' to '{ResolvedManifestPath}'");
             Utils.MoveFiles(tmpModuleManifestPath, ResolvedManifestPath, overwrite:true);

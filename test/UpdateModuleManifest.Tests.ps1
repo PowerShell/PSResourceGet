@@ -13,7 +13,6 @@ Describe 'Test Update-ModuleManifest' {
     BeforeEach {
         # Create temp module manifest to be updated
         $script:TempModulesPath = Join-Path $script:TempPath "PSGet_$(Get-Random)"
-        write-host  $script:TempModulesPath
         $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
   
         $script:UpdateModuleManifestName = "PSGetTestModule"
@@ -24,7 +23,7 @@ Describe 'Test Update-ModuleManifest' {
     }
 
     AfterEach {
-        #RemoveItem "$script:TempModulesPath"
+        RemoveItem "$script:TempModulesPath"
     }
 
     It "Update module manifest given Path parameter" {
@@ -299,22 +298,6 @@ Describe 'Test Update-ModuleManifest' {
         $results.Scripts | Should -Be @($ScriptPath1, $ScriptPath2) 
     }
 
-    <#
-    It "Update module manifest given DscResourcesToExport parameter" {
-        $Description = "Test Description"
-        $DscResource1 = "DscResource1"
-        $DscResourcePath1 = Microsoft.PowerShell.Management\Join-Path -Path $script:UpdateModuleManifestBase -ChildPath $DscResource1
-
-        $null = New-Item -Path $DscResourcePath1 -ItemType File -Force
-
-        New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -DscResourcesToExport $DscResource1
-
-        $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.ExportedDscResources| Should -Be $DscResource1 
-    }
-#>
-
     It "Update module manifest given ProcessorArchitecture parameter" {
         $Description = "Test Description"
         $ProcessorArchitecture = [System.Reflection.ProcessorArchitecture]::Amd64
@@ -368,7 +351,6 @@ Describe 'Test Update-ModuleManifest' {
         $results.CompatiblePSEditions | Should -Be $CompatiblePSEditions 
     }
 
-     
     It "Update module manifest given FunctionsToExport, AliasesToExport, and VariablesToExport parameters" {
         $Description = "Test Description"
         $ExportedFunctions = "FunctionToExport1", "FunctionToExport2"
@@ -386,123 +368,44 @@ Describe 'Test Update-ModuleManifest' {
         $results.ExportedVariables.Keys | Should -Be $ExportedVariables
     }
 
-    <#
-    It "Update module manifest given TypesToProcess parameter" {
+    It "Update module manifest given CmdletsToExport parameters" {
         $Description = "Test Description"
-        $TypesToProcess = "File.ps1xml"
-        $TypesToProcessPath = Microsoft.PowerShell.Management\Join-Path -Path $script:UpdateModuleManifestBase -ChildPath $TypesToProcess
-        $null = New-Item -Path $TypesToProcessPath -ItemType File -Force
-
-
-
+        $CmdletToExport1 = "CmdletToExport1"
+        $CmdletToExport2 = "CmdletToExport2"
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        
-        Update-ModuleManifest -Path $script:testManifestPath `
-                              -TypesToProcess $TypesToProcess
+        Update-ModuleManifest -Path $script:testManifestPath -CmdletsToExport $CmdletToExport1, $CmdletToExport2
 
-        $results = Test-ModuleManifest -Path $script:testManifestPath
-        #$results.FileList | Should -Contain $FileList1
-       # $results.ExportedCmdlets.Keys | Should -Be $ExportedCmdlets
-       # $results.ExportedDscResources | Should -Be $ExportedDscResources
+        $results = Get-Content -Path $script:testManifestPath -Raw
+        $results.Contains($CmdletToExport1) | Should -Be $true
+        $results.Contains($CmdletToExport2) | Should -Be $true
     }
-#>
-<#  
-    It "Update module manifest given PackageManagementProviders parameter" {
+
+    It "Update module manifest given DscResourcesToExport parameters" {
         $Description = "Test Description"
-        $Provider1 = 'TestProvider2'
-        $Provider2 = 'TestProvider2'
-        
-        $RequiredModules =  @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
-        New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -PackageManagementProviders $Provider1, $Provider2
-
-        $results = Test-ModuleManifest -Path $script:testManifestPath
-        foreach ($module in $results.p)
-        {
-            $module | Should -Be $requiredModuleName
-            $module.Version | Should -Be $requiredModuleVersion
-            
-        }
-    }
-#> 
-<# TODO:  not working
-    It "Update module manifest given FileList parameter" {
-        $Description = "Test Description"
-        $FileList1 = "File1.ps1"
-        $FileList2 = "File2.ps1"
-        $FileList1Path = Microsoft.PowerShell.Management\Join-Path -Path $script:UpdateModuleManifestBase -ChildPath $FileList1
-        $FileList2Path = Microsoft.PowerShell.Management\Join-Path -Path $script:UpdateModuleManifestBase -ChildPath $FileList2
-        $null = New-Item -Path $FileList1Path -ItemType File -Force
-        $null = New-Item -Path $FileList2Path -ItemType File -Force
-
-
-
+        $DscResourcesToExport1 = "DscResourcesToExport1"
+        $DscResourcesToExport2 = "DscResourcesToExport2"
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        
-        Update-ModuleManifest -Path $script:testManifestPath `
-                              -FileList @($FileList1, $FileList2)
+        Update-ModuleManifest -Path $script:testManifestPath -DscResourcesToExport $DscResourcesToExport1, $DscResourcesToExport2
+
+        $results = Get-Content -Path $script:testManifestPath -Raw
+        $results.Contains($DscResourcesToExport1) | Should -Be $true
+        $results.Contains($DscResourcesToExport2) | Should -Be $true
+    }
+
+    It "Update module manifest should not overwrite over old data unless explcitly specified" {
+        $Description = "Test Description"
+        $Prerelease = "Preview"
+        $Author = "Leto Atriedes"
+        $ProjectUri = "https://www.arrakis.gov/"
+        New-ModuleManifest -Path $script:testManifestPath -Description $Description -Author $Author -ProjectUri $ProjectUri
+        Update-ModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.FileList | Should -Contain $FileList1
-       # $results.ExportedCmdlets.Keys | Should -Be $ExportedCmdlets
-       # $results.ExportedDscResources | Should -Be $ExportedDscResources
+        $results.Author | Should -Be $Author
+        $results.PrivateData.PSData.ProjectUri | Should -Be $ProjectUri
+        $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
     }
-#>
-
-                             #-RootModule $RootModule `
-                             # -RequiredAssemblies $RequiredAssemblies `
-                             #$FileList = @("TestFile1", "TestFile2")
-                            #        $ModuleList = @("TestModule1", "TestModule1")
-
-
-       # $results.RequiredAssemblies | Should -Be $RequiredAssemblies 
-        
-# $results.RootModule | Should -Be $RootModule 
-       #$results.ProcessorArchitecture | Should -Be $ProcessorArchitecture 
-
-       <# failing
-        foreach ($function in $results.ExportedFunctions)
-        {
-            Write-Host $function
-        }
-
-
-       # failing
-        foreach ($alias in $results.ExportedAliases)
-        {
-            Write-Host $alias
-        }
-        
-
-        failing
-        foreach ($variables in $results.ExportedVariables)
-        {
-            Write-Host $variables
-        }
-        
-
-        failing
-        foreach ($cmdlets in $results.ExportedCmdlets)
-        {
-            Write-Host $cmdlets
-        }
-        
-        foreach ($DscResources in $results.ExportedDscResources)
-        {
-            Write-Host $DscResources
-        }
-        
-        #>
-        
-        ####$results.ProjectUri | Should -Be $ProjectUri 
-        ####$results.LicenseUri | Should -Be $LicenseUri 
-        ####$results.IconUri | Should -Be $IconUri
-        ####$results.ReleaseNotes | Should -Be $ReleaseNotes 
-        #$results.FileList | Should -Be $FileList 
-       # $results.ModuleList | Should -Be $ModuleList 
-       #### $results.Tags | Should -Be $Tags 
- #>   
 }
 

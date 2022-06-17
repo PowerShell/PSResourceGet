@@ -840,35 +840,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return isValid;
         }
 
-        public static bool TestModuleManifestReturnsPSObject(
-            string moduleManifestPath,
-            PSCmdlet cmdletPassedIn)
-        {
-            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
-            {
-                Collection<PSObject> results = null;
-                try
-                {
-                    results = pwsh.AddCommand("Test-ModuleManifest").AddParameter("Path", moduleManifestPath).Invoke();
-                }
-                catch (Exception e)
-                {
-                    cmdletPassedIn.ThrowTerminatingError(
-                        new ErrorRecord(
-                           new ArgumentException("Error occured while running 'Test-ModuleManifest': " + e.Message),
-                            "ErrorExecutingTestModuleManifest",
-                            ErrorCategory.InvalidArgument,
-                            cmdletPassedIn));
-                }
-
-                if (results[0].BaseObject is PSModuleInfo)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
         #endregion
 
         #region Misc methods
