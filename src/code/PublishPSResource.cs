@@ -1008,7 +1008,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 PushRunner.Run(
                         settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
                         sourceProvider: new PackageSourceProvider(settings),
-                        packagePath: fullNupkgFile,
+                        packagePaths: new List<string> { fullNupkgFile },
                         source: publishLocation,
                         apiKey: ApiKey,
                         symbolSource: null,
