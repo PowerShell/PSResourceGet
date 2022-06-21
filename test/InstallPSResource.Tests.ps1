@@ -96,6 +96,7 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "3.0.0.0"
     }
 
+    # TODO: Update this test and others like it that use try/catch blocks instead of Should -Throw
     It "Should not install resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
         $Version = "(1.0.0.0)"
         try {
