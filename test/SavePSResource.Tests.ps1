@@ -102,7 +102,7 @@ Describe 'Test Save-PSResource for PSResources' {
     It "Should not save resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
         $Version="(1.0.0.0)"
         try {
-            Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
+            Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
         }
         catch
         {}
@@ -112,10 +112,10 @@ Describe 'Test Save-PSResource for PSResources' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
-    It "Should not save resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]" {
+    It "Should not save resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]"{
         $Version = "[1-0-0-0]"
         try {
-            Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
+            Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
         }
         catch
         {}
