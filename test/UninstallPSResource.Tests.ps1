@@ -152,7 +152,11 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        Uninstall-PSResource -Name $testModuleName -Version $Version
+        try {
+            Uninstall-PSResource -Name $testModuleName -Version $Version -ErrorAction SilentlyContinue
+        }
+        catch
+        {}
         $pkg = Get-PSResource $testModuleName -Version "1.0.0.0"
         $pkg.Version | Should -Be "1.0.0.0"
     }
