@@ -109,9 +109,7 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -BeNullOrEmpty
         $Error.Count | Should -Not -Be 0
-        Write-Host ($Error[0])
-        Write-Host ($Error[0].FullyQualifiedErrorId)
-        $Error[0].FullyQualifiedErrorId  | Should -Be "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     It "Should not save resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]"{
