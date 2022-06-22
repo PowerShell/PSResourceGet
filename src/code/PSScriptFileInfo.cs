@@ -141,17 +141,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string[] Links { get; set; } = new string[]{};
 
         /// <summary>
-        /// TODO: what is this?
+        /// The components for the script
         /// </summary>
         public string[] Component { get; set; } = new string[]{};
 
         /// <summary>
-        /// TODO: what is this?
+        /// The roles for the script
         /// </summary>
         public string[] Role { get; set; } = new string[]{};
 
         /// <summary>
-        /// TODO: what is this?
+        /// The functionality for the
         /// </summary>
         public string[] Functionality { get; set; } = new string[]{};
 
@@ -414,8 +414,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             out ErrorRecord[] errors
         )
         {
-            // TODO: I think hashtable keys should be lower cased
-
             // required properties for script file (.ps1 file) are: Author, Version, Guid, Description
             // Description gets validated in TryParseScript() when getting the property
 
@@ -517,7 +515,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 string parsedCompanyName = (string) parsedScriptMetadata["COMPANYNAME"] ?? String.Empty;
                 string parsedCopyright = (string) parsedScriptMetadata["COPYRIGHT"] ?? String.Empty;
-                string parsedPrivateData = (string) parsedScriptMetadata["PRIVATEDATA"] ?? String.Empty; // TODO: fix PrivateData bug? or already fixed?
+                string parsedPrivateData = (string) parsedScriptMetadata["PRIVATEDATA"] ?? String.Empty;
 
                 string[] parsedTags = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["TAGS"]);
                 string[] parsedExternalModuleDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["EXTERNALMODULEDEPENDENCIES"]);
