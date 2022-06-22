@@ -856,12 +856,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // at this point it must contain ModuleName key.
                 string moduleSpecName = (string) moduleSpec["ModuleName"];
-                ModuleSpecification currentModuleSpec;
-                if (moduleSpec.Keys.Count == 1 || (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion") && !moduleSpec.ContainsKey("Guid")))
+                ModuleSpecification currentModuleSpec = null;
+                if (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion"))
                 {
-                    // TODO: try with malformed data, does it throw?
                     // pass to ModuleSpecification(string) constructor
+                    // this constructor method would only throw for a null/empty string, which we've already validated against above
                     currentModuleSpec = new ModuleSpecification(moduleSpecName);
+                    
                     if (currentModuleSpec != null)
                     {
                         moduleSpecsList.Add(currentModuleSpec);
@@ -917,17 +918,21 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         moduleSpecHash.Add("RequiredVersion", moduleSpecRequiredVersion);
                     }
 
-                    currentModuleSpec = new ModuleSpecification(moduleSpecHash);
+                    try
+                    {
+                        currentModuleSpec = new ModuleSpecification(moduleSpecHash);
+                    }
+                    catch (Exception e)
+                    {
+                        var ex = new ArgumentException($"ModuleSpecification instance was not able to be created with hashtable constructor due to: {e.Message}");
+                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(ModuleSpecNotCreatedError);
+                        moduleSpecCreatedSuccessfully = false;
+                    }
+
                     if (currentModuleSpec != null)
                     {
                         moduleSpecsList.Add(currentModuleSpec);
-                    }
-                    else
-                    {
-                        var exMessage = $"ModuleSpecification object was not able to be created for {moduleSpecName}";
-                        var ex = new ArgumentException(exMessage);
-                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
-                        errorList.Add(ModuleSpecNotCreatedError);
                     }
                 }
             }
