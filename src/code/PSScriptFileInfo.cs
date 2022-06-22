@@ -789,7 +789,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // at this point either:
             // have a new script being created without endOfFileContents, or
             // have a script being updated, and contains no Signature, or contains a Signature but -RemoveSignature was used with cmdlet
-
             if (!String.IsNullOrEmpty(EndOfFileContents))
             {
                 if (EndOfFileContents.Contains(signatureStartString))
@@ -896,7 +895,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Used when creating .ps1 file's contents.
-        /// This creates the help comment string: <# \n .DESCRIPTION #>
+        /// This creates the help comment string: <# \n .DESCRIPTION{mydescription}\n\n#>
         /// </summary>
         private bool GetScriptCommentHelpInfo(
             out string psHelpInfo,
@@ -929,9 +928,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psHelpInfoSuccessfullyCreated = true;
             psHelpInfoLines.Add("<#\n");
             psHelpInfoLines.Add(String.Format(".DESCRIPTION\n{0}", Description));
-            Console.WriteLine("start of description:");
-            Console.WriteLine(Description);
-            Console.WriteLine("End of description");
 
             if (!String.IsNullOrEmpty(Synopsis))
             {
@@ -978,8 +974,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
             }
 
-            psHelpInfoLines.Add("#>");
             psHelpInfo = String.Join("\n", psHelpInfoLines);
+            psHelpInfo = psHelpInfo.TrimEnd('\n');
+            psHelpInfo += "\n\n#>";
             return psHelpInfoSuccessfullyCreated;
         }
 
