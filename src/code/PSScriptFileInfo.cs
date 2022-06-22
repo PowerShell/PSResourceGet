@@ -27,137 +27,141 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the Version of the script
         /// </summary>
-        public NuGetVersion Version { get; set; }
+        public NuGetVersion Version { get; private set; }
 
         /// <summary>
         /// the GUID for the script
         /// </summary>
-        public Guid Guid { get; set; }
+        public Guid Guid { get; private set; }
 
         /// <summary>
         /// the author for the script
         /// </summary>
-        public string Author { get; set; }
+        public string Author { get; private set; }
 
         /// <summary>
         /// the name of the company owning the script
         /// </summary>
-        public string CompanyName { get; set; }
+        public string CompanyName { get; private set; }
 
         /// <summary>
         /// the copyright information for the script
         /// </summary>
-        public string Copyright { get; set; }
+        public string Copyright { get; private set; }
 
         /// <summary>
         /// the tags for the script
         /// </summary>
-        public string[] Tags { get; set; }
+        public string[] Tags { get; private set; }
 
         /// <summary>
         /// the Uri for the license of the script
         /// </summary>
-        public Uri LicenseUri { get; set; }
+        public Uri LicenseUri { get; private set; }
 
         /// <summary>
         /// the Uri for the project relating to the script
         /// </summary>
-        public Uri ProjectUri { get; set; }
+        public Uri ProjectUri { get; private set; }
 
         /// <summary>
         /// the Uri for the icon relating to the script
         /// </summary>
-        public Uri IconUri { get; set; }
+        public Uri IconUri { get; private set; }
 
         /// <summary>
         /// The list of modules required by the script
         /// Hashtable keys: GUID, MaxVersion, ModuleName (Required), RequiredVersion, Version
         /// </summary>
-        public ModuleSpecification[] RequiredModules { get; set; } = new ModuleSpecification[]{};
+        public ModuleSpecification[] RequiredModules { get; private set; } = new ModuleSpecification[]{};
 
         /// <summary>
         /// the list of external module dependencies for the script
         /// </summary>
-        public string[] ExternalModuleDependencies { get; set; } = new string[]{};
+        public string[] ExternalModuleDependencies { get; private set; } = new string[]{};
 
         /// <summary>
         /// the list of required scripts for the parent script
         /// </summary>
-        public string[] RequiredScripts { get; set; } = new string[]{};
+        public string[] RequiredScripts { get; private set; } = new string[]{};
 
         /// <summary>
         /// the list of external script dependencies for the script
         /// </summary>
-        public string[] ExternalScriptDependencies { get; set; } = new string[]{};
+        public string[] ExternalScriptDependencies { get; private set; } = new string[]{};
 
         /// <summary>
         /// the release notes relating to the script
         /// </summary>
-        public string[] ReleaseNotes { get; set; } = new string[]{};
+        public string[] ReleaseNotes { get; private set; } = new string[]{};
 
         /// <summary>
         /// The private data associated with the script
         /// </summary>
-        public string PrivateData { get; set; }
+        public string PrivateData { get; private set; }
 
         /// <summary>
         /// The description of the script
         /// </summary>
-        public string Description { get; set; }
+        public string Description { get; private set; }
         
         /// <summary>
         /// End of file contents for the .ps1 file
         /// </summary>
-        public string EndOfFileContents { get; set; } = String.Empty;        
+        public string EndOfFileContents { get; private set; } = String.Empty;        
 
         /// <summary>
         /// The synopsis of the script
         /// </summary>
-        public string Synopsis { get; set; }
+        public string Synopsis { get; private set; }
 
         /// <summary>
         /// The example(s) relating to the script's usage
         /// </summary>
-        public string[] Example { get; set; } = new string[]{};
+        public string[] Example { get; private set; } = new string[]{};
 
         /// <summary>
         /// The inputs to the script
         /// </summary>
-        public string[] Inputs { get; set; } = new string[]{};
+        public string[] Inputs { get; private set; } = new string[]{};
 
         /// <summary>
         /// The outputs to the script
         /// </summary>
-        public string[] Outputs { get; set; } = new string[]{};
+        public string[] Outputs { get; private set; } = new string[]{};
 
         /// <summary>
         /// The notes for the script
         /// </summary>
-        public string[] Notes { get; set; } = new string[]{};
+        public string[] Notes { get; private set; } = new string[]{};
 
         /// <summary>
         /// The links for the script
         /// </summary>
-        public string[] Links { get; set; } = new string[]{};
+        public string[] Links { get; private set; } = new string[]{};
 
         /// <summary>
         /// The components for the script
         /// </summary>
-        public string[] Component { get; set; } = new string[]{};
+        public string[] Component { get; private set; } = new string[]{};
 
         /// <summary>
         /// The roles for the script
         /// </summary>
-        public string[] Role { get; set; } = new string[]{};
+        public string[] Role { get; private set; } = new string[]{};
 
         /// <summary>
         /// The functionality for the
         /// </summary>
-        public string[] Functionality { get; set; } = new string[]{};
+        public string[] Functionality { get; private set; } = new string[]{};
 
         #endregion
 
+        #region Private Members
+
         private const string signatureStartString = "# SIG # Begin signature block";
+
+        #endregion
 
         #region Constructor
 
