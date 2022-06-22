@@ -142,4 +142,30 @@ Describe "Test Update-PSScriptFileInfo" {
         Update-PSScriptFileInfo -FilePath $scriptFilePath -Tags $testTags
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
+
+    It "update signed script when using RemoveSignature parameter" {
+        # Note: user should sign the script again once it's been updated
+
+        $scriptName = "ScriptWithSignature.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        # use a copy of the signed script file so we can re-use for other tests
+        $null = Copy-Item -Path $scriptFilePath -Destination $TestDrive
+        $tmpScriptFilePath = Join-Path -Path $TestDrive -ChildPath $scriptName
+
+        { Update-PSScriptFileInfo -FilePath $tmpScriptFilePath -Version "2.0.0.0" } | Should -Throw -ErrorId "ScriptToBeUpdatedContainsSignature,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSScriptFileInfo"
+    }
+
+
+    It "throw error when attempting to update a signed script without -RemoveSignature parameter" {
+        $scriptName = "ScriptWithSignature.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        # use a copy of the signed script file so we can re-use for other tests
+        $null = Copy-Item -Path $scriptFilePath -Destination $TestDrive
+        $tmpScriptFilePath = Join-Path -Path $TestDrive -ChildPath $scriptName
+
+        Update-PSScriptFileInfo -FilePath $tmpScriptFilePath -Version "2.0.0.0" -RemoveSignature
+        Test-PSScriptFileInfo -FilePath $tmpScriptFilePath | Should -Be $true
+    }
 }

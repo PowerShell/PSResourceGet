@@ -258,7 +258,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (parsedScriptInfo.EndOfFileContents.Contains(signatureStartString))
             {
-                WriteWarning("This script contains a signature and cannot be updated without invalidating the script");
+                WriteWarning("This script contains a signature and cannot be updated without invalidating the current script signature");
                 if (!RemoveSignature)
                 {
                     var exMessage = "Cannot update script as the .ps1 contains a signature. Either use -RemoveSignature paramter or manaully remove signature block and re-run cmdlet.";
