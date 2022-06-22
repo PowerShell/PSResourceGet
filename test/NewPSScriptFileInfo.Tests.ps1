@@ -29,8 +29,7 @@ Describe "Test New-PSScriptFileInfo" {
     It "create .ps1 file with minimal required fields" {    
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript.ps1"
         $scriptDescription = "this is a test script"
-        $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -PassThru
-        $res | Should -Not -BeNullOrEmpty
+        New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
     }
@@ -39,8 +38,7 @@ Describe "Test New-PSScriptFileInfo" {
         $relativeCurrentPath = Get-Location
         $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "testScript.ps1"
         $scriptDescription = "this is a test script"
-        $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -PassThru
-        $res | Should -Not -BeNullOrEmpty
+        New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
         Remove-Item -Path (Join-Path -Path $relativeCurrentPath -ChildPath "testScript.ps1")
@@ -56,8 +54,7 @@ Describe "Test New-PSScriptFileInfo" {
 
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testScript2.ps1"
         $scriptDescription = "this is a test script"
-        $res = New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -RequiredModules $requiredModulesHashtables -PassThru
-        $res | Should -Not -BeNullOrEmpty
+        New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -RequiredModules $requiredModulesHashtables
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
     }

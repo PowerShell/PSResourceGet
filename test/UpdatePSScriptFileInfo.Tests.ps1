@@ -21,7 +21,7 @@ Describe "Test Update-PSScriptFileInfo" {
     BeforeEach {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
-        New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription -PassThru
+        New-PSScriptFileInfo -FilePath $scriptFilePath -Description $scriptDescription
     }
 
     AfterEach {
@@ -51,7 +51,7 @@ Describe "Test Update-PSScriptFileInfo" {
     }
 
     It "update script file Version property with prerelease version" {
-        Update-PSScriptFileInfo -FilePath $scriptFilePath -Version "3.0.0-alpha"
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Version "3.0.0-alpha" -verbose
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
@@ -142,6 +142,4 @@ Describe "Test Update-PSScriptFileInfo" {
         Update-PSScriptFileInfo -FilePath $scriptFilePath -Tags $testTags
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
-
-    # Validate param needs to be tested
 }

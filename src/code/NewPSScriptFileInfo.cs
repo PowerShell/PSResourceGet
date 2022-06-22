@@ -19,13 +19,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
     public sealed class NewPSScriptFileInfo : PSCmdlet
     {
-        #region Members
-        private Uri _projectUri;
-        private Uri _licenseUri;
-        private Uri _iconUri;
-
-        #endregion
-
         #region Parameters
 
         /// <summary>
@@ -148,12 +141,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string PrivateData { get; set; }
 
         /// <summary>
-        /// If specified, the .ps1 file contents are additionally written out to the console
-        /// </summary>
-        [Parameter]
-        public SwitchParameter PassThru { get; set; }
-
-        /// <summary>
         /// If used with Path parameter and .ps1 file specified at the path exists, it rewrites the file
         /// </summary>
         [Parameter]
@@ -166,25 +153,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             // validate Uri related parameters passed in as strings
+            Uri projectUri = null;
             if (!String.IsNullOrEmpty(ProjectUri) && !Utils.TryCreateValidUri(uriString: ProjectUri,
                 cmdletPassedIn: this,
-                uriResult: out _projectUri,
+                uriResult: out projectUri,
                 errorRecord: out ErrorRecord projectErrorRecord))
             {
                 ThrowTerminatingError(projectErrorRecord);
             }
 
+            Uri licenseUri = null;
             if (!String.IsNullOrEmpty(LicenseUri) && !Utils.TryCreateValidUri(uriString: LicenseUri,
                 cmdletPassedIn: this,
-                uriResult: out _licenseUri,
+                uriResult: out licenseUri,
                 errorRecord: out ErrorRecord licenseErrorRecord))
             {
                 ThrowTerminatingError(licenseErrorRecord);
             }
 
+            Uri iconUri = null;
             if (!String.IsNullOrEmpty(IconUri) && !Utils.TryCreateValidUri(uriString: IconUri,
                 cmdletPassedIn: this,
-                uriResult: out _iconUri,
+                uriResult: out iconUri,
                 errorRecord: out ErrorRecord iconErrorRecord))
             {
                 ThrowTerminatingError(iconErrorRecord);
@@ -210,16 +200,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ModuleSpecification[] validatedRequiredModuleSpecifications = new ModuleSpecification[]{};
             if (RequiredModules != null && RequiredModules.Length > 0)
             {
-                Utils.CreateModuleSpecification(
+                if (!Utils.TryCreateModuleSpecification(
                     moduleSpecHashtables: RequiredModules,
                     out validatedRequiredModuleSpecifications,
-                    out ErrorRecord[] moduleSpecErrors);
-                if (moduleSpecErrors.Length > 0)
+                    out ErrorRecord[] moduleSpecErrors))
                 {
                     foreach (ErrorRecord err in moduleSpecErrors)
                     {
                         WriteError(err);
                     }
+
+                    return;
                 }
             }
 
@@ -230,16 +221,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 companyName: CompanyName,
                 copyright: Copyright,
                 tags: Tags,
-                licenseUri: _licenseUri,
-                projectUri: _projectUri,
-                iconUri: _iconUri,
+                licenseUri: licenseUri,
+                projectUri: projectUri,
+                iconUri: iconUri,
                 requiredModules: validatedRequiredModuleSpecifications,
                 externalModuleDependencies: ExternalModuleDependencies,
                 requiredScripts: RequiredScripts,
                 externalScriptDependencies: ExternalScriptDependencies,
                 releaseNotes: ReleaseNotes,
                 privateData: PrivateData,
-                description: Description);
+                description: Description,
+                endOfFileContents: String.Empty);
 
             if (!currentScriptInfo.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
@@ -253,17 +245,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            // File.Create handles relative and absolute paths
-            using(FileStream fs = File.Create(FilePath))
-            {
-                byte[] info = new UTF8Encoding(true).GetBytes(psScriptFileContents);
-                fs.Write(info, 0, info.Length);
-            }
-
-            if (PassThru)
-            {
-                WriteObject(psScriptFileContents);
-            }            
+            File.WriteAllText(FilePath, psScriptFileContents);       
         }
 
         #endregion

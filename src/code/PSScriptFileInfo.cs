@@ -20,12 +20,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     /// This class contains information for a PSScriptFileInfo (representing a .ps1 file contents)
     /// </summary>
     public sealed class PSScriptFileInfo
-    {        
-        #region Members
-
-        private string[] fileContents = new string[]{};
-
-        #endregion
+    {
 
         #region Properties
 
@@ -109,11 +104,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// The description of the script
         /// </summary>
         public string Description { get; set; }
-
+        
         /// <summary>
         /// End of file contents for the .ps1 file
         /// </summary>
-        public string[] EndOfFileContents { get; set; } = new string[]{};        
+        public string EndOfFileContents { get; set; } = String.Empty;        
 
         /// <summary>
         /// The synopsis of the script
@@ -162,6 +157,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
+        private const string signatureStartString = "# SIG # Begin signature block";
+
         #region Constructor
 
         private PSScriptFileInfo() {}
@@ -182,7 +179,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string[] releaseNotes,
             string privateData,
             string description,
-            string[] endOfFileContents
+            string endOfFileContents
         )
         {
             if (String.IsNullOrEmpty(author))
@@ -213,20 +210,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         
         #region Internal Static Methods
 
-        // one method that takes .ps1 file and creates hashtable
         /// <summary>
         /// Parses content of .ps1 file into a hashtable
         /// </summary>
         internal static bool TryParseScript(
             string scriptFileInfoPath,
             out Hashtable parsedScriptMetadata,
-            out string[] endOfFileContents,
+            out string endOfFileContents,
             out ErrorRecord[] errors
         )
         {
             errors = new ErrorRecord[]{};
             parsedScriptMetadata = new Hashtable();
-            endOfFileContents = new string[]{};
+            endOfFileContents = String.Empty;
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
             // Parse the script file
@@ -296,10 +292,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            // get .REQUIREDMODULES property, by accessing the ScriptBlockAst.ScriptRequirements.RequiredModules
-            // ex of ScriptRequirements
-            // ex of RequiredModules
-            // TODO: (Anam) in comment include ex of ScriptRequirements and RequiredModules (above)
+            // get .REQUIREDMODULES property, by accessing the System.Management.Automation.Language.ScriptRequirements object ScriptRequirements.RequiredModules property
             ScriptRequirements parsedScriptRequirements = ast.ScriptRequirements;
             ReadOnlyCollection<ModuleSpecification> parsedModules = new List<ModuleSpecification>().AsReadOnly();
 
@@ -311,9 +304,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             // Get the block/group comment beginning with <#PSScriptInfo
             // this contains other script properties, including AUTHOR, VERSION, GUID (which are required properties)
-
             List<Token> commentTokens = tokens.Where(a => a.Kind == TokenKind.Comment).ToList();
-            string commentPattern = "<#PSScriptInfo";
+            string commentPattern = @"^<#PSScriptInfo";
             Regex rg = new Regex(commentPattern);
 
             Token psScriptInfoCommentToken = commentTokens.Where(a => rg.IsMatch(a.Extent.Text)).FirstOrDefault();
@@ -328,9 +320,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;  
             }
 
-            // TODO: add ^
-            // that would get each line that matches <#PSScriptInfo at the start, which is only line 1
             /**
+            should now have a Token with text like this:
+
             <#PSScriptInfo
 
             .VERSION 1.0
@@ -365,13 +357,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             #>
             */
 
-            string[] newlineDelimeters = new string[]{"\r\n", "\n"}; // TODO should I also have \n?
+            string[] newlineDelimeters = new string[]{"\r\n", "\n"};
             string[] commentLines = psScriptInfoCommentToken.Text.Split(newlineDelimeters, StringSplitOptions.RemoveEmptyEntries);
             string keyName = String.Empty;
             string value = String.Empty;
 
             /**
-            If comment line count is not more than two, it doesn't have the any metadata property
+            If comment line count is not more than two, it doesn't have the any metadata property and
             comment block would look like:
 
             <#PSScriptInfo
@@ -406,14 +398,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             // get end of file contents
-            // TODO: (Anam) when updating write warning to user that the signature will be invalidated, needs to be regenerated
             string[] totalFileContents = File.ReadAllLines(scriptFileInfoPath);
             var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
             var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
-            if (contentAfterDescription.Count() > 0)
-            {
-                endOfFileContents = contentAfterDescription.ToArray();
-            }
+            endOfFileContents = String.Join("\n", contentAfterDescription.ToArray());
 
             return true;
         }
@@ -426,11 +414,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             out ErrorRecord[] errors
         )
         {
-            // TODO: retuan all errors at once, wait til end
+            // TODO: I think hashtable keys should be lower cased
 
             // required properties for script file (.ps1 file) are: Author, Version, Guid, Description
             // Description gets validated in TryParseScript() when getting the property
-            // TODO: I think hashtable keys should be lower cased
 
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
@@ -440,8 +427,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var ex = new ArgumentException(message);
                 var psScriptMissingVersionError = new ErrorRecord(ex, "psScriptMissingVersion", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptMissingVersionError);
-                errors = errorsList.ToArray();
-                return false;
             }
 
             if (!parsedScriptMetadata.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedScriptMetadata["AUTHOR"]))
@@ -450,8 +435,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var ex = new ArgumentException(message);
                 var psScriptMissingAuthorError = new ErrorRecord(ex, "psScriptMissingAuthor", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptMissingAuthorError);
-                errors = errorsList.ToArray();
-                return false;;
             }
 
             if (!parsedScriptMetadata.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedScriptMetadata["GUID"]))
@@ -460,11 +443,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var ex = new ArgumentException(message);
                 var psScriptMissingGuidError = new ErrorRecord(ex, "psScriptMissingGuid", ErrorCategory.ParserError, null);
                 errorsList.Add(psScriptMissingGuidError);
-                errors = errorsList.ToArray();
-                return false;
             }
 
             errors = errorsList.ToArray();
+            if (errors.Length > 0)
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -496,7 +482,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (!TryParseScript(
                 scriptFileInfoPath: scriptFileInfoPath,
                 parsedScriptMetadata: out Hashtable parsedScriptMetadata,
-                endOfFileContents: out string[] endofFileContents,
+                endOfFileContents: out string endofFileContents,
                 errors: out ErrorRecord[] parseErrors
             ))
             {
@@ -729,12 +715,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            // TODO: move into TryCreateScriptFileInfoString, if it exists then add, if not you dont
-            if (scriptInfo.EndOfFileContents.Length > 0)
-            {
-                psScriptFileContents += "\n" + String.Join("\n", scriptInfo.EndOfFileContents);
-            }
-
             updatedPSScriptFileContents = psScriptFileContents;
             return true;
         }
@@ -747,7 +727,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Create .ps1 file contents as a string from PSScriptFileInfo object's properties
         /// end of file contents are not yet added to the string contents of the file
         /// </summary>
-        public bool TryCreateScriptFileInfoString(
+        internal bool TryCreateScriptFileInfoString(
             // string filePath,
             out string pSScriptFileString, // this is the string with the contents we want to put in the new ps1 file
             out ErrorRecord[] errors
@@ -805,6 +785,21 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // or else not recongnized as a valid comment help info block when parsing the created ps1 later
             pSScriptFileString += "\n" + psHelpInfo;
 
+
+            // at this point either:
+            // have a new script being created without endOfFileContents, or
+            // have a script being updated, and contains no Signature, or contains a Signature but -RemoveSignature was used with cmdlet
+
+            if (!String.IsNullOrEmpty(EndOfFileContents))
+            {
+                if (EndOfFileContents.Contains(signatureStartString))
+                {
+                    RemoveSignatureString();
+                }
+
+                pSScriptFileString += "\n" + EndOfFileContents;
+            }
+
             fileContentsSuccessfullyCreated = true;
             return fileContentsSuccessfullyCreated;
         }
@@ -851,17 +846,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 #>
             */
 
-            if (String.IsNullOrEmpty(Author) || Version == null)
-            {
-                var exMessage = "PSScriptInfo must contain values for Author and Version. Ensure both of these are present.";
-                var ex = new ArgumentException(exMessage);
-                var PSScriptInfoMissingAuthorOrVersionError = new ErrorRecord(ex, "PSScriptInfoMissingAuthorOrVersion", ErrorCategory.InvalidArgument, null);
-                error = PSScriptInfoMissingAuthorOrVersionError;
-                return pSScriptInfoSuccessfullyCreated;
-            }
-
             pSScriptInfoSuccessfullyCreated = true;
             List<string> psScriptInfoLines = new List<string>();
+
             psScriptInfoLines.Add("<#PSScriptInfo");
             psScriptInfoLines.Add(String.Format(".VERSION {0}", Version.ToString()));
             psScriptInfoLines.Add(String.Format(".GUID {0}", Guid.ToString()));
@@ -904,7 +891,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 psRequiresLines.Add("\n");
                 psRequiresString = String.Join("\n", psRequiresLines);
-                // TODO: Does the GUID come in for ModuleSpecification(string) constructed object's ToString() output?
             }
         }
 
@@ -943,6 +929,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psHelpInfoSuccessfullyCreated = true;
             psHelpInfoLines.Add("<#\n");
             psHelpInfoLines.Add(String.Format(".DESCRIPTION\n{0}", Description));
+            Console.WriteLine("start of description:");
+            Console.WriteLine(Description);
+            Console.WriteLine("End of description");
 
             if (!String.IsNullOrEmpty(Synopsis))
             {
@@ -995,11 +984,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// Ensure no fields (passed as stringToValidate) contains '<#' or '#>' (would break comment section)
+        /// Ensure no fields (passed as stringToValidate) contains '<#' or '#>' (would break AST block section)
         /// </summary>
         private bool StringContainsComment(string stringToValidate)
         {
             return stringToValidate.Contains("<#") || stringToValidate.Contains("#>");
+        }
+
+        private void RemoveSignatureString()
+        {
+            int signatureStartIndex = EndOfFileContents.IndexOf(signatureStartString);
+            EndOfFileContents = EndOfFileContents.Substring(0, signatureStartIndex);
         }
 
         #endregion

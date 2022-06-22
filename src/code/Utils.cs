@@ -831,11 +831,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return (results.Count == 1 && results[0] != null) ? (Hashtable)results[0].BaseObject : null;
         }
 
-        public static void CreateModuleSpecification(
+        public static bool TryCreateModuleSpecification(
             Hashtable[] moduleSpecHashtables,
             out ModuleSpecification[] validatedModuleSpecs,
             out ErrorRecord[] errors)
         {
+            bool moduleSpecCreatedSuccessfully = true;
             List<ErrorRecord> errorList = new List<ErrorRecord>();
             validatedModuleSpecs = new ModuleSpecification[]{};
             List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
@@ -845,10 +846,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // ModuleSpecification(string) constructor for creating a ModuleSpecification when only ModuleName is provided
                 if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
                 {
-                    var exMessage = "RequiredModules Hashtable entry is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
+                    var exMessage = $"RequiredModules Hashtable entry {moduleSpec.ToString()} is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
                     var ex = new ArgumentException(exMessage);
                     var NameMissingModuleSpecError = new ErrorRecord(ex, "NameMissingInModuleSpecification", ErrorCategory.InvalidArgument, null);
                     errorList.Add(NameMissingModuleSpecError);
+                    moduleSpecCreatedSuccessfully = false;
                     continue;
                 }
 
@@ -857,6 +859,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 ModuleSpecification currentModuleSpec;
                 if (moduleSpec.Keys.Count == 1 || (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion") && !moduleSpec.ContainsKey("Guid")))
                 {
+                    // TODO: try with malformed data, does it throw?
                     // pass to ModuleSpecification(string) constructor
                     currentModuleSpec = new ModuleSpecification(moduleSpecName);
                     if (currentModuleSpec != null)
@@ -865,10 +868,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                     else
                     {
-                        var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
+                        var exMessage = $"ModuleSpecification object was not able to be created for {moduleSpecName}";
                         var ex = new ArgumentException(exMessage);
                         var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
                         errorList.Add(ModuleSpecNotCreatedError);
+                        moduleSpecCreatedSuccessfully = false;
+                        continue;
                     }
                 }
                 else
@@ -877,15 +882,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaximumVersion"] : String.Empty;
                     string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
                     string moduleSpecRequiredVersion = moduleSpec.ContainsKey("RequiredVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
-                    Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty; // TODO: ANAM this can be the default
+                    Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty;
 
                     if (String.IsNullOrEmpty(moduleSpecMaxVersion) && String.IsNullOrEmpty(moduleSpecModuleVersion) && String.IsNullOrEmpty(moduleSpecRequiredVersion))
                     {
-                        var exMessage = String.Format("ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {0}", moduleSpecName);
+                        var exMessage = $"ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {moduleSpecName}";
                         var ex = new ArgumentException(exMessage);
                         var MissingModuleSpecificationMemberError = new ErrorRecord(ex, "MissingModuleSpecificationMember", ErrorCategory.InvalidArgument, null);
                         errorList.Add(MissingModuleSpecificationMemberError);
-
+                        moduleSpecCreatedSuccessfully = false;
                         continue;
                     }
 
@@ -919,7 +924,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                     else
                     {
-                        var exMessage = String.Format("ModuleSpecification object was not able to be created for {0}", moduleSpecName);
+                        var exMessage = $"ModuleSpecification object was not able to be created for {moduleSpecName}";
                         var ex = new ArgumentException(exMessage);
                         var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
                         errorList.Add(ModuleSpecNotCreatedError);
@@ -929,6 +934,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             errors = errorList.ToArray();
             validatedModuleSpecs = moduleSpecsList.ToArray();
+            return moduleSpecCreatedSuccessfully;
         }
 
         #endregion

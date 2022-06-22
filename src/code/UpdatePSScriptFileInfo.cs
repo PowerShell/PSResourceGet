@@ -19,14 +19,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsData.Update, "PSScriptFileInfo")]
     public sealed class UpdatePSScriptFileInfo : PSCmdlet
     {
-        #region Members
-        // TODO: make these variables
-        private Uri _projectUri;
-        private Uri _licenseUri;
-        private Uri _iconUri;
-
-        #endregion
-
         #region Parameters
 
         /// <summary>
@@ -99,13 +91,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string LicenseUri { get; set; }
 
         /// <summary>
-        /// If specified, passes the contents of the created .ps1 file to the console
-        /// If -Path is not specified, then .ps1 contents will just be written out for the user
-        /// </summary>
-        [Parameter]
-        public SwitchParameter PassThru { get; set; }
-
-        /// <summary>
         /// The path the .ps1 script info file will be created at
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
@@ -134,6 +119,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] ReleaseNotes { get; set; }
 
         /// <summary>
+        /// Remove signature from signed .ps1 (if present) thereby allowing update of script to happen
+        /// User should re-sign the updated script afterwards.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter RemoveSignature { get; set; }
+
+        /// <summary>
         /// The list of modules required by the script
         /// </summary>
         [Parameter]
@@ -155,12 +147,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] Tags { get; set; }
 
         /// <summary>
-        /// If specified, it validates the updated script
-        /// </summary>
-        [Parameter]
-        public SwitchParameter Validate { get; set; }
-
-        /// <summary>
         /// The version of the script
         /// </summary>
         [Parameter]
@@ -169,30 +155,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
+        #region Private Members
+
+        private const string signatureStartString = "# SIG # Begin signature block";
+
+        #endregion
+
         #region Methods
 
         protected override void ProcessRecord()
         {
-            // validate Uri related parameters passed in as strings
+            Uri projectUri = null;
             if (!String.IsNullOrEmpty(ProjectUri) && !Utils.TryCreateValidUri(uriString: ProjectUri,
                 cmdletPassedIn: this,
-                uriResult: out _projectUri,
+                uriResult: out projectUri,
                 errorRecord: out ErrorRecord projectErrorRecord))
             {
                 ThrowTerminatingError(projectErrorRecord);
             }
 
+            Uri licenseUri = null;
             if (!String.IsNullOrEmpty(LicenseUri) && !Utils.TryCreateValidUri(uriString: LicenseUri,
                 cmdletPassedIn: this,
-                uriResult: out _licenseUri,
+                uriResult: out licenseUri,
                 errorRecord: out ErrorRecord licenseErrorRecord))
             {
                 ThrowTerminatingError(licenseErrorRecord);
             }
 
+            Uri iconUri = null;
             if (!String.IsNullOrEmpty(IconUri) && !Utils.TryCreateValidUri(uriString: IconUri,
                 cmdletPassedIn: this,
-                uriResult: out _iconUri,
+                uriResult: out iconUri,
                 errorRecord: out ErrorRecord iconErrorRecord))
             {
                 ThrowTerminatingError(iconErrorRecord);
@@ -228,16 +222,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ModuleSpecification[] validatedRequiredModuleSpecifications = new ModuleSpecification[]{};
             if (RequiredModules != null && RequiredModules.Length > 0)
             {
-                Utils.CreateModuleSpecification(
+                if (!Utils.TryCreateModuleSpecification(
                     moduleSpecHashtables: RequiredModules,
                     out validatedRequiredModuleSpecifications,
-                    out ErrorRecord[] moduleSpecErrors);
-                if (moduleSpecErrors.Length > 0)
+                    out ErrorRecord[] moduleSpecErrors))
                 {
                     foreach (ErrorRecord err in moduleSpecErrors)
                     {
                         WriteError(err);
                     }
+
+                    return;
                 }
             }
 
@@ -260,6 +255,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 return; 
             }
+
+            if (parsedScriptInfo.EndOfFileContents.Contains(signatureStartString))
+            {
+                WriteWarning("This script contains a signature and cannot be updated without invalidating the script");
+                if (!RemoveSignature)
+                {
+                    var exMessage = "Cannot update script as the .ps1 contains a signature. Either use -RemoveSignature paramter or manaully remove signature block and re-run cmdlet.";
+                    var ex = new PSInvalidOperationException(exMessage);
+                    var ScriptToBeUpdatedContainsSignatureError = new ErrorRecord(ex, "ScriptToBeUpdatedContainsSignature", ErrorCategory.InvalidOperation, null);
+                    ThrowTerminatingError(ScriptToBeUpdatedContainsSignatureError);
+                }
+            }
             
             if (!PSScriptFileInfo.TryUpdateScriptFileContents(
                 scriptInfo: parsedScriptInfo,
@@ -271,9 +278,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 companyName: CompanyName,
                 copyright: Copyright,
                 tags: Tags,
-                licenseUri: _licenseUri,
-                projectUri: _projectUri,
-                iconUri: _iconUri,
+                licenseUri: licenseUri,
+                projectUri: projectUri,
+                iconUri: iconUri,
                 requiredModules: validatedRequiredModuleSpecifications,
                 externalModuleDependencies: ExternalModuleDependencies,
                 requiredScripts: RequiredScripts,
@@ -291,8 +298,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
                   
-            // TODO: put this in a try catch
-            // write string of file contents to a temp file
             string tempScriptFilePath = null;
             try
             {
@@ -303,7 +308,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch(Exception e)
             {
-                // TODO
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException($"Could not update .ps1 file due to: {e.Message}"),
+                    "FileIOErrorDuringUpdate",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
             finally
             {
@@ -311,13 +320,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     File.Delete(tempScriptFilePath);
                 }
-            }
-
-            // TODO: ceck with Sydney if we wnat to return PSScriptFileInfo obj?
-            if (PassThru)
-            {
-                WriteObject(updatedPSScriptFileContents);
-            }      
+            }    
         }
 
         #endregion
