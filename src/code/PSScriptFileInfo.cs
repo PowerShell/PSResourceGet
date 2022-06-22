@@ -225,7 +225,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         )
         {
             errors = new ErrorRecord[]{};
-            parsedScriptMetadata = new Hashtable();
+            parsedScriptMetadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
             endOfFileContents = String.Empty;
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 

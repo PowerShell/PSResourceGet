@@ -13,7 +13,7 @@ Creates a new .ps1 file containing metadata for the script, which is used when p
 ## SYNTAX
 
 ```
-New-PSScriptFileInfo [-FilePath <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-PassThru] [-Force] [-WhatIf] [<CommonParameters>]
+New-PSScriptFileInfo [-FilePath <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-Force] [-WhatIf] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -270,21 +270,6 @@ The private data associated with the script
 ```yaml
 Type: System.String
 Parameter Sets:
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-When specified, displays the PSScriptFileInfo object representing the script metadata.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
 Aliases:
 
 Required: False

@@ -13,7 +13,7 @@ Updates an existing .ps1 file with requested properties and ensures it's valid.
 ## SYNTAX
 
 ```
-Update-PSScriptFileInfo [-FilePath <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-WhatIf] [-Validate] [<CommonParameters>] [<CommonParameters>]
+Update-PSScriptFileInfo [-FilePath <String>] [-Version <string>] [-Author <string>] [-Description <string>] [-Guid <Guid>] [-CompanyName <string>] [-Copyright <string>>] [-RequiredModules <Microsoft.PowerShell.Commands.ModuleSpecification[]>] [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <System.Uri>] [-LicenseUri <System.Uri>] [-IconUri <System.Uri>] [-ReleaseNotes <string[]>] [-PrivateData <string>] [-WhatIf] [<CommonParameters>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
