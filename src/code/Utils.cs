@@ -721,8 +721,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private readonly static Version PSVersion6 = new Version(6, 0);
         private static void GetStandardPlatformPaths(
-
-
             PSCmdlet psCmdlet,
             out string myDocumentsPath,
             out string programFilesPath)
