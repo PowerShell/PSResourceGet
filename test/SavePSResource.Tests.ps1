@@ -27,6 +27,7 @@ Describe 'Test Save-PSResource for PSResources' {
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
+        Remove-Item $TestDrive -Recurse -Force
     }
 
     It "Save specific module resource by name" {
@@ -109,7 +110,7 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -BeNullOrEmpty
         $Error.Count | Should -Not -Be 0
-        $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $Error[0].FullyQualifiedErrorId  | Should -Be "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     It "Should not save resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]"{
@@ -204,8 +205,6 @@ Describe 'Test Save-PSResource for PSResources' {
 
     It "Save module as a nupkg" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -AsNupkg -TrustRepository
-        write-host $SaveDir
-        write-host 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_module.1.0.0.nupkg"
         $pkgDir | Should -Not -BeNullOrEmpty
     }
@@ -284,6 +283,19 @@ Describe 'Test Save-PSResource for PSResources' {
     It "Save script that is not signed" -Skip:(!(Get-IsWindows)) {
         Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+    }
+
+    It "Save should use enviornment variable PSGetTempPath" {
+        $tmpDirPath = Join-Path -Path $TestDrive -ChildPath "tmpDirPath"
+        $Env:PSGetTempPath = $tmpDirPath;
+
+        $logFile = Join-Path -Path $TestDrive -ChildPath "logfile.txt"
+        Save-PSResource -Name $testModuleName -Repository $PSGalleryName -Path $SaveDir -TrustRepository -Verbose 4>> $logFile
+
+        $results = Get-Content -Path $logFile -Raw
+        $results.Contains($tmpDirPath) | Should -Be $true
+
+        $Env:PSGetTempPath = "";
     }
 
 <#

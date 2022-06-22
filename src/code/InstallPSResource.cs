@@ -217,9 +217,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
-        List<string> _pathsToInstallPkg;
         private string _requiredResourceFile;
         private string _requiredResourceJson;
+        private string tmpPath;
+        List<string> _pathsToInstallPkg;
         private Hashtable _requiredResourceHash;
         VersionRange _versionRange;
         InstallHelper _installHelper;
@@ -236,6 +237,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
+            
+            // Get or create temp directory for those who want to specify where 
+            // temporary resource installations go before moved to their final destination.
+            tmpPath = Environment.GetEnvironmentVariable("PSGetTempPath");
 
             _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
@@ -521,6 +526,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
+                tmpPath: tmpPath,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
             if (PassThru)

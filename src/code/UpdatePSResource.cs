@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Threading;
@@ -21,14 +22,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         SupportsShouldProcess = true)]
     public sealed class UpdatePSResource : PSCmdlet
     {
-        #region Members
-        private List<string> _pathsToInstallPkg;
-        private CancellationTokenSource _cancellationTokenSource;
-        private FindHelper _findHelper;
-        private InstallHelper _installHelper;
-
-        #endregion
-
         #region Parameters
 
         /// <summary>
@@ -120,6 +113,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
+        #region Members
+        private string tmpPath;
+        private List<string> _pathsToInstallPkg;
+        private CancellationTokenSource _cancellationTokenSource;
+        private FindHelper _findHelper;
+        private InstallHelper _installHelper;
+
+        #endregion
+
         #region Override Methods
 
         protected override void BeginProcessing()
@@ -135,7 +137,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 cancellationToken: _cancellationTokenSource.Token, 
                 cmdletPassedIn: this);
 
-             _installHelper = new InstallHelper(cmdletPassedIn: this);
+            // Get or create temp directory for those who want to specify where 
+            // temporary resource installations go before moved to their final destination.
+            tmpPath = Environment.GetEnvironmentVariable("PSGetTempPath");
+
+            _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
 
         protected override void ProcessRecord()
@@ -187,6 +193,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
+                tmpPath: tmpPath,
                 pathsToInstallPkg: _pathsToInstallPkg);
 
             if (PassThru)

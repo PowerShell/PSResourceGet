@@ -20,15 +20,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
     public sealed class SavePSResource : PSCmdlet
     {
-        #region Members
-
-        private const string NameParameterSet = "NameParameterSet";
-        private const string InputObjectParameterSet = "InputObjectParameterSet";
-        VersionRange _versionRange;
-        InstallHelper _installHelper;
-        
-        #endregion
-
         #region Parameters 
 
         /// <summary>
@@ -147,6 +138,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
+        #region Members
+
+        private const string NameParameterSet = "NameParameterSet";
+        private const string InputObjectParameterSet = "InputObjectParameterSet";
+        private string tmpPath;
+        VersionRange _versionRange;
+        InstallHelper _installHelper;
+
+        #endregion
+
         #region Method overrides
 
         protected override void BeginProcessing()
@@ -160,6 +161,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _path = SessionState.Path.CurrentLocation.Path;
             }
+
+            // Get or create temp directory for those who want to specify where 
+            // temporary resource installations go before moved to their final destination.
+            tmpPath = Environment.GetEnvironmentVariable("PSGetTempPath");
 
             _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
@@ -268,6 +273,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
+                tmpPath: tmpPath,
                 pathsToInstallPkg: new List<string> { _path });
 
             if (PassThru)

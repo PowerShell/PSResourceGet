@@ -24,6 +24,7 @@ Describe 'Test Update-PSResource' {
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
+        Remove-Item $TestDrive -Recurse -Force
     }
 
     It "update resource installed given Name parameter" {
@@ -373,5 +374,20 @@ Describe 'Test Update-PSResource' {
         Install-PSResource -Name "TestTestScript" -Version "1.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
+    }
+
+    It "Update should use enviornment variable PSGetTempPath" {
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+
+        $tmpDirPath = Join-Path -Path $TestDrive -ChildPath "tmpDirPath"
+        $Env:PSGetTempPath = $tmpDirPath;
+
+        $logFile = Join-Path -Path $TestDrive -ChildPath "logfile.txt"
+        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Verbose 4>> $logFile
+
+        $results = Get-Content -Path $logFile -Raw
+        $results.Contains($tmpDirPath) | Should -Be $true
+
+        $Env:PSGetTempPath = "";
     }
 }

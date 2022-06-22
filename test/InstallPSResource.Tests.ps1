@@ -25,6 +25,7 @@ Describe 'Test Install-PSResource for Module' {
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
+        Remove-Item $TestDrive -Recurse -Force
     }
 
     $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
@@ -104,7 +105,7 @@ Describe 'Test Install-PSResource for Module' {
         }
         catch
         {}
-        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
 
         $res = Get-PSResource $testModuleName
         $res | Should -BeNullOrEmpty
@@ -479,6 +480,19 @@ Describe 'Test Install-PSResource for Module' {
     It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    }
+
+    It "Install should use enviornment variable PSGetTempPath" {
+        $tmpDirPath = Join-Path -Path $TestDrive -ChildPath "tmpDirPath"
+        $Env:PSGetTempPath = $tmpDirPath;
+
+        $logFile = Join-Path -Path $TestDrive -ChildPath "logfile.txt"
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Verbose 4>> $logFile
+
+        $results = Get-Content -Path $logFile -Raw
+        $results.Contains($tmpDirPath) | Should -Be $true
+
+        $Env:PSGetTempPath = "";
     }
 }
 
