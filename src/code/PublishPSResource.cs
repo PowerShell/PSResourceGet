@@ -418,12 +418,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // a module will still need the module manifest to be parsed.
             if (!isScript)
             {
-                // Parse the module manifest and *replace* the passed-in metadata with the module manifest metadata.
-                if (!Utils.TryParsePSDataFile(
-                    moduleFileInfo: filePath,
-                    cmdletPassedIn: this,
-                    parsedMetadataHashtable: out parsedMetadataHash))
+                // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
+                if (!Utils.TryReadManifestFile(
+                    manifestFilePath: filePath,
+                    manifestInfo: out parsedMetadataHash,
+                    error: out Exception manifestReadError))
                 {
+                    WriteError(
+                        new ErrorRecord(
+                            exception: manifestReadError,
+                            errorId: "ManifestFileReadParseForNuspecError",
+                            errorCategory: ErrorCategory.ReadError,
+                            this));
+                    
                     return string.Empty;
                 }
             }
@@ -949,7 +956,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 PushRunner.Run(
                         settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
                         sourceProvider: new PackageSourceProvider(settings),
-                        packagePath: fullNupkgFile,
+                        packagePaths: new List<string> { fullNupkgFile },
                         source: publishLocation,
                         apiKey: ApiKey,
                         symbolSource: null,
