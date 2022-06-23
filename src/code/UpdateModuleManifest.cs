@@ -291,17 +291,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void EndProcessing()
         {
-            // Write test for if passed in path is not a valid module manifest
-
             // Parse the module manifest
-            if (!Utils.TryParsePSDataFile(ResolvedManifestPath, this, out Hashtable parsedMetadata))
+            if(!Utils.TryReadManifestFile(
+                        manifestFilePath: ResolvedManifestPath,
+                        manifestInfo: out Hashtable parsedMetadata,
+                        error: out Exception manifestReadError))
             {
                 ThrowTerminatingError(
                   new ErrorRecord(
-                       new ArgumentException(String.Format("Unable to successfully parse file '{0}'.", ResolvedManifestPath)),
-                      "moduleManifestParseFailure",
-                       ErrorCategory.ParserError,
-                       this));
+                       exception: manifestReadError,
+                       errorId: "ModuleManifestParseFailure",
+                       errorCategory: ErrorCategory.ParserError,
+                       targetObject: this));
             }
 
             // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance, 

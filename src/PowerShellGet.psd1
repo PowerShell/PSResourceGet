@@ -24,6 +24,7 @@
         'Publish-PSResource',
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
+        'Update-ModuleManifest',
         'Update-PSResource')
 
     VariablesToExport = 'PSGetPath'
