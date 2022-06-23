@@ -520,9 +520,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        if (!Utils.TryParsePSDataFile(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
+                        if (!Utils.TryReadManifestFile(
+                            manifestFilePath: moduleManifest,
+                            manifestInfo: out Hashtable parsedMetadataHashtable,
+                            error: out Exception manifestReadError))
                         {
-                            // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
+                            WriteError(
+                                new ErrorRecord(
+                                    exception: manifestReadError,
+                                    errorId: "ManifestFileReadParseError",
+                                    errorCategory: ErrorCategory.ReadError,
+                                    this));
+
                             continue;
                         }
 
