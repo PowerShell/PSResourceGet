@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <Configuration>Release</Configuration>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/code/PowerShellGet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1"/>
+    <PackageReference Include="LinqKit.Core" Version="1.1.17" />
+    <PackageReference Include="morelinq" Version="3.3.2" />
+    <PackageReference Include="NuGet.Commands" Version="6.2.1" />
+    <PackageReference Include="NuGet.Common" Version="6.2.1" />
+    <PackageReference Include="NuGet.Configuration" Version="6.2.1" />
+    <PackageReference Include="NuGet.Packaging" Version="6.2.1" />
+    <PackageReference Include="NuGet.ProjectModel" Version="6.2.1" />
+    <PackageReference Include="NuGet.Protocol" Version="6.2.1" />
+    <PackageReference Include="NuGet.Repositories" Version="4.3.0-beta1-2418" />
+    <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
+    <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+  </ItemGroup>
+</Project>
