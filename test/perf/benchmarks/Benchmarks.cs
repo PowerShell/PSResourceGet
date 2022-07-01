@@ -4,16 +4,16 @@ using BenchmarkDotNet.Attributes;
 
 namespace benchmarks
 {
-    internal class Benchmarks
+    public class Benchmarks
     {
         [Benchmark]
-        public PSResourceInfo Scenario1()
+        public void Scenario1()
         {
-            PSResourceInfo a = null;
+            //PSResourceInfo a = null;
 
             // Implement your benchmark here
 
-            return a;
+            //return a;
         }
 
         [Benchmark]
