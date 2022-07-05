@@ -187,8 +187,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(InvalidPathError);   
             }
+
+            var resolvedFilePath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(FilePath);
+            if (String.IsNullOrEmpty(resolvedFilePath))
+            {
+                var exMessage = "Error: Could not resolve provided Path argument into a single path.";
+                var ex = new PSArgumentException(exMessage);
+                var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(InvalidPathArgumentError);
+            }
             
-            if (File.Exists(FilePath) && !Force)
+            if (File.Exists(resolvedFilePath) && !Force)
             {
                 // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
                 var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
@@ -245,7 +254,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            File.WriteAllText(FilePath, psScriptFileContents);       
+            File.WriteAllText(resolvedFilePath, psScriptFileContents);       
         }
 
         #endregion
