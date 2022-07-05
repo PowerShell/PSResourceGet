@@ -741,53 +741,94 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-        #region Manifest methods
+        #region PSDataFile parsing
 
-        public static bool TryParsePSDataFile(
-            string moduleFileInfo,
-            PSCmdlet cmdletPassedIn,
-            out Hashtable parsedMetadataHashtable)
+        private static readonly string[] ManifestFileVariables = new string[] { "PSEdition", "PSScriptRoot" };
+
+        /// <summary>
+        /// Read psd1 manifest file contents and return as Hashtable object.
+        /// </summary>
+        /// <param name="manifestFilePath">File path to manfiest psd1 file.</param>
+        /// <param name="manifestInfo">Hashtable of manifest file contents.</param>
+        /// <param name="error">Error exception on failure.</param>
+        /// <returns>True on success.</returns>
+        public static bool TryReadManifestFile(
+            string manifestFilePath,
+            out Hashtable manifestInfo,
+            out Exception error)
         {
-            parsedMetadataHashtable = new Hashtable();
-            bool successfullyParsed = false;
+            return TryReadPSDataFile(
+                filePath: manifestFilePath,
+                allowedVariables: ManifestFileVariables,
+                allowedCommands: Utils.EmptyStrArray,
+                allowEnvironmentVariables: false,
+                out manifestInfo,
+                out error);
+        }
 
-            // A script will already  have the metadata parsed into the parsedMetadatahash,
-            // a module will still need the module manifest to be parsed.
-            if (moduleFileInfo.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
+        /// <summary>
+        /// Read psd1 required resource file contents and return as Hashtable object.
+        /// </summary>
+        /// <param name="resourceFilePath">File path to required resource psd1 file.</param>
+        /// <param name="resourceInfo">Hashtable of required resource file contents.</param>
+        /// <param name="error">Error exception on failure.</param>
+        /// <returns>True on success.</returns>
+        public static bool TryReadRequiredResourceFile(
+            string resourceFilePath,
+            out Hashtable resourceInfo,
+            out Exception error)
+        {
+            return TryReadPSDataFile(
+                filePath: resourceFilePath,
+                allowedVariables: Utils.EmptyStrArray,
+                allowedCommands: Utils.EmptyStrArray,
+                allowEnvironmentVariables: false,
+                out resourceInfo,
+                out error);
+        }
+
+        private static bool TryReadPSDataFile(
+            string filePath,
+            string[] allowedVariables,
+            string[] allowedCommands,
+            bool allowEnvironmentVariables,
+            out Hashtable dataFileInfo,
+            out Exception error)
+        {
+            try
             {
-                // Parse the module manifest
-                var ast = Parser.ParseFile(
-                    moduleFileInfo,
-                    out Token[] tokens,
-                    out ParseError[] errors);
+                if (filePath is null)
+                {
+                    throw new PSArgumentNullException(nameof(filePath));
+                }
 
-                if (errors.Length > 0)
+                string contents = System.IO.File.ReadAllText(filePath);
+                var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
+
+                // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
+                // This will throw for unsafe content.
+                scriptBlock.CheckRestrictedLanguage(
+                    allowedCommands: allowedCommands,
+                    allowedVariables: allowedVariables,
+                    allowEnvironmentVariables: allowEnvironmentVariables);
+                
+                // Convert contents into PSDataFile Hashtable by executing content as script.
+                object result = scriptBlock.InvokeReturnAsIs();
+                if (result is PSObject psObject)
                 {
-                    var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo);
-                    var ex = new ArgumentException(message);
-                    var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                    cmdletPassedIn.WriteError(psdataParseError);
-                    return successfullyParsed;
+                    result = psObject.BaseObject;
                 }
-                else
-                {
-                    var data = ast.Find(a => a is HashtableAst, false);
-                    if (data != null)
-                    {
-                        parsedMetadataHashtable = (Hashtable)data.SafeGetValue();
-                        successfullyParsed = true;
-                    }
-                    else
-                    {
-                        var message = String.Format("Could not parse as PowerShell data file-- no hashtable root for file '{0}'", moduleFileInfo);
-                        var ex = new ArgumentException(message);
-                        var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                        cmdletPassedIn.WriteError(psdataParseError);
-                    }
-                }
+
+                dataFileInfo = (Hashtable) result;
+                error = null;
+                return true;
             }
-
-            return successfullyParsed;
+            catch (Exception ex)
+            {
+                dataFileInfo = null;
+                error = ex;
+                return false;
+            }
         }
 
         #endregion

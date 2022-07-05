@@ -320,18 +320,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Hashtable pkgsInFile = null;
                     try
                     {
-                        if (_resourceFileType.Equals(ResourceFileType.JsonFile))
+                        switch (_resourceFileType)
                         {
-                            pkgsInFile = Utils.ConvertJsonToHashtable(this, requiredResourceFileStream);
-                        }
-                        else
-                        {
-                            // must be a .psd1 file
-                            if (!Utils.TryParsePSDataFile(_requiredResourceFile, this, out pkgsInFile))
-                            {
-                                // Ran into errors parsing the .psd1 file which was found in Utils.TryParsePSDataFile() and written.
-                                return;
-                            }
+                            case ResourceFileType.JsonFile:
+                                pkgsInFile = Utils.ConvertJsonToHashtable(this, requiredResourceFileStream);
+                                break;
+
+                            case ResourceFileType.PSDataFile:
+                                if (!Utils.TryReadRequiredResourceFile(
+                                    resourceFilePath: _requiredResourceFile,
+                                    out pkgsInFile,
+                                    out Exception error))
+                                {
+                                    throw error;
+                                }
+                                break;
+
+                            case ResourceFileType.UnknownFile:
+                                throw new PSInvalidOperationException(
+                                    message: "Unkown file type. Required resource file must be either a json or psd1 data file.");
                         }
                     }
                     catch (Exception)
