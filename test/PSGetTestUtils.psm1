@@ -178,7 +178,7 @@ function Get-RemoveTestDirs {
     {
         if(Test-Path -Path $path)
         {
-            Remove-Item -Path $path -Force -ErrorAction Ignore
+            Remove-Item -Path $path -Force -Recurse -ErrorAction Ignore
         }
     }
 }
