@@ -25,13 +25,57 @@ The Update-PSScriptFileInfo cmdlet updates an existing .ps1 file with requested 
 
 ## EXAMPLES
 
-### Example 1: Example 1
+### Example 1: Update the version of a script
 
 ```
-PS C:\> {{ Add example code here }}
+PS C:\> New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Version "1.0.0.0" -Description "this is a test script"
+PS C:\> Update-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Version "2.0.0.0"
+PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
+<#PSScriptInfo
+
+.VERSION 2.0.0.0
+
+.GUID 6ec3934e-a2e0-495b-9a9c-480e555ad1d1
+
+.AUTHOR johndoe
+
+.COMPANYNAME
+
+.COPYRIGHT
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES 
+
+.REQUIREDSCRIPTS 
+
+.EXTERNALSCRIPTDEPENDENCIES 
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+
+#>
+
+<#
+
+.DESCRIPTION
+this is a test script
+
+
+#>
+
 ```
 
-{{ Add example description here }}
+In this example a script is created by running the New-PSScriptFileInfo cmdlet with version specified as 1.0.0.0. To update the script's version to 2.0.0.0, the Update-PSScriptFileInfo cmdlet is run with 'Version' specified as "2.0.0.0". Given that the cmdlet completed running without errors and by looking at the contents of the updated file we see the version was updated to 2.0.0.0.
 
 ## PARAMETERS
 

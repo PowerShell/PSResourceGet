@@ -76,11 +76,11 @@ this is a test script
 
 This example runs the cmdlet with the only required parameters, the 'FilePath' parameter sets the path the script is to be created and the 'Description' parameter contains the description for the script. The script is successfully created and if the contents of the file are viewed we can see the Description set as well as Author, Guid, and Version (with default values).
 
-### Example 2: Creating a script with RequiredModules, Author, Version parameters
+### Example 2: Creating a script with RequiredModules, Author, Version and Description parameters
 
 ```
 PS C:\> $requiredModules =  @(@{ModuleName = "PackageManagement"; ModuleVersion = "1.0.0.0" }, @{ModuleName = "PSReadLine"})
-PS C:\> New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Description "this is a test script" -Version "2.0.0.0" -Author "janedoe" -RequiredModules $requiredModules
+PS C:\> New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script2.ps1" -Description "this is a test script" -Version "2.0.0.0" -Author "janedoe" -RequiredModules $requiredModules
 PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
 <#PSScriptInfo
 
