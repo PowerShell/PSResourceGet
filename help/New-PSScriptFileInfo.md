@@ -25,13 +25,113 @@ The New-PSScriptFileInfo cmdlet creates a .ps1 file containing metadata for the 
 
 ## EXAMPLES
 
-### Example 1: Example 1
+### Example 1: Creating a script with minimum required parameters
 
 ```
-PS C:\> {{ Add example code here }}
+PS C:\> New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Description "this is a test script"
+PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
+<#PSScriptInfo
+
+.VERSION 1.0.0.0
+
+.GUID 6ec3934e-a2e0-495b-9a9c-480e555ad1d1
+
+.AUTHOR johndoe
+
+.COMPANYNAME
+
+.COPYRIGHT
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES 
+
+.REQUIREDSCRIPTS 
+
+.EXTERNALSCRIPTDEPENDENCIES 
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+
+#>
+
+<#
+
+.DESCRIPTION
+this is a test script
+
+
+#>
+        
 ```
 
-{{ Add example description here }}
+This example runs the cmdlet with the only required parameters, the 'FilePath' parameter sets the path the script is to be created and the 'Description' parameter contains the description for the script. The script is successfully created and if the contents of the file are viewed we can see the Description set as well as Author, Guid, and Version (with default values).
+
+### Example 2: Creating a script with RequiredModules, Author, Version parameters
+
+```
+PS C:\> $requiredModules =  @(@{ModuleName = "PackageManagement"; ModuleVersion = "1.0.0.0" }, @{ModuleName = "PSReadLine"})
+PS C:\> New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Description "this is a test script" -Version "2.0.0.0" -Author "janedoe" -RequiredModules $requiredModules
+PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
+<#PSScriptInfo
+
+.VERSION 2.0.0.0
+
+.GUID 7ec4832e-a4e1-562b-8a8c-241e535ad7d7
+
+.AUTHOR janedoe
+
+.COMPANYNAME Jane Corporation
+
+.COPYRIGHT
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES 
+
+.REQUIREDSCRIPTS 
+
+.EXTERNALSCRIPTDEPENDENCIES 
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+
+#>
+
+#Requires -Module PSReadLine
+#Requires -Module @{ ModuleName = 'PackageManagement'; ModuleVersion = '1.0.0.0' }
+
+<#
+
+.DESCRIPTION
+this is a test script
+
+
+#>
+        
+```
+
+This example runs the cmdlet with the required 'FilePath' and 'Description' parameters, as well as 'Author', 'Version', and 'RequiredModules' parameters. The 'RequiredModules' parameter describes modules required by the script. It is necessary to provide the ModuleName key in the hashtable and if one wishes to specify verion they must also specify ModuleVersion, RequiredVersion, MaximumVersion, or MinimumVersion keys. The script is successfully created and if the contents of the file are viewed we can see the following values are set in the script file: Description, Author, Guid, and Version and RequiredModules.
+
+
 
 ## PARAMETERS
 
