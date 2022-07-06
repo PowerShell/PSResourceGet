@@ -8,7 +8,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Management.Automation;
 
-namespace benchmarks
+namespace Benchmarks
 {
     public class BenchmarksV2RemoteRepo
     {

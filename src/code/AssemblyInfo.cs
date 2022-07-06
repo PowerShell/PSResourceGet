@@ -3,4 +3,4 @@
 
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("benchmarks")]
+[assembly: InternalsVisibleTo("Benchmarks")]
