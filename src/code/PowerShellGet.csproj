@@ -27,12 +27,11 @@
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
 
+<!--
   <ItemGroup>
       <InternalsVisibleTo Include="benchmarks" />
   </ItemGroup>
-  <ItemGroup>
-      <InternalsVisibleTo Include="benchmarks.dll" />
-  </ItemGroup>
+-->
 
   <Target Name="CoreTypes" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
     <ItemGroup>
