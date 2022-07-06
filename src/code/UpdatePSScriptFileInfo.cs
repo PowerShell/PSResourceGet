@@ -64,12 +64,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] ExternalScriptDependencies { get; set; }
 
         /// <summary>
-        /// If used with Path parameter and .ps1 file specified at the path exists, it rewrites the file
-        /// </summary>
-        [Parameter]
-        public SwitchParameter Force { get; set; }
-
-        /// <summary>
         /// The GUID for the script
         /// </summary>
         [Parameter]
@@ -213,7 +207,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!File.Exists(resolvedFilePath))
             {
-                var exMessage = "A file does not exist at the location specified";
+                var exMessage = "A script file does not exist at the location specified";
                 var ex = new ArgumentException(exMessage);
                 var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(FileDoesNotExistError);
