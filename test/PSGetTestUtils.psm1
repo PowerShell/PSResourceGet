@@ -234,21 +234,21 @@ function Get-NewPSResourceRepositoryFileWithCredentialInfo {
 }
 
 function Register-LocalRepos {
-    $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-    $null = New-Item $repoURLAddress -ItemType Directory -Force
+    $repoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+    $null = New-Item $repoUriAddress -ItemType Directory -Force
     $localRepoParams = @{
         Name = "psgettestlocal"
-        URL = $repoURLAddress
+        Uri = $repoUriAddress
         Priority = 40
         Trusted = $false
     }
     Register-PSResourceRepository @localRepoParams
 
-    $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
-    $null = New-Item $repoURLAddress2 -ItemType Directory -Force
+    $repoUriAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
+    $null = New-Item $repoUriAddress2 -ItemType Directory -Force
     $localRepoParams2 = @{
         Name = "psgettestlocal2"
-        URL = $repoURLAddress2
+        Uri = $repoUriAddress2
         Priority = 50
         Trusted = $false
     }
@@ -315,18 +315,22 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
 {
     Param(
         [string]
-        $scriptName
+        $scriptName,
+
+        [string]
+        $scriptRepoName,
+
+        [string]
+        $scriptVersion
     )
     Get-TestDriveSetUp
 
     $scriptFilePath = Join-Path -Path $script:testIndividualResourceFolder -ChildPath "$scriptName.ps1"
     $null = New-Item -Path $scriptFilePath -ItemType File -Force
 
-    $version = "1.0.0"
     $params = @{
-                #Path = $scriptFilePath
-                Version = $version
-                #GUID =
+                Version = $scriptVersion
+                GUID = [guid]::NewGuid()
                 Author = 'Jane'
                 CompanyName = 'Microsoft Corporation'
                 Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
@@ -334,14 +338,13 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
                 LicenseUri = "https://$scriptName.com/license"
                 IconUri = "https://$scriptName.com/icon"
                 ProjectUri = "https://$scriptName.com"
-                Tags = @('Tag1','Tag2', "Tag-$scriptName-$version")
+                Tags = @('Tag1','Tag2', "Tag-$scriptName-$scriptVersion")
                 ReleaseNotes = "$scriptName release notes"
                 }
 
     $scriptMetadata = Create-PSScriptMetadata @params
     Set-Content -Path $scriptFilePath -Value $scriptMetadata
-
-    Publish-PSResource -path $scriptFilePath -Repository psgettestlocal
+    Publish-PSResource -Path $scriptFilePath -Repository $scriptRepoName -Verbose
 }
 
 function Get-CommandResourcePublishedToLocalRepoTestDrive
@@ -384,22 +387,22 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
 }
 
 function Register-LocalRepos {
-    $repoURLAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-    $null = New-Item $repoURLAddress -ItemType Directory -Force
+    $repoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+    $null = New-Item $repoUriAddress -ItemType Directory -Force
     $localRepoParams = @{
         Name = "psgettestlocal"
-        URL = $repoURLAddress
+        Uri = $repoUriAddress
         Priority = 40
         Trusted = $false
     }
 
     Register-PSResourceRepository @localRepoParams
 
-    $repoURLAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
-    $null = New-Item $repoURLAddress2 -ItemType Directory -Force
+    $repoUriAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
+    $null = New-Item $repoUriAddress2 -ItemType Directory -Force
     $localRepoParams2 = @{
         Name = "psgettestlocal2"
-        URL = $repoURLAddress2
+        Uri = $repoUriAddress2
         Priority = 50
         Trusted = $false
     }
@@ -507,8 +510,6 @@ function Create-PSScriptMetadata
 
 .COPYRIGHT$(if ($Copyright) {" $Copyright"})
 
-.DESCRIPTION$(if ($Description) {" $Description"})
-
 .TAGS$(if ($Tags) {" $Tags"})
 
 .LICENSEURI$(if ($LicenseUri) {" $LicenseUri"})
@@ -527,6 +528,13 @@ function Create-PSScriptMetadata
 $($ReleaseNotes -join "`r`n")
 
 .PRIVATEDATA$(if ($PrivateData) {" $PrivateData"})
+
+#>
+
+<#
+
+.DESCRIPTION
+$(if ($Description) {" $Description"})
 
 #>
 "@

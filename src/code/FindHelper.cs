@@ -41,10 +41,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
-        private readonly string _psGalleryURL = "https://www.powershellgallery.com/api/v2";
+        private readonly string _psGalleryUri = "https://www.powershellgallery.com/api/v2";
         private readonly string _poshTestGalleryRepoName = "PoshTestGallery";
         private readonly string _poshTestGalleryScriptsRepoName = "PoshTestGalleryScripts";
-        private readonly string _poshTestGalleryURL = "https://www.poshtestgallery.com/api/v2";
+        private readonly string _poshTestGalleryUri = "https://www.poshtestgallery.com/api/v2";
         private bool _isADOFeedRepository;
         private bool _repositoryNameContainsWildcard;
 
@@ -134,14 +134,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This special casing is done to handle PSGallery and PoshTestGallery having 2 endpoints currently for different resources.
             for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
-                if (String.Equals(repositoriesToSearch[i].Url.AbsoluteUri, _psGalleryURL, StringComparison.InvariantCultureIgnoreCase))
+                if (String.Equals(repositoriesToSearch[i].Uri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase))
                 {
                     // special case: for PowerShellGallery, Module and Script resources have different endpoints so separate repositories have to be registered
                     // with those endpoints in order for the NuGet APIs to search across both in the case where name includes '*'
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
-                    Uri psGalleryScriptsUrl = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUrl, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
+                    Uri psGalleryScriptsUri = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
+                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUri, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteVerbose("Null Type provided, so add PSGalleryScripts repository");
@@ -153,15 +153,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         repositoriesToSearch.Insert(i + 1, psGalleryScripts);
                         repositoriesToSearch.RemoveAt(i); // remove PSGallery
                     }
-                }       
-                else if (String.Equals(repositoriesToSearch[i].Url.AbsoluteUri, _poshTestGalleryURL, StringComparison.InvariantCultureIgnoreCase))
+                }
+                else if (String.Equals(repositoriesToSearch[i].Uri.AbsoluteUri, _poshTestGalleryUri, StringComparison.InvariantCultureIgnoreCase))
                 {
                     // special case: for PoshTestGallery, Module and Script resources have different endpoints so separate repositories have to be registered
                     // with those endpoints in order for the NuGet APIs to search across both in the case where name includes '*'
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
-                    Uri poshTestGalleryScriptsUrl = new Uri("https://www.poshtestgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(_poshTestGalleryScriptsRepoName, poshTestGalleryScriptsUrl, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
+                    Uri poshTestGalleryScriptsUri = new Uri("https://www.poshtestgallery.com/api/v2/items/psscript/");
+                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(_poshTestGalleryScriptsRepoName, poshTestGalleryScriptsUri, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteVerbose("Null Type provided, so add PoshTestGalleryScripts repository");
@@ -182,7 +182,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
                 foreach (var pkg in SearchFromRepository(
                     repositoryName: repositoriesToSearch[i].Name,
-                    repositoryUrl: repositoriesToSearch[i].Url,
+                    repositoryUri: repositoriesToSearch[i].Uri,
                     repositoryCredentialInfo: repositoriesToSearch[i].CredentialInfo))
                 {
                     yield return pkg;
@@ -196,7 +196,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> SearchFromRepository(
             string repositoryName,
-            Uri repositoryUrl,
+            Uri repositoryUri,
             PSCredentialInfo repositoryCredentialInfo)
         {
             PackageSearchResource resourceSearch;
@@ -205,9 +205,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceCacheContext context;
 
             // file based Uri scheme
-            if (repositoryUrl.Scheme == Uri.UriSchemeFile)
+            if (repositoryUri.Scheme == Uri.UriSchemeFile)
             {
-                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryUrl.ToString());
+                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryUri.ToString());
                 resourceSearch = new LocalPackageSearchResource(localResource);
                 resourceMetadata = new LocalPackageMetadataResource(localResource);
                 filter = new SearchFilter(_prerelease);
@@ -226,19 +226,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // check if ADOFeed- for which searching for Name with wildcard has a different logic flow
-            if (repositoryUrl.ToString().Contains("pkgs."))
+            if (repositoryUri.ToString().Contains("pkgs."))
             {
                 _isADOFeedRepository = true;
             }
 
             // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
-            PackageSource source = new PackageSource(repositoryUrl.ToString());
+            PackageSource source = new PackageSource(repositoryUri.ToString());
 
             // Explicitly passed in Credential takes precedence over repository CredentialInfo
             if (_credential != null)
             {
                 string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), _credential.UserName, password, true, null);
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUri.ToString(), _credential.UserName, password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryName);
             }
             else if (repositoryCredentialInfo != null)
@@ -249,7 +249,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _cmdletPassedIn);
 
                 string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUrl.ToString(), repoCredential.UserName, password, true, null);
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUri.ToString(), repoCredential.UserName, password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);
             }
 
@@ -278,8 +278,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             context = new SourceCacheContext();
 
             foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                repositoryName: String.Equals(repositoryUrl.AbsoluteUri, _psGalleryURL, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName :
-                                (String.Equals(repositoryUrl.AbsoluteUri, _poshTestGalleryURL, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryName),
+                repositoryName: String.Equals(repositoryUri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName :
+                                (String.Equals(repositoryUri.AbsoluteUri, _poshTestGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryName),
                 pkgSearchResource: resourceSearch,
                 pkgMetadataResource: resourceMetadata,
                 searchFilter: filter,
@@ -467,7 +467,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             _pkgsLeftToFind.Remove(pkgName);
                         }
                     }
-                 
+
                 }
 
                 // if repository names did contain wildcard, we want to do an exhaustive search across all the repositories

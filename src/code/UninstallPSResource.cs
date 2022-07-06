@@ -24,6 +24,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to uninstall.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
@@ -34,6 +35,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
+
+        /// <summary>
+        /// When specified, only uninstalls prerelease versions.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter Prerelease { get; set; }
 
         /// <summary>
         /// Used for pipeline input.
@@ -48,12 +55,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
 
+        /// <summary>
+        /// Specifies the scope of installation.
+        /// </summary>
+        [Parameter]
+        public ScopeType Scope { get; set; }
+
         #endregion
 
         #region Members
 
         private const string NameParameterSet = "NameParameterSet";
         private const string InputObjectParameterSet = "InputObjectParameterSet";
+        public const string PSScriptFileExt = ".ps1";
         public static readonly string OsPlatform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         VersionRange _versionRange;
         List<string> _pathsToSearch = new List<string>();
@@ -64,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            _pathsToSearch = Utils.GetAllResourcePaths(this);
+            _pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
         }
 
         protected override void ProcessRecord()
@@ -163,7 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
             string pkgName;
-            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete))
+            foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete, selectPrereleaseOnly: Prerelease))
             {
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
@@ -174,7 +188,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 ErrorRecord errRecord = null;
-                if (pkgPath.EndsWith(".ps1"))
+                if (pkgPath.EndsWith(PSScriptFileExt))
                 {
                     successfullyUninstalled = UninstallScriptHelper(pkgPath, pkgName, out errRecord);
                 }

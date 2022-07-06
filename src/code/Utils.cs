@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Win32.SafeHandles;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -14,6 +15,7 @@ using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -24,6 +26,47 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region String fields
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
+        public const string PSDataFileExt = ".psd1";
+        private const string ConvertJsonToHashtableScript = @"
+            param (
+                [string] $json
+            )
+
+            function ConvertToHash
+            {
+                param (
+                    [pscustomobject] $object
+                )
+
+                $output = @{}
+                $object | Microsoft.PowerShell.Utility\Get-Member -MemberType NoteProperty | ForEach-Object {
+                    $name = $_.Name
+                    $value = $object.($name)
+
+                    if ($value -is [object[]])
+                    {
+                        $array = @()
+                        $value | ForEach-Object {
+                            $array += (ConvertToHash $_)
+                        }
+                        $output.($name) = $array
+                    }
+                    elseif ($value -is [pscustomobject])
+                    {
+                        $output.($name) = (ConvertToHash $value)
+                    }
+                    else
+                    {
+                        $output.($name) = $value
+                    }
+                }
+
+                $output
+            }
+
+            $customObject = Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject $json
+            return ConvertToHash $customObject
+        ";
 
         #endregion
 
@@ -115,9 +158,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             errorMsgs = errorMsgsList.ToArray();
             return namesWithSupportedWildcards.ToArray();
         }
-    
+
         #endregion
-        
+
         #region Version methods
 
         public static string GetNormalizedVersionString(
@@ -228,9 +271,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-        #region Url methods
+        #region Uri methods
 
-        public static bool TryCreateValidUrl(
+        public static bool TryCreateValidUri(
             string uriString,
             PSCmdlet cmdletPassedIn,
             out Uri uriResult,
@@ -245,7 +288,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Exception ex;
             try
             {
-                // This is needed for a relative path urlstring. Does not throw error for an absolute path.
+                // This is needed for a relative path Uri string. Does not throw error for an absolute path.
                 var filePath = cmdletPassedIn.SessionState.Path.GetResolvedPSPathFromPSPath(uriString)[0].Path;
                 if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
                 {
@@ -555,7 +598,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // ex: ./PowerShell/Scripts/TestScript.ps1
                 return Path.GetFileNameWithoutExtension(pkgPath);
             }
-            
+
             // expecting the full version module path
             // ex:  ./PowerShell/Modules/TestModule/1.0.0
             return new DirectoryInfo(pkgPath).Parent.Name;
@@ -584,7 +627,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
                 resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
-            
+
             if (scope is null || scope.Value is ScopeType.AllUsers)
             {
                 resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
@@ -685,53 +728,94 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-        #region Manifest methods
+        #region PSDataFile parsing
 
-        public static bool TryParseModuleManifest(
-            string moduleFileInfo,
-            PSCmdlet cmdletPassedIn,
-            out Hashtable parsedMetadataHashtable)
+        private static readonly string[] ManifestFileVariables = new string[] { "PSEdition", "PSScriptRoot" };
+
+        /// <summary>
+        /// Read psd1 manifest file contents and return as Hashtable object.
+        /// </summary>
+        /// <param name="manifestFilePath">File path to manfiest psd1 file.</param>
+        /// <param name="manifestInfo">Hashtable of manifest file contents.</param>
+        /// <param name="error">Error exception on failure.</param>
+        /// <returns>True on success.</returns>
+        public static bool TryReadManifestFile(
+            string manifestFilePath,
+            out Hashtable manifestInfo,
+            out Exception error)
         {
-            parsedMetadataHashtable = new Hashtable();
-            bool successfullyParsed = false;
+            return TryReadPSDataFile(
+                filePath: manifestFilePath,
+                allowedVariables: ManifestFileVariables,
+                allowedCommands: Utils.EmptyStrArray,
+                allowEnvironmentVariables: false,
+                out manifestInfo,
+                out error);
+        }
 
-            // A script will already  have the metadata parsed into the parsedMetadatahash,
-            // a module will still need the module manifest to be parsed.
-            if (moduleFileInfo.EndsWith(".psd1", StringComparison.OrdinalIgnoreCase))
+        /// <summary>
+        /// Read psd1 required resource file contents and return as Hashtable object.
+        /// </summary>
+        /// <param name="resourceFilePath">File path to required resource psd1 file.</param>
+        /// <param name="resourceInfo">Hashtable of required resource file contents.</param>
+        /// <param name="error">Error exception on failure.</param>
+        /// <returns>True on success.</returns>
+        public static bool TryReadRequiredResourceFile(
+            string resourceFilePath,
+            out Hashtable resourceInfo,
+            out Exception error)
+        {
+            return TryReadPSDataFile(
+                filePath: resourceFilePath,
+                allowedVariables: Utils.EmptyStrArray,
+                allowedCommands: Utils.EmptyStrArray,
+                allowEnvironmentVariables: false,
+                out resourceInfo,
+                out error);
+        }
+
+        private static bool TryReadPSDataFile(
+            string filePath,
+            string[] allowedVariables,
+            string[] allowedCommands,
+            bool allowEnvironmentVariables,
+            out Hashtable dataFileInfo,
+            out Exception error)
+        {
+            try
             {
-                // Parse the module manifest 
-                var ast = Parser.ParseFile(
-                    moduleFileInfo,
-                    out Token[] tokens,
-                    out ParseError[] errors);
+                if (filePath is null)
+                {
+                    throw new PSArgumentNullException(nameof(filePath));
+                }
 
-                if (errors.Length > 0)
+                string contents = System.IO.File.ReadAllText(filePath);
+                var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
+
+                // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
+                // This will throw for unsafe content.
+                scriptBlock.CheckRestrictedLanguage(
+                    allowedCommands: allowedCommands,
+                    allowedVariables: allowedVariables,
+                    allowEnvironmentVariables: allowEnvironmentVariables);
+                
+                // Convert contents into PSDataFile Hashtable by executing content as script.
+                object result = scriptBlock.InvokeReturnAsIs();
+                if (result is PSObject psObject)
                 {
-                    var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo);
-                    var ex = new ArgumentException(message);
-                    var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                    cmdletPassedIn.WriteError(psdataParseError);
-                    return successfullyParsed;
+                    result = psObject.BaseObject;
                 }
-                else
-                {
-                    var data = ast.Find(a => a is HashtableAst, false);
-                    if (data != null)
-                    {
-                        parsedMetadataHashtable = (Hashtable)data.SafeGetValue();
-                        successfullyParsed = true;
-                    }
-                    else
-                    {
-                        var message = String.Format("Could not parse as PowerShell data file-- no hashtable root for file '{0}'", moduleFileInfo);
-                        var ex = new ArgumentException(message);
-                        var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                        cmdletPassedIn.WriteError(psdataParseError);
-                    }
-                }
+
+                dataFileInfo = (Hashtable) result;
+                error = null;
+                return true;
             }
-
-            return successfullyParsed;
+            catch (Exception ex)
+            {
+                dataFileInfo = null;
+                error = ex;
+                return false;
+            }
         }
 
         #endregion
@@ -752,6 +836,25 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     args: new object[] { message });
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Convert a json string into a hashtable object.
+        /// This uses custom script to perform the PSObject -> Hashtable
+        /// conversion, so that this works with WindowsPowerShell.
+        /// </summary>
+        public static Hashtable ConvertJsonToHashtable(
+            PSCmdlet cmdlet,
+            string json)
+        {
+            Collection<PSObject> results = cmdlet.InvokeCommand.InvokeScript(
+                script: ConvertJsonToHashtableScript,
+                useNewScope: true,
+                writeToPipeline: PipelineResultTypes.Error,
+                input: null,
+                args: new object[] { json });
+
+            return (results.Count == 1 && results[0] != null) ? (Hashtable)results[0].BaseObject : null;
         }
 
         #endregion
@@ -999,8 +1102,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 ps.Runspace = _runspace;
 
                 var cmd = new Command(
-                    command: script, 
-                    isScript: true, 
+                    command: script,
+                    isScript: true,
                     useLocalScope: true);
                 cmd.MergeMyResults(
                     myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
@@ -1010,7 +1113,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     ps.Commands.AddArgument(arg);
                 }
-                
+
                 try
                 {
                     // Invoke the script.
@@ -1042,7 +1145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             case InformationRecord info:
                                 cmdlet.WriteInformation(info);
                                 break;
-                                
+
                             case T result:
                                 returnCollection.Add(result);
                                 break;
@@ -1066,6 +1169,116 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion Methods
+    }
+
+    #endregion
+
+    #region AuthenticodeSignature
+
+    internal static class AuthenticodeSignature
+    {
+        #region Methods
+
+        internal static bool CheckAuthenticodeSignature(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        {
+            errorRecord = null;
+
+            // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return true;
+            }
+
+            // Check that the catalog file is signed properly
+            string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
+            if (File.Exists(catalogFilePath))
+            {
+                // Run catalog validation
+                Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
+                string moduleBasePath = tempDirNameVersion;
+                try
+                {
+                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files
+                    TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
+                        script: @"param (
+                                      [string] $moduleBasePath, 
+                                      [string] $catalogFilePath
+                                 ) 
+                                $catalogValidation = Test-FileCatalog -Path $moduleBasePath -CatalogFilePath $CatalogFilePath `
+                                                 -FilesToSkip '*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
+                                                 -Detailed -ErrorAction SilentlyContinue
+        
+                                if ($catalogValidation.Status.ToString() -eq 'valid' -and $catalogValidation.Signature.Status -eq 'valid') {
+                                    return $true
+                                }
+                                else {
+                                    return $false
+                                }
+                        ",
+                        useNewScope: true,
+                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                        input: null,
+                        args: new object[] { moduleBasePath, catalogFilePath });
+                }
+                catch (Exception e)
+                {
+                    errorRecord = new ErrorRecord(new ArgumentException(e.Message), "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    return false;
+                }
+
+                bool catalogValidation = (TestFileCatalogResult[0] != null) ? (bool)TestFileCatalogResult[0].BaseObject : false;
+                if (!catalogValidation)
+                {
+                    var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
+                    var ex = new ArgumentException(exMessage);
+
+                    errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    return false;
+                }
+            }
+
+            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
+            try
+            {
+                string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
+                authenticodeSignature = cmdletPassedIn.InvokeCommand.InvokeScript(
+                    script: @"param (
+                                      [string] $tempDirNameVersion, 
+                                      [string[]] $listOfExtensions
+                                 ) 
+                                 Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { tempDirNameVersion, listOfExtensions });
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(new ArgumentException(e.Message), "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                return false;
+            }
+
+            // If the authenticode signature is not valid, return false
+            if (authenticodeSignature.Any() && authenticodeSignature[0] != null)
+            {
+                foreach (var sign in authenticodeSignature)
+                {
+                    Signature signature = (Signature)sign.BaseObject;
+                    if (!signature.Status.Equals(SignatureStatus.Valid))
+                    {
+                        var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
+                        var ex = new ArgumentException(exMessage);
+                        errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+       
+        #endregion
     }
 
     #endregion

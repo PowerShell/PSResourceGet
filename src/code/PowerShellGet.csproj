@@ -5,9 +5,9 @@
     <OutputType>Library</OutputType>
     <RootNamespace>PowerShellGet</RootNamespace>
     <AssemblyName>PowerShellGet</AssemblyName>
-    <AssemblyVersion>3.0.12.0</AssemblyVersion>
-    <FileVersion>3.0.12</FileVersion>
-    <InformationalVersion>3.0.12</InformationalVersion>
+    <AssemblyVersion>3.0.14.0</AssemblyVersion>
+    <FileVersion>3.0.14</FileVersion>
+    <InformationalVersion>3.0.14</InformationalVersion>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
   </PropertyGroup>
@@ -15,12 +15,12 @@
   <ItemGroup>
     <PackageReference Include="LinqKit.Core" Version="1.1.17" />
     <PackageReference Include="morelinq" Version="3.3.2" />
-    <PackageReference Include="NuGet.Commands" Version="5.8.0" />
-    <PackageReference Include="NuGet.Common" Version="5.8.0" />
-    <PackageReference Include="NuGet.Configuration" Version="5.8.0" />
-    <PackageReference Include="NuGet.Packaging" Version="5.8.0" />
-    <PackageReference Include="NuGet.ProjectModel" Version="5.8.0" />
-    <PackageReference Include="NuGet.Protocol" Version="5.8.0" />
+    <PackageReference Include="NuGet.Commands" Version="6.2.1" />
+    <PackageReference Include="NuGet.Common" Version="6.2.1" />
+    <PackageReference Include="NuGet.Configuration" Version="6.2.1" />
+    <PackageReference Include="NuGet.Packaging" Version="6.2.1" />
+    <PackageReference Include="NuGet.ProjectModel" Version="6.2.1" />
+    <PackageReference Include="NuGet.Protocol" Version="6.2.1" />
     <PackageReference Include="NuGet.Repositories" Version="4.3.0-beta1-2418" />
     <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />

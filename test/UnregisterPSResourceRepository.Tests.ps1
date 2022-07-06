@@ -5,8 +5,8 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe "Test Unregister-PSResourceRepository" {
     BeforeEach {
-        $TestGalleryName = Get-PoshTestGalleryName
-        $TestGalleryUrl = Get-PoshTestGalleryLocation
+        $PSGalleryName = Get-PSGalleryName
+        $PSGalleryUri = Get-PSGalleryLocation
         Get-NewPSResourceRepositoryFile
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
@@ -24,7 +24,7 @@ Describe "Test Unregister-PSResourceRepository" {
     }
 
     It "unregister single repository previously registered" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
+        Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
         Unregister-PSResourceRepository -Name "testRepository"
 
         $res = Get-PSResourceRepository -Name "testRepository" -ErrorVariable err -ErrorAction SilentlyContinue
@@ -32,8 +32,8 @@ Describe "Test Unregister-PSResourceRepository" {
     }
 
     It "unregister multiple repositories previously registered" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
+        Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
+        Register-PSResourceRepository -Name "testRepository2" -Uri $tmpDir2Path
         Unregister-PSResourceRepository -Name "testRepository","testRepository2"
 
         $res = Get-PSResourceRepository -Name "testRepository","testRepository2" -ErrorVariable err -ErrorAction SilentlyContinue
@@ -47,8 +47,8 @@ Describe "Test Unregister-PSResourceRepository" {
     }
 
     It "not register when -Name contains wildcard" {
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
-        Register-PSResourceRepository -Name "testRepository2" -URL $tmpDir2Path
+        Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
+        Register-PSResourceRepository -Name "testRepository2" -Uri $tmpDir2Path
         Unregister-PSResourceRepository -Name "testRepository*" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "nameContainsWildCardError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
@@ -56,7 +56,7 @@ Describe "Test Unregister-PSResourceRepository" {
 
     It "when multiple repo Names provided, if one name isn't valid unregister the rest and write error message" {
         $nonRegisteredRepoName = "nonRegisteredRepository"
-        Register-PSResourceRepository -Name "testRepository" -URL $tmpDir1Path
+        Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
         Unregister-PSResourceRepository -Name $nonRegisteredRepoName,"testRepository" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
@@ -71,10 +71,10 @@ Describe "Test Unregister-PSResourceRepository" {
     }
 
     It "unregister repository using -PassThru" {
-        $res = Unregister-PSResourceRepository -Name $TestGalleryName -PassThru
-        $res.Name | Should -Be $TestGalleryName
-        $res.Url | Should -Be $TestGalleryURL
-        $res = Get-PSResourceRepository -Name $TestGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Unregister-PSResourceRepository -Name $PSGalleryName -PassThru
+        $res.Name | Should -Be $PSGalleryName
+        $Res.Uri | Should -Be $PSGalleryUri
+        $res = Get-PSResourceRepository -Name $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"

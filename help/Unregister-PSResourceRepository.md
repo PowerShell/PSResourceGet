@@ -36,7 +36,7 @@ In this example, we assume the repository "PoshTestGallery" has been previously 
 ### Example 2
 ```
 PS C:\> Get-PSResourceRepository
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
@@ -44,7 +44,7 @@ PS C:\> Get-PSResourceRepository
 
 PS C:\> Unregister-PSResourceRepository -Name "PoshTestGallery","psgettestlocal"
 PS C:\> Get-PSResourceRepository
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
 
@@ -75,7 +75,7 @@ Passes the resource installed to the console.
 ```yaml
 Type: SwitchParameter
 Parameter Sets: (All)
-Aliases: 
+Aliases:
 
 Required: False
 Position: Named

@@ -32,7 +32,7 @@ stages:
     pool:
       name: 1ES
       demands:
-      - ImageOverride -equals MMS2019
+      - ImageOverride -equals PSMMS2019-Secure
 
     steps:
 
@@ -275,7 +275,7 @@ stages:
     pool:
       name: 1ES
       demands:
-      - ImageOverride -equals MMS2019
+      - ImageOverride -equals PSMMS2019-Secure
 
     steps:
     - checkout: self

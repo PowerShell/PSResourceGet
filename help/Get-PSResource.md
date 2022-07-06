@@ -13,7 +13,7 @@ Returns resources (modules and scripts) installed on the machine via PowerShellG
 ## SYNTAX
 
 ```
-Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [<CommonParameters>]
+Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-Scope <ScopeType>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,7 +26,7 @@ The Get-PSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript 
 PS C:\> Get-PSResource Az
 ```
 
-This will return versions of the Az module installed via PowerShellGet.
+This will return versions (stable and prerelease) of the Az module installed via PowerShellGet.
 
 ### Example 2
 ```powershell
@@ -44,12 +44,32 @@ This will return all versions of the Az module within the specified range.
 
 ### Example 4
 ```powershell
+PS C:\> Get-PSResource Az -version "4.0.1-preview"
+```
+
+Assume that the package Az version 4.0.1-preview is already installed. This will return version 4.0.1-preview of the Az module.
+
+```powershell
+PS C:\> Get-PSResource Az -version "4.0.1"
+```
+Assume that the package Az version 4.0.1-preview is already installed. This will not return Az version 4.0.1-preview as the full version (including prerelease label, i.e "4.0.1-preview") was not specified.
+
+### Example 5
+```powershell
+PS C:\> Get-PSResource Az -Version "[4.0.1, 4.0.2-preview]
+```
+
+Assume that the following versions are already installed for package Az: 4.0.1-preview and 4.0.2-preview. This will only return version 4.0.2-preview as it is the only one which falls within the specified version range. Per NuGetVersion rules, a prerelease version is less than a stable version, so 4.0.1-preview is less than the 4.0.1 specified version so 4.0.1-preview does not fall within the specified version range and won't be returned.
+
+
+### Example 6
+```powershell
 PS C:\> Get-PSResource Az -Path .
 ```
 
 This will return all versions of the Az module that have been installed in the current directory.
 
-### Example 5
+### Example 7
 ```powershell
 PS C:\> Get-PSResource
 ```
@@ -104,6 +124,21 @@ the version range.
 Type: System.String
 Parameter Sets: NameParameterSet
 Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+### -Scope
+Specifies the scope of the resource.
+
+```yaml
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType
+Parameter Sets: (All)
+Aliases:
+Accepted values: CurrentUser, AllUsers
 
 Required: False
 Position: Named

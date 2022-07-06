@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using MoreLinq.Extensions;
 using NuGet.Common;
@@ -14,6 +15,7 @@ using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -31,9 +33,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
+        public const string PSDataFileExt = ".psd1";
+        public const string PSScriptFileExt = ".ps1";
         private const string MsgRepositoryNotTrusted = "Untrusted repository";
         private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
-
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pathsToInstallPkg;
@@ -48,6 +51,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _asNupkg;
         private bool _includeXML;
         private bool _noClobber;
+        private bool _authenticodeCheck;
         private bool _savePkg;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
@@ -59,7 +63,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public InstallHelper(PSCmdlet cmdletPassedIn)
         {
             CancellationTokenSource source = new CancellationTokenSource();
-            _cancellationToken = source.Token;   
+            _cancellationToken = source.Token;
             _cmdletPassedIn = cmdletPassedIn;
         }
 
@@ -78,6 +82,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool asNupkg,
             bool includeXML,
             bool skipDependencyCheck,
+            bool authenticodeCheck,
             bool savePkg,
             List<string> pathsToInstallPkg)
         {
@@ -99,6 +104,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _versionRange = versionRange;
             _prerelease = prerelease;
             _acceptLicense = acceptLicense || force;
+            _authenticodeCheck = authenticodeCheck;
             _quiet = quiet;
             _reinstall = reinstall;
             _force = force;
@@ -183,7 +189,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
 
                 // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
-                var isLocalRepo = repo.Url.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
+                var isLocalRepo = repo.Uri.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
 
                 // Finds parent packages and dependencies
                 IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
@@ -227,7 +233,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 List<PSResourceInfo> pkgsInstalled = InstallPackage(
                     pkgsFromRepoToInstall,
                     repoName,
-                    repo.Url.AbsoluteUri,
+                    repo.Uri.AbsoluteUri,
                     repo.CredentialInfo,
                     credential,
                     isLocalRepo);
@@ -279,10 +285,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // Get currently installed packages.
+            // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: filteredPackages.Keys.ToArray(),
                 versionRange: _versionRange,
-                pathsToSearch: _pathsToSearch);
+                pathsToSearch: _pathsToSearch,
+                selectPrereleaseOnly: false);
             if (!pkgsAlreadyInstalled.Any())
             {
                 return packages;
@@ -306,7 +314,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSResourceInfo> InstallPackage(
             IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
             string repoName,
-            string repoUrl,
+            string repoUri,
             PSCredentialInfo repoCredentialInfo,
             PSCredential credential,
             bool isLocalRepo)
@@ -320,14 +328,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 totalInstalledPkgCount++;
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-                string companyName = String.Empty;
                 try
                 {
                     // Create a temp directory to install to
                     var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
                                                                            // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
                                                                            // with a mask (bitwise complement of desired attributes combination).
-                                                                           // TODO: check the attributes and if it's read only then set it 
+                                                                           // TODO: check the attributes and if it's read only then set it
                                                                            // attribute may be inherited from the parent
                                                                            // TODO:  are there Linux accommodations we need to consider here?
                     dir.Attributes &= ~FileAttributes.ReadOnly;
@@ -369,8 +376,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (isLocalRepo)
                     {
                         /* Download from a local repository -- this is slightly different process than from a server */
-                        var localResource = new FindLocalPackagesResourceV2(repoUrl);
-                        var resource = new LocalDownloadResource(repoUrl, localResource);
+                        var localResource = new FindLocalPackagesResourceV2(repoUri);
+                        var resource = new LocalDownloadResource(repoUri, localResource);
 
                         // Actually downloading the .nupkg from a local repo
                         var result = resource.GetDownloadResourceResultAsync(
@@ -379,7 +386,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                              globalPackagesFolder: tempInstallPath,
                              logger: NullLogger.Instance,
                              token: _cancellationToken).GetAwaiter().GetResult();
-                        
+
                         // Create the package extraction context
                         PackageExtractionContext packageExtractionContext = new PackageExtractionContext(
                                 packageSaveMode: PackageSaveMode.Nupkg,
@@ -402,13 +409,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         /* Download from a non-local repository */
                         // Set up NuGet API resource for download
-                        PackageSource source = new PackageSource(repoUrl);
+                        PackageSource source = new PackageSource(repoUri);
 
                         // Explicitly passed in Credential takes precedence over repository CredentialInfo
                         if (credential != null)
                         {
                             string password = new NetworkCredential(string.Empty, credential.Password).Password;
-                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, credential.UserName, password, true, null);
+                            source.Credentials = PackageSourceCredential.FromUserInput(repoUri, credential.UserName, password, true, null);
                         }
                         else if (repoCredentialInfo != null)
                         {
@@ -418,7 +425,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 _cmdletPassedIn);
 
                             string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
-                            source.Credentials = PackageSourceCredential.FromUserInput(repoUrl, repoCredential.UserName, password, true, null);
+                            source.Credentials = PackageSourceCredential.FromUserInput(repoUri, repoCredential.UserName, password, true, null);
                         }
                         var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
                         SourceRepository repository = new SourceRepository(source, provider);
@@ -448,7 +455,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
 
-                    // pkgIdentity.Version.Version gets the version without metadata or release labels.      
+                    // pkgIdentity.Version.Version gets the version without metadata or release labels.
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
                     string normalizedVersionNoPrerelease = newVersion;
                     if (pkgIdentity.Version.IsPrerelease)
@@ -456,12 +463,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // eg: 2.0.2
                         normalizedVersionNoPrerelease = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
                     }
-                    
+
                     string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
                     var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
                     string moduleManifestVersion = string.Empty;
-                    var scriptPath = Path.Combine(tempDirNameVersion, pkg.Name + ".ps1");
-                    var modulePath = Path.Combine(tempDirNameVersion, pkg.Name + ".psd1");
+                    var scriptPath = Path.Combine(tempDirNameVersion, pkg.Name + PSScriptFileExt);
+                    var modulePath = Path.Combine(tempDirNameVersion, pkg.Name + PSDataFileExt);
                     // Check if the package is a module or a script
                     var isModule = File.Exists(modulePath);
 
@@ -486,7 +493,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        // PSModules: 
+                        // PSModules:
                         /// ./Modules
                         /// ./Scripts
                         /// _pathsToInstallPkg is sorted by desirability, Find will pick the pick the first Script or Modules path found in the list
@@ -494,9 +501,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
                     }
 
+                    if (_authenticodeCheck && !AuthenticodeSignature.CheckAuthenticodeSignature(pkg.Name, tempDirNameVersion, _versionRange, _pathsToSearch, installPath, _cmdletPassedIn, out ErrorRecord errorRecord))
+                    {
+                        ThrowTerminatingError(errorRecord);
+                    }
+
                     if (isModule)
                     {
-                        var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + ".psd1");
+                        var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + PSDataFileExt);
                         if (!File.Exists(moduleManifest))
                         {
                             var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgIdentity.Id, moduleManifest);
@@ -508,19 +520,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        if (!Utils.TryParseModuleManifest(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
+                        if (!Utils.TryReadManifestFile(
+                            manifestFilePath: moduleManifest,
+                            manifestInfo: out Hashtable parsedMetadataHashtable,
+                            error: out Exception manifestReadError))
                         {
-                            // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
+                            WriteError(
+                                new ErrorRecord(
+                                    exception: manifestReadError,
+                                    errorId: "ManifestFileReadParseError",
+                                    errorCategory: ErrorCategory.ReadError,
+                                    this));
+
                             continue;
                         }
 
-                        companyName = parsedMetadataHashtable["CompanyName"] as string;
-                        if (!String.IsNullOrEmpty(companyName))
-                        {
-                            pkg.CompanyName = companyName;
-                        }
-
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
+                        pkg.CompanyName = parsedMetadataHashtable["CompanyName"] as string;
 
                         // Accept License verification
                         if (!_savePkg && !CallAcceptLicense(pkg, moduleManifest, tempInstallPath, newVersion))
@@ -540,11 +556,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (_includeXML)
                     {
-                        CreateMetadataXMLFile(tempDirNameVersion, installPath, companyName, pkg, isModule);
+                        CreateMetadataXMLFile(tempDirNameVersion, installPath, pkg, isModule);
                     }
-                    
+
                     MoveFilesIntoInstallPath(
-                        pkg, 
+                        pkg,
                         isModule,
                         isLocalRepo,
                         tempDirNameVersion,
@@ -553,7 +569,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         newVersion,
                         moduleManifestVersion,
                         scriptPath);
-                    
+
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkg.Name, installPath));
                     pkgsSuccessfullyInstalled.Add(pkg);
                 }
@@ -573,7 +589,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // Delete the temp directory and all its contents
                     _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", tempInstallPath));
-                    
+
                     if (Directory.Exists(tempInstallPath))
                     {
                         if (!TryDeleteDirectory(tempInstallPath, out ErrorRecord errorMsg))
@@ -673,12 +689,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Get installed modules, then get all possible paths
             bool foundClobber = false;
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(new string[] { "*" }, VersionRange.All, _pathsToSearch);
+            // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
+            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
+                name: new string[] { "*" },
+                versionRange: VersionRange.All,
+                pathsToSearch: _pathsToSearch,
+                selectPrereleaseOnly: false);
             // user parsed metadata hash
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
             {
-                listOfCmdlets.Add(cmdletName as string); 
+                listOfCmdlets.Add(cmdletName as string);
 
             }
 
@@ -699,8 +720,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 if (duplicateCmdlets.Any() || duplicateCmds.Any())
-                { 
-                    
+                {
+
                     duplicateCmdlets.AddRange(duplicateCmds);
 
                     var errMessage = string.Format(
@@ -721,7 +742,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return foundClobber;
         }
 
-        private void CreateMetadataXMLFile(string dirNameVersion, string installPath, string companyName, PSResourceInfo pkg, bool isModule)
+        private void CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule)
         {
             // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"
             // Modules will have the metadata file: "PSGetModuleInfo.xml"
@@ -730,7 +751,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             pkg.InstalledDate = DateTime.Now;
             pkg.InstalledLocation = installPath;
-            pkg.CompanyName = companyName;
 
             // Write all metadata into metadataXMLPath
             if (!pkg.TryWrite(metadataXMLPath, out string error))
@@ -815,14 +835,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         private void MoveFilesIntoInstallPath(
-            PSResourceInfo pkgInfo, 
-            bool isModule, 
-            bool isLocalRepo, 
-            string dirNameVersion, 
-            string tempInstallPath, 
-            string installPath, 
-            string newVersion, 
-            string moduleManifestVersion, 
+            PSResourceInfo pkgInfo,
+            bool isModule,
+            bool isLocalRepo,
+            string dirNameVersion,
+            string tempInstallPath,
+            string installPath,
+            string newVersion,
+            string moduleManifestVersion,
             string scriptPath)
         {
             // Creating the proper installation path depending on whether pkg is a module or script
@@ -879,16 +899,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
 
                     // Need to delete old script file, if that exists
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1"))));
-                    if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1")))
+                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
+                    if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)))
                     {
                         _cmdletPassedIn.WriteVerbose(string.Format("Deleting script file"));
-                        File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1"));
+                        File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
                     }
                 }
 
-                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1")));
-                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + ".ps1"));
+                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
+                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
             }
         }
 

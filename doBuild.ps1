@@ -50,10 +50,28 @@ function DoBuild
         # Build code and place it in the staging location
         Push-Location "${SrcPath}/code"
         try {
+            # Get dotnet.exe command path.
+            $dotnetCommand = Get-Command -Name 'dotnet' -ErrorAction Ignore
+
+            # Check for dotnet for Windows (we only build on Windows platforms).
+            if ($null -eq $dotnetCommand) {
+                Write-Verbose -Verbose -Message "dotnet.exe cannot be found in current path. Looking in ProgramFiles path."
+                $dotnetCommandPath = Join-Path -Path $env:ProgramFiles -ChildPath "dotnet\dotnet.exe"
+                $dotnetCommand = Get-Command -Name $dotnetCommandPath -ErrorAction Ignore
+                if ($null -eq $dotnetCommand) {
+                    throw "Dotnet.exe cannot be found: $dotnetCommandPath is unavailable for build."
+                }
+            }
+
+            Write-Verbose -Verbose -Message "dotnet.exe command found in path: $($dotnetCommand.Path)"
+
+            # Check dotnet version
+            Write-Verbose -Verbose -Message "DotNet version: $(& ($dotnetCommand) --version)"
+
             # Build source
             Write-Verbose -Verbose -Message "Building with configuration: $BuildConfiguration, framework: $BuildFramework"
             Write-Verbose -Verbose -Message "Build location: PSScriptRoot: $PSScriptRoot, PWD: $pwd"
-            dotnet publish --configuration $BuildConfiguration --framework $BuildFramework --output $BuildSrcPath -warnaserror
+            & ($dotnetCommand) publish --configuration $BuildConfiguration --framework $BuildFramework --output $BuildSrcPath -warnaserror
             if ($LASTEXITCODE -ne 0) {
                 throw "Build failed with exit code: $LASTEXITCODE"
             }
@@ -107,8 +125,8 @@ function DoBuild
             }
         }
         catch {
-            # Write-Error "dotnet build failed with error: $_"
             Write-Verbose -Verbose -Message "dotnet build failed with error: $_"
+            Write-Error "dotnet build failed with error: $_"
         }
         finally {
             Pop-Location

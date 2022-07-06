@@ -21,6 +21,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private readonly PSCmdlet _cmdletPassedIn;
         private readonly Dictionary<string, PSResourceInfo> _scriptDictionary;
+        public const string PSScriptFileExt = ".ps1";
 
         #endregion
 
@@ -39,11 +40,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public IEnumerable<PSResourceInfo> GetPackagesFromPath(
             string[] name,
             VersionRange versionRange,
-            List<string> pathsToSearch)
+            List<string> pathsToSearch,
+            bool selectPrereleaseOnly)
         {
-            List<string> pgkPathsByName = FilterPkgPathsByName(name, pathsToSearch);
+            List<string> pkgPathsByName = FilterPkgPathsByName(name, pathsToSearch);
 
-            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pgkPathsByName))
+            foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pkgPathsByName, selectPrereleaseOnly))
             {
                 PSResourceInfo pkg = OutputPackageObject(pkgPath, _scriptDictionary);
                 if (pkg != null)
@@ -77,7 +79,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Filter by user provided version
-        public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch)
+        public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch, bool selectPrereleaseOnly)
         {
             Dbg.Assert(versionRange != null, "Version Range cannot be null");
             
@@ -121,11 +123,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
 
+                        // For Uninstall-PSResource Prerelease parameter equates to selecting prerelease versions only to uninstall.
+                        // For other cmdlets (Find-PSResource, Install-PSResource) Prerelease parmater equates to selecting stable and prerelease versions.
+                        // We will not just select prerelase versions. For Get-PSResource, there is no Prerelease parameter.
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
-                            // This will be one version or a version range.
-                            // yield results then continue with this iteration of the loop
-                            yield return versionPath;
+                            if (!selectPrereleaseOnly || pkgNugetVersion.IsPrerelease)
+                            {
+                                yield return versionPath;
+                            }
                         }
                     }
                 }
@@ -217,7 +223,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ./Modules/Microsoft.PowerShell.Test-Module     : Microsoft.PowerShell.Test-Module
             // ./Scripts/Microsoft.PowerShell.Test-Script.ps1 : Microsoft.PowerShell.Test-Script
             var resourceName = Path.GetFileName(path);
-            return Path.GetExtension(resourceName).Equals(".ps1", StringComparison.OrdinalIgnoreCase)
+            return Path.GetExtension(resourceName).Equals(PSScriptFileExt, StringComparison.OrdinalIgnoreCase)
                 ? Path.GetFileNameWithoutExtension(resourceName) : resourceName;
         }
 

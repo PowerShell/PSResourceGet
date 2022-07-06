@@ -118,6 +118,13 @@ PS C:\> Find-PSResource -DscResourceName "SystemLocale" -Repository PSGallery
 
 This examples searches for all module resources with `-DscResourceName` "SystemLocale" from the `-Repository` PSGallery. It returns all the module resources which include a DSC resource named "SystemLocale" and also lists the following information for each module resource: version, name (displayed under ModuleName) and repository. To access the rest of the properties of the parent module resource, you can access the `$_.ParentResource` of the PSIncludedResourceInfo object returned from the DSCResourceName parameter set.
 
+### Example 7
+```powershell
+PS C:\> Find-PSResource -Name *                                   
+```
+
+This will search all PSResources from registered PSResourceRepositories.
+
 ## PARAMETERS
 
 ### -Credential
@@ -268,7 +275,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Confirm

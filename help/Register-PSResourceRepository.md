@@ -14,7 +14,7 @@ Registers a repository for PowerShell resources.
 
 ### NameParameterSet (Default)
 ```
-Register-PSResourceRepository [-Name] <String> [-URL] <String> [-Trusted] [-Priority <Int32>] [-PassThru]
+Register-PSResourceRepository [-Name <String>] [-Uri <String>] [CredentialInfo <PSCredentialInfo>] [-Trusted] [-Priority <Int32>] [-PassThru]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -26,7 +26,7 @@ Register-PSResourceRepository [-PSGallery] [-Trusted] [-Priority <Int32>] [-Pass
 
 ### RepositoriesParameterSet
 ```
-Register-PSResourceRepository -Repositories <Hashtable[]> [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Register-PSResourceRepository -Repository <Hashtable[]> [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -36,39 +36,39 @@ The Register-PSResourceRepository cmdlet registers a repository for PowerShell r
 These examples assume that the repository we attempt to register is not already registered on the user's machine.
 ### Example 1
 ```
-PS C:\> Register-PSResourceRepository -Name "PoshTestGallery" -URL "https://www.powershellgallery.com/api/v2"
+PS C:\> Register-PSResourceRepository -Name "PoshTestGallery" -Uri "https://www.powershellgallery.com/api/v2"
 PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
 ```
 
-This example registers the repository with the `-Name` of "PoshTestGallery" along with the associated `URL` value for it.
+This example registers the repository with the `-Name` of "PoshTestGallery" along with the associated `Uri` value for it.
 
 ### Example 2
 ```
 PS C:\> Register-PSResourceRepository -PSGallery
 PS C:\> Get-PSResourceRepository -Name "PSGallery"
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
 ```
 
-This example registers the "PSGallery" repository, with the 'PSGallery' parameter. Unlike the previous example, we cannot use the `-Name` or `-URL` parameters to register the "PSGallery" repository as it is considered Powershell's default repository store and has its own value for URL.
+This example registers the "PSGallery" repository, with the 'PSGallery' parameter. Unlike the previous example, we cannot use the `-Name` or `-Uri` parameters to register the "PSGallery" repository as it is considered Powershell's default repository store and has its own value for Uri.
 
 ### Example 3
 ```
-PS C:\> $arrayOfHashtables = @{Name = "psgettestlocal"; URL = "c:/code/testdir"},@{PSGallery = $True}
-PS C:\> Register-PSResourceRepository -Repositories $arrayOfHashtables
+PS C:\> $arrayOfHashtables = @{Name = "psgettestlocal"; Uri = "c:/code/testdir"}, @{PSGallery = $True}
+PS C:\> Register-PSResourceRepository -Repository $arrayOfHashtables
 PS C:\> Get-PSResourceRepository
-        Name             Url                                          Trusted   Priority
+        Name             Uri                                          Trusted   Priority
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2       False         50
         psgettestlocal   file:///c:/code/testdir                        False         50
 
 ```
 
-This example registers multiple repositories at once. To do so, we use the `-Repositories` parameter and provide an array of hashtables. Each hashtable can only have keys associated with parameters for the NameParameterSet or the PSGalleryParameterSet. Upon running the command we can see that the "psgettestlocal" and "PSGallery" repositories have been succesfully registered.
+This example registers multiple repositories at once. To do so, we use the `-Repository` parameter and provide an array of hashtables. Each hashtable can only have keys associated with parameters for the NameParameterSet or the PSGalleryParameterSet. Upon running the command we can see that the "psgettestlocal" and "PSGallery" repositories have been succesfully registered.
 
 ## PARAMETERS
 
@@ -119,7 +119,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Repositories
+### -Repository
 Specifies an array of hashtables which contains repository information and is used to register multiple repositories at once.
 
 ```yaml
@@ -149,9 +149,9 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -URL
+### -Uri
 Specifies the location of the repository to be registered.
-URL can be of the following Uri schemas: HTTPS, HTTP, FTP, file share based.
+Uri can be of the following Uri schemas: HTTPS, HTTP, FTP, file share based.
 
 ```yaml
 Type: String
@@ -160,6 +160,24 @@ Aliases:
 
 Required: True
 Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+### -CredentialInfo
+Specifies where a credential is stored to access the PSResourceRepository for Find/Install/Update commands.
+Takes a PSCredentialInfo Objects which takes in a vault name and secret name.
+This parameter utilizes the Microsoft.PowerShell.SecretManagement module for interfacing with the stored credential.
+
+`New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("VaultName", "SecretName")`
+
+```yaml
+Type: PSCredentialInfo
+Parameter Sets: NameParameterSet
+Aliases:
+
+Required: False
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -225,8 +243,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## NOTES
 Repositories are unique by 'Name'. Attempting to register a repository with same 'Name' as an already registered repository will not successfully register.
 
-Registering the PSGallery repository must be done via the PSGalleryParameterSet (i.e by using the 'PSGallery' parameter instead of 'Name' and 'URL' parameters).
+Registering the PSGallery repository must be done via the PSGalleryParameterSet (i.e by using the 'PSGallery' parameter instead of 'Name' and 'Uri' parameters).
 
-URL string input must be of one of the following Uri schemes: HTTP, HTTPS, FTP, File
+Uri string input must be of one of the following Uri schemes: HTTP, HTTPS, FTP, File
 
 ## RELATED LINKS

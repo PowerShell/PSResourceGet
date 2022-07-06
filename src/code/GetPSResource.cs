@@ -28,6 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the desired name for the resource to look for.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(Position = 0, ValueFromPipeline = true)]
         public string[] Name { get; set; }
 
@@ -44,6 +45,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Path { get; set; }
+        
+        /// <summary>
+        /// Specifies the scope of installation.
+        /// </summary>
+        [Parameter]
+        public ScopeType Scope { get; set; }
 
         #endregion
 
@@ -102,7 +109,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else
             {
                 // retrieve all possible paths
-                _pathsToSearch = Utils.GetAllResourcePaths(this);
+                _pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
             }
         }
 
@@ -128,7 +135,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             GetHelper getHelper = new GetHelper(this);
-            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(namesToSearch, _versionRange, _pathsToSearch))
+            // selectPrereleaseOnly is false because we want both stable and prerelease versions all the time.
+            foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(
+                name: namesToSearch,
+                versionRange: _versionRange,
+                pathsToSearch: _pathsToSearch,
+                selectPrereleaseOnly: false))
             {
                 WriteObject(pkg);
             }

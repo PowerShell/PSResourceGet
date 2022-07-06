@@ -21,7 +21,7 @@ stages:
     pool:
       name: 1ES
       demands:
-      - ImageOverride -equals MMS2019
+      - ImageOverride -equals PSMMS2019-Secure
 
     steps:
 
@@ -244,7 +244,7 @@ stages:
           BuildDropPath: $(signOutPath)
           Build_Repository_Uri: 'https://github.com/powershell/powershellget'
           PackageName: 'PowerShellGet'
-          PackageVersion: '3.0.12'
+          PackageVersion: '3.0.14'
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -281,7 +281,7 @@ stages:
     pool:
       name: 1ES
       demands:
-      - ImageOverride -equals MMS2019
+      - ImageOverride -equals PSMMS2019-Secure
 
     steps:
     - checkout: self
