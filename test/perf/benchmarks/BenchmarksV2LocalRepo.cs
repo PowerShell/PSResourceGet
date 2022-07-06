@@ -43,6 +43,7 @@ namespace Benchmarks
         [Benchmark]
         public void FindAzModuleV3()
         {
+            pwsh.Commands.Clear();
             pwsh.AddScript("Find-Module -Name Az -Repository LocalRepo");
             pwsh.Invoke();
         }
@@ -50,6 +51,7 @@ namespace Benchmarks
         [Benchmark]
         public void FindAzModuleAndDependenciesV3()
         {
+            pwsh.Commands.Clear();
             pwsh.AddScript("Find-Module -Name Az -IncludeDependencies -Repository LocalRepo");
             pwsh.Invoke();
         }
@@ -57,6 +59,7 @@ namespace Benchmarks
         [Benchmark]
         public void InstallAzModuleAndDependenciesV3()
         {
+            pwsh.Commands.Clear();
             pwsh.AddScript("Install-Module -Name Az -Repository LocalRepo -Force");
             pwsh.Invoke();
         }

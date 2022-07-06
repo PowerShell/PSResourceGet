@@ -14,8 +14,8 @@ namespace Benchmarks
     {
         System.Management.Automation.PowerShell pwsh;
 
-        [IterationSetup]
-        public void IterationSetup()
+        [GlobalSetup]
+        public void GlobalSetup()
         {
             // Setting up the PowerShell runspace
             var defaultSS = System.Management.Automation.Runspaces.InitialSessionState.CreateDefault2();
@@ -27,7 +27,7 @@ namespace Benchmarks
             pwsh.Invoke();
         }
 		
-        [IterationCleanup]
+        [GloblaCleanup]
         public void IterationCleanup()
         {
             pwsh.Dispose();
@@ -36,6 +36,7 @@ namespace Benchmarks
         [Benchmark]
         public void FindAzModuleV2()
         {
+            pwsh.Commands.Clear();
             pwsh.AddScript("Find-Module -Name Az -Repository PSGallery");
             pwsh.Invoke();
         }
@@ -43,6 +44,7 @@ namespace Benchmarks
         [Benchmark]
         public void FindAzModuleAndDependenciesV2()
         {
+            pwsh.Commands.Clear();
             pwsh.AddScript("Find-Module -Name Az -IncludeDependencies -Repository PSGallery");
             pwsh.Invoke();
         }
@@ -50,6 +52,7 @@ namespace Benchmarks
         [Benchmark]
         public void InstallAzModuleAndDependenciesV2()
         {
+            pwsh.Commands.Clear();
             pwsh.AddScript("Install-Module -Name Az -Repository PSGallery -Force");
             pwsh.Invoke();
         }
