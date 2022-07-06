@@ -9,8 +9,10 @@ namespace benchmarks
     {
         public static void Main(string[] args)
         {
-            var summaryV2 = BenchmarkRunner.Run<BenchmarksV2>();
-            var summaryV3 = BenchmarkRunner.Run<BenchmarksV3>();
+            var summaryV2Remote = BenchmarkRunner.Run<BenchmarksV2RemoteRepo>();
+            var summaryV3Remote = BenchmarkRunner.Run<BenchmarksV3RemoteRepo>();
+            var summaryV2Local = BenchmarkRunner.Run<BenchmarksV2LocalRepo>();
+            var summaryV3Local = BenchmarkRunner.Run<BenchmarksV3LocalRepo>();
         }
     }
 }
