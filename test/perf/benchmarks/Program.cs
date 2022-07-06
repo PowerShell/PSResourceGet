@@ -3,7 +3,7 @@
 
 using BenchmarkDotNet.Running;
 
-namespace benchmarks
+namespace Benchmarks
 {
     public sealed class Program
     {

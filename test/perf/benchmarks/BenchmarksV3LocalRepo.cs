@@ -47,8 +47,6 @@ namespace Benchmarks
         [Benchmark]
         public void FindAzModuleAndDependenciesV3()
         {
-            Collection<PSObject> results = null;
-
             pwsh.AddScript("Find-PSResource -Name Az -IncludeDependencies -Repository LocalRepo");
             pwsh.Invoke();
         }

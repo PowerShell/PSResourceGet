@@ -27,6 +27,10 @@
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
 
+  <ItemGroup>
+      <InternalsVisibleTo Include="Benchmarks" />
+  </ItemGroup>
+
   <Target Name="CoreTypes" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
     <ItemGroup>
       <ReferencePath Condition="'%(FileName)' == 'NuGet.Protocol.Core.Types'">
