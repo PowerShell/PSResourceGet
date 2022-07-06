@@ -537,6 +537,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
                         pkg.CompanyName = parsedMetadataHashtable["CompanyName"] as string;
+                        pkg.Copyright = parsedMetadataHashtable["Copyright"] as string;
+                        pkg.ReleaseNotes = parsedMetadataHashtable["ReleaseNotes"] as string;
+                        pkg.RepositorySourceLocation = repoUri;
 
                         // Accept License verification
                         if (!_savePkg && !CallAcceptLicense(pkg, moduleManifest, tempInstallPath, newVersion))
@@ -550,7 +553,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
                     }
-
+                    else
+                    {
+                        // is script
+                        
+                    }
                     // Delete the extra nupkg related files that are not needed and not part of the module/script
                     DeleteExtraneousFiles(pkgIdentity, tempDirNameVersion);
 
