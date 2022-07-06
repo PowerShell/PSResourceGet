@@ -38,7 +38,6 @@ Describe "Test Test-PSScriptFileInfo" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (psScriptMissingAuthor)
     }
 
     It "not determine script file with Description field missing as valid" {
@@ -46,7 +45,6 @@ Describe "Test Test-PSScriptFileInfo" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (psScriptMissingDescription)
     }
 
     It "not determine script that is missing Description block altogether as valid" {
@@ -54,7 +52,6 @@ Describe "Test Test-PSScriptFileInfo" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (PSScriptMissingHelpContentCommentBlock)
     }
 
     It "not determine script file Guid as valid" {
@@ -62,7 +59,6 @@ Describe "Test Test-PSScriptFileInfo" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (psScriptMissingGuid)
     }
 
     It "not determine script file missing Version as valid" {
@@ -70,6 +66,5 @@ Describe "Test Test-PSScriptFileInfo" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
-        # TODO: how to test for warnings? (psScriptMissingVersion)
     }
 }
