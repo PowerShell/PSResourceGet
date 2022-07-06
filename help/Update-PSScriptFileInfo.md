@@ -16,7 +16,7 @@ Updates an existing .ps1 file with requested properties and ensures it's valid
 ### __AllParameterSets
 
 ```
-Update-PSScriptFileInfo [-FilePath] <String> [-Author <String>] [-CompanyName <String>] [-Copyright <String>] [-Description <String>] [-ExternalModuleDependencies <String[]>] [-ExternalScriptDependencies <String[]>] [-Force] [-Guid <Guid>] [-IconUri <String>] [-LicenseUri <String>] [-PrivateData <String>] [-ProjectUri <String>] [-ReleaseNotes <String[]>] [-RemoveSignature] [-RequiredModules <Hashtable[]>] [-RequiredScripts <String[]>] [-Tags <String[]>] [-Version <String>] [<CommonParameters>]
+Update-PSScriptFileInfo [-FilePath] <String> [-Author <String>] [-CompanyName <String>] [-Copyright <String>] [-Description <String>] [-ExternalModuleDependencies <String[]>] [-ExternalScriptDependencies <String[]>] [-Guid <Guid>] [-IconUri <String>] [-LicenseUri <String>] [-PrivateData <String>] [-ProjectUri <String>] [-ReleaseNotes <String[]>] [-RemoveSignature] [-RequiredModules <Hashtable[]>] [-RequiredScripts <String[]>] [-Tags <String[]>] [-Version <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -199,24 +199,6 @@ Accepted values:
 
 Required: True
 Position: 0
-Default value: 
-Accept pipeline input: False
-Accept wildcard characters: False
-DontShow: False
-```
-
-### -Force
-
-If used with FilePath parameter and .ps1 file specified at the path exists, it rewrites the file
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases: 
-Accepted values: 
-
-Required: False
-Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
