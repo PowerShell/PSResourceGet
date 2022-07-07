@@ -220,7 +220,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string ReleaseNotes { get; set; }
 
         /// <summary>
-        /// Indicates the module is prerelease.
+        /// Indicates the prerelease label of the module.
+
         /// </summary>
         [Parameter]
         public string Prerelease { get; set; }
