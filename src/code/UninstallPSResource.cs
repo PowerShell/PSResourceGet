@@ -329,13 +329,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Results is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
                 // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
                 // If we anything from the final call gets returned, there is a dependency on this pkg.
-                IEnumerable<PSObject> pkgsWithRequiredModules = new List<PSObject>();
+                List<PSObject> pkgsWithRequiredModules = new List<PSObject>();
                 errorRecord = null;
                 try
                 {
-                    pkgsWithRequiredModules = results.Where(
+                    pkgsWithRequiredModules = (results.Where(
                         pkg => ((ReadOnlyCollection<PSModuleInfo>)pkg.Properties["RequiredModules"].Value).Where(
-                            rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any());
+                            rm => rm.Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase)).Any())).ToList();
                 }
                 catch (Exception e)
                 {

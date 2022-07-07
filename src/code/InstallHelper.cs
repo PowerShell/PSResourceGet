@@ -192,7 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var isLocalRepo = repo.Uri.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
 
                 // Finds parent packages and dependencies
-                IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
+                List<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
                     name: _pkgNamesToInstall.ToArray(),
                     type: ResourceType.None,
                     version: _versionRange != null ? _versionRange.OriginalString : null,
@@ -200,7 +200,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     tag: null,
                     repository: new string[] { repoName },
                     credential: credential,
-                    includeDependencies: !skipDependencyCheck);
+                    includeDependencies: !skipDependencyCheck).ToList();
 
                 if (!pkgsFromRepoToInstall.Any())
                 {
@@ -222,7 +222,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
                 if (!_reinstall)
                 {
-                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
+                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall).ToList();
                 }
 
                 if (!pkgsFromRepoToInstall.Any())
@@ -261,7 +261,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
-        private IEnumerable<PSResourceInfo> FilterByInstalledPkgs(IEnumerable<PSResourceInfo> packages)
+        private List<PSResourceInfo> FilterByInstalledPkgs(List<PSResourceInfo> packages)
         {
             // Create list of installation paths to search.
             List<string> _pathsToSearch = new List<string>();
@@ -286,11 +286,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // Get currently installed packages.
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
+            List<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: filteredPackages.Keys.ToArray(),
                 versionRange: _versionRange,
                 pathsToSearch: _pathsToSearch,
-                selectPrereleaseOnly: false);
+                selectPrereleaseOnly: false).ToList();
+
             if (!pkgsAlreadyInstalled.Any())
             {
                 return packages;
@@ -308,11 +309,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
             }
 
-            return filteredPackages.Values.ToArray();
+            return filteredPackages.Values.ToList();
         }
 
         private List<PSResourceInfo> InstallPackage(
-            IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
+            List<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
             string repoName,
             string repoUri,
             PSCredentialInfo repoCredentialInfo,
@@ -689,11 +690,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool foundClobber = false;
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
+            List<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: new string[] { "*" },
                 versionRange: VersionRange.All,
                 pathsToSearch: _pathsToSearch,
-                selectPrereleaseOnly: false);
+                selectPrereleaseOnly: false).ToList();
             // user parsed metadata hash
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])

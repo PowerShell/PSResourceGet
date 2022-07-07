@@ -351,7 +351,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (!pkgName.Contains("*"))
             {
                 // case: searching for specific package name i.e "Carbon"
-                IEnumerable<IPackageSearchMetadata> retrievedPkgs = null;
+                List<IPackageSearchMetadata> retrievedPkgs = null;
                 try
                 {
                     // GetMetadataAsync() API returns all versions for a specific non-wildcard package name
@@ -362,7 +362,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         includeUnlisted: false,
                         sourceCacheContext: sourceContext,
                         log: NullLogger.Instance,
-                        token: _cancellationToken).GetAwaiter().GetResult();
+                        token: _cancellationToken).GetAwaiter().GetResult().ToList();
                 }
                 catch (HttpRequestException ex)
                 {
@@ -405,7 +405,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield break;
                 }
                 // case: searching for name containing wildcard i.e "Carbon.*"
-                IEnumerable<IPackageSearchMetadata> wildcardPkgs = null;
+                List<IPackageSearchMetadata> wildcardPkgs = null;
                 try
                 {
                     // SearchAsync() API returns the latest version only for all packages that match the wild-card name
@@ -415,17 +415,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         skip: 0,
                         take: SearchAsyncMaxTake,
                         log: NullLogger.Instance,
-                        cancellationToken: _cancellationToken).GetAwaiter().GetResult();
+                        cancellationToken: _cancellationToken).GetAwaiter().GetResult().ToList();
+
                     if (wildcardPkgs.Count() > SearchAsyncMaxReturned)
                     {
                         // get the rest of the packages
-                        wildcardPkgs = wildcardPkgs.Concat(pkgSearchResource.SearchAsync(
-                            searchTerm: pkgName,
-                            filters: searchFilter,
-                            skip: SearchAsyncMaxTake,
-                            take: GalleryMax,
-                            log: NullLogger.Instance,
-                            cancellationToken: _cancellationToken).GetAwaiter().GetResult());
+                        wildcardPkgs.AddRange(
+                            pkgSearchResource.SearchAsync(
+                                searchTerm: pkgName,
+                                filters: searchFilter,
+                                skip: SearchAsyncMaxTake,
+                                take: GalleryMax,
+                                log: NullLogger.Instance,
+                                cancellationToken: _cancellationToken).GetAwaiter().GetResult().ToList());
                     }
                 }
                 catch (HttpRequestException ex)
@@ -605,13 +607,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             foreach(var dep in currentPkg.Dependencies)
             {
-                IEnumerable<IPackageSearchMetadata> depPkgs = packageMetadataResource.GetMetadataAsync(
+                List<IPackageSearchMetadata> depPkgs = packageMetadataResource.GetMetadataAsync(
                     packageId: dep.Name,
                     includePrerelease: _prerelease,
                     includeUnlisted: false,
                     sourceCacheContext: sourceCacheContext,
                     log: NullLogger.Instance,
-                    token: _cancellationToken).GetAwaiter().GetResult();
+                    token: _cancellationToken).GetAwaiter().GetResult().ToList();
 
                 if (depPkgs.Count() > 0)
                 {
