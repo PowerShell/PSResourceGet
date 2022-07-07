@@ -540,10 +540,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (privateData["PSData"] is Hashtable psData)
                     {
-                        if (psData.ContainsKey("Prerelease") && psData["Prerelease"] is string preReleaseVersion)
+                        if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
                         {
                             version = string.Format(@"{0}-{1}", version, preReleaseVersion);
                         }
+
+                        if (psData.ContainsKey("licenseUri") && psData["licenseuri"] is string licenseUri)
+                        {
+                            metadataElementsDictionary.Add("licenseUrl", licenseUri.Trim());
+                        }
+
+                        if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
+                        {
+                            metadataElementsDictionary.Add("projectUrl", projectUri.Trim());
+                        }
+
+                        if (psData.ContainsKey("iconuri") && psData["iconuri"] is string iconUri)
+                        {
+                            metadataElementsDictionary.Add("iconUrl", iconUri.Trim());
+                        }
+
+                        if (psData.ContainsKey("releasenotes") && psData["releasenotes"] is string releaseNotes)
+                        {
+                            metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                        }
+
+                        // defaults to false
+                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["ReleaseNotes"] as string  : "false";
+                        metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
+
+
                         if (psData.ContainsKey("Tags") && psData["Tags"] is Array manifestTags)
                         {
                             var tagArr = new List<string>();
@@ -572,19 +598,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 metadataElementsDictionary.Add("owners", parsedMetadataHash["companyname"].ToString().Trim());
             }
 
-            // defaults to false
-            var requireLicenseAcceptance = parsedMetadataHash.ContainsKey("requirelicenseacceptance") ? parsedMetadataHash["requirelicenseacceptance"].ToString().ToLower().Trim()
-                : "false";
-            metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
-
             if (parsedMetadataHash.ContainsKey("description"))
             {
                 metadataElementsDictionary.Add("description", parsedMetadataHash["description"].ToString().Trim());
-            }
-
-            if (parsedMetadataHash.ContainsKey("releasenotes"))
-            {
-                metadataElementsDictionary.Add("releaseNotes", parsedMetadataHash["releasenotes"].ToString().Trim());
             }
 
             if (parsedMetadataHash.ContainsKey("copyright"))
@@ -602,20 +618,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             metadataElementsDictionary.Add("tags", tags);
 
-            if (parsedMetadataHash.ContainsKey("licenseuri"))
-            {
-                metadataElementsDictionary.Add("licenseUrl", parsedMetadataHash["licenseuri"].ToString().Trim());
-            }
-
-            if (parsedMetadataHash.ContainsKey("projecturi"))
-            {
-                metadataElementsDictionary.Add("projectUrl", parsedMetadataHash["projecturi"].ToString().Trim());
-            }
-
-            if (parsedMetadataHash.ContainsKey("iconuri"))
-            {
-                metadataElementsDictionary.Add("iconUrl", parsedMetadataHash["iconuri"].ToString().Trim());
-            }
 
             // Example nuspec:
             /*
