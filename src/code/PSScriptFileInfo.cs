@@ -550,9 +550,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 string parsedCompanyName = (string) parsedScriptMetadata["COMPANYNAME"] ?? String.Empty;
                 string parsedCopyright = (string) parsedScriptMetadata["COPYRIGHT"] ?? String.Empty;
                 string parsedPrivateData = (string) parsedScriptMetadata["PRIVATEDATA"] ?? String.Empty;
-
-                // string parsedReleaseNotes = (string) parsedScriptMetadata["RELEASENOTES"] ?? String.Empty;
-                // string trimmedReleaseNotes = parsedReleaseNotes.TrimStart('\n');
                 string parsedReleaseNotes = (string) parsedScriptMetadata["RELEASENOTES"] ?? String.Empty;
 
                 string[] parsedTags = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["TAGS"]);
