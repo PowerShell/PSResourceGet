@@ -272,6 +272,19 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $res | Should -BeNullOrEmpty
     }
 
+    It "Uninstall PSResourceInfo object piped in should only uninstall version specified" {
+        Install-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $PSGalleryName -TrustRepository
+
+        $res = Get-PSResource -Name $testModuleName -Version "3.0.0"
+        $res | Should -Not -BeNullOrEmpty
+
+        Get-PSResource -Name $testModuleName -Version "3.0.0" | Uninstall-PSResource
+        $res = Get-PSResource -Name $testModuleName -Version "3.0.0"
+        $res | Should -BeNullOrEmpty
+    }
+
     # Windows only
     It "Uninstall resource under CurrentUser scope only- Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Reinstall

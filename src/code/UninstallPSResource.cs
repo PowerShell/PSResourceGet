@@ -25,14 +25,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
         [SupportsWildcards]
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
         /// <summary>
         /// Specifies the version or version range of the package to be uninstalled.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
 
