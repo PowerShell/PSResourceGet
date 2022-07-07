@@ -390,7 +390,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // and then complain that there's two keys within the PrivateData hashtable.
             PrivateData.Remove("PSData");
 
-            // After getting the original module manifest contentes, migrate all the fields to the new module manifest, 
+            // After getting the original module manifest contents, migrate all the fields to the new module manifest, 
+
             // adding in any new values specified via cmdlet parameters.
             // Set up params to pass to New-ModuleManifest module
             // For now this will be parsedMetadata hashtable and we will just add to it as needed
