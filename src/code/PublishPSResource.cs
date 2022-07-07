@@ -602,19 +602,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             metadataElementsDictionary.Add("tags", tags);
 
-            if (parsedMetadataHash.ContainsKey("licenseurl"))
+            if (parsedMetadataHash.ContainsKey("licenseuri"))
             {
-                metadataElementsDictionary.Add("licenseUrl", parsedMetadataHash["licenseurl"].ToString().Trim());
+                metadataElementsDictionary.Add("licenseUrl", parsedMetadataHash["licenseuri"].ToString().Trim());
             }
 
-            if (parsedMetadataHash.ContainsKey("projecturl"))
+            if (parsedMetadataHash.ContainsKey("projecturi"))
             {
-                metadataElementsDictionary.Add("projectUrl", parsedMetadataHash["projecturl"].ToString().Trim());
+                metadataElementsDictionary.Add("projectUrl", parsedMetadataHash["projecturi"].ToString().Trim());
             }
 
-            if (parsedMetadataHash.ContainsKey("iconurl"))
+            if (parsedMetadataHash.ContainsKey("iconuri"))
             {
-                metadataElementsDictionary.Add("iconUrl", parsedMetadataHash["iconurl"].ToString().Trim());
+                metadataElementsDictionary.Add("iconUrl", parsedMetadataHash["iconuri"].ToString().Trim());
             }
 
             // Example nuspec:
