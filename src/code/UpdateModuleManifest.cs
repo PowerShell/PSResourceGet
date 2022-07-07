@@ -214,7 +214,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public Uri IconUri { get; set; }
 
         /// <summary>
-        /// Specifies a string array that contains release notes or comments that you want available for this version of the script.
+        /// Specifies a string that contains release notes or comments that you want available for this version of the script.
+
         /// </summary>
         [Parameter]
         public string ReleaseNotes { get; set; }
