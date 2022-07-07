@@ -58,7 +58,8 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void InstallAzModuleAndDependenciesV3()
+        public void InstallAzModuleAndDependenciesV2()
+
         {
             pwsh.Commands.Clear();
             pwsh.AddScript("Install-Module -Name Az -Repository LocalRepo -Force");
