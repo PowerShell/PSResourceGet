@@ -280,7 +280,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Test the path of the module manifest to see if the file exists
             if (!File.Exists(ResolvedManifestPath))
             {
-                var message = $"No file with a .psd1 extension was found in '{ResolvedManifestPath}'.  Please specify a path to a valid modulemanifest.";
+                var message = $"The provided file path was not found: '{ResolvedManifestPath}'.  Please specify a valid module manifest (.psd1) file path.";
+
                 ThrowTerminatingError(
                     new ErrorRecord(
                          new ArgumentException(message),
