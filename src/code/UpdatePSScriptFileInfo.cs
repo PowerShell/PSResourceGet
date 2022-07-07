@@ -107,7 +107,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public string[] ReleaseNotes { get; set; }
+        public string ReleaseNotes { get; set; }
 
         /// <summary>
         /// Remove signature from signed .ps1 (if present) thereby allowing update of script to happen

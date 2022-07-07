@@ -556,6 +556,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         // is script
+                        if (!PSScriptFileInfo.TryParseScript(
+                            scriptFileInfoPath: scriptPath,
+                            out Hashtable parsedScriptMetadataHashtable,
+                            out string _,
+                        out ErrorRecord[] errors))
+                        {
+                            foreach (ErrorRecord err in errors)
+                            {
+                                WriteError(err);
+                            }
+
+                            continue;
+                        }
+
+                        pkg.CompanyName = parsedScriptMetadataHashtable["COMPANYNAME"] as string;
+                        pkg.Copyright = parsedScriptMetadataHashtable["COPYRIGHT"] as string;
+                        pkg.ReleaseNotes = parsedScriptMetadataHashtable["RELEASENOTES"] as string;
+                        Console.WriteLine((parsedScriptMetadataHashtable["RELEASENOTES"] as string));
+                        pkg.RepositorySourceLocation = repoUri;
                         
                     }
                     // Delete the extra nupkg related files that are not needed and not part of the module/script

@@ -128,7 +128,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
-        public string[] ReleaseNotes { get; set; }
+        public string ReleaseNotes { get; set; }
 
         /// <summary>
         /// The private data associated with the script

@@ -93,7 +93,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the release notes relating to the script
         /// </summary>
-        public string[] ReleaseNotes { get; private set; } = new string[]{};
+        public string ReleaseNotes { get; private set; } = String.Empty;
 
         /// <summary>
         /// The private data associated with the script
@@ -180,7 +180,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string[] externalModuleDependencies,
             string[] requiredScripts,
             string[] externalScriptDependencies,
-            string[] releaseNotes,
+            string releaseNotes,
             string privateData,
             string description,
             string endOfFileContents
@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             ExternalModuleDependencies = externalModuleDependencies ?? Utils.EmptyStrArray;
             RequiredScripts = requiredScripts ?? Utils.EmptyStrArray;
             ExternalScriptDependencies = externalScriptDependencies ?? Utils.EmptyStrArray;
-            ReleaseNotes = releaseNotes ?? Utils.EmptyStrArray;
+            ReleaseNotes = releaseNotes;
             PrivateData = privateData;
             Description = description;
             EndOfFileContents = endOfFileContents;
@@ -386,18 +386,48 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;  
             }
 
+            keyName = "";
+            value = "";
+
             for (int i = 1; i < commentLines.Count(); i++)
             {
                 string line = commentLines[i];
 
-                // A line is starting with . conveys a new metadata property
+                // scenario where line is: .KEY VALUE
+                // this line contains a new metadata property
                 if (line.Trim().StartsWith("."))
                 {
-                    // .KEY VALUE
+                    // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
+                    if (!String.IsNullOrEmpty(keyName))
+                    {
+                        parsedScriptMetadata.Add(keyName, value);
+                    }
+
                     string[] parts = line.Trim().TrimStart('.').Split();
                     keyName = parts[0];
                     value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
-                    parsedScriptMetadata.Add(keyName, value);
+                }
+                else if (!(line.Trim()).Equals("#>"))
+                {
+                    // scenario where line contains text that is a continuation of value from previously recorded key
+                    // this line does not starting with .KEY, and is also not an empty line
+                    if (value.Equals(String.Empty))
+                    {
+                        value += line;
+                    }
+                    else
+                    {
+                        value += Environment.NewLine + line;
+                    }
+                }
+                else
+                {
+                    // scenario where line is: #>
+                    // this line signifies end of comment block, so add last recorded key value pair before the comment block ends
+                    if (!String.IsNullOrEmpty(keyName))
+                    {
+                        parsedScriptMetadata.Add(keyName, value);
+                    }
                 }
             }
 
@@ -521,11 +551,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 string parsedCopyright = (string) parsedScriptMetadata["COPYRIGHT"] ?? String.Empty;
                 string parsedPrivateData = (string) parsedScriptMetadata["PRIVATEDATA"] ?? String.Empty;
 
+                // string parsedReleaseNotes = (string) parsedScriptMetadata["RELEASENOTES"] ?? String.Empty;
+                // string trimmedReleaseNotes = parsedReleaseNotes.TrimStart('\n');
+                string parsedReleaseNotes = (string) parsedScriptMetadata["RELEASENOTES"] ?? String.Empty;
+
                 string[] parsedTags = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["TAGS"]);
                 string[] parsedExternalModuleDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["EXTERNALMODULEDEPENDENCIES"]);
                 string[] parsedRequiredScripts = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["REQUIREDSCRIPTS"]);
                 string[] parsedExternalScriptDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["EXTERNALSCRIPTDEPENDENCIES"]);
-                string[] parsedReleaseNotes = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedScriptMetadata["RELEASENOTES"]);
 
                 ReadOnlyCollection<ModuleSpecification> parsedModules = (ReadOnlyCollection<ModuleSpecification>) parsedScriptMetadata["REQUIREDMODULES"] ??
                     new ReadOnlyCollection<ModuleSpecification>(new List<ModuleSpecification>());
@@ -613,7 +646,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string[] externalModuleDependencies,
             string[] requiredScripts,
             string[] externalScriptDependencies,
-            string[] releaseNotes,
+            string releaseNotes,
             string privateData,
             string description)
         {
@@ -692,7 +725,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 scriptInfo.ExternalScriptDependencies = externalScriptDependencies;                
             }
 
-            if (releaseNotes != null && releaseNotes.Length != 0)
+            if (!String.IsNullOrEmpty(releaseNotes))
             {
                 scriptInfo.ReleaseNotes = releaseNotes;
             }
@@ -818,8 +851,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         )
         {
             error = null;
-            bool pSScriptInfoSuccessfullyCreated = false;
-            pSScriptInfoString = String.Empty;
+            // TODO: Anam does this really need to return bool?
+            // bool pSScriptInfoSuccessfullyCreated = false;
+            // pSScriptInfoString = String.Empty;
 
             /**
             PSScriptInfo comment will be in following format:
@@ -847,7 +881,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 #>
             */
 
-            pSScriptInfoSuccessfullyCreated = true;
             List<string> psScriptInfoLines = new List<string>();
 
             psScriptInfoLines.Add("<#PSScriptInfo");
@@ -863,12 +896,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psScriptInfoLines.Add(String.Format(".EXTERNALMODULEDEPENDENCIES {0}", String.Join(" ", ExternalModuleDependencies)));
             psScriptInfoLines.Add(String.Format(".REQUIREDSCRIPTS {0}", String.Join(" ", RequiredScripts)));
             psScriptInfoLines.Add(String.Format(".EXTERNALSCRIPTDEPENDENCIES {0}", String.Join(" ", ExternalScriptDependencies)));
-            psScriptInfoLines.Add(String.Format(".RELEASENOTES\n{0}", String.Join("\n", ReleaseNotes)));
+            psScriptInfoLines.Add(String.Format(".RELEASENOTES\n{0}", ReleaseNotes));
             psScriptInfoLines.Add(String.Format(".PRIVATEDATA\n{0}", PrivateData));
             psScriptInfoLines.Add("#>");
 
             pSScriptInfoString = String.Join("\n\n", psScriptInfoLines);
-            return pSScriptInfoSuccessfullyCreated;
+            return true;
         }
 
         /// <summary>
