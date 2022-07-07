@@ -388,19 +388,6 @@ Describe 'Test Update-ModuleManifest' {
         $results.Contains($CmdletToExport2) | Should -Be $true
     }
 
-    It "Update module manifest given DscResourcesToExport parameters" {
-        $Description = "Test Description"
-        $DscResourcesToExport1 = "DscResourcesToExport1"
-        $DscResourcesToExport2 = "DscResourcesToExport2"
-
-        New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -DscResourcesToExport $DscResourcesToExport1, $DscResourcesToExport2
-
-        $results = Get-Content -Path $script:testManifestPath -Raw
-        $results.Contains($DscResourcesToExport1) | Should -Be $true
-        $results.Contains($DscResourcesToExport2) | Should -Be $true
-    }
-
     It "Update module manifest should not overwrite over old data unless explcitly specified" {
         $Description = "Test Description"
         $ModuleVersion = "2.0.0"
