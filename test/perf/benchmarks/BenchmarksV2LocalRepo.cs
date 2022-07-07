@@ -50,7 +50,8 @@ namespace Benchmarks
         }
 
         [Benchmark]
-        public void FindAzModuleAndDependenciesV3()
+        public void FindAzModuleAndDependenciesV2()
+
         {
             pwsh.Commands.Clear();
             pwsh.AddScript("Find-Module -Name Az -IncludeDependencies -Repository LocalRepo");
