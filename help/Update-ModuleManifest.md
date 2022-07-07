@@ -51,14 +51,10 @@ PS C:\> Update-ModuleManifest -Path "C:\MyModules\TestModule" -Tags "Windows", "
 ```
 In this example the tags and description will be updated to the passed in values.
 
-In this example, the user already has the TestModule package installed and they update the package. Update-PSResource will install the latest version of the package without deleting the older version installed.
-
 ## PARAMETERS
 
 ### -Path
-Specifies script modules (.psm1) and binary modules (.dll) that are imported into the module's session state. The files in the NestedModules key run in the order in which they're listed in the value.
-
-Enter each module name as a string or as a hash table with ModuleName and ModuleVersion keys. The hash table can also have an optional GUID key. You can combine strings and hash tables in the parameter value.
+Specifies the path and file name of the module manifest. Enter a path and file name with a .psd1 file name extension, such as `"$PSHOME\Modules\MyModule\MyModule.psd1`.
 
 ```yaml
 Type: String
@@ -447,7 +443,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -AliasesToExport
@@ -464,7 +460,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -VariablesToExport
@@ -481,7 +477,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -CmdletsToExport
@@ -498,7 +494,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -DscResourcesToExport
@@ -513,7 +509,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -PrivateData

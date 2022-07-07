@@ -22,7 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the path and file name of the module manifest.
         /// </summary>
-        [Parameter (Mandatory = true)]
+        [Parameter (Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -77,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the processor architecture that the module requires.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true)]
+        [Parameter]
         [ValidateNotNullOrEmpty]
         public ProcessorArchitecture ProcessorArchitecture { get; set; }
 
@@ -265,15 +265,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Members
 
-        string ResolvedManifestPath;
+        private string ResolvedManifestPath;
 
         #endregion
 
         #region Methods
 
-        protected override void BeginProcessing()
+        protected override void EndProcessing()
         {
-            ResolvedManifestPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
+             ResolvedManifestPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
             
             // Test the path of the module manifest to see if the file exists
             if (!File.Exists(ResolvedManifestPath))
@@ -288,10 +288,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 return;
             }
-        }
 
-        protected override void EndProcessing()
-        {
             // Parse the module manifest
             if(!Utils.TryReadManifestFile(
                         manifestFilePath: ResolvedManifestPath,

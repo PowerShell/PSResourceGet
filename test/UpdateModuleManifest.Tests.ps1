@@ -6,13 +6,9 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Update-ModuleManifest' {
 
-    BeforeAll {
-        $script:TempPath = Get-TempPath
-    }
-
     BeforeEach {
         # Create temp module manifest to be updated
-        $script:TempModulesPath = Join-Path $script:TempPath "PSGet_$(Get-Random)"
+        $script:TempModulesPath = Join-Path $TestDrive "PSGet_$(Get-Random)"
         $null = New-Item -Path $script:TempModulesPath -ItemType Directory -Force
   
         $script:UpdateModuleManifestName = "PSGetTestModule"
@@ -392,7 +388,6 @@ Describe 'Test Update-ModuleManifest' {
         $results.Contains($CmdletToExport2) | Should -Be $true
     }
 
-<#
     It "Update module manifest given DscResourcesToExport parameters" {
         $Description = "Test Description"
         $DscResourcesToExport1 = "DscResourcesToExport1"
@@ -405,7 +400,7 @@ Describe 'Test Update-ModuleManifest' {
         $results.Contains($DscResourcesToExport1) | Should -Be $true
         $results.Contains($DscResourcesToExport2) | Should -Be $true
     }
-#>
+
     It "Update module manifest should not overwrite over old data unless explcitly specified" {
         $Description = "Test Description"
         $ModuleVersion = "2.0.0"
