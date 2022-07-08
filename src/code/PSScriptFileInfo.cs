@@ -386,56 +386,59 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;  
             }
 
-            keyName = "";
-            value = "";
+            GetMetadata(commentLines, out parsedScriptMetadata);
 
-            for (int i = 1; i < commentLines.Count(); i++)
-            {
-                string line = commentLines[i];
+            // keyName = "";
+            // value = "";
 
-                // scenario where line is: .KEY VALUE
-                // this line contains a new metadata property
-                if (line.Trim().StartsWith("."))
-                {
-                    // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
-                    if (!String.IsNullOrEmpty(keyName))
-                    {
-                        parsedScriptMetadata.Add(keyName, value);
-                    }
+            // for (int i = 1; i < commentLines.Count(); i++)
+            // {
+            //     string line = commentLines[i];
 
-                    string[] parts = line.Trim().TrimStart('.').Split();
-                    keyName = parts[0];
-                    value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
-                }
-                else if (!(line.Trim()).Equals("#>"))
-                {
-                    // scenario where line contains text that is a continuation of value from previously recorded key
-                    // this line does not starting with .KEY, and is also not an empty line
-                    if (value.Equals(String.Empty))
-                    {
-                        value += line;
-                    }
-                    else
-                    {
-                        value += Environment.NewLine + line;
-                    }
-                }
-                else
-                {
-                    // scenario where line is: #>
-                    // this line signifies end of comment block, so add last recorded key value pair before the comment block ends
-                    if (!String.IsNullOrEmpty(keyName))
-                    {
-                        parsedScriptMetadata.Add(keyName, value);
-                    }
-                }
-            }
+            //     // scenario where line is: .KEY VALUE
+            //     // this line contains a new metadata property
+            //     if (line.Trim().StartsWith("."))
+            //     {
+            //         // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
+            //         if (!String.IsNullOrEmpty(keyName))
+            //         {
+            //             parsedScriptMetadata.Add(keyName, value);
+            //         }
+
+            //         string[] parts = line.Trim().TrimStart('.').Split();
+            //         keyName = parts[0];
+            //         value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
+            //     }
+            //     else if (!(line.Trim()).Equals("#>"))
+            //     {
+            //         // scenario where line contains text that is a continuation of value from previously recorded key
+            //         // this line does not starting with .KEY, and is also not an empty line
+            //         if (value.Equals(String.Empty))
+            //         {
+            //             value += line;
+            //         }
+            //         else
+            //         {
+            //             value += Environment.NewLine + line;
+            //         }
+            //     }
+            //     else
+            //     {
+            //         // scenario where line is: #>
+            //         // this line signifies end of comment block, so add last recorded key value pair before the comment block ends
+            //         if (!String.IsNullOrEmpty(keyName))
+            //         {
+            //             parsedScriptMetadata.Add(keyName, value);
+            //         }
+            //     }
+            // }
 
             // get end of file contents
             string[] totalFileContents = File.ReadAllLines(scriptFileInfoPath);
             var contentAfterAndIncludingDescription = totalFileContents.SkipWhile(x => !x.Contains(".DESCRIPTION")).ToList();
-            var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
-            endOfFileContents = String.Join("\n", contentAfterDescription.ToArray());
+            endOfFileContents = String.Join("\n", contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToArray());
+            // var contentAfterDescription = contentAfterAndIncludingDescription.SkipWhile(x => !x.Contains("#>")).Skip(1).ToList();
+            // endOfFileContents = String.Join("\n", contentAfterDescription.ToArray());
 
             return true;
         }
@@ -1010,6 +1013,60 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psHelpInfo = psHelpInfo.TrimEnd('\n');
             psHelpInfo += "\n\n#>";
             return psHelpInfoSuccessfullyCreated;
+        }
+
+        /// <summary>
+        /// Helper method which takes lines of the PSScriptInfo comment block
+        /// and parses metadata from those lines into a hashtable
+        /// </summary>
+        private static void GetMetadata(string[] commentLines, out Hashtable parsedScriptMetadata)
+        {
+            parsedScriptMetadata = new Hashtable();
+            string keyName = "";
+            string value = "";
+
+            for (int i = 1; i < commentLines.Count(); i++)
+            {
+                string line = commentLines[i];
+
+                // scenario where line is: .KEY VALUE
+                // this line contains a new metadata property
+                if (line.Trim().StartsWith("."))
+                {
+                    // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
+                    if (!String.IsNullOrEmpty(keyName))
+                    {
+                        parsedScriptMetadata.Add(keyName, value);
+                    }
+
+                    string[] parts = line.Trim().TrimStart('.').Split();
+                    keyName = parts[0];
+                    value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
+                }
+                else if (!(line.Trim()).Equals("#>"))
+                {
+                    // scenario where line contains text that is a continuation of value from previously recorded key
+                    // this line does not starting with .KEY, and is also not an empty line
+                    if (value.Equals(String.Empty))
+                    {
+                        value += line;
+                    }
+                    else
+                    {
+                        value += Environment.NewLine + line;
+                    }
+                }
+                else
+                {
+                    // scenario where line is: #>
+                    // this line signifies end of comment block, so add last recorded key value pair before the comment block ends
+                    if (!String.IsNullOrEmpty(keyName))
+                    {
+                        parsedScriptMetadata.Add(keyName, value);
+                    }
+                }
+            }
+
         }
 
         /// <summary>

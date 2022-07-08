@@ -19,7 +19,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Parameters
 
         /// <summary>
-        /// The path to the .ps1 file to test
+        /// The path to the .ps1 file to test.
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
