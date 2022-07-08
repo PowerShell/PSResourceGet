@@ -183,8 +183,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string releaseNotes,
             string privateData,
             string description,
-            string endOfFileContents
-        )
+            string endOfFileContents)
         {
             if (String.IsNullOrEmpty(author))
             {
@@ -385,52 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;  
             }
 
-            GetMetadata(commentLines, out parsedScriptMetadata);
-
-            // keyName = "";
-            // value = "";
-
-            // for (int i = 1; i < commentLines.Count(); i++)
-            // {
-            //     string line = commentLines[i];
-
-            //     // scenario where line is: .KEY VALUE
-            //     // this line contains a new metadata property
-            //     if (line.Trim().StartsWith("."))
-            //     {
-            //         // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
-            //         if (!String.IsNullOrEmpty(keyName))
-            //         {
-            //             parsedScriptMetadata.Add(keyName, value);
-            //         }
-
-            //         string[] parts = line.Trim().TrimStart('.').Split();
-            //         keyName = parts[0];
-            //         value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
-            //     }
-            //     else if (!(line.Trim()).Equals("#>"))
-            //     {
-            //         // scenario where line contains text that is a continuation of value from previously recorded key
-            //         // this line does not starting with .KEY, and is also not an empty line
-            //         if (value.Equals(String.Empty))
-            //         {
-            //             value += line;
-            //         }
-            //         else
-            //         {
-            //             value += Environment.NewLine + line;
-            //         }
-            //     }
-            //     else
-            //     {
-            //         // scenario where line is: #>
-            //         // this line signifies end of comment block, so add last recorded key value pair before the comment block ends
-            //         if (!String.IsNullOrEmpty(keyName))
-            //         {
-            //             parsedScriptMetadata.Add(keyName, value);
-            //         }
-            //     }
-            // }
+            GetMetadataFromCommentLines(commentLines, ref parsedScriptMetadata);
 
             // get end of file contents
             string[] totalFileContents = File.ReadAllLines(scriptFileInfoPath);
@@ -814,10 +768,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // have a script being updated, and contains no Signature, or contains a Signature but -RemoveSignature was used with cmdlet
             if (!String.IsNullOrEmpty(EndOfFileContents))
             {
-                if (EndOfFileContents.Contains(signatureStartString))
-                {
-                    RemoveSignatureString();
-                }
+                RemoveSignatureString();
+                // if (EndOfFileContents.Contains(signatureStartString))
+                // {
+                //     RemoveSignatureString();
+                // }
 
                 pSScriptFileString += "\n" + EndOfFileContents;
             }
@@ -829,7 +784,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Private Methods
-        
+
         /// <summary>
         /// Used when creating .ps1 file's contents.
         /// This creates the <#PSScriptInfo ... #> comment string.
@@ -1004,11 +959,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Helper method which takes lines of the PSScriptInfo comment block
         /// and parses metadata from those lines into a hashtable.
         /// </summary>
-        private static void GetMetadata(
+        private static void GetMetadataFromCommentLines(
             string[] commentLines,
-            out Hashtable parsedScriptMetadata)
+            ref Hashtable parsedScriptMetadata)
         {
-            parsedScriptMetadata = new Hashtable();
+            // parsedScriptMetadata = new Hashtable();
             string keyName = "";
             string value = "";
 
@@ -1070,8 +1025,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         private void RemoveSignatureString()
         {
-            int signatureStartIndex = EndOfFileContents.IndexOf(signatureStartString);
-            EndOfFileContents = EndOfFileContents.Substring(0, signatureStartIndex);
+            if (EndOfFileContents.Contains(signatureStartString))
+            {
+                int signatureStartIndex = EndOfFileContents.IndexOf(signatureStartString);
+                EndOfFileContents = EndOfFileContents.Substring(0, signatureStartIndex);
+            }
         }
 
         #endregion
