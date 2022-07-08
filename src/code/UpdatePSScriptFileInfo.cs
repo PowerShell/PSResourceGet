@@ -236,7 +236,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (string msg in verboseMsgs)
                 {
                     WriteVerbose(msg);
-                    
+
                     // also write a warning as the existing ProjectUri, LicenseUri, IconUri may be overwrriten if they were determined to not be valid when parsed.
                     WriteWarning(msg);
                 }
@@ -255,7 +255,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteWarning("This script contains a signature and cannot be updated without invalidating the current script signature");
                 if (!RemoveSignature)
                 {
-                    var exMessage = "Cannot update script as the .ps1 contains a signature. Either use -RemoveSignature paramter or manaully remove signature block and re-run cmdlet.";
+                    var exMessage = "Cannot update the script file because the file contains a signature block and updating will invalidate the signature. Use -RemoveSignature to remove the signature block, and then re-sign the file after it is updated.";
                     var ex = new PSInvalidOperationException(exMessage);
                     var ScriptToBeUpdatedContainsSignatureError = new ErrorRecord(ex, "ScriptToBeUpdatedContainsSignature", ErrorCategory.InvalidOperation, null);
                     ThrowTerminatingError(ScriptToBeUpdatedContainsSignatureError);

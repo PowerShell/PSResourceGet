@@ -120,7 +120,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // this will be a string where entries are separated by space
             if (String.IsNullOrEmpty(stringToConvertToArray))
             {
-                return new string[]{};
+                return Utils.EmptyStrArray;
             }
 
             return stringToConvertToArray.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
