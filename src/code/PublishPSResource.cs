@@ -547,7 +547,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         if (psData.ContainsKey("licenseUri") && psData["licenseuri"] is string licenseUri)
                         {
-                            metadataElementsDictionary.Add("licenseUrl", licenseUri.Trim());
+                            metadataElementsDictionary.Add("license", licenseUri.Trim());
                         }
 
                         if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
@@ -630,7 +630,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 <owners>Microsoft,PowerShell</owners>
                 <requireLicenseAcceptance>false</requireLicenseAcceptance>
                 <license type="expression">MIT</license>
-                <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+                <license>https://licenses.nuget.org/MIT</license>
                 <icon>Powershell_black_64.png</icon>
                 <projectUrl>https://github.com/PowerShell/PowerShell</projectUrl>
                 <description>Example description here</description>
