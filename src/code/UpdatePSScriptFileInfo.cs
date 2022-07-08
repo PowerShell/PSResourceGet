@@ -154,7 +154,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
-        protected override void ProcessRecord()
+        protected override void EndProcessing()
         {
             Uri projectUri = null;
             if (!String.IsNullOrEmpty(ProjectUri) && !Utils.TryCreateValidUri(uriString: ProjectUri,

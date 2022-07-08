@@ -29,7 +29,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
-        protected override void ProcessRecord()
+        protected override void EndProcessing()
         {
             if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
