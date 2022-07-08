@@ -381,7 +381,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 errorsList.Add(psScriptInfoCommentEmptyError);
 
                 errors = errorsList.ToArray();
-                return false;  
+                return false;
             }
 
             GetMetadataFromCommentLines(commentLines, ref parsedScriptMetadata);
@@ -721,12 +721,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // this can only have one error (i.e Author or Version is missing)
             if (!GetPSScriptInfoString(
                 pSScriptInfoString: out string psScriptInfoCommentString,
-                out ErrorRecord scriptInfoError))
+                out ErrorRecord[] scriptInfoErrors))
             {
-                if (scriptInfoError != null)
+                if (scriptInfoErrors.Length != 0)
                 {
-                    errorsList.Add(scriptInfoError);
-                    errors = errorsList.ToArray();
+                    errors = scriptInfoErrors.ToArray();
                 }
 
                 return fileContentsSuccessfullyCreated;
@@ -769,11 +768,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (!String.IsNullOrEmpty(EndOfFileContents))
             {
                 RemoveSignatureString();
-                // if (EndOfFileContents.Contains(signatureStartString))
-                // {
-                //     RemoveSignatureString();
-                // }
-
                 pSScriptFileString += "\n" + EndOfFileContents;
             }
 
@@ -791,12 +785,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         private bool GetPSScriptInfoString(
             out string pSScriptInfoString,
-            out ErrorRecord error)
+            out ErrorRecord[] errors)
         {
-            error = null;
-            // TODO: Anam does this really need to return bool?
-            // bool pSScriptInfoSuccessfullyCreated = false;
-            // pSScriptInfoString = String.Empty;
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+            bool pSScriptInfoSuccessfullyCreated = false;
+            pSScriptInfoString = String.Empty;
 
             /**
             PSScriptInfo comment will be in following format:
@@ -824,6 +817,49 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 #>
             */
 
+            if (String.IsNullOrEmpty(Author))
+            {
+                var exMessage = "Author is missing when creating PSScriptComment info block";
+                var ex = new ArgumentException(exMessage);
+                var authorMissingWhenCreatingPSScriptCommentError = new ErrorRecord(ex, "authorMissingWhenCreatingPSScriptComment", ErrorCategory.InvalidArgument, null);
+                errorsList.Add(authorMissingWhenCreatingPSScriptCommentError);
+                pSScriptInfoSuccessfullyCreated = false;
+            }
+
+            if (String.IsNullOrEmpty(Author))
+            {
+                var exMessage = "Version is missing when creating PSScriptComment info block";
+                var ex = new ArgumentException(exMessage);
+                var versionMissingWhenCreatingPSScriptCommentError = new ErrorRecord(ex, "versionMissingWhenCreatingPSScriptComment", ErrorCategory.InvalidArgument, null);
+                errorsList.Add(versionMissingWhenCreatingPSScriptCommentError);
+                pSScriptInfoSuccessfullyCreated = false;
+            }
+            
+            if (String.IsNullOrEmpty(Author))
+            {
+                var exMessage = "Description is missing when creating PSScriptComment info block";
+                var ex = new ArgumentException(exMessage);
+                var descriptionMissingWhenCreatingPSScriptCommentError = new ErrorRecord(ex, "descriptionMissingWhenCreatingPSScriptComment", ErrorCategory.InvalidArgument, null);
+                errorsList.Add(descriptionMissingWhenCreatingPSScriptCommentError);
+                pSScriptInfoSuccessfullyCreated = false;
+            }
+
+            if (Guid == Guid.Empty)
+            {
+                var exMessage = "Guid is missing when creating PSScriptComment info block";
+                var ex = new ArgumentException(exMessage);
+                var guidMissingWhenCreatingPSScriptCommentError = new ErrorRecord(ex, "guidMissingWhenCreatingPSScriptComment", ErrorCategory.InvalidArgument, null);
+                errorsList.Add(guidMissingWhenCreatingPSScriptCommentError);
+                pSScriptInfoSuccessfullyCreated = false;
+            }
+
+            if (pSScriptInfoSuccessfullyCreated)
+            {
+                errors = errorsList.ToArray();
+                return false;
+            }
+
+
             List<string> psScriptInfoLines = new List<string>();
 
             psScriptInfoLines.Add("<#PSScriptInfo");
@@ -844,6 +880,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psScriptInfoLines.Add("#>");
 
             pSScriptInfoString = String.Join("\n\n", psScriptInfoLines);
+            errors = errorsList.ToArray();
             return true;
         }
 
