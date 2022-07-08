@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
+            PSScriptFileInfo scriptInfo = new PSScriptFileInfo(
                 version: Version,
                 guid: Guid,
                 author: Author,
@@ -239,7 +239,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 description: Description,
                 endOfFileContents: String.Empty);
 
-            if (!currentScriptInfo.TryCreateScriptFileInfoString(
+            if (!scriptInfo.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
                 errors: out ErrorRecord[] errors))
             {

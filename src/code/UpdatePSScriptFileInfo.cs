@@ -236,6 +236,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (string msg in verboseMsgs)
                 {
                     WriteVerbose(msg);
+                    
+                    // also write a warning as the existing ProjectUri, LicenseUri, IconUri may be overwrriten if they were determined to not be valid when parsed.
+                    WriteWarning(msg);
                 }
 
                 WriteWarning("The .ps1 script file passed in was not valid due to the following error(s) listed below");
