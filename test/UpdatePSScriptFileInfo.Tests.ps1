@@ -38,9 +38,45 @@ Describe "Test Update-PSScriptFileInfo" {
         New-PSScriptFileInfo -FilePath $scriptFilePath -Description $oldDescription
         
         Update-PSScriptFileInfo -FilePath $scriptFilePath -Description $newDescription
+        Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
+
+        Test-Path -Path $scriptFilePath  | Should -BeTrue
+        $results = Get-Content -Path $scriptFilePath -Raw
+        $results.Contains($newDescription) | Should -BeTrue
+        $results -like "*.DESCRIPTION`n*$newDescription*" | Should -BeTrue
+
+        Remove-Item -Path $scriptFilePath -Force
+    }
+
+    It "Update script should not overwrite old script data unless that property is specified" {
+        $description = "Test Description"
+        $version = "3.0.0"
+        $author = "John Doe"
+        $newAuthor = "Jane Doe"
+        $projectUri = "https://testscript.com/"
+
+        $relativeCurrentPath = Get-Location
+        $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "$script:psScriptInfoName.ps1"
+
+        New-PSScriptFileInfo -FilePath $scriptFilePath -Description $description -Version $version -Author $author -ProjectUri $projectUri
+        Update-PSScriptFileInfo -FilePath $scriptFilePath -Author $newAuthor
 
         Test-PSScriptFileInfo -FilePath $scriptFilePath | Should -BeTrue
-        Remove-Item -Path $scriptFilePath
+        $results = Get-Content -Path $scriptFilePath -Raw
+        $results.Contains($newAuthor) | Should -BeTrue
+        $results.Contains(".AUTHOR $newAuthor") | Should -BeTrue
+
+        # rest should be original data used when creating the script
+        $results.Contains($projectUri) | Should -BeTrue
+        $results.Contains(".PROJECTURI $projectUri") | Should -BeTrue
+
+        $results.Contains($version) | Should -BeTrue
+        $results.Contains(".VERSION $version") | Should -BeTrue
+
+        $results.Contains($description) | Should -BeTrue
+        $results -like "*.DESCRIPTION`n*$description*" | Should -BeTrue
+
+        Remove-Item -Path $scriptFilePath -Force
     }
 
     It "update script file Author property" {    
