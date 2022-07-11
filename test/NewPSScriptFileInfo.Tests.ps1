@@ -19,11 +19,6 @@ Describe "Test New-PSScriptFileInfo" {
             Remove-Item $script:testScriptFilePath
         }
     }
-    AfterAll {
-        $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
-        $tmpDirPaths = @($tmpDir1Path)
-        Get-RemoveTestDirs($tmpDirPaths)
-    }
 
     It "Create .ps1 file with minimal required fields" {    
         $description = "Test description"

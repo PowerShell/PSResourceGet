@@ -30,12 +30,6 @@ Describe "Test Update-PSScriptFileInfo" {
         }
     }
 
-    AfterAll {
-        $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
-        $tmpDirPaths = @($tmpDir1Path)
-        Get-RemoveTestDirs($tmpDirPaths)
-    }
-
     It "Update .ps1 file with relative path" {
         $relativeCurrentPath = Get-Location
         $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "$script:psScriptInfoName.ps1"
