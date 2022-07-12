@@ -222,7 +222,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Indicates the prerelease label of the module.
-
         /// </summary>
         [Parameter]
         public string Prerelease { get; set; }
@@ -264,23 +263,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public Hashtable PrivateData { get; set; }
         #endregion
 
-        #region Members
-
-        private string ResolvedManifestPath;
-
-        #endregion
-
         #region Methods
 
         protected override void EndProcessing()
         {
              string resolvedManifestPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
 
-            
             // Test the path of the module manifest to see if the file exists
-            if (!File.Exists(ResolvedManifestPath))
+            if (!File.Exists(resolvedManifestPath) || !resolvedManifestPath.EndsWith(".psd1"))
             {
-                var message = $"The provided file path was not found: '{ResolvedManifestPath}'.  Please specify a valid module manifest (.psd1) file path.";
+                var message = $"The provided file path was not found: '{resolvedManifestPath}'.  Please specify a valid module manifest (.psd1) file path.";
 
                 ThrowTerminatingError(
                     new ErrorRecord(
@@ -288,13 +280,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         "moduleManifestPathNotFound",
                          ErrorCategory.ObjectNotFound,
                          this));
-
-                return;
             }
 
             // Parse the module manifest
             if(!Utils.TryReadManifestFile(
-                        manifestFilePath: ResolvedManifestPath,
+                        manifestFilePath: resolvedManifestPath,
                         manifestInfo: out Hashtable parsedMetadata,
                         error: out Exception manifestReadError))
             {
@@ -583,26 +573,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             // create a tmp path to create the module manifest
             string tmpParentPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-            if (!Directory.Exists(tmpParentPath))
+            try
             {
-                try
-                {
-                    Directory.CreateDirectory(tmpParentPath);
-                }
-                catch (Exception e)
-                {
-                    ThrowTerminatingError(
-                            new ErrorRecord(
-                                  new ArgumentException(e.Message),
-                                            "ErrorCreatingTempDir",
-                                            ErrorCategory.InvalidData,
-                                            this));
-
-                    return;
-                }
+                Directory.CreateDirectory(tmpParentPath);
+            }
+            catch (Exception e)
+            {
+                ThrowTerminatingError(
+                        new ErrorRecord(
+                              new ArgumentException(e.Message),
+                                        "ErrorCreatingTempDir",
+                                        ErrorCategory.InvalidData,
+                                        this));
             }
 
-            string tmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, System.IO.Path.GetFileName(ResolvedManifestPath));
+            string tmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, System.IO.Path.GetFileName(resolvedManifestPath));
             parsedMetadata["Path"] = tmpModuleManifestPath;
             WriteVerbose($"Temp path created for new module manifest is: {tmpModuleManifestPath}");
 
@@ -632,10 +617,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this));
                 }
             }
-            
-            // Move to the new module manifest back to the original location
-            WriteVerbose($"Moving '{tmpModuleManifestPath}' to '{ResolvedManifestPath}'");
-            Utils.MoveFiles(tmpModuleManifestPath, ResolvedManifestPath, overwrite:true);
+
+            try
+            {
+                // Move to the new module manifest back to the original location
+                WriteVerbose($"Moving '{tmpModuleManifestPath}' to '{resolvedManifestPath}'");
+                Utils.MoveFiles(tmpModuleManifestPath, resolvedManifestPath, overwrite: true);
+            }
+            finally {
+                // Clean up temp file if move fails
+                if (File.Exists(tmpModuleManifestPath))
+                {
+                    File.Delete(tmpModuleManifestPath);
+                }
+            }
         }
 
         #endregion

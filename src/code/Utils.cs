@@ -818,9 +818,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-        public static bool IsValidModuleManifest(string moduleManifestPath, PSCmdlet cmdletPassedIn)
+        public static void ValidateModuleManifest(string moduleManifestPath, out string[] errorMsgs)
         {
-            var isValid = true;
+            List<string> errorMsgsList = new List<string>();
             using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
             {
                 // use PowerShell cmdlet Test-ModuleManifest
@@ -835,11 +835,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
                 catch (Exception e)
                 {
-                    cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                       new ArgumentException($"Error occured while running 'Test-ModuleManifest': {e.Message}"),
-                       "ErrorExecutingTestModuleManifest",
-                       ErrorCategory.InvalidArgument,
-                       cmdletPassedIn));
+                    errorMsgsList.Add($"Error occured while running 'Test-ModuleManifest': {e.Message}");
+
+                    errorMsgs = errorMsgsList.ToArray();
+                    return; 
                 }
 
                 if (pwsh.HadErrors)
@@ -848,15 +847,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                     if (results.Any())
                     {
-                        if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Author))
+                        PSModuleInfo psModuleInfoObj = results[0].BaseObject as PSModuleInfo;
+                        if (string.IsNullOrWhiteSpace(psModuleInfoObj.Author))
                         {
                             message = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
                         }
-                        else if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Description))
+                        else if (string.IsNullOrWhiteSpace(psModuleInfoObj.Description))
                         {
                             message = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
                         }
-                        else if ((results[0].BaseObject as PSModuleInfo).Version == null)
+                        else if (psModuleInfoObj.Version == null)
                         {
                             message = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
                         }
@@ -867,18 +867,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         // This will handle version errors
                         message = $"{pwsh.Streams.Error[0].ToString()} Run 'Test-ModuleManifest' to validate the module manifest.";
                     }
-                    
-                    cmdletPassedIn.ThrowTerminatingError(
-                                            new ErrorRecord(
-                                                    new ArgumentException(message),
-                                                    "InvalidModuleManifest",
-                                                    ErrorCategory.InvalidData,
-                                                    cmdletPassedIn));
-                    isValid = false;
+
+                    errorMsgsList.Add(message);
                 }
             }
+            errorMsgs = errorMsgsList.ToArray();
 
-            return isValid;
         }
 
         #endregion

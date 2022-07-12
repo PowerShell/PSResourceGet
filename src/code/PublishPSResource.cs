@@ -232,9 +232,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // validate that the module manifest has correct data
-                if (!Utils.IsValidModuleManifest(resourceFilePath, this))
+                string[] errorMsgs = null;
+                try
                 {
-                    return;
+                    Utils.ValidateModuleManifest(resourceFilePath, out errorMsgs);
+                }
+                catch {
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException(errorMsgs.First()),
+                        "ErrorValidatingModuleManifest",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
             }
 
