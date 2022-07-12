@@ -235,7 +235,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string[] errorMsgs = null;
                 try
                 {
-                    Utils.ValidateModuleManifest(resourceFilePath, out errorMsgs);
+                    Utils.ValidateModuleManifest(resourceFilePath, out string[] errorMsgs);
+
                 }
                 finally {
                     if (errorMsgs.Length > 0)
