@@ -11,7 +11,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// Creates a new .ps1 file with script information required for publishing a script
+    /// Creates a new .ps1 file with script information required for publishing a script.
     /// </summary>
     [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
     public sealed class NewPSScriptFileInfo : PSCmdlet
@@ -19,126 +19,126 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Parameters
 
         /// <summary>
-        /// The path the .ps1 script info file will be created at
+        /// The path the .ps1 script info file will be created at.
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
         public string FilePath { get; set; }
 
         /// <summary>
-        /// The version of the script
+        /// The version of the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Version { get; set; }
 
         /// <summary>
-        /// The author of the script
+        /// The author of the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Author { get; set; }
 
         /// <summary>
-        /// The description of the script
+        /// The description of the script.
         /// </summary>
         [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty()]
         public string Description { get; set; }
 
         /// <summary>
-        /// The GUID for the script
+        /// A unique identifier for the script. The GUID can be used to distinguish among scripts with the same name.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public Guid Guid { get; set; }
 
         /// <summary>
-        /// The name of the company owning the script
+        /// The name of the company owning the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string CompanyName { get; set; }
 
         /// <summary>
-        /// The copyright information for the script
+        /// The copyright statement for the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Copyright { get; set; }
 
         /// <summary>
-        /// The list of modules required by the script
+        /// The list of modules required by the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public Hashtable[] RequiredModules { get; set; }
 
         /// <summary>
-        /// The list of external module dependencies taken by this script
+        /// The list of external module dependencies taken by this script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string[] ExternalModuleDependencies { get; set; }
 
         /// <summary>
-        /// The list of scripts required by the script
+        /// The list of scripts required by the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string[] RequiredScripts { get; set; }
 
         /// <summary>
-        /// The list of external script dependencies taken by this script
+        /// The list of external script dependencies taken by this script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string[] ExternalScriptDependencies { get; set; }
 
         /// <summary>
-        /// The tags associated with the script
+        /// The tags associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string[] Tags { get; set; }
 
         /// <summary>
-        /// The Uri for the project associated with the script
+        /// The Uri for the project associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string ProjectUri { get; set; }
 
         /// <summary>
-        /// The Uri for the license associated with the script
+        /// The Uri for the license associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string LicenseUri { get; set; }
 
         /// <summary>
-        /// The Uri for the icon associated with the script
+        /// The Uri for the icon associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string IconUri { get; set; }
 
         /// <summary>
-        /// The release notes for the script
+        /// The release notes for the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string ReleaseNotes { get; set; }
 
         /// <summary>
-        /// The private data associated with the script
+        /// The private data associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string PrivateData { get; set; }
 
         /// <summary>
-        /// If used with Path parameter and .ps1 file specified at the path exists, it rewrites the file
+        /// If used with Path parameter and .ps1 file specified at the path exists, it rewrites the file.
         /// </summary>
         [Parameter]
         public SwitchParameter Force { get; set; }
@@ -147,7 +147,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
-        protected override void ProcessRecord()
+        protected override void EndProcessing()
         {
             // validate Uri related parameters passed in as strings
             Uri projectUri = null;
@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            PSScriptFileInfo currentScriptInfo = new PSScriptFileInfo(
+            PSScriptFileInfo scriptInfo = new PSScriptFileInfo(
                 version: Version,
                 guid: Guid,
                 author: Author,
@@ -239,7 +239,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 description: Description,
                 endOfFileContents: String.Empty);
 
-            if (!currentScriptInfo.TryCreateScriptFileInfoString(
+            if (!scriptInfo.TryCreateScriptFileInfoString(
                 pSScriptFileString: out string psScriptFileContents,
                 errors: out ErrorRecord[] errors))
             {

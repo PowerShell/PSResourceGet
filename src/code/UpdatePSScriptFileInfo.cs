@@ -11,7 +11,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// Updates a .ps1 file with specified properties
+    /// Updates a .ps1 file with specified properties.
     /// </summary>
     [Cmdlet(VerbsData.Update, "PSScriptFileInfo")]
     public sealed class UpdatePSScriptFileInfo : PSCmdlet
@@ -19,91 +19,91 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Parameters
 
         /// <summary>
-        /// The author of the script
+        /// The author of the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Author { get; set; }
 
         /// <summary>
-        /// The name of the company owning the script
+        /// The name of the company owning the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string CompanyName { get; set; }
 
         /// <summary>
-        /// The copyright information for the script
+        /// The copyright statement for the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Copyright { get; set; }
 
         /// <summary>
-        /// The description of the script
+        /// The description of the script.
         /// </summary>
         [Parameter()]
         [ValidateNotNullOrEmpty()]
         public string Description { get; set; }
 
         /// <summary>
-        /// The list of external module dependencies taken by this script
+        /// The list of external module dependencies taken by this script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string[] ExternalModuleDependencies { get; set; }
 
         /// <summary>
-        /// The list of external script dependencies taken by this script
+        /// The list of external script dependencies taken by this script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string[] ExternalScriptDependencies { get; set; }
 
         /// <summary>
-        /// The GUID for the script
+        /// The unique identifier for the script. The GUID can be used to distinguish among scripts with the same name.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public Guid Guid { get; set; }
 
         /// <summary>
-        /// The Uri for the icon associated with the script
+        /// The Uri for the icon associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string IconUri { get; set; }
 
         /// <summary>
-        /// The Uri for the license associated with the script
+        /// The Uri for the license associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string LicenseUri { get; set; }
 
         /// <summary>
-        /// The path the .ps1 script info file will be created at
+        /// The path the .ps1 script info file will be created at.
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
         public string FilePath { get; set; }
 
         /// <summary>
-        /// The private data associated with the script
+        /// The private data associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string PrivateData { get; set; }
 
         /// <summary>
-        /// The Uri for the project associated with the script
+        /// The Uri for the project associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string ProjectUri { get; set; }
 
         /// <summary>
-        /// The release notes for the script
+        /// The release notes for the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
@@ -117,28 +117,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter RemoveSignature { get; set; }
 
         /// <summary>
-        /// The list of modules required by the script
+        /// The list of modules required by the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public Hashtable[] RequiredModules { get; set; }
 
         /// <summary>
-        /// The list of scripts required by the script
+        /// The list of scripts required by the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string[] RequiredScripts { get; set; }
 
         /// <summary>
-        /// The tags associated with the script
+        /// The tags associated with the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string[] Tags { get; set; }
 
         /// <summary>
-        /// The version of the script
+        /// The version of the script.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
@@ -154,7 +154,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
-        protected override void ProcessRecord()
+        protected override void EndProcessing()
         {
             Uri projectUri = null;
             if (!String.IsNullOrEmpty(ProjectUri) && !Utils.TryCreateValidUri(uriString: ProjectUri,
@@ -236,6 +236,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (string msg in verboseMsgs)
                 {
                     WriteVerbose(msg);
+
+                    // also write a warning as the existing ProjectUri, LicenseUri, IconUri may be overwrriten if they were determined to not be valid when parsed.
+                    WriteWarning(msg);
                 }
 
                 WriteWarning("The .ps1 script file passed in was not valid due to the following error(s) listed below");
@@ -252,7 +255,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteWarning("This script contains a signature and cannot be updated without invalidating the current script signature");
                 if (!RemoveSignature)
                 {
-                    var exMessage = "Cannot update script as the .ps1 contains a signature. Either use -RemoveSignature paramter or manaully remove signature block and re-run cmdlet.";
+                    var exMessage = "Cannot update the script file because the file contains a signature block and updating will invalidate the signature. Use -RemoveSignature to remove the signature block, and then re-sign the file after it is updated.";
                     var ex = new PSInvalidOperationException(exMessage);
                     var ScriptToBeUpdatedContainsSignatureError = new ErrorRecord(ex, "ScriptToBeUpdatedContainsSignature", ErrorCategory.InvalidOperation, null);
                     ThrowTerminatingError(ScriptToBeUpdatedContainsSignatureError);

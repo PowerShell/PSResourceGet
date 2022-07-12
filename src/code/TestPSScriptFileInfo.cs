@@ -19,7 +19,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Parameters
 
         /// <summary>
-        /// The path to the .ps1 file to test
+        /// The path to the .ps1 file to test.
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
@@ -29,7 +29,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
-        protected override void ProcessRecord()
+        protected override void EndProcessing()
         {
             if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
@@ -75,6 +75,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (string msg in verboseMsgs)
             {
                 WriteVerbose(msg);
+
+                // also write a warning as the existing ProjectUri, LicenseUri, IconUri may be overwrriten if they were determined to not be valid when parsed.
+                WriteWarning(msg);
             }
 
             WriteObject(isValidScript);      

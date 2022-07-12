@@ -6,9 +6,7 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe "Test Test-PSScriptFileInfo" {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
-        $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
-        $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
-        $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
+        $tmpDirPaths = @($tmpDir1Path)
         Get-NewTestDirs($tmpDirPaths)
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
@@ -16,14 +14,6 @@ Describe "Test Test-PSScriptFileInfo" {
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
-    }
-
-    AfterAll {
-        $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
-        $tmpDir2Path = Join-Path -Path $TestDrive -ChildPath "tmpDir2"
-        $tmpDir3Path = Join-Path -Path $TestDrive -ChildPath "tmpDir3"
-        $tmpDirPaths = @($tmpDir1Path, $tmpDir2Path, $tmpDir3Path)
-        Get-RemoveTestDirs($tmpDirPaths)
     }
 
     It "determine script file with minimal required fields as valid" {    
