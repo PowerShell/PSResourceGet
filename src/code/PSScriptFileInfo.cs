@@ -213,6 +213,95 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         
         #region Internal Static Methods
 
+        internal static bool TryParseScriptFile2(
+            string scriptFileInfoPath,
+            out Hashtable parsedScriptMetadata
+        )
+        {
+            parsedScriptMetadata = new Hashtable();
+
+
+            string[] fileContents = File.ReadAllLines(scriptFileInfoPath);
+            List<string> psScriptInfoCommentContent = new List<string>();
+            List<string> helpInfoCommentContent = new List<string>();
+            List<string> requiresContent = new List<string>();
+            // string[] remainingFileContent = new string[]{};
+
+            bool gotPSSCriptInfoContent = false;
+            bool gotHelpInfoContent = false;
+
+            int i = 0;
+            while (i < fileContents.Length)
+            {
+                string line = fileContents[i];
+                
+                if (line.StartsWith("<#PSScriptInfo"))
+                {
+                    int j = i + 1; // start at the next line
+                    // keep grabbing lines until we get to closing #>
+                    while (j < fileContents.Length)
+                    {
+                        string blockLine = fileContents[j];
+                        if (blockLine.StartsWith("#>"))
+                        {
+                            i = j + 1;
+                            break;
+                        }
+                        
+                        psScriptInfoCommentContent.Add(blockLine);
+                    }
+
+                    gotPSSCriptInfoContent = true;
+                }
+                else if (line.StartsWith("<#"))
+                {
+                    // we assume the next comment block should be the help comment block (containing description)
+                    // keep grabbing lines until we get to closing #>
+                    int j = i + 1;
+                    while (j < fileContents.Length)
+                    {
+                        string blockLine = fileContents[j];
+                        if (blockLine.StartsWith("#>"))
+                        {
+                            i = j + 1;
+                            break;
+                        }
+                        
+                        helpInfoCommentContent.Add(blockLine);
+                    }
+
+                    gotHelpInfoContent = true;
+                }
+                else if (line.StartsWith("#Requires"))
+                {
+                    requiresContent.Add(line);
+                }
+
+                if (gotPSSCriptInfoContent && gotHelpInfoContent)
+                {
+                    break;
+                }
+            }
+
+            if (i < fileContents.Length)
+            {
+                // from this line to fileContents.Length is the endOfFileContents
+                // save it to append to end of file during Update
+            }
+
+            if (gotPSSCriptInfoContent)
+            {
+                // parse out key value pairs for this block in a helper
+            }
+
+            if (gotHelpInfoContent)
+            {
+                // parse out Description for this block in a helper
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Parses content of .ps1 file into a hashtable.
         /// </summary>
