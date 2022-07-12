@@ -604,14 +604,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return new DirectoryInfo(pkgPath).Parent.Name;
         }
 
-        public static List<string> GetAllResourcePaths(
+        // Find all potential resource paths 
+        public static List<string> GetPathsFromEnvVarAndScope(
             PSCmdlet psCmdlet,
-            ScopeType? scope = null)
+            ScopeType? scope)
         {
             GetStandardPlatformPaths(
-                psCmdlet,
-                out string myDocumentsPath,
-                out string programFilesPath);
+               psCmdlet,
+               out string myDocumentsPath,
+               out string programFilesPath);
 
             List<string> resourcePaths = new List<string>();
 
@@ -634,6 +635,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
             }
 
+            return resourcePaths;
+        }
+
+        public static List<string> GetAllResourcePaths(
+            PSCmdlet psCmdlet,
+            ScopeType? scope = null)
+        {
+            List<String> resourcePaths = GetPathsFromEnvVarAndScope(psCmdlet, scope);
+            
             // resourcePaths should now contain, eg:
             // ./PowerShell/Scripts
             // ./PowerShell/Modules
@@ -680,26 +690,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // Find all potential installation paths given a scope
         public static List<string> GetAllInstallationPaths(
             PSCmdlet psCmdlet,
-            ScopeType scope)
+            ScopeType? scope)
         {
-            GetStandardPlatformPaths(
-                psCmdlet,
-                out string myDocumentsPath,
-                out string programFilesPath);
-
-            // The default user scope is CurrentUser
-            var installationPaths = new List<string>();
-            if (scope == ScopeType.AllUsers)
-            {
-                installationPaths.Add(Path.Combine(programFilesPath, "Modules"));
-                installationPaths.Add(Path.Combine(programFilesPath, "Scripts"));
-            }
-            else
-            {
-                installationPaths.Add(Path.Combine(myDocumentsPath, "Modules"));
-                installationPaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
-            }
-
+            List<String> installationPaths = GetPathsFromEnvVarAndScope(psCmdlet, scope);
+            
             installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
             installationPaths.ForEach(dir => psCmdlet.WriteVerbose(string.Format("All paths to search: '{0}'", dir)));
 
