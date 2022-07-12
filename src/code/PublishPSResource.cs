@@ -237,12 +237,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     Utils.ValidateModuleManifest(resourceFilePath, out errorMsgs);
                 }
-                catch {
-                    ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException(errorMsgs.First()),
-                        "ErrorValidatingModuleManifest",
-                        ErrorCategory.InvalidOperation,
-                        this));
+                finally {
+                    if (errorMsgs.Length > 0)
+                    {
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException(errorMsgs.First()),
+                            "InvalidModuleManifest",
+                            ErrorCategory.InvalidOperation,
+                            this));
+                    }
                 }
             }
 
