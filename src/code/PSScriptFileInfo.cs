@@ -215,22 +215,24 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         internal static bool TryParseScriptFile2(
             string scriptFileInfoPath,
-            out Hashtable parsedScriptMetadata
+            out Hashtable parsedScriptMetadata,
+            out ErrorRecord error
         )
         {
             parsedScriptMetadata = new Hashtable();
-
+            error = null;
 
             string[] fileContents = File.ReadAllLines(scriptFileInfoPath);
             List<string> psScriptInfoCommentContent = new List<string>();
             List<string> helpInfoCommentContent = new List<string>();
             List<string> requiresContent = new List<string>();
-            // string[] remainingFileContent = new string[]{};
+            string[] remainingFileContentArray;
 
-            bool gotPSSCriptInfoContent = false;
-            bool gotHelpInfoContent = false;
+            bool gotEndToPSSCriptInfoContent = false;
+            bool gotEndToHelpInfoContent = false;
 
             int i = 0;
+            int endOfFileContentsStartIndex = 0;
             while (i < fileContents.Length)
             {
                 string line = fileContents[i];
@@ -244,14 +246,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         string blockLine = fileContents[j];
                         if (blockLine.StartsWith("#>"))
                         {
+                            gotEndToPSSCriptInfoContent = true;
                             i = j + 1;
                             break;
                         }
                         
                         psScriptInfoCommentContent.Add(blockLine);
+                        j++;
                     }
 
-                    gotPSSCriptInfoContent = true;
+                    if (!gotEndToPSSCriptInfoContent)
+                    {
+                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block", scriptFileInfoPath);
+                        var ex = new InvalidOperationException(message);
+                        error = new ErrorRecord(ex, "MissingEndBracketToPSScriptInfoParseError", ErrorCategory.ParserError, null);
+                        return false;
+                    }
                 }
                 else if (line.StartsWith("<#"))
                 {
@@ -263,40 +273,46 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         string blockLine = fileContents[j];
                         if (blockLine.StartsWith("#>"))
                         {
+                            gotEndToHelpInfoContent = true;
                             i = j + 1;
+                            endOfFileContentsStartIndex = i;
                             break;
                         }
                         
                         helpInfoCommentContent.Add(blockLine);
+                        j++;
                     }
 
-                    gotHelpInfoContent = true;
+                    if (!gotEndToHelpInfoContent)
+                    {
+                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for HelpInfo comment block", scriptFileInfoPath);
+                        var ex = new InvalidOperationException(message);
+                        error = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
+                        return false;
+                    }
                 }
                 else if (line.StartsWith("#Requires"))
                 {
                     requiresContent.Add(line);
+                    i++;
                 }
-
-                if (gotPSSCriptInfoContent && gotHelpInfoContent)
+                else if (endOfFileContentsStartIndex != 0)
                 {
                     break;
                 }
+                else
+                {
+                    // this would be newlines between blocks, or if there was other (unexpected) data between PSScriptInfo, Requires, and HelpInfo blocks
+                    i++;
+                }
             }
 
-            if (i < fileContents.Length)
+            if (endOfFileContentsStartIndex != 0 && (endOfFileContentsStartIndex < fileContents.Length))
             {
                 // from this line to fileContents.Length is the endOfFileContents
                 // save it to append to end of file during Update
-            }
-
-            if (gotPSSCriptInfoContent)
-            {
-                // parse out key value pairs for this block in a helper
-            }
-
-            if (gotHelpInfoContent)
-            {
-                // parse out Description for this block in a helper
+                remainingFileContentArray = new string[fileContents.Length - endOfFileContentsStartIndex];
+                Array.Copy(fileContents, endOfFileContentsStartIndex, remainingFileContentArray, 0, (fileContents.Length - endOfFileContentsStartIndex));
             }
 
             return true;
@@ -559,6 +575,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 errors = errorsList.ToArray();
                 return false;
             }
+
+            TryParseScriptFile2(scriptFileInfoPath, out Hashtable _, out ErrorRecord _);
 
             // at this point we've parsed into hashtable, now validate hashtable has properties we need:
             // Author, Version, Guid, Description (but Description is already validated)
