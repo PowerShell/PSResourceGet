@@ -1250,16 +1250,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
-            // Check that the catalog file is signed properly
+            // First check if the files are catalog signed.
             string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
             if (File.Exists(catalogFilePath))
             {
-                // Run catalog validation
+                // Run catalog validation.
                 Collection<PSObject> TestFileCatalogResult;
                 string moduleBasePath = tempDirNameVersion;
                 try
                 {
-                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files
+                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files.
                     TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
                         script: @"param (
                                       [string] $moduleBasePath, 
@@ -1300,6 +1300,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
+            // Otherwise check for signatures on individual files.
             Collection<PSObject> authenticodeSignatures;
             try
             {
@@ -1321,7 +1322,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            // If the authenticode signature is not valid, return false
+            // If any file authenticode signatures are not valid, return false.
             foreach (var signatureObject in authenticodeSignatures)
             {
                 Signature signature = (Signature)signatureObject.BaseObject;
