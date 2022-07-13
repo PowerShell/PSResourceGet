@@ -1131,6 +1131,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
                 else if (!(line.Trim()).Equals("#>"))
                 {
+                    // TODO: this condition won't be hit anymore, as we don't add #> to array of comment lines captured
                     // scenario where line contains text that is a continuation of value from previously recorded key
                     // this line does not starting with .KEY, and is also not an empty line.
                     if (value.Equals(String.Empty))
