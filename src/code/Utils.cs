@@ -1236,7 +1236,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Methods
 
-        internal static bool CheckAuthenticodeSignature(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        internal static bool CheckAuthenticodeSignature(
+            string pkgName,
+            string tempDirNameVersion,
+            PSCmdlet cmdletPassedIn,
+            out ErrorRecord errorRecord)
         {
             errorRecord = null;
 
@@ -1251,7 +1255,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (File.Exists(catalogFilePath))
             {
                 // Run catalog validation
-                Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
+                Collection<PSObject> TestFileCatalogResult;
                 string moduleBasePath = tempDirNameVersion;
                 try
                 {
@@ -1283,7 +1287,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     return false;
                 }
 
-                bool catalogValidation = (TestFileCatalogResult[0] != null) ? (bool)TestFileCatalogResult[0].BaseObject : false;
+                bool catalogValidation = TestFileCatalogResult.Count > 0 ? (bool)TestFileCatalogResult[0].BaseObject : false;
                 if (!catalogValidation)
                 {
                     var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
@@ -1292,13 +1296,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
                     return false;
                 }
+
+                return true;
             }
 
-            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
+            Collection<PSObject> authenticodeSignatures;
             try
             {
                 string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
-                authenticodeSignature = cmdletPassedIn.InvokeCommand.InvokeScript(
+                authenticodeSignatures = cmdletPassedIn.InvokeCommand.InvokeScript(
                     script: @"param (
                                       [string] $tempDirNameVersion, 
                                       [string[]] $listOfExtensions
@@ -1316,19 +1322,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             // If the authenticode signature is not valid, return false
-            if (authenticodeSignature.Any() && authenticodeSignature[0] != null)
+            foreach (var signatureObject in authenticodeSignatures)
             {
-                foreach (var sign in authenticodeSignature)
+                Signature signature = (Signature)signatureObject.BaseObject;
+                if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
-                    Signature signature = (Signature)sign.BaseObject;
-                    if (!signature.Status.Equals(SignatureStatus.Valid))
-                    {
-                        var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
-                        var ex = new ArgumentException(exMessage);
-                        errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
+                    var ex = new ArgumentException(exMessage);
+                    errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
 
-                        return false;
-                    }
+                    return false;
                 }
             }
 
