@@ -177,7 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 repository: Repository,
                 acceptLicense: AcceptLicense,
                 quiet: Quiet,
-                reinstall: true,
+                reinstall: false,
                 force: Force,
                 trustRepository: TrustRepository,
                 credential: Credential,
