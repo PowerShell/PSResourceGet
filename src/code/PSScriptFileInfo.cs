@@ -19,7 +19,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     /// <summary>
     /// This class contains information for a PSScriptFileInfo (representing a .ps1 file contents).
     /// </summary>
-    public sealed class PSScriptFileInfo2
+    public sealed class PSScriptFileInfo
     {
         #region Properties
         public PSScriptMetadata ScriptMetadataCommment { get; set; }
@@ -34,7 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Constructor
 
-        public PSScriptFileInfo2(
+        public PSScriptFileInfo(
             string version,
             Guid guid,
             string author,
@@ -78,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             this.ScriptContent = scriptRemainingContent;
         }
 
-        public PSScriptFileInfo2(
+        public PSScriptFileInfo(
             PSScriptMetadata scriptMetadataComment,
             PSScriptHelp scriptHelpComment,
             PSScriptRequires scriptRequiresComment,
@@ -97,7 +97,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         internal static bool TryParseScriptFile(
             string scriptFileInfoPath,
-            out PSScriptFileInfo2 parsedScript,
+            out PSScriptFileInfo parsedScript,
             out ErrorRecord[] errors,
             out string[] msgs
         )
@@ -115,12 +115,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         internal static bool TryParseScriptFile2(
             string scriptFileInfoPath,
-            // out Hashtable parsedScriptMetadata,
-            out PSScriptFileInfo2 parsedScript,
-            out ErrorRecord error
+            out PSScriptFileInfo parsedScript,
+            out ErrorRecord[] errors,
+            out string[] verboseMsgs // this is for Uri errors, which aren't required by script but we check if those in the script aren't valid Uri's.
         )
         {
-            error = null;
+            verboseMsgs = new string[]{};
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
             parsedScript = null;
 
             string[] fileContents = File.ReadAllLines(scriptFileInfoPath);
@@ -128,16 +129,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<string> psScriptInfoCommentContent = new List<string>();
             List<string> helpInfoCommentContent = new List<string>();
             List<string> requiresContent = new List<string>();
-
-
-
-            PSScriptContents currentScriptContents;
-            PSScriptRequires currentRequiresComment;
-
             string[] remainingFileContentArray = new string[]{};
 
             bool gotEndToPSSCriptInfoContent = false;
             bool gotEndToHelpInfoContent = false;
+            bool parsedContentSuccessfully = true;
 
             int i = 0;
             int endOfFileContentsStartIndex = 0;
@@ -167,7 +163,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     {
                         var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block", scriptFileInfoPath);
                         var ex = new InvalidOperationException(message);
-                        error = new ErrorRecord(ex, "MissingEndBracketToPSScriptInfoParseError", ErrorCategory.ParserError, null);
+                        var missingEndBracketToPSScriptInfoParseError = new ErrorRecord(ex, "MissingEndBracketToPSScriptInfoParseError", ErrorCategory.ParserError, null);
+                        errors = new ErrorRecord[]{missingEndBracketToPSScriptInfoParseError};
                         return false;
                     }
                 }
@@ -195,7 +192,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     {
                         var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for HelpInfo comment block", scriptFileInfoPath);
                         var ex = new InvalidOperationException(message);
-                        error = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
+                        var missingEndBracketToHelpInfoCommentParseError = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
+                        errors = new ErrorRecord[]{missingEndBracketToHelpInfoCommentParseError};
                         return false;
                     }
                 }
@@ -217,43 +215,65 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             if (endOfFileContentsStartIndex != 0 && (endOfFileContentsStartIndex < fileContents.Length))
             {
-                // from this line to fileContents.Length is the endOfFileContents
-                // save it to append to end of file during Update
+                // from this line to fileContents.Length is the endOfFileContents, if any
                 remainingFileContentArray = new string[fileContents.Length - endOfFileContentsStartIndex];
                 Array.Copy(fileContents, endOfFileContentsStartIndex, remainingFileContentArray, 0, (fileContents.Length - endOfFileContentsStartIndex));
             }
 
-
-            // now populate PSScriptFileInfo object
-            // first create instances for the property objects
-
-            PSScriptMetadata currentMetadata = new PSScriptMetadata();
-            if (!currentMetadata.ParseContentIntoObj(commentLines: psScriptInfoCommentContent.ToArray(),
-                out ErrorRecord[] metadataErrors,
-                out string[] verboseMsgs))
+            if (psScriptInfoCommentContent.Count() == 0)
             {
-                // set errors and return false
-                // also perhaps verbose msgs?
+                // check for file not containing '<#PSScriptInfo ... #>' comment
+                var message = String.Format("Could not parse '{0}' as a PowerShell script due to it missing '<#PSScriptInfo #> block", scriptFileInfoPath);
+                var ex = new InvalidOperationException(message);
+                var missingPSScriptInfoCommentError = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
+                errors = new ErrorRecord[]{missingPSScriptInfoCommentError};
+                return false;
+            }
+
+            if (helpInfoCommentContent.Count() == 0)
+            {
+                // check for file not containing HelpInfo comment
+                var message = String.Format("Could not parse '{0}' as a PowerShell script due to it missing HelpInfo comment block", scriptFileInfoPath);
+                var ex = new InvalidOperationException(message);
+                var missingHelpInfoCommentError = new ErrorRecord(ex, "missingHelpInfoCommentError", ErrorCategory.ParserError, null);
+                errors = new ErrorRecord[]{missingHelpInfoCommentError};
+                return false;
+            }
+
+            // now populate PSScriptFileInfo object by first creating instances for the property objects
+            PSScriptMetadata currentMetadata = new PSScriptMetadata();
+            if (!currentMetadata.ParseContentIntoObj(
+                commentLines: psScriptInfoCommentContent.ToArray(),
+                out ErrorRecord[] metadataErrors,
+                out verboseMsgs))
+            {
+                errorsList.AddRange(metadataErrors);
+                parsedContentSuccessfully = false;
             }
 
             PSScriptHelp currentHelpInfo = new PSScriptHelp();
-            if (!currentHelpInfo.ParseContentIntoObj(commentLines: helpInfoCommentContent.ToArray()))
+            if (!currentHelpInfo.ParseContentIntoObj(
+                commentLines: helpInfoCommentContent.ToArray(),
+                out ErrorRecord helpError))
             {
-                // write error
-                // todo: why doesn't this return error? maybe parse level validation?
+                errorsList.Add(helpError);
+                parsedContentSuccessfully = false;
             }
 
-            PSScriptRequires requiresComment = new PSScriptRequires();
-            if (!requiresComment.ParseContent(commentLines: requiresContent.ToArray(),
+            PSScriptRequires currentRequiresComment = new PSScriptRequires();
+            if (!currentRequiresComment.ParseContentIntoObj(
+                commentLines: requiresContent.ToArray(),
                 out ErrorRecord[] requiresErrors))
             {
-                // set errors and return false
+                errorsList.AddRange(requiresErrors);
+                parsedContentSuccessfully = false;
             }
 
-            PSScriptContents endOfFileContents = new PSScriptContents();
-            endOfFileContents.ParseContent(commentLines: remainingFileContentArray);
+            PSScriptContents currentEndOfFileContents = new PSScriptContents();
+            currentEndOfFileContents.ParseContent(commentLines: remainingFileContentArray);
 
-            return true;
+            errors = errorsList.ToArray();
+            return parsedContentSuccessfully;
         }
 
         internal bool TryCreateScriptFileInfoString(
@@ -279,14 +299,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 errorsList.Add(helpValidationError);
                 fileContentsSuccessfullyCreated = false;
             }
-
-            // if (!ScriptContent.ValidateContent())
-            // {
-                // todo: validate endofffilecontents here
-                // perhaps here ValidateContent will just check ContainsSignature is false.
-                // on Update cmdlet side, when we have PSScriptFileInfo.ScriptContent.ContainsSignature then can call
-                // PSScriptFileInfo.ScriptContent.RemoveSignature too. Otherwise will need to pass that param into this class.
-            // }
 
             if (!fileContentsSuccessfullyCreated)
             {
@@ -319,7 +331,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
 
         internal static bool TryUpdateScriptFileContents(
-            PSScriptFileInfo2 scriptInfo,
+            PSScriptFileInfo scriptInfo,
             out string updatedPSScriptFileContents,
             out ErrorRecord[] errors
         )

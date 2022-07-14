@@ -21,7 +21,8 @@
         'Register-PSResourceRepository',
         'Save-PSResource',
         'Set-PSResourceRepository',
-        'New-PSScriptFileInfo2'
+        'New-PSScriptFileInfo',
+        'Test-PSScriptFileInfo',
         'Publish-PSResource',
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',

@@ -112,18 +112,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Internal Methods
         
-        internal bool ParseContentIntoObj(string[] commentLines)
+        internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord error)
         {
-            bool successfullyParsed = false;
+            bool successfullyParsed = true;
             char[] spaceDelimeter = new char[]{' '};
             char[] newlineDelimeter = new char[]{'\n'};
             
             // parse content into a hashtable
             Hashtable parsedHelpMetadata = ParseContent(commentLines);
+
+            if (!ValidateParsedContent(parsedHelpMetadata, out error))
+            {
+                return false;
+            }
             
             // populate object
-            Description = (string) parsedHelpMetadata["DESCRIPTION"] ?? String.Empty;
-            
+            Description = (string) parsedHelpMetadata["DESCRIPTION"];
             Synopsis = (string) parsedHelpMetadata["SYNOPSIS"] ?? String.Empty;
             Example = Utils.GetStringArrayFromString(newlineDelimeter, (string) parsedHelpMetadata["EXAMPLE"]);
             Inputs = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["INPUT"]);
@@ -133,9 +137,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Component = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["COMPONENT"]);
             Role = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["ROLE"]);
             Functionality = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["FUNCTIONALITY"]);
-
-            // TODO: validate obj here?
-
             
             return successfullyParsed;
         }
@@ -188,6 +189,30 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             return parsedHelpMetadata;
+        }
+
+        internal bool ValidateParsedContent(Hashtable parsedHelpMetadata, out ErrorRecord error)
+        {
+            error = null;
+            if (!parsedHelpMetadata.ContainsKey("DESCRIPTION") || String.IsNullOrEmpty((string) parsedHelpMetadata["DESCRIPTION"]) || String.Equals(((string) parsedHelpMetadata["DESCRIPTION"]).Trim(), String.Empty))
+            {
+                var exMessage = "PSScript file must contain value for Description. Ensure value for Description is passed in and try again.";
+                var ex = new ArgumentException(exMessage);
+                var PSScriptInfoMissingDescriptionError = new ErrorRecord(ex, "PSScriptInfoMissingDescription", ErrorCategory.InvalidArgument, null);
+                error = PSScriptInfoMissingDescriptionError;
+                return false;
+            }
+
+            if (StringContainsComment((string) parsedHelpMetadata["DESCRIPTION"]))
+            {
+                var exMessage = "PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again.";
+                var ex = new ArgumentException(exMessage);
+                var DescriptionContainsCommentError = new ErrorRecord(ex, "DescriptionContainsComment", ErrorCategory.InvalidArgument, null);
+                error = DescriptionContainsCommentError;
+                return false; 
+            }
+
+            return true;
         }
 
         internal bool ValidateContent(out ErrorRecord error)

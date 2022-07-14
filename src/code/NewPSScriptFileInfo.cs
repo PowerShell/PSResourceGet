@@ -13,8 +13,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Creates a new .ps1 file with script information required for publishing a script.
     /// </summary>
-    [Cmdlet(VerbsCommon.New, "PSScriptFileInfo2")]
-    public sealed class NewPSScriptFileInfo2 : PSCmdlet
+    [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
+    public sealed class NewPSScriptFileInfo : PSCmdlet
     {
         #region Parameters
 
@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            PSScriptFileInfo2 scriptInfo = new PSScriptFileInfo2(
+            PSScriptFileInfo scriptInfo = new PSScriptFileInfo(
                 version: Version,
                 guid: Guid,
                 author: Author,

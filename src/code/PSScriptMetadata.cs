@@ -149,17 +149,26 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             msgs = new string[]{};
             List<string> msgsList = new List<string>();
-            errors = new ErrorRecord[]{};
 
             // parse content into a hashtable
             Hashtable parsedMetadata = ParseContent(commentLines);
 
-            // // and then validate contents on the parsed content (for required Author, Version, Guid metadata)
-            // if (!ValidateContent(out errors))
-            // {
-            //     return false;
-            // }
+            if (parsedMetadata.Count == 0)
+            {
+                var message = String.Format("PowerShell script '<#PSScriptInfo .. #>' comment block contains no metadata");
+                var ex = new InvalidOperationException(message);
+                var psScriptInfoBlockMissingMetadata = new ErrorRecord(ex, "psScriptInfoBlockMissingMetadataError", ErrorCategory.ParserError, null);
+                errors = new ErrorRecord[]{psScriptInfoBlockMissingMetadata};
+                return false;
+            }
 
+            // check parsed metadata contains required Author, Version, Guid key values
+            if (!ValidateParsedContent(parsedMetadata, out errors))
+            {
+                return false;
+            }
+
+            // now populate the object instance
             char[] spaceDelimeter = new char[]{' '};
 
             Uri parsedLicenseUri = null;
@@ -206,15 +215,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             RequiredScripts = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedMetadata["REQUIREDSCRIPTS"]);
             ExternalScriptDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedMetadata["EXTERNALSCRIPTDEPENDENCIES"]);
             ReleaseNotes = (string) parsedMetadata["RELEASENOTES"] ?? String.Empty;
-            PrivateData = (string) parsedMetadata["PRIVATEDATA"] ?? String.Empty;  
-
+            PrivateData = (string) parsedMetadata["PRIVATEDATA"] ?? String.Empty;
 
             msgs = msgsList.ToArray();
             return true;
         }
 
         /// <summary>
-        /// Parses metadata out of of comment block's lines (which are passed in) into a hashtable
+        /// Helper method that parses metadata out of of comment block's lines (which are passed in) into a hashtable
         /// </summary>
         internal Hashtable ParseContent(string[] commentLines)
         {
@@ -302,6 +310,38 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return parsedMetadata;
         }
 
+
+        internal bool ValidateParsedContent(Hashtable parsedMetadata, out ErrorRecord[] errors)
+        {
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+
+            if (!parsedMetadata.ContainsKey("VERSION") || String.IsNullOrEmpty((string) parsedMetadata["VERSION"]) || String.Equals(((string) parsedMetadata["VERSION"]).Trim(), String.Empty))
+            {
+                var message = String.Format("PSScript file is missing the required Version property");
+                var ex = new ArgumentException(message);
+                var psScriptMissingVersionError = new ErrorRecord(ex, "psScriptMissingVersion", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptMissingVersionError);
+            }
+
+            if (!parsedMetadata.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedMetadata["AUTHOR"]) || String.Equals(((string) parsedMetadata["AUTHOR"]).Trim(), String.Empty))
+            {
+                var message = String.Format("PSScript file is missing the required Author property");
+                var ex = new ArgumentException(message);
+                var psScriptMissingAuthorError = new ErrorRecord(ex, "psScriptMissingAuthor", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptMissingAuthorError);
+            }
+
+            if (!parsedMetadata.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedMetadata["GUID"]) || String.Equals(((string) parsedMetadata["GUID"]).Trim(), String.Empty))
+            {
+                var message = String.Format("PSScript file is missing the required Guid property");
+                var ex = new ArgumentException(message);
+                var psScriptMissingGuidError = new ErrorRecord(ex, "psScriptMissingGuid", ErrorCategory.ParserError, null);
+                errorsList.Add(psScriptMissingGuidError);
+            }
+
+            errors = errorsList.ToArray();
+            return errors.Length == 0;
+        }
         /// <summary>
         /// Validates metadata content parsed from .ps1 is valid and contains required script properties
         /// i.e Author, Version, Guid

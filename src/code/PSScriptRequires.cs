@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Parses RequiredModules out of comment lines and validates during
         /// </summary>
-        internal bool ParseContent(string[] commentLines, out ErrorRecord[] errors)
+        internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord[] errors)
         {
             /**
             When Requires comment lines are obtained from .ps1 file they will have this format:
@@ -106,12 +106,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             return true;
         }
-
-        // internal bool ValidateContent()
-        // {
-        //     // use AST parser
-        //     return false;
-        // }
 
         internal string EmitContent()
         {   
