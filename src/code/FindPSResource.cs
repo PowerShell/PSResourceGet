@@ -20,8 +20,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// </summary>
     [Cmdlet(VerbsCommon.Find,
         "PSResource",
-        DefaultParameterSetName = ResourceNameParameterSet,
-        SupportsShouldProcess = true)]
+        DefaultParameterSetName = ResourceNameParameterSet]
     [OutputType(typeof(PSResourceInfo), typeof(PSCommandResourceInfo))]
     public sealed class FindPSResource : PSCmdlet
     {
