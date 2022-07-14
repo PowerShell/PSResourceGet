@@ -42,17 +42,74 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Internal Methods
 
-        internal bool ParseContent()
+        /// <summary>
+        /// Parses RequiredModules out of comment lines and validates during
+        /// </summary>
+        internal bool ParseContent(string[] commentLines, out ErrorRecord[] errors)
         {
-            // use AST parser
-            return false;
+            /**
+            When Requires comment lines are obtained from .ps1 file they will have this format:
+
+            #Requires -Module RequiredModule1
+            #Requires -Module @{ ModuleName = 'RequiredModule2'; ModuleVersion = '2.0' }
+            #Requires -Module @{ ModuleName = 'RequiredModule3'; RequiredVersion = '2.5' }
+            #Requires -Module @{ ModuleName = 'RequiredModule4'; ModuleVersion = '1.1'; MaximumVersion = '2.0' }
+            #Requires -Module @{ ModuleName = 'RequiredModule5'; MaximumVersion = '1.5' }
+
+            */
+
+            errors = new ErrorRecord[]{};
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+            string requiresComment = String.Join("\n", commentLines);
+
+            try
+            {
+                var ast = Parser.ParseInput(
+                    requiresComment,
+                    out Token[] tokens,
+                    out ParseError[] parserErrors);
+                
+                if (parserErrors.Length > 0)
+                {
+                    foreach (ParseError err in parserErrors)
+                    {
+                        var message = String.Format("Could not requires comments as valid PowerShell input due to {1}.", err.Message);
+                        var ex = new InvalidOperationException(message);
+                        var requiresCommentParseError = new ErrorRecord(ex, err.ErrorId, ErrorCategory.ParserError, null);
+                        errorsList.Add(requiresCommentParseError);
+                    }
+
+                    errors = errorsList.ToArray();
+                    return false;
+                }
+
+                // get .REQUIREDMODULES property, by accessing the System.Management.Automation.Language.ScriptRequirements object ScriptRequirements.RequiredModules property
+                ScriptRequirements parsedScriptRequirements = ast.ScriptRequirements;
+                ReadOnlyCollection<ModuleSpecification> parsedModules = new List<ModuleSpecification>().AsReadOnly();
+
+                if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
+                {
+                    RequiredModules = parsedScriptRequirements.RequiredModules.ToArray();
+                }
+            }
+            catch (Exception e)
+            {
+                var message = $"Parsing RequiredModules failed due to {e.Message}";
+                var ex = new ArgumentException(message);
+                var requiredModulesAstParseError = new ErrorRecord(ex, "requiredModulesAstParseThrewError", ErrorCategory.ParserError, null);
+                errorsList.Add(requiredModulesAstParseError);
+                errors = errorsList.ToArray();
+                return false;
+            }
+
+            return true;
         }
 
-        internal bool ValidateContent()
-        {
-            // use AST parser
-            return false;
-        }
+        // internal bool ValidateContent()
+        // {
+        //     // use AST parser
+        //     return false;
+        // }
 
         internal string EmitContent()
         {   

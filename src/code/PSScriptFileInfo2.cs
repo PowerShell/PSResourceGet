@@ -121,13 +121,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             bool fileContentsSuccessfullyCreated = true;
 
-
             // step 1: validate
             if (!ScriptMetadataCommment.ValidateContent(out ErrorRecord[] metadataValidationErrors))
             {
                 errorsList.AddRange(metadataValidationErrors);
                 fileContentsSuccessfullyCreated = false;
-                 
             }
 
             if (!ScriptHelpComment.ValidateContent(out ErrorRecord helpValidationError))
@@ -136,16 +134,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 fileContentsSuccessfullyCreated = false;
             }
 
-            // if (!ScriptRequiresComment.ValidateContent())
-            // {
-            //     fileContentsSuccessfullyCreated = false;
-            //     // store error and return
-            //     // I think the method had a way of checking its not empty if it attemps to write
-            // }
-
             // if (!ScriptContent.ValidateContent())
             // {
-
+                // todo: validate endofffilecontents here
+                // perhaps here ValidateContent will just check ContainsSignature is false.
+                // on Update cmdlet side, when we have PSScriptFileInfo.ScriptContent.ContainsSignature then can call
+                // PSScriptFileInfo.ScriptContent.RemoveSignature too. Otherwise will need to pass that param into this class.
             // }
 
             if (!fileContentsSuccessfullyCreated)
@@ -154,9 +148,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return fileContentsSuccessfullyCreated;
             }
 
-            // todo: validate endofffilecontents here?
-
-            // step: try to write
+            // step 2: create string that will be used to write later
             psScriptFileString = ScriptMetadataCommment.EmitContent();
 
             string psRequiresCommentBlock = ScriptRequiresComment.EmitContent();
@@ -173,13 +165,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string psEndOfFileContent = ScriptContent.EmitContent();
             if (!String.IsNullOrEmpty(psEndOfFileContent))
             {
-                // todo: remove signature here?
                 psScriptFileString += "\n" + psEndOfFileContent;
             }
 
-            
             return fileContentsSuccessfullyCreated;
-            
         }
 
 
