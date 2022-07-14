@@ -106,6 +106,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             this.Functionality = functionality;
         }
 
+        internal PSScriptHelp() {}
+
         #endregion
 
         #region Internal Methods

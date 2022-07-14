@@ -62,7 +62,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 licenseUri,
                 projectUri,
                 iconUri,
-                // requiredModules,
                 externalModuleDependencies,
                 requiredScripts,
                 externalScriptDependencies,
@@ -107,6 +106,153 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             parsedScript = null;
             errors = null;
             msgs = new string[]{};
+
+
+
+            
+            return true;
+        }
+
+        internal static bool TryParseScriptFile2(
+            string scriptFileInfoPath,
+            // out Hashtable parsedScriptMetadata,
+            out PSScriptFileInfo2 parsedScript,
+            out ErrorRecord error
+        )
+        {
+            error = null;
+            parsedScript = null;
+
+            string[] fileContents = File.ReadAllLines(scriptFileInfoPath);
+
+            List<string> psScriptInfoCommentContent = new List<string>();
+            List<string> helpInfoCommentContent = new List<string>();
+            List<string> requiresContent = new List<string>();
+
+
+
+            PSScriptContents currentScriptContents;
+            PSScriptRequires currentRequiresComment;
+
+            string[] remainingFileContentArray = new string[]{};
+
+            bool gotEndToPSSCriptInfoContent = false;
+            bool gotEndToHelpInfoContent = false;
+
+            int i = 0;
+            int endOfFileContentsStartIndex = 0;
+            while (i < fileContents.Length)
+            {
+                string line = fileContents[i];
+                
+                if (line.StartsWith("<#PSScriptInfo"))
+                {
+                    int j = i + 1; // start at the next line
+                    // keep grabbing lines until we get to closing #>
+                    while (j < fileContents.Length)
+                    {
+                        string blockLine = fileContents[j];
+                        if (blockLine.StartsWith("#>"))
+                        {
+                            gotEndToPSSCriptInfoContent = true;
+                            i = j + 1;
+                            break;
+                        }
+                        
+                        psScriptInfoCommentContent.Add(blockLine);
+                        j++;
+                    }
+
+                    if (!gotEndToPSSCriptInfoContent)
+                    {
+                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block", scriptFileInfoPath);
+                        var ex = new InvalidOperationException(message);
+                        error = new ErrorRecord(ex, "MissingEndBracketToPSScriptInfoParseError", ErrorCategory.ParserError, null);
+                        return false;
+                    }
+                }
+                else if (line.StartsWith("<#"))
+                {
+                    // we assume the next comment block should be the help comment block (containing description)
+                    // keep grabbing lines until we get to closing #>
+                    int j = i + 1;
+                    while (j < fileContents.Length)
+                    {
+                        string blockLine = fileContents[j];
+                        if (blockLine.StartsWith("#>"))
+                        {
+                            gotEndToHelpInfoContent = true;
+                            i = j + 1;
+                            endOfFileContentsStartIndex = i;
+                            break;
+                        }
+                        
+                        helpInfoCommentContent.Add(blockLine);
+                        j++;
+                    }
+
+                    if (!gotEndToHelpInfoContent)
+                    {
+                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for HelpInfo comment block", scriptFileInfoPath);
+                        var ex = new InvalidOperationException(message);
+                        error = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
+                        return false;
+                    }
+                }
+                else if (line.StartsWith("#Requires"))
+                {
+                    requiresContent.Add(line);
+                    i++;
+                }
+                else if (endOfFileContentsStartIndex != 0)
+                {
+                    break;
+                }
+                else
+                {
+                    // this would be newlines between blocks, or if there was other (unexpected) data between PSScriptInfo, Requires, and HelpInfo blocks
+                    i++;
+                }
+            }
+
+            if (endOfFileContentsStartIndex != 0 && (endOfFileContentsStartIndex < fileContents.Length))
+            {
+                // from this line to fileContents.Length is the endOfFileContents
+                // save it to append to end of file during Update
+                remainingFileContentArray = new string[fileContents.Length - endOfFileContentsStartIndex];
+                Array.Copy(fileContents, endOfFileContentsStartIndex, remainingFileContentArray, 0, (fileContents.Length - endOfFileContentsStartIndex));
+            }
+
+
+            // now populate PSScriptFileInfo object
+            // first create instances for the property objects
+
+            PSScriptMetadata currentMetadata = new PSScriptMetadata();
+            if (!currentMetadata.ParseContentIntoObj(commentLines: psScriptInfoCommentContent.ToArray(),
+                out ErrorRecord[] metadataErrors,
+                out string[] verboseMsgs))
+            {
+                // set errors and return false
+                // also perhaps verbose msgs?
+            }
+
+            PSScriptHelp currentHelpInfo = new PSScriptHelp();
+            if (!currentHelpInfo.ParseContentIntoObj(commentLines: helpInfoCommentContent.ToArray()))
+            {
+                // write error
+                // todo: why doesn't this return error? maybe parse level validation?
+            }
+
+            PSScriptRequires requiresComment = new PSScriptRequires();
+            if (!requiresComment.ParseContent(commentLines: requiresContent.ToArray(),
+                out ErrorRecord[] requiresErrors))
+            {
+                // set errors and return false
+            }
+
+            PSScriptContents endOfFileContents = new PSScriptContents();
+            endOfFileContents.ParseContent(commentLines: remainingFileContentArray);
+
             return true;
         }
 
@@ -183,14 +329,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return true;
         }
 
-
-
-
-
-
-
         #endregion
-
-
     }
 }

@@ -49,15 +49,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             this.ContainsSignature = CheckForSignature();
         }
 
+        internal PSScriptContents() {}
+
         #endregion
 
         #region Public Methods
 
-        public void ParseContent(string[] commentLines, out ErrorRecord[] errors, bool removeSignature)
+        public void ParseContent(string[] commentLines)
         {
-            errors = null;
-            EndOfFileContents = String.Join("", commentLines);
-            ContainsSignature = CheckForSignature();
+            if (commentLines.Length != 0)
+            {
+                EndOfFileContents = String.Join("", commentLines);
+                ContainsSignature = CheckForSignature();
+            }
         }
 
         /// <summary>

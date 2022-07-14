@@ -38,6 +38,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             this.RequiredModules = requiredModules ?? new ModuleSpecification[]{};
         }
 
+        internal PSScriptRequires() {}
+
         #endregion
 
         #region Internal Methods
