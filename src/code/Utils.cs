@@ -1359,7 +1359,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Methods
 
-        internal static bool CheckAuthenticodeSignature(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        internal static bool CheckAuthenticodeSignature(
+            string pkgName,
+            string tempDirNameVersion,
+            PSCmdlet cmdletPassedIn,
+            out ErrorRecord errorRecord)
         {
             errorRecord = null;
 
@@ -1369,16 +1373,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
-            // Check that the catalog file is signed properly
+            // First check if the files are catalog signed.
             string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
             if (File.Exists(catalogFilePath))
             {
-                // Run catalog validation
-                Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
+                // Run catalog validation.
+                Collection<PSObject> TestFileCatalogResult;
                 string moduleBasePath = tempDirNameVersion;
                 try
                 {
-                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files
+                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files.
                     TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
                         script: @"param (
                                       [string] $moduleBasePath, 
@@ -1406,7 +1410,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     return false;
                 }
 
-                bool catalogValidation = (TestFileCatalogResult[0] != null) ? (bool)TestFileCatalogResult[0].BaseObject : false;
+                bool catalogValidation = TestFileCatalogResult.Count > 0 ? (bool)TestFileCatalogResult[0].BaseObject : false;
                 if (!catalogValidation)
                 {
                     var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
@@ -1415,13 +1419,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
                     return false;
                 }
+
+                return true;
             }
 
-            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
+            // Otherwise check for signatures on individual files.
+            Collection<PSObject> authenticodeSignatures;
             try
             {
                 string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
-                authenticodeSignature = cmdletPassedIn.InvokeCommand.InvokeScript(
+                authenticodeSignatures = cmdletPassedIn.InvokeCommand.InvokeScript(
                     script: @"param (
                                       [string] $tempDirNameVersion, 
                                       [string[]] $listOfExtensions
@@ -1438,20 +1445,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            // If the authenticode signature is not valid, return false
-            if (authenticodeSignature.Any() && authenticodeSignature[0] != null)
+            // If any file authenticode signatures are not valid, return false.
+            foreach (var signatureObject in authenticodeSignatures)
             {
-                foreach (var sign in authenticodeSignature)
+                Signature signature = (Signature)signatureObject.BaseObject;
+                if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
-                    Signature signature = (Signature)sign.BaseObject;
-                    if (!signature.Status.Equals(SignatureStatus.Valid))
-                    {
-                        var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
-                        var ex = new ArgumentException(exMessage);
-                        errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
+                    var ex = new ArgumentException(exMessage);
+                    errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
 
-                        return false;
-                    }
+                    return false;
                 }
             }
 

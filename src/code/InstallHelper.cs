@@ -501,7 +501,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
                     }
 
-                    if (_authenticodeCheck && !AuthenticodeSignature.CheckAuthenticodeSignature(pkg.Name, tempDirNameVersion, _versionRange, _pathsToSearch, installPath, _cmdletPassedIn, out ErrorRecord errorRecord))
+                    if (_authenticodeCheck && !AuthenticodeSignature.CheckAuthenticodeSignature(
+                        pkg.Name,
+                        tempDirNameVersion,
+                        _cmdletPassedIn,
+                        out ErrorRecord errorRecord))
                     {
                         ThrowTerminatingError(errorRecord);
                     }
