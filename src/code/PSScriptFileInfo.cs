@@ -95,25 +95,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Internal Static Methods
 
+        /// <summary>
+        /// Tests .ps1 file for validity
+        /// </summary>
         internal static bool TryParseScriptFile(
-            string scriptFileInfoPath,
-            out PSScriptFileInfo parsedScript,
-            out ErrorRecord[] errors,
-            out string[] msgs
-        )
-        {
-            // parse -> create object -> validate
-            parsedScript = null;
-            errors = null;
-            msgs = new string[]{};
-
-
-
-            
-            return true;
-        }
-
-        internal static bool TryParseScriptFile2(
             string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
             out ErrorRecord[] errors,
@@ -272,10 +257,132 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PSScriptContents currentEndOfFileContents = new PSScriptContents();
             currentEndOfFileContents.ParseContent(commentLines: remainingFileContentArray);
 
+            if (!parsedContentSuccessfully)
+            {
+                errors = errorsList.ToArray();
+                return parsedContentSuccessfully;
+            }
+
+            try
+            {
+                parsedScript = new PSScriptFileInfo(
+                    scriptMetadataComment: currentMetadata,
+                    scriptHelpComment: currentHelpInfo,
+                    scriptRequiresComment: currentRequiresComment,
+                    scriptRemainingContent: currentEndOfFileContents);
+            }
+            catch (Exception e)
+            {
+                var message = String.Format("PSScriptFileInfo object could not be created from passed in file due to {0}", e.Message);
+                var ex = new ArgumentException(message);
+                var PSScriptFileInfoObjectNotCreatedFromFileError = new ErrorRecord(ex, "PSScriptFileInfoObjectNotCreatedFromFileError", ErrorCategory.ParserError, null);
+                errorsList.Add(PSScriptFileInfoObjectNotCreatedFromFileError);
+                parsedContentSuccessfully = false;
+            }
+
             errors = errorsList.ToArray();
             return parsedContentSuccessfully;
         }
 
+        /// <summary>
+        /// Updates .ps1 file.
+        /// Caller must check that the file to update doesn't have a signature or if it does permission to remove signature has been granted
+        /// as this method will remove original signature, as updating would have invalidated it
+        /// </summary>
+        internal static bool TryUpdateScriptFileContents(
+            PSScriptFileInfo scriptInfo,
+            out string updatedPSScriptFileContents,
+            out ErrorRecord[] errors,
+            string version,
+            Guid guid,
+            string author,
+            string companyName,
+            string copyright,
+            string[] tags,
+            Uri licenseUri,
+            Uri projectUri,
+            Uri iconUri,
+            ModuleSpecification[] requiredModules,
+            string[] externalModuleDependencies,
+            string[] requiredScripts,
+            string[] externalScriptDependencies,
+            string releaseNotes,
+            string privateData,
+            string description)
+        {
+            updatedPSScriptFileContents = String.Empty;
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+            bool successfullyUpdated = true;
+
+            if (scriptInfo == null)
+            {
+                var message = String.Format("Could not update .ps1 file as PSScriptFileInfo object created for it was null");
+                var ex = new ArgumentException(message);
+                var nullPSScriptFileInfoError = new ErrorRecord(ex, "NullPSScriptFileInfoError", ErrorCategory.ParserError, null);
+                errors = new ErrorRecord[]{nullPSScriptFileInfoError};
+
+                return false;
+            }
+
+            if (!scriptInfo.ScriptMetadataCommment.UpdateContent(
+                version: version,
+                guid: guid,
+                author: author,
+                companyName: companyName,
+                copyright: copyright,
+                tags: tags,
+                licenseUri: licenseUri,
+                projectUri: projectUri,
+                iconUri: iconUri,
+                externalModuleDependencies: externalModuleDependencies,
+                requiredScripts: requiredScripts,
+                externalScriptDependencies: externalScriptDependencies,
+                releaseNotes: releaseNotes,
+                privateData: privateData,
+                out ErrorRecord metadataUpdateError))
+            {
+                errorsList.Add(metadataUpdateError);
+                successfullyUpdated = false;
+            }
+
+            if (!scriptInfo.ScriptHelpComment.UpdateContent(
+                description: description,
+                out ErrorRecord helpUpdateError)) // todo: check v2 if other things can be updated? like Example?
+            {
+                errorsList.Add(helpUpdateError);
+                successfullyUpdated = false;
+            }
+
+            // this doesn't produce errors, as ModuleSpecification creation is already validated before param passed in
+            // and user can't update endOfFileContents
+            scriptInfo.ScriptRequiresComment.UpdateContent(requiredModules: requiredModules);
+
+            if (!successfullyUpdated)
+            {
+                errors = errorsList.ToArray();
+                return successfullyUpdated;
+            }
+
+            // create string contents for .ps1 file
+            if (!scriptInfo.TryCreateScriptFileInfoString(
+                psScriptFileString: out updatedPSScriptFileContents,
+                errors: out ErrorRecord[] createUpdatedFileContentErrors))
+            {
+                errorsList.AddRange(createUpdatedFileContentErrors);
+                successfullyUpdated = false;
+            }
+
+            errors = errorsList.ToArray();
+            return successfullyUpdated;
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        /// <summary>
+        /// Creates .ps1 file content string representation for the PSScriptFileInfo object this called upon, which is used by the caller to write the .ps1 file.
+        /// </summary>
         internal bool TryCreateScriptFileInfoString(
             out string psScriptFileString,
             out ErrorRecord[] errors
@@ -287,7 +394,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             bool fileContentsSuccessfullyCreated = true;
 
-            // step 1: validate
+            // step 1: validate object properties for required script properties
             if (!ScriptMetadataCommment.ValidateContent(out ErrorRecord[] metadataValidationErrors))
             {
                 errorsList.AddRange(metadataValidationErrors);
@@ -327,18 +434,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             return fileContentsSuccessfullyCreated;
-        }
-
-
-        internal static bool TryUpdateScriptFileContents(
-            PSScriptFileInfo scriptInfo,
-            out string updatedPSScriptFileContents,
-            out ErrorRecord[] errors
-        )
-        {
-            updatedPSScriptFileContents = string.Empty;
-            errors = null;
-            return true;
         }
 
         #endregion

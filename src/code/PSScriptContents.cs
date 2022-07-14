@@ -53,9 +53,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-        #region Public Methods
+        #region Internal Methods
 
-        public void ParseContent(string[] commentLines)
+        internal void ParseContent(string[] commentLines)
         {
             if (commentLines.Length != 0)
             {
@@ -65,23 +65,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// Checks if end of file contents contains a Signature
+        /// This function would be called by PSScriptFileInfo.TryCreateScriptFileInfoString(),
+        /// called by New-PSScriptFileInfo cmdlet (in which case EndOfFileContents is an empty string so there's no signature that'll get removed)
+        /// or by Update-PSScriptFileInfo cmdlet (in which case EndOfFileContents may not be empty and may contain a signature.
+        /// and the Update cmdlet checks for -RemoveSignature before control reaches this method)
         /// </summary>
-        public bool ValidateContent()
+        internal string EmitContent()
         {
-            // if (ContainsSignature)
-            // {
-            //     // todo: write warning somewhere, change state of ContainsSignature or should it reflect original file state?
-            //     // RemoveSignatureString();
-
-            // }
-
-            // return true;
-            return !ContainsSignature;
-        }
-
-        public string EmitContent()
-        {
+            RemoveSignatureString();
             return EndOfFileContents;
         }
 
@@ -92,7 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Private Methods
         
         /// <summary>
-        /// Checks if the end of file contents contain a signature
+        /// Checks if the end of file contents contain a signature.
         /// </summary>
         private bool CheckForSignature()
         {
@@ -109,9 +100,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 int signatureStartIndex = EndOfFileContents.IndexOf(signatureStartString);
                 EndOfFileContents = EndOfFileContents.Substring(0, signatureStartIndex);
+                ContainsSignature = false;
             }
-
-            // TODO: should I set ContainsSignature to false now?
         }
         #endregion
     }

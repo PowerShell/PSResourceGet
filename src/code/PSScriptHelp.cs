@@ -299,6 +299,36 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return psHelpInfo;
         }
 
+        internal bool UpdateContent(string description, out ErrorRecord error)
+        {
+            error = null;
+
+            if (!String.IsNullOrEmpty(description))
+            {
+                if (String.Equals(description.Trim(), String.Empty))
+                {
+                    var exMessage = "Description value can't be updated to whitespace as this would invalidate the script.";
+                    var ex = new ArgumentException(exMessage);
+                    var descriptionUpdateValueIsWhitespaceError = new ErrorRecord(ex, "descriptionUpdateValueIsWhitespaceError", ErrorCategory.InvalidArgument, null);
+                    error = descriptionUpdateValueIsWhitespaceError;
+                    return false;
+                }
+
+                if (StringContainsComment(description))
+                {
+                    var exMessage = "Description value can't be updated to value containing comment '<#' or '#>' as this would invalidate the script.";
+                    var ex = new ArgumentException(exMessage);
+                    var descriptionUpdateValueContainsCommentError = new ErrorRecord(ex, "descriptionUpdateValueContainsCommentError", ErrorCategory.InvalidArgument, null);
+                    error = descriptionUpdateValueContainsCommentError;
+                    return false;
+                }
+
+                Description = description;
+            }
+
+            return true;
+        }
+
         #endregion
 
         #region Private Methods

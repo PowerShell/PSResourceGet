@@ -125,6 +125,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return String.Empty;
         }
 
+        internal void UpdateContent(ModuleSpecification[] requiredModules)
+        {
+            if (requiredModules != null && requiredModules.Length != 0){
+                RequiredModules = requiredModules;
+            }
+        }
+
+
         #endregion
     }
 }

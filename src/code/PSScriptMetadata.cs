@@ -435,6 +435,99 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return String.Join("\n\n", psScriptInfoLines);
         }
 
+
+        internal bool UpdateContent(
+            string version,
+            Guid guid,
+            string author,
+            string companyName,
+            string copyright,
+            string[] tags,
+            Uri licenseUri,
+            Uri projectUri,
+            Uri iconUri,
+            string[] externalModuleDependencies,
+            string[] requiredScripts,
+            string[] externalScriptDependencies,
+            string releaseNotes,
+            string privateData,
+            out ErrorRecord error)
+        {
+            error = null;
+            if (!String.IsNullOrEmpty(version))
+            {
+                if (!NuGetVersion.TryParse(version, out NuGetVersion updatedVersion))
+                {
+                    var message = String.Format("Version provided for update could not be parsed successfully into NuGetVersion");
+                    var ex = new ArgumentException(message);
+                    var versionParseIntoNuGetVersionError = new ErrorRecord(ex, "VersionParseIntoNuGetVersion", ErrorCategory.ParserError, null);
+                    error = versionParseIntoNuGetVersionError;
+                    return false;
+                }
+
+                Version = updatedVersion;
+            }
+
+            if (guid != Guid.Empty)
+            {
+                Guid = guid;
+            }
+
+            if (!String.IsNullOrEmpty(author))
+            {
+                Author = author;
+            }
+
+            if (!String.IsNullOrEmpty(companyName)){
+                CompanyName = companyName;
+            }
+
+            if (!String.IsNullOrEmpty(copyright)){
+                Copyright = copyright;
+            }
+
+            if (tags != null && tags.Length != 0){
+                Tags = tags;
+            }
+
+            if (licenseUri != null && !licenseUri.Equals(default(Uri))){
+                LicenseUri = licenseUri;
+            }
+
+            if (projectUri != null && !projectUri.Equals(default(Uri))){
+                ProjectUri = projectUri;
+            }
+
+            if (iconUri != null && !iconUri.Equals(default(Uri))){
+                IconUri = iconUri;
+            }
+
+            if (externalModuleDependencies != null && externalModuleDependencies.Length != 0){
+                ExternalModuleDependencies = externalModuleDependencies;                
+            }
+
+            if (requiredScripts != null && requiredScripts.Length != 0)
+            {
+                RequiredScripts = requiredScripts;
+            }
+
+            if (externalScriptDependencies != null && externalScriptDependencies.Length != 0){
+                ExternalScriptDependencies = externalScriptDependencies;                
+            }
+
+            if (!String.IsNullOrEmpty(releaseNotes))
+            {
+                ReleaseNotes = releaseNotes;
+            }
+
+            if (!String.IsNullOrEmpty(privateData))
+            {
+                PrivateData = privateData;
+            }
+
+            return true;
+        }
+
         #endregion
     }
 }
