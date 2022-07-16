@@ -157,6 +157,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
+            bool sourceTrusted = true;
 
             foreach (var repo in listOfRepositories)
             {
@@ -168,7 +169,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
                 // OR the user issues trust interactively via console.
-                var sourceTrusted = true;
                 if (repo.Trusted == false && !trustRepository && !_force)
                 {
                     _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
@@ -249,9 +249,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // At this only package names left were those which could not be found in registered repositories
             foreach (string pkgName in _pkgNamesToInstall)
             {
-                var message = String.Format("Package '{0}' with requested version range {1} could not be installed as it was not found in any registered repositories",
-                    pkgName,
-                    _versionRange.ToString());
+                string message = !sourceTrusted ? $"Package '{pkgName}' with requested version range '{_versionRange.ToString()}' could not be found in any trusted repositories" :
+                                                    $"Package '{pkgName}' with requested version range '{_versionRange.ToString()}' could not be installed as it was not found in any registered repositories";
+
                 var ex = new ArgumentException(message);
                 var ResourceNotFoundError = new ErrorRecord(ex, "ResourceNotFoundError", ErrorCategory.ObjectNotFound, null);
                 _cmdletPassedIn.WriteError(ResourceNotFoundError);
