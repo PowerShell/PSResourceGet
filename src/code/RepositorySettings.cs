@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
-                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted, repoCredentialInfo: null);
+                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted, repoCredentialInfo: null, force: false);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -79,7 +79,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryInfo Add(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
+        public static PSRepositoryInfo Add(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, bool force)
         {
             try
             {
@@ -87,7 +87,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XDocument doc = LoadXDocument(FullRepositoryPath);
                 if (FindRepositoryElement(doc, repoName) != null)
                 {
-                    throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
+                    if (!force)
+                    {
+                        throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
+                    }
+
+                    // Delete the existing repository before overwriting it (otherwire multiple repos with the same name will be added)
+                    List<PSRepositoryInfo> removedRepositories = RepositorySettings.Remove(new string[] { repoName }, out string[] errorList);
+
+                    // Need to load the document again because of changes after removing
+                    doc = LoadXDocument(FullRepositoryPath);
+
+                    if (errorList.Count() > 0)
+                    {
+                        throw new PSInvalidOperationException($"The PSResource Repository '{repoName}' cannot be overwritten: ${errorList.FirstOrDefault()}");
+                    }
+
                 }
 
                 // Else, keep going

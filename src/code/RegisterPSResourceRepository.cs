@@ -104,11 +104,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public PSCredential ProxyCredential { get; set; }
 
         /// <summary>
-        /// When specified, displays the succcessfully registered repository and its information
+        /// When specified, displays the succcessfully registered repository and its information.
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }
-
+        
+        /// <summary>
+        /// When specified, will overwrite information for any existing repository with the same name.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter Force { get; set; }
         #endregion
 
         #region Methods
@@ -246,7 +251,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            return RepositorySettings.Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo);
+            return RepositorySettings.Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, Force);
         }
 
         private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
