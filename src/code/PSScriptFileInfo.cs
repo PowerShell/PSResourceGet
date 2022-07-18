@@ -115,7 +115,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             string[] fileContents = File.ReadAllLines(scriptFileInfoPath);
 
-            bool reachedPSSCriptInfoCommentEnd = false;
+            bool reachedPSScriptInfoCommentEnd = false;
             bool reachedHelpInfoCommentEnd = false;
 
             int i = 0;
