@@ -954,7 +954,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 ModuleSpecification currentModuleSpec = null;
                 if (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion"))
                 {
-                    // pass to ModuleSpecification(string) constructor
+                    // Pass to ModuleSpecification(string) constructor.
                     // This constructor method would only throw for a null/empty string, which we've already validated against above.
                     currentModuleSpec = new ModuleSpecification(moduleSpecName);
 
