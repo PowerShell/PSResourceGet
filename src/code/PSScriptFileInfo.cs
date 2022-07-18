@@ -326,7 +326,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            // create PSScriptFileInfo instance with script metadata class instances (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents)
+            // Create PSScriptFileInfo instance with script metadata class instances (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents)
             try
             {
                 parsedScript = new PSScriptFileInfo(
