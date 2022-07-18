@@ -237,7 +237,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     WriteVerbose(msg);
 
-                    // also write a warning as the existing ProjectUri, LicenseUri, IconUri may be overwrriten if they were determined to not be valid when parsed.
+                    // Also write a warning as the existing ProjectUri, LicenseUri, IconUri may be overwrriten if they were determined to not be valid when parsed.
                     WriteWarning(msg);
                 }
 
