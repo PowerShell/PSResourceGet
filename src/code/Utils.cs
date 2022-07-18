@@ -974,7 +974,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
                 else
                 {
-                    // ModuleSpecification(Hashtable) constructor for when ModuleName + {Required,Maximum,Module}Version value is also provided
+                    // ModuleSpecification(Hashtable) constructor for when ModuleName + {Required,Maximum,Module}Version value is also provided.
                     string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaximumVersion"] : String.Empty;
                     string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
                     string moduleSpecRequiredVersion = moduleSpec.ContainsKey("RequiredVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
