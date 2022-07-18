@@ -309,7 +309,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            // populate PSScriptFileInfo object by first creating instances for the property objects
+            // Populate PSScriptFileInfo object by first creating instances for the property objects
             // i.e (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents)
             if (!TryPopulateScriptClassesWithParsedContent(
                 psScriptInfoCommentContent: psScriptInfoCommentContent,
