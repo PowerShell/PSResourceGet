@@ -296,7 +296,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<string> requiresCommentContent = new List<string>();
             string[] remainingFileContent = new string[]{};
 
-            // parse .ps1 contents out of file into list objects
+            // Parse .ps1 contents out of file into list objects
             if (!TryParseScriptFileContents(
                 scriptFileInfoPath: scriptFileInfoPath,
                 psScriptInfoCommentContent: ref psScriptInfoCommentContent,
