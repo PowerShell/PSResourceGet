@@ -96,30 +96,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Internal Static Methods
 
         /// <summary>
-        /// Tests .ps1 file for validity
+        /// Parses .ps1 file contents for PSScriptInfo, PSHelpInfo, Requires comments
         /// </summary>
-        // tODO: separate out where can into 4
-        internal static bool TryParseScriptFile(
+        internal static bool TryParseScriptFileContents(
             string scriptFileInfoPath,
-            out PSScriptFileInfo parsedScript,
-            out ErrorRecord[] errors,
-            out string[] verboseMsgs // this is for Uri errors, which aren't required by script but we check if those in the script aren't valid Uri's.
-        )
+            ref List<string> psScriptInfoCommentContent,
+            ref List<string> helpInfoCommentContent,
+            ref List<string> requiresCommentContent,
+            ref string[] remainingFileContent,
+            out ErrorRecord error)
         {
-            verboseMsgs = new string[]{};
-            List<ErrorRecord> errorsList = new List<ErrorRecord>();
-            parsedScript = null;
+            error= null;
+
+            psScriptInfoCommentContent = new List<string>();
+            helpInfoCommentContent = new List<string>();
+            requiresCommentContent = new List<string>();
+            remainingFileContent = new string[]{};
 
             string[] fileContents = File.ReadAllLines(scriptFileInfoPath);
 
-            List<string> psScriptInfoCommentContent = new List<string>();
-            List<string> helpInfoCommentContent = new List<string>();
-            List<string> requiresContent = new List<string>();
-            string[] remainingFileContentArray = new string[]{};
-
-            bool gotEndToPSSCriptInfoContent = false;
-            bool gotEndToHelpInfoContent = false;
-            bool parsedContentSuccessfully = true;
+            bool reachedPSSCriptInfoCommentEnd = false;
+            bool reachedHelpInfoCommentEnd = false;
 
             int i = 0;
             int endOfFileContentsStartIndex = 0;
@@ -136,7 +133,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         string blockLine = fileContents[j];
                         if (blockLine.StartsWith("#>"))
                         {
-                            gotEndToPSSCriptInfoContent = true;
+                            reachedPSSCriptInfoCommentEnd = true;
                             i = j + 1;
                             break;
                         }
@@ -145,12 +142,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         j++;
                     }
 
-                    if (!gotEndToPSSCriptInfoContent)
+                    if (!reachedPSSCriptInfoCommentEnd)
                     {
                         var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block", scriptFileInfoPath);
                         var ex = new InvalidOperationException(message);
-                        var missingEndBracketToPSScriptInfoParseError = new ErrorRecord(ex, "MissingEndBracketToPSScriptInfoParseError", ErrorCategory.ParserError, null);
-                        errors = new ErrorRecord[]{missingEndBracketToPSScriptInfoParseError};
+                        error = new ErrorRecord(ex, "MissingEndBracketToPSScriptInfoParseError", ErrorCategory.ParserError, null);
                         return false;
                     }
                 }
@@ -164,7 +160,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         string blockLine = fileContents[j];
                         if (blockLine.StartsWith("#>"))
                         {
-                            gotEndToHelpInfoContent = true;
+                            reachedHelpInfoCommentEnd = true;
                             i = j + 1;
                             endOfFileContentsStartIndex = i;
                             break;
@@ -174,18 +170,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         j++;
                     }
 
-                    if (!gotEndToHelpInfoContent)
+                    if (!reachedHelpInfoCommentEnd)
                     {
                         var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for HelpInfo comment block", scriptFileInfoPath);
                         var ex = new InvalidOperationException(message);
-                        var missingEndBracketToHelpInfoCommentParseError = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
-                        errors = new ErrorRecord[]{missingEndBracketToHelpInfoCommentParseError};
+                        error = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
                         return false;
                     }
                 }
                 else if (line.StartsWith("#Requires"))
                 {
-                    requiresContent.Add(line);
+                    requiresCommentContent.Add(line);
                     i++;
                 }
                 else if (endOfFileContentsStartIndex != 0)
@@ -202,8 +197,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             if (endOfFileContentsStartIndex != 0 && (endOfFileContentsStartIndex < fileContents.Length))
             {
                 // from this line to fileContents.Length is the endOfFileContents, if any
-                remainingFileContentArray = new string[fileContents.Length - endOfFileContentsStartIndex];
-                Array.Copy(fileContents, endOfFileContentsStartIndex, remainingFileContentArray, 0, (fileContents.Length - endOfFileContentsStartIndex));
+                remainingFileContent = new string[fileContents.Length - endOfFileContentsStartIndex];
+                Array.Copy(fileContents, endOfFileContentsStartIndex, remainingFileContent, 0, (fileContents.Length - endOfFileContentsStartIndex));
             }
 
             if (psScriptInfoCommentContent.Count() == 0)
@@ -211,8 +206,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // check for file not containing '<#PSScriptInfo ... #>' comment
                 var message = String.Format("Could not parse '{0}' as a PowerShell script due to it missing '<#PSScriptInfo #> block", scriptFileInfoPath);
                 var ex = new InvalidOperationException(message);
-                var missingPSScriptInfoCommentError = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
-                errors = new ErrorRecord[]{missingPSScriptInfoCommentError};
+                error = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
                 return false;
             }
 
@@ -221,13 +215,34 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // check for file not containing HelpInfo comment
                 var message = String.Format("Could not parse '{0}' as a PowerShell script due to it missing HelpInfo comment block", scriptFileInfoPath);
                 var ex = new InvalidOperationException(message);
-                var missingHelpInfoCommentError = new ErrorRecord(ex, "missingHelpInfoCommentError", ErrorCategory.ParserError, null);
-                errors = new ErrorRecord[]{missingHelpInfoCommentError};
+                error = new ErrorRecord(ex, "missingHelpInfoCommentError", ErrorCategory.ParserError, null);
                 return false;
             }
 
-            // now populate PSScriptFileInfo object by first creating instances for the property objects
-            PSScriptMetadata currentMetadata = new PSScriptMetadata();
+            return true;
+        }
+
+        /// <summary>
+        /// Populates script info classes (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents) with previosuly
+        /// parsed metadata from the ps1 file.
+        /// </summary>
+        internal static bool TryPopulateScriptClassesWithParsedContent(
+            List<string> psScriptInfoCommentContent,
+            List<string> helpInfoCommentContent,
+            List<string> requiresCommentContent,
+            string[] remainingFileContent,
+            out PSScriptMetadata currentMetadata,
+            out PSScriptHelp currentHelpInfo,
+            out PSScriptRequires currentRequiresComment,
+            out PSScriptContents currentEndOfFileContents,
+            out ErrorRecord[] errors,
+            out string[] verboseMsgs)
+        {
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+
+            bool parsedContentSuccessfully = true;
+
+            currentMetadata = new PSScriptMetadata();
             if (!currentMetadata.ParseContentIntoObj(
                 commentLines: psScriptInfoCommentContent.ToArray(),
                 out ErrorRecord[] metadataErrors,
@@ -237,7 +252,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 parsedContentSuccessfully = false;
             }
 
-            PSScriptHelp currentHelpInfo = new PSScriptHelp();
+            currentHelpInfo = new PSScriptHelp();
             if (!currentHelpInfo.ParseContentIntoObj(
                 commentLines: helpInfoCommentContent.ToArray(),
                 out ErrorRecord helpError))
@@ -246,24 +261,72 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 parsedContentSuccessfully = false;
             }
 
-            PSScriptRequires currentRequiresComment = new PSScriptRequires();
+            currentRequiresComment = new PSScriptRequires();
             if (!currentRequiresComment.ParseContentIntoObj(
-                commentLines: requiresContent.ToArray(),
+                commentLines: requiresCommentContent.ToArray(),
                 out ErrorRecord[] requiresErrors))
             {
                 errorsList.AddRange(requiresErrors);
                 parsedContentSuccessfully = false;
             }
 
-            PSScriptContents currentEndOfFileContents = new PSScriptContents();
-            currentEndOfFileContents.ParseContent(commentLines: remainingFileContentArray);
+            currentEndOfFileContents = new PSScriptContents();
+            currentEndOfFileContents.ParseContent(commentLines: remainingFileContent);
 
-            if (!parsedContentSuccessfully)
+            errors = errorsList.ToArray();
+            return parsedContentSuccessfully;
+        }
+
+        /// <summary>
+        /// Tests .ps1 file for validity
+        /// </summary>
+        internal static bool TryTestPSScriptFile(
+            string scriptFileInfoPath,
+            out PSScriptFileInfo parsedScript,
+            out ErrorRecord[] errors,
+            out string[] verboseMsgs // this is for Uri errors, which aren't required by script but we check if those in the script aren't valid Uri's.
+        )
+        {
+            verboseMsgs = new string[]{};
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+            parsedScript = null;
+
+            List<string> psScriptInfoCommentContent = new List<string>();
+            List<string> helpInfoCommentContent = new List<string>();
+            List<string> requiresCommentContent = new List<string>();
+            string[] remainingFileContent = new string[]{};
+
+            // parse .ps1 contents out of file into list objects
+            if (!TryParseScriptFileContents(
+                scriptFileInfoPath: scriptFileInfoPath,
+                psScriptInfoCommentContent: ref psScriptInfoCommentContent,
+                helpInfoCommentContent: ref helpInfoCommentContent,
+                requiresCommentContent: ref requiresCommentContent,
+                remainingFileContent: ref remainingFileContent,
+                out ErrorRecord parseError))
             {
-                errors = errorsList.ToArray();
-                return parsedContentSuccessfully;
+                errors = new ErrorRecord[]{parseError};
+                return false;
             }
 
+            // populate PSScriptFileInfo object by first creating instances for the property objects
+            // i.e (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents)
+            if (!TryPopulateScriptClassesWithParsedContent(
+                psScriptInfoCommentContent: psScriptInfoCommentContent,
+                helpInfoCommentContent: helpInfoCommentContent,
+                requiresCommentContent: requiresCommentContent,
+                remainingFileContent: remainingFileContent,
+                currentMetadata: out PSScriptMetadata currentMetadata,
+                currentHelpInfo: out PSScriptHelp currentHelpInfo,
+                currentRequiresComment: out PSScriptRequires currentRequiresComment,
+                currentEndOfFileContents: out PSScriptContents currentEndOfFileContents,
+                errors: out errors,
+                out verboseMsgs))
+            {
+                return false;
+            }
+
+            // create PSScriptFileInfo instance with script metadata class instances (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents)
             try
             {
                 parsedScript = new PSScriptFileInfo(
@@ -277,12 +340,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var message = String.Format("PSScriptFileInfo object could not be created from passed in file due to {0}", e.Message);
                 var ex = new ArgumentException(message);
                 var PSScriptFileInfoObjectNotCreatedFromFileError = new ErrorRecord(ex, "PSScriptFileInfoObjectNotCreatedFromFileError", ErrorCategory.ParserError, null);
-                errorsList.Add(PSScriptFileInfoObjectNotCreatedFromFileError);
-                parsedContentSuccessfully = false;
+                errors = new ErrorRecord[]{PSScriptFileInfoObjectNotCreatedFromFileError};
+                return false;
             }
 
             errors = errorsList.ToArray();
-            return parsedContentSuccessfully;
+            return true;
         }
 
         /// <summary>

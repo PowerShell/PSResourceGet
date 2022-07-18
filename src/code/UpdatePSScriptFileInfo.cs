@@ -227,7 +227,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            if (!PSScriptFileInfo.TryParseScriptFile(
+            if (!PSScriptFileInfo.TryTestPSScriptFile(
                 scriptFileInfoPath: resolvedFilePath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
                 errors: out ErrorRecord[] errors,
