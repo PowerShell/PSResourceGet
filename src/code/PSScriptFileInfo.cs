@@ -458,7 +458,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             bool fileContentsSuccessfullyCreated = true;
 
-            // step 1: validate object properties for required script properties
+            // Step 1: validate object properties for required script properties.
             if (!ScriptMetadataComment.ValidateContent(out ErrorRecord[] metadataValidationErrors))
             {
                 errorsList.AddRange(metadataValidationErrors);
