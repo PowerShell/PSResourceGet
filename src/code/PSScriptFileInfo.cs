@@ -22,7 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     public sealed class PSScriptFileInfo
     {
         #region Properties
-        public PSScriptMetadata ScriptMetadataCommment { get; set; }
+        public PSScriptMetadata ScriptMetadataComment { get; set; }
 
         public PSScriptHelp ScriptHelpComment { get; set; }
 
@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PSScriptRequires scriptRequiresComment = new PSScriptRequires(requiredModules);
             PSScriptContents scriptRemainingContent = new PSScriptContents(String.Empty);
 
-            this.ScriptMetadataCommment = scriptMetadataComment;
+            this.ScriptMetadataComment = scriptMetadataComment;
             this.ScriptHelpComment = scriptHelpComment;
             this.ScriptRequiresComment = scriptRequiresComment;
             this.ScriptContent = scriptRemainingContent;
@@ -85,7 +85,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PSScriptContents scriptRemainingContent
         )
         {
-            this.ScriptMetadataCommment = scriptMetadataComment;
+            this.ScriptMetadataComment = scriptMetadataComment;
             this.ScriptHelpComment = scriptHelpComment;
             this.ScriptRequiresComment = scriptRequiresComment;
             this.ScriptContent = scriptRemainingContent;
@@ -98,6 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Tests .ps1 file for validity
         /// </summary>
+        // tODO: separate out where can into 4
         internal static bool TryParseScriptFile(
             string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
@@ -324,7 +325,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            if (!scriptInfo.ScriptMetadataCommment.UpdateContent(
+            if (!scriptInfo.ScriptMetadataComment.UpdateContent(
                 version: version,
                 guid: guid,
                 author: author,
@@ -347,7 +348,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             if (!scriptInfo.ScriptHelpComment.UpdateContent(
                 description: description,
-                out ErrorRecord helpUpdateError)) // todo: check v2 if other things can be updated? like Example?
+                out ErrorRecord helpUpdateError))
             {
                 errorsList.Add(helpUpdateError);
                 successfullyUpdated = false;
@@ -395,7 +396,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             bool fileContentsSuccessfullyCreated = true;
 
             // step 1: validate object properties for required script properties
-            if (!ScriptMetadataCommment.ValidateContent(out ErrorRecord[] metadataValidationErrors))
+            if (!ScriptMetadataComment.ValidateContent(out ErrorRecord[] metadataValidationErrors))
             {
                 errorsList.AddRange(metadataValidationErrors);
                 fileContentsSuccessfullyCreated = false;
@@ -414,7 +415,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             // step 2: create string that will be used to write later
-            psScriptFileString = ScriptMetadataCommment.EmitContent();
+            psScriptFileString = ScriptMetadataComment.EmitContent();
 
             string psRequiresCommentBlock = ScriptRequiresComment.EmitContent();
             if (!String.IsNullOrEmpty(psRequiresCommentBlock))

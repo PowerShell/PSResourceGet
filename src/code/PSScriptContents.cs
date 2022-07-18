@@ -31,7 +31,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// End of file contents for the .ps1 file.
         /// </summary>
-        public bool ContainsSignature { get; set; }
+        public bool ContainsSignature { get; set; } = false;
 
         #endregion
 
@@ -55,6 +55,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Internal Methods
 
+        /// <summary>
+        /// Parses end of file contents as a string from the file lines passed in
+        /// and sets property indicating whether those contents contain a signature.
+        /// </summary>
         internal void ParseContent(string[] commentLines)
         {
             if (commentLines.Length != 0)
@@ -66,17 +70,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// This function would be called by PSScriptFileInfo.TryCreateScriptFileInfoString(),
-        /// called by New-PSScriptFileInfo cmdlet (in which case EndOfFileContents is an empty string so there's no signature that'll get removed)
+        /// by the New-PSScriptFileInfo cmdlet (in which case EndOfFileContents is an empty string so there's no signature that'll get removed)
         /// or by Update-PSScriptFileInfo cmdlet (in which case EndOfFileContents may not be empty and may contain a signature.
-        /// and the Update cmdlet checks for -RemoveSignature before control reaches this method)
+        /// The Update cmdlet checks for -RemoveSignature before control reaches this method).
         /// </summary>
         internal string EmitContent()
         {
             RemoveSignatureString();
             return EndOfFileContents;
         }
-
-        
 
         #endregion
 

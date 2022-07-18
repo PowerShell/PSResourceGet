@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Internal Methods
 
         /// <summary>
-        /// Parses RequiredModules out of comment lines and validates during
+        /// Parses RequiredModules out of comment lines and validates during parse process.
         /// </summary>
         internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord[] errors)
         {
@@ -75,7 +75,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 {
                     foreach (ParseError err in parserErrors)
                     {
-                        var message = String.Format("Could not requires comments as valid PowerShell input due to {1}.", err.Message);
+                        var message = String.Format("Could not requires comments as valid PowerShell input due to {0}.", err.Message);
                         var ex = new InvalidOperationException(message);
                         var requiresCommentParseError = new ErrorRecord(ex, err.ErrorId, ErrorCategory.ParserError, null);
                         errorsList.Add(requiresCommentParseError);
@@ -107,6 +107,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return true;
         }
 
+        /// <summary>
+        /// Emits string representation of '#Requires ...' comment(s).
+        /// </summary>
         internal string EmitContent()
         {   
             if (RequiredModules.Length > 0)
@@ -125,6 +128,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return String.Empty;
         }
 
+        /// <summary>
+        /// Updates the current Requires content with another (passed in), effectively replaces it.
+        /// </summary>
         internal void UpdateContent(ModuleSpecification[] requiredModules)
         {
             if (requiredModules != null && requiredModules.Length != 0){

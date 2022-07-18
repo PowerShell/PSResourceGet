@@ -80,7 +80,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteWarning(msg);
             }
 
-            WriteObject(isValidScript);      
+            WriteObject(isValidScript);
         }
 
         #endregion

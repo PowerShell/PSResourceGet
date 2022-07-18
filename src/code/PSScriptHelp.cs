@@ -112,6 +112,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Internal Methods
         
+        /// <summary>
+        /// Parses HelpInfo metadata out of the HelpInfo comment lines found while reading the file
+        /// and populates PSScriptHelp properties from that metadata.
+        /// </summary>
         internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord error)
         {
             bool successfullyParsed = true;
@@ -141,6 +145,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return successfullyParsed;
         }
 
+        /// <summary>
+        /// Helper method that parses metadata out of of comment block's lines (which are passed in) into a hashtable.
+        /// </summary>
         internal Hashtable ParseContent(string[] commentLines)
         {
             Hashtable parsedHelpMetadata = new Hashtable();
@@ -191,6 +198,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return parsedHelpMetadata;
         }
 
+        /// <summary>
+        /// Valides parsed help info content from the hashtable to ensure required help metadata (Description) is present
+        /// and does not contain empty values.
+        /// </summary>
         internal bool ValidateParsedContent(Hashtable parsedHelpMetadata, out ErrorRecord error)
         {
             error = null;
@@ -215,6 +226,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return true;
         }
 
+        /// <summary>
+        /// Validates help info properties contain required script Help properties
+        /// i.e Description.
+        /// </summary>
         internal bool ValidateContent(out ErrorRecord error)
         {
             error = null;
@@ -239,6 +254,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return true;
         }
 
+        /// <summary>
+        /// Emits string representation of 'HelpInfo <# ... #>' comment and its metadata contents.
+        /// </summary>
         internal string EmitContent()
         {
             string psHelpInfo;
@@ -299,6 +317,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return psHelpInfo;
         }
 
+        /// <summary>
+        /// Updates contents of the HelpInfo properties from any (non-default) values passed in.
+        /// </summary>
         internal bool UpdateContent(string description, out ErrorRecord error)
         {
             error = null;
@@ -334,7 +355,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Private Methods
 
         /// <summary>
-        /// Ensure description field (passed as stringToValidate) does not contain '<#' or '#>'
+        /// Ensure description field (passed as stringToValidate) does not contain '<#' or '#>'.
         /// </summary>
         private bool StringContainsComment(string stringToValidate)
         {

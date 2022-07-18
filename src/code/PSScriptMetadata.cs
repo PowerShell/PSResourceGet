@@ -143,7 +143,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Parses script metadata comment (passed in as its lines) into PSScriptMetadata instance's properties
-        /// Also validates that this metadata has required script properties
+        /// Also validates that this metadata has required script properties.
         /// </summary>
         internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord[] errors, out string[] msgs)
         {
@@ -222,7 +222,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// Helper method that parses metadata out of of comment block's lines (which are passed in) into a hashtable
+        /// Helper method that parses metadata out of of comment block's lines (which are passed in) into a hashtable.
         /// </summary>
         internal Hashtable ParseContent(string[] commentLines)
         {
@@ -311,6 +311,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
 
+        /// <summary>
+        /// Valides parsed metadata content from the hashtable to ensure required metadata (Author, Version, Guid) is present
+        /// and does not contain empty values.
+        /// </summary>
         internal bool ValidateParsedContent(Hashtable parsedMetadata, out ErrorRecord[] errors)
         {
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
@@ -343,8 +347,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return errors.Length == 0;
         }
         /// <summary>
-        /// Validates metadata content parsed from .ps1 is valid and contains required script properties
-        /// i.e Author, Version, Guid
+        /// Validates metadata properties are valid and contains required script properties
+        /// i.e Author, Version, Guid.
         /// </summary>
         internal bool ValidateContent(out ErrorRecord[] errors)
         {
@@ -383,7 +387,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// Emits string representation of '<#PSScriptInfo ... #>' comment and its metadata contents
+        /// Emits string representation of '<#PSScriptInfo ... #>' comment and its metadata contents.
         /// </summary>
         internal string EmitContent()
         {
@@ -435,7 +439,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return String.Join("\n\n", psScriptInfoLines);
         }
 
-
+        /// <summary>
+        /// Updates contents of the script metadata properties from any (non-default) values passed in.
+        /// </summary>
         internal bool UpdateContent(
             string version,
             Guid guid,
