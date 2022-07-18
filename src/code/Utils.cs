@@ -938,7 +938,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             foreach(Hashtable moduleSpec in moduleSpecHashtables)
             {
-                // ModuleSpecification(string) constructor for creating a ModuleSpecification when only ModuleName is provided
+                // ModuleSpecification(string) constructor for creating a ModuleSpecification when only ModuleName is provided.
                 if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
                 {
                     var exMessage = $"RequiredModules Hashtable entry {moduleSpec.ToString()} is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
