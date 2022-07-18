@@ -241,6 +241,17 @@ Describe "Test Set-PSResourceRepository" {
         $Res.Uri.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
     }
 
+    It "set repository with -Force should register repository" {
+        $testRepoName = "NewForceTestRepo"
+        Set-PSResourceRepository -Name $testRepoName -Uri $tmpDir1Path -Force -PassThru
+
+        $res = Get-PSResourceRepository -Name $testRepoName
+        $res.Name | Should -Be $testRepoName
+        $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
+        $res.Priority | Should -Be 50
+        $res.Trusted | Should -Be False
+    }
+
     It "set repository and see updated repository with -PassThru" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         $res = Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir2Path -PassThru
@@ -263,7 +274,7 @@ Describe "Test Set-PSResourceRepository" {
         {
             Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
             Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo2
-        } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementUnavailableModule"
+        } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementUnavailableModule,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res.CredentialInfo | Should -BeNullOrEmpty

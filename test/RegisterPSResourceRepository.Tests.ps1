@@ -234,23 +234,94 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Name | Should -Be $TestRepoName3
     }
 
-    $testCases2 = @{Type = "-Name is not specified";                     IncorrectHashTable = @{Uri = $tmpDir1Path};                           ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-Name is PSGallery";                         IncorrectHashTable = @{Name = $PSGalleryName; Uri = $tmpDir1Path};    ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-Uri not specified";                         IncorrectHashTable = @{Name = $TestRepoName1};                        ErrorId = "NullUriForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"},
-                  @{Type = "-Uri is not valid scheme";                   IncorrectHashTable = @{Name = $TestRepoName1; Uri="www.google.com"};  ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"}
-
-    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is <Type>" -TestCases $testCases2 {
-        param($Type, $IncorrectHashTable, $ErrorId)
-
+    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is -Name is not specified" {
         $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
         $correctHashtable3 = @{PSGallery = $True; Priority = 30};
+        $IncorrectHashTable = @{Uri = $tmpDir1Path};
 
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+
+        $ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly $ErrorId
+        $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
+
+        $res = Get-PSResourceRepository -Name $TestRepoName2
+        $res.Name | Should -Be $TestRepoName2
+
+        $res2 = Get-PSResourceRepository -Name $TestRepoName3
+        $res2.Name | Should -Be $TestRepoName3
+
+        $res3 = Get-PSResourceRepository -Name $PSGalleryName
+        $res3.Name | Should -Be $PSGalleryName
+        $res3.Priority | Should -Be 30
+    }
+
+    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is -Name is PSGallery" {
+        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
+        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
+        $correctHashtable3 = @{PSGallery = $True; Priority = 30};
+        $IncorrectHashTable = @{Name = $PSGalleryName; Uri = $tmpDir1Path};  
+
+        $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
+        Unregister-PSResourceRepository -Name $PSGalleryName
+        Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+
+        $ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
+
+        $res = Get-PSResourceRepository -Name $TestRepoName2
+        $res.Name | Should -Be $TestRepoName2
+
+        $res2 = Get-PSResourceRepository -Name $TestRepoName3
+        $res2.Name | Should -Be $TestRepoName3
+
+        $res3 = Get-PSResourceRepository -Name $PSGalleryName
+        $res3.Name | Should -Be $PSGalleryName
+        $res3.Priority | Should -Be 30
+    }
+
+    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is -Uri not specified" {
+        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
+        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
+        $correctHashtable3 = @{PSGallery = $True; Priority = 30};
+        $IncorrectHashTable = @{Name = $TestRepoName1};
+
+        $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
+        Unregister-PSResourceRepository -Name $PSGalleryName
+        Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+
+        $ErrorId = "NullUriForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
+
+        $res = Get-PSResourceRepository -Name $TestRepoName2
+        $res.Name | Should -Be $TestRepoName2
+
+        $res2 = Get-PSResourceRepository -Name $TestRepoName3
+        $res2.Name | Should -Be $TestRepoName3
+
+        $res3 = Get-PSResourceRepository -Name $PSGalleryName
+        $res3.Name | Should -Be $PSGalleryName
+        $res3.Priority | Should -Be 30
+    }
+
+    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is -Uri is not valid scheme" {
+        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
+        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
+        $correctHashtable3 = @{PSGallery = $True; Priority = 30};
+        $IncorrectHashTable = @{Name = $TestRepoName1; Uri="www.google.com"};
+
+        $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
+        Unregister-PSResourceRepository -Name $PSGalleryName
+        Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
+
+        $ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 
         $res = Get-PSResourceRepository -Name $TestRepoName2
         $res.Name | Should -Be $TestRepoName2
@@ -273,6 +344,17 @@ Describe "Test Register-PSResourceRepository" {
         $res.Priority | Should -Be 50
     }
 
+    It "should update a repository if -Force is used" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri "./"
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri "./" -Priority 3 -Force
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+
+        $res.Name | Should -Be $TestRepoName1
+        $Res.Uri.LocalPath | Should -Contain $relativeCurrentPath
+        $res.Trusted | Should -Be False
+        $res.Priority | Should -Be 3
+    }
+
     It "should register local file share NuGet based repository" {
         Register-PSResourceRepository -Name "localFileShareTestRepo" -Uri "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
         $res = Get-PSResourceRepository -Name "localFileShareTestRepo"
@@ -290,7 +372,7 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
-        { Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementUnavailableModule"
+        { Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementUnavailableModule,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res | Should -BeNullOrEmpty
