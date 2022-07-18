@@ -151,7 +151,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<string> msgsList = new List<string>();
 
             // parse content into a hashtable
-            Hashtable parsedMetadata = ParseContent(commentLines);
+            // Hashtable parsedMetadata = ParseContent(commentLines);
+            Hashtable parsedMetadata = Utils.ParseCommentBlockContent(commentLines);
 
             if (parsedMetadata.Count == 0)
             {
@@ -220,96 +221,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             msgs = msgsList.ToArray();
             return true;
         }
-
-        /// <summary>
-        /// Helper method that parses metadata out of of comment block's lines (which are passed in) into a hashtable.
-        /// </summary>
-        internal Hashtable ParseContent(string[] commentLines)
-        {
-            /**
-            comment lines will look like this:
-
-            .VERSION 1.0
-
-            .GUID 3951be04-bd06-4337-8dc3-a620bf539fbd
-
-            .AUTHOR
-
-            .COMPANYNAME
-
-            .COPYRIGHT
-
-            .TAGS
-
-            .LICENSEURI
-
-            .PROJECTURI
-
-            .ICONURI
-
-            .EXTERNALMODULEDEPENDENCIES
-
-            .REQUIREDSCRIPTS
-
-            .EXTERNALSCRIPTDEPENDENCIES
-
-            .RELEASENOTES
-            some notes
-
-            .PRIVATEDATA
-            some data
-
-            */
-
-            Hashtable parsedMetadata = new Hashtable();
-        
-            string keyName = "";
-            string value = "";
-
-            for (int i = 1; i < commentLines.Count(); i++)
-            {
-                string line = commentLines[i];
-
-                // scenario where line is: .KEY VALUE
-                // this line contains a new metadata property.
-                if (line.Trim().StartsWith("."))
-                {
-                    // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
-                    if (!String.IsNullOrEmpty(keyName))
-                    {
-                        parsedMetadata.Add(keyName, value);
-                    }
-
-                    string[] parts = line.Trim().TrimStart('.').Split();
-                    keyName = parts[0];
-                    value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
-                }
-                else if (!String.IsNullOrEmpty(line))
-                {
-                    // scenario where line contains text that is a continuation of value from previously recorded key
-                    // this line does not starting with .KEY, and is also not an empty line.
-                    if (value.Equals(String.Empty))
-                    {
-                        value += line;
-                    }
-                    else
-                    {
-                        value += Environment.NewLine + line;
-                    }
-                }
-            }
-
-            // this is the case where last key value had multi-line value.
-            // and we've captured it, but still need to add it to hashtable.
-            if (!String.IsNullOrEmpty(keyName) && !parsedMetadata.ContainsKey(keyName))
-            {
-                // only add this key value if it hasn't already been added
-                parsedMetadata.Add(keyName, value);
-            }
-
-            return parsedMetadata;
-        }
-
 
         /// <summary>
         /// Valides parsed metadata content from the hashtable to ensure required metadata (Author, Version, Guid) is present
