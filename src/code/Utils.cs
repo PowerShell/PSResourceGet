@@ -949,7 +949,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     continue;
                 }
 
-                // at this point it must contain ModuleName key.
+                // At this point it must contain ModuleName key.
                 string moduleSpecName = (string) moduleSpec["ModuleName"];
                 ModuleSpecification currentModuleSpec = null;
                 if (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion"))
