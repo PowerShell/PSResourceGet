@@ -69,7 +69,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         /// <summary>
-        /// This function would be called by PSScriptFileInfo.TryCreateScriptFileInfoString(),
+        /// This function is called by PSScriptFileInfo.TryCreateScriptFileInfoString(),
         /// by the New-PSScriptFileInfo cmdlet (in which case EndOfFileContents is an empty string so there's no signature that'll get removed)
         /// or by Update-PSScriptFileInfo cmdlet (in which case EndOfFileContents may not be empty and may contain a signature.
         /// The Update cmdlet checks for -RemoveSignature before control reaches this method).
