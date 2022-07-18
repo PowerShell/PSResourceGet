@@ -351,7 +351,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Updates .ps1 file.
         /// Caller must check that the file to update doesn't have a signature or if it does permission to remove signature has been granted
-        /// as this method will remove original signature, as updating would have invalidated it
+        /// as this method will remove original signature, as updating would have invalidated it.
         /// </summary>
         internal static bool TryUpdateScriptFileContents(
             PSScriptFileInfo scriptInfo,
