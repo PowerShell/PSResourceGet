@@ -477,7 +477,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return fileContentsSuccessfullyCreated;
             }
 
-            // step 2: create string that will be used to write later
+            // Step 2: create string that will be used to write later.
             psScriptFileString = ScriptMetadataComment.EmitContent();
 
             string psRequiresCommentBlock = ScriptRequiresComment.EmitContent();
