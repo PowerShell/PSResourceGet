@@ -818,6 +818,63 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        public static void ValidateModuleManifest(string moduleManifestPath, out string[] errorMsgs)
+        {
+            List<string> errorMsgsList = new List<string>();
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+            {
+                // use PowerShell cmdlet Test-ModuleManifest
+                // TODO: Test-ModuleManifest will throw an error if RequiredModules specifies a module that does not exist
+                // locally on the machine. Consider adding a -Syntax param to Test-ModuleManifest so that it only checks that
+                // the syntax is correct. In build/release pipelines for example, the modules listed under RequiredModules may
+                // not be locally available, but we still want to allow the user to publish.
+                Collection<PSObject> results = null;
+                try
+                {
+                    results = pwsh.AddCommand("Test-ModuleManifest").AddParameter("Path", moduleManifestPath).Invoke();
+                }
+                catch (Exception e)
+                {
+                    errorMsgsList.Add($"Error occured while running 'Test-ModuleManifest': {e.Message}");
+
+                    errorMsgs = errorMsgsList.ToArray();
+                    return; 
+                }
+
+                if (pwsh.HadErrors)
+                {
+                    var message = string.Empty;
+
+                    if (results.Any())
+                    {
+                        PSModuleInfo psModuleInfoObj = results[0].BaseObject as PSModuleInfo;
+                        if (string.IsNullOrWhiteSpace(psModuleInfoObj.Author))
+                        {
+                            message = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                        else if (string.IsNullOrWhiteSpace(psModuleInfoObj.Description))
+                        {
+                            message = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                        else if (psModuleInfoObj.Version == null)
+                        {
+                            message = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(message) && pwsh.Streams.Error.Count > 0)
+                    {
+                        // This will handle version errors
+                        message = $"{pwsh.Streams.Error[0].ToString()} Run 'Test-ModuleManifest' to validate the module manifest.";
+                    }
+
+                    errorMsgsList.Add(message);
+                }
+            }
+            errorMsgs = errorMsgsList.ToArray();
+
+        }
+
         #endregion
 
         #region Misc methods
@@ -1179,7 +1236,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Methods
 
-        internal static bool CheckAuthenticodeSignature(string pkgName, string tempDirNameVersion, VersionRange versionRange, List<string> pathsToSearch, string installPath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        internal static bool CheckAuthenticodeSignature(
+            string pkgName,
+            string tempDirNameVersion,
+            PSCmdlet cmdletPassedIn,
+            out ErrorRecord errorRecord)
         {
             errorRecord = null;
 
@@ -1189,16 +1250,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
-            // Check that the catalog file is signed properly
+            // First check if the files are catalog signed.
             string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
             if (File.Exists(catalogFilePath))
             {
-                // Run catalog validation
-                Collection<PSObject> TestFileCatalogResult = new Collection<PSObject>();
+                // Run catalog validation.
+                Collection<PSObject> TestFileCatalogResult;
                 string moduleBasePath = tempDirNameVersion;
                 try
                 {
-                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files
+                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files.
                     TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
                         script: @"param (
                                       [string] $moduleBasePath, 
@@ -1226,7 +1287,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     return false;
                 }
 
-                bool catalogValidation = (TestFileCatalogResult[0] != null) ? (bool)TestFileCatalogResult[0].BaseObject : false;
+                bool catalogValidation = TestFileCatalogResult.Count > 0 ? (bool)TestFileCatalogResult[0].BaseObject : false;
                 if (!catalogValidation)
                 {
                     var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
@@ -1235,13 +1296,16 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
                     return false;
                 }
+
+                return true;
             }
 
-            Collection<PSObject> authenticodeSignature = new Collection<PSObject>();
+            // Otherwise check for signatures on individual files.
+            Collection<PSObject> authenticodeSignatures;
             try
             {
                 string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
-                authenticodeSignature = cmdletPassedIn.InvokeCommand.InvokeScript(
+                authenticodeSignatures = cmdletPassedIn.InvokeCommand.InvokeScript(
                     script: @"param (
                                       [string] $tempDirNameVersion, 
                                       [string[]] $listOfExtensions
@@ -1258,20 +1322,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            // If the authenticode signature is not valid, return false
-            if (authenticodeSignature.Any() && authenticodeSignature[0] != null)
+            // If any file authenticode signatures are not valid, return false.
+            foreach (var signatureObject in authenticodeSignatures)
             {
-                foreach (var sign in authenticodeSignature)
+                Signature signature = (Signature)signatureObject.BaseObject;
+                if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
-                    Signature signature = (Signature)sign.BaseObject;
-                    if (!signature.Status.Equals(SignatureStatus.Valid))
-                    {
-                        var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
-                        var ex = new ArgumentException(exMessage);
-                        errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
+                    var ex = new ArgumentException(exMessage);
+                    errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
 
-                        return false;
-                    }
+                    return false;
                 }
             }
 
