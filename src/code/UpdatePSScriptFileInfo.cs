@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(FileDoesNotExistError);
             }
             
-            ModuleSpecification[] validatedRequiredModuleSpecifications = new ModuleSpecification[]{};
+            ModuleSpecification[] validatedRequiredModuleSpecifications = Array.Empty<ModuleSpecification>();
             if (RequiredModules != null && RequiredModules.Length > 0)
             {
                 if (!Utils.TryCreateModuleSpecification(

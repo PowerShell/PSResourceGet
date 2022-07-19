@@ -451,7 +451,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             psScriptFileContents = Utils.EmptyStrArray;
             List<string> fileContentsList = new List<string>();
-            errors = new ErrorRecord[]{};
+            errors = Array.Empty<ErrorRecord>();
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
             bool fileContentsSuccessfullyCreated = true;

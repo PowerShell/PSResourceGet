@@ -22,7 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// The list of modules required by the script.
         /// Hashtable keys: GUID, MaxVersion, ModuleName (Required), RequiredVersion, Version.
         /// </summary>
-        public ModuleSpecification[] RequiredModules { get; private set; } = new ModuleSpecification[]{};
+        public ModuleSpecification[] RequiredModules { get; private set; } = Array.Empty<ModuleSpecification>();
 
         #endregion
 
@@ -33,7 +33,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public PSScriptRequires(ModuleSpecification[] requiredModules)
         {
-            RequiredModules = requiredModules ?? new ModuleSpecification[]{};
+            RequiredModules = requiredModules ?? Array.Empty<ModuleSpecification>();
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             */
 
-            errors = new ErrorRecord[]{};
+            errors = Array.Empty<ErrorRecord>();
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
             string requiresComment = String.Join(Environment.NewLine, commentLines);
 
