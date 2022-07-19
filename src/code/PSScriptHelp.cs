@@ -209,6 +209,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         internal string[] EmitContent()
         {
+            // Note: we add a newline to the end of each property entry in HelpInfo so that there's an empty line separating them.
             List<string> psHelpInfoLines = new List<string>();
 
             psHelpInfoLines.Add($"<#{Environment.NewLine}");

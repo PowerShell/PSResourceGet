@@ -150,7 +150,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<string> msgsList = new List<string>();
 
             // parse content into a hashtable
-            // Hashtable parsedMetadata = ParseContent(commentLines);
             Hashtable parsedMetadata = Utils.ParseCommentBlockContent(commentLines);
 
             if (parsedMetadata.Count == 0)
@@ -338,6 +337,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             List<string> psScriptInfoLines = new List<string>();
 
+            // Note: we add a newline to the end of each property entry in HelpInfo so that there's an empty line separating them.
             psScriptInfoLines.Add($"<#PSScriptInfo{Environment.NewLine}");
             psScriptInfoLines.Add($".VERSION {Version.ToString()}{Environment.NewLine}");
             psScriptInfoLines.Add($".GUID {Guid.ToString()}{Environment.NewLine}");
