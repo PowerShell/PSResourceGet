@@ -202,7 +202,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     credential: credential,
                     includeDependencies: !skipDependencyCheck).ToList();
 
-                if (!pkgsFromRepoToInstall.Any())
+                if (pkgsFromRepoToInstall.Count == 0)
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
                     // Check in the next repository
@@ -222,10 +222,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
                 if (!_reinstall)
                 {
-                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall).ToList();
+                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
                 }
 
-                if (!pkgsFromRepoToInstall.Any())
+                if (pkgsFromRepoToInstall.Count == 0)
                 {
                     continue;
                 }
@@ -277,22 +277,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _pathsToSearch.AddRange(Utils.GetSubDirectories(path));
             }
 
-            var filteredPackages = new Dictionary<string, PSResourceInfo>();
-            foreach (var pkg in packages)
+            var filteredPackages = new HashSet<PSResourceInfo>(packages);
+
+            List<string> pkgNames = new List<string>();
+            foreach (PSResourceInfo pkg in packages)
             {
-                filteredPackages.Add(pkg.Name, pkg);
+                pkgNames.Add(pkg.Name);
             }
 
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // Get currently installed packages.
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
             List<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
-                name: filteredPackages.Keys.ToArray(),
+                name: pkgNames.ToArray(),
                 versionRange: _versionRange,
                 pathsToSearch: _pathsToSearch,
                 selectPrereleaseOnly: false).ToList();
 
-            if (!pkgsAlreadyInstalled.Any())
+            if (pkgsAlreadyInstalled.Count == 0)
             {
                 return packages;
             }
@@ -305,11 +307,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkg.Name,
                     pkg.Version));
 
-                filteredPackages.Remove(pkg.Name);
+                filteredPackages.Remove(pkg);
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
             }
 
-            return filteredPackages.Values.ToList();
+            return filteredPackages.ToList();
         }
 
         private List<PSResourceInfo> InstallPackage(
@@ -694,11 +696,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool foundClobber = false;
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
-            List<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
+            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: new string[] { "*" },
                 versionRange: VersionRange.All,
                 pathsToSearch: _pathsToSearch,
-                selectPrereleaseOnly: false).ToList();
+                selectPrereleaseOnly: false);
+
             // user parsed metadata hash
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])

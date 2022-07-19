@@ -384,7 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield break;
                 }
 
-                foundPackagesMetadata.AddRange(retrievedPkgs.ToList());
+                foundPackagesMetadata.AddRange(retrievedPkgs);
 
                 // _pkgsLeftToFind.Remove(pkgName);
 
@@ -427,7 +427,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 skip: SearchAsyncMaxTake,
                                 take: GalleryMax,
                                 log: NullLogger.Instance,
-                                cancellationToken: _cancellationToken).GetAwaiter().GetResult().ToList());
+                                cancellationToken: _cancellationToken).GetAwaiter().GetResult());
                     }
                 }
                 catch (HttpRequestException ex)
@@ -450,7 +450,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // perhaps validate in Find-PSResource, and use debugassert here?
                 WildcardPattern nameWildcardPattern = new WildcardPattern(pkgName, WildcardOptions.IgnoreCase);
                 foundPackagesMetadata.AddRange(wildcardPkgs.Where(
-                    p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
+                    p => nameWildcardPattern.IsMatch(p.Identity.Id)));
 
                 if (!_repositoryNameContainsWildcard)
                 {
