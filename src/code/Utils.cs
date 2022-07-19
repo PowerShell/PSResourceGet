@@ -100,7 +100,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static string[] GetStringArrayFromString(string[] delimeter, string stringToConvertToArray)
         {
-            // this will be a string where entries are separated by space
+            // This will be a string where entries are separated by space.
             if (String.IsNullOrEmpty(stringToConvertToArray))
             {
                 return Utils.EmptyStrArray;
@@ -933,7 +933,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             bool moduleSpecCreatedSuccessfully = true;
             List<ErrorRecord> errorList = new List<ErrorRecord>();
-            validatedModuleSpecs = new ModuleSpecification[]{};
+            validatedModuleSpecs = Array.Empty<ModuleSpecification>();
             List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
 
             foreach(Hashtable moduleSpec in moduleSpecHashtables)
