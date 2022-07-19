@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return "'" + CodeGeneration.EscapeSingleQuotedStringContent(name) + "'";
         }
 
-        public static string[] GetStringArrayFromString(char[] delimeter, string stringToConvertToArray)
+        public static string[] GetStringArrayFromString(string[] delimeter, string stringToConvertToArray)
         {
             // this will be a string where entries are separated by space
             if (String.IsNullOrEmpty(stringToConvertToArray))

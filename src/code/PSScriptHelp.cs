@@ -28,42 +28,42 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// The example(s) relating to the script's usage.
         /// </summary>
-        public string[] Example { get; private set; } = new string[]{};
+        public string[] Example { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The inputs to the script.
         /// </summary>
-        public string[] Inputs { get; private set; } = new string[]{};
+        public string[] Inputs { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The outputs to the script.
         /// </summary>
-        public string[] Outputs { get; private set; } = new string[]{};
+        public string[] Outputs { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The notes for the script.
         /// </summary>
-        public string[] Notes { get; private set; } = new string[]{};
+        public string[] Notes { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The links for the script.
         /// </summary>
-        public string[] Links { get; private set; } = new string[]{};
+        public string[] Links { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The components for the script.
         /// </summary>
-        public string[] Component { get; private set; } = new string[]{};
+        public string[] Component { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The roles for the script.
         /// </summary>
-        public string[] Role { get; private set; } = new string[]{};
+        public string[] Role { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The functionality components for the script.
         /// </summary>
-        public string[] Functionality { get; private set; } = new string[]{};
+        public string[] Functionality { get; private set; } = Utils.EmptyStrArray;
 
         #endregion
 
@@ -122,8 +122,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord error)
         {
             bool successfullyParsed = true;
-            char[] spaceDelimeter = new char[]{' '};
-            char[] newlineDelimeter = new char[]{'\n'};
+            string[] spaceDelimeter = new string[]{" "};
+            string[] newlineDelimeter = new string[]{Environment.NewLine};
             
             // parse content into a hashtable
             Hashtable parsedHelpMetadata = Utils.ParseCommentBlockContent(commentLines);
@@ -211,7 +211,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             List<string> psHelpInfoLines = new List<string>();
 
-            psHelpInfoLines.Add("<#\n");
+            psHelpInfoLines.Add($"<#{Environment.NewLine}");
             psHelpInfoLines.Add($".DESCRIPTION");
             psHelpInfoLines.Add($"{Description}{Environment.NewLine}");
 

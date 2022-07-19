@@ -70,10 +70,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PSScriptRequires scriptRequiresComment = new PSScriptRequires(requiredModules);
             PSScriptContents scriptRemainingContent = new PSScriptContents(Utils.EmptyStrArray);
 
-            this.ScriptMetadataComment = scriptMetadataComment;
-            this.ScriptHelpComment = scriptHelpComment;
-            this.ScriptRequiresComment = scriptRequiresComment;
-            this.ScriptContent = scriptRemainingContent;
+            ScriptMetadataComment = scriptMetadataComment;
+            ScriptHelpComment = scriptHelpComment;
+            ScriptRequiresComment = scriptRequiresComment;
+            ScriptContent = scriptRemainingContent;
         }
 
         /// <summary>
@@ -86,10 +86,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PSScriptContents scriptRemainingContent
         )
         {
-            this.ScriptMetadataComment = scriptMetadataComment;
-            this.ScriptHelpComment = scriptHelpComment;
-            this.ScriptRequiresComment = scriptRequiresComment;
-            this.ScriptContent = scriptRemainingContent;
+            ScriptMetadataComment = scriptMetadataComment;
+            ScriptHelpComment = scriptHelpComment;
+            ScriptRequiresComment = scriptRequiresComment;
+            ScriptContent = scriptRemainingContent;
         }
 
         #endregion
@@ -289,14 +289,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // this is for Uri errors, which aren't required by script but we check if those in the script aren't valid Uri's.
             out string[] verboseMsgs)
         {
-            verboseMsgs = new string[]{};
+            verboseMsgs = Utils.EmptyStrArray;
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
             parsedScript = null;
 
             List<string> psScriptInfoCommentContent = new List<string>();
             List<string> helpInfoCommentContent = new List<string>();
             List<string> requiresCommentContent = new List<string>();
-            string[] remainingFileContent = new string[]{};
+            string[] remainingFileContent = Utils.EmptyStrArray;
 
             // Parse .ps1 contents out of file into list objects
             if (!TryParseScriptFileContents(

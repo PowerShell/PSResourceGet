@@ -38,8 +38,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public PSScriptContents(string[] endOfFileContents)
         {
-            this.EndOfFileContents = endOfFileContents;
-            this.ContainsSignature = CheckForSignature();
+            EndOfFileContents = endOfFileContents;
+            ContainsSignature = CheckForSignature();
         }
 
         /// <summary>

@@ -64,17 +64,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the list of external module dependencies for the script.
         /// </summary>
-        public string[] ExternalModuleDependencies { get; private set; } = new string[]{};
+        public string[] ExternalModuleDependencies { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// the list of required scripts for the parent script.
         /// </summary>
-        public string[] RequiredScripts { get; private set; } = new string[]{};
+        public string[] RequiredScripts { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// the list of external script dependencies for the script.
         /// </summary>
-        public string[] ExternalScriptDependencies { get; private set; } = new string[]{};
+        public string[] ExternalScriptDependencies { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// the release notes relating to the script.
@@ -146,7 +146,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord[] errors, out string[] msgs)
         {
-            msgs = new string[]{};
+            msgs = Utils.EmptyStrArray;
             List<string> msgsList = new List<string>();
 
             // parse content into a hashtable
@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             // now populate the object instance
-            char[] spaceDelimeter = new char[]{' '};
+            string[] spaceDelimeter = new string[]{" "};
 
             Uri parsedLicenseUri = null;
             if (!String.IsNullOrEmpty((string) parsedMetadata["LICENSEURI"]))

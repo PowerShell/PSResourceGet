@@ -33,7 +33,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public PSScriptRequires(ModuleSpecification[] requiredModules)
         {
-            this.RequiredModules = requiredModules ?? new ModuleSpecification[]{};
+            RequiredModules = requiredModules ?? new ModuleSpecification[]{};
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             errors = new ErrorRecord[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
-            string requiresComment = String.Join("\n", commentLines);
+            string requiresComment = String.Join(Environment.NewLine, commentLines);
 
             try
             {
