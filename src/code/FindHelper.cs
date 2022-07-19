@@ -70,7 +70,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Public methods
 
-        public IEnumerable<PSResourceInfo> FindByResourceName(
+        public List<PSResourceInfo> FindByResourceName(
             string[] name,
             ResourceType type,
             string version,
@@ -86,12 +86,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _tag = tag;
             _credential = credential;
             _includeDependencies = includeDependencies;
-
-            Dbg.Assert(name.Length != 0, "Name length cannot be 0");
-
             _pkgsLeftToFind = name.ToList();
-
             List<PSRepositoryInfo> repositoriesToSearch;
+            List<PSResourceInfo> packagesFound = new List<PSResourceInfo>();
+
+            if (name.Length == 0)
+            {
+                  _cmdletPassedIn.WriteVerbose("No name was provided to FindByResourceName.");
+            }
 
             //determine if repository array of names of repositories input to be searched contains wildcard
             if (repository != null)
@@ -126,7 +128,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     "ErrorLoadingRepositoryStoreFile",
                     ErrorCategory.InvalidArgument,
                     this));
-                yield break;
+                 return packagesFound;
             }
 
             // loop through repositoriesToSearch and if PSGallery or PoshTestGallery add its Scripts endpoint repo
@@ -185,9 +187,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repositoryUri: repositoriesToSearch[i].Uri,
                     repositoryCredentialInfo: repositoriesToSearch[i].CredentialInfo))
                 {
-                    yield return pkg;
+                    packagesFound.Add(pkg);
                 }
             }
+
+            return packagesFound; 
         }
 
         #endregion
