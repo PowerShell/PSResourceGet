@@ -2,17 +2,12 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Management.Automation;
 using System.Management.Automation.Language;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using System.Linq;
 using System.Collections.ObjectModel;
 using Microsoft.PowerShell.Commands;
-using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -33,11 +28,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Constructor
 
+        /// <summary>
+        /// This constructor creates a new PSScriptRequires instance with specified required modules.
+        /// </summary>
         public PSScriptRequires(ModuleSpecification[] requiredModules)
         {
             this.RequiredModules = requiredModules ?? new ModuleSpecification[]{};
         }
 
+        /// <summary>
+        /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
+        /// for the parameters. Calling a method like PSScriptRequires.ParseConentIntoObj() would then populate those properties.
+        /// </summary>
         internal PSScriptRequires() {}
 
         #endregion
@@ -110,22 +112,21 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Emits string representation of '#Requires ...' comment(s).
         /// </summary>
-        internal string EmitContent()
-        {   
+        internal string[] EmitContent()
+        {
+            List<string> psRequiresLines = new List<string>();
             if (RequiredModules.Length > 0)
             {
-                List<string> psRequiresLines = new List<string>();
-                psRequiresLines.Add("\n");
+                psRequiresLines.Add(String.Empty);
                 foreach (ModuleSpecification moduleSpec in RequiredModules)
                 {
                     psRequiresLines.Add(String.Format("#Requires -Module {0}", moduleSpec.ToString()));
                 }
-
-                psRequiresLines.Add("\n");
-                return String.Join("\n", psRequiresLines);
+                
+                psRequiresLines.Add(String.Empty);
             }
 
-            return String.Empty;
+            return psRequiresLines.ToArray();
         }
 
         /// <summary>
@@ -137,7 +138,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 RequiredModules = requiredModules;
             }
         }
-
 
         #endregion
     }

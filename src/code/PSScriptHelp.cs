@@ -4,15 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Management.Automation;
-using System.Management.Automation.Language;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Linq;
-using System.Collections.ObjectModel;
-using Microsoft.PowerShell.Commands;
-using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -77,11 +69,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Constructor
 
+        /// <summary>
+        /// This constructor takes a value for description and creates a new PSScriptHelp instance.
+        /// </summary>
         public PSScriptHelp (string description)
         {
             this.Description = description;
         }
 
+        /// <summary>
+        /// This constructor takes values for description as well as other properties and creates a new PSScriptHelp instance.
+        /// Currently, the New-PSScriptFileInfo and Update-PSScriptFileInfo cmdlets don't support the user providing these values.
+        /// </summary>
         public PSScriptHelp (
             string description,
             string synopsis,
@@ -106,6 +105,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             this.Functionality = functionality;
         }
 
+        /// <summary>
+        /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
+        /// for the parameters. Calling a method like PSScriptHelp.ParseConentIntoObj() would then populate those properties.
+        /// </summary>
         internal PSScriptHelp() {}
 
         #endregion
@@ -204,64 +207,71 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Emits string representation of 'HelpInfo <# ... #>' comment and its metadata contents.
         /// </summary>
-        internal string EmitContent()
+        internal string[] EmitContent()
         {
-            string psHelpInfo;
             List<string> psHelpInfoLines = new List<string>();
 
             psHelpInfoLines.Add("<#\n");
-            psHelpInfoLines.Add(String.Format(".DESCRIPTION\n{0}", Description));
+            psHelpInfoLines.Add($".DESCRIPTION");
+            psHelpInfoLines.Add($"{Description}{Environment.NewLine}");
 
             if (!String.IsNullOrEmpty(Synopsis))
             {
-                psHelpInfoLines.Add(String.Format(".SYNOPSIS\n{0}", Synopsis));
+                psHelpInfoLines.Add($".SYNOPSIS");
+                psHelpInfoLines.Add($"{Synopsis}{Environment.NewLine}");
             }
 
             foreach (string currentExample in Example)
             {
-                psHelpInfoLines.Add(String.Format(".EXAMPLE\n{0}", currentExample));
+                psHelpInfoLines.Add($".EXAMPLE");
+                psHelpInfoLines.Add($"{currentExample}{Environment.NewLine}");
             }
 
             foreach (string input in Inputs)
             {
-                psHelpInfoLines.Add(String.Format(".INPUTS\n{0}", input));
+                psHelpInfoLines.Add($".INPUTS");
+                psHelpInfoLines.Add($"{input}{Environment.NewLine}");
             }
 
             foreach (string output in Outputs)
             {
-                psHelpInfoLines.Add(String.Format(".OUTPUTS\n{0}", output));
+                psHelpInfoLines.Add($".OUTPUTS");
+                psHelpInfoLines.Add($"{output}{Environment.NewLine}");
             }
 
             if (Notes.Length > 0)
             {
-                psHelpInfoLines.Add(String.Format(".NOTES\n{0}", String.Join("\n", Notes)));
+                psHelpInfoLines.Add($".NOTES");
+                psHelpInfoLines.Add($"{String.Join(Environment.NewLine, Notes)}{Environment.NewLine}");
             }
 
             foreach (string link in Links)
             {
-                psHelpInfoLines.Add(String.Format(".LINK\n{0}", link));
+                psHelpInfoLines.Add($".LINK");
+                psHelpInfoLines.Add($"{link}{Environment.NewLine}");
             }
 
             if (Component.Length > 0)
             {
-                psHelpInfoLines.Add(String.Format(".COMPONENT\n{0}", String.Join("\n", Component)));
+                psHelpInfoLines.Add($".COMPONENT");
+                psHelpInfoLines.Add($"{String.Join(Environment.NewLine, Component)}{Environment.NewLine}");
             }
             
             if (Role.Length > 0)
             {
-                psHelpInfoLines.Add(String.Format(".ROLE\n{0}", String.Join("\n", Role)));
+                psHelpInfoLines.Add($".ROLE");
+                psHelpInfoLines.Add($"{String.Join(Environment.NewLine, Role)}{Environment.NewLine}");
             }
             
             if (Functionality.Length > 0)
             {
-                psHelpInfoLines.Add(String.Format(".FUNCTIONALITY\n{0}", String.Join("\n", Functionality)));
+                psHelpInfoLines.Add($".FUNCTIONALITY");
+                psHelpInfoLines.Add($"{String.Join(Environment.NewLine, Functionality)}{Environment.NewLine}");
             }
 
-            psHelpInfo = String.Join("\n", psHelpInfoLines);
-            psHelpInfo = psHelpInfo.TrimEnd('\n');
-            psHelpInfo += "\n\n#>";
+            psHelpInfoLines.Add("#>");
 
-            return psHelpInfo;
+            return psHelpInfoLines.ToArray();
         }
 
         /// <summary>

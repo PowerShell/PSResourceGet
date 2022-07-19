@@ -146,12 +146,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Private Members
-
-        private const string signatureStartString = "# SIG # Begin signature block";
-
-        #endregion
-
         #region Methods
 
         protected override void EndProcessing()
@@ -236,12 +230,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (string msg in verboseMsgs)
                 {
                     WriteVerbose(msg);
-
-                    // Also write a warning as the existing ProjectUri, LicenseUri, IconUri may be overwrriten if they were determined to not be valid when parsed.
-                    WriteWarning(msg);
                 }
 
-                WriteWarning("The .ps1 script file passed in was not valid due to the following error(s) listed below");
                 foreach (ErrorRecord error in errors)
                 {
                     WriteError(error);
@@ -250,9 +240,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return; 
             }
 
+            bool signatureRemoved = false;
             if (parsedScriptInfo.ScriptContent.ContainsSignature)
             {
-                WriteWarning("This script contains a signature and cannot be updated without invalidating the current script signature");
                 if (!RemoveSignature)
                 {
                     var exMessage = "Cannot update the script file because the file contains a signature block and updating will invalidate the signature. Use -RemoveSignature to remove the signature block, and then re-sign the file after it is updated.";
@@ -260,11 +250,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     var ScriptToBeUpdatedContainsSignatureError = new ErrorRecord(ex, "ScriptToBeUpdatedContainsSignature", ErrorCategory.InvalidOperation, null);
                     ThrowTerminatingError(ScriptToBeUpdatedContainsSignatureError);
                 }
+                
+                signatureRemoved = true;
             }
             
             if (!PSScriptFileInfo.TryUpdateScriptFileContents(
                 scriptInfo: parsedScriptInfo,
-                updatedPSScriptFileContents: out string updatedPSScriptFileContents,
+                updatedPSScriptFileContents: out string[] updatedPSScriptFileContents,
                 errors: out ErrorRecord[] updateErrors,
                 version: Version,
                 guid: Guid,
@@ -297,7 +289,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 tempScriptFilePath = Path.GetTempFileName();
 
-                File.WriteAllText(tempScriptFilePath, updatedPSScriptFileContents); 
+                File.WriteAllLines(tempScriptFilePath, updatedPSScriptFileContents); 
                 File.Copy(tempScriptFilePath, resolvedFilePath, overwrite: true);     
             }
             catch(Exception e)
@@ -314,7 +306,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     File.Delete(tempScriptFilePath);
                 }
-            }    
+            }
+
+            if (signatureRemoved)
+            {
+                WriteWarning("Re-sign this script, as the original signature was removed during update.");
+            }
         }
 
         #endregion

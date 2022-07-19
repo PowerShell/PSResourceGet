@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             bool isValidScript = PSScriptFileInfo.TryTestPSScriptFile(
                 scriptFileInfoPath: resolvedFilePath,
-                parsedScript: out PSScriptFileInfo parsedScriptInfo,
+                parsedScript: out PSScriptFileInfo _,
                 errors: out ErrorRecord[] errors,
                 out string[] verboseMsgs);               
 
@@ -68,16 +68,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 foreach (ErrorRecord error in errors)
                 {
-                    WriteWarning("The .ps1 script file passed in was not valid due to: " + error.Exception.Message);
+                    WriteVerbose("The .ps1 script file passed in was not valid due to: " + error.Exception.Message);
                 }
             }
 
             foreach (string msg in verboseMsgs)
             {
                 WriteVerbose(msg);
-
-                // also write a warning as the existing ProjectUri, LicenseUri, IconUri may be overwrriten if they were determined to not be valid when parsed.
-                WriteWarning(msg);
             }
 
             WriteObject(isValidScript);

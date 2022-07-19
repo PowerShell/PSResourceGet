@@ -2,17 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Management.Automation;
-using System.Management.Automation.Language;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Linq;
-using System.Collections.ObjectModel;
-using Microsoft.PowerShell.Commands;
-using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -26,7 +15,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// End of file contents for the .ps1 file.
         /// </summary>
-        public string EndOfFileContents { get; private set; } = String.Empty;
+        public string[] EndOfFileContents { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// End of file contents for the .ps1 file.
@@ -38,17 +27,25 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Private Members
 
         private const string signatureStartString = "# SIG # Begin signature block";
+        private int _signatureStartIndex = -1;
 
         #endregion
 
         #region Constructor
 
-        public PSScriptContents(string endOfFileContents)
+        /// <summary>
+        /// This constructor takes end of file contents as a string and checks if it has a signature.
+        /// </summary>
+        public PSScriptContents(string[] endOfFileContents)
         {
             this.EndOfFileContents = endOfFileContents;
             this.ContainsSignature = CheckForSignature();
         }
 
+        /// <summary>
+        /// This constructor creates a PSScriptContents instance with default values for its properties.
+        /// The calling method, like PSScriptContents.ParseContent() could then populate the properties.
+        /// </summary>
         internal PSScriptContents() {}
 
         #endregion
@@ -63,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if (commentLines.Length != 0)
             {
-                EndOfFileContents = String.Join("", commentLines);
+                EndOfFileContents = commentLines;
                 ContainsSignature = CheckForSignature();
             }
         }
@@ -72,9 +69,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// This function is called by PSScriptFileInfo.TryCreateScriptFileInfoString(),
         /// by the New-PSScriptFileInfo cmdlet (in which case EndOfFileContents is an empty string so there's no signature that'll get removed)
         /// or by Update-PSScriptFileInfo cmdlet (in which case EndOfFileContents may not be empty and may contain a signature.
-        /// The Update cmdlet checks for -RemoveSignature before control reaches this method).
+        /// When emitting contents, any file signature is always removed because it is invalidated when the content is updated.
         /// </summary>
-        internal string EmitContent()
+        internal string[] EmitContent()
         {
             RemoveSignatureString();
             return EndOfFileContents;
@@ -89,7 +86,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         private bool CheckForSignature()
         {
-            return (EndOfFileContents.Contains(signatureStartString));
+            for (int i = 0; i < EndOfFileContents.Length; i++)
+            {
+                if (String.Equals(EndOfFileContents[i], signatureStartString, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    _signatureStartIndex = i;
+                }
+            }
+
+            return _signatureStartIndex != -1;
         }
 
         /// <summary>
@@ -100,8 +105,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if (ContainsSignature)
             {
-                int signatureStartIndex = EndOfFileContents.IndexOf(signatureStartString);
-                EndOfFileContents = EndOfFileContents.Substring(0, signatureStartIndex);
+                string[] newEndOfFileContents = new string[EndOfFileContents.Length - _signatureStartIndex];
+                Array.Copy(EndOfFileContents, newEndOfFileContents, _signatureStartIndex);
+                EndOfFileContents = newEndOfFileContents;
+
                 ContainsSignature = false;
             }
         }

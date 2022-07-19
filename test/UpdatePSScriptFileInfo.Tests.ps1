@@ -14,6 +14,8 @@ Describe "Test Update-PSScriptFileInfo" {
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
+
+        $script:newline = [System.Environment]::NewLine;
     }
 
     BeforeEach {
@@ -43,7 +45,7 @@ Describe "Test Update-PSScriptFileInfo" {
         Test-Path -Path $scriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $scriptFilePath -Raw
         $results.Contains($newDescription) | Should -BeTrue
-        $results -like "*.DESCRIPTION`n*$newDescription*" | Should -BeTrue
+        $results -like "*.DESCRIPTION$script:newline*$newDescription*" | Should -BeTrue
 
         Remove-Item -Path $scriptFilePath -Force
     }
@@ -74,7 +76,7 @@ Describe "Test Update-PSScriptFileInfo" {
         $results.Contains(".VERSION $version") | Should -BeTrue
 
         $results.Contains($description) | Should -BeTrue
-        $results -like "*.DESCRIPTION`n*$description*" | Should -BeTrue
+        $results -like "*.DESCRIPTION$script:newline*$description*" | Should -BeTrue
 
         Remove-Item -Path $scriptFilePath -Force
     }
@@ -126,7 +128,7 @@ Describe "Test Update-PSScriptFileInfo" {
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
         $results.Contains($description) | Should -BeTrue
-        $results -like "*.DESCRIPTION`n*$description*" | Should -BeTrue
+        $results -like "*.DESCRIPTION$script:newline*$description*" | Should -BeTrue
     }
 
     It "update script file Guid property" {
@@ -240,7 +242,7 @@ Describe "Test Update-PSScriptFileInfo" {
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
         $results.Contains($releaseNotes) | Should -BeTrue
-        $results -like "*.RELEASENOTES`n*$releaseNotes*" | Should -BeTrue
+        $results -like "*.RELEASENOTES$script:newline*$releaseNotes*" | Should -BeTrue
     }
 
     It "update script file RequiredModules property" {

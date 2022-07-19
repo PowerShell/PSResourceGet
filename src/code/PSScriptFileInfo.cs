@@ -2,17 +2,11 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
-using System.Management.Automation.Language;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using System.Linq;
-using System.Collections.ObjectModel;
 using Microsoft.PowerShell.Commands;
-using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -34,6 +28,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Constructor
 
+        /// <summary>
+        /// This constructor takes metadata values that could have been passed in by the calling cmdlet
+        /// and uses those to create associated script class properties (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents)
+        /// </summary>
         public PSScriptFileInfo(
             string version,
             Guid guid,
@@ -70,7 +68,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             PSScriptHelp scriptHelpComment = new PSScriptHelp(description);
             PSScriptRequires scriptRequiresComment = new PSScriptRequires(requiredModules);
-            PSScriptContents scriptRemainingContent = new PSScriptContents(String.Empty);
+            PSScriptContents scriptRemainingContent = new PSScriptContents(Utils.EmptyStrArray);
 
             this.ScriptMetadataComment = scriptMetadataComment;
             this.ScriptHelpComment = scriptHelpComment;
@@ -78,6 +76,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             this.ScriptContent = scriptRemainingContent;
         }
 
+        /// <summary>
+        /// This constructor takes script class properties' values that could have been passed in by the calling internal methods.
+        /// </summary>
         public PSScriptFileInfo(
             PSScriptMetadata scriptMetadataComment,
             PSScriptHelp scriptHelpComment,
@@ -111,7 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psScriptInfoCommentContent = new List<string>();
             helpInfoCommentContent = new List<string>();
             requiresCommentContent = new List<string>();
-            remainingFileContent = new string[]{};
+            remainingFileContent = Utils.EmptyStrArray;
 
             string[] fileContents = File.ReadAllLines(scriptFileInfoPath);
 
@@ -133,7 +134,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         string blockLine = fileContents[j];
                         if (blockLine.StartsWith("#>"))
                         {
-                            reachedPSSCriptInfoCommentEnd = true;
+                            reachedPSScriptInfoCommentEnd = true;
                             i = j + 1;
                             break;
                         }
@@ -142,7 +143,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         j++;
                     }
 
-                    if (!reachedPSSCriptInfoCommentEnd)
+                    if (!reachedPSScriptInfoCommentEnd)
                     {
                         var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block", scriptFileInfoPath);
                         var ex = new InvalidOperationException(message);
@@ -152,7 +153,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
                 else if (line.StartsWith("<#"))
                 {
-                    // we assume the next comment block should be the help comment block (containing description)
+                    // The next comment block must be the help comment block (containing description)
                     // keep grabbing lines until we get to closing #>
                     int j = i + 1;
                     while (j < fileContents.Length)
@@ -198,6 +199,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 // from this line to fileContents.Length is the endOfFileContents, if any
                 remainingFileContent = new string[fileContents.Length - endOfFileContentsStartIndex];
+
                 Array.Copy(fileContents, endOfFileContentsStartIndex, remainingFileContent, 0, (fileContents.Length - endOfFileContentsStartIndex));
             }
 
@@ -284,8 +286,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
             out ErrorRecord[] errors,
-            out string[] verboseMsgs // this is for Uri errors, which aren't required by script but we check if those in the script aren't valid Uri's.
-        )
+            // this is for Uri errors, which aren't required by script but we check if those in the script aren't valid Uri's.
+            out string[] verboseMsgs)
         {
             verboseMsgs = new string[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
@@ -355,7 +357,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         internal static bool TryUpdateScriptFileContents(
             PSScriptFileInfo scriptInfo,
-            out string updatedPSScriptFileContents,
+            out string[] updatedPSScriptFileContents,
             out ErrorRecord[] errors,
             string version,
             Guid guid,
@@ -374,18 +376,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string privateData,
             string description)
         {
-            updatedPSScriptFileContents = String.Empty;
+            updatedPSScriptFileContents = Utils.EmptyStrArray;
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
             bool successfullyUpdated = true;
 
             if (scriptInfo == null)
             {
-                var message = String.Format("Could not update .ps1 file as PSScriptFileInfo object created for it was null");
-                var ex = new ArgumentException(message);
-                var nullPSScriptFileInfoError = new ErrorRecord(ex, "NullPSScriptFileInfoError", ErrorCategory.ParserError, null);
-                errors = new ErrorRecord[]{nullPSScriptFileInfoError};
-
-                return false;
+                throw new ArgumentNullException(nameof(scriptInfo));
             }
 
             if (!scriptInfo.ScriptMetadataComment.UpdateContent(
@@ -429,7 +426,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             // create string contents for .ps1 file
             if (!scriptInfo.TryCreateScriptFileInfoString(
-                psScriptFileString: out updatedPSScriptFileContents,
+                psScriptFileContents: out updatedPSScriptFileContents,
                 errors: out ErrorRecord[] createUpdatedFileContentErrors))
             {
                 errorsList.AddRange(createUpdatedFileContentErrors);
@@ -448,11 +445,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Creates .ps1 file content string representation for the PSScriptFileInfo object this called upon, which is used by the caller to write the .ps1 file.
         /// </summary>
         internal bool TryCreateScriptFileInfoString(
-            out string psScriptFileString,
+            out string[] psScriptFileContents,
             out ErrorRecord[] errors
         )
         {
-            psScriptFileString = String.Empty;
+            psScriptFileContents = Utils.EmptyStrArray;
+            List<string> fileContentsList = new List<string>();
             errors = new ErrorRecord[]{};
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
@@ -477,26 +475,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return fileContentsSuccessfullyCreated;
             }
 
-            // Step 2: create string that will be used to write later.
-            psScriptFileString = ScriptMetadataComment.EmitContent();
+            // Step 2: create string [] that will be used to write to file later
+            fileContentsList.AddRange(ScriptMetadataComment.EmitContent());
 
-            string psRequiresCommentBlock = ScriptRequiresComment.EmitContent();
-            if (!String.IsNullOrEmpty(psRequiresCommentBlock))
-            {
-                psScriptFileString += "\n";
-                psScriptFileString += psRequiresCommentBlock;
-            }
+            // string psRequiresCommentBlock = ScriptRequiresComment.EmitContent();
+            fileContentsList.AddRange(ScriptRequiresComment.EmitContent());
+            fileContentsList.AddRange(ScriptHelpComment.EmitContent());
+            fileContentsList.AddRange(ScriptContent.EmitContent());
 
-            psScriptFileString += "\n"; // need a newline after last #> and before <# for script comment block, TODO: try removing
-            // or else not recongnized as a valid comment help info block when parsing the created ps1 later
-            psScriptFileString += "\n" + ScriptHelpComment.EmitContent();
-
-            string psEndOfFileContent = ScriptContent.EmitContent();
-            if (!String.IsNullOrEmpty(psEndOfFileContent))
-            {
-                psScriptFileString += "\n" + psEndOfFileContent;
-            }
-
+            psScriptFileContents = fileContentsList.ToArray();
             return fileContentsSuccessfullyCreated;
         }
 

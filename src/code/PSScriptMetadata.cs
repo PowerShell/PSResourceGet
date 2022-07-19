@@ -1,18 +1,10 @@
-using System.Net.Http.Headers;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Management.Automation;
-using System.Management.Automation.Language;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Linq;
-using System.Collections.ObjectModel;
-using Microsoft.PowerShell.Commands;
 using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
@@ -98,6 +90,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Constructor
 
+        /// <summary>
+        /// This constructor takes metadata properties and creates PSScriptMetadata instance.
+        /// </summary>
         public PSScriptMetadata(
             string version,
             Guid guid,
@@ -135,6 +130,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             PrivateData = privateData;
         }
 
+        /// <summary>
+        /// This constructor is called by internal cmdlet methods and creates a PSScriptFileInfo with default values
+        /// for the parameters. Calling a method like PSScriptMetadata.ParseConentIntoObj() would then populate those properties.
+        /// </summary>
         internal PSScriptMetadata() {}
 
         #endregion
@@ -300,7 +299,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Emits string representation of '<#PSScriptInfo ... #>' comment and its metadata contents.
         /// </summary>
-        internal string EmitContent()
+        internal string[] EmitContent()
         {
             /**
             PSScriptInfo comment will be in following format:
@@ -328,26 +327,35 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 #>
             */
 
+            string liceseUriString = LicenseUri == null ? String.Empty : LicenseUri.ToString();
+            string projectUriString = ProjectUri == null ? String.Empty : ProjectUri.ToString();
+            string iconUriString = IconUri == null ? String.Empty : IconUri.ToString();
+
+            string tagsString = String.Join(" ", Tags);
+            string externalModuleDependenciesString = String.Join(" ", ExternalModuleDependencies);
+            string requiredScriptsString = String.Join(" ", RequiredScripts);
+            string externalScriptDependenciesString = String.Join(" ", ExternalScriptDependencies);
+
             List<string> psScriptInfoLines = new List<string>();
 
-            psScriptInfoLines.Add("<#PSScriptInfo");
-            psScriptInfoLines.Add(String.Format(".VERSION {0}", Version.ToString()));
-            psScriptInfoLines.Add(String.Format(".GUID {0}", Guid.ToString()));
-            psScriptInfoLines.Add(String.Format(".AUTHOR {0}", Author));
-            psScriptInfoLines.Add(String.Format(".COMPANYNAME {0}", CompanyName));
-            psScriptInfoLines.Add(String.Format(".COPYRIGHT {0}", Copyright));
-            psScriptInfoLines.Add(String.Format(".TAGS {0}", String.Join(" ", Tags)));
-            psScriptInfoLines.Add(String.Format(".LICENSEURI {0}", LicenseUri == null ? String.Empty : LicenseUri.ToString()));
-            psScriptInfoLines.Add(String.Format(".PROJECTURI {0}", ProjectUri == null ? String.Empty : ProjectUri.ToString()));
-            psScriptInfoLines.Add(String.Format(".ICONURI {0}", IconUri == null ? String.Empty : IconUri.ToString()));
-            psScriptInfoLines.Add(String.Format(".EXTERNALMODULEDEPENDENCIES {0}", String.Join(" ", ExternalModuleDependencies)));
-            psScriptInfoLines.Add(String.Format(".REQUIREDSCRIPTS {0}", String.Join(" ", RequiredScripts)));
-            psScriptInfoLines.Add(String.Format(".EXTERNALSCRIPTDEPENDENCIES {0}", String.Join(" ", ExternalScriptDependencies)));
-            psScriptInfoLines.Add(String.Format(".RELEASENOTES\n{0}", ReleaseNotes));
-            psScriptInfoLines.Add(String.Format(".PRIVATEDATA\n{0}", PrivateData));
+            psScriptInfoLines.Add($"<#PSScriptInfo{Environment.NewLine}");
+            psScriptInfoLines.Add($".VERSION {Version.ToString()}{Environment.NewLine}");
+            psScriptInfoLines.Add($".GUID {Guid.ToString()}{Environment.NewLine}");
+            psScriptInfoLines.Add($".AUTHOR {Author}{Environment.NewLine}");
+            psScriptInfoLines.Add($".COMPANYNAME {CompanyName}{Environment.NewLine}");
+            psScriptInfoLines.Add($".COPYRIGHT {Copyright}{Environment.NewLine}");
+            psScriptInfoLines.Add($".TAGS {tagsString}{Environment.NewLine}");
+            psScriptInfoLines.Add($".LICENSEURI {liceseUriString}{Environment.NewLine}");
+            psScriptInfoLines.Add($".PROJECTURI {projectUriString}{Environment.NewLine}");
+            psScriptInfoLines.Add($".ICONURI {iconUriString}{Environment.NewLine}");
+            psScriptInfoLines.Add($".EXTERNALMODULEDEPENDENCIES {externalModuleDependenciesString}{Environment.NewLine}");
+            psScriptInfoLines.Add($".REQUIREDSCRIPTS {requiredScriptsString}{Environment.NewLine}");
+            psScriptInfoLines.Add($".EXTERNALSCRIPTDEPENDENCIES {externalScriptDependenciesString}{Environment.NewLine}");
+            psScriptInfoLines.Add($".RELEASENOTES{Environment.NewLine}{ReleaseNotes}{Environment.NewLine}");
+            psScriptInfoLines.Add($".PRIVATEDATA{Environment.NewLine}{PrivateData}{Environment.NewLine}");
             psScriptInfoLines.Add("#>");
 
-            return String.Join("\n\n", psScriptInfoLines);
+            return psScriptInfoLines.ToArray();
         }
 
         /// <summary>

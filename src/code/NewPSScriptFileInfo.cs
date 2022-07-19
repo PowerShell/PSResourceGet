@@ -239,7 +239,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 description: Description);
 
             if (!scriptInfo.TryCreateScriptFileInfoString(
-                psScriptFileString: out string psScriptFileContents,
+                psScriptFileContents: out string[] psScriptFileContents,
                 errors: out ErrorRecord[] errors))
             {
                 foreach (ErrorRecord err in errors)
@@ -250,7 +250,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            File.WriteAllText(resolvedFilePath, psScriptFileContents);       
+            File.WriteAllLines(resolvedFilePath, psScriptFileContents);       
         }
 
         #endregion

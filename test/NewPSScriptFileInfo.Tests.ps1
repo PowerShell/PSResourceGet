@@ -81,7 +81,7 @@ Describe "Test New-PSScriptFileInfo" {
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
         $results.Contains($description) | Should -BeTrue
-        $results -like "*.DESCRIPTION`n*$description*" | Should -BeTrue
+        $results -like "*.DESCRIPTION$script:newline*$description*" | Should -BeTrue
     }
 
     It "Create new .ps1 given CompanyName parameter" {
@@ -133,7 +133,7 @@ Describe "Test New-PSScriptFileInfo" {
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
         $results.Contains($releaseNotes) | Should -BeTrue
-        $results -like "*.RELEASENOTES`n*$ReleaseNotes*" | Should -BeTrue
+        $results -like "*.RELEASENOTES$script:newline*$ReleaseNotes*" | Should -BeTrue
     }
 
     It "Create new .ps1 given Tags parameter" {
