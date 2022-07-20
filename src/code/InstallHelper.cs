@@ -302,7 +302,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (!installedPackageNames.Contains(pkg.Name))
                 {
+                    // Add packages that still need to be installed.
                     filteredPackages.Add(pkg);
+                }
+                else
+                {
+                    // Remove from list package versions that are already installed.
+                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
             }
 
