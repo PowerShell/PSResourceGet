@@ -105,7 +105,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if (ContainsSignature)
             {
-                string[] newEndOfFileContents = new string[EndOfFileContents.Length - _signatureStartIndex];
+                string[] newEndOfFileContents = new string[_signatureStartIndex];
                 Array.Copy(EndOfFileContents, newEndOfFileContents, _signatureStartIndex);
                 EndOfFileContents = newEndOfFileContents;
 
