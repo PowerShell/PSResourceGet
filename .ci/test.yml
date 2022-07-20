@@ -37,7 +37,7 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       Write-Verbose -Verbose "Install PowerShellGet V3 to temp module path"
-      Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.14-beta14 -AllowPrerelease -Force
+      Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.0-beta10 -AllowPrerelease -Force
       Write-Verbose -Verbose "Install PlatyPS to temp module path"
       Save-Module -Name "platyPS" -Path $modulePath -Force
       Write-Verbose -Verbose "Install PSScriptAnalyzer to temp module path"
