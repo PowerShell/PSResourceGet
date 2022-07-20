@@ -16,6 +16,7 @@ using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.PowerShell.Commands;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -97,6 +98,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return "'" + CodeGeneration.EscapeSingleQuotedStringContent(name) + "'";
         }
 
+        public static string[] GetStringArrayFromString(string[] delimeter, string stringToConvertToArray)
+        {
+            // This will be a string where entries are separated by space.
+            if (String.IsNullOrEmpty(stringToConvertToArray))
+            {
+                return Utils.EmptyStrArray;
+            }
+
+            return stringToConvertToArray.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
+        }
+        
         /// <summary>
         /// Converts an ArrayList of object types to a string array.
         /// </summary>
@@ -912,6 +924,185 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 args: new object[] { json });
 
             return (results.Count == 1 && results[0] != null) ? (Hashtable)results[0].BaseObject : null;
+        }
+
+        public static bool TryCreateModuleSpecification(
+            Hashtable[] moduleSpecHashtables,
+            out ModuleSpecification[] validatedModuleSpecs,
+            out ErrorRecord[] errors)
+        {
+            bool moduleSpecCreatedSuccessfully = true;
+            List<ErrorRecord> errorList = new List<ErrorRecord>();
+            validatedModuleSpecs = Array.Empty<ModuleSpecification>();
+            List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
+
+            foreach(Hashtable moduleSpec in moduleSpecHashtables)
+            {
+                // ModuleSpecification(string) constructor for creating a ModuleSpecification when only ModuleName is provided.
+                if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
+                {
+                    var exMessage = $"RequiredModules Hashtable entry {moduleSpec.ToString()} is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
+                    var ex = new ArgumentException(exMessage);
+                    var NameMissingModuleSpecError = new ErrorRecord(ex, "NameMissingInModuleSpecification", ErrorCategory.InvalidArgument, null);
+                    errorList.Add(NameMissingModuleSpecError);
+                    moduleSpecCreatedSuccessfully = false;
+                    continue;
+                }
+
+                // At this point it must contain ModuleName key.
+                string moduleSpecName = (string) moduleSpec["ModuleName"];
+                ModuleSpecification currentModuleSpec = null;
+                if (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion"))
+                {
+                    // Pass to ModuleSpecification(string) constructor.
+                    // This constructor method would only throw for a null/empty string, which we've already validated against above.
+                    currentModuleSpec = new ModuleSpecification(moduleSpecName);
+
+                    if (currentModuleSpec != null)
+                    {
+                        moduleSpecsList.Add(currentModuleSpec);
+                    }
+                    else
+                    {
+                        var exMessage = $"ModuleSpecification object was not able to be created for {moduleSpecName}";
+                        var ex = new ArgumentException(exMessage);
+                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(ModuleSpecNotCreatedError);
+                        moduleSpecCreatedSuccessfully = false;
+                        continue;
+                    }
+                }
+                else
+                {
+                    // ModuleSpecification(Hashtable) constructor for when ModuleName + {Required,Maximum,Module}Version value is also provided.
+                    string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaximumVersion"] : String.Empty;
+                    string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
+                    string moduleSpecRequiredVersion = moduleSpec.ContainsKey("RequiredVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
+                    Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty;
+
+                    if (String.IsNullOrEmpty(moduleSpecMaxVersion) && String.IsNullOrEmpty(moduleSpecModuleVersion) && String.IsNullOrEmpty(moduleSpecRequiredVersion))
+                    {
+                        var exMessage = $"ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {moduleSpecName}";
+                        var ex = new ArgumentException(exMessage);
+                        var MissingModuleSpecificationMemberError = new ErrorRecord(ex, "MissingModuleSpecificationMember", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(MissingModuleSpecificationMemberError);
+                        moduleSpecCreatedSuccessfully = false;
+                        continue;
+                    }
+
+                    Hashtable moduleSpecHash = new Hashtable();
+
+                    moduleSpecHash.Add("ModuleName", moduleSpecName);
+                    if (moduleSpecGuid != Guid.Empty)
+                    {
+                        moduleSpecHash.Add("Guid", moduleSpecGuid);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecMaxVersion))
+                    {
+                        moduleSpecHash.Add("MaximumVersion", moduleSpecMaxVersion);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecModuleVersion))
+                    {
+                        moduleSpecHash.Add("ModuleVersion", moduleSpecModuleVersion);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecRequiredVersion))
+                    {
+                        moduleSpecHash.Add("RequiredVersion", moduleSpecRequiredVersion);
+                    }
+
+                    try
+                    {
+                        currentModuleSpec = new ModuleSpecification(moduleSpecHash);
+                    }
+                    catch (Exception e)
+                    {
+                        var ex = new ArgumentException($"ModuleSpecification instance was not able to be created with hashtable constructor due to: {e.Message}");
+                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(ModuleSpecNotCreatedError);
+                        moduleSpecCreatedSuccessfully = false;
+                    }
+
+                    if (currentModuleSpec != null)
+                    {
+                        moduleSpecsList.Add(currentModuleSpec);
+                    }
+                }
+            }
+
+            errors = errorList.ToArray();
+            validatedModuleSpecs = moduleSpecsList.ToArray();
+            return moduleSpecCreatedSuccessfully;
+        }
+
+        /// <summary>
+        /// Parses metadata out of a comment block's lines (which are passed in) into a hashtable.
+        /// </summary>
+        public static Hashtable ParseCommentBlockContent(string[] commentLines)
+        {
+            /**
+            Comment lines can look like this:
+
+            .KEY1 value
+
+            .KEY2 value
+
+            .KEY3
+            value
+
+            .KEY4 value
+            value continued
+
+            */
+
+            Hashtable parsedHelpMetadata = new Hashtable();
+            string keyName = "";
+            string value = "";
+
+            for (int i = 1; i < commentLines.Count(); i++)
+            {
+                string line = commentLines[i];
+
+                // scenario where line is: .KEY VALUE
+                // this line contains a new metadata property.
+                if (line.Trim().StartsWith("."))
+                {
+                    // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
+                    if (!String.IsNullOrEmpty(keyName))
+                    {
+                        parsedHelpMetadata.Add(keyName, value);
+                    }
+
+                    string[] parts = line.Trim().TrimStart('.').Split();
+                    keyName = parts[0];
+                    value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
+                }
+                else if (!String.IsNullOrEmpty(line))
+                {
+                    // scenario where line contains text that is a continuation of value from previously recorded key
+                    // this line does not starting with .KEY, and is also not an empty line.
+                    if (value.Equals(String.Empty))
+                    {
+                        value += line;
+                    }
+                    else
+                    {
+                        value += Environment.NewLine + line;
+                    }
+                }
+            }
+
+            // this is the case where last key value had multi-line value.
+            // and we've captured it, but still need to add it to hashtable.
+            if (!String.IsNullOrEmpty(keyName) && !parsedHelpMetadata.ContainsKey(keyName))
+            {
+                // only add this key value if it hasn't already been added
+                parsedHelpMetadata.Add(keyName, value);
+            }
+
+            return parsedHelpMetadata;
         }
 
         #endregion
