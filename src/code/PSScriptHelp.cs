@@ -149,10 +149,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Description = (string) parsedHelpMetadata["DESCRIPTION"];
             Synopsis = (string) parsedHelpMetadata["SYNOPSIS"] ?? String.Empty;
 
-            List<string> parameterList = (List<string>)parsedHelpMetadata["PARAMETER"];
+            List<string> parameterList = parsedHelpMetadata.ContainsKey("PARAMETER") ? (List<string>)parsedHelpMetadata["PARAMETER"]: new List<string>();
             Parameter = parameterList.ToArray();
 
-            List<string> exampleList = (List<string>)parsedHelpMetadata["EXAMPLE"];
+            List<string> exampleList =  parsedHelpMetadata.ContainsKey("EXAMPLE") ? (List<string>)parsedHelpMetadata["EXAMPLE"] : new List<string>();
             Example = exampleList.ToArray();
 
             List<string> inputList = parsedHelpMetadata.ContainsKey("INPUT") ? (List<string>)parsedHelpMetadata["INPUT"] : new List<string>();
