@@ -28,7 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// The parameter(s) for the script.
         /// </summary>
-        public string[] Parameter { get; private set; }
+        public string[] Parameter { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The example(s) relating to the script's usage.
@@ -393,6 +393,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 psHelpInfoLines.Add($".SYNOPSIS");
                 psHelpInfoLines.Add($"{Synopsis}{Environment.NewLine}");
             }
+
+            foreach (string currentParameter in Parameter)
+            {
+                psHelpInfoLines.Add($".PARAMETER");
+                psHelpInfoLines.Add($"{currentParameter}{Environment.NewLine}");
+            }  
 
             foreach (string currentExample in Example)
             {
