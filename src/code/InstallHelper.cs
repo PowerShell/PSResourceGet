@@ -328,7 +328,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 totalInstalledPkgCount++;
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-                
                 try
                 {
                     // Create a temp directory to install to

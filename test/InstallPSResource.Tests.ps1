@@ -9,6 +9,7 @@ Describe 'Test Install-PSResource for Module' {
     BeforeAll {
         $PSGalleryName = Get-PSGalleryName
         $NuGetGalleryName = Get-NuGetGalleryName
+        $PSGalleryUri = Get-PSGalleryLocation
         $testModuleName = "test_module"
         $testModuleName2 = "TestModule99"
         $testScriptName = "test_script"
@@ -171,6 +172,17 @@ Describe 'Test Install-PSResource for Module' {
         $pkg = Get-PSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName 
         $pkg.Version | Should -Be "5.0.0.0"
+    }
+
+    It "Install resource with companyname, copyright and repository source location and validate" {
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository PSGallery -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Version | Should -Be "5.2.5"
+        $pkg.Prerelease | Should -Be "alpha001"
+
+        $pkg.CompanyName | Should -Be "Anam"
+        $pkg.Copyright | Should -Be "(c) Anam Navied. All rights reserved."
+        $pkg.RepositorySourceLocation | Should -Be $PSGalleryUri
     }
 
     # Windows only
