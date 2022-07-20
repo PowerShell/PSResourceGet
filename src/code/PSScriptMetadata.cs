@@ -150,7 +150,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<string> msgsList = new List<string>();
 
             // parse content into a hashtable
-            Hashtable parsedMetadata = Utils.ParseCommentBlockContent(commentLines);
+            Hashtable parsedMetadata = ParseMetadataContentHelper(commentLines, out errors);
+            if (errors.Length != 0)
+            {
+                return false;
+            }
+
 
             if (parsedMetadata.Count == 0)
             {
@@ -218,6 +223,91 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             msgs = msgsList.ToArray();
             return true;
+        }
+
+        /// <summary>
+        /// Parses metadata out of PSScriptCommentInfo comment block's lines (which are passed in) into a hashtable.
+        /// This comment block cannot have duplicate keys.
+        /// </summary>
+        public static Hashtable ParseMetadataContentHelper(string[] commentLines, out ErrorRecord[] errors)
+        {
+            /**
+            Comment lines can look like this:
+
+            .KEY1 value
+
+            .KEY2 value
+
+            .KEY3
+            value
+
+            .KEY4 value
+            value continued
+
+            */
+
+            errors = Array.Empty<ErrorRecord>();
+            List<ErrorRecord> errorsList = new List<ErrorRecord>();
+
+            Hashtable parsedHelpMetadata = new Hashtable();
+            char[] spaceDelimeter = new char[]{' '};
+            string keyName = "";
+            string value = "";
+
+            for (int i = 1; i < commentLines.Length; i++)
+            {
+                string line = commentLines[i];
+
+                // scenario where line is: .KEY VALUE
+                // this line contains a new metadata property.
+                if (line.Trim().StartsWith("."))
+                {
+                    // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
+                    if (!String.IsNullOrEmpty(keyName))
+                    {
+                        if (parsedHelpMetadata.ContainsKey(keyName))
+                        {
+                            var message = String.Format("PowerShell script '<#PSScriptInfo .. #>' comment block metadata cannot contain duplicate key i.e .KEY");
+                            var ex = new InvalidOperationException(message);
+                            var psScriptInfoDuplicateKeyError = new ErrorRecord(ex, "psScriptInfoDuplicateKeyError", ErrorCategory.ParserError, null);
+                            errorsList.Add(psScriptInfoDuplicateKeyError);
+                            continue;
+                        }
+
+                        parsedHelpMetadata.Add(keyName, value);   
+                    }
+
+                    // setting count to 2 will get 1st separated string (key) into part[0] and the rest (value) into part[1] if any
+                    string[] parts = line.Trim().TrimStart('.').Split(separator: spaceDelimeter, count: 2);
+                    keyName = parts[0];
+                    value = parts.Length == 2 ? parts[1] : String.Empty;
+                }
+                else if (!String.IsNullOrEmpty(line))
+                {
+                    // scenario where line contains text that is a continuation of value from previously recorded key
+                    // this line does not starting with .KEY, and is also not an empty line.
+                    if (value.Equals(String.Empty))
+                    {
+                        value += line;
+                    }
+                    else
+                    {
+                        value += Environment.NewLine + line;
+                    }
+                }
+            }
+
+            // this is the case where last key value had multi-line value.
+            // and we've captured it, but still need to add it to hashtable.
+            if (!String.IsNullOrEmpty(keyName) && !parsedHelpMetadata.ContainsKey(keyName))
+            {
+                // only add this key value if it hasn't already been added
+                parsedHelpMetadata.Add(keyName, value);
+            }
+
+            errors = errorsList.ToArray();
+
+            return parsedHelpMetadata;
         }
 
         /// <summary>

@@ -257,9 +257,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             currentHelpInfo = new PSScriptHelp();
             if (!currentHelpInfo.ParseContentIntoObj(
                 commentLines: helpInfoCommentContent.ToArray(),
-                out ErrorRecord helpError))
+                out ErrorRecord[] helpErrors))
             {
-                errorsList.Add(helpError);
+                errorsList.AddRange(helpErrors);
                 parsedContentSuccessfully = false;
             }
 
