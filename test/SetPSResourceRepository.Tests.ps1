@@ -241,9 +241,9 @@ Describe "Test Set-PSResourceRepository" {
         $Res.Uri.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
     }
 
-    It "set repository with -Force should register repository" {
+    It "set repository should register repository if it does not already exist" {
         $testRepoName = "NewForceTestRepo"
-        Set-PSResourceRepository -Name $testRepoName -Uri $tmpDir1Path -Force -PassThru
+        Set-PSResourceRepository -Name $testRepoName -Uri $tmpDir1Path -PassThru
 
         $res = Get-PSResourceRepository -Name $testRepoName
         $res.Name | Should -Be $testRepoName

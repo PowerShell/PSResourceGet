@@ -141,7 +141,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
 
-        public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string[] errorMsgs)
+        public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string[] errorMsgs)
         {
             var tempErrors = new List<string>() { };
 
@@ -214,7 +214,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return null;
             }
 
-            return Update(repoName, repoUri, repoPriority, _trustedNullable, repoCredentialInfo, force, cmdletPassedIn, out errorMsgs);
+            return Update(repoName, repoUri, repoPriority, _trustedNullable, repoCredentialInfo, cmdletPassedIn, out errorMsgs);
         }
 
         /// <summary>
@@ -284,7 +284,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Updates a repository name, Uri, priority, installation policy, or credential information
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string[] errorMsgs)
+        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string[] errorMsgs)
         {
             errorMsgs = new string[] { };
             PSRepositoryInfo updatedRepo;
@@ -295,14 +295,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XElement node = FindRepositoryElement(doc, repoName);
                 if (node == null)
                 {
-                    if (!force)
-                    {
-                        throw new ArgumentException("Cannot find the repository because it does not exist. Try registering the repository using 'Register-PSResourceRepository'");
-                    }
-
                     bool repoIsTrusted = repoTrusted == null || repoTrusted == false ? false : true;
                     repoPriority = repoPriority < 0 ? defaultPriority : repoPriority;
-                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, repoCredentialInfo, force, cmdletPassedIn, out errorMsgs);
+                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, repoCredentialInfo, force:true, cmdletPassedIn, out errorMsgs);
                 }
 
                 // Check that repository node we are attempting to update has all required attributes: Name, Url (or Uri), Priority, Trusted.

@@ -94,12 +94,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter PassThru { get; set; }
 
-        /// <summary>
-        /// When specified, will register a new repository with information specified if one currently does not exist.
-        /// </summary>
-        [Parameter]
-        public SwitchParameter Force { get; set; }
-
         #endregion
 
         #region Private methods
@@ -134,7 +128,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             isSet,
                             DefaultPriority,
                             CredentialInfo,
-                            Force,
                             this,
                             out string[] errorMsgs));
 
@@ -265,7 +258,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     isSet,
                     DefaultPriority,
                     repoCredentialInfo,
-                    Force,
                     this,
                     out string[] errorMsgs);
 
