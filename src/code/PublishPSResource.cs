@@ -885,9 +885,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 FindHelper findHelper = new FindHelper(_cancellationToken, this);
                 bool depPrerelease = depVersion.Contains("-");
 
-                var repository = new[] { repositoryName };
-                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, depVersion, depPrerelease, null, repository, Credential, false);
-                if (dependencyFound == null || !dependencyFound.Any())
+                var foundDependencies = findHelper.FindByResourceName(
+                    name: depName,
+                    type: ResourceType.Module,
+                    version: depVersion,
+                    prerelease: depPrerelease,
+                    tag: null,
+                    repository: new[] { repositoryName },
+                    credential: Credential,
+                    includeDependencies: false);
+
+                if (foundDependencies.Count > 0)
                 {
                     var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);
                     var ex = new ArgumentException(message);
@@ -897,6 +905,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return false;
                 }
             }
+
             return true;
         }
 

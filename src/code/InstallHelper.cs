@@ -192,20 +192,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var isLocalRepo = repo.Uri.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
 
                 // Finds parent packages and dependencies
-                IEnumerable<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
+                List<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
                     name: _pkgNamesToInstall.ToArray(),
                     type: ResourceType.None,
-                    version: _versionRange != null ? _versionRange.OriginalString : null,
+                    version: _versionRange?.OriginalString,
                     prerelease: _prerelease,
                     tag: null,
                     repository: new string[] { repoName },
                     credential: credential,
                     includeDependencies: !skipDependencyCheck);
 
-                if (!pkgsFromRepoToInstall.Any())
+                if (pkgsFromRepoToInstall.Count == 0)
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
-                    // Check in the next repository
                     continue;
                 }
 
@@ -261,54 +260,53 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
-        private IEnumerable<PSResourceInfo> FilterByInstalledPkgs(IEnumerable<PSResourceInfo> packages)
+        private List<PSResourceInfo> FilterByInstalledPkgs(List<PSResourceInfo> packages)
         {
-            // Create list of installation paths to search.
-            List<string> _pathsToSearch = new List<string>();
-            // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
-            // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
+            // Package install paths.
+            // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable).
+            // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations.
             // e.g.:
             // ./InstallPackagePath1/PackageA
             // ./InstallPackagePath1/PackageB
             // ./InstallPackagePath2/PackageC
             // ./InstallPackagePath3/PackageD
-            foreach (var path in _pathsToInstallPkg)
-            {
-                _pathsToSearch.AddRange(Utils.GetSubDirectories(path));
-            }
 
-            var filteredPackages = new Dictionary<string, PSResourceInfo>();
+            // Get package names
+            var packageNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
             foreach (var pkg in packages)
             {
-                filteredPackages.Add(pkg.Name, pkg);
+                packageNames.Add(pkg.Name);
             }
 
-            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
             // Get currently installed packages.
-            // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
-                name: filteredPackages.Keys.ToArray(),
+            // SelectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
+            var getHelper = new GetHelper(_cmdletPassedIn);
+            var installedPackageNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
+            foreach (var installedPkg in getHelper.GetPackagesFromPath(
+                name: packageNames.ToArray(),
                 versionRange: _versionRange,
                 pathsToSearch: _pathsToSearch,
-                selectPrereleaseOnly: false);
-            if (!pkgsAlreadyInstalled.Any())
+                selectPrereleaseOnly: false))
+            {
+                installedPackageNames.Add(installedPkg.Name);
+            }
+
+            if (installedPackageNames.Count is 0)
             {
                 return packages;
             }
 
-            // Remove from list package versions that are already installed.
-            foreach (PSResourceInfo pkg in pkgsAlreadyInstalled)
+            // Return only packages that are not already installed.
+            var filteredPackages = new List<PSResourceInfo>();
+            foreach (var pkg in packages)
             {
-                _cmdletPassedIn.WriteWarning(
-                    string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
-                    pkg.Name,
-                    pkg.Version));
-
-                filteredPackages.Remove(pkg.Name);
-                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                if (!installedPackageNames.Contains(pkg.Name))
+                {
+                    filteredPackages.Add(pkg);
+                }
             }
 
-            return filteredPackages.Values.ToArray();
+            return filteredPackages;
         }
 
         private List<PSResourceInfo> InstallPackage(

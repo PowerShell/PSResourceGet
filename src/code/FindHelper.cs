@@ -70,7 +70,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Public methods
 
-        public IEnumerable<PSResourceInfo> FindByResourceName(
+        public List<PSResourceInfo> FindByResourceName(
             string[] name,
             ResourceType type,
             string version,
@@ -87,13 +87,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _credential = credential;
             _includeDependencies = includeDependencies;
 
-            Dbg.Assert(name.Length != 0, "Name length cannot be 0");
+            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
+
+            if (name.Length == 0)
+            {
+                return foundPackages;
+            }
 
             _pkgsLeftToFind = name.ToList();
 
-            List<PSRepositoryInfo> repositoriesToSearch;
-
-            //determine if repository array of names of repositories input to be searched contains wildcard
+            // Error out if repository array of names to be searched contains wildcards.
             if (repository != null)
             {
                 repository = Utils.ProcessNameWildcards(repository, out string[] errorMsgs, out _repositoryNameContainsWildcard);
@@ -107,6 +110,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
+            // Get repositories to search.
+            List<PSRepositoryInfo> repositoriesToSearch;
             try
             {
                 repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
@@ -126,11 +131,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     "ErrorLoadingRepositoryStoreFile",
                     ErrorCategory.InvalidArgument,
                     this));
-                yield break;
+                
+                return foundPackages;
             }
 
-            // loop through repositoriesToSearch and if PSGallery or PoshTestGallery add its Scripts endpoint repo
-            // to list with same priority as PSGallery repo
+            // Loop through repositoriesToSearch and if PSGallery or PoshTestGallery add its Scripts endpoint repo
+            // to list with same priority as PSGallery repo.
             // This special casing is done to handle PSGallery and PoshTestGallery having 2 endpoints currently for different resources.
             for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
@@ -185,9 +191,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repositoryUri: repositoriesToSearch[i].Uri,
                     repositoryCredentialInfo: repositoriesToSearch[i].CredentialInfo))
                 {
-                    yield return pkg;
+                    foundPackages.Add(pkg);
                 }
             }
+
+            return foundPackages;
         }
 
         #endregion
@@ -204,7 +212,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SearchFilter filter;
             SourceCacheContext context;
 
-            // file based Uri scheme
+            // File based Uri scheme.
             if (repositoryUri.Scheme == Uri.UriSchemeFile)
             {
                 FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryUri.ToString());
@@ -225,16 +233,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
 
-            // check if ADOFeed- for which searching for Name with wildcard has a different logic flow
+            // Check if ADOFeed- for which searching for Name with wildcard has a different logic flow.
             if (repositoryUri.ToString().Contains("pkgs."))
             {
                 _isADOFeedRepository = true;
             }
 
-            // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API)
+            // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API).
             PackageSource source = new PackageSource(repositoryUri.ToString());
 
-            // Explicitly passed in Credential takes precedence over repository CredentialInfo
+            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
             if (_credential != null)
             {
                 string password = new NetworkCredential(string.Empty, _credential.Password).Password;
@@ -253,7 +261,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);
             }
 
-            // GetCoreV3() API is able to handle V2 and V3 repository endpoints
+            // GetCoreV3() API is able to handle V2 and V3 repository endpoints.
             var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
             SourceRepository repository = new SourceRepository(source, provider);
             resourceSearch = null;
@@ -351,7 +359,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (!pkgName.Contains("*"))
             {
                 // case: searching for specific package name i.e "Carbon"
-                IEnumerable<IPackageSearchMetadata> retrievedPkgs = null;
+                IEnumerable<IPackageSearchMetadata> retrievedPkgs;
                 try
                 {
                     // GetMetadataAsync() API returns all versions for a specific non-wildcard package name
@@ -372,23 +380,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         _cmdletPassedIn.WriteWarning(String.Format("Error receiving package from PSGallery. To check if this is due to a PSGallery outage check: https://aka.ms/psgallerystatus . Specific error: {0}", ex.Message));
                     }
+
+                    yield break;
                 }
                 catch (Exception e)
                 {
                     Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "FindHelper MetadataAsync: error receiving package: " + e.Message);
-                }
-
-                if (retrievedPkgs == null || retrievedPkgs.Count() == 0)
-                {
-                    _cmdletPassedIn.WriteVerbose(string.Format("'{0}' could not be found in repository '{1}'", pkgName, repositoryName));
                     yield break;
                 }
 
-                foundPackagesMetadata.AddRange(retrievedPkgs.ToList());
+                // Iterate through any packages found in repository.
+                bool packagesFound = false;
+                foreach (var pkg in retrievedPkgs)
+                {
+                    foundPackagesMetadata.Add(pkg);
+                    if (!packagesFound) { packagesFound = true; }
+                }
 
-                // _pkgsLeftToFind.Remove(pkgName);
-
-                if (!_repositoryNameContainsWildcard)
+                if (packagesFound && !_repositoryNameContainsWildcard)
                 {
                     _pkgsLeftToFind.Remove(pkgName);
                 }
@@ -404,8 +413,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                     yield break;
                 }
-                // case: searching for name containing wildcard i.e "Carbon.*"
-                IEnumerable<IPackageSearchMetadata> wildcardPkgs = null;
+
+                // Case: searching for name containing wildcard i.e "Carbon.*".
+                List<IPackageSearchMetadata> wildcardPkgs;
                 try
                 {
                     // SearchAsync() API returns the latest version only for all packages that match the wild-card name
@@ -415,11 +425,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         skip: 0,
                         take: SearchAsyncMaxTake,
                         log: NullLogger.Instance,
-                        cancellationToken: _cancellationToken).GetAwaiter().GetResult();
-                    if (wildcardPkgs.Count() > SearchAsyncMaxReturned)
+                        cancellationToken: _cancellationToken).GetAwaiter().GetResult().ToList();
+                    
+                    if (wildcardPkgs.Count > SearchAsyncMaxReturned)
                     {
-                        // get the rest of the packages
-                        wildcardPkgs = wildcardPkgs.Concat(pkgSearchResource.SearchAsync(
+                        // Get the rest of the packages.
+                        wildcardPkgs.AddRange(
+                            pkgSearchResource.SearchAsync(
                             searchTerm: pkgName,
                             filters: searchFilter,
                             skip: SearchAsyncMaxTake,
@@ -447,12 +459,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // filter additionally because NuGet wildcard search API returns more than we need
                 // perhaps validate in Find-PSResource, and use debugassert here?
                 WildcardPattern nameWildcardPattern = new WildcardPattern(pkgName, WildcardOptions.IgnoreCase);
-                foundPackagesMetadata.AddRange(wildcardPkgs.Where(
-                    p => nameWildcardPattern.IsMatch(p.Identity.Id)).ToList());
+                foundPackagesMetadata.AddRange(
+                    wildcardPkgs.Where(
+                        p => nameWildcardPattern.IsMatch(p.Identity.Id)));
 
                 if (!_repositoryNameContainsWildcard)
                 {
-                    // if the Script Uri endpoint still needs to be searched, don't remove the wildcard name from _pkgsLeftToFind
+                    // If the Script Uri endpoint still needs to be searched, don't remove the wildcard name from _pkgsLeftToFind
                     // PSGallery + Type == null -> M, S
                     // PSGallery + Type == M    -> M
                     // PSGallery + Type == S    -> S (but PSGallery would be skipped early on, only PSGalleryScripts would be checked)
@@ -462,7 +475,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (String.Equals(repositoryName, _psGalleryRepoName, StringComparison.InvariantCultureIgnoreCase) ||
                         String.Equals(repositoryName, _poshTestGalleryRepoName, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        if (foundPackagesMetadata.Any() && _type != ResourceType.None)
+                        if (foundPackagesMetadata.Count > 0 && _type != ResourceType.None)
                         {
                             _pkgsLeftToFind.Remove(pkgName);
                         }
@@ -477,7 +490,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (foundPackagesMetadata.Count == 0)
             {
                 // no need to attempt to filter further
-                _cmdletPassedIn.WriteVerbose("no packages found");
+                _cmdletPassedIn.WriteVerbose($"No packages found in repository: {repositoryName}.");
                 yield break;
             }
 
