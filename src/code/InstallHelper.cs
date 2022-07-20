@@ -328,6 +328,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 totalInstalledPkgCount++;
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                
                 try
                 {
                     // Create a temp directory to install to
@@ -540,6 +541,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
+                        pkg.CompanyName = parsedMetadataHashtable["CompanyName"] as string;
+                        pkg.Copyright = parsedMetadataHashtable["Copyright"] as string;
+                        pkg.ReleaseNotes = parsedMetadataHashtable["ReleaseNotes"] as string;
+                        pkg.RepositorySourceLocation = repoUri;
 
                         // Accept License verification
                         if (!_savePkg && !CallAcceptLicense(pkg, moduleManifest, tempInstallPath, newVersion))
@@ -552,6 +557,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             continue;
                         }
+                    }
+                    else
+                    {
+                        // is script
+                        if (!PSScriptFileInfo.TryTestPSScriptFile(
+                            scriptFileInfoPath: scriptPath,
+                            out PSScriptFileInfo parsedScript,
+                            out ErrorRecord[] errors,
+                            out string[] _))
+                        {
+                            foreach (ErrorRecord parseError in errors)
+                            {
+                                WriteError(parseError);
+                            }
+
+                            continue;
+                        }
+
+                        pkg.CompanyName = parsedScript.ScriptMetadataComment.CompanyName;
+                        pkg.Copyright = parsedScript.ScriptMetadataComment.Copyright;
+                        pkg.ReleaseNotes = parsedScript.ScriptMetadataComment.ReleaseNotes;
+                        pkg.RepositorySourceLocation = repoUri;
                     }
 
                     // Delete the extra nupkg related files that are not needed and not part of the module/script
