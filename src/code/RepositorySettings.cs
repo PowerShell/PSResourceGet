@@ -295,7 +295,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XElement node = FindRepositoryElement(doc, repoName);
                 if (node == null)
                 {
-                    bool repoIsTrusted = repoTrusted == null || repoTrusted == false ? false : true;
+                    bool repoIsTrusted = !(repoTrusted == null || repoTrusted == false);
                     repoPriority = repoPriority < 0 ? defaultPriority : repoPriority;
                     return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, repoCredentialInfo, force:true, cmdletPassedIn, out errorMsgs);
                 }
