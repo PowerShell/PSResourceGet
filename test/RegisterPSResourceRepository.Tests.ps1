@@ -259,7 +259,7 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Priority | Should -Be 30
     }
 
-    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is -Name is PSGallery" {
+    It "not register incorrectly formatted -Name type repo among correct ones, where incorrect type has -Name of PSGallery" {
         $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
         $correctHashtable3 = @{PSGallery = $True; Priority = 30};
