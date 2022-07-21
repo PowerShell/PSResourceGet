@@ -132,14 +132,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     while (j < fileContents.Length)
                     {
                         string blockLine = fileContents[j];
+                        psScriptInfoCommentContent.Add(blockLine);
                         if (blockLine.StartsWith("#>"))
                         {
+
                             reachedPSScriptInfoCommentEnd = true;
                             i = j + 1;
                             break;
                         }
                         
-                        psScriptInfoCommentContent.Add(blockLine);
                         j++;
                     }
 
@@ -159,6 +160,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     while (j < fileContents.Length)
                     {
                         string blockLine = fileContents[j];
+                        helpInfoCommentContent.Add(blockLine);
                         if (blockLine.StartsWith("#>"))
                         {
                             reachedHelpInfoCommentEnd = true;
@@ -166,8 +168,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             endOfFileContentsStartIndex = i;
                             break;
                         }
-                        
-                        helpInfoCommentContent.Add(blockLine);
+
                         j++;
                     }
 

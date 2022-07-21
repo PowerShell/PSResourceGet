@@ -210,20 +210,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string keyName = "";
             string value = "";
 
-            bool keyNeedsToBeAdded = false;
-
             for (int i = 0; i < commentLines.Length; i++)
             {
                 string line = commentLines[i];
 
-                // scenario where line is: .KEY VALUE
+                // Scenario where line is: .KEY VALUE
                 // this line contains a new metadata property.
                 if (line.Trim().StartsWith("."))
                 {
                     // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
                     if (!String.IsNullOrEmpty(keyName))
                     {
-                        keyNeedsToBeAdded = false; // we'l end up adding the key,value to hashtable in this code flow
                         if (parsedHelpMetadata.ContainsKey(keyName))
                         {
                             if (keyName.Equals("DESCRIPTION") || keyName.Equals("SYNOPSIS"))
@@ -260,11 +257,47 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     string[] parts = line.Trim().TrimStart('.').Split(separator: spaceDelimeter, count: 2);
                     keyName = parts[0];
                     value = parts.Length == 2 ? parts[1] : String.Empty;
-                    keyNeedsToBeAdded = true;
+                }
+                else if(line.Trim().StartsWith("#>"))
+                {
+                    // This line signifies end of comment block, so add last recorded key value pair before the comment block ends.
+                    if (!String.IsNullOrEmpty(keyName))
+                    {
+                        if (parsedHelpMetadata.ContainsKey(keyName))
+                        {
+                            if (keyName.Equals("DESCRIPTION") || keyName.Equals("SYNOPSIS"))
+                            {
+                                var message = String.Format("PowerShell script 'HelpInfo' comment block metadata cannot contain duplicate keys (i.e .KEY) for Description or Synopsis");
+                                var ex = new InvalidOperationException(message);
+                                var psHelpInfoDuplicateKeyError = new ErrorRecord(ex, "psHelpInfoDuplicateKeyError", ErrorCategory.ParserError, null);
+                                errorsList.Add(psHelpInfoDuplicateKeyError);
+                            }
+                            else
+                            {
+                                List<string> currentValues = (List<string>)parsedHelpMetadata[keyName];
+                                currentValues.Add(value);
+                                parsedHelpMetadata[keyName] = currentValues;
+                            }
+                        }
+                        else
+                        {
+                            // only add this key value if it hasn't already been added
+                            if (keyName.Equals("DESCRIPTION") || keyName.Equals("SYNOPSIS"))
+                            {
+                                parsedHelpMetadata.Add(keyName, value);
+                            }
+                            else
+                            {
+                                List<string> valueList = new List<string>();
+                                valueList.Add(value);
+                                parsedHelpMetadata.Add(keyName, valueList);
+                            }
+                        }
+                    }
                 }
                 else if (!String.IsNullOrEmpty(line))
                 {
-                    // scenario where line contains text that is a continuation of value from previously recorded key
+                    // Scenario where line contains text that is a continuation of value from previously recorded key
                     // this line does not starting with .KEY, and is also not an empty line.
                     if (value.Equals(String.Empty))
                     {
@@ -275,48 +308,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         value += Environment.NewLine + line;
                     }
 
-                    keyNeedsToBeAdded = true;
-                }
-            }
-
-            // this is the case where last key value had multi-line value.
-            // and we've captured it, but still need to add it to hashtable.
-            if (!String.IsNullOrEmpty(keyName) && keyNeedsToBeAdded)
-            {
-                if (parsedHelpMetadata.ContainsKey(keyName))
-                {
-                    if (keyName.Equals("DESCRIPTION") || keyName.Equals("SYNOPSIS"))
-                    {
-                        var message = String.Format("PowerShell script 'HelpInfo' comment block metadata cannot contain duplicate keys (i.e .KEY) for Description or Synopsis");
-                        var ex = new InvalidOperationException(message);
-                        var psHelpInfoDuplicateKeyError = new ErrorRecord(ex, "psHelpInfoDuplicateKeyError", ErrorCategory.ParserError, null);
-                        errorsList.Add(psHelpInfoDuplicateKeyError);
-                    }
-                    else
-                    {
-                        List<string> currentValues = (List<string>)parsedHelpMetadata[keyName];
-                        currentValues.Add(value);
-                        parsedHelpMetadata[keyName] = currentValues;
-                    }
-                }
-                else
-                {
-                    // only add this key value if it hasn't already been added
-                    if (keyName.Equals("DESCRIPTION") || keyName.Equals("SYNOPSIS"))
-                    {
-                        parsedHelpMetadata.Add(keyName, value);
-                    }
-                    else
-                    {
-                        List<string> valueList = new List<string>();
-                        valueList.Add(value);
-                        parsedHelpMetadata.Add(keyName, valueList);
-                    }
                 }
             }
 
             errors = errorsList.ToArray();
-
             return parsedHelpMetadata;
         }
         

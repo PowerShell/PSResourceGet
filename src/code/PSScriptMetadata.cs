@@ -282,6 +282,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     keyName = parts[0];
                     value = parts.Length == 2 ? parts[1] : String.Empty;
                 }
+                else if (line.Trim().StartsWith("#>"))
+                {
+                    // This line signifies end of comment block, so add last recorded key value pair before the comment block ends.
+                    if (!String.IsNullOrEmpty(keyName) && !parsedHelpMetadata.ContainsKey(keyName))
+                    {
+                        // only add this key value if it hasn't already been added
+                        parsedHelpMetadata.Add(keyName, value);
+                    }
+                }
                 else if (!String.IsNullOrEmpty(line))
                 {
                     // scenario where line contains text that is a continuation of value from previously recorded key
@@ -295,14 +304,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         value += Environment.NewLine + line;
                     }
                 }
-            }
-
-            // this is the case where last key value had multi-line value.
-            // and we've captured it, but still need to add it to hashtable.
-            if (!String.IsNullOrEmpty(keyName) && !parsedHelpMetadata.ContainsKey(keyName))
-            {
-                // only add this key value if it hasn't already been added
-                parsedHelpMetadata.Add(keyName, value);
             }
 
             errors = errorsList.ToArray();
