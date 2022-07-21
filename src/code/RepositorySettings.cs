@@ -286,7 +286,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string[] errorMsgs)
         {
-            errorMsgs = new string[] { };
+            errorMsgs = Utils.EmptyStrArray;
             PSRepositoryInfo updatedRepo;
             try
             {
