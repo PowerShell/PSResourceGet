@@ -88,7 +88,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static PSRepositoryInfo AddToRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string[] errorMsgs)
         {
-            errorMsgs = new string[] { };
+            errorMsgs = Utils.EmptyStrArray;
             List<string> tempErrors = new List<string>();
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
             repoName = repoName.Trim(' ');
