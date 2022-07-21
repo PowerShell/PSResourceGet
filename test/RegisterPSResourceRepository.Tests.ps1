@@ -234,7 +234,7 @@ Describe "Test Register-PSResourceRepository" {
         $res3.Name | Should -Be $TestRepoName3
     }
 
-    It "not register incorrectly formatted Name type repo among correct ones when incorrect type is -Name is not specified" {
+    It "not register incorrectly formatted -Name type repo among correct ones, where incorrect one is missing -Name" {
         $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
         $correctHashtable3 = @{PSGallery = $True; Priority = 30};
