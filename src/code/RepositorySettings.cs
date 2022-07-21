@@ -76,7 +76,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static PSRepositoryInfo AddRepository(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string[] errorMsgs)
         {
-            errorMsgs = new string[] { };
+            errorMsgs = Utils.EmptyStrArray;
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery");
