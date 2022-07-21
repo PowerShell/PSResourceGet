@@ -9,17 +9,13 @@ using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
-using System.Security;
 using System.Threading;
-
-using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -618,72 +614,75 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             foreach(var dep in currentPkg.Dependencies)
             {
-                IEnumerable<IPackageSearchMetadata> depPkgs = packageMetadataResource.GetMetadataAsync(
+                List<IPackageSearchMetadata> depPkgs = packageMetadataResource.GetMetadataAsync(
                     packageId: dep.Name,
                     includePrerelease: _prerelease,
                     includeUnlisted: false,
                     sourceCacheContext: sourceCacheContext,
                     log: NullLogger.Instance,
-                    token: _cancellationToken).GetAwaiter().GetResult();
+                    token: _cancellationToken).GetAwaiter().GetResult().ToList();
 
-                if (depPkgs.Count() > 0)
+                if (depPkgs.Count is 0)
                 {
-                    if (dep.VersionRange == VersionRange.All)
+                    continue;
+                }
+
+                if (dep.VersionRange == VersionRange.All)
+                {
+                    // return latest version
+                    IPackageSearchMetadata depPkgLatestVersion = depPkgs.First();
+
+                    if (!PSResourceInfo.TryConvert(
+                        metadataToParse: depPkgLatestVersion,
+                        psGetInfo: out PSResourceInfo depPSResourceInfoPkg,
+                        repositoryName: currentPkg.Repository,
+                        type: currentPkg.Type,
+                        errorMsg: out string errorMsg))
                     {
-                        // return latest version
-                        IPackageSearchMetadata depPkgLatestVersion = depPkgs.First();
-
-                        if (!PSResourceInfo.TryConvert(
-                            metadataToParse: depPkgLatestVersion,
-                            psGetInfo: out PSResourceInfo depPSResourceInfoPkg,
-                            repositoryName: currentPkg.Repository,
-                            type: currentPkg.Type,
-                            errorMsg: out string errorMsg))
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new PSInvalidOperationException("Error parsing dependency IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
-                                "DependencyIPackageSearchMetadataToPSResourceInfoParsingError",
-                                ErrorCategory.InvalidResult,
-                                this));
-                        }
-
-                        thoseToAdd.Add(depPSResourceInfoPkg);
-                        FindDependencyPackagesHelper(depPSResourceInfoPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new PSInvalidOperationException("Error parsing dependency IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
+                            "DependencyIPackageSearchMetadataToPSResourceInfoParsingError",
+                            ErrorCategory.InvalidResult,
+                            this));
                     }
-                    else
+
+                    thoseToAdd.Add(depPSResourceInfoPkg);
+                    FindDependencyPackagesHelper(depPSResourceInfoPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
+                }
+                else
+                {
+                    List<IPackageSearchMetadata> pkgVersionsInRange = depPkgs.Where(
+                        p => dep.VersionRange.Satisfies(
+                            p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(
+                                p => p.Identity.Version).ToList();
+
+                    if (pkgVersionsInRange.Count() > 0)
                     {
-                        List<IPackageSearchMetadata> pkgVersionsInRange = depPkgs.Where(
-                            p => dep.VersionRange.Satisfies(
-                                p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(
-                                    p => p.Identity.Version).ToList();
-
-                        if (pkgVersionsInRange.Count() > 0)
+                        IPackageSearchMetadata depPkgLatestInRange = pkgVersionsInRange.First();
+                        if (depPkgLatestInRange != null)
                         {
-                            IPackageSearchMetadata depPkgLatestInRange = pkgVersionsInRange.First();
-                            if (depPkgLatestInRange != null)
+                            if (!PSResourceInfo.TryConvert(
+                                metadataToParse: depPkgLatestInRange,
+                                psGetInfo: out PSResourceInfo depPSResourceInfoPkg,
+                                repositoryName: currentPkg.Repository,
+                                type: currentPkg.Type,
+                                errorMsg: out string errorMsg))
                             {
-                                if (!PSResourceInfo.TryConvert(
-                                    metadataToParse: depPkgLatestInRange,
-                                    psGetInfo: out PSResourceInfo depPSResourceInfoPkg,
-                                    repositoryName: currentPkg.Repository,
-                                    type: currentPkg.Type,
-                                    errorMsg: out string errorMsg))
-                                {
-                                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                                        new PSInvalidOperationException("Error parsing dependency range IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
-                                        "DependencyRangeIPackageSearchMetadataToPSResourceInfoParsingError",
-                                        ErrorCategory.InvalidResult,
-                                        this));
-                                }
-
-                                thoseToAdd.Add(depPSResourceInfoPkg);
-                                FindDependencyPackagesHelper(depPSResourceInfoPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
+                                _cmdletPassedIn.WriteError(new ErrorRecord(
+                                    new PSInvalidOperationException("Error parsing dependency range IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
+                                    "DependencyRangeIPackageSearchMetadataToPSResourceInfoParsingError",
+                                    ErrorCategory.InvalidResult,
+                                    this));
                             }
+
+                            thoseToAdd.Add(depPSResourceInfoPkg);
+                            FindDependencyPackagesHelper(depPSResourceInfoPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
                         }
                     }
                 }
             }
         }
+        
         #endregion
     }
 }

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using MoreLinq.Extensions;
 using NuGet.Common;
@@ -15,7 +14,6 @@ using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -271,22 +269,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ./InstallPackagePath2/PackageC
             // ./InstallPackagePath3/PackageD
 
-            // Get package names
-            var packageNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
-            foreach (var pkg in packages)
-            {
-                packageNames.Add(pkg.Name);
-            }
-
             // Get currently installed packages.
-            // SelectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
             var getHelper = new GetHelper(_cmdletPassedIn);
             var installedPackageNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
-            foreach (var installedPkg in getHelper.GetPackagesFromPath(
-                name: packageNames.ToArray(),
-                versionRange: _versionRange,
-                pathsToSearch: _pathsToSearch,
-                selectPrereleaseOnly: false))
+            foreach (var installedPkg in getHelper.GetInstalledPackages(
+                pkgs: packages,
+                pathsToSearch: _pathsToSearch))
             {
                 installedPackageNames.Add(installedPkg.Name);
             }
@@ -307,7 +295,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    // Remove from list package versions that are already installed.
+                    // Remove from tracking list of packages to install.
+                    _cmdletPassedIn.WriteWarning(
+                        string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
+                        pkg.Name,
+                        pkg.Version));
+
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
             }
@@ -315,8 +308,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return filteredPackages;
         }
 
+        /// <summary>
+        /// Install provided list of packages, which include Dependent packages if requested.
+        /// </summary>
         private List<PSResourceInfo> InstallPackage(
-            IEnumerable<PSResourceInfo> pkgsToInstall, // those found to be required to be installed (includes Dependency packages as well)
+            List<PSResourceInfo> pkgsToInstall,
             string repoName,
             string repoUri,
             PSCredentialInfo repoCredentialInfo,
@@ -324,13 +320,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool isLocalRepo)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
-            int totalPkgs = pkgsToInstall.Count();
+            int totalPkgs = pkgsToInstall.Count;
 
             // Counters for tracking current package out of total
-            int totalInstalledPkgCount = 0;
+            int currentInstalledPkgCount = 0;
             foreach (PSResourceInfo pkg in pkgsToInstall)
             {
-                totalInstalledPkgCount++;
+                currentInstalledPkgCount++;
                 var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
@@ -348,7 +344,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!_quiet)
                     {
                         int activityId = 0;
-                        int percentComplete = ((totalInstalledPkgCount * 100) / totalPkgs);
+                        int percentComplete = ((currentInstalledPkgCount * 100) / totalPkgs);
                         string activity = string.Format("Installing {0}...", pkg.Name);
                         string statusDescription = string.Format("{0}% Complete", percentComplete);
                         _cmdletPassedIn.WriteProgress(
