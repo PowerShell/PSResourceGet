@@ -629,8 +629,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (dep.VersionRange == VersionRange.All)
                 {
-                    // return latest version
-                    IPackageSearchMetadata depPkgLatestVersion = depPkgs.First();
+                    // Return latest version, which is first in the list.
+                    IPackageSearchMetadata depPkgLatestVersion = depPkgs[0];
 
                     if (!PSResourceInfo.TryConvert(
                         metadataToParse: depPkgLatestVersion,
@@ -656,9 +656,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             p.Identity.Version, VersionComparer.VersionRelease)).OrderByDescending(
                                 p => p.Identity.Version).ToList();
 
-                    if (pkgVersionsInRange.Count() > 0)
+                    if (pkgVersionsInRange.Count > 0)
                     {
-                        IPackageSearchMetadata depPkgLatestInRange = pkgVersionsInRange.First();
+                        IPackageSearchMetadata depPkgLatestInRange = pkgVersionsInRange[0];
                         if (depPkgLatestInRange != null)
                         {
                             if (!PSResourceInfo.TryConvert(
