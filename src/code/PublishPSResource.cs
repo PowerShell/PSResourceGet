@@ -895,7 +895,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     credential: Credential,
                     includeDependencies: false);
 
-                if (foundDependencies.Count > 0)
+                if (foundDependencies.Count is 0)
                 {
                     var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);
                     var ex = new ArgumentException(message);
