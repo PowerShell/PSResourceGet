@@ -160,7 +160,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     while (j < fileContents.Length)
                     {
                         string blockLine = fileContents[j];
-                        helpInfoCommentContent.Add(blockLine);
+
                         if (blockLine.StartsWith("#>"))
                         {
                             reachedHelpInfoCommentEnd = true;
@@ -169,6 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             break;
                         }
 
+                        helpInfoCommentContent.Add(blockLine);
                         j++;
                     }
 

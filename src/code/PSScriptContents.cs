@@ -15,7 +15,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// End of file contents for the .ps1 file.
         /// </summary>
-        public string[] EndOfFileContents { get; private set; } = Utils.EmptyStrArray;
+        public string[] ScriptContents { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// End of file contents for the .ps1 file.
@@ -38,7 +38,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public PSScriptContents(string[] endOfFileContents)
         {
-            EndOfFileContents = endOfFileContents;
+            ScriptContents = endOfFileContents;
             ContainsSignature = CheckForSignature();
         }
 
@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if (commentLines.Length != 0)
             {
-                EndOfFileContents = commentLines;
+                ScriptContents = commentLines;
                 ContainsSignature = CheckForSignature();
             }
         }
@@ -74,7 +74,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         internal string[] EmitContent()
         {
             RemoveSignatureString();
-            return EndOfFileContents;
+            return ScriptContents;
         }
 
         #endregion
@@ -86,9 +86,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         private bool CheckForSignature()
         {
-            for (int i = 0; i < EndOfFileContents.Length; i++)
+            for (int i = 0; i < ScriptContents.Length; i++)
             {
-                if (String.Equals(EndOfFileContents[i], signatureStartString, StringComparison.InvariantCultureIgnoreCase))
+                if (String.Equals(ScriptContents[i], signatureStartString, StringComparison.InvariantCultureIgnoreCase))
                 {
                     _signatureStartIndex = i;
                 }
@@ -105,9 +105,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if (ContainsSignature)
             {
-                string[] newEndOfFileContents = new string[_signatureStartIndex];
-                Array.Copy(EndOfFileContents, newEndOfFileContents, _signatureStartIndex);
-                EndOfFileContents = newEndOfFileContents;
+                string[] contentsWithoutSignature = new string[_signatureStartIndex];
+                Array.Copy(ScriptContents, contentsWithoutSignature, _signatureStartIndex);
+                ScriptContents = contentsWithoutSignature;
 
                 ContainsSignature = false;
             }
