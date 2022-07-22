@@ -79,7 +79,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Parses metadata out of PSScriptCommentInfo comment block's lines (which are passed in) into a hashtable.
-        /// This comment block cannot have duplicate keys.
         /// </summary>
         public static Hashtable ParseHelpContentHelper(string[] commentLines)
         {
@@ -100,13 +99,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             */
 
-            // loop through lines
-            // if line is .DESCRIPTION say we found descfiption
-            // otherwise if line just starts with '.' set descriptionFound to false
-            // else if line is not empty,
-            //     if descriptionFound --> add lines to descriptionValue
-            //     else                --> add lines to helpContentValue
-            // descriptionFound -> rename to onDescripton
+            // parse out Description and everything else into a bucket list
 
             List<string> helpContent = new List<string>();
             List<string> descriptionValue = new List<string>();
