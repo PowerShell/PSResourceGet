@@ -3424,6 +3424,1051 @@ PS C:\&gt; Get-PSResourceRepository
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
     <command:details>
+      <command:name>Update-ModuleManifest</command:name>
+      <command:verb>Update</command:verb>
+      <command:noun>ModuleManifest</command:noun>
+      <maml:description>
+        <maml:para>Updates a module manifest file.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>The Update-ModuleManifest cmdlet replaces the Update-ModuleManifest cmdlet from V2. It updates a module manifest based on the `-Path` parameter argument. It does not return an object. Other parameters allow specific properties of the manifest to be updated.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Update-ModuleManifest</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path and file name of the module manifest. Enter a path and file name with a .psd1 file name extension, such as `"$PSHOME\Modules\MyModule\MyModule.psd1`.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>NestedModules</maml:name>
+          <maml:description>
+            <maml:para>Specifies script modules (.psm1) and binary modules (.dll) that are imported into the module's session state. The files in the NestedModules key run in the order in which they're listed in the value.</maml:para>
+            <maml:para>Enter each module name as a string or as a hash table with ModuleName and ModuleVersion keys. The hash table can also have an optional GUID key. You can combine strings and hash tables in the parameter value.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Guid</maml:name>
+          <maml:description>
+            <maml:para>Specifies a unique identifier for the module. The GUID can be used to distinguish among modules with the same name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Guid</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Guid</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Author</maml:name>
+          <maml:description>
+            <maml:para>Specifies the module author.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>CompanyName</maml:name>
+          <maml:description>
+            <maml:para>Specifies the company or vendor who created the module.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Copyright</maml:name>
+          <maml:description>
+            <maml:para>Specifies a copyright statement for the module.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RootModule</maml:name>
+          <maml:description>
+            <maml:para>Specifies the primary or root file of the module. Enter the file name of a script (.ps1), a script module (.psm1), a module manifest (.psd1), an assembly (.dll), a cmdlet definition XML file (.cdxml), or a workflow (.xaml). When the module is imported, the members that are exported from the root module file are imported into the caller's session state.</maml:para>
+            <maml:para>If a module has a manifest file and no root file has been specified in the RootModule key, the manifest becomes the primary file for the module. And, the module becomes a manifest module (ModuleType = Manifest).</maml:para>
+            <maml:para>To export members from .psm1 or .dll files in a module that has a manifest, the names of those files must be specified in the values of the RootModule or NestedModules keys in the manifest. Otherwise, their members aren't exported.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ModuleVersion</maml:name>
+          <maml:description>
+            <maml:para>Specifies the version of the module.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Version</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Description</maml:name>
+          <maml:description>
+            <maml:para>Specifies a description of the module.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ProcessorArchitecture</maml:name>
+          <maml:description>
+            <maml:para>Specifies the processor architecture that the module requires.</maml:para>
+            <maml:para>The acceptable values for this parameter are:</maml:para>
+            <maml:para>* Amd64</maml:para>
+            <maml:para>* Arm</maml:para>
+            <maml:para>* IA64</maml:para>
+            <maml:para>* MSIL</maml:para>
+            <maml:para>* None (unknown or unspecified)</maml:para>
+            <maml:para>* X86</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Reflection.ProcessorArchitecture</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Reflection.ProcessorArchitecture</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>CompatiblePSEditions</maml:name>
+          <maml:description>
+            <maml:para>Specifies the compatible PSEditions of the module. For information about PSEdition, see: https://docs.microsoft.com/en-us/powershell/scripting/gallery/concepts/module-psedition-support</maml:para>
+          </maml:description>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" command:variableLength="false">Desktop</command:parameterValue>
+            <command:parameterValue required="false" command:variableLength="false">Core</command:parameterValue>
+          </command:parameterValueGroup>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PowerShellVersion</maml:name>
+          <maml:description>
+            <maml:para>Specifies the minimum version of PowerShell that will work with this module. For example, you can specify 3.0, 4.0, or 5.0 as the value of this parameter.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Version</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ClrVersion</maml:name>
+          <maml:description>
+            <maml:para>Specifies the minimum version of the Common Language Runtime (CLR) of the Microsoft .NET Framework that the module requires.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Version</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DotNetFrameworkVersion</maml:name>
+          <maml:description>
+            <maml:para>Specifies the minimum version of the Microsoft .NET Framework that the module requires.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Version</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PowerShellHostName</maml:name>
+          <maml:description>
+            <maml:para>Specifies the name of the PowerShell host program that the module requires. Enter the name of the host program, such as PowerShell ISE Host or ConsoleHost. Wildcards aren't permitted.</maml:para>
+            <maml:para>To find the name of a host program, in the program, type $Host.Name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PowerShellHostVersion</maml:name>
+          <maml:description>
+            <maml:para>Specifies the minimum version of the PowerShell host program that works with the module. Enter a version number, such as 1.1.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Version</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RequiredModules</maml:name>
+          <maml:description>
+            <maml:para>Specifies modules that must be in the global session state. If the required modules aren't in the global session state, PowerShell imports them. If the required modules aren't available, the Import-Module command fails.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TypesToProcess</maml:name>
+          <maml:description>
+            <maml:para>Specifies the type files (.ps1xml) that run when the module is imported.</maml:para>
+            <maml:para>When you import the module, PowerShell runs the Update-TypeData cmdlet with the specified files. Because type files aren't scoped, they affect all session states in the session.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>FormatsToProcess</maml:name>
+          <maml:description>
+            <maml:para>Specifies the formatting files (.ps1xml) that run when the module is imported.</maml:para>
+            <maml:para>When you import a module, PowerShell runs the Update-FormatData cmdlet with the specified files. Because formatting files aren't scoped, they affect all session states in the session.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ScriptsToProcess</maml:name>
+          <maml:description>
+            <maml:para>Specifies script (.ps1) files that run in the caller's session state when the module is imported. You can use these scripts to prepare an environment, just as you might use a login script.</maml:para>
+            <maml:para>To specify scripts that run in the module's session state, use the NestedModules key.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RequiredAssemblies</maml:name>
+          <maml:description>
+            <maml:para>Specifies the assembly (.dll) files that the module requires. Enter the assembly file names. PowerShell loads the specified assemblies before updating types or formats, importing nested modules, or importing the module file that is specified in the value of the RootModule key.</maml:para>
+            <maml:para>Use this parameter to specify all the assemblies that the module requires, including assemblies that must be loaded to update any formatting or type files that are listed in the FormatsToProcess or TypesToProcess keys, even if those assemblies are also listed as binary modules in the NestedModules key.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>FileList</maml:name>
+          <maml:description>
+            <maml:para>Specifies all items that are included in the module.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ModuleList</maml:name>
+          <maml:description>
+            <maml:para>Specifies an array of modules that are included in the module.</maml:para>
+            <maml:para>Enter each module name as a string or as a hash table with ModuleName and ModuleVersion keys. The hash table can also have an optional GUID key. You can combine strings and hash tables in the parameter value.</maml:para>
+            <maml:para>This key is designed to act as a module inventory. The modules that are listed in the value of this key aren't automatically processed.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+          <maml:name>FunctionsToExport</maml:name>
+          <maml:description>
+            <maml:para>Specifies the functions that the module exports. Wildcards are permitted.</maml:para>
+            <maml:para>Use this parameter to restrict the functions that are exported by the module. FunctionsToExport can remove functions from the list of exported aliases, but it can't add functions to the list.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AliasesToExport</maml:name>
+          <maml:description>
+            <maml:para>Specifies the aliases that the module exports. Wildcards are permitted.</maml:para>
+            <maml:para>Use this parameter to restrict the aliases that are exported by the module. AliasesToExport can remove aliases from the list of exported aliases, but it can't add aliases to the list.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+          <maml:name>VariablesToExport</maml:name>
+          <maml:description>
+            <maml:para>Specifies the variables that the module exports. Wildcards are permitted.</maml:para>
+            <maml:para>Use this parameter to restrict the variables that are exported by the module. VariablesToExport can remove variables from the list of exported variables, but it can't add variables to the list.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+          <maml:name>CmdletsToExport</maml:name>
+          <maml:description>
+            <maml:para>Specifies the cmdlets that the module exports. Wildcards are permitted.</maml:para>
+            <maml:para>Use this parameter to restrict the cmdlets that are exported by the module. CmdletsToExport can remove cmdlets from the list of exported cmdlets, but it can't add cmdlets to the list.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DscResourcesToExport</maml:name>
+          <maml:description>
+            <maml:para>Specifies the Desired State Configuration (DSC) resources that the module exports. Wildcards are permitted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PrivateData</maml:name>
+          <maml:description>
+            <maml:para>Specifies data that is passed to the module when it's imported.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Hashtable</command:parameterValue>
+          <dev:type>
+            <maml:name>Hashtable</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Tags</maml:name>
+          <maml:description>
+            <maml:para>Specifies an array of tags.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ProjectUri</maml:name>
+          <maml:description>
+            <maml:para>Specifies the URL of a web page about this project.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+          <dev:type>
+            <maml:name>Uri</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>LicenseUri</maml:name>
+          <maml:description>
+            <maml:para>Specifies the URL of licensing terms for the module.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+          <dev:type>
+            <maml:name>Uri</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IconUri</maml:name>
+          <maml:description>
+            <maml:para>Specifies the URL of an icon for the module. The specified icon is displayed on the gallery web page for the module.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+          <dev:type>
+            <maml:name>Uri</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ReleaseNotes</maml:name>
+          <maml:description>
+            <maml:para>Specifies a string array that contains release notes or comments that you want available for this version of the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Prerelease</maml:name>
+          <maml:description>
+            <maml:para>Specifies the prerelease tag that is appended to the module version.  For example, if prerelease is "preview" and the module version is "1.0.0" the version of the module would be "1.0.0-preview".</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>HelpInfoUri</maml:name>
+          <maml:description>
+            <maml:para>Specifies the internet address of the module's HelpInfo XML file. Enter a Uniform Resource Identifier (URI) that begins with http or https.</maml:para>
+            <maml:para>The HelpInfo XML file supports the Updatable Help feature that was introduced in PowerShell version 3.0. It contains information about the location of the module's downloadable help files and the version numbers of the newest help files for each supported locale.</maml:para>
+            <maml:para>For information about Updatable Help, see: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_updatable_help?view=powershell-7.2. For information about the HelpInfo XML file, see: https://docs.microsoft.com/en-us/powershell/scripting/developer/module/supporting-updatable-help.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+          <dev:type>
+            <maml:name>Uri</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DefaultCommandPrefix</maml:name>
+          <maml:description>
+            <maml:para>Specifies the default command prefix.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ExternalModuleDependencies</maml:name>
+          <maml:description>
+            <maml:para>Specifies an array of external module dependencies.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RequireLicenseAcceptance</maml:name>
+          <maml:description>
+            <maml:para>Specifies that a license acceptance is required for the module.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Specifies the path and file name of the module manifest. Enter a path and file name with a .psd1 file name extension, such as `"$PSHOME\Modules\MyModule\MyModule.psd1`.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>NestedModules</maml:name>
+        <maml:description>
+          <maml:para>Specifies script modules (.psm1) and binary modules (.dll) that are imported into the module's session state. The files in the NestedModules key run in the order in which they're listed in the value.</maml:para>
+          <maml:para>Enter each module name as a string or as a hash table with ModuleName and ModuleVersion keys. The hash table can also have an optional GUID key. You can combine strings and hash tables in the parameter value.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+        <dev:type>
+          <maml:name>Object[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Guid</maml:name>
+        <maml:description>
+          <maml:para>Specifies a unique identifier for the module. The GUID can be used to distinguish among modules with the same name.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Guid</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Guid</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Author</maml:name>
+        <maml:description>
+          <maml:para>Specifies the module author.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>CompanyName</maml:name>
+        <maml:description>
+          <maml:para>Specifies the company or vendor who created the module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Copyright</maml:name>
+        <maml:description>
+          <maml:para>Specifies a copyright statement for the module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RootModule</maml:name>
+        <maml:description>
+          <maml:para>Specifies the primary or root file of the module. Enter the file name of a script (.ps1), a script module (.psm1), a module manifest (.psd1), an assembly (.dll), a cmdlet definition XML file (.cdxml), or a workflow (.xaml). When the module is imported, the members that are exported from the root module file are imported into the caller's session state.</maml:para>
+          <maml:para>If a module has a manifest file and no root file has been specified in the RootModule key, the manifest becomes the primary file for the module. And, the module becomes a manifest module (ModuleType = Manifest).</maml:para>
+          <maml:para>To export members from .psm1 or .dll files in a module that has a manifest, the names of those files must be specified in the values of the RootModule or NestedModules keys in the manifest. Otherwise, their members aren't exported.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ModuleVersion</maml:name>
+        <maml:description>
+          <maml:para>Specifies the version of the module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Version</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Description</maml:name>
+        <maml:description>
+          <maml:para>Specifies a description of the module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ProcessorArchitecture</maml:name>
+        <maml:description>
+          <maml:para>Specifies the processor architecture that the module requires.</maml:para>
+          <maml:para>The acceptable values for this parameter are:</maml:para>
+          <maml:para>* Amd64</maml:para>
+          <maml:para>* Arm</maml:para>
+          <maml:para>* IA64</maml:para>
+          <maml:para>* MSIL</maml:para>
+          <maml:para>* None (unknown or unspecified)</maml:para>
+          <maml:para>* X86</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Reflection.ProcessorArchitecture</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Reflection.ProcessorArchitecture</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>CompatiblePSEditions</maml:name>
+        <maml:description>
+          <maml:para>Specifies the compatible PSEditions of the module. For information about PSEdition, see: https://docs.microsoft.com/en-us/powershell/scripting/gallery/concepts/module-psedition-support</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PowerShellVersion</maml:name>
+        <maml:description>
+          <maml:para>Specifies the minimum version of PowerShell that will work with this module. For example, you can specify 3.0, 4.0, or 5.0 as the value of this parameter.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Version</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ClrVersion</maml:name>
+        <maml:description>
+          <maml:para>Specifies the minimum version of the Common Language Runtime (CLR) of the Microsoft .NET Framework that the module requires.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Version</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>DotNetFrameworkVersion</maml:name>
+        <maml:description>
+          <maml:para>Specifies the minimum version of the Microsoft .NET Framework that the module requires.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Version</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PowerShellHostName</maml:name>
+        <maml:description>
+          <maml:para>Specifies the name of the PowerShell host program that the module requires. Enter the name of the host program, such as PowerShell ISE Host or ConsoleHost. Wildcards aren't permitted.</maml:para>
+          <maml:para>To find the name of a host program, in the program, type $Host.Name.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PowerShellHostVersion</maml:name>
+        <maml:description>
+          <maml:para>Specifies the minimum version of the PowerShell host program that works with the module. Enter a version number, such as 1.1.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Version</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Version</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RequiredModules</maml:name>
+        <maml:description>
+          <maml:para>Specifies modules that must be in the global session state. If the required modules aren't in the global session state, PowerShell imports them. If the required modules aren't available, the Import-Module command fails.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Object[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Object[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>TypesToProcess</maml:name>
+        <maml:description>
+          <maml:para>Specifies the type files (.ps1xml) that run when the module is imported.</maml:para>
+          <maml:para>When you import the module, PowerShell runs the Update-TypeData cmdlet with the specified files. Because type files aren't scoped, they affect all session states in the session.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>FormatsToProcess</maml:name>
+        <maml:description>
+          <maml:para>Specifies the formatting files (.ps1xml) that run when the module is imported.</maml:para>
+          <maml:para>When you import a module, PowerShell runs the Update-FormatData cmdlet with the specified files. Because formatting files aren't scoped, they affect all session states in the session.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ScriptsToProcess</maml:name>
+        <maml:description>
+          <maml:para>Specifies script (.ps1) files that run in the caller's session state when the module is imported. You can use these scripts to prepare an environment, just as you might use a login script.</maml:para>
+          <maml:para>To specify scripts that run in the module's session state, use the NestedModules key.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RequiredAssemblies</maml:name>
+        <maml:description>
+          <maml:para>Specifies the assembly (.dll) files that the module requires. Enter the assembly file names. PowerShell loads the specified assemblies before updating types or formats, importing nested modules, or importing the module file that is specified in the value of the RootModule key.</maml:para>
+          <maml:para>Use this parameter to specify all the assemblies that the module requires, including assemblies that must be loaded to update any formatting or type files that are listed in the FormatsToProcess or TypesToProcess keys, even if those assemblies are also listed as binary modules in the NestedModules key.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>FileList</maml:name>
+        <maml:description>
+          <maml:para>Specifies all items that are included in the module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ModuleList</maml:name>
+        <maml:description>
+          <maml:para>Specifies an array of modules that are included in the module.</maml:para>
+          <maml:para>Enter each module name as a string or as a hash table with ModuleName and ModuleVersion keys. The hash table can also have an optional GUID key. You can combine strings and hash tables in the parameter value.</maml:para>
+          <maml:para>This key is designed to act as a module inventory. The modules that are listed in the value of this key aren't automatically processed.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+        <maml:name>FunctionsToExport</maml:name>
+        <maml:description>
+          <maml:para>Specifies the functions that the module exports. Wildcards are permitted.</maml:para>
+          <maml:para>Use this parameter to restrict the functions that are exported by the module. FunctionsToExport can remove functions from the list of exported aliases, but it can't add functions to the list.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AliasesToExport</maml:name>
+        <maml:description>
+          <maml:para>Specifies the aliases that the module exports. Wildcards are permitted.</maml:para>
+          <maml:para>Use this parameter to restrict the aliases that are exported by the module. AliasesToExport can remove aliases from the list of exported aliases, but it can't add aliases to the list.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+        <maml:name>VariablesToExport</maml:name>
+        <maml:description>
+          <maml:para>Specifies the variables that the module exports. Wildcards are permitted.</maml:para>
+          <maml:para>Use this parameter to restrict the variables that are exported by the module. VariablesToExport can remove variables from the list of exported variables, but it can't add variables to the list.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+        <maml:name>CmdletsToExport</maml:name>
+        <maml:description>
+          <maml:para>Specifies the cmdlets that the module exports. Wildcards are permitted.</maml:para>
+          <maml:para>Use this parameter to restrict the cmdlets that are exported by the module. CmdletsToExport can remove cmdlets from the list of exported cmdlets, but it can't add cmdlets to the list.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+        <maml:name>DscResourcesToExport</maml:name>
+        <maml:description>
+          <maml:para>Specifies the Desired State Configuration (DSC) resources that the module exports. Wildcards are permitted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PrivateData</maml:name>
+        <maml:description>
+          <maml:para>Specifies data that is passed to the module when it's imported.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Hashtable</command:parameterValue>
+        <dev:type>
+          <maml:name>Hashtable</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Tags</maml:name>
+        <maml:description>
+          <maml:para>Specifies an array of tags.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ProjectUri</maml:name>
+        <maml:description>
+          <maml:para>Specifies the URL of a web page about this project.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+        <dev:type>
+          <maml:name>Uri</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>LicenseUri</maml:name>
+        <maml:description>
+          <maml:para>Specifies the URL of licensing terms for the module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+        <dev:type>
+          <maml:name>Uri</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>IconUri</maml:name>
+        <maml:description>
+          <maml:para>Specifies the URL of an icon for the module. The specified icon is displayed on the gallery web page for the module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+        <dev:type>
+          <maml:name>Uri</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ReleaseNotes</maml:name>
+        <maml:description>
+          <maml:para>Specifies a string array that contains release notes or comments that you want available for this version of the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Prerelease</maml:name>
+        <maml:description>
+          <maml:para>Specifies the prerelease tag that is appended to the module version.  For example, if prerelease is "preview" and the module version is "1.0.0" the version of the module would be "1.0.0-preview".</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>HelpInfoUri</maml:name>
+        <maml:description>
+          <maml:para>Specifies the internet address of the module's HelpInfo XML file. Enter a Uniform Resource Identifier (URI) that begins with http or https.</maml:para>
+          <maml:para>The HelpInfo XML file supports the Updatable Help feature that was introduced in PowerShell version 3.0. It contains information about the location of the module's downloadable help files and the version numbers of the newest help files for each supported locale.</maml:para>
+          <maml:para>For information about Updatable Help, see: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_updatable_help?view=powershell-7.2. For information about the HelpInfo XML file, see: https://docs.microsoft.com/en-us/powershell/scripting/developer/module/supporting-updatable-help.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+        <dev:type>
+          <maml:name>Uri</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>DefaultCommandPrefix</maml:name>
+        <maml:description>
+          <maml:para>Specifies the default command prefix.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ExternalModuleDependencies</maml:name>
+        <maml:description>
+          <maml:para>Specifies an array of external module dependencies.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RequireLicenseAcceptance</maml:name>
+        <maml:description>
+          <maml:para>Specifies that a license acceptance is required for the module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues />
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>## RELATED LINKS</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>-------------------------- Example 1 --------------------------</maml:title>
+        <dev:code>PS C:\&gt; Update-ModuleManifest -Path "C:\MyModules\TestModule" -Author "New Author"</dev:code>
+        <dev:remarks>
+          <maml:para>In this example the author property in the module manifest will be updated to "New Author".</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>-------------------------- Example 2 --------------------------</maml:title>
+        <dev:code>PS C:\&gt;  Update-ModuleManifest -Path "C:\MyModules\TestModule" -Prerelease "beta2"</dev:code>
+        <dev:remarks>
+          <maml:para>In this example the prerelease property will be updated to "beta2"</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>-------------------------- Example 3 --------------------------</maml:title>
+        <dev:code>PS C:\&gt; Update-ModuleManifest -Path "C:\MyModules\TestModule" -Tags "Windows", "Linux" -Description "A module for managing packages."</dev:code>
+        <dev:remarks>
+          <maml:para>In this example the tags and description will be updated to the passed in values.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
+    <command:details>
       <command:name>Update-PSResource</command:name>
       <command:verb>Update</command:verb>
       <command:noun>PSResource</command:noun>
