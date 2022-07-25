@@ -106,6 +106,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             if (ContainsSignature)
             {
+                // The script signature comment block always appears at the end of the script file, 
+                // so its start location becomes the end of the content section after the signature 
+                // comment block is removed, and is also the length of the content section minus the 
+                // signature block.
                 string[] contentsWithoutSignature = new string[_signatureStartIndex];
                 Array.Copy(ScriptContents, contentsWithoutSignature, _signatureStartIndex);
                 ScriptContents = contentsWithoutSignature;
