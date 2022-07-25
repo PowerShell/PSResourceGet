@@ -51,21 +51,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Parses HelpInfo metadata out of the HelpInfo comment lines found while reading the file
         /// and populates PSScriptHelp properties from that metadata.
         /// </summary>
-        internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord[] errors)
+        internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord error)
         {
-            string[] spaceDelimeter = new string[]{" "};
-            string[] newlineDelimeter = new string[]{Environment.NewLine};
+            error = null;
             
-            // parse content into a hashtable
+            // Parse content into a hashtable.
             Hashtable parsedHelpMetadata = ParseHelpContentHelper(commentLines);
 
             if (!ValidateParsedContent(parsedHelpMetadata, out ErrorRecord validationError))
             {
-                errors = new ErrorRecord[]{validationError};
+                error = validationError;
                 return false;
             }
             
-            // populate object
+            // Populate object.
             List<string> descriptionValue = (List<string>) parsedHelpMetadata["DESCRIPTION"];
             Description = String.Join(Environment.NewLine, descriptionValue);
             if (parsedHelpMetadata.ContainsKey("HELPCONTENT"))
@@ -73,7 +72,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 HelpContent = (List<string>) parsedHelpMetadata["HELPCONTENT"];
             }
 
-            errors = Array.Empty<ErrorRecord>();
             return true;
         }
 
@@ -99,7 +97,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             */
 
-            // parse out Description and everything else into a bucket list
+            // Parse out Description and everything else into a bucket list.
 
             List<string> helpContent = new List<string>();
             List<string> descriptionValue = new List<string>();

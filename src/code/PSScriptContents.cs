@@ -91,6 +91,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 if (String.Equals(ScriptContents[i], signatureStartString, StringComparison.InvariantCultureIgnoreCase))
                 {
                     _signatureStartIndex = i;
+                    break;
                 }
             }
 
