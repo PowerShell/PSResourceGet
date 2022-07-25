@@ -12,6 +12,7 @@ Describe 'Test Save-PSResource for PSResources' {
         $testModuleName = "test_module"
         $testScriptName = "test_script"
         $testModuleName2 = "testmodule99"
+        $PackageManagement = "PackageManagement"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
@@ -98,17 +99,30 @@ Describe 'Test Save-PSResource for PSResources' {
         $pkgDirVersion.Name | Should -Be "3.0.0.0"
     }
 
-    It "Should not save resource with incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='(1.0.0.0)';       Description="exclusive version (1.0.0.0)"},
-        @{Version='[1-0-0-0]';       Description="version formatted with invalid delimiter [1-0-0-0]"}
-    ) {
-        param($Version, $Description)
-
-        Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
+    It "Should not save resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
+        $Version="(1.0.0.0)"
+        try {
+            Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
+        }
+        catch
+        {}
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $Error.Count | Should -Not -Be 0
+        $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+    }
+
+    It "Should not save resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]"{
+        $Version = "[1-0-0-0]"
+        try {
+            Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
+        }
+        catch
+        {}
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir | Should -BeNullOrEmpty
+        $Error.Count | Should -Not -Be 0
+        $Error[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     It "Save resource when given Name, Version '*', should install the latest version" {
@@ -217,6 +231,61 @@ Describe 'Test Save-PSResource for PSResources' {
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.0.0.0"
     }
+
+    # Save module 1.4.3 (is authenticode signed and has catalog file)
+    # Should save successfully 
+    It "Save modules with catalog file using publisher validation" -Skip:(!(Get-IsWindows)) {
+        Save-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
+
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $PackageManagement
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+        $pkgDirVersion.Name | Should -Be "1.4.3" 
+    }
+
+    # Save module 1.4.7 (is authenticode signed and has NO catalog file)
+    # Should save successfully 
+    It "Save module with no catalog file" -Skip:(!(Get-IsWindows)) {
+        Save-PSResource -Name $PackageManagement -Version "1.4.7" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
+
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $PackageManagement
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+        $pkgDirVersion.Name | Should -Be "1.4.7" 
+    }
+
+    # Save module that is not authenticode signed
+    # Should FAIL to save the module
+    It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
+        Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+    }
+
+    # Save 1.4.4.1 (with incorrect catalog file)
+    # Should FAIL to save the module
+    It "Save module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
+        Save-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+    }
+
+    # Save script that is signed
+    # Should save successfully 
+    It "Save script that is authenticode signed" -Skip:(!(Get-IsWindows)) {
+        Save-PSResource -Name "Install-VSCode" -Version "1.4.2" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir
+
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "Install-VSCode.ps1" 
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgName = Get-ChildItem -Path $pkgDir.FullName
+        $pkgName.Name | Should -Be "Install-VSCode.ps1" 
+    }
+
+    # Save script that is not signed
+    # Should throw
+    It "Save script that is not signed" -Skip:(!(Get-IsWindows)) {
+        Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+    }
+
 <#
     # Tests should not write to module directory
     It "Save specific module resource by name if no -Path param is specifed" {

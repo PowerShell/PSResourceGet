@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using MoreLinq.Extensions;
 using NuGet.Common;
@@ -14,6 +15,7 @@ using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -35,7 +37,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public const string PSScriptFileExt = ".ps1";
         private const string MsgRepositoryNotTrusted = "Untrusted repository";
         private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
-
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pathsToInstallPkg;
@@ -50,6 +51,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _asNupkg;
         private bool _includeXML;
         private bool _noClobber;
+        private bool _authenticodeCheck;
         private bool _savePkg;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
@@ -80,6 +82,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool asNupkg,
             bool includeXML,
             bool skipDependencyCheck,
+            bool authenticodeCheck,
             bool savePkg,
             List<string> pathsToInstallPkg)
         {
@@ -101,6 +104,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _versionRange = versionRange;
             _prerelease = prerelease;
             _acceptLicense = acceptLicense || force;
+            _authenticodeCheck = authenticodeCheck;
             _quiet = quiet;
             _reinstall = reinstall;
             _force = force;
@@ -497,6 +501,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
                     }
 
+                    if (_authenticodeCheck && !AuthenticodeSignature.CheckAuthenticodeSignature(
+                        pkg.Name,
+                        tempDirNameVersion,
+                        _cmdletPassedIn,
+                        out ErrorRecord errorRecord))
+                    {
+                        ThrowTerminatingError(errorRecord);
+                    }
+
                     if (isModule)
                     {
                         var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + PSDataFileExt);
@@ -511,9 +524,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        if (!Utils.TryParsePSDataFile(moduleManifest, _cmdletPassedIn, out Hashtable parsedMetadataHashtable))
+                        if (!Utils.TryReadManifestFile(
+                            manifestFilePath: moduleManifest,
+                            manifestInfo: out Hashtable parsedMetadataHashtable,
+                            error: out Exception manifestReadError))
                         {
-                            // Ran into errors parsing the module manifest file which was found in Utils.ParseModuleManifest() and written.
+                            WriteError(
+                                new ErrorRecord(
+                                    exception: manifestReadError,
+                                    errorId: "ManifestFileReadParseError",
+                                    errorCategory: ErrorCategory.ReadError,
+                                    this));
+
                             continue;
                         }
 

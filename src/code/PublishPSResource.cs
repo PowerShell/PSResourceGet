@@ -232,9 +232,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // validate that the module manifest has correct data
-                if (!IsValidModuleManifest(resourceFilePath))
+                string[] errorMsgs = null;
+                try
                 {
-                    return;
+                    Utils.ValidateModuleManifest(resourceFilePath, out errorMsgs);
+
+                }
+                finally {
+                    if (errorMsgs.Length > 0)
+                    {
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException(errorMsgs.First()),
+                            "InvalidModuleManifest",
+                            ErrorCategory.InvalidOperation,
+                            this));
+                    }
                 }
             }
 
@@ -404,65 +416,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private methods
 
-        private bool IsValidModuleManifest(string moduleManifestPath)
-        {
-            var isValid = true;
-            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
-            {
-                // use PowerShell cmdlet Test-ModuleManifest
-                // TODO: Test-ModuleManifest will throw an error if RequiredModules specifies a module that does not exist
-                // locally on the machine. Consider adding a -Syntax param to Test-ModuleManifest so that it only checks that
-                // the syntax is correct. In build/release pipelines for example, the modules listed under RequiredModules may
-                // not be locally available, but we still want to allow the user to publish.
-                Collection<PSObject> results = null;
-                try
-                {
-                    results = pwsh.AddCommand("Test-ModuleManifest").AddParameter("Path", moduleManifestPath).Invoke();
-                }
-                catch (Exception e)
-                {
-                    ThrowTerminatingError(new ErrorRecord(
-                       new ArgumentException("Error occured while running 'Test-ModuleManifest': " + e.Message),
-                       "ErrorExecutingTestModuleManifest",
-                       ErrorCategory.InvalidArgument,
-                       this));
-                }
-
-                if (pwsh.HadErrors)
-                {
-                    var message = string.Empty;
-
-                    if (results.Any())
-                    {
-                        if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Author))
-                        {
-                            message = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                        else if (string.IsNullOrWhiteSpace((results[0].BaseObject as PSModuleInfo).Description))
-                        {
-                            message = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                        else if ((results[0].BaseObject as PSModuleInfo).Version == null)
-                        {
-                            message = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(message) && pwsh.Streams.Error.Count > 0)
-                    {
-                        // This will handle version errors
-                        message = pwsh.Streams.Error[0].ToString() + "Run 'Test-ModuleManifest' to validate the module manifest.";
-                    }
-                    var ex = new ArgumentException(message);
-                    var InvalidModuleManifest = new ErrorRecord(ex, "InvalidModuleManifest", ErrorCategory.InvalidData, null);
-                    ThrowTerminatingError(InvalidModuleManifest);
-                    isValid = false;
-                }
-            }
-
-            return isValid;
-        }
-
         private string CreateNuspec(
             string outputDir,
             string filePath,
@@ -477,12 +430,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // a module will still need the module manifest to be parsed.
             if (!isScript)
             {
-                // Parse the module manifest and *replace* the passed-in metadata with the module manifest metadata.
-                if (!Utils.TryParsePSDataFile(
-                    moduleFileInfo: filePath,
-                    cmdletPassedIn: this,
-                    parsedMetadataHashtable: out parsedMetadataHash))
+                // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
+                if (!Utils.TryReadManifestFile(
+                    manifestFilePath: filePath,
+                    manifestInfo: out parsedMetadataHash,
+                    error: out Exception manifestReadError))
                 {
+                    WriteError(
+                        new ErrorRecord(
+                            exception: manifestReadError,
+                            errorId: "ManifestFileReadParseForNuspecError",
+                            errorCategory: ErrorCategory.ReadError,
+                            this));
+                    
                     return string.Empty;
                 }
             }
@@ -1008,7 +968,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 PushRunner.Run(
                         settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
                         sourceProvider: new PackageSourceProvider(settings),
-                        packagePath: fullNupkgFile,
+                        packagePaths: new List<string> { fullNupkgFile },
                         source: publishLocation,
                         apiKey: ApiKey,
                         symbolSource: null,

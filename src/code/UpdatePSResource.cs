@@ -35,6 +35,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies name of a resource or resources to update.
         /// Accepts wildcard characters.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set ; } = new string[] {"*"};
@@ -110,6 +111,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
 
+        /// <summary>
+        /// Check validation for signed and catalog files
+
+        /// </summary>
+        [Parameter]
+        public SwitchParameter AuthenticodeCheck { get; set; }
+
         #endregion
 
         #region Override Methods
@@ -177,6 +185,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg: false,
                 includeXML: true,
                 skipDependencyCheck: SkipDependencyCheck,
+                authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg);
 

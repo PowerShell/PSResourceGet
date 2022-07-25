@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.Win32.SafeHandles;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -14,6 +15,8 @@ using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.PowerShell.Commands;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -95,6 +98,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return "'" + CodeGeneration.EscapeSingleQuotedStringContent(name) + "'";
         }
 
+        public static string[] GetStringArrayFromString(string[] delimeter, string stringToConvertToArray)
+        {
+            // This will be a string where entries are separated by space.
+            if (String.IsNullOrEmpty(stringToConvertToArray))
+            {
+                return Utils.EmptyStrArray;
+            }
+
+            return stringToConvertToArray.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
+        }
+        
         /// <summary>
         /// Converts an ArrayList of object types to a string array.
         /// </summary>
@@ -726,53 +740,151 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-        #region Manifest methods
+        #region PSDataFile parsing
 
-        public static bool TryParsePSDataFile(
-            string moduleFileInfo,
-            PSCmdlet cmdletPassedIn,
-            out Hashtable parsedMetadataHashtable)
+        private static readonly string[] ManifestFileVariables = new string[] { "PSEdition", "PSScriptRoot" };
+
+        /// <summary>
+        /// Read psd1 manifest file contents and return as Hashtable object.
+        /// </summary>
+        /// <param name="manifestFilePath">File path to manfiest psd1 file.</param>
+        /// <param name="manifestInfo">Hashtable of manifest file contents.</param>
+        /// <param name="error">Error exception on failure.</param>
+        /// <returns>True on success.</returns>
+        public static bool TryReadManifestFile(
+            string manifestFilePath,
+            out Hashtable manifestInfo,
+            out Exception error)
         {
-            parsedMetadataHashtable = new Hashtable();
-            bool successfullyParsed = false;
+            return TryReadPSDataFile(
+                filePath: manifestFilePath,
+                allowedVariables: ManifestFileVariables,
+                allowedCommands: Utils.EmptyStrArray,
+                allowEnvironmentVariables: false,
+                out manifestInfo,
+                out error);
+        }
 
-            // A script will already  have the metadata parsed into the parsedMetadatahash,
-            // a module will still need the module manifest to be parsed.
-            if (moduleFileInfo.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
+        /// <summary>
+        /// Read psd1 required resource file contents and return as Hashtable object.
+        /// </summary>
+        /// <param name="resourceFilePath">File path to required resource psd1 file.</param>
+        /// <param name="resourceInfo">Hashtable of required resource file contents.</param>
+        /// <param name="error">Error exception on failure.</param>
+        /// <returns>True on success.</returns>
+        public static bool TryReadRequiredResourceFile(
+            string resourceFilePath,
+            out Hashtable resourceInfo,
+            out Exception error)
+        {
+            return TryReadPSDataFile(
+                filePath: resourceFilePath,
+                allowedVariables: Utils.EmptyStrArray,
+                allowedCommands: Utils.EmptyStrArray,
+                allowEnvironmentVariables: false,
+                out resourceInfo,
+                out error);
+        }
+
+        private static bool TryReadPSDataFile(
+            string filePath,
+            string[] allowedVariables,
+            string[] allowedCommands,
+            bool allowEnvironmentVariables,
+            out Hashtable dataFileInfo,
+            out Exception error)
+        {
+            try
             {
-                // Parse the module manifest
-                var ast = Parser.ParseFile(
-                    moduleFileInfo,
-                    out Token[] tokens,
-                    out ParseError[] errors);
-
-                if (errors.Length > 0)
+                if (filePath is null)
                 {
-                    var message = String.Format("Could not parse '{0}' as a PowerShell data file.", moduleFileInfo);
-                    var ex = new ArgumentException(message);
-                    var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                    cmdletPassedIn.WriteError(psdataParseError);
-                    return successfullyParsed;
+                    throw new PSArgumentNullException(nameof(filePath));
                 }
-                else
+
+                string contents = System.IO.File.ReadAllText(filePath);
+                var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
+
+                // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
+                // This will throw for unsafe content.
+                scriptBlock.CheckRestrictedLanguage(
+                    allowedCommands: allowedCommands,
+                    allowedVariables: allowedVariables,
+                    allowEnvironmentVariables: allowEnvironmentVariables);
+                
+                // Convert contents into PSDataFile Hashtable by executing content as script.
+                object result = scriptBlock.InvokeReturnAsIs();
+                if (result is PSObject psObject)
                 {
-                    var data = ast.Find(a => a is HashtableAst, false);
-                    if (data != null)
+                    result = psObject.BaseObject;
+                }
+
+                dataFileInfo = (Hashtable) result;
+                error = null;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                dataFileInfo = null;
+                error = ex;
+                return false;
+            }
+        }
+
+        public static void ValidateModuleManifest(string moduleManifestPath, out string[] errorMsgs)
+        {
+            List<string> errorMsgsList = new List<string>();
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+            {
+                // use PowerShell cmdlet Test-ModuleManifest
+                // TODO: Test-ModuleManifest will throw an error if RequiredModules specifies a module that does not exist
+                // locally on the machine. Consider adding a -Syntax param to Test-ModuleManifest so that it only checks that
+                // the syntax is correct. In build/release pipelines for example, the modules listed under RequiredModules may
+                // not be locally available, but we still want to allow the user to publish.
+                Collection<PSObject> results = null;
+                try
+                {
+                    results = pwsh.AddCommand("Test-ModuleManifest").AddParameter("Path", moduleManifestPath).Invoke();
+                }
+                catch (Exception e)
+                {
+                    errorMsgsList.Add($"Error occured while running 'Test-ModuleManifest': {e.Message}");
+
+                    errorMsgs = errorMsgsList.ToArray();
+                    return; 
+                }
+
+                if (pwsh.HadErrors)
+                {
+                    var message = string.Empty;
+
+                    if (results.Any())
                     {
-                        parsedMetadataHashtable = (Hashtable)data.SafeGetValue();
-                        successfullyParsed = true;
+                        PSModuleInfo psModuleInfoObj = results[0].BaseObject as PSModuleInfo;
+                        if (string.IsNullOrWhiteSpace(psModuleInfoObj.Author))
+                        {
+                            message = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                        else if (string.IsNullOrWhiteSpace(psModuleInfoObj.Description))
+                        {
+                            message = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
+                        else if (psModuleInfoObj.Version == null)
+                        {
+                            message = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        }
                     }
-                    else
+
+                    if (string.IsNullOrEmpty(message) && pwsh.Streams.Error.Count > 0)
                     {
-                        var message = String.Format("Could not parse as PowerShell data file-- no hashtable root for file '{0}'", moduleFileInfo);
-                        var ex = new ArgumentException(message);
-                        var psdataParseError = new ErrorRecord(ex, "psdataParseError", ErrorCategory.ParserError, null);
-                        cmdletPassedIn.WriteError(psdataParseError);
+                        // This will handle version errors
+                        message = $"{pwsh.Streams.Error[0].ToString()} Run 'Test-ModuleManifest' to validate the module manifest.";
                     }
+
+                    errorMsgsList.Add(message);
                 }
             }
+            errorMsgs = errorMsgsList.ToArray();
 
-            return successfullyParsed;
         }
 
         #endregion
@@ -812,6 +924,185 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 args: new object[] { json });
 
             return (results.Count == 1 && results[0] != null) ? (Hashtable)results[0].BaseObject : null;
+        }
+
+        public static bool TryCreateModuleSpecification(
+            Hashtable[] moduleSpecHashtables,
+            out ModuleSpecification[] validatedModuleSpecs,
+            out ErrorRecord[] errors)
+        {
+            bool moduleSpecCreatedSuccessfully = true;
+            List<ErrorRecord> errorList = new List<ErrorRecord>();
+            validatedModuleSpecs = Array.Empty<ModuleSpecification>();
+            List<ModuleSpecification> moduleSpecsList = new List<ModuleSpecification>();
+
+            foreach(Hashtable moduleSpec in moduleSpecHashtables)
+            {
+                // ModuleSpecification(string) constructor for creating a ModuleSpecification when only ModuleName is provided.
+                if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
+                {
+                    var exMessage = $"RequiredModules Hashtable entry {moduleSpec.ToString()} is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
+                    var ex = new ArgumentException(exMessage);
+                    var NameMissingModuleSpecError = new ErrorRecord(ex, "NameMissingInModuleSpecification", ErrorCategory.InvalidArgument, null);
+                    errorList.Add(NameMissingModuleSpecError);
+                    moduleSpecCreatedSuccessfully = false;
+                    continue;
+                }
+
+                // At this point it must contain ModuleName key.
+                string moduleSpecName = (string) moduleSpec["ModuleName"];
+                ModuleSpecification currentModuleSpec = null;
+                if (!moduleSpec.ContainsKey("MaximumVersion") && !moduleSpec.ContainsKey("ModuleVersion") && !moduleSpec.ContainsKey("RequiredVersion"))
+                {
+                    // Pass to ModuleSpecification(string) constructor.
+                    // This constructor method would only throw for a null/empty string, which we've already validated against above.
+                    currentModuleSpec = new ModuleSpecification(moduleSpecName);
+
+                    if (currentModuleSpec != null)
+                    {
+                        moduleSpecsList.Add(currentModuleSpec);
+                    }
+                    else
+                    {
+                        var exMessage = $"ModuleSpecification object was not able to be created for {moduleSpecName}";
+                        var ex = new ArgumentException(exMessage);
+                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(ModuleSpecNotCreatedError);
+                        moduleSpecCreatedSuccessfully = false;
+                        continue;
+                    }
+                }
+                else
+                {
+                    // ModuleSpecification(Hashtable) constructor for when ModuleName + {Required,Maximum,Module}Version value is also provided.
+                    string moduleSpecMaxVersion = moduleSpec.ContainsKey("MaximumVersion") ? (string) moduleSpec["MaximumVersion"] : String.Empty;
+                    string moduleSpecModuleVersion = moduleSpec.ContainsKey("ModuleVersion") ? (string) moduleSpec["ModuleVersion"] : String.Empty;
+                    string moduleSpecRequiredVersion = moduleSpec.ContainsKey("RequiredVersion") ? (string) moduleSpec["RequiredVersion"] : String.Empty;
+                    Guid moduleSpecGuid = moduleSpec.ContainsKey("Guid") ? (Guid) moduleSpec["Guid"] : Guid.Empty;
+
+                    if (String.IsNullOrEmpty(moduleSpecMaxVersion) && String.IsNullOrEmpty(moduleSpecModuleVersion) && String.IsNullOrEmpty(moduleSpecRequiredVersion))
+                    {
+                        var exMessage = $"ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {moduleSpecName}";
+                        var ex = new ArgumentException(exMessage);
+                        var MissingModuleSpecificationMemberError = new ErrorRecord(ex, "MissingModuleSpecificationMember", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(MissingModuleSpecificationMemberError);
+                        moduleSpecCreatedSuccessfully = false;
+                        continue;
+                    }
+
+                    Hashtable moduleSpecHash = new Hashtable();
+
+                    moduleSpecHash.Add("ModuleName", moduleSpecName);
+                    if (moduleSpecGuid != Guid.Empty)
+                    {
+                        moduleSpecHash.Add("Guid", moduleSpecGuid);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecMaxVersion))
+                    {
+                        moduleSpecHash.Add("MaximumVersion", moduleSpecMaxVersion);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecModuleVersion))
+                    {
+                        moduleSpecHash.Add("ModuleVersion", moduleSpecModuleVersion);
+                    }
+
+                    if (!String.IsNullOrEmpty(moduleSpecRequiredVersion))
+                    {
+                        moduleSpecHash.Add("RequiredVersion", moduleSpecRequiredVersion);
+                    }
+
+                    try
+                    {
+                        currentModuleSpec = new ModuleSpecification(moduleSpecHash);
+                    }
+                    catch (Exception e)
+                    {
+                        var ex = new ArgumentException($"ModuleSpecification instance was not able to be created with hashtable constructor due to: {e.Message}");
+                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
+                        errorList.Add(ModuleSpecNotCreatedError);
+                        moduleSpecCreatedSuccessfully = false;
+                    }
+
+                    if (currentModuleSpec != null)
+                    {
+                        moduleSpecsList.Add(currentModuleSpec);
+                    }
+                }
+            }
+
+            errors = errorList.ToArray();
+            validatedModuleSpecs = moduleSpecsList.ToArray();
+            return moduleSpecCreatedSuccessfully;
+        }
+
+        /// <summary>
+        /// Parses metadata out of a comment block's lines (which are passed in) into a hashtable.
+        /// </summary>
+        public static Hashtable ParseCommentBlockContent(string[] commentLines)
+        {
+            /**
+            Comment lines can look like this:
+
+            .KEY1 value
+
+            .KEY2 value
+
+            .KEY3
+            value
+
+            .KEY4 value
+            value continued
+
+            */
+
+            Hashtable parsedHelpMetadata = new Hashtable();
+            string keyName = "";
+            string value = "";
+
+            for (int i = 1; i < commentLines.Count(); i++)
+            {
+                string line = commentLines[i];
+
+                // scenario where line is: .KEY VALUE
+                // this line contains a new metadata property.
+                if (line.Trim().StartsWith("."))
+                {
+                    // check if keyName was previously populated, if so add this key value pair to the metadata hashtable
+                    if (!String.IsNullOrEmpty(keyName))
+                    {
+                        parsedHelpMetadata.Add(keyName, value);
+                    }
+
+                    string[] parts = line.Trim().TrimStart('.').Split();
+                    keyName = parts[0];
+                    value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
+                }
+                else if (!String.IsNullOrEmpty(line))
+                {
+                    // scenario where line contains text that is a continuation of value from previously recorded key
+                    // this line does not starting with .KEY, and is also not an empty line.
+                    if (value.Equals(String.Empty))
+                    {
+                        value += line;
+                    }
+                    else
+                    {
+                        value += Environment.NewLine + line;
+                    }
+                }
+            }
+
+            // this is the case where last key value had multi-line value.
+            // and we've captured it, but still need to add it to hashtable.
+            if (!String.IsNullOrEmpty(keyName) && !parsedHelpMetadata.ContainsKey(keyName))
+            {
+                // only add this key value if it hasn't already been added
+                parsedHelpMetadata.Add(keyName, value);
+            }
+
+            return parsedHelpMetadata;
         }
 
         #endregion
@@ -1126,6 +1417,120 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion Methods
+    }
+
+    #endregion
+
+    #region AuthenticodeSignature
+
+    internal static class AuthenticodeSignature
+    {
+        #region Methods
+
+        internal static bool CheckAuthenticodeSignature(
+            string pkgName,
+            string tempDirNameVersion,
+            PSCmdlet cmdletPassedIn,
+            out ErrorRecord errorRecord)
+        {
+            errorRecord = null;
+
+            // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return true;
+            }
+
+            // First check if the files are catalog signed.
+            string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
+            if (File.Exists(catalogFilePath))
+            {
+                // Run catalog validation.
+                Collection<PSObject> TestFileCatalogResult;
+                string moduleBasePath = tempDirNameVersion;
+                try
+                {
+                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files.
+                    TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
+                        script: @"param (
+                                      [string] $moduleBasePath, 
+                                      [string] $catalogFilePath
+                                 ) 
+                                $catalogValidation = Test-FileCatalog -Path $moduleBasePath -CatalogFilePath $CatalogFilePath `
+                                                 -FilesToSkip '*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
+                                                 -Detailed -ErrorAction SilentlyContinue
+        
+                                if ($catalogValidation.Status.ToString() -eq 'valid' -and $catalogValidation.Signature.Status -eq 'valid') {
+                                    return $true
+                                }
+                                else {
+                                    return $false
+                                }
+                        ",
+                        useNewScope: true,
+                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                        input: null,
+                        args: new object[] { moduleBasePath, catalogFilePath });
+                }
+                catch (Exception e)
+                {
+                    errorRecord = new ErrorRecord(new ArgumentException(e.Message), "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    return false;
+                }
+
+                bool catalogValidation = TestFileCatalogResult.Count > 0 ? (bool)TestFileCatalogResult[0].BaseObject : false;
+                if (!catalogValidation)
+                {
+                    var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
+                    var ex = new ArgumentException(exMessage);
+
+                    errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    return false;
+                }
+
+                return true;
+            }
+
+            // Otherwise check for signatures on individual files.
+            Collection<PSObject> authenticodeSignatures;
+            try
+            {
+                string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
+                authenticodeSignatures = cmdletPassedIn.InvokeCommand.InvokeScript(
+                    script: @"param (
+                                      [string] $tempDirNameVersion, 
+                                      [string[]] $listOfExtensions
+                                 ) 
+                                 Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { tempDirNameVersion, listOfExtensions });
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(new ArgumentException(e.Message), "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                return false;
+            }
+
+            // If any file authenticode signatures are not valid, return false.
+            foreach (var signatureObject in authenticodeSignatures)
+            {
+                Signature signature = (Signature)signatureObject.BaseObject;
+                if (!signature.Status.Equals(SignatureStatus.Valid))
+                {
+                    var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
+                    var ex = new ArgumentException(exMessage);
+                    errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+
+                    return false;
+                }
+            }
+
+            return true;
+        }
+       
+        #endregion
     }
 
     #endregion
