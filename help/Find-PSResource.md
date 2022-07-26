@@ -31,13 +31,13 @@ Searches for packages from a repository (local or remote), based on `-Name` and 
 
 ### TagParameterSet
 ``` PowerShell
-[[-Name <string>][-Tag <string[]>] [-Prerelease]
+[-Name <string>][-Tag <string[]>] [-Prerelease]
 [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### TypeParameterSet
 ``` PowerShell
-[[Name <string>] [-Prerelease]  [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>]
+[Name <string>] [-Prerelease]  [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>]
 [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -45,7 +45,7 @@ Searches for packages from a repository (local or remote), based on `-Name` and 
 The `Find-PSResource` cmdlet searches for a package from a repository (local or remote) based on `-Name` or other package properties.
 
 ## EXAMPLES
-These examples assume that the PSGallery repository is registered and contains the packages we are searching for.
+
 ### Example 1
 ```powershell
 PS C:\> Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Repository PSGallery
@@ -54,6 +54,7 @@ PS C:\> Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Repositor
         Microsoft.PowerShell.SecretManagement   1.0.0.0                                      This module ...
 ```
 
+These examples assume that the PSGallery repository is registered and contains the packages we are searching for.
 This examples searches for the package with `-Name` "Microsoft.PowerShell.SecretManagement". It returns the highest non-prerelease version for the package found by searching through the `-Repository` "PSGallery", which at the time of writing this example is version "1.0.0.0".
 
 ### Example 2
