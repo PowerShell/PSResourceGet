@@ -123,7 +123,7 @@ Describe 'Test Update-PSResource' {
         param($Version, $Description)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository 2>$null
 
         $res = Get-PSResource -Name $testModuleName
         $isPkgUpdated = $false
