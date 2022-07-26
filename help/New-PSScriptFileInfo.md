@@ -131,8 +131,6 @@ this is a test script
 
 This example runs the cmdlet with the required 'FilePath' and 'Description' parameters, as well as 'Author', 'Version', and 'RequiredModules' parameters. The 'RequiredModules' parameter describes modules required by the script. It is necessary to provide the ModuleName key in the hashtable and if one wishes to specify verion they must also specify ModuleVersion, RequiredVersion, MaximumVersion, or MinimumVersion keys. The script is successfully created and if the contents of the file are viewed we can see the following values are set in the script file: Description, Author, Guid, and Version and RequiredModules.
 
-
-
 ## PARAMETERS
 
 ### -Author
@@ -140,7 +138,7 @@ This example runs the cmdlet with the required 'FilePath' and 'Description' para
 The author of the script.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
 Aliases: 
 Accepted values: 
@@ -150,7 +148,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -CompanyName
@@ -168,7 +165,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Copyright
@@ -186,7 +182,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Description
@@ -204,7 +199,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -ExternalModuleDependencies
@@ -222,7 +216,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -ExternalScriptDependencies
@@ -240,7 +233,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -FilePath
@@ -258,7 +250,6 @@ Position: 0
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Force
@@ -276,7 +267,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Guid
@@ -294,7 +284,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -IconUri
@@ -312,7 +301,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -LicenseUri
@@ -330,7 +318,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -PrivateData
@@ -348,7 +335,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -ProjectUri
@@ -366,7 +352,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -ReleaseNotes
@@ -384,7 +369,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -RequiredModules
@@ -402,7 +386,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -RequiredScripts
@@ -420,7 +403,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Tags
@@ -438,7 +420,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Version
@@ -456,9 +437,7 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
-
 
 ### CommonParameters
 
@@ -474,12 +453,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### None
 
-
-
 ## NOTES
 
-
 ## RELATED LINKS
-
-Fill Related Links Here
 
