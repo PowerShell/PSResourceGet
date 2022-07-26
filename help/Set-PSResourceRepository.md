@@ -26,7 +26,7 @@ Set-PSResourceRepository -Repository <Hashtable[]> [-Priority <Int32>] [-WhatIf]
 The Set-PSResourceRepository cmdlet sets information for a registered repository.
 
 ## EXAMPLES
-These examples are run independently of each other and assume the repositories used are already registered. The `-PassThru` parameter used with Set-PSResourceRepository is only used to display the changes made to the repository and is not mandatory.
+
 ### Example 1
 ```powershell
 PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
