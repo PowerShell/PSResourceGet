@@ -127,15 +127,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     this));
             }
 
-            // this catches the case where Name wasn't passed in as null or empty,
-            // but after filtering out unsupported wildcard names in BeginProcessing() there are no elements left in Name
+            // This catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names in BeginProcessing() there are no elements left in Name.
             if (namesToSearch.Length == 0)
             {
                  return;
             }
 
+            // SelectPrereleaseOnly is false because we want both stable and prerelease versions all the time..
             GetHelper getHelper = new GetHelper(this);
-            // selectPrereleaseOnly is false because we want both stable and prerelease versions all the time.
             foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(
                 name: namesToSearch,
                 versionRange: _versionRange,

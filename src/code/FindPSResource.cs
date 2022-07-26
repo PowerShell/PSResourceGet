@@ -216,24 +216,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }            
 
-            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
-
-            foreach (PSResourceInfo package in _findHelper.FindByResourceName(
-                Name,
-                Type,
-                Version,
-                Prerelease,
-                Tag,
-                Repository,
-                Credential,
-                IncludeDependencies))
-            {
-                foundPackages.Add(package);
-            }
+            List<PSResourceInfo> foundPackages = _findHelper.FindByResourceName(
+                name: Name,
+                type: Type,
+                version: Version,
+                prerelease: Prerelease,
+                tag: Tag,
+                repository: Repository,
+                credential: Credential,
+                includeDependencies: IncludeDependencies);
 
             foreach (var uniquePackageVersion in foundPackages.GroupBy(
                 m => new {m.Name, m.Version, m.Repository}).Select(
-                    group => group.First()).ToList())
+                    group => group.First()))
             {
                 WriteObject(uniquePackageVersion);
             }
@@ -291,21 +286,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 moduleNamesToSearch = new string[] {"*"};
             }
 
-            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
-
-            foreach (PSResourceInfo package in _findHelper.FindByResourceName(
+            List<PSResourceInfo> foundPackages = _findHelper.FindByResourceName(
                 name: moduleNamesToSearch,
-                // provide type so Scripts endpoint for PSGallery won't be searched
                 type: isSearchingForCommands? ResourceType.Command : ResourceType.DscResource,
                 version: Version,
                 prerelease: Prerelease,
                 tag: Tag,
                 repository: Repository,
                 credential: Credential,
-                includeDependencies: IncludeDependencies))
-            {
-                foundPackages.Add(package);
-            }
+                includeDependencies: IncludeDependencies);
 
             // if a single package contains multiple commands we are interested in, return a unique entry for each:
             // Command1 , PackageA
