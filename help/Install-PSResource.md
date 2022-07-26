@@ -79,6 +79,24 @@ PS C:\> Install-PSResource -RequiredResourceFile myRequiredModules.psd1
 
 Installs the PSResources specified in the psd1 file.
 
+### Example 5
+```powershell
+PS C:\> Install-PSResource -RequiredResource  @{
+    TestModule = @{
+        version = "[0.0.1,1.3.0]"
+        repository = "PSGallery"
+      }
+      TestModulePrerelease = @{
+        version = "[0.0.0,0.0.5]"
+        repository = "PSGallery"
+        prerelease = "true"
+      }
+    TestModule99 = @{}
+}
+```
+
+Installs the PSResources specified in the hashtable.
+
 ## PARAMETERS
 
 ### -Name
