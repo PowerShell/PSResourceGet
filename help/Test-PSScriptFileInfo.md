@@ -13,7 +13,7 @@ Tests a .ps1 file at the specified path to ensure it is valid.
 
 ## SYNTAX
 
-### __AllParameterSets
+### AllParameterSets
 
 ```
 Test-PSScriptFileInfo [-FilePath] <String> [<CommonParameters>]
@@ -150,7 +150,6 @@ Position: 0
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 
@@ -166,14 +165,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-### bool
-
-
-
 ## NOTES
 
 
 ## RELATED LINKS
-
-Fill Related Links Here
 

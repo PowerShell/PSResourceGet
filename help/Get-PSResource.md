@@ -49,12 +49,13 @@ PS C:\> Get-PSResource Az -version "4.0.1-preview"
 
 Assume that the package Az version 4.0.1-preview is already installed. This will return version 4.0.1-preview of the Az module.
 
+### Example 5
 ```powershell
 PS C:\> Get-PSResource Az -version "4.0.1"
 ```
 Assume that the package Az version 4.0.1-preview is already installed. This will not return Az version 4.0.1-preview as the full version (including prerelease label, i.e "4.0.1-preview") was not specified.
 
-### Example 5
+### Example 6
 ```powershell
 PS C:\> Get-PSResource Az -Version "[4.0.1, 4.0.2-preview]
 ```
@@ -89,7 +90,7 @@ Aliases:
 Required: False
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True
 Accept wildcard characters: True
 ```
 
@@ -149,39 +150,6 @@ Accept wildcard characters: False
 
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
-
-## OUTPUTS
-
-### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
-```
-PSResourceInfo : {
-    AdditionalMetadata
-    Author
-    CompanyName
-    Copyright
-    Dependencies
-    Description
-    IconUri
-    Includes
-    InstalledDate
-    InstalledLocation
-    IsPrerelease
-    LicenseUri
-    Name
-    PackageManagementProvider
-    PowerShellGetFormatVersion
-    Prerelease
-    ProjectUri
-    PublishedDate
-    ReleaseNotes
-    Repository
-    RepositorySourceLocation
-    Tags
-    Type
-    UpdatedDate
-    Version
-}
-```
 
 ## NOTES
 

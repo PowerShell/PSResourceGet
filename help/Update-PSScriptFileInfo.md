@@ -94,7 +94,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -CompanyName
@@ -112,7 +111,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Copyright
@@ -130,7 +128,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Description
@@ -148,7 +145,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -ExternalModuleDependencies
@@ -166,7 +162,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -ExternalScriptDependencies
@@ -184,7 +179,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -FilePath
@@ -202,7 +196,6 @@ Position: 0
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Guid
@@ -220,7 +213,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -IconUri
@@ -238,7 +230,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -LicenseUri
@@ -256,7 +247,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -PrivateData
@@ -274,7 +264,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -ProjectUri
@@ -292,7 +281,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -ReleaseNotes
@@ -310,7 +298,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -RemoveSignature
@@ -328,7 +315,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -RequiredModules
@@ -346,7 +332,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -RequiredScripts
@@ -364,7 +349,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Tags
@@ -382,7 +366,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 ### -Version
@@ -400,7 +383,6 @@ Position: Named
 Default value: 
 Accept pipeline input: False
 Accept wildcard characters: False
-DontShow: False
 ```
 
 
@@ -421,9 +403,4 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 
 ## NOTES
-
-
-## RELATED LINKS
-
-Fill Related Links Here
 
