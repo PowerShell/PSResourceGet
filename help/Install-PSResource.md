@@ -16,7 +16,7 @@ Installs resources (modules and scripts) from a registered repository onto the m
 ```
 Install-PSResource [-Name <String[]>] [-Version <String>] [-Prerelease]
  [-Repository <String[]>] [-Credential <PSCredential>] [-Scope <ScopeType>] [-TrustRepository]
- [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
@@ -78,26 +78,6 @@ PS C:\> Install-PSResource -RequiredResourceFile myRequiredModules.psd1
 ```
 
 Installs the PSResources specified in the psd1 file.
- 
- ### Example 5
-```powershell
-PS C:\> Install-PSResource -RequiredResource  @{
-    TestModule = @{
-        version = "[0.0.1,1.3.0]"
-        repository = "PSGallery"
-      }
-
-      TestModulePrerelease = @{
-        version = "[0.0.0,0.0.5]"
-        repository = "PSGallery"
-        prerelease = "true"
-      }
-
-    TestModule99 = @{}
-}
-```
-
-Installs the PSResources specified in the hashtable.
 
 ## PARAMETERS
 
@@ -387,7 +367,21 @@ Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
- 
+### -AuthenticodeCheck
+Does a check to to validate signed files and catalog files on Windows.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases: 
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+``` 
+
 ### -PassThru
 Passes the resource installed to the console.
 
@@ -451,9 +445,6 @@ Accept wildcard characters: False
 
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
-
-## OUTPUTS
-None
 
 ## NOTES
 
