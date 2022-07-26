@@ -222,7 +222,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
                 }
 
-                if (!pkgsFromRepoToInstall.Any())
+                if (pkgsFromRepoToInstall.Count is 0)
                 {
                     continue;
                 }
