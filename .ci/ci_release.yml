@@ -239,10 +239,6 @@ stages:
             }
           }
         }
-      displayName: Copy already properly signed third party files
-      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
-
-    - pwsh |
         $noticeTxt = "$(signSrcPath)\PowerShellGet\Notice.txt"
         $licenseTxt = "$(signSrcPath)\PowerShellGet\LICENSE"
 
@@ -250,7 +246,8 @@ stages:
 
         Copy-Item -Path $noticeTxt -Dest "$netStandardSignedOutPath\Notice.txt" -Force -Verbose
         Copy-Item -Path $licenseTxt -Dest "$netStandardSignedOutPath\LICENSE" -Force -Verbose
-      displayName: Copy notice and license files
+      displayName: Copy already properly signed third party files
+      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
     - ${{ if ne(variables.SkipSigning, 'True') }}:
       - template: Sbom.yml@ComplianceRepo
