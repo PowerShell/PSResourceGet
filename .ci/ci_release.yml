@@ -259,6 +259,7 @@ stages:
         Copy-Item -Path $licenseTxt -Dest "$netStandardSignedOutPath\LICENSE" -Force -Verbose
 
       displayName: Copy Notice and License files. 
+      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
     - ${{ if ne(variables.SkipSigning, 'True') }}:
       - template: Sbom.yml@ComplianceRepo
