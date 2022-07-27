@@ -3,7 +3,7 @@
 
 @{
     RootModule        = './netstandard2.0/PowerShellGet.dll'
-    ModuleVersion     = '3.0.15'
+    ModuleVersion     = '3.0.16'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'
     CompanyName       = 'Microsoft Corporation'
@@ -34,7 +34,7 @@
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData = @{
         PSData = @{
-            Prerelease = 'beta15'
+            Prerelease = 'beta16'
             Tags = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -44,6 +44,11 @@
             ProjectUri = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 3.0.16-beta16
+
+### Bug Fixes
+- Update NuGet dependency packages for security vulnerabilities (#733)
+
 ## 3.0.15-beta15
 
 ### New Features

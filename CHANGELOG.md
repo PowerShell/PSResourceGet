@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 3.0.16-beta16
+
+### Bug Fixes
+- Update NuGet dependency packages for security vulnerabilities (#733)
+
 ## 3.0.15-beta15
 
 ### New Features
