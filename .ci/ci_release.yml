@@ -250,7 +250,7 @@ stages:
 
         Copy-Item -Path $noticeTxt -Dest "$netStandardSignedOutPath\Notice.txt" -Force -Verbose
         Copy-Item -Path $licenseTxt -Dest "$netStandardSignedOutPath\LICENSE" -Force -Verbose
-      displayName: Copy Notice and License files. 
+      displayName: Copy Notice and License files
       condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
     - ${{ if ne(variables.SkipSigning, 'True') }}:
@@ -267,7 +267,7 @@ stages:
         $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
         Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
         Import-Module -Name $modPath -Force
-        #
+        
         $config = Get-PSPackageProjectConfiguration
         $artifactName = "$($config.ModuleName)"
         if ($env:SkipSigning -eq 'True')
