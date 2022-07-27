@@ -41,10 +41,14 @@ PS C:\> Update-ModuleManifest -Path "C:\MyModules\TestModule" -Author "New Autho
 ```
 In this example the author property in the module manifest will be updated to "New Author".
 
+### Example 2
+
 ```powershell
 PS C:\>  Update-ModuleManifest -Path "C:\MyModules\TestModule" -Prerelease "beta2"
 ```
 In this example the prerelease property will be updated to "beta2"
+
+### Example 3
 
 ```powershell
 PS C:\> Update-ModuleManifest -Path "C:\MyModules\TestModule" -Tags "Windows", "Linux" -Description "A module for managing packages."
@@ -689,10 +693,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ### System.String[]
 
 ## OUTPUTS
-None
 
 ## NOTES
 
 ## RELATED LINKS
-
-[<add>](<add>)

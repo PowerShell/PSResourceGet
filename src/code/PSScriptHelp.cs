@@ -18,52 +18,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// The description of the script.
         /// </summary>
-        public string Description { get; private set; }     
+        public string Description { get; private set; } = String.Empty;
 
         /// <summary>
-        /// The synopsis of the script.
+        /// This contains all help content aside from Description
         /// </summary>
-        public string Synopsis { get; private set; }
-
-        /// <summary>
-        /// The example(s) relating to the script's usage.
-        /// </summary>
-        public string[] Example { get; private set; } = Utils.EmptyStrArray;
-
-        /// <summary>
-        /// The inputs to the script.
-        /// </summary>
-        public string[] Inputs { get; private set; } = Utils.EmptyStrArray;
-
-        /// <summary>
-        /// The outputs to the script.
-        /// </summary>
-        public string[] Outputs { get; private set; } = Utils.EmptyStrArray;
-
-        /// <summary>
-        /// The notes for the script.
-        /// </summary>
-        public string[] Notes { get; private set; } = Utils.EmptyStrArray;
-
-        /// <summary>
-        /// The links for the script.
-        /// </summary>
-        public string[] Links { get; private set; } = Utils.EmptyStrArray;
-
-        /// <summary>
-        /// The components for the script.
-        /// </summary>
-        public string[] Component { get; private set; } = Utils.EmptyStrArray;
-
-        /// <summary>
-        /// The roles for the script.
-        /// </summary>
-        public string[] Role { get; private set; } = Utils.EmptyStrArray;
-
-        /// <summary>
-        /// The functionality components for the script.
-        /// </summary>
-        public string[] Functionality { get; private set; } = Utils.EmptyStrArray;
+        public List<string> HelpContent { get; private set; } = new List<string>();
 
         #endregion
 
@@ -74,35 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         public PSScriptHelp (string description)
         {
-            this.Description = description;
-        }
-
-        /// <summary>
-        /// This constructor takes values for description as well as other properties and creates a new PSScriptHelp instance.
-        /// Currently, the New-PSScriptFileInfo and Update-PSScriptFileInfo cmdlets don't support the user providing these values.
-        /// </summary>
-        public PSScriptHelp (
-            string description,
-            string synopsis,
-            string[] example,
-            string[] inputs,
-            string[] outputs,
-            string[] notes,
-            string[] links,
-            string[] component,
-            string[] role,
-            string[] functionality)
-        {
-            this.Description = description;
-            this.Synopsis = synopsis;
-            this.Example = example;
-            this.Inputs = inputs;
-            this.Outputs = outputs;
-            this.Notes = notes;
-            this.Links = links;
-            this.Component = component;
-            this.Role = role;
-            this.Functionality = functionality;
+            Description = description;
         }
 
         /// <summary>
@@ -121,33 +53,91 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord error)
         {
-            bool successfullyParsed = true;
-            string[] spaceDelimeter = new string[]{" "};
-            string[] newlineDelimeter = new string[]{Environment.NewLine};
+            error = null;
             
-            // parse content into a hashtable
-            Hashtable parsedHelpMetadata = Utils.ParseCommentBlockContent(commentLines);
+            // Parse content into a hashtable.
+            Hashtable parsedHelpMetadata = ParseHelpContentHelper(commentLines);
 
-            if (!ValidateParsedContent(parsedHelpMetadata, out error))
+            if (!ValidateParsedContent(parsedHelpMetadata, out ErrorRecord validationError))
             {
+                error = validationError;
                 return false;
             }
             
-            // populate object
-            Description = (string) parsedHelpMetadata["DESCRIPTION"];
-            Synopsis = (string) parsedHelpMetadata["SYNOPSIS"] ?? String.Empty;
-            Example = Utils.GetStringArrayFromString(newlineDelimeter, (string) parsedHelpMetadata["EXAMPLE"]);
-            Inputs = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["INPUT"]);
-            Outputs = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["OUTPUTS"]);
-            Notes = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["NOTES"]);
-            Links = Utils.GetStringArrayFromString(newlineDelimeter, (string) parsedHelpMetadata["LINKS"]);
-            Component = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["COMPONENT"]);
-            Role = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["ROLE"]);
-            Functionality = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedHelpMetadata["FUNCTIONALITY"]);
-            
-            return successfullyParsed;
+            // Populate object.
+            List<string> descriptionValue = (List<string>) parsedHelpMetadata["DESCRIPTION"];
+            Description = String.Join(Environment.NewLine, descriptionValue);
+            if (parsedHelpMetadata.ContainsKey("HELPCONTENT"))
+            {
+                HelpContent = (List<string>) parsedHelpMetadata["HELPCONTENT"];
+            }
+
+            return true;
         }
 
+        /// <summary>
+        /// Parses metadata out of PSScriptCommentInfo comment block's lines (which are passed in) into a hashtable.
+        /// </summary>
+        public static Hashtable ParseHelpContentHelper(string[] commentLines)
+        {
+            /**
+            Comment lines can look like this:
+
+            .KEY1 value
+
+            .KEY2 value
+
+            .KEY2 value2
+
+            .KEY3
+            value
+
+            .KEY4 value
+            value continued
+
+            */
+
+            // Parse out Description and everything else into a bucket list.
+
+            List<string> helpContent = new List<string>();
+            List<string> descriptionValue = new List<string>();
+            bool parsingDescription = false;
+
+            for(int i = 0; i < commentLines.Length; i++)
+            {
+                string line = commentLines[i];
+                if (line.Trim().StartsWith(".DESCRIPTION"))
+                {
+                    parsingDescription = true;
+                }
+                else if (line.Trim().StartsWith("."))
+                {
+                    parsingDescription = false;
+                    helpContent.Add(line);
+                }
+                else if (!String.IsNullOrEmpty(line))
+                {
+                    if (parsingDescription)
+                    {
+                        descriptionValue.Add(line);
+                    }
+                    else
+                    {
+                        helpContent.Add(line);
+                    }
+                }
+            }
+
+            Hashtable parsedHelpMetadata = new Hashtable();
+            parsedHelpMetadata.Add("DESCRIPTION", descriptionValue);
+            if (helpContent.Count != 0)
+            {
+                parsedHelpMetadata.Add("HELPCONTENT", helpContent);
+            }
+
+            return parsedHelpMetadata;
+        }
+        
         /// <summary>
         /// Valides parsed help info content from the hashtable to ensure required help metadata (Description) is present
         /// and does not contain empty values.
@@ -155,7 +145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         internal bool ValidateParsedContent(Hashtable parsedHelpMetadata, out ErrorRecord error)
         {
             error = null;
-            if (!parsedHelpMetadata.ContainsKey("DESCRIPTION") || String.IsNullOrEmpty((string) parsedHelpMetadata["DESCRIPTION"]) || String.Equals(((string) parsedHelpMetadata["DESCRIPTION"]).Trim(), String.Empty))
+            if (!parsedHelpMetadata.ContainsKey("DESCRIPTION"))
             {
                 var exMessage = "PSScript file must contain value for Description. Ensure value for Description is passed in and try again.";
                 var ex = new ArgumentException(exMessage);
@@ -164,7 +154,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            if (StringContainsComment((string) parsedHelpMetadata["DESCRIPTION"]))
+            List<string> descriptionValue = (List<string>) parsedHelpMetadata["DESCRIPTION"];
+            string descriptionString = String.Join("", descriptionValue);
+            if (descriptionValue.Count == 0 || (String.IsNullOrEmpty(descriptionString)) || String.IsNullOrWhiteSpace(descriptionString))
+            {
+                var exMessage = "PSScript file value for Description cannot be null, empty or whitespace. Ensure value for Description meets these conditions and try again.";
+                var ex = new ArgumentException(exMessage);
+                var PSScriptInfoMissingDescriptionError = new ErrorRecord(ex, "PSScriptInfoMissingDescription", ErrorCategory.InvalidArgument, null);
+                error = PSScriptInfoMissingDescriptionError;
+                return false;
+            }
+
+            if (StringContainsComment(descriptionString))
             {
                 var exMessage = "PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again.";
                 var ex = new ArgumentException(exMessage);
@@ -216,60 +217,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psHelpInfoLines.Add($".DESCRIPTION");
             psHelpInfoLines.Add($"{Description}{Environment.NewLine}");
 
-            if (!String.IsNullOrEmpty(Synopsis))
+            if (HelpContent.Count != 0)
             {
-                psHelpInfoLines.Add($".SYNOPSIS");
-                psHelpInfoLines.Add($"{Synopsis}{Environment.NewLine}");
-            }
-
-            foreach (string currentExample in Example)
-            {
-                psHelpInfoLines.Add($".EXAMPLE");
-                psHelpInfoLines.Add($"{currentExample}{Environment.NewLine}");
-            }
-
-            foreach (string input in Inputs)
-            {
-                psHelpInfoLines.Add($".INPUTS");
-                psHelpInfoLines.Add($"{input}{Environment.NewLine}");
-            }
-
-            foreach (string output in Outputs)
-            {
-                psHelpInfoLines.Add($".OUTPUTS");
-                psHelpInfoLines.Add($"{output}{Environment.NewLine}");
-            }
-
-            if (Notes.Length > 0)
-            {
-                psHelpInfoLines.Add($".NOTES");
-                psHelpInfoLines.Add($"{String.Join(Environment.NewLine, Notes)}{Environment.NewLine}");
-            }
-
-            foreach (string link in Links)
-            {
-                psHelpInfoLines.Add($".LINK");
-                psHelpInfoLines.Add($"{link}{Environment.NewLine}");
-            }
-
-            if (Component.Length > 0)
-            {
-                psHelpInfoLines.Add($".COMPONENT");
-                psHelpInfoLines.Add($"{String.Join(Environment.NewLine, Component)}{Environment.NewLine}");
+                psHelpInfoLines.AddRange(HelpContent);
             }
             
-            if (Role.Length > 0)
-            {
-                psHelpInfoLines.Add($".ROLE");
-                psHelpInfoLines.Add($"{String.Join(Environment.NewLine, Role)}{Environment.NewLine}");
-            }
-            
-            if (Functionality.Length > 0)
-            {
-                psHelpInfoLines.Add($".FUNCTIONALITY");
-                psHelpInfoLines.Add($"{String.Join(Environment.NewLine, Functionality)}{Environment.NewLine}");
-            }
-
             psHelpInfoLines.Add("#>");
 
             return psHelpInfoLines.ToArray();

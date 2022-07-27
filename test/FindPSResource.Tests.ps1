@@ -122,7 +122,7 @@ Describe 'Test Find-PSResource for Module' {
     ) {
         param($Version, $Description)
 
-        $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName
+        $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName 2>$null
         $res | Should -BeNullOrEmpty
     }
 

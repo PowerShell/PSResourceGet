@@ -3,7 +3,7 @@
 
 @{
     RootModule        = './netstandard2.0/PowerShellGet.dll'
-    ModuleVersion     = '3.0.14'
+    ModuleVersion     = '3.0.15'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'
     CompanyName       = 'Microsoft Corporation'
@@ -34,7 +34,7 @@
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData = @{
         PSData = @{
-            Prerelease = 'beta14'
+            Prerelease = 'beta15'
             Tags = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -44,6 +44,16 @@
             ProjectUri = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 3.0.15-beta15
+
+### New Features
+- Implementation of New-ScriptFileInfo, Update-ScriptFileInfo, and Test-ScriptFileInfo cmdlets (#708)
+- Implementation of Update-ModuleManifest cmdlet (#677)
+- Implentation of Authenticode validation via -AuthenticodeCheck for Install-PSResource (#632)
+
+### Bug Fixes
+- Bug fix for installing modules with manifests that contain dynamic script blocks (#681)
+
 ## 3.0.14-beta14
 
 ### Bug Fixes

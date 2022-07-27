@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 3.0.15-beta15
+
+### New Features
+- Implementation of New-ScriptFileInfo, Update-ScriptFileInfo, and Test-ScriptFileInfo cmdlets (#708)
+- Implementation of Update-ModuleManifest cmdlet (#677)
+- Implentation of Authenticode validation via -AuthenticodeCheck for Install-PSResource (#632)
+
+### Bug Fixes
+- Bug fix for installing modules with manifests that contain dynamic script blocks (#681)
+
 ## 3.0.14-beta14
 
 ### Bug Fixes

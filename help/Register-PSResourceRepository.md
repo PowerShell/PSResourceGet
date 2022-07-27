@@ -33,7 +33,7 @@ Register-PSResourceRepository -Repository <Hashtable[]> [-PassThru] [-WhatIf] [-
 The Register-PSResourceRepository cmdlet registers a repository for PowerShell resources.
 
 ## EXAMPLES
-These examples assume that the repository we attempt to register is not already registered on the user's machine.
+
 ### Example 1
 ```
 PS C:\> Register-PSResourceRepository -Name "PoshTestGallery" -Uri "https://www.powershellgallery.com/api/v2"
