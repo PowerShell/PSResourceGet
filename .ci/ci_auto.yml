@@ -234,7 +234,7 @@ stages:
         # en-US
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "en-US") -Dest $signOutPath -Recurse
         # Copy Notice.txt
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Notice.txt") -Dest $signOutPath -Recurse
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Notice.txt") -Dest $signOutPath
         # Copy LICENSE
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "LICENSE") -Dest $signOutPath -Recurse
 
