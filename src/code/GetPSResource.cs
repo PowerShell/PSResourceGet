@@ -14,6 +14,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// Returns a single resource or multiple resource.
     /// </summary>
     [Cmdlet(VerbsCommon.Get, "PSResource")]
+    [OutputType(typeof(PSResourceInfo))]
     public sealed class GetPSResource : PSCmdlet
     {
         #region Members
