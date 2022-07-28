@@ -239,13 +239,6 @@ stages:
             }
           }
         }
-        $noticeTxt = "$(signSrcPath)\PowerShellGet\Notice.txt"
-        $licenseTxt = "$(signSrcPath)\PowerShellGet\LICENSE"
-
-        $netStandardSignedOutPath = Join-Path -Path $signOutPath -ChildPath "netstandard2.0"
-
-        Copy-Item -Path $noticeTxt -Dest "$netStandardSignedOutPath\Notice.txt" -Force -Verbose
-        Copy-Item -Path $licenseTxt -Dest "$netStandardSignedOutPath\LICENSE" -Force -Verbose
       displayName: Copy already properly signed third party files
       condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
