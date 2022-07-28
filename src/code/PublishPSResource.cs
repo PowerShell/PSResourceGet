@@ -123,6 +123,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public const string PSDataFileExt = ".psd1";
         public const string PSScriptFileExt = ".ps1";
         private const string PSScriptInfoCommentString = "<#PSScriptInfo";
+        private string pathToScriptFileToPublish = string.Empty;
+        private string pathToModuleManifestToPublish = string.Empty;
+        private string pathToModuleDirToPublish = string.Empty;
+        private ResourceType resourceType = ResourceType.None;
 
         #endregion
 
@@ -136,22 +140,51 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
-
-            if (Directory.Exists(resolvedPath) || 
-                (File.Exists(resolvedPath) && resolvedPath.EndsWith(PSScriptFileExt, StringComparison.OrdinalIgnoreCase)))
+            string resolvedPath = string.Empty;
+            try
             {
-                // condition 1: we point to a folder when publishing a module
-                // condition 2: we point to a .ps1 file directly when publishing a script, but not to .psd1 file (for publishing a module)
-                _path = resolvedPath;
+                resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
             }
-            else
+            catch (MethodInvocationException)
+            {
+                // path does not exist
+                ThrowTerminatingError(
+                    new ErrorRecord(
+                        new ArgumentException(
+                            "The path to the resource to publish does not exist, point to an existing path or file of the module or script to publish."), 
+                            "SourcePathDoesNotExist", 
+                            ErrorCategory.InvalidArgument, 
+                            this));
+            }
+
+            // Condition 1: path is to the root directory of the module to be published
+            // Condition 2: path is to the .psd1 or .ps1 of the module/script to be published  
+            _path = resolvedPath;
+            if (Directory.Exists(resolvedPath))
+            {
+                pathToModuleDirToPublish = resolvedPath;
+                resourceType = ResourceType.Module;
+            }
+            else if (resolvedPath.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
+            {
+                pathToModuleManifestToPublish = resolvedPath;
+                resourceType = ResourceType.Module;
+            }
+            else if (resolvedPath.EndsWith(PSScriptFileExt, StringComparison.OrdinalIgnoreCase))
+            {
+                pathToScriptFileToPublish = resolvedPath;
+                resourceType = ResourceType.Script;
+            }
+            else if (string.IsNullOrEmpty(resolvedPath))
             {
                 // unsupported file path
-                var exMessage = string.Format("Either the path to the resource to publish does not exist or is not in the correct format, for scripts point to .ps1 file and for modules point to folder containing .psd1");
-                var ex = new ArgumentException(exMessage);
-                var InvalidSourcePathError = new ErrorRecord(ex, "InvalidSourcePath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidSourcePathError);
+                ThrowTerminatingError(
+                    new ErrorRecord(
+                        new ArgumentException(
+                            "The path to the resource to publish is not in the correct format, point to a path or file of the module or script to publish."),
+                            "InvalidSourcePath",
+                            ErrorCategory.InvalidArgument,
+                            this));
             }
 
             if (!String.IsNullOrEmpty(DestinationPath))
@@ -182,25 +215,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void EndProcessing()
         {
             // Returns the name of the file or the name of the directory, depending on path
-            var pkgFileOrDir = new DirectoryInfo(_path);
-            bool isScript = _path.EndsWith(PSScriptFileExt, StringComparison.OrdinalIgnoreCase);
-
             if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine", _path)))
             {
                 WriteVerbose("ShouldProcess is set to false.");
                 return;
             }
 
-            string resourceFilePath;
             Hashtable parsedMetadata;
-            if (isScript)
+            if (resourceType == ResourceType.Script)
             {
-                resourceFilePath = pkgFileOrDir.FullName;
-
                 // Check that script metadata is valid
                 if (!TryParseScriptMetadata(
                     out parsedMetadata,
-                    resourceFilePath,
+                    pathToScriptFileToPublish,
                     out ErrorRecord[] errors))
                 {
                     foreach (ErrorRecord err in errors)
@@ -211,19 +238,37 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
-                // remove '.ps1' extension from file name
-                _pkgName = pkgFileOrDir.Name.Remove(pkgFileOrDir.Name.Length - 4);
+                _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
             }
             else
             {
-                _pkgName = pkgFileOrDir.Name;
-                resourceFilePath = System.IO.Path.Combine(_path, _pkgName + PSDataFileExt);
+                // parsedMetadata needs to be initialized for modules, will later be passed in to create nuspec
                 parsedMetadata = new Hashtable();
+                if (!string.IsNullOrEmpty(pathToModuleManifestToPublish))
+                {
+                    _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
+                }
+                else {
+                    // directory
+                    // search for module manifest
+                    List<FileInfo> childFiles = new DirectoryInfo(pathToModuleDirToPublish).EnumerateFiles().ToList();
+
+                    foreach (FileInfo file in childFiles)
+                    {
+                        if (file.Name.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
+                        {
+                            pathToModuleManifestToPublish = file.FullName;
+                            _pkgName = System.IO.Path.GetFileNameWithoutExtension(file.Name);
+
+                            break;
+                        }
+                    }
+                }
 
                 // Validate that there's a module manifest
-                if (!File.Exists(resourceFilePath))
+                if (!File.Exists(pathToModuleManifestToPublish))
                 {
-                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", resourceFilePath);
+                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", _path);
                     var ex = new ArgumentException(message);
                     var moduleManifestNotFound = new ErrorRecord(ex, "moduleManifestNotFound", ErrorCategory.ObjectNotFound, null);
                     WriteError(moduleManifestNotFound);
@@ -236,6 +281,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 try
                 {
                     Utils.ValidateModuleManifest(resourceFilePath, out errorMsgs);
+
                 }
                 finally {
                     if (errorMsgs.Length > 0)
@@ -251,22 +297,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Create a temp folder to push the nupkg to and delete it later
             string outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-            if (!Directory.Exists(outputDir))
+            try 
             {
-                try
-                {
-                    Directory.CreateDirectory(outputDir);
-                }
-                catch (Exception e)
-                {
-                    var ex = new ArgumentException(e.Message);
-                    var ErrorCreatingTempDir = new ErrorRecord(ex, "ErrorCreatingTempDir", ErrorCategory.InvalidData, null);
-                    WriteError(ErrorCreatingTempDir);
-
-                    return;
-                }
+                Directory.CreateDirectory(outputDir);
             }
+            catch (Exception e)
+            {
+                var ex = new ArgumentException(e.Message);
+                var ErrorCreatingTempDir = new ErrorRecord(ex, "ErrorCreatingTempDir", ErrorCategory.InvalidData, null);
+                WriteError(ErrorCreatingTempDir);
 
+                return;
+            }
+          
             try
             {
                 // Create a nuspec
@@ -277,8 +320,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     nuspec = CreateNuspec(
                         outputDir: outputDir,
-                        filePath: resourceFilePath,
-                        isScript: isScript,
+                        filePath: (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish,
                         parsedMetadataHash: parsedMetadata,
                         requiredModules: out dependencies);
                 }
@@ -333,33 +375,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
 
-                if (isScript)
+                if (resourceType == ResourceType.Script)
                 {
                     // copy the script file to the temp directory
                     File.Copy(_path, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
                 }
                 else
                 {
-                    // Create subdirectory structure in temp folder
-                    foreach (string dir in System.IO.Directory.GetDirectories(_path, "*", System.IO.SearchOption.AllDirectories))
+                    try
                     {
-                        var dirName = dir.Substring(_path.Length).Trim(_PathSeparators);
-                        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirName));
-                    }
+                        // If path is pointing to a file, get the parent directory, otherwise assumption is that path is pointing to the root directory
+                        string rootModuleDir = !string.IsNullOrEmpty(pathToModuleManifestToPublish) ? new FileInfo(_path).Directory.FullName : _path;
 
-                    // Copy files over to temp folder
-                    foreach (string fileNamePath in System.IO.Directory.GetFiles(_path, "*", System.IO.SearchOption.AllDirectories))
-                    {
-                        var fileName = fileNamePath.Substring(_path.Length).Trim(_PathSeparators);
-
-                        // The user may have a .nuspec defined in the module directory
-                        // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
-                        // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
-                        var newFilePath = System.IO.Path.Combine(outputDir, fileName);
-                        if (!File.Exists(newFilePath))
+                        // Create subdirectory structure in temp folder
+                        foreach (string dir in System.IO.Directory.GetDirectories(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
                         {
-                            System.IO.File.Copy(fileNamePath, newFilePath);
+                            DirectoryInfo dirInfo = new DirectoryInfo(dir);
+                            System.IO.Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirInfo.Name));
                         }
+
+                        // Copy files over to temp folder
+                        foreach (string fileNamePath in System.IO.Directory.GetFiles(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
+                        {
+                            FileInfo fileInfo = new FileInfo(fileNamePath);
+
+                            var newFilePath = System.IO.Path.Combine(outputDir, fileInfo.Name);
+                            // The user may have a .nuspec defined in the module directory
+                            // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
+                            // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
+                            if (!File.Exists(newFilePath))
+                            {
+                                System.IO.File.Copy(fileNamePath, newFilePath);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                       ThrowTerminatingError(new ErrorRecord(
+                           new ArgumentException("Error occured while creating directory to publish: " + e.Message),
+                           "ErrorCreatingDirectoryToPublish",
+                           ErrorCategory.InvalidOperation,
+                           this));
                     }
                 }
 
@@ -418,7 +474,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string CreateNuspec(
             string outputDir,
             string filePath,
-            bool isScript,
             Hashtable parsedMetadataHash,
             out Hashtable requiredModules)
         {
@@ -427,7 +482,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // A script will already have the metadata parsed into the parsedMetadatahash,
             // a module will still need the module manifest to be parsed.
-            if (!isScript)
+            if (resourceType == ResourceType.Module)
             {
                 // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
                 if (!Utils.TryReadManifestFile(
@@ -544,7 +599,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 metadataElementsDictionary.Add("copyright", parsedMetadataHash["copyright"].ToString().Trim());
             }
 
-            string tags = isScript ? "PSScript" : "PSModule";
+            string tags = (resourceType == ResourceType.Script) ? "PSScript" : "PSModule";
             if (parsedMetadataHash.ContainsKey("tags"))
             {
                 if (parsedMetadataHash["tags"] != null)
@@ -884,17 +939,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 FindHelper findHelper = new FindHelper(_cancellationToken, this);
                 bool depPrerelease = depVersion.Contains("-");
 
-                var foundDependencies = findHelper.FindByResourceName(
-                    name: depName,
-                    type: ResourceType.Module,
-                    version: depVersion,
-                    prerelease: depPrerelease,
-                    tag: null,
-                    repository: new[] { repositoryName },
-                    credential: Credential,
-                    includeDependencies: false);
-
-                if (foundDependencies.Count is 0)
+                var repository = new[] { repositoryName };
+                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, depVersion, depPrerelease, null, repository, Credential, false);
+                if (dependencyFound == null || !dependencyFound.Any())
                 {
                     var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);
                     var ex = new ArgumentException(message);
@@ -904,7 +951,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return false;
                 }
             }
-
             return true;
         }
 

@@ -1,6 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
+ms.date: 08/03/2022
 online version:
 schema: 2.0.0
 ---
@@ -13,71 +14,159 @@ Sets information for a registered repository.
 ## SYNTAX
 
 ### NameParameterSet (Default)
+
 ```
-Set-PSResourceRepository [-Name] <String> [-Uri <String>][CredentialInfo <PSCredentialInfo>] [-Trusted] [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository [-Name] <string> [-Uri <string>] [-Trusted] [-Priority <int>]
+ [-CredentialInfo <PSCredentialInfo>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
+
 ```
-Set-PSResourceRepository -Repository <Hashtable[]> [-Priority <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository -Repository <hashtable[]> [-PassThru] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
+
 The Set-PSResourceRepository cmdlet sets information for a registered repository.
 
 ## EXAMPLES
 
 ### Example 1
+
+In this example, the **Uri** for the **PoshTestGallery** repository has been registered. The
+`Set-PSResourceRepository` cmdlet is used to change the **Uri** to a local path. The **PassThru**
+parameter allows you to see the changed repository.
+
 ```powershell
-PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
-PS C:\> Set-PSResourceRepository -Name "PoshTestGallery" -Uri "c:/code/testdir" -PassThru
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PoshTestGallery  file:///c:/code/testdir                        False         50
+Get-PSResourceRepository -Name "PoshTestGallery"
 ```
 
-This example first checks if the PoshTestGallery repository has been registered. We wish to set the `-Uri` value of this repository by running the Set-PSResourceRepository cmdlet with the `-Uri` parameter and a valid Uri scheme Uri. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Uri` of the repository was changed. We also use the `-PassThru` parameter to see the changed repository.
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
+```
+
+```powershell
+Set-PSResourceRepository -Name "PoshTestGallery" -Uri "c:/code/testdir" -PassThru
+```
+
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  file:///c:/code/testdir                        False         50
+```
 
 ### Example 2
+
+This example changes the **Priority** and **Trusted** values of the repository. were changed.
+
+> [!NOTE]
+> The **Uri** value of the default **PSGallery** repository can't be changed.
+
 ```powershell
-PS C:\> Get-PSResourceRepository -Name "PSGallery"
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PSGallery        https://www.powershellgallery.com/api/v2       False         50
-PS C:\> Set-PSResourceRepository -Name "PSGallery" -Priority 25 -Trusted -PassThru
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PSGallery        https://www.powershellgallery.com/api/v2        True         25
+Get-PSResourceRepository -Name "PSGallery"
 ```
 
-This example first checks if the PSGallery repository has been registered. We wish to set the `-Priority` and `-Trusted` values of this repository by running the Set-PSResourceRepository cmdlet with the `-Priority` parameter set to a value between 0 and 50 and by using the `-Trusted` parameter switch. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Priority` and `-Trusted` values of the repository were changed. An important note here is that just for the default PSGallery repository, the `-Uri` value can't be changed/set. We also use the `-PassThru` parameter to see the changed repository.
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PSGallery        https://www.powershellgallery.com/api/v2       False         50
+
+Set-PSResourceRepository -Name "PSGallery" -Priority 25 -Trusted -PassThru
+```
+
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PSGallery        https://www.powershellgallery.com/api/v2        True         25
+```
 
 ### Example 3
+
+This example uses the **Repository** parameter to change values for multiple respositories. The
+parameter takes an array of hashtables. Each hashtable contains information the repository being
+updated.
+
 ```powershell
-PS C:\> Get-PSResourceRepository -Name "*"
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PSGallery        https://www.powershellgallery.com/api/v2       False         50
-        PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
-
-PS C:\> $arrayOfHashtables = @{Name = "PSGallery"; Trusted = $True}, @{Name = "PoshTestGallery"; Uri = "c:/code/testdir"}
-
-PS C:\> Set-PSResourceRepository -Repository $arrayOfHashtables -PassThru
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PSGallery        https://www.powershellgallery.com/api/v2        True         50
-        PoshTestGallery  file:///c:/code/testdir                        False         50
+Get-PSResourceRepository
 ```
 
-This example first checks for all registered repositories. We wish to set the properties for multiple repositories at once (i.e the PSGallery and PoshTestGallery repositories), so we run Set-PSResourceRepository with the `-Repository` parameter. This parameter takes an array of hashtables, where each hashtable contains information for a repository we wish to set information for. We also use the `-PassThru` parameter to see the changed repositories.
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PSGallery        https://www.powershellgallery.com/api/v2       False         50
+PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
+```
+
+```powershell
+$arrayOfHashtables = @{Name = "PSGallery"; Trusted = $True},
+                     @{Name = "PoshTestGallery"; Uri = "c:/code/testdir"}
+Set-PSResourceRepository -Repository $arrayOfHashtables -PassThru
+```
+
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PSGallery        https://www.powershellgallery.com/api/v2        True         50
+PoshTestGallery  file:///c:/code/testdir                        False         50
+```
+
+### Example 4
+
+This example updates a repository with credential information to be retrieved from a registered
+**Microsoft.PowerShell.SecretManagement** vault. You must have the
+**Microsoft.PowerShell.SecretManagement** module install and have a registered vault containing the
+stored secret. The format of the secret must match the requirements of the repository.
+
+```powershell
+$parameters = @{
+    Name = "PoshTestGallery"
+    Uri = "c:/code/testdir"
+    CredentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ('SecretStore', 'TestSecret')
+}
+Set-PSResourceRepository @parameters -PassThru | Select-Object * -ExpandProperty CredentialInfo
+```
+
+```Output
+Name           : PoshTestGallery
+Uri            : file:///c:/code/testdir
+Trusted        : False
+Priority       : 50
+CredentialInfo : Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo
+VaultName      : SecretStore
+SecretName     : TestSecret
+Credential     :
+```
 
 ## PARAMETERS
 
+### -CredentialInfo
+
+A **PSCredentialInfo** object that includes the name of a vault and a secret that is stored in a
+**Microsoft.PowerShell.SecretManagement** store.
+
+```yaml
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo
+Parameter Sets: NameParameterSet
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Name
-Specifies the name of the repository to be set.
+
+Specifies the name of the repository to be modified.
+
+> [!NOTE]
+> The **Uri** value of the default **PSGallery** repository can't be changed.
+
 
 ```yaml
 Type: System.String
@@ -87,16 +176,36 @@ Aliases:
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True (ByValue, ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -PassThru
+
+When specified, displays the successfully registered repository and its information.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Priority
-Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).
+
+Specifies the priority ranking of the repository. Valid priority values range from 0 to 50. Lower
+values have a higher priority ranking. The default value is `50`.
+
+Repositories are searched in priority order (highest first).
 
 ```yaml
 Type: System.Int32
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -106,7 +215,26 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Repository
+
+Specifies an array of hashtables that contain repository information. Use this parameter to register
+multiple repositories at once. Each hashtable can only have keys associated with parameters for
+the **NameParameterSet**.
+
+```yaml
+Type: System.Collections.Hashtable[]
+Parameter Sets: RepositoriesParameterSet
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Trusted
+
 Specifies whether the repository should be trusted.
 
 ```yaml
@@ -116,51 +244,25 @@ Aliases:
 
 Required: False
 Position: Named
-Default value: None
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Uri
-Specifies the location of the repository to be set.
+
+Specifies the location of the repository to be registered. The value must use one of the following
+URI schemas:
+
+- `https://`
+- `http://`
+- `ftp://`
+- `file://`
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: NameParameterSet
 Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-### -CredentialInfo
-Specifies where a credential is stored to access the PSResourceRepository for Find/Install/Update commands.
-Takes a PSCredentialInfo Objects which takes in a vault name and secret name.
-This parameter utilizes the Microsoft.PowerShell.SecretManagement module for interfacing with the stored credential.
-
-`New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("VaultName", "SecretName")`
-
-```yaml
-Type: PSCredentialInfo
-Parameter Sets: NameParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-When specified, displays the succcessfully registered repository and its information
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases: cf
 
 Required: False
 Position: Named
@@ -170,6 +272,7 @@ Accept wildcard characters: False
 ```
 
 ### -Confirm
+
 Prompts you for confirmation before running the cmdlet.
 
 ```yaml
@@ -179,14 +282,14 @@ Aliases: cf
 
 Required: False
 Position: Named
-Default value: None
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -WhatIf
-Shows what would happen if the cmdlet runs.
-The cmdlet is not run.
+
+Shows what would happen if the cmdlet runs. The cmdlet isn't run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -195,13 +298,17 @@ Aliases: wi
 
 Required: False
 Position: Named
-Default value: None
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
@@ -211,8 +318,13 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo (if 'PassThru' parameter used)
+### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo
+
+By default, the cmdlet produces no output. When you use the **PassThru** parameter, the cmdlet
+returns a **PSRepositoryInfo** object.
 
 ## NOTES
 
 ## RELATED LINKS
+
+[Microsoft.PowerShell.SecretManagement](/powershell/utility-modules/secretmanagement/overview)

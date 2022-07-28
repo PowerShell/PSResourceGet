@@ -254,7 +254,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string keyName = "";
             string value = "";
 
-            for (int i = 1; i < commentLines.Length; i++)
+            for (int i = 0; i < commentLines.Length; i++)
             {
                 string line = commentLines[i];
 

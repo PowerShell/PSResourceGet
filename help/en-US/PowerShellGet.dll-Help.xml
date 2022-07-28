@@ -1933,7 +1933,7 @@
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Priority</maml:name>
           <maml:description>
-            <maml:para>Specifies the priority ranking of the repository. Repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40). Has default value of 50.</maml:para>
+            <maml:para>Specifies the priority ranking of the repository. Repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 100, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40). Has default value of 50.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -2406,7 +2406,7 @@ PS C:\&gt; Get-PSResourceRepository
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>IncludeXML</maml:name>
+          <maml:name>IncludeXml</maml:name>
           <maml:description>
             <maml:para>Includes the PowerShellGet metadata XML (used to verify that PowerShellGet has installed a module).</maml:para>
           </maml:description>
@@ -2594,7 +2594,7 @@ PS C:\&gt; Get-PSResourceRepository
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>IncludeXML</maml:name>
+        <maml:name>IncludeXml</maml:name>
         <maml:description>
           <maml:para>Includes the PowerShellGet metadata XML (used to verify that PowerShellGet has installed a module).</maml:para>
         </maml:description>
@@ -2745,7 +2745,7 @@ PS C:\&gt; Get-PSResourceRepository
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 4 --------------------------</maml:title>
-        <dev:code>PS C:\&gt; Save-PSResource Az -IncludeXML</dev:code>
+        <dev:code>PS C:\&gt; Save-PSResource Az -IncludeXml</dev:code>
         <dev:remarks>
           <maml:para>Saves the Az module and includes the PowerShellGet XML metadata</maml:para>
         </dev:remarks>
@@ -2788,7 +2788,7 @@ PS C:\&gt; Get-PSResourceRepository
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Priority</maml:name>
           <maml:description>
-            <maml:para>Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).</maml:para>
+            <maml:para>Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 100, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.Int32</command:parameterValue>
           <dev:type>
@@ -2884,7 +2884,7 @@ PS C:\&gt; Get-PSResourceRepository
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Priority</maml:name>
         <maml:description>
-          <maml:para>Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).</maml:para>
+          <maml:para>Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 100, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.Int32</command:parameterValue>
         <dev:type>
@@ -3026,7 +3026,7 @@ PS C:\&gt; Set-PSResourceRepository -Name "PSGallery" -Priority 25 -Trusted -Pas
         ----             ---                                          -------   --------
         PSGallery        https://www.powershellgallery.com/api/v2        True         25</dev:code>
         <dev:remarks>
-          <maml:para>This example first checks if the PSGallery repository has been registered. We wish to set the `-Priority` and `-Trusted` values of this repository by running the Set-PSResourceRepository cmdlet with the `-Priority` parameter set to a value between 0 and 50 and by using the `-Trusted` parameter switch. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Priority` and `-Trusted` values of the repository were changed. An important note here is that just for the default PSGallery repository, the `-Uri` value can't be changed/set. We also use the `-PassThru` parameter to see the changed repository.</maml:para>
+          <maml:para>This example first checks if the PSGallery repository has been registered. We wish to set the `-Priority` and `-Trusted` values of this repository by running the Set-PSResourceRepository cmdlet with the `-Priority` parameter set to a value between 0 and 100 and by using the `-Trusted` parameter switch. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Priority` and `-Trusted` values of the repository were changed. An important note here is that just for the default PSGallery repository, the `-Uri` value can't be changed/set. We also use the `-PassThru` parameter to see the changed repository.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>

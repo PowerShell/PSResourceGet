@@ -1,64 +1,95 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-online version:
+ms.date: 08/03/2022
+online version:  
 schema: 2.0.0
 ---
 
 # Unregister-PSResourceRepository
 
 ## SYNOPSIS
-Un-registers a repository from the repository store.
+Removes a registered repository from the local machine.
 
 ## SYNTAX
 
-### NameParameterSet
+### __AllParameterSets
+
 ```
-Unregister-PSResourceRepository [-Name] <String[]> [-PassThru][-WhatIf] [-Confirm] [<CommonParameters>]
+Unregister-PSResourceRepository [-Name] <string[]> [-PassThru] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Unregister-PSResourceRepository cmdlet unregisters a repository.
+
+The cmdlet removes a registered repository from the the local machine.
 
 ## EXAMPLES
 
 ### Example 1
-```
-PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
-PS C:\> Unregister-PSResourceRepository -Name "PoshTestGallery"
-PS C:\> Get-PSResourceRepository -Name "PoshTestGallery"
-PS C:\>
 
+In this example removes the `PSGv3` repository from the local machine.
+
+```powershell
+Get-PSResourceRepository
 ```
 
-In this example, we assume the repository "PoshTestGallery" has been previously registered. So when we first run the command to find "PoshTestGallery" it verifies that this repository can be found. Next, we run the command to unregister "PoshTestGallery". Finally, we again run the command to find "PoshTestGallery" but since it was successfully un-registered it cannot be found or retrieved.
+```Output
+Name      Uri                                      Trusted Priority
+----      ---                                      ------- --------
+PSGallery https://www.powershellgallery.com/api/v2 True    10
+Local     file:///D:/PSRepoLocal/                  True    20
+PSGv3     https://www.powershellgallery.com/api/v3 True    50
+```
+
+```powershell
+Unregister-PSResourceRepository -Name PSGv3
+Get-PSResourceRepository
+```
+
+```Output
+Name      Uri                                      Trusted Priority
+----      ---                                      ------- --------
+PSGallery https://www.powershellgallery.com/api/v2 True    10
+Local     file:///D:/PSRepoLocal/                  True    20
+```
 
 ### Example 2
-```
-PS C:\> Get-PSResourceRepository
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
-        PSGallery        https://www.powershellgallery.com/api/v2       False         50
-        psgettestlocal   file:///c:/code/testdir                         True         50
 
-PS C:\> Unregister-PSResourceRepository -Name "PoshTestGallery","psgettestlocal"
-PS C:\> Get-PSResourceRepository
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PSGallery        https://www.powershellgallery.com/api/v2       False         50
+This example shows how to remove multiple registered repositories in a single command. The **Name**
+parameter accepts an array containing the names of the repositories to remove.
 
+```powershell
+Get-PSResourceRepository
 ```
 
-In this example, the command to find all registered repositories is run and the repositories found are displayed. Next, the command to un-register is run with a list of names ("PoshTestGallery", "psgettestlocal") provided for the `-Name` parameter. Finally, the command to find all registered repositories is run again, but this time we can see that "PoshTestGallery" and "psgettestlocal" are not found and displayed as they have been successfully unregistered.
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
+PSGallery        https://www.powershellgallery.com/api/v2       False         50
+psgettestlocal   file:///c:/code/testdir                         True         50
+```
+
+```powershell
+Unregister-PSResourceRepository -Name PoshTestGallery, psgettestlocal
+Get-PSResourceRepository
+```
+
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PSGallery        https://www.powershellgallery.com/api/v2       False         50
+```
 
 ## PARAMETERS
 
 ### -Name
-This parameter takes a String argument, or an array of String arguments. It is the name of the repository to un-register.
+
+The name of one or more repositories to remove.
 
 ```yaml
-Type: String[]
+Type: System.String[]
 Parameter Sets: (All)
 Aliases:
 
@@ -70,10 +101,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Passes the resource installed to the console.
+
+When specified, outputs a **PSRepositoryInfo** object for each repository that is removed.
 
 ```yaml
-Type: SwitchParameter
+Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
 Aliases:
 
@@ -85,10 +117,11 @@ Accept wildcard characters: False
 ```
 
 ### -Confirm
+
 Prompts you for confirmation before running the cmdlet.
 
 ```yaml
-Type: SwitchParameter
+Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
 Aliases: cf
 
@@ -100,11 +133,11 @@ Accept wildcard characters: False
 ```
 
 ### -WhatIf
-Shows what would happen if the cmdlet runs.
-The cmdlet is not run.
+
+Shows what would happen if the cmdlet runs. The cmdlet isn't run.
 
 ```yaml
-Type: SwitchParameter
+Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
 Aliases: wi
 
@@ -116,12 +149,25 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
 ### System.String[]
 
+## OUTPUTS
+
+### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo
+
+By default, the cmdlet doesn't return any objects. When the **PassThru** parameter is used, the
+cmdlet outputs a **PSRepositoryInfo** object for each repository that is removed.
+
 ## NOTES
 
 ## RELATED LINKS
+
+[Register-PSResourceRepository](Register-PSResourceRepository.md)
