@@ -774,7 +774,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var nupkgSHAToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.sha512");
             var nuspecToDelete = Path.Combine(dirNameVersion, pkgIdentity.Id + ".nuspec");
             var nupkgToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg");
-            var nupkgMetadataToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.metadata");
+            var nupkgMetadataToDelete = ".nupkg.metadata";
             var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
             var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
             var packageDirToDelete = Path.Combine(dirNameVersion, "package");
