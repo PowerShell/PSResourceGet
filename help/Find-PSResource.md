@@ -1,134 +1,196 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-online version:
+ms.date: 07/27/2022
 schema: 2.0.0
 ---
 
 # Find-PSResource
 
 ## SYNOPSIS
-Searches for packages from a repository (local or remote), based on `-Name` and other package properties.
+Searches for packages from a repository (local or remote), based on a name or other package
+properties.
 
 ## SYNTAX
 
 ### ResourceNameParameterSet (Default)
-``` PowerShell
-[[-Name] <string[]>] [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+
+```
+Find-PSResource [[-Name] <string[]>] [-Type <ResourceType>] [-Version <string>] [-Prerelease]
+ [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies]
+ [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
-``` PowerShell
-[[-CommandName] <string[]>] [-ModuleName <string[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+
+```
+Find-PSResource -CommandName <string[]> [-Version <string>] [-Prerelease] [-ModuleName <string[]>]
+ [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies]
+ [<CommonParameters>]
 ```
 
 ### DscResourceNameParameterSet
-``` PowerShell
-[[-DscResourceName] <string[]>] [-ModuleName <string[]>] [-Version <string>] [-Prerelease] [-Tag <string[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
 
-### TagParameterSet
-``` PowerShell
-[-Name <string>][-Tag <string[]>] [-Prerelease]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
-
-### TypeParameterSet
-``` PowerShell
-[Name <string>] [-Prerelease]  [-Type <Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]>]
-[-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies] [-WhatIf] [-Confirm] [<CommonParameters>]
+Find-PSResource -DscResourceName <string[]> [-Version <string>] [-Prerelease]
+ [-ModuleName <string[]>] [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>]
+ [-IncludeDependencies] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The `Find-PSResource` cmdlet searches for a package from a repository (local or remote) based on `-Name` or other package properties.
+
+The `Find-PSResource` cmdlet searches for a package from a repository (local or remote) based on a
+name or other package properties.
 
 ## EXAMPLES
 
 ### Example 1
+
+This examples searches PowerShell Gallery for the **PowerShellGet** package. The cmdlet returns the
+highest non-prerelease version.
+
 ```powershell
-PS C:\> Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Repository PSGallery
-        Name                                    Version                         Prerelease   Description
-        ----                                    -------                         ----------   -----------
-        Microsoft.PowerShell.SecretManagement   1.0.0.0                                      This module ...
+Find-PSResource -Name PowerShellGet -Repository PSGallery
 ```
 
-These examples assume that the PSGallery repository is registered and contains the packages we are searching for.
-This examples searches for the package with `-Name` "Microsoft.PowerShell.SecretManagement". It returns the highest non-prerelease version for the package found by searching through the `-Repository` "PSGallery", which at the time of writing this example is version "1.0.0.0".
+```Output
+Name          Version Prerelease Repository Description
+----          ------- ---------- ---------- -----------
+PowerShellGet 2.2.5.0            PSGallery  PowerShell module with commands for discovering, installing, updating and …
+```
 
 ### Example 2
+
+This examples searches PowerShell Gallery for the **PowerShellGet** package, including prerelease
+versions.
+
 ```powershell
-PS C:\> Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Repository PSGallery -Prerelease
-        Name                                    Version                         Prerelease   Description
-        ----                                    -------                         ----------   -----------
-        Microsoft.PowerShell.SecretManagement   1.1.0.0                         preview2     This module ...
+Find-PSResource -Name PowerShellGet -Repository PSGallery -Prerelease
 ```
 
-This examples searches for the package with `-Name` "Microsoft.PowerShell.SecretManagement". It returns the highest version (including considering prerelease versions) for the package found by searching through the specified `-Repository` "PSGallery", which at the time of writing this example is version "1.1.0-preview2".
+```Output
+Name          Version  Prerelease Repository Description
+----          -------  ---------- ---------- -----------
+PowerShellGet 3.0.14.0 beta14     PSGallery  PowerShell module with commands for discovering, installing, updating and…
+```
 
 ### Example 3
+
+This examples searches PowerShell Gallery for the **Microsoft.PowerShell.SecretManagement** package.
+The cmdlet returns all versions that satisfy the specified **Version** range.
+
 ```powershell
-PS C:\> Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "(0.9.0.0, 1.0.0.0]" -Repository PSGallery -Prerelease
-        Name                                    Version                         Prerelease   Description
-        ----                                    -------                         ----------   -----------
-        Microsoft.PowerShell.SecretManagement   0.9.1.0                                      This module ...
-        Microsoft.PowerShell.SecretManagement   1.0.0.0                                      This module ...
+Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "(0.9.0.0, 1.2.0.0]" -Repository PSGallery -Prerelease
 ```
 
-This examples searches for the package with `-Name` "Microsoft.PowerShell.SecretManagement". It returns all versions which satisfy the specified `-Version` range by looking through the specified `-Repository` "PSGallery". At the time of writing this example those satisfying versions are: "0.9.1.0" and "1.0.0.0".
+```Output
+Name                                  Version Prerelease Repository Description
+----                                  ------- ---------- ---------- -----------
+Microsoft.PowerShell.SecretManagement 1.1.2.0            PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.1.1.0            PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.1.0.0            PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.0.0.0            PSGallery  …
+Microsoft.PowerShell.SecretManagement 0.9.1.0            PSGallery  …
+```
 
 ### Example 4
-```powershell
-PS C:\> Find-PSResource -CommandName "Get-TargetResource" -Repository PSGallery
-        Name                                    Version    Prerelease   ModuleName                     Repository
-        ----                                    -------    ----------   ----------                     ----------
-        Get-TargetResource                      3.1.0.0                 xPowerShellExecutionPolicy     PSGallery
-        Get-TargetResource                      1.0.0.4                 WindowsDefender                PSGallery
-        Get-TargetResource                      1.2.0.0                 SystemLocaleDsc                PSGallery
-        Get-TargetResource                      1.0.0.0                 xInternetExplorerHomePage      PSGallery
-        Get-TargetResource                      4.0.1055.0              OctopusDSC                     PSGallery
-        Get-TargetResource                      1.2.0.0                 cRegFile                       PSGallery
-        Get-TargetResource                      1.1.0.0                 cWindowsErrorReporting         PSGallery
-        Get-TargetResource                      1.0.0.0                 cVNIC                          PSGallery
-        Get-TargetResource                      1.1.17.0                supVsts                        PSGallery
 
+This examples searches for all module resources containing the **CommandName** of
+`Get-TargetResource`. The cmdlet returns all the module resources that include the command.
+
+```powershell
+Find-PSResource -CommandName Get-TargetResource -Repository PSGallery |
+    Select-Object -ExpandProperty ParentResource
 ```
 
-This examples searches for all module resources with `-CommandName` "Get-TargetResource" from the `-Repository` PSGallery. It returns all the module resources which include a command named "Get-TargetResource" and also lists the following information for each module resource: version, name (displayed under ModuleName) and repository. To access the rest of the properties of the parent module resource, you can access the `$_.ParentResource` of the PSIncludedResourceInfo object returned from the CommandName parameter set.
+```Output
+Name                       Version    Prerelease Repository Description
+----                       -------    ---------- ---------- -----------
+xPowerShellExecutionPolicy 3.1.0.0               PSGallery  This DSC resource can change the user preference for the W…
+WindowsDefender            1.0.0.4               PSGallery  Windows Defender module allows you to configure Windows De…
+SystemLocaleDsc            1.2.0.0               PSGallery  This DSC Resource allows configuration of the Windows Syst…
+xInternetExplorerHomePage  1.0.0.0               PSGallery  This DSC Resources can easily set an URL for the home page…
+OctopusDSC                 4.0.1127.0            PSGallery  Module with DSC resource to install and configure an Octop…
+cRegFile                   1.2.0.0               PSGallery  DSC resource which is designed to manage large numbers of …
+cWindowsErrorReporting     1.1.0.0               PSGallery  DSC Resource to enable or disable Windows Error Reporting
+cVNIC                      1.0.0.0               PSGallery  DSC Module to create and configuring virutal network adapt…
+supVsts                    1.1.17.0              PSGallery  Dsc module for interfacing with VSTS.
+```
 
 ### Example 5
+
+This examples searches for a module resource with a a specific module with a named command.
+
 ```powershell
-PS C:\> Find-PSResource -CommandName "Get-TargetResource" -ModuleName "SystemLocaleDsc" -Repository PSGallery
-        Name                                    Version    Prerelease   ModuleName                     Repository
-        ----                                    -------    ----------   ----------                     ----------
-        Get-TargetResource                      1.2.0.0                 SystemLocaleDsc                PSGallery
+Find-PSResource -CommandName Get-TargetResource -ModuleName SystemLocaleDsc -Repository PSGallery |
+    Select-Object -ExpandProperty ParentResource
 ```
 
-This examples searches for a module resource with a command named "Get-TargetResource" (via the `-CommandName` parameter), specifically from the module resource "SystemLocaleDsc" (via the `-ModuleName` parameter) from the `-Repository` PSGallery. The "SystemLocaleDsc" resource does indeed include a command named Get-TargetResource so this resource will be returned. The returned object lists the name of the command (displayed under Name) and the following information for the parent module resource: version, name (displayed under ModuleName) and repository. To access the rest of the properties of the parent module resource, you can access the `$_.ParentResource` of the PSIncludedResourceInfo object returned from the CommandName parameter set.
+```Output
+Name            Version Prerelease Repository Description
+----            ------- ---------- ---------- -----------
+SystemLocaleDsc 1.2.0.0            PSGallery  This DSC Resource allows configuration of the Windows System Locale.
+```
 
 ### Example 6
-```powershell
-PS C:\> Find-PSResource -DscResourceName "SystemLocale" -Repository PSGallery
-        Name                                    Version    Prerelease   ModuleName                     Repository
-        ----                                    -------    ----------   ----------                     ----------
-        Get-TargetResource                      8.5.0.0                 ComputerManagementDsc          PSGallery
-        Get-TargetResource                      1.2.0.0                 SystemLocaleDsc                PSGallery
 
+This examples searches for all module resources containing the DSC Resource `SystemLocale`.
+
+```powershell
+Find-PSResource -DscResourceName SystemLocale -Repository PSGallery |
+    Select-Object -ExpandProperty ParentResource
 ```
 
-This examples searches for all module resources with `-DscResourceName` "SystemLocale" from the `-Repository` PSGallery. It returns all the module resources which include a DSC resource named "SystemLocale" and also lists the following information for each module resource: version, name (displayed under ModuleName) and repository. To access the rest of the properties of the parent module resource, you can access the `$_.ParentResource` of the PSIncludedResourceInfo object returned from the DSCResourceName parameter set.
+```Output
+Name                  Version Prerelease Repository Description
+----                  ------- ---------- ---------- -----------
+ComputerManagementDsc 8.5.0.0            PSGallery  DSC resources for configuration of a Windows computer. These DSC r…
+SystemLocaleDsc       1.2.0.0            PSGallery  This DSC Resource allows configuration of the Windows System Local…
+```
 
 ### Example 7
+
+This example searches all registered PSResourceRepositories for resources with names starting with
+`Computer`.
+
 ```powershell
-PS C:\> Find-PSResource -Name *                                   
+Find-PSResource -Name Computer*
 ```
 
-This will search all PSResources from registered PSResourceRepositories.
+```Output
+Name                                              Version Prerelease Repository       Description
+----                                              ------- ---------- ----------       -----------
+ComputerManagementDsc                             8.5.0.0            PSGallery        DSC resources for configuration …
+ComputerManagement                                1.1.2.3            PSGallery        A PowerShell module for working …
+Computer_JoinDomain_Config                        1.0.0.0            PSGalleryScripts This configuration sets the mach…
+Computer_UnjoinDomainAndJoinWorkgroup_Config      1.0.0.0            PSGalleryScripts This example switches the comput…
+Computer_SetComputerDescriptionInWorkgroup_Config 1.0.0.0            PSGalleryScripts This example will set the comput…
+Computer_JoinDomainSpecifyingDC_Config            1.0.0.0            PSGalleryScripts This configuration sets the mach…
+Computer_RenameComputerAndSetWorkgroup_Config     1.0.0.0            PSGalleryScripts This configuration will set the …
+Computer_RenameComputerInDomain_Config            1.0.0.0            PSGalleryScripts This example will change the mac…
+Computer_RenameComputerInWorkgroup_Config         1.0.0.0            PSGalleryScripts This example will set the machin…
+```
 
 ## PARAMETERS
 
+### -CommandName
+
+The name of the command to search for.
+
+```yaml
+Type: System.String[]
+Parameter Sets: CommandNameParameterSet
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Credential
+
 Optional credentials to be used when accessing a repository.
 
 ```yaml
@@ -143,9 +205,26 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -DscResourceName
+
+The name of the DSC Resource to search for.
+
+```yaml
+Type: System.String[]
+Parameter Sets: DscResourceNameParameterSet
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -IncludeDependencies
-When specified, search will return all matched resources along with any resources the matched resources depends on.
-Dependencies are deduplicated.
+
+When specified, search returns all matching resources their dependencies. Dependencies are
+deduplicated.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -154,19 +233,20 @@ Aliases:
 
 Required: False
 Position: Named
-Default value: None
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -ModuleName
-Specifies a module resource package name type to search for.
-Wildcards are supported.
+
+Specifies a module resource package name type to search for. Wildcards are supported.
+
 Not yet implemented.
 
 ```yaml
-Type: System.String
-Parameter Sets: (All)
+Type: System.String[]
+Parameter Sets: CommandNameParameterSet, DscResourceNameParameterSet
 Aliases:
 
 Required: False
@@ -177,22 +257,23 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-Name of a resource or resources to find.
-Accepts wild card character '*'.
+
+Name of a resource to find. NuGet only accepts wildcard character `*`.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: (All)
+Parameter Sets: ResourceNameParameterSet
 Aliases:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
-Accept pipeline input: True (ByPropertyName, ByValue)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: True
 ```
 
 ### -Prerelease
+
 When specified, includes prerelease versions in search results returned.
 
 ```yaml
@@ -202,14 +283,19 @@ Aliases:
 
 Required: False
 Position: Named
-Default value: None
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Repository
-Specifies one or more repository names to search, which can include wildcard.
-If not specified, search will include all currently registered repositories, in order of highest priority, until a repository is found that contains the package.
+
+Specifies one or more repository names to search. Wildcards are supported.
+
+If not specified, search includes all registered repositories, in priority order (highest first),
+until a repository is found that contains the package.
+
+Lower **Priority** values have a higher precedence.
 
 ```yaml
 Type: System.String[]
@@ -224,6 +310,7 @@ Accept wildcard characters: True
 ```
 
 ### -Tag
+
 Filters search results for resources that include one or more of the specified tags.
 
 ```yaml
@@ -239,12 +326,17 @@ Accept wildcard characters: False
 ```
 
 ### -Type
-Specifies one or more resource types to find.
-Resource types supported are: Module, Script, Command, DscResource.
+
+Specifies one or more resource types to find. Resource types supported are:
+
+- `Module`
+- `Script`
+- `Command`
+- `DscResource`
 
 ```yaml
-Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType[]
-Parameter Sets: (All)
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.ResourceType
+Parameter Sets: ResourceNameParameterSet
 Aliases:
 Accepted values: Module, Script, DscResource, Command
 
@@ -256,16 +348,17 @@ Accept wildcard characters: False
 ```
 
 ### -Version
+
 Specifies the version of the resource to be returned. The value can be an exact version or a version
 range using the NuGet versioning syntax.
 
-For more information about NuGet version ranges, see [Package versioning](/nuget/concepts/package-versioning#version-ranges)
+For more information about NuGet version ranges, see
+[Package versioning](/nuget/concepts/package-versioning#version-ranges).
 
 PowerShellGet supports all but the _minimum inclusive version_ listed in the NuGet version range
-documentation. So inputting "1.0.0.0" as the version doesn't yield versions 1.0.0.0 and higher
-(minimum inclusive range). Instead, the values is considered as the required version and yields
-version 1.0.0.0 only (required version). To use the minimum inclusive range, provide `[1.0.0.0, ]` as
-the version range.
+documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum
+inclusive range). Instead, the value is considered to be the required version. To search for a
+minimum inclusive range, use `[1.0.0.0, ]` as the version range.
 
 ```yaml
 Type: System.String
@@ -279,39 +372,12 @@ Accept pipeline input: False
 Accept wildcard characters: True
 ```
 
-### -Confirm
-Prompts you for confirmation before running the cmdlet.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases: cf
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -WhatIf
-Shows what would happen if the cmdlet runs.
-The cmdlet is not run.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases: wi
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
@@ -324,5 +390,3 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## NOTES
 
 ## RELATED LINKS
-
-[<add>](<add>)

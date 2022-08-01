@@ -1,75 +1,121 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-online version:
+ms.date: 07/27/2022
 schema: 2.0.0
 ---
 
 # Uninstall-PSResource
 
 ## SYNOPSIS
-Uninstalls a resource (module or script) that has been installed on the machine via PowerShellGet.
+Uninstalls a resource that was installed using **PowerShellGet**.
 
 ## SYNTAX
 
-### NameParameterSet
+### NameParameterSet (Default)
+
 ```
-Uninstall-PSResource [-Name] <String[]> [-Version <String>] [-Scope <ScopeType>] [-SkipDependencyCheck] [-WhatIf] [<CommonParameters>]
+Uninstall-PSResource [-Name] <string[]> [-Version <string>] [-Prerelease] [-SkipDependencyCheck]
+ [-Scope <ScopeType>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
+
 ```
-Uninstall-PSResource [-InputObject] <PSResourceInfo> [-SkipDependencyCheck] [-WhatIf] [<CommonParameters>]
+Uninstall-PSResource [-InputObject] <PSResourceInfo> [-Prerelease] [-SkipDependencyCheck]
+ [-Scope <ScopeType>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Uninstall-PSResource cmdlet combines the Uninstall-Module, Uninstall-Script cmdlets from V2. 
-It uninstalls a package found in a module or script installation path based on the -Name parameter argument. 
-It does not return an object. 
-Other parameters allow the returned results to be further filtered.
+
+This cmdlet combines the functionality of the `Uninstall-Module` and `Uninstall-Script` cmdlets from
+**PowerShellGet** v2. The cmdlet searches the package installation paths for resources that have the
+**PowerShellGet** XML metadata file. Matching resources are uninstalled from the system.
+
+By default, the cmdlet checks to see whether the resource being removed is a dependency for another
+resource.
 
 ## EXAMPLES
 
 ### Example 1
-```powershell
-PS C:\> Uninstall-PSResource Az
-```
 
-Uninstalls the latest version of the Az module.
+Uninstall the latest version of the **Az** module.
+
+```powershell
+Uninstall-PSResource Az
+```
 
 ### Example 2
-```powershell
-PS C:\> Uninstall-PSResource -name Az -version "1.0.0"
-```
 
-Uninstalls version 1.0.0 of the Az module.
+Uninstall a specific version of the **Az** module.
+
+```powershell
+Uninstall-PSResource -name Az -version "5.0.0"
+```
 
 ### Example 3
-```powershell
-PS C:\> Uninstall-PSResource -name Az -version "(1.0.0, 3.0.0)"
-```
 
-Uninstalls all versions within the specified version range.
+Uninstalls all versions of the **Az** module within the specified version range.
+
+```powershell
+Uninstall-PSResource -name Az -version "(5.0.0, 7.5.0)"
+```
 
 ### Example 4
+
+This example assumes that the following versions of **Az** module are already installed:
+
+- 4.0.1-preview
+- 4.1.0
+- 4.0.2-preview
+
+The `Uninstall-PSResource` cmdlet removes stable and prerelease version that fall within the version
+range specified. Per NuGetVersion rules, a prerelease version is less than a stable version, so
+4.0.1-preview is actually less than the 4.0.1 version in the specified range. Therefore,
+4.0.1-preview isn't removed. Versions 4.1.0 and 4.0.2-preview are removed because they fall within
+the range.
+
 ```powershell
-PS C:\> Uninstall-PSResource -name Az -version "[4.0.1, 4.1.0]"
+Uninstall-PSResource -name Az -version "[4.0.1, 4.1.0]"
 ```
 
-Assume that the following versions are already installed for package Az: 4.0.1-preview, 4.1.0, 4.0.2-preview installed, this will uninstall all versions (stable and prerelease) which fall within the specified version range. Per NuGetVersion rules, a prerelease version is less than a stable version, so 4.0.1-preview is actually less than the 4.0.1 specified version so 4.0.1-preview does not fall within the specified version range and won't be removed. Versions 4.1.0 and 4.0.2-preview do fall in the range and will both be removed.
+### Example 5
 
-### Example 4
+This example assumes that the following versions of **Az** module are already installed:
+
+- 4.0.1-preview
+- 4.1.0
+- 4.0.2-preview
+
+This is the same as the previous example except the **Prerelease** parameter means that only
+prerelease versions are removed. Only version 4.0.2-preview is removed because version 4.0.1-preview
+is outside the range and version 4.1.0 isn't a prerelease version.
+
 ```powershell
-PS C:\> Uninstall-PSResource -name Az -version "[4.0.1, 4.1.0]" -Prerelease
+Uninstall-PSResource -name Az -version "[4.0.1, 4.1.0]" -Prerelease
 ```
-
-Assume that the following versions are already installed for package Az: 4.0.1-preview, 4.1.0, 4.0.2-preview installed. This is the same example as above, except the added `-Prerelease` parameter means only prerelease versions which fall within this range will be removed. Again, per NuGetVersion rules, a prerelease version is less than a stable version, so 4.0.1-preview is actually less than the 4.0.1 specified version. Therefore 4.0.1-preview does not fall within the specified version range and won't be removed. Version 4.1.0 does fall in range however it is not a prerelease version so it will remain installed. Version 4.0.2-preview does fall in the range and is prerelease so it will be removed.
-
 
 ## PARAMETERS
 
+### -InputObject
+
+Used for pipeline input.
+
+```yaml
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
+Parameter Sets: InputObjectParameterSet
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -Name
-Name of a resource or resources that has been installed. Accepts wild card characters.
+
+Name of a resource or resources to remove. Accepts wildcard characters.
 
 ```yaml
 Type: System.String[]
@@ -83,22 +129,24 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: True
 ```
 
-### -Version
-Specifies the version of the resource to be uninstalled.
+### -Prerelease
+
+Indicates that only prerelease version resources should be removed.
 
 ```yaml
-Type: System.String
-Parameter Sets: NameParameterSet
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
 Aliases:
 
 Required: False
 Position: Named
 Default value: None
-Accept pipeline input: True
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Scope
+
 Specifies the scope of the resource to uninstall.
 
 ```yaml
@@ -115,11 +163,38 @@ Accept wildcard characters: False
 ```
 
 ### -SkipDependencyCheck
-Skips check to see if other resources are dependent on the resource being uninstalled.
+
+By default, the cmdlet checks to see whether the resource being removed is a dependency for another
+resource. Using this parameter skips the dependency test.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Version
+
+Specifies the version of the resource to be removed. The value can be an exact version or a version
+range using the NuGet versioning syntax.
+
+For more information about NuGet version ranges, see
+[Package versioning](/nuget/concepts/package-versioning#version-ranges).
+
+PowerShellGet supports all but the _minimum inclusive version_ listed in the NuGet version range
+documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum
+inclusive range). Instead, the value is considered to be the required version. To search for a
+minimum inclusive range, use `[1.0.0.0, ]` as the version range.
+
+```yaml
+Type: System.String
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -129,13 +204,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -InputObject
-Used for pipeline input.
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
 
 ```yaml
-Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
+Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
-Aliases: wi
+Aliases: cf
 
 Required: False
 Position: Named
@@ -145,8 +221,8 @@ Accept wildcard characters: False
 ```
 
 ### -WhatIf
-Shows what would happen if the cmdlet runs.
-The cmdlet is not run.
+
+Shows what would happen if the cmdlet runs. The cmdlet isn't run.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -155,14 +231,26 @@ Aliases: wi
 
 Required: False
 Position: Named
-Default value: None
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+
+## INPUTS
+
+## OUTPUTS
 
 ## NOTES
 
 ## RELATED LINKS
+
+[Package versioning](/nuget/concepts/package-versioning#version-ranges)
+
+[Install-PSResource](Install-PSResource.md)

@@ -1,35 +1,47 @@
 ---
 external help file: PowerShellGet-help.xml
 Module Name: PowerShellGet
-online version: 
+ms.date: 07/27/2022
 schema: 2.0.0
 ---
 
 # New-PSScriptFileInfo
 
 ## SYNOPSIS
-
-Creates a new .ps1 file containing metadata for the script, which is used when publishing a script package.
+The cmdlet creates a new script file, including metadata about the script.
 
 ## SYNTAX
 
 ### __AllParameterSets
 
 ```
-New-PSScriptFileInfo [-FilePath] <String> -Description <String> [-Author <String>] [-CompanyName <String>] [-Copyright <String>] [-ExternalModuleDependencies <String[]>] [-ExternalScriptDependencies <String[]>] [-Force] [-Guid <Guid>] [-IconUri <String>] [-LicenseUri <String>] [-PrivateData <String>] [-ProjectUri <String>] [-ReleaseNotes <String[]>] [-RequiredModules <Hashtable[]>] [-RequiredScripts <String[]>] [-Tags <String[]>] [-Version <String>] [<CommonParameters>]
+New-PSScriptFileInfo [-FilePath] <string> -Description <string> [-Version <string>]
+ [-Author <string>] [-Guid <guid>] [-CompanyName <string>] [-Copyright <string>]
+ [-RequiredModules <hashtable[]>] [-ExternalModuleDependencies <string[]>]
+ [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>]
+ [-ProjectUri <string>] [-LicenseUri <string>] [-IconUri <string>] [-ReleaseNotes <string>]
+ [-PrivateData <string>] [-Force] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 
-The New-PSScriptFileInfo cmdlet creates a .ps1 file containing metadata for the script.
+The cmdlet creates a new script file containing the required metadata needed to publish a script
+package.
 
 ## EXAMPLES
 
-### Example 1: Creating a script with minimum required parameters
+### Example 1: Creating an empty script with minimal information
 
+This example runs the cmdlet using only required parameters. The **FilePath** parameter specifies
+the nane and location of the script. The **Description** parameter provide the description used in
+the comment-based help for the script.
+
+```powershell
+New-PSScriptFileInfo -FilePath ./test_script.ps1 -Description "This is a test script."
+Get-Content ./test_script.ps1
 ```
-PS C:\> New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Description "this is a test script"
-PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
+
+```Output
 <#PSScriptInfo
 
 .VERSION 1.0.0.0
@@ -50,11 +62,11 @@ PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES 
+.EXTERNALMODULEDEPENDENCIES
 
-.REQUIREDSCRIPTS 
+.REQUIREDSCRIPTS
 
-.EXTERNALSCRIPTDEPENDENCIES 
+.EXTERNALSCRIPTDEPENDENCIES
 
 .RELEASENOTES
 
@@ -67,21 +79,36 @@ PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
 <#
 
 .DESCRIPTION
-this is a test script
+This is a test script.
 
 
 #>
-        
-```
-
-This example runs the cmdlet with the only required parameters, the 'FilePath' parameter sets the path the script is to be created and the 'Description' parameter contains the description for the script. The script is successfully created and if the contents of the file are viewed we can see the Description set as well as Author, Guid, and Version (with default values).
-
-### Example 2: Creating a script with RequiredModules, Author, Version and Description parameters
 
 ```
-PS C:\> $requiredModules =  @(@{ModuleName = "PackageManagement"; ModuleVersion = "1.0.0.0" }, @{ModuleName = "PSReadLine"})
-PS C:\> New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script2.ps1" -Description "this is a test script" -Version "2.0.0.0" -Author "janedoe" -RequiredModules $requiredModules
-PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
+
+### Example 2: Creating a script with required modules
+
+This example runs the cmdlet with additional parameters, including **RequiredModules**. The
+**RequiredModules** parameter describes modules required by the script. The parameter takes an array
+of hashtables. The **ModuleName** key in the hashtable is required. You can also include
+**ModuleVersion**, **RequiredVersion**, **MaximumVersion**, or **MinimumVersion** keys.
+
+```powershell
+$parameters = @{
+    FilePath = './test_script2.ps1'
+    Description = 'This is a test script.'
+    Version = '2.0.0.0'
+    Author = 'janedoe'
+    RequiredModules =  @(
+        @{ModuleName = "PackageManagement"; ModuleVersion = "1.0.0.0" },
+        @{ModuleName = "PSReadLine"}
+    )
+}
+New-PSScriptFileInfo @parameters
+Get-Content ./test_script2.ps1
+```
+
+```Output
 <#PSScriptInfo
 
 .VERSION 2.0.0.0
@@ -90,7 +117,7 @@ PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
 
 .AUTHOR janedoe
 
-.COMPANYNAME Jane Corporation
+.COMPANYNAME
 
 .COPYRIGHT
 
@@ -102,11 +129,11 @@ PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES 
+.EXTERNALMODULEDEPENDENCIES
 
-.REQUIREDSCRIPTS 
+.REQUIREDSCRIPTS
 
-.EXTERNALSCRIPTDEPENDENCIES 
+.EXTERNALSCRIPTDEPENDENCIES
 
 .RELEASENOTES
 
@@ -122,30 +149,27 @@ PS C:\> cat "C:\Users\johndoe\MyScripts\test_script.ps1"
 <#
 
 .DESCRIPTION
-this is a test script
+This is a test script.
 
 
 #>
-        
-```
 
-This example runs the cmdlet with the required 'FilePath' and 'Description' parameters, as well as 'Author', 'Version', and 'RequiredModules' parameters. The 'RequiredModules' parameter describes modules required by the script. It is necessary to provide the ModuleName key in the hashtable and if one wishes to specify verion they must also specify ModuleVersion, RequiredVersion, MaximumVersion, or MinimumVersion keys. The script is successfully created and if the contents of the file are viewed we can see the following values are set in the script file: Description, Author, Guid, and Version and RequiredModules.
+```
 
 ## PARAMETERS
 
 ### -Author
 
-The author of the script.
+The name of the author of the script.
 
 ```yaml
 Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -155,14 +179,13 @@ Accept wildcard characters: False
 The name of the company owning the script.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -172,14 +195,13 @@ Accept wildcard characters: False
 The copyright information for the script.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -189,14 +211,13 @@ Accept wildcard characters: False
 The description of the script.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: True
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -206,14 +227,13 @@ Accept wildcard characters: False
 The list of external module dependencies taken by this script.
 
 ```yaml
-Type: String[]
+Type: System.String[]
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -223,99 +243,94 @@ Accept wildcard characters: False
 The list of external script dependencies taken by this script.
 
 ```yaml
-Type: String[]
+Type: System.String[]
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -FilePath
 
-The path the .ps1 script info file will be created at.
+The filename and location where the script is created.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: True
 Position: 0
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Force
 
-If used and the .ps1 file specified at the path exists, it rewrites the file.
+Forces the cmdlet to overwrite any existing file.
 
 ```yaml
-Type: SwitchParameter
+Type: System.Management.Automation.SwitchParameter
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Guid
 
-The GUID for the script.
+The unique identifier for the script in GUID format. If you don't provide a GUID, the cmdlet creates
+a new one automatically.
 
 ```yaml
-Type: Guid
+Type: System.Guid
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: Randomly generated
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -IconUri
 
-The Uri for the icon associated with the script.
+A Uniform Resource Identifier (URI) pointing to the icon associated with the script.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -LicenseUri
 
-The Uri for the license associated with the script.
+The URI pointing to the license agreement file associated with the script.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -325,31 +340,29 @@ Accept wildcard characters: False
 The private data associated with the script.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -ProjectUri
 
-The Uri for the project associated with the script.
+The URI pointing to the project site associated with the script.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -359,31 +372,31 @@ Accept wildcard characters: False
 The release notes for the script.
 
 ```yaml
-Type: String[]
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -RequiredModules
 
-The list of modules required by the script.
+The parameter takes an array of hashtables. The **ModuleName** key in the hashtable is required. You
+can also include **ModuleVersion**, **RequiredVersion**, **MaximumVersion**, or **MinimumVersion**
+keys.
 
 ```yaml
-Type: Hashtable[]
+Type: System.Collections.Hashtable[]
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
 Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -393,67 +406,75 @@ Accept wildcard characters: False
 The list of scripts required by the script.
 
 ```yaml
-Type: String[]
+Type: System.String[]
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
-Required: True (None) False (All)
+Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Tags
 
-The tags associated with the script.
+The tags associated with the script. Tag values are strings that should not contain spaces. For more
+information, see [Tag details][1].
 
 ```yaml
-Type: String[]
+Type: System.String[]
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
-Required: True (None) False (All)
+Required: False
 Position: Named
-Default value: 
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Version
 
-The version of the script.
+The version of the script. If no value is provided **Version** defaults to `1.0.0.0`.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
-Aliases: 
-Accepted values: 
+Aliases:
 
-Required: True (None) False (All)
+Required: False
 Position: Named
-Default value: 
+Default value: 1.0.0.0
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
 ### None
 
-
-
 ## OUTPUTS
 
-### None
+### System.Object
 
 ## NOTES
 
 ## RELATED LINKS
 
+[PowerShellGallery Publishing Guidelines and Best Practices][2]
+
+[Package manifest values that impact the PowerShell Gallery UI][3]
+
+<!-- link references -->
+
+[1]: /powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details
+[2]: /powershell/scripting/gallery/concepts/publishing-guidelines
+[3]: /powershell/scripting/gallery/concepts/package-manifest-affecting-ui
