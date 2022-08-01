@@ -53,7 +53,7 @@ PS C:\> Set-PSResourceRepository -Name "PSGallery" -Priority 25 -Trusted -PassTh
         PSGallery        https://www.powershellgallery.com/api/v2        True         25
 ```
 
-This example first checks if the PSGallery repository has been registered. We wish to set the `-Priority` and `-Trusted` values of this repository by running the Set-PSResourceRepository cmdlet with the `-Priority` parameter set to a value between 0 and 50 and by using the `-Trusted` parameter switch. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Priority` and `-Trusted` values of the repository were changed. An important note here is that just for the default PSGallery repository, the `-Uri` value can't be changed/set. We also use the `-PassThru` parameter to see the changed repository.
+This example first checks if the PSGallery repository has been registered. We wish to set the `-Priority` and `-Trusted` values of this repository by running the Set-PSResourceRepository cmdlet with the `-Priority` parameter set to a value between 0 and 100 and by using the `-Trusted` parameter switch. We run the Get-PSResourceRepository cmdlet again to ensure that the `-Priority` and `-Trusted` values of the repository were changed. An important note here is that just for the default PSGallery repository, the `-Uri` value can't be changed/set. We also use the `-PassThru` parameter to see the changed repository.
 
 ### Example 3
 ```powershell
@@ -92,7 +92,7 @@ Accept wildcard characters: False
 ```
 
 ### -Priority
-Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).
+Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched before a lower ranking priority one, when searching for a repository item across multiple registered repositories. Valid priority values range from 0 to 100, such that a lower numeric value (i.e 10) corresponds to a higher priority ranking than a higher numeric value (i.e 40).
 
 ```yaml
 Type: System.Int32
