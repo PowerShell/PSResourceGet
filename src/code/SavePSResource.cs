@@ -76,7 +76,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Saves the metadata XML file with the resource
         /// </summary>
         [Parameter]
-        public SwitchParameter IncludeXML { get; set; }
+        public SwitchParameter IncludeXml { get; set; }
 
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
@@ -264,7 +264,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 credential: Credential, 
                 noClobber: false, 
                 asNupkg: AsNupkg, 
-                includeXML: IncludeXML, 
+                includeXml: IncludeXml, 
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,

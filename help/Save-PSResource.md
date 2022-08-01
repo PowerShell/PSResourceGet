@@ -15,13 +15,13 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 ### NameParameterSet
 ```
 Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Credential <PSCredential>] [-AsNupkg] [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Credential <PSCredential>] [-AsNupkg] [-IncludeXml] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
 ```
 Save-PSResource [-InputObject] <PSResourceInfo> [-Credential <PSCredential>] [-AsNupkg]
- [-IncludeXML] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-IncludeXml] [-Path <String>] [-TrustRepository] [-SkipDependencyCheck] [-PassThru] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -50,7 +50,7 @@ Saves the Az module as a .nupkg file
 
 ### Example 4
 ```powershell
-PS C:\> Save-PSResource Az -IncludeXML
+PS C:\> Save-PSResource Az -IncludeXml
 ```
 Saves the Az module and includes the PowerShellGet XML metadata
 
@@ -155,7 +155,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeXML
+### -IncludeXml
 Includes the PowerShellGet metadata XML (used to verify that PowerShellGet has installed a module).
 
 ```yaml

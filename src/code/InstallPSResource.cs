@@ -524,7 +524,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 noClobber: NoClobber,
                 credential: pkgCredential,
                 asNupkg: false,
-                includeXML: true,
+                includeXml: true,
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
