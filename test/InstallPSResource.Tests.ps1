@@ -173,6 +173,13 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "5.0.0.0"
     }
 
+    It "Install resource under specified in PSModulePath" {
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName 
+        ($env:PSModulePath).Contains($pkg.InstalledLocation)
+    }
+
     # Windows only
     It "Install resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
