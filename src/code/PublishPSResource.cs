@@ -566,7 +566,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         // defaults to false
-                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["ReleaseNotes"] as string  : "false";
+                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"] : "false";
+
                         metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
 
 
