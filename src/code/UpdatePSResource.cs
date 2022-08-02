@@ -183,7 +183,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 credential: Credential,
                 noClobber: false,
                 asNupkg: false,
-                includeXML: true,
+                includeXml: true,
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
