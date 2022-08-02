@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (string.IsNullOrEmpty(value))
                 {
                     // If the user does not specify a path to save to, use the user's current working directory
-                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(SessionState.Path.CurrentFileSystemLocation).First().Path;
+                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(SessionState.Path.CurrentFileSystemLocation.Path).First().Path;
                 }
                 else {
                     resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
