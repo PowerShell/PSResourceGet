@@ -217,7 +217,7 @@ Describe 'Test Save-PSResource for PSResources' {
     }
 
     It "Save module and include XML metadata file" {
-        Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -IncludeXML -TrustRepository
+        Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -IncludeXml -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
