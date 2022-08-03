@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet-help.xml
 Module Name: PowerShellGet
-ms.date: 07/27/2022
+ms.date: 08/03/2022
+online version:  
 schema: 2.0.0
 ---
 # Test-PSScriptFileInfo

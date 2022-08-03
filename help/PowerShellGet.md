@@ -1,15 +1,18 @@
 ---
 Download Help Link: https://aka.ms/powershell73-help
-Help Version: 3.0.15
+Help Version: 3.0.16
 Locale: en-US
 Module Guid: 1d73a601-4a6c-43c5-ba3f-619b18bbb404
 Module Name: PowerShellGet
-ms.date: 07/27/2022
+ms.date: 08/03/2022
 ---
 
 # PowerShellGet Module
 ## Description
-{{ Fill in the Description }}
+PowerShellGet is a module with commands for discovering, installing, updating and publishing
+PowerShell artifacts like Modules, DSC Resources, Role Capabilities, and Scripts.
+
+This documentation covers the latest preview version PowerShellGet v3.
 
 ## PowerShellGet Cmdlets
 ### [Find-PSResource](Find-PSResource.md)
@@ -22,10 +25,13 @@ Returns modules and scripts installed on the machine via **PowerShellGet**.
 Finds and returns registered repository information.
 
 ### [Install-PSResource](Install-PSResource.md)
-Installs resources (modules and scripts) from a registered repository onto the machine.
+Installs resources from a registered repository.
 
 ### [New-PSScriptFileInfo](New-PSScriptFileInfo.md)
-Creates a new .ps1 file containing metadata for the script, which is used when publishing a script package.
+The cmdlet creates a new script file, including metadata about the script.
+
+### [PowerShellGet](PowerShellGet.md)
+{{ Fill in the Description }}
 
 ### [Publish-PSResource](Publish-PSResource.md)
 Publishes a specified module from the local computer to PSResource repository.
@@ -40,19 +46,19 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 Sets information for a registered repository.
 
 ### [Test-PSScriptFileInfo](Test-PSScriptFileInfo.md)
-Tests a .ps1 file at the specified path to ensure it is valid.
+Tests the comment-based metadata in a `.ps1` file to ensure it's valid for publication.
 
 ### [Uninstall-PSResource](Uninstall-PSResource.md)
-Uninstalls a resource (module or script) that has been installed on the machine via PowerShellGet.
+Uninstalls a resource that was installed using **PowerShellGet**.
 
 ### [Unregister-PSResourceRepository](Unregister-PSResourceRepository.md)
-Un-registers a repository from the repository store.
+Removes a registered repository from the local machine.
 
 ### [Update-ModuleManifest](Update-ModuleManifest.md)
 Updates a module manifest file.
 
 ### [Update-PSResource](Update-PSResource.md)
-Updates a package already installed on the user's machine.
+Downloads and installs the newest version of a package already installed on the local machine.
 
 ### [Update-PSScriptFileInfo](Update-PSScriptFileInfo.md)
-Updates an existing .ps1 file with requested properties and ensures it's valid
+This cmdlet updates the comment-based metadata in an existing script `.ps1` file.
