@@ -57,4 +57,18 @@ Describe "Test Test-PSScriptFileInfo" {
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $false
     }
+
+    It "determine script without empty lines in PSScriptInfo comment content is valid" {
+        $scriptName = "ScriptWithoutEmptyLinesInMetadata.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true        
+    }
+
+    It "determine script without empty lines between comment blocks is valid" {
+        $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true        
+    }
 }
