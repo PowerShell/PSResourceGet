@@ -17,7 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// The Save-PSResource cmdlet saves a resource to a machine.
     /// It returns nothing.
     /// </summary>
-    [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
+    [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Low)]
     public sealed class SavePSResource : PSCmdlet
     {
         #region Members
