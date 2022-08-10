@@ -168,7 +168,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // determine if existing repository node (which we wish to update) had Url to Uri attribute
                 Uri thisUrl = null;
-                if (repoUri != null)
+                /*if (repoUri != null)
                 {
                     if (urlAttributeExists)
                     {
@@ -188,7 +188,28 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
                         }
                     }
+                }*/
+
+                if (urlAttributeExists) {
+                    if (repoUri != null) {
+                        node.Attribute("Url").Value = repoUri.AbsoluteUri;
+                    }
+                    if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
+                    {
+                        throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
+                    }
                 }
+                else {
+                    if (repoUri != null) {
+                        node.Attribute("Uri").Value = repoUri.AbsoluteUri;
+                    }
+                    if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
+                    {
+                        throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
+                    }
+                }
+
+                
 
 
 
