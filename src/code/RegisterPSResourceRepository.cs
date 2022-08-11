@@ -147,15 +147,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(errorRecord);
                     }
 
-                    string[] errorMsgs;
                     try
                     {
-                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, CredentialInfo, Force, this, out errorMsgs));
+                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, CredentialInfo, Force, this, out string errorMsg));
 
-                        if (errorMsgs.Length > 0)
+                        if (!string.IsNullOrEmpty(errorMsg))
                         {
                             ThrowTerminatingError(new ErrorRecord(
-                                new PSInvalidOperationException(errorMsgs[0]),
+                                new PSInvalidOperationException(errorMsg),
                                 "RepositoryCredentialSecretManagementUnavailableModule",
                                 ErrorCategory.ResourceUnavailable,
                                 this));
@@ -228,12 +227,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 repoCredentialInfo: null, 
                 Force, 
                 this, 
-                out string[] errorMsgs);
+                out string errorMsg);
 
-            if (errorMsgs.Length > 0)
+            if (!string.IsNullOrEmpty(errorMsg))
             {
                 ThrowTerminatingError(new ErrorRecord(
-                    new PSInvalidOperationException(errorMsgs[0]),
+                    new PSInvalidOperationException(errorMsg),
                     "RepositoryCredentialSecretManagementUnavailableModule",
                     ErrorCategory.ResourceUnavailable,
                     this));
@@ -350,12 +349,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repoCredentialInfo,
                     Force,
                     this,
-                    out string[] errorMsgs);
+                    out string errorMsg);
 
-                if (errorMsgs.Length > 0)
+                if (!string.IsNullOrEmpty(errorMsg))
                 {
                     ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException(errorMsgs[0]),
+                        new PSInvalidOperationException(errorMsg),
                         "RepositoryCredentialSecretManagementUnavailableModule",
                         ErrorCategory.ResourceUnavailable,
                         this));

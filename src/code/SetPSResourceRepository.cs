@@ -129,12 +129,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             DefaultPriority,
                             CredentialInfo,
                             this,
-                            out string[] errorMsgs));
+                            out string errorMsg));
 
-                        if (errorMsgs.Length > 0)
+                        if (!string.IsNullOrEmpty(errorMsg))  
                         {
                             ThrowTerminatingError(new ErrorRecord(
-                                new PSInvalidOperationException(errorMsgs[0]),
+                                new PSInvalidOperationException(errorMsg),
                                 "RepositoryCredentialSecretManagementUnavailableModule",
                                 ErrorCategory.ResourceUnavailable,
                                 this));
@@ -259,12 +259,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     DefaultPriority,
                     repoCredentialInfo,
                     this,
-                    out string[] errorMsgs);
+                    out string errorMsg);
 
-                if (errorMsgs.Length > 0)
+                if (!string.IsNullOrEmpty(errorMsg))
                 {
                     ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException(errorMsgs[0]),
+                        new PSInvalidOperationException(errorMsg),
                         "RepositoryCredentialSecretManagementUnavailableModule",
                         ErrorCategory.ResourceUnavailable,
                         this));
