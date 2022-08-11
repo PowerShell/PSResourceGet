@@ -168,29 +168,32 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // determine if existing repository node (which we wish to update) had Url or Uri attribute
                 Uri thisUrl = null;
-                if (urlAttributeExists) {
-                    if (repoUri != null) {
-                        node.Attribute("Url").Value = repoUri.AbsoluteUri;
-                    }
-                    if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
+                if (urlAttributeExists) 
+                {
+                    Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
+
+                    if (repoUri != null) 
                     {
-                        throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
+                        if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
+                        {
+                            throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
+                        }
+                        node.Attribute("Url").Value = thisUrl.AbsoluteUri;
+                    } 
+                }
+                else 
+                {
+                    Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl);
+
+                    if (repoUri != null) 
+                    {
+                        if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
+                        {
+                            throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
+                        }
+                        node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
                     }
                 }
-                else {
-                    if (repoUri != null) {
-                        node.Attribute("Uri").Value = repoUri.AbsoluteUri;
-                    }
-                    if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
-                    {
-                        throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
-                    }
-                }
-
-                
-
-
-
 
                 // A negative Priority value passed in signifies the Priority value was not attempted to be set.
                 // So only set Priority attribute if non-null value passed in for repoPriority
