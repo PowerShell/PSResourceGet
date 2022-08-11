@@ -69,6 +69,17 @@ Describe "Test Set-PSResourceRepository" {
         $res.CredentialInfo | Should -BeNullOrEmpty
     }
 
+    It "set repository given pipeline input ValueFromPipelineByPropertyName passed in" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        Get-PSResourceRepository -Name $TestRepoName1 | Set-PSResourceRepository -Trusted
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+        $res.Name | Should -Be $TestRepoName1
+        $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
+        $res.Priority | Should -Be 50
+        $res.Trusted | Should -Be True
+        $res.CredentialInfo | Should -BeNullOrEmpty
+    }
+
     It "set repository given Name and CredentialInfo parameters" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Set-PSResourceRepository -Name $TestRepoName1 -CredentialInfo $credentialInfo1
