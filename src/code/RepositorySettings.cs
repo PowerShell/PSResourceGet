@@ -143,7 +143,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string[] errorMsgs)
         {
-            var tempErrors = new List<string>() { };
+            var tempErrors = new List<string>();
 
             if (repoUri != null && !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
             {
