@@ -2,7 +2,7 @@
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -259,7 +259,9 @@ Accept wildcard characters: False
 
 ### -Name
 
-Name of a resource to find. NuGet only accepts wildcard character `*`.
+Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet
+does not support wildcard searches of local (file-based) repositories.
+
 
 ```yaml
 Type: System.String[]
@@ -353,8 +355,8 @@ Accept wildcard characters: False
 Specifies the version of the resource to be returned. The value can be an exact version or a version
 range using the NuGet versioning syntax.
 
-For more information about NuGet version ranges, see
-[Package versioning](/nuget/concepts/package-versioning#version-ranges).
+Wildcards are supported but NuGet only accepts wildcard character `*`. For more information about
+NuGet version ranges, see [Package versioning](/nuget/concepts/package-versioning#version-ranges).
 
 PowerShellGet supports all but the _minimum inclusive version_ listed in the NuGet version range
 documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum

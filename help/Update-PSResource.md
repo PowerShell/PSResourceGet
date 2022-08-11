@@ -2,7 +2,7 @@
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -130,7 +130,9 @@ Accept wildcard characters: False
 
 ### -Name
 
-Specifies the name of one or more resources to update.
+Specifies the name of one or more resources to update. Wildcards are supported but NuGet only
+accepts the `*` character. NuGet does not support wildcard searches of local (file-based)
+repositories.
 
 ```yaml
 Type: System.String[]

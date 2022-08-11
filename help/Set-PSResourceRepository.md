@@ -2,7 +2,7 @@
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -16,14 +16,14 @@ Sets information for a registered repository.
 ### NameParameterSet (Default)
 
 ```
-Set-PSResourceRepository [-Name] <string> [-Uri <string>] [-Trusted] [-Priority <int>] 
+Set-PSResourceRepository [-Name] <string> [-Uri <string>] [-Trusted] [-Priority <int>]
  [-CredentialInfo <PSCredentialInfo>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
 
 ```
-Set-PSResourceRepository -Repository <hashtable[]> [-PassThru] [-WhatIf] [-Confirm] 
+Set-PSResourceRepository -Repository <hashtable[]> [-PassThru] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
 
@@ -176,7 +176,7 @@ Aliases:
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 

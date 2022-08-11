@@ -2,7 +2,7 @@
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -65,7 +65,7 @@ Accept wildcard characters: False
 
 ### -Credential
 
-Specifies a user account that has rights to a specific repository (used for finding dependencies).
+Specifies a user account that has rights to a specific repository.
 
 ```yaml
 Type: System.Management.Automation.PSCredential

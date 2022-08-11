@@ -2,7 +2,7 @@
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -646,6 +646,16 @@ Accept wildcard characters: False
 Specifies modules that must be in the global session state. If the required modules aren't in the
 global session state, PowerShell imports them. If the required modules aren't available, the
 `Import-Module` command fails.
+
+The value can be an array containing module names or module specifications. A module specification
+is a hashtable that has the following keys.
+
+- **ModuleName** - Required Specifies the module name.
+- **GUID** - Optional Specifies the GUID of the module.
+- One of these three version key is Required. These keys can't be used together.
+  - **ModuleVersion** - Specifies a minimum acceptable version of the module.
+  - **RequiredVersion** - Specifies an exact, required version of the module.
+  - **MaximumVersion** - Specifies the maximum acceptable version of the module.
 
 ```yaml
 Type: System.Object[]

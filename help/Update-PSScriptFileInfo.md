@@ -2,7 +2,7 @@
 external help file: PowerShellGet-help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -315,9 +315,15 @@ Accept wildcard characters: False
 
 ### -RequiredModules
 
-The parameter takes an array of hashtables. The **ModuleName** key in the hashtable is required. You
-can also include **ModuleVersion**, **RequiredVersion**, **MaximumVersion**, or **MinimumVersion**
-keys.
+The parameter takes an array of module specification hashtables. A module specification is a
+hashtable that has the following keys.
+
+- **ModuleName** - Required Specifies the module name.
+- **GUID** - Optional Specifies the GUID of the module.
+- One of these three version key is Required. These keys can't be used together.
+  - **ModuleVersion** - Specifies a minimum acceptable version of the module.
+  - **RequiredVersion** - Specifies an exact, required version of the module.
+  - **MaximumVersion** - Specifies the maximum acceptable version of the module.
 
 ```yaml
 Type: System.Collections.Hashtable[]
