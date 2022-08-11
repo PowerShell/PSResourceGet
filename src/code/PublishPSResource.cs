@@ -561,13 +561,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             metadataElementsDictionary.Add("iconUrl", iconUri.Trim());
                         }
 
-                        if (psData.ContainsKey("releasenotes") && psData["releasenotes"] is string releaseNotes)
+                        if (psData.ContainsKey("releasenotes"))
                         {
-                            metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                            if (psData["releasenotes"] is string releaseNotes)
+                            {
+                                metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                            }
+                            else if (psData["releasenotes"] is string[] releaseNotesArr)
+                            {
+                                metadataElementsDictionary.Add("releaseNotes", string.Join("\n", releaseNotesArr));
+                            }
                         }
 
                         // defaults to false
-                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"] : "false";
+                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString() : "false";
 
                         metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
 
