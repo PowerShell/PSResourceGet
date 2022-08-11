@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-online version:
+ms.date: 08/03/2022
+online version:  
 schema: 2.0.0
 ---
 
@@ -12,69 +13,88 @@ Finds and returns registered repository information.
 
 ## SYNTAX
 
+### __AllParameterSets
+
 ```
-Get-PSResourceRepository [[-Name] <String[]>] [<CommonParameters>]
+Get-PSResourceRepository [[-Name] <string[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-PSResourceRepository cmdlet searches for the PowerShell resource repositories that are registered on the machine. By default it will return all registered repositories, or if the `-Name` parameter argument is specified then it will return the repository which matches that name. It returns PSRepositoryInfo objects which contain information for each repository item found.
+
+This cmdlet searches for PowerShell resource repositories that are registered on the machine. By
+default, it returns all registered repositories.
 
 ## EXAMPLES
 
 ### Example 1
-```
-PS C:\> Get-PSResourceRepository -Name "PSGallery"
-        Name         Uri                                        Trusted   Priority
-        ----         ---                                        -------   --------
-        PSGallery    https://www.powershellgallery.com/api/v2     False         50
+
+This example returns all the repositories registered on the machine.
+
+```powershell
+Get-PSResourceRepository
 ```
 
-This example runs the command with the 'Name' parameter being set to "PSGallery". This repository is registered on this machine so the command returns information on this repository.
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
+PSGallery        https://www.powershellgallery.com/api/v2       False         50
+psgettestlocal   file:///c:/code/testdir                         True         50
+```
 
 ### Example 2
-```
-PS C:\> Get-PSResourceRepository -Name "*Gallery"
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
-        PSGallery        https://www.powershellgallery.com/api/v2       False         50
 
+This example uses the **Name** parameter to get a specific repository.
+
+```powershell
+Get-PSResourceRepository -Name PSGallery
 ```
 
-This example runs the command with the 'Name' parameter being set to "*Gallery" which includes a wildcard. The following repositories are registered on this machine and match the name pattern, so the command returns information on these repositories.
+```Output
+Name         Uri                                        Trusted   Priority
+----         ---                                        -------   --------
+PSGallery    https://www.powershellgallery.com/api/v2     False         50
+```
 
 ### Example 3
-```
-PS C:\> Get-PSResourceRepository -Name "PSGallery","PoshTestGallery"
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
-        PSGallery        https://www.powershellgallery.com/api/v2       False         50
 
+This example uses the **Name** parameter to get all repositories that end with `Gallery`.
+
+```powershell
+Get-PSResourceRepository -Name "*Gallery"
 ```
 
-This example runs the command with the 'Name' parameter being set to an array of Strings. Both of the specified repositories are registered on this machine and match the name pattern, so the command returns information on these repositories.
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
+PSGallery        https://www.powershellgallery.com/api/v2       False         50
+```
 
 ### Example 4
-```
-PS C:\> Get-PSResourceRepository -Name "*"
-        Name             Uri                                          Trusted   Priority
-        ----             ---                                          -------   --------
-        PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
-        PSGallery        https://www.powershellgallery.com/api/v2       False         50
-        psgettestlocal   file:///c:/code/testdir                         True         50
 
+This example uses the **Name** parameter to get a list of named respositories.
+
+```powershell
+Get-PSResourceRepository -Name "PSGallery","PoshTestGallery"
 ```
 
-This example runs the command with the 'Name' parameter being set to a single wildcard character. So all the repositories registered on this machine are returned.
+```Output
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
+PSGallery        https://www.powershellgallery.com/api/v2       False         50
+```
 
 ## PARAMETERS
 
 ### -Name
-This parameter takes a String argument, including wildcard characters, or an array of such String arguments. It is used to search for repository names from the repository store which match the provided name pattern. Tab completion is provided on this argument and will display registered repository names.
+
+The name of the repository to search for. Wildcards are supported. Tab completion for this parameter
+cycles through the registered repository names.
 
 ```yaml
-Type: String[]
+Type: System.String[]
 Parameter Sets: (All)
 Aliases:
 
@@ -86,7 +106,11 @@ Accept wildcard characters: True
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
@@ -97,6 +121,5 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo
 
 ## NOTES
-If no value for Name is provided, Get-PSResourceRepository will return information for all registered repositories.
 
 ## RELATED LINKS
