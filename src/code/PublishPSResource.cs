@@ -545,7 +545,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             version = string.Format(@"{0}-{1}", version, preReleaseVersion);
                         }
 
-                        if (psData.ContainsKey("licenseUri") && psData["licenseuri"] is string licenseUri)
+                        if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
+
                         {
                             metadataElementsDictionary.Add("license", licenseUri.Trim());
                         }
