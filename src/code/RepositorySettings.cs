@@ -166,7 +166,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // A null Uri (or Url) value passed in signifies the Uri was not attempted to be set.
                 // So only set Uri attribute if non-null value passed in for repoUri
 
-                // determine if existing repository node (which we wish to update) had Url to Uri attribute
+                // determine if existing repository node (which we wish to update) had Url or Uri attribute
                 Uri thisUrl = null;
                 if (urlAttributeExists) {
                     if (repoUri != null) {
