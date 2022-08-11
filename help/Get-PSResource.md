@@ -1,6 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
+ms.date: 08/03/2022
 online version:
 schema: 2.0.0
 ---
@@ -8,98 +9,151 @@ schema: 2.0.0
 # Get-PSResource
 
 ## SYNOPSIS
-Returns resources (modules and scripts) installed on the machine via PowerShellGet.
+Returns modules and scripts installed on the machine via **PowerShellGet**.
 
 ## SYNTAX
 
+### __AllParameterSets
+
 ```
-Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-Scope <ScopeType>] [<CommonParameters>]
+Get-PSResource [[-Name] <string[]>] [-Version <string>] [-Path <string>] [-Scope <ScopeType>]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-PSResource cmdlet combines the Get-InstalledModule, Get-InstalledScript cmdlets from V2. It performs a search within module or script installation paths based on the -Name parameter argument. It returns PSResourceInfo objects which describes each resource item found. Other parameters allow the returned results to be filtered by version and path.
+
+This cmdlet searches the module and script installation paths and returns **PSResourceInfo** objects
+that describes each resource item found. This is equivalent to the combined output of the
+`Get-InstalledModule` and `Get-InstalledScript` cmdlets from **PowerShellGet** v2.
 
 ## EXAMPLES
 
 ### Example 1
-```powershell
-PS C:\> Get-PSResource Az
-```
 
-This will return versions (stable and prerelease) of the Az module installed via PowerShellGet.
+This example return all versions of modules and scripts installed on the machine.
+
+```powershell
+Get-PSResource
+```
 
 ### Example 2
-```powershell
-PS C:\> Get-PSResource Az -version "1.0.0"
-```
 
-This will return version 1.0.0 of the Az module.
+This example returns all versions of the **Az** module installed using **PowerShellGet**.
+
+```powershell
+Get-PSResource Az
+```
 
 ### Example 3
-```powershell
-PS C:\> Get-PSResource Az -version "(1.0.0, 3.0.0)"
-```
 
-This will return all versions of the Az module within the specified range.
+This example return all versions of the **Az** module installed in the current directory.
+
+```powershell
+Get-PSResource Az -Path .
+```
 
 ### Example 4
-```powershell
-PS C:\> Get-PSResource Az -version "4.0.1-preview"
-```
 
-Assume that the package Az version 4.0.1-preview is already installed. This will return version 4.0.1-preview of the Az module.
+This example returns a specific version of the Az module if it's installed on the system..
+
+```powershell
+Get-PSResource Az -Version 1.0.0
+```
 
 ### Example 5
+
+This example return all installed versions of the Az module within the specified version range.
+
 ```powershell
-PS C:\> Get-PSResource Az -version "4.0.1"
+Get-PSResource Az -Version "(1.0.0, 3.0.0)"
 ```
-Assume that the package Az version 4.0.1-preview is already installed. This will not return Az version 4.0.1-preview as the full version (including prerelease label, i.e "4.0.1-preview") was not specified.
 
 ### Example 6
+
+This example returns a specific preview version of the **PowerShellGet** module if it's installed
+on the system.
+
 ```powershell
-PS C:\> Get-PSResource Az -Version "[4.0.1, 4.0.2-preview]
+Get-PSResource PowerShellGet -Version 3.0.14-beta14
 ```
 
-Assume that the following versions are already installed for package Az: 4.0.1-preview and 4.0.2-preview. This will only return version 4.0.2-preview as it is the only one which falls within the specified version range. Per NuGetVersion rules, a prerelease version is less than a stable version, so 4.0.1-preview is less than the 4.0.1 specified version so 4.0.1-preview does not fall within the specified version range and won't be returned.
-
+```Output
+Name          Version Prerelease Repository Description
+----          ------- ---------- ---------- -----------
+PowerShellGet 3.0.14  beta14     PSGallery  PowerShell module with commands for discovering, installing, updating and …
+```
 
 ### Example 6
+
+The previous example showed that **PowerShellGet** version 3.0.14-beta14 was installed on the
+system. This example shows that you must provide the full version, including the **Prerelease**
+label to identify the installed module by **Version**.
+
 ```powershell
-PS C:\> Get-PSResource Az -Path .
+Get-PSResource PowerShellGet -Version 3.0.14
 ```
 
-This will return all versions of the Az module that have been installed in the current directory.
+There is no output from this command.
 
 ### Example 7
+
+In this example you see that there are four version of **PSReadLine** installed on the system. The
+second command searches for a range of version between `2.2.0` and `2.3.0`.
+
 ```powershell
-PS C:\> Get-PSResource
+Get-PSResource PSReadLine
 ```
 
-This will return all versions and scripts installed on the machine.
+```Output
+Name       Version Prerelease Repository Description
+----       ------- ---------- ---------- -----------
+PSReadLine 2.2.6              PSGallery  Great command line editing in the PowerShell console host
+PSReadLine 2.2.5              PSGallery  Great command line editing in the PowerShell console host
+PSReadLine 2.2.2              PSGallery  Great command line editing in the PowerShell console host
+PSReadLine 2.2.0   beta4      PSGallery  Great command line editing in the PowerShell console host
+```
+
+```powershell
+Get-PSResource PSReadLine -Version '[2.2.0, 2.3.0]'
+```
+
+```Output
+Name       Version Prerelease Repository Description
+----       ------- ---------- ---------- -----------
+PSReadLine 2.2.6              PSGallery  Great command line editing in the PowerShell console host
+PSReadLine 2.2.5              PSGallery  Great command line editing in the PowerShell console host
+PSReadLine 2.2.2              PSGallery  Great command line editing in the PowerShell console host
+```
+
+According to NuGet version rules a prerelease version is less than a stable version, so
+`2.2.0-beta4` is less than the `2.2.0` version in the specified version range.
 
 ## PARAMETERS
 
 ### -Name
-Name of a resource or resources to find. Accepts wild card characters or a null value.
+
+Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet
+does not support wildcard searches of local (file-based) repositories.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
 Position: 0
 Default value: None
-Accept pipeline input: True
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: True
 ```
 
 ### -Path
+
 Specifies the path to search in.
 
 ```yaml
 Type: System.String
-Parameter Sets: NameParameterSet
+Parameter Sets: (All)
 Aliases:
 
 Required: False
@@ -109,30 +163,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Version
-Specifies the version of the resource to be returned. The value can be an exact version or a version
-range using the NuGet versioning syntax.
-
-For more information about NuGet version ranges, see [Package versioning](/nuget/concepts/package-versioning#version-ranges)
-
-PowerShellGet supports all but the _minimum inclusive version_ listed in the NuGet version range
-documentation. So inputting "1.0.0.0" as the version doesn't yield versions 1.0.0.0 and higher
-(minimum inclusive range). Instead, the values is considered as the required version and yields 
-version 1.0.0.0 only (required version). To use the minimum inclusive range, provide `[1.0.0.0, ]` as 
-the version range.
-
-```yaml
-Type: System.String
-Parameter Sets: NameParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 ### -Scope
+
 Specifies the scope of the resource.
 
 ```yaml
@@ -148,8 +180,37 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Version
+
+Specifies the version of the resource to be returned. The value can be an exact version or a version
+range using the NuGet versioning syntax.
+
+For more information about NuGet version ranges, see
+[Package versioning](/nuget/concepts/package-versioning#version-ranges).
+
+PowerShellGet supports all but the _minimum inclusive version_ listed in the NuGet version range
+documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum
+inclusive range). Instead, the value is considered to be the required version. To search for a
+minimum inclusive range, use `[1.0.0.0, ]` as the version range.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## NOTES
 
