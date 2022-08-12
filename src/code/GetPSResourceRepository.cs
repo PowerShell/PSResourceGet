@@ -16,6 +16,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It returns PSRepositoryInfo objects which describe each resource item found.
     /// </summary>
     [Cmdlet(VerbsCommon.Get, "PSResourceRepository")]
+    [OutputType(typeof(PSRepositoryInfo))]
     public sealed class GetPSResourceRepository : PSCmdlet
     {
         #region Parameters

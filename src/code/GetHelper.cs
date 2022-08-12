@@ -37,6 +37,44 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Public methods
 
+        /// <summary>
+        /// Retrieves package paths from provided search paths for installed packages 
+        /// by name *and* version.
+        /// </summary>
+        public IEnumerable<PSResourceInfo> GetInstalledPackages(
+            IEnumerable<PSResourceInfo> pkgs,
+            List<string> pathsToSearch)
+        {
+            foreach (var pkg in pkgs)
+            {
+                // Filter on specific version.
+                var nugetVersion = new NuGetVersion(pkg.Version);
+                var pkgVersionRange = new VersionRange(
+                    minVersion: nugetVersion,
+                    includeMinVersion: true,
+                    maxVersion: nugetVersion,
+                    includeMaxVersion: true);
+
+                // Search by package name.
+                var foundPkgPaths = FilterPkgPathsByName(
+                    names: new string[] { pkg.Name },
+                    pathsToSearch);
+
+                // Filter by package version.
+                foreach (var pkgPath in FilterPkgPathsByVersion(
+                    versionRange: pkgVersionRange,
+                    dirsToSearch: foundPkgPaths,
+                    selectPrereleaseOnly: false))
+                {
+                    PSResourceInfo returnPkg = OutputPackageObject(pkgPath, _scriptDictionary);
+                    if (returnPkg != null)
+                    {
+                        yield return returnPkg;
+                    }
+                }
+            }
+        }
+
         public IEnumerable<PSResourceInfo> GetPackagesFromPath(
             string[] name,
             VersionRange versionRange,

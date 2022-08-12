@@ -220,6 +220,10 @@ stages:
 
         # en-US
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "en-US") -Dest $signOutPath -Recurse
+        # Copy Notice.txt
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Notice.txt") -Dest $signOutPath
+        # Copy LICENSE
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "LICENSE") -Dest $signOutPath
 
         # NetStandard directory
         $netStandardSignedOutPath = Join-Path -Path $signOutPath -ChildPath "netstandard2.0"
@@ -244,7 +248,7 @@ stages:
           BuildDropPath: $(signOutPath)
           Build_Repository_Uri: 'https://github.com/powershell/powershellget'
           PackageName: 'PowerShellGet'
-          PackageVersion: '3.0.14'
+          PackageVersion: '3.0.16'
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -252,7 +256,7 @@ stages:
         $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
         Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
         Import-Module -Name $modPath -Force
-        #
+        
         $config = Get-PSPackageProjectConfiguration
         $artifactName = "$($config.ModuleName)"
         if ($env:SkipSigning -eq 'True')

@@ -44,7 +44,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// the priority of the repository
         /// </summary>
-        [ValidateRange(0, 50)]
+        [ValidateRange(0, 100)]
         public int Priority { get; }
 
         /// <summary>

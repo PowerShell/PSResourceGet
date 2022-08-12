@@ -24,8 +24,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
         private const string PSGalleryRepoName = "PSGallery";
         private const string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
-        private const int defaultPriority = 50;
-        private const bool defaultTrusted = false;
+        private const int DefaultPriority = 50;
+        private const bool DefaultTrusted = false;
         private const string RepositoryFileName = "PSResourceRepository.xml";
         private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData), "PowerShellGet");

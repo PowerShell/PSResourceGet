@@ -17,7 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// The Save-PSResource cmdlet saves a resource to a machine.
     /// It returns nothing.
     /// </summary>
-    [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
+    [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Low)]
     public sealed class SavePSResource : PSCmdlet
     {
         #region Members
@@ -76,7 +76,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Saves the metadata XML file with the resource
         /// </summary>
         [Parameter]
-        public SwitchParameter IncludeXML { get; set; }
+        public SwitchParameter IncludeXml { get; set; }
 
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
@@ -91,8 +91,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             set
             {
                 string resolvedPath = string.Empty;
-                if (!string.IsNullOrEmpty(value))
+                if (string.IsNullOrEmpty(value))
                 {
+                    // If the user does not specify a path to save to, use the user's current working directory
+                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(SessionState.Path.CurrentFileSystemLocation.Path).First().Path;
+                }
+                else {
                     resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
                 }
 
@@ -154,12 +158,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
-
-            // If the user does not specify a path to save to, use the user's current working directory
-            if (string.IsNullOrWhiteSpace(_path))
-            {
-                _path = SessionState.Path.CurrentLocation.Path;
-            }
 
             _installHelper = new InstallHelper(cmdletPassedIn: this);
         }
@@ -264,7 +262,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 credential: Credential, 
                 noClobber: false, 
                 asNupkg: AsNupkg, 
-                includeXML: IncludeXML, 
+                includeXml: IncludeXml, 
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
