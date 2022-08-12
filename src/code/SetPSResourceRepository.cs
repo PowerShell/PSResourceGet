@@ -74,12 +74,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched
         /// before a lower ranking priority one, when searching for a repository item across multiple registered repositories.
-        /// Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds
+        /// Valid priority values range from 0 to 100, such that a lower numeric value (i.e 10) corresponds
         /// to a higher priority ranking than a higher numeric value (i.e 40).
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
-        [ValidateRange(0, 50)]
+        [ValidateRange(0, 100)]
         public int Priority { get; set; } = DefaultPriority;
 
         /// <summary>

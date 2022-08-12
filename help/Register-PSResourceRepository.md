@@ -178,8 +178,8 @@ Accept wildcard characters: False
 
 ### -Priority
 
-Specifies the priority ranking of the repository. Valid priority values range from 0 to 50. Lower
-values have a higher priority ranking. The default value is `50`.
+Specifies the priority ranking of the repository. Valid priority values range from 0 to 100. Lower
+values have a higher priority ranking. The default value is `100`.
 
 Repositories are searched in priority order (highest first).
 

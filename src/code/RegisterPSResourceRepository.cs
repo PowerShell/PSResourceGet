@@ -29,8 +29,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private readonly string PSGalleryRepoName = "PSGallery";
         private readonly string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
-        private const int defaultPriority = 50;
-        private const bool defaultTrusted = false;
+        private const int DefaultPriority = 50;
+        private const bool DefaultTrusted = false;
         private const string NameParameterSet = "NameParameterSet";
         private const string PSGalleryParameterSet = "PSGalleryParameterSet";
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
@@ -77,13 +77,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the priority ranking of the repository, such that repositories with higher ranking priority are searched
         /// before a lower ranking priority one, when searching for a repository item across multiple registered repositories.
-        /// Valid priority values range from 0 to 50, such that a lower numeric value (i.e 10) corresponds
+        /// Valid priority values range from 0 to 100, such that a lower numeric value (i.e 10) corresponds
         /// to a higher priority ranking than a higher numeric value (i.e 40). Has default value of 50.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = PSGalleryParameterSet)]
-        [ValidateRange(0, 50)]
-        public int Priority { get; set; } = defaultPriority;
+        [ValidateRange(0, 100)]
+        public int Priority { get; set; } = DefaultPriority;
 
         /// <summary>
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
@@ -289,8 +289,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         WriteVerbose("(RepositoriesParameterSet): on repo: PSGallery. Registers PSGallery repository");
                         reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(
-                            repo.ContainsKey("Priority") ? (int)repo["Priority"] : defaultPriority,
-                            repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : defaultTrusted));
+                            repo.ContainsKey("Priority") ? (int)repo["Priority"] : DefaultPriority,
+                            repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : DefaultTrusted));
                     }
                     catch (Exception e)
                     {
@@ -371,8 +371,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteVerbose(String.Format("(RepositoriesParameterSet): on repo: {0}. Registers Name based repository", repo["Name"]));
                 return NameParameterSetHelper(repo["Name"].ToString(),
                     repoUri,
-                    repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
-                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted,
+                    repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
+                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : DefaultTrusted,
                     repoCredentialInfo);
             }
             catch (Exception e)
