@@ -345,8 +345,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 WriteVerbose(String.Format("(RepositoriesParameterSet): on repo: {0}. Registers Name based repository", repo["Name"]));
                 var addedRepo = RepositorySettings.AddRepository(repo["Name"].ToString(),
                     repoUri,
-                    repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : defaultPriority,
-                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : defaultTrusted,
+                    repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
+                    repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : DefaultTrusted,
                     repoCredentialInfo,
                     Force,
                     this,

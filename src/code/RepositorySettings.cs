@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
-                Add(PSGalleryRepoName, psGalleryUri, defaultPriority, defaultTrusted, repoCredentialInfo: null, force: false);
+                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, force: false);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -300,7 +300,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 if (node == null)
                 {
                     bool repoIsTrusted = !(repoTrusted == null || repoTrusted == false);
-                    repoPriority = repoPriority < 0 ? defaultPriority : repoPriority;
+                    repoPriority = repoPriority < 0 ? DefaultPriority : repoPriority;
                     return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, repoCredentialInfo, force:true, cmdletPassedIn, out errorMsg);
                 }
 
