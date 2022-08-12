@@ -168,30 +168,29 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // determine if existing repository node (which we wish to update) had Url or Uri attribute
                 Uri thisUrl = null;
-                if (urlAttributeExists) 
+                if (repoUri != null) 
                 {
-                    Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
-
-                    if (repoUri != null) 
-                    {
-                        if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
+                    if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
                         {
                             throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
                         }
+
+                    if (urlAttributeExists)
+                    {
                         node.Attribute("Url").Value = thisUrl.AbsoluteUri;
-                    } 
+                    }
+                    else{
+                        node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
+                    }
                 }
                 else 
                 {
-                    Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl);
-
-                    if (repoUri != null) 
+                    if (urlAttributeExists)
                     {
-                        if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
-                        {
-                            throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
-                        }
-                        node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
+                        Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl);
+                    }
+                    else{
+                        Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl);
                     }
                 }
 
