@@ -34,7 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the name of the repository to be set.
         /// </sumamry>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string Name { get; set; }

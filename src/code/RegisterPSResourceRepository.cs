@@ -20,7 +20,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [Cmdlet(VerbsLifecycle.Register,
         "PSResourceRepository",
         DefaultParameterSetName = NameParameterSet,
-        SupportsShouldProcess = true)]
+        SupportsShouldProcess = true,
+        ConfirmImpact = ConfirmImpact.Low)]
     public sealed
     class RegisterPSResourceRepository : PSCmdlet
     {

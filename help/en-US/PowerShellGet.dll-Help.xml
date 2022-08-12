@@ -2406,7 +2406,7 @@ PS C:\&gt; Get-PSResourceRepository
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>IncludeXML</maml:name>
+          <maml:name>IncludeXml</maml:name>
           <maml:description>
             <maml:para>Includes the PowerShellGet metadata XML (used to verify that PowerShellGet has installed a module).</maml:para>
           </maml:description>
@@ -2594,7 +2594,7 @@ PS C:\&gt; Get-PSResourceRepository
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>IncludeXML</maml:name>
+        <maml:name>IncludeXml</maml:name>
         <maml:description>
           <maml:para>Includes the PowerShellGet metadata XML (used to verify that PowerShellGet has installed a module).</maml:para>
         </maml:description>
@@ -2745,7 +2745,7 @@ PS C:\&gt; Get-PSResourceRepository
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 4 --------------------------</maml:title>
-        <dev:code>PS C:\&gt; Save-PSResource Az -IncludeXML</dev:code>
+        <dev:code>PS C:\&gt; Save-PSResource Az -IncludeXml</dev:code>
         <dev:remarks>
           <maml:para>Saves the Az module and includes the PowerShellGet XML metadata</maml:para>
         </dev:remarks>
