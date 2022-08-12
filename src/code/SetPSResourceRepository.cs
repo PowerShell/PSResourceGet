@@ -135,8 +135,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             ThrowTerminatingError(new ErrorRecord(
                                 new PSInvalidOperationException(errorMsg),
-                                "RepositoryCredentialSecretManagementUnavailableModule",
-                                ErrorCategory.ResourceUnavailable,
+                                "ErrorInNameParameterSet",
+                                ErrorCategory.InvalidArgument,
                                 this));
                         }
                     }
