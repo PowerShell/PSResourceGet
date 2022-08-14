@@ -263,10 +263,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!string.IsNullOrEmpty(errorMsg))
                 {
-                    ThrowTerminatingError(new ErrorRecord(
+                    WriteError(new ErrorRecord(
                         new PSInvalidOperationException(errorMsg),
-                        "RepositoryCredentialSecretManagementUnavailableModule",
-                        ErrorCategory.ResourceUnavailable,
+                        "ErrorSettingRepository",
+                        ErrorCategory.InvalidData,
                         this));
                 }
 

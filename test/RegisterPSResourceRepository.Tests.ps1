@@ -372,7 +372,7 @@ Describe "Test Register-PSResourceRepository" {
     }
 
     It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
-        { Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementUnavailableModule,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res | Should -BeNullOrEmpty
