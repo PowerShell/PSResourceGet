@@ -105,10 +105,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public PSCredential ProxyCredential { get; set; }
 
         /// <summary>
-        /// When specified, displays the succcessfully registered repository and its information
+        /// When specified, displays the succcessfully registered repository and its information.
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }
+        
+        /// <summary>
+        /// When specified, will overwrite information for any existing repository with the same name.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter Force { get; set; }
 
         #endregion
 
@@ -144,7 +150,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     try
                     {
-                        items.Add(NameParameterSetHelper(Name, _uri, Priority, Trusted, CredentialInfo));
+                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, CredentialInfo, Force, this, out string errorMsg));
+
+                        if (!string.IsNullOrEmpty(errorMsg))
+                        {
+                            ThrowTerminatingError(new ErrorRecord(
+                                new PSInvalidOperationException(errorMsg),
+                                "ErrorInNameParameterSet",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                        }
                     }
                     catch (Exception e)
                     {
@@ -201,71 +216,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private PSRepositoryInfo AddToRepositoryStoreHelper(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
-        {
-            // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
-            repoName = repoName.Trim(' ');
-            if (String.IsNullOrEmpty(repoName) || repoName.Contains("*"))
-            {
-                throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
-            }
-
-            if (repoUri == null || !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
-            {
-                throw new ArgumentException("Invalid Uri, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based");
-            }
-
-            if (repoCredentialInfo != null)
-            {
-                bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, this);
-
-                if (repoCredentialInfo.Credential != null)
-                {
-                    if (!isSecretManagementModuleAvailable)
-                    {
-                        ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException($"Microsoft.PowerShell.SecretManagement module is not found, but is required for saving PSResourceRepository {repoName}'s Credential in a vault."),
-                            "RepositoryCredentialSecretManagementUnavailableModule",
-                            ErrorCategory.ResourceUnavailable,
-                            this));
-                    }
-                    else
-                    {
-                        Utils.SaveRepositoryCredentialToSecretManagementVault(repoName, repoCredentialInfo, this);
-                    }
-                }
-
-                if (!isSecretManagementModuleAvailable)
-                {
-                    WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be found. Make sure it is installed before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
-                }
-            }
-
-            WriteVerbose("All required values to add to repository provided, calling internal Add() API now");
-            if (!ShouldProcess(repoName, "Register repository to repository store"))
-            {
-                return null;
-            }
-
-            return RepositorySettings.Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo);
-        }
-
-        private PSRepositoryInfo NameParameterSetHelper(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
-        {
-            if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
-            {
-                WriteVerbose("Provided Name (NameParameterSet) but with invalid value of PSGallery");
-                throw new ArgumentException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery");
-            }
-
-            return AddToRepositoryStoreHelper(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo);
-        }
 
         private PSRepositoryInfo PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
         {
             Uri psGalleryUri = new Uri(PSGalleryRepoUri);
             WriteVerbose("(PSGallerySet) internal name and uri values for Add() API are hardcoded and validated, priority and trusted values, if passed in, also validated");
-            return AddToRepositoryStoreHelper(PSGalleryRepoName, psGalleryUri, repoPriority, repoTrusted, repoCredentialInfo: null);
+            var addedRepo = RepositorySettings.AddToRepositoryStore(PSGalleryRepoName, 
+                psGalleryUri, 
+                repoPriority, 
+                repoTrusted, 
+                repoCredentialInfo: null, 
+                Force, 
+                this, 
+                out string errorMsg);
+
+            if (!string.IsNullOrEmpty(errorMsg))
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException(errorMsg),
+                    "RepositoryCredentialSecretManagementUnavailableModule",
+                    ErrorCategory.ResourceUnavailable,
+                    this));
+            }
+
+            return addedRepo;
         }
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
@@ -316,7 +290,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private PSRepositoryInfo RepoValidationHelper(Hashtable repo)
         {
-            if (!repo.ContainsKey("Name") || String.IsNullOrEmpty(repo["Name"].ToString()))
+            if (!repo.ContainsKey("Name") || repo["Name"] == null || String.IsNullOrWhiteSpace(repo["Name"].ToString()))
             {
                 WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Repository name cannot be null"),
@@ -336,7 +310,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            if (!repo.ContainsKey("Uri") || String.IsNullOrEmpty(repo["Uri"].ToString()))
+            if (!repo.ContainsKey("Uri") || repo["Uri"] == null || String.IsNullOrEmpty(repo["Uri"].ToString()))
             {
                 WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Repository Uri cannot be null"),
@@ -369,11 +343,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 WriteVerbose(String.Format("(RepositoriesParameterSet): on repo: {0}. Registers Name based repository", repo["Name"]));
-                return NameParameterSetHelper(repo["Name"].ToString(),
+                var addedRepo = RepositorySettings.AddRepository(repo["Name"].ToString(),
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : DefaultTrusted,
-                    repoCredentialInfo);
+                    repoCredentialInfo,
+                    Force,
+                    this,
+                    out string errorMsg);
+
+                if (!string.IsNullOrEmpty(errorMsg))
+                {
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException(errorMsg),
+                        "RegisterRepositoryError",
+                        ErrorCategory.ResourceUnavailable,
+                        this));
+                }
+
+                return addedRepo;
             }
             catch (Exception e)
             {
