@@ -384,7 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     try
                     {
                         // If path is pointing to a file, get the parent directory, otherwise assumption is that path is pointing to the root directory
-                        string rootModuleDir = !string.IsNullOrEmpty(pathToModuleManifestToPublish) ? new FileInfo(resolvedPath).Directory.FullName : resolvedPath;
+                        string rootModuleDir = !string.IsNullOrEmpty(pathToModuleManifestToPublish) ? System.IO.Path.GetDirectoryName(pathToModuleManifestToPublish) : pathToModuleDirToPublish;
 
                         // Create subdirectory structure in temp folder
                         foreach (string dir in System.IO.Directory.GetDirectories(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
