@@ -268,7 +268,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Validate that there's a module manifest
                 if (!File.Exists(pathToModuleManifestToPublish))
                 {
-                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", _path);
+                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", pathToModuleManifestToPublish);
+
                     var ex = new ArgumentException(message);
                     var moduleManifestNotFound = new ErrorRecord(ex, "moduleManifestNotFound", ErrorCategory.ObjectNotFound, null);
                     WriteError(moduleManifestNotFound);
