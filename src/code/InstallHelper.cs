@@ -575,6 +575,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkg.Name, installPath));
                     pkgsSuccessfullyInstalled.Add(pkg);
+
+                    if (!isModule)
+                    {
+                        // Add Scripts install path to Path environment variable so that it can be ran without prepending the path
+                        if (!Environment.GetEnvironmentVariable("PATH").Contains(installPath))
+                        {
+                            // need to add Scripts install path
+                            string currentPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
+                            if (!String.IsNullOrEmpty(currentPathEnvVarValue))
+                            {
+                                Environment.SetEnvironmentVariable("PATH", installPath + ";" + currentPathEnvVarValue, EnvironmentVariableTarget.User);
+                            }
+                            else
+                            {
+                                Environment.SetEnvironmentVariable("PATH", installPath, EnvironmentVariableTarget.User);
+                            }
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
