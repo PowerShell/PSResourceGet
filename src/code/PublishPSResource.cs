@@ -266,7 +266,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Validate that there's a module manifest
                 if (!File.Exists(pathToModuleManifestToPublish))
                 {
-                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", resolvedPath);
+                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", pathToModuleManifestToPublish);
+
                     var ex = new ArgumentException(message);
                     var moduleManifestNotFound = new ErrorRecord(ex, "moduleManifestNotFound", ErrorCategory.ObjectNotFound, null);
                     WriteError(moduleManifestNotFound);
@@ -376,7 +377,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (resourceType == ResourceType.Script)
                 {
                     // copy the script file to the temp directory
-                    File.Copy(resolvedPath, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
+                    File.Copy(pathToScriptFileToPublish, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
+
                 }
                 else
                 {
