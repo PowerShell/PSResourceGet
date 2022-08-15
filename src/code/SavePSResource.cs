@@ -109,6 +109,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _path;
 
+        public string TemporaryPath
+        {
+            get
+            { return _tmpPath; }
+
+            set
+            {
+                string resolvedPath;
+                if (string.IsNullOrEmpty(value))
+                {
+                    // If the user does not specify a path to save to, use the user's default temporary directory
+                    resolvedPath = System.IO.Path.GetTempPath();
+                }
+                else {
+                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+                }
+
+                // Path where resource is saved must be a directory
+                if (Directory.Exists(resolvedPath))
+                {
+                    _tmpPath = resolvedPath;
+                }
+            }
+        }
+        private string _tmpPath;
+
         /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
@@ -266,7 +292,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
-                pathsToInstallPkg: new List<string> { _path });
+                pathsToInstallPkg: new List<string> { _path },
+                tmpPath: _tmpPath);
 
             if (PassThru)
             {
