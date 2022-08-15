@@ -4,11 +4,11 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using MoreLinq;
 using MoreLinq.Extensions;
-using NuGet.Commands;
-using NuGet.Common;
-using NuGet.Configuration;
-using NuGet.Packaging;
-using NuGet.Versioning;
+using NuGet.Commands;   // pack and PUSH
+//using NuGet.Common;    // only the logger
+using NuGet.Configuration;   //  PUSH
+using NuGet.Packaging;  // pack
+using NuGet.Versioning;   // can keep
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -115,7 +115,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Members
 
-        private string _path;
+        private string resolvedPath;
         private CancellationToken _cancellationToken;
         private NuGetVersion _pkgVersion;
         private string _pkgName;
@@ -140,7 +140,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            string resolvedPath = string.Empty;
             try
             {
                 resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
@@ -159,8 +158,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Condition 1: path is to the root directory of the module to be published
             // Condition 2: path is to the .psd1 or .ps1 of the module/script to be published  
-            _path = resolvedPath;
-            if (Directory.Exists(resolvedPath))
+            if (string.IsNullOrEmpty(resolvedPath))
+            {
+                // unsupported file path
+                ThrowTerminatingError(
+                    new ErrorRecord(
+                        new ArgumentException(
+                            "The path to the resource to publish is not in the correct format, point to a path or file of the module or script to publish."),
+                            "InvalidSourcePath",
+                            ErrorCategory.InvalidArgument,
+                            this));
+            }
+            else if (Directory.Exists(resolvedPath))
             {
                 pathToModuleDirToPublish = resolvedPath;
                 resourceType = ResourceType.Module;
@@ -174,17 +183,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 pathToScriptFileToPublish = resolvedPath;
                 resourceType = ResourceType.Script;
-            }
-            else if (string.IsNullOrEmpty(resolvedPath))
-            {
-                // unsupported file path
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                        new ArgumentException(
-                            "The path to the resource to publish is not in the correct format, point to a path or file of the module or script to publish."),
-                            "InvalidSourcePath",
-                            ErrorCategory.InvalidArgument,
-                            this));
             }
 
             if (!String.IsNullOrEmpty(DestinationPath))
@@ -215,7 +213,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void EndProcessing()
         {
             // Returns the name of the file or the name of the directory, depending on path
-            if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine", _path)))
+            if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine", resolvedPath)))
             {
                 WriteVerbose("ShouldProcess is set to false.");
                 return;
@@ -268,7 +266,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Validate that there's a module manifest
                 if (!File.Exists(pathToModuleManifestToPublish))
                 {
-                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", _path);
+                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", resolvedPath);
                     var ex = new ArgumentException(message);
                     var moduleManifestNotFound = new ErrorRecord(ex, "moduleManifestNotFound", ErrorCategory.ObjectNotFound, null);
                     WriteError(moduleManifestNotFound);
@@ -378,14 +376,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (resourceType == ResourceType.Script)
                 {
                     // copy the script file to the temp directory
-                    File.Copy(_path, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
+                    File.Copy(resolvedPath, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
                 }
                 else
                 {
                     try
                     {
                         // If path is pointing to a file, get the parent directory, otherwise assumption is that path is pointing to the root directory
-                        string rootModuleDir = !string.IsNullOrEmpty(pathToModuleManifestToPublish) ? new FileInfo(_path).Directory.FullName : _path;
+                        string rootModuleDir = !string.IsNullOrEmpty(pathToModuleManifestToPublish) ? new FileInfo(resolvedPath).Directory.FullName : resolvedPath;
 
                         // Create subdirectory structure in temp folder
                         foreach (string dir in System.IO.Directory.GetDirectories(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
@@ -968,7 +966,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         Path = nuspecFile,
                         Exclude = System.Array.Empty<string>(),
                         Symbols = false,
-                        Logger = NullLogger.Instance
+                        Logger = null
                     },
                     MSBuildProjectFactory.ProjectCreator,
                     builder);
@@ -1015,7 +1013,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string publishLocation = repoUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase) ? repoUri + "/package" : repoUri;
 
             var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
-            ILogger log = new NuGetLogger();
+           // ILogger log = new NuGetLogger();
             var success = false;
             try
             {
@@ -1032,7 +1030,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         noSymbols: false,
                         noServiceEndpoint: false,  // enable server endpoint
                         skipDuplicate: false, // if true-- if a package and version already exists, skip it and continue with the next package in the push, if any.
-                        logger: log // nuget logger
+                        logger: null // nuget logger
                         ).GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
