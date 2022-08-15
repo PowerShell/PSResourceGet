@@ -280,7 +280,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string[] errorMsgs = null;
                 try
                 {
-                    Utils.ValidateModuleManifest(resourceFilePath, out errorMsgs);
+                    Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out errorMsgs);
 
                 }
                 finally {
