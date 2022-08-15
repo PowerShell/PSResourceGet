@@ -4,11 +4,10 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using MoreLinq;
 using MoreLinq.Extensions;
-using NuGet.Commands;   // pack and PUSH
-//using NuGet.Common;    // only the logger
-using NuGet.Configuration;   //  PUSH
-using NuGet.Packaging;  // pack
-using NuGet.Versioning;   // can keep
+using NuGet.Commands;
+using NuGet.Configuration;
+using NuGet.Packaging;
+using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -408,6 +407,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 System.IO.File.Copy(fileNamePath, newFilePath);
                             }
                         }
+
+
                     }
                     catch (Exception e)
                     {
