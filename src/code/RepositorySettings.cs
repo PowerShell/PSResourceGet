@@ -358,14 +358,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     {
                         if(!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
                         {
-                            throw new PSInvalidOperationException(String.Format("Current 'Url' for repo {0} is an invalid Uri. Fix this so the file is not corrupted.", repoName));
+                            throw new PSInvalidOperationException(String.Format("The 'Url' for repository {0} is invalid and the repository cannot be used. Please update the Url field or remove the repository entry.", repoName));
                         }
                     }
                     else
                     {
                         if(!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
                         {
-                            throw new PSInvalidOperationException(String.Format("Current 'Uri' for repo {0} is an invalid Uri. Fix this so the file is not corrupted.", repoName));
+                            throw new PSInvalidOperationException(String.Format("The 'Url' for repository {0} is invalid and the repository cannot be used. Please update the Url field or remove the repository entry.", repoName));
                         }
                     }
                 }
