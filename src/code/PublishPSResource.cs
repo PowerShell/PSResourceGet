@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using MoreLinq;
 using MoreLinq.Extensions;
 using NuGet.Commands;
+using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging;
 using NuGet.Versioning;
@@ -969,7 +970,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         Path = nuspecFile,
                         Exclude = System.Array.Empty<string>(),
                         Symbols = false,
-                        Logger = null
+                        Logger = NullLogger.Instance
                     },
                     MSBuildProjectFactory.ProjectCreator,
                     builder);
@@ -1016,7 +1017,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string publishLocation = repoUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase) ? repoUri + "/package" : repoUri;
 
             var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
-           // ILogger log = new NuGetLogger();
             var success = false;
             try
             {
@@ -1033,7 +1033,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         noSymbols: false,
                         noServiceEndpoint: false,  // enable server endpoint
                         skipDuplicate: false, // if true-- if a package and version already exists, skip it and continue with the next package in the push, if any.
-                        logger: null // nuget logger
+                        logger: NullLogger.Instance // nuget logger
                         ).GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
