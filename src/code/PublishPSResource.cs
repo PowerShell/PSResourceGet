@@ -493,10 +493,45 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (privateData["PSData"] is Hashtable psData)
                     {
-                        if (psData.ContainsKey("Prerelease") && psData["Prerelease"] is string preReleaseVersion)
+                        if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
                         {
                             version = string.Format(@"{0}-{1}", version, preReleaseVersion);
                         }
+
+                        if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
+
+                        {
+                            metadataElementsDictionary.Add("license", licenseUri.Trim());
+                        }
+
+                        if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
+                        {
+                            metadataElementsDictionary.Add("projectUrl", projectUri.Trim());
+                        }
+
+                        if (psData.ContainsKey("iconuri") && psData["iconuri"] is string iconUri)
+                        {
+                            metadataElementsDictionary.Add("iconUrl", iconUri.Trim());
+                        }
+
+                        if (psData.ContainsKey("releasenotes"))
+                        {
+                            if (psData["releasenotes"] is string releaseNotes)
+                            {
+                                metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                            }
+                            else if (psData["releasenotes"] is string[] releaseNotesArr)
+                            {
+                                metadataElementsDictionary.Add("releaseNotes", string.Join("\n", releaseNotesArr));
+                            }
+                        }
+
+                        // defaults to false
+                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString() : "false";
+
+                        metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
+
+
                         if (psData.ContainsKey("Tags") && psData["Tags"] is Array manifestTags)
                         {
                             var tagArr = new List<string>();
@@ -525,19 +560,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 metadataElementsDictionary.Add("owners", parsedMetadataHash["companyname"].ToString().Trim());
             }
 
-            // defaults to false
-            var requireLicenseAcceptance = parsedMetadataHash.ContainsKey("requirelicenseacceptance") ? parsedMetadataHash["requirelicenseacceptance"].ToString().ToLower().Trim()
-                : "false";
-            metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
-
             if (parsedMetadataHash.ContainsKey("description"))
             {
                 metadataElementsDictionary.Add("description", parsedMetadataHash["description"].ToString().Trim());
-            }
-
-            if (parsedMetadataHash.ContainsKey("releasenotes"))
-            {
-                metadataElementsDictionary.Add("releaseNotes", parsedMetadataHash["releasenotes"].ToString().Trim());
             }
 
             if (parsedMetadataHash.ContainsKey("copyright"))
@@ -555,20 +580,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             metadataElementsDictionary.Add("tags", tags);
 
-            if (parsedMetadataHash.ContainsKey("licenseurl"))
-            {
-                metadataElementsDictionary.Add("licenseUrl", parsedMetadataHash["licenseurl"].ToString().Trim());
-            }
-
-            if (parsedMetadataHash.ContainsKey("projecturl"))
-            {
-                metadataElementsDictionary.Add("projectUrl", parsedMetadataHash["projecturl"].ToString().Trim());
-            }
-
-            if (parsedMetadataHash.ContainsKey("iconurl"))
-            {
-                metadataElementsDictionary.Add("iconUrl", parsedMetadataHash["iconurl"].ToString().Trim());
-            }
 
             // Example nuspec:
             /*
@@ -581,7 +592,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 <owners>Microsoft,PowerShell</owners>
                 <requireLicenseAcceptance>false</requireLicenseAcceptance>
                 <license type="expression">MIT</license>
-                <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+                <license>https://licenses.nuget.org/MIT</license>
                 <icon>Powershell_black_64.png</icon>
                 <projectUrl>https://github.com/PowerShell/PowerShell</projectUrl>
                 <description>Example description here</description>
