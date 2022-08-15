@@ -53,6 +53,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _savePkg;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
+        private string _tmpPath;
 
         #endregion
 
@@ -82,7 +83,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool skipDependencyCheck,
             bool authenticodeCheck,
             bool savePkg,
-            List<string> pathsToInstallPkg)
+            List<string> pathsToInstallPkg,
+            string tmpPath)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXml '{10}'; SavePackage '{11}'",
@@ -113,6 +115,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _includeXml = includeXml;
             _savePkg = savePkg;
             _pathsToInstallPkg = pathsToInstallPkg;
+            _tmpPath = tmpPath;
 
             // Create list of installation paths to search.
             _pathsToSearch = new List<string>();
