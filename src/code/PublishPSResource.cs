@@ -379,7 +379,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (resourceType == ResourceType.Script)
                 {
                     // copy the script file to the temp directory
-                    File.Copy(_path, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
+                    File.Copy(pathToScriptFileToPublish, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
+
                 }
                 else
                 {
