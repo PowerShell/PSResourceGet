@@ -23,7 +23,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
-        public string FilePath { get; set; }
+        public string Path { get; set; }
 
         /// <summary>
         /// The version of the script.
@@ -177,7 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(iconErrorRecord);
             }
 
-            if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
                 var ex = new ArgumentException(exMessage);
@@ -185,8 +185,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathError);   
             }
 
-            var resolvedFilePath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(FilePath);
-            if (String.IsNullOrEmpty(resolvedFilePath))
+            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+            if (String.IsNullOrEmpty(resolvedPath))
             {
                 var exMessage = "Error: Could not resolve provided Path argument into a single path.";
                 var ex = new PSArgumentException(exMessage);
@@ -194,7 +194,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathArgumentError);
             }
             
-            if (File.Exists(resolvedFilePath) && !Force)
+            if (File.Exists(resolvedPath) && !Force)
             {
                 // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
                 var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
@@ -250,7 +250,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            File.WriteAllLines(resolvedFilePath, psScriptFileContents);       
+            File.WriteAllLines(resolvedPath, psScriptFileContents);       
         }
 
         #endregion
