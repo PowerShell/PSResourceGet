@@ -63,7 +63,7 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
         $credentialInfo.SecretName | Should -Be "testsecret"
     }
 
-    It "Creates PSCredentialInfo successfully from PSObject with VaultName, SecretName and Credential" {
+    It "Creates PSCredentialInfo successfully from PSObject with VaultName, SecretName and PSCredential Credential" {
         $credential = New-Object System.Management.Automation.PSCredential ("username", (ConvertTo-SecureString "password" -AsPlainText -Force))
         $properties = [PSCustomObject]@{
             VaultName = "testvault"
@@ -77,6 +77,36 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
         $credentialInfo.SecretName | Should -Be "testsecret"
         $credentialInfo.Credential.UserName | Should -Be "username"
         $credentialInfo.Credential.GetNetworkCredential().Password | Should -Be "password"
-        
+    }
+
+    It "Creates PSCredentialInfo successfully from PSObject with VaultName, SecretName and string Credential" {
+        $properties = [PSCustomObject]@{
+            VaultName = "testvault"
+            SecretName = "testsecret"
+            Credential = "password"
+        }
+
+        $credentialInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo] $properties
+
+        $credentialInfo.VaultName | Should -Be "testvault"
+        $credentialInfo.SecretName | Should -Be "testsecret"
+        $credentialInfo.Credential.UserName | Should -Be "username"
+        $credentialInfo.Credential.GetNetworkCredential().Password | Should -Be "password"
+    }
+
+    It "Creates PSCredentialInfo successfully from PSObject with VaultName, SecretName and SecureString Credential" {
+        $secureString = ConvertTo-SecureString "password" -AsPlainText -Force
+        $properties = [PSCustomObject]@{
+            VaultName = "testvault"
+            SecretName = "testsecret"
+            Credential = $secureString
+        }
+
+        $credentialInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo] $properties
+
+        $credentialInfo.VaultName | Should -Be "testvault"
+        $credentialInfo.SecretName | Should -Be "testsecret"
+        $credentialInfo.Credential.UserName | Should -Be "username"
+        $credentialInfo.Credential.GetNetworkCredential().Password | Should -Be "password"
     }
 }
