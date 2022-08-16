@@ -65,7 +65,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the scope of installation.
         /// </summary>
         [Parameter]
-        [ValidateNotNullOrEmpty]
         public ScopeType Scope { get; set; }
 
         /// <summary>
