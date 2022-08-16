@@ -263,12 +263,21 @@ Describe "Test Set-PSResourceRepository" {
         $res.Trusted | Should -Be False
     }
 
-    It "set repository and see updated repository with -PassThru" {
+    It "set repository given Uri and see updated repository with -PassThru" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         $res = Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir2Path -PassThru
         $res.Name | Should -Be $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir2Path
         $res.Priority | Should -Be 50
+        $res.Trusted | Should -Be False
+    }
+
+    It "set repository given Priority and see updated repository with -PassThru" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        $res = Set-PSResourceRepository -Name $TestRepoName1 -Priority 30 -PassThru
+        $res.Name | Should -Be $TestRepoName1
+        $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
+        $res.Priority | Should -Be 30
         $res.Trusted | Should -Be False
     }
 
