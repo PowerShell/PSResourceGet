@@ -16,7 +16,7 @@ This cmdlet updates the comment-based metadata in an existing script `.ps1` file
 ### __AllParameterSets
 
 ```
-Update-PSScriptFileInfo [-FilePath] <string> [-Author <string>] [-CompanyName <string>]
+Update-PSScriptFileInfo [-Path] <string> [-Author <string>] [-CompanyName <string>]
  [-Copyright <string>] [-Description <string>] [-ExternalModuleDependencies <string[]>]
  [-ExternalScriptDependencies <string[]>] [-Guid <guid>] [-IconUri <string>]
  [-LicenseUri <string>] [-PrivateData <string>] [-ProjectUri <string>] [-ReleaseNotes <string>]
@@ -38,8 +38,8 @@ changes the **Version**' to `2.0.0.0`. The `Get-Content` cmdlet shows the update
 script.
 
 ```powershell
-New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Version "1.0.0.0" -Description "this is a test script"
-Update-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Version "2.0.0.0"
+New-PSScriptFileInfo -Path "C:\Users\johndoe\MyScripts\test_script.ps1" -Version "1.0.0.0" -Description "this is a test script"
+Update-PSScriptFileInfo -Path "C:\Users\johndoe\MyScripts\test_script.ps1" -Version "2.0.0.0"
 Get-Content "C:\Users\johndoe\MyScripts\test_script.ps1"
 ```
 
@@ -184,7 +184,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FilePath
+### -Path
 
 The filename and location of the script.
 
