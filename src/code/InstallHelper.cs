@@ -87,7 +87,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string tmpPath)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXml '{10}'; SavePackage '{11}'",
+                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXml '{10}'; SavePackage '{11}'; TemporaryPath '{12}'",
                 string.Join(",", names),
                 versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
                 prerelease.ToString(),
@@ -99,7 +99,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 noClobber.ToString(),
                 asNupkg.ToString(),
                 includeXml.ToString(),
-                savePkg.ToString()));
+                savePkg.ToString(),
+                tmpPath != null ? tmpPath.ToString() : string.Empty));
 
             _versionRange = versionRange;
             _prerelease = prerelease;
@@ -115,7 +116,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _includeXml = includeXml;
             _savePkg = savePkg;
             _pathsToInstallPkg = pathsToInstallPkg;
-            _tmpPath = tmpPath;
+            _tmpPath = tmpPath ?? Path.GetTempPath();
 
             // Create list of installation paths to search.
             _pathsToSearch = new List<string>();
@@ -330,7 +331,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (PSResourceInfo pkg in pkgsToInstall)
             {
                 currentInstalledPkgCount++;
-                var tempInstallPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                var tempInstallPath = Path.Combine(_tmpPath, Guid.NewGuid().ToString());
                 try
                 {
                     // Create a temp directory to install to

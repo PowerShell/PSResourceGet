@@ -68,6 +68,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public ScopeType Scope { get; set; }
 
         /// <summary>
+        /// The destination where the resource is to be temporarily installed
+        /// </summary>
+        [Parameter]
+        public string TemporaryPath
+        {
+            get
+            { return _tmpPath; }
+
+            set
+            {
+                if (!string.IsNullOrEmpty(value))
+                {
+                    string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+
+                    // Path where resource is temporarily saved must be a directory
+                    if (Directory.Exists(resolvedPath))
+                    {
+                        _tmpPath = resolvedPath;
+                    }
+                }
+            }
+        }
+        private string _tmpPath;
+
+        /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
         [Parameter]
@@ -528,7 +553,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
-                pathsToInstallPkg: _pathsToInstallPkg);
+                pathsToInstallPkg: _pathsToInstallPkg,
+                tmpPath: _tmpPath);
 
             if (PassThru)
             {
