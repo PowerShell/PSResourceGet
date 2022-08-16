@@ -17,60 +17,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Initializes a new instance of the PSCredentialInfo class with
-        /// vaultName and secretName of type string
-        /// </summary>
-        /// <param name="vaultName"></param>
-        /// <param name="secretName"></param>
-        public PSCredentialInfo(string vaultName, string secretName)
-        {
-            VaultName = vaultName;
-            SecretName = secretName;
-            Credential = null;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the PSCredentialInfo class with
         /// vaultName and secretName of type string, and
-        /// credential of type PSCredential.
+        /// (optionally) credential of type PSCredential.
         /// </summary>
         /// <param name="vaultName"></param>
         /// <param name="secretName"></param>
         /// <param name="credential"></param>
-        public PSCredentialInfo(string vaultName, string secretName, PSCredential credential)
+        public PSCredentialInfo(string vaultName, string secretName, PSCredential credential = null)
         {
             VaultName = vaultName;
             SecretName = secretName;
             Credential = credential;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the PSCredentialInfo class with
-        /// vaultName and secretName of type string, and
-        /// credential of type String.
-        /// </summary>
-        /// <param name="vaultName"></param>
-        /// <param name="secretName"></param>
-        /// <param name="credential"></param>
-        public PSCredentialInfo(string vaultName, string secretName, string credential)
-        {
-            VaultName = vaultName;
-            SecretName = secretName;
-            Credential = new PSCredential("PSGetUser", new NetworkCredential("", credential).SecurePassword);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the PSCredentialInfo class with
-        /// vaultName and secretName of type string, and
-        /// credential of type SecureString.
-        /// </summary>
-        /// <param name="vaultName"></param>
-        /// <param name="secretName"></param>
-        /// <param name="credential"></param>
-        public PSCredentialInfo(string vaultName, string secretName, SecureString credential)
-        {
-            VaultName = vaultName;
-            SecretName = secretName;
-            Credential = new PSCredential("PSGetUser", credential);
         }
 
         /// <summary>
