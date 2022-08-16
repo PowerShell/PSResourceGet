@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 Credential = new PSCredential("PSGetUser", new NetworkCredential("", (String) credentialAttr).SecurePassword);
             }
-            else if ((credentialAttr as PSObject).BaseObject is SecureString)
+            else if ((credentialAttr as PSObject)?.BaseObject is SecureString)
             {
                 Credential = new PSCredential("PSGetUser", (credentialAttr as PSObject).BaseObject as SecureString);
             }
