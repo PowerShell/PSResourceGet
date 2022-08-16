@@ -23,7 +23,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Position = 0, Mandatory = true)]
         [ValidateNotNullOrEmpty]
-        public string FilePath { get; set; }
+        public string Path { get; set; }
 
         #endregion
 
@@ -31,7 +31,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void EndProcessing()
         {
-            if (!FilePath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
                 var ex = new ArgumentException(exMessage);
@@ -39,7 +39,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathError);   
             }
 
-            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(FilePath);
+            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
             if (resolvedPaths.Count != 1)
             {
                 var exMessage = "Error: Could not resolve provided Path argument into a single path.";
@@ -48,9 +48,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(InvalidPathArgumentError);
             }
 
-            var resolvedFilePath = resolvedPaths[0].Path;
+            var resolvedPath = resolvedPaths[0].Path;
 
-            if (!File.Exists(resolvedFilePath))
+            if (!File.Exists(resolvedPath))
             {
                 var exMessage = "A .ps1 file does not exist at the location specified.";
                 var ex = new ArgumentException(exMessage);
@@ -59,7 +59,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             bool isValidScript = PSScriptFileInfo.TryTestPSScriptFile(
-                scriptFileInfoPath: resolvedFilePath,
+                scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo _,
                 errors: out ErrorRecord[] errors,
                 out string[] verboseMsgs);               
