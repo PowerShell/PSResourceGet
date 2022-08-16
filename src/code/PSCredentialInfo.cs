@@ -88,7 +88,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             VaultName = (string) psObject.Properties[PSCredentialInfo.VaultNameAttribute]?.Value;
             SecretName = (string) psObject.Properties[PSCredentialInfo.SecretNameAttribute]?.Value;
-            Credential = (PSCredential) psObject.Properties[PSCredentialInfo.CredentialAttribute]?.Value;
+
+            var credentialAttr = psObject.Properties[PSCredentialInfo.CredentialAttribute]?.Value;
+            if (credentialAttr is String)
+            {
+                Credential = new PSCredential("PSGetUser", new NetworkCredential("", (String) credentialAttr).SecurePassword);
+            }
+            else if ((credentialAttr as PSObject).BaseObject is SecureString)
+            {
+                Credential = new PSCredential("PSGetUser", (credentialAttr as PSObject).BaseObject as SecureString);
+            }
+            else if (credentialAttr is PSCredential)
+            {
+                Credential = (PSCredential)credentialAttr;
+            }
         }
 
         #endregion

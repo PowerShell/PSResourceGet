@@ -78,7 +78,7 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
         $credentialInfo.Credential.UserName | Should -Be "username"
         $credentialInfo.Credential.GetNetworkCredential().Password | Should -Be "password"
     }
-
+ 
     It "Creates PSCredentialInfo successfully from PSObject with VaultName, SecretName and string Credential" {
         $properties = [PSCustomObject]@{
             VaultName = "testvault"
@@ -90,7 +90,6 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
 
         $credentialInfo.VaultName | Should -Be "testvault"
         $credentialInfo.SecretName | Should -Be "testsecret"
-        $credentialInfo.Credential.UserName | Should -Be "username"
         $credentialInfo.Credential.GetNetworkCredential().Password | Should -Be "password"
     }
 
@@ -106,7 +105,6 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
 
         $credentialInfo.VaultName | Should -Be "testvault"
         $credentialInfo.SecretName | Should -Be "testsecret"
-        $credentialInfo.Credential.UserName | Should -Be "username"
         $credentialInfo.Credential.GetNetworkCredential().Password | Should -Be "password"
     }
 }
