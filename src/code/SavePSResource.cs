@@ -109,6 +109,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         private string _path;
 
+        /// <summary>
+        /// The destination where the resource is to be temporarily installed
+        /// </summary>
+        [Parameter]
         public string TemporaryPath
         {
             get
@@ -116,20 +120,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             set
             {
-                string resolvedPath;
-                if (string.IsNullOrEmpty(value))
+                if (!string.IsNullOrEmpty(value))
                 {
-                    // If the user does not specify a path to save to, use the user's default temporary directory
-                    resolvedPath = System.IO.Path.GetTempPath();
-                }
-                else {
-                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
-                }
+                    string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
 
-                // Path where resource is saved must be a directory
-                if (Directory.Exists(resolvedPath))
-                {
-                    _tmpPath = resolvedPath;
+                    // Path where resource is temporarily saved must be a directory
+                    if (Directory.Exists(resolvedPath))
+                    {
+                        _tmpPath = resolvedPath;
+                    }
                 }
             }
         }
