@@ -334,34 +334,41 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // A null Uri (or Url) value passed in signifies the Uri was not attempted to be set.
                 // So only set Uri attribute if non-null value passed in for repoUri
 
-                // determine if existing repository node (which we wish to update) had Url to Uri attribute
+                // determine if existing repository node (which we wish to update) had Url or Uri attribute
                 Uri thisUrl = null;
-                if (repoUri != null)
+                if (repoUri != null) 
+                {
+                    if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
+                    {
+                        throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
+                    }
+
+                    if (urlAttributeExists)
+                    {
+                        node.Attribute("Url").Value = thisUrl.AbsoluteUri;
+                    }
+                    else
+                    {
+                        node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
+                    }
+                }
+                else 
                 {
                     if (urlAttributeExists)
                     {
-                        node.Attribute("Url").Value = repoUri.AbsoluteUri;
-                        // Create Uri from node Uri attribute to create PSRepositoryInfo item to return.
-                        if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
+                        if(!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
                         {
-                            errorMsg = $"Unable to read incorrectly formatted Url for repo {repoName}";
-                            return null;
+                            throw new PSInvalidOperationException(String.Format("The 'Url' for repository {0} is invalid and the repository cannot be used. Please update the Url field or remove the repository entry.", repoName));
                         }
                     }
                     else
                     {
-                        // Uri attribute exists
-                        node.Attribute("Uri").Value = repoUri.AbsoluteUri;
-                        if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
+                        if(!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
                         {
-                            errorMsg = $"Unable to read incorrectly formatted Uri for repo {repoName}";
-                            return null;
+                            throw new PSInvalidOperationException(String.Format("The 'Url' for repository {0} is invalid and the repository cannot be used. Please update the Url field or remove the repository entry.", repoName));
                         }
                     }
                 }
-
-
-
 
                 // A negative Priority value passed in signifies the Priority value was not attempted to be set.
                 // So only set Priority attribute if non-null value passed in for repoPriority
