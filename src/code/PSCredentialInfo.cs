@@ -17,6 +17,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Initializes a new instance of the PSCredentialInfo class with
+        /// vaultName and secretName of type string
+        /// </summary>
+        /// <param name="vaultName"></param>
+        /// <param name="secretName"></param>
+        public PSCredentialInfo(string vaultName, string secretName)
+        {
+            VaultName = vaultName;
+            SecretName = secretName;
+            Credential = null;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the PSCredentialInfo class with
         /// vaultName and secretName of type string, and
         /// (optionally) credential of type PSCredential.
         /// </summary>
