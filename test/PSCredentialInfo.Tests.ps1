@@ -23,7 +23,7 @@ Describe "Create PSCredentialInfo with VaultName and SecretName" -tags 'CI' {
 Describe "Create PSCredentialInfo with VaultName, SecretName, and Credential" -tags 'CI' {
 
     It "Creates PSCredentialInfo successfully if Credential is null" {
-        $credentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $null)
+        $credentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
         
         $credentialInfo.VaultName | Should -Be "testvault"
         $credentialInfo.SecretName | Should -Be "testsecret"
