@@ -65,12 +65,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the scope of installation.
         /// </summary>
         [Parameter]
+        [ValidateNotNullOrEmpty]
         public ScopeType Scope { get; set; }
 
         /// <summary>
         /// The destination where the resource is to be temporarily installed
         /// </summary>
         [Parameter]
+        [ValidateNotNullOrEmpty]
         public string TemporaryPath
         {
             get
