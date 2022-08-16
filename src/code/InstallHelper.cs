@@ -35,6 +35,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public const string PSScriptFileExt = ".ps1";
         private const string MsgRepositoryNotTrusted = "Untrusted repository";
         private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
+        private const string ScriptPATHPromptQuery = "Your system has not been configured with a default script installation path yet, which means you can only run a script by specifying the full path to the script file. This action places the script into the folder '{0}', and adds that folder to your PATH environment variable. Do you want to add the script installation path '{0}' to the PATH environment variable?";
+        private const string PATHEnvVarAlteration = "Updating PATH environment variable";
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pathsToInstallPkg;
@@ -82,7 +84,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool skipDependencyCheck,
             bool authenticodeCheck,
             bool savePkg,
-            List<string> pathsToInstallPkg)
+            List<string> pathsToInstallPkg,
+            ScopeType scope)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXml '{10}'; SavePackage '{11}'",
@@ -135,7 +138,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 repository: repository,
                 trustRepository: _trustRepository,
                 credential: _credential,
-                skipDependencyCheck: skipDependencyCheck);
+                skipDependencyCheck: skipDependencyCheck,
+                scope: scope);
         }
 
         #endregion
@@ -147,7 +151,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string[] repository,
             bool trustRepository,
             PSCredential credential,
-            bool skipDependencyCheck)
+            bool skipDependencyCheck,
+            ScopeType scope)
         {
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
             var yesToAll = false;
@@ -233,7 +238,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repo.Uri.AbsoluteUri,
                     repo.CredentialInfo,
                     credential,
-                    isLocalRepo);
+                    isLocalRepo,
+                    scope: scope);
 
                 foreach (PSResourceInfo pkg in pkgsInstalled)
                 {
@@ -317,7 +323,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string repoUri,
             PSCredentialInfo repoCredentialInfo,
             PSCredential credential,
-            bool isLocalRepo)
+            bool isLocalRepo,
+            ScopeType scope)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
             int totalPkgs = pkgsToInstall.Count;
@@ -576,20 +583,40 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkg.Name, installPath));
                     pkgsSuccessfullyInstalled.Add(pkg);
 
-                    if (!isModule)
+                    if (!_savePkg && !isModule)
                     {
                         // Add Scripts install path to Path environment variable so that it can be ran without prepending the path
-                        if (!Environment.GetEnvironmentVariable("PATH").Contains(installPath))
+                        string envPathValue = Environment.GetEnvironmentVariable("PATH"); // todo anam- does this get all targets?
+                        string installPathwithBackSlash = installPath + "\\";
+                        if (!envPathValue.Contains(installPath) && !envPathValue.Contains(installPathwithBackSlash))
                         {
-                            // need to add Scripts install path
-                            string currentPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
-                            if (!String.IsNullOrEmpty(currentPathEnvVarValue))
+                            // Prompt for altering PATH environment variable.
+                            var message = string.Format(CultureInfo.InvariantCulture, ScriptPATHPromptQuery, installPath);
+                            bool allowSettingEnvVar = _cmdletPassedIn.ShouldContinue(message, PATHEnvVarAlteration);
+                            
+                            if (allowSettingEnvVar)
                             {
-                                Environment.SetEnvironmentVariable("PATH", installPath + ";" + currentPathEnvVarValue, EnvironmentVariableTarget.User);
-                            }
-                            else
-                            {
-                                Environment.SetEnvironmentVariable("PATH", installPath, EnvironmentVariableTarget.User);
+                                // Determine scope for which to add installPath and also add to the Process target.
+                                if (scope == ScopeType.CurrentUser)
+                                {
+                                    string currentPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
+                                    string newPathEnvVarValue = String.IsNullOrEmpty(currentPathEnvVarValue) ? installPath : installPath + ";" + currentPathEnvVarValue;
+
+                                    Environment.SetEnvironmentVariable("PATH", newPathEnvVarValue, EnvironmentVariableTarget.User);
+                                }
+                                else
+                                {
+                                    // ScopeType.AllUser
+                                    string currentPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine);
+                                    string newPathEnvVarValue = String.IsNullOrEmpty(currentPathEnvVarValue) ? installPath : installPath + ";" + currentPathEnvVarValue;
+
+                                    Environment.SetEnvironmentVariable("PATH", newPathEnvVarValue, EnvironmentVariableTarget.Machine);
+                                }
+
+                                // Also update Process target
+                                string currentProcessPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Process);
+                                string newProcessPathEnvVarValue = String.IsNullOrEmpty(currentProcessPathEnvVarValue) ? installPath : installPath + ";" + currentProcessPathEnvVarValue;
+                                Environment.SetEnvironmentVariable("PATH", newProcessPathEnvVarValue, EnvironmentVariableTarget.Process);
                             }
                         }
                     }

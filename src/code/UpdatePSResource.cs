@@ -187,7 +187,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
-                pathsToInstallPkg: _pathsToInstallPkg);
+                pathsToInstallPkg: _pathsToInstallPkg,
+                scope: Scope);
 
             if (PassThru)
             {

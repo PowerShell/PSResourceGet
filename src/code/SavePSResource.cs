@@ -266,7 +266,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
-                pathsToInstallPkg: new List<string> { _path });
+                pathsToInstallPkg: new List<string> { _path },
+                scope: ScopeType.CurrentUser);
 
             if (PassThru)
             {
