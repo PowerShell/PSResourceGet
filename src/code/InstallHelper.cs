@@ -100,7 +100,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 asNupkg.ToString(),
                 includeXml.ToString(),
                 savePkg.ToString(),
-                tmpPath != null ? tmpPath.ToString() : string.Empty));
+                tmpPath ?? string.Empty));
+
 
             _versionRange = versionRange;
             _prerelease = prerelease;
