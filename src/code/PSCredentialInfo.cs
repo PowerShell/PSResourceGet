@@ -49,7 +49,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             var credentialAttr = psObject.Properties[PSCredentialInfo.CredentialAttribute]?.Value;
             if (credentialAttr is string credStr)
             {
-                Credential = new PSCredential("PSGetUser", new NetworkCredential("", (String) credentialAttr).SecurePassword);
+                Credential = new PSCredential("PSGetUser", new NetworkCredential("", credStr).SecurePassword);
             }
             else if ((credentialAttr as PSObject)?.BaseObject is SecureString)
             {
