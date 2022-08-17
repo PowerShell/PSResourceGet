@@ -110,7 +110,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string _path;
 
         /// <summary>
-        /// The destination where the resource is to be temporarily installed
+        /// The destination where the resource is to be temporarily saved to.
+
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty]
