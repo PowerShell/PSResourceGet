@@ -55,7 +55,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 Credential = new PSCredential("PSGetUser", credSS);
             }
-            else if (credentialAttr is PSCredential)
+            else if (credentialAttr is PSCredential psCred)
             {
                 Credential = (PSCredential)credentialAttr;
             }
