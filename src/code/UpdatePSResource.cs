@@ -82,16 +82,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                {
-                    string resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
-
-                    // Path where resource is temporarily saved must be a directory
-                    if (Directory.Exists(resolvedPath))
-                    {
-                        _tmpPath = resolvedPath;
-                    }
-                }
+                if (WildcardPattern.ContainsWildcardCharacters(value)) 
+                { 
+                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path."); 
+                } 
+                
+                // This will throw if path cannot be resolved
+                _tmpPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
             }
         }
         private string _tmpPath;
