@@ -17,7 +17,7 @@ Downloads and installs the newest version of a package already installed on the 
 
 ```
 Update-PSResource [[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Repository <string[]>]
- [-Scope <ScopeType>] [-TrustRepository] [-Credential <pscredential>] [-Quiet] [-AcceptLicense]
+ [-Scope <ScopeType>] [-TemporaryPath <string>] [-TrustRepository] [-Credential <pscredential>] [-Quiet] [-AcceptLicense]
  [-Force] [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
@@ -158,6 +158,22 @@ Aliases:
 Required: False
 Position: Named
 Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TemporaryPath
+
+Specifies the path to temporarily install the resource before actual installatoin. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder. 
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
