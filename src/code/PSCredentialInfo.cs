@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             SecretName = (string) psObject.Properties[PSCredentialInfo.SecretNameAttribute]?.Value;
 
             var credentialAttr = psObject.Properties[PSCredentialInfo.CredentialAttribute]?.Value;
-            if (credentialAttr is String)
+            if (credentialAttr is string credStr)
             {
                 Credential = new PSCredential("PSGetUser", new NetworkCredential("", (String) credentialAttr).SecurePassword);
             }
