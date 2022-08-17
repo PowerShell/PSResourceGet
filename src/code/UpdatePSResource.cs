@@ -70,7 +70,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public ScopeType Scope { get; set; }
 
         /// <summary>
-        /// The destination where the resource is to be temporarily installed
+        /// The destination where the resource is to be temporarily installed to while updating.
+
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty]
