@@ -53,7 +53,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
             else if ((credentialAttr as PSObject)?.BaseObject is SecureString credSS)
             {
-                Credential = new PSCredential("PSGetUser", (credentialAttr as PSObject).BaseObject as SecureString);
+                Credential = new PSCredential("PSGetUser", credSS);
             }
             else if (credentialAttr is PSCredential)
             {
