@@ -181,7 +181,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
+    It "Install module resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
         $pkg = Get-PSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
@@ -189,7 +189,7 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
+    It "Install module resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope AllUsers -Verbose
         $pkg = Get-Module "testmodule99" -ListAvailable
         $pkg.Name | Should -Be "testmodule99"
@@ -197,16 +197,55 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     # Windows only
-    It "Install resource under no specified scope - Windows only" -Skip:(!(Get-IsWindows)) {
+    It "Install module resource under no specified scope - Windows only" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository 
         $pkg = Get-PSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true
     }
 
+    # Windows only
+    It "Install script resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $testScriptName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        $pkg = Get-PSResource $testScriptName
+        $pkg.Name | Should -Be $testScriptName
+        $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true
+
+        # Ensure script is invokable by name, i.e without prepending script installation path.
+        $scriptCommand = Get-Command $testScriptName
+        $scriptCommand.Name | Should -BeLike $testScriptName
+        $scriptCommand.Source.Contains("Documents") | Should -Be $true
+    }
+    
+    # Windows only
+    It "Install script resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
+        Install-PSResource -Name $testScriptName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        $pkg = Get-PSResource $testScriptName
+        $pkg.Name | Should -Be $testScriptName
+        $pkg.InstalledLocation.ToString().Contains("Program Files")
+
+        # Ensure script is invokable by name, i.e without prepending script installation path.
+        $scriptCommand = Get-Command $testScriptName
+        $scriptCommand.Name | Should -BeLike $testScriptName
+        $scriptCommand.Source.Contains("Program Files") | Should -Be $true
+    }
+    
+    # Windows only
+    It "Install script resource under no specified scope - Windows only" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $testScriptName -Repository $PSGalleryName -TrustRepository 
+        $pkg = Get-PSResource $testScriptName
+        $pkg.Name | Should -Be $testScriptName
+        $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true
+
+        # Ensure script is invokable by name, i.e without prepending script installation path.
+        $scriptCommand = Get-Command $testScriptName
+        $scriptCommand.Name | Should -BeLike $testScriptName
+        $scriptCommand.Source.Contains("Documents") | Should -Be $true
+    }
+
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
-    It "Install resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
+    It "Install module resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
         $pkg = Get-PSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
@@ -215,11 +254,39 @@ Describe 'Test Install-PSResource for Module' {
 
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
-    It "Install resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
+    It "Install module resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         $pkg = Get-PSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
+    }
+
+    # Unix only
+    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Scripts'
+    It "Install script resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name $testScriptName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        $pkg = Get-PSResource $testScriptName
+        $pkg.Name | Should -Be $testScriptName
+        $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
+
+        # Ensure script is invokable by name, i.e without prepending script installation path.
+        $scriptCommand = Get-Command $testScriptName
+        $scriptCommand.Name | Should -BeLike $testScriptName
+        $scriptCommand.Source.Contains("$env:HOME/.local") | Should -Be $true
+    }
+
+    # Unix only
+    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Scripts'
+    It "Install script resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name $testScriptName -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-PSResource $testScriptName
+        $pkg.Name | Should -Be $testScriptName
+        $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
+
+        # Ensure script is invokable by name, i.e without prepending script installation path.
+        $scriptCommand = Get-Command $testScriptName
+        $scriptCommand.Name | Should -BeLike $testScriptName
+        $scriptCommand.Source.Contains("$env:HOME/.local") | Should -Be $true
     }
 
     It "Should not install resource that is already installed" {

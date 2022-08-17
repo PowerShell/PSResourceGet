@@ -85,7 +85,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool authenticodeCheck,
             bool savePkg,
             List<string> pathsToInstallPkg,
-            ScopeType scope)
+            ScopeType? scope)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXml '{10}'; SavePackage '{11}'",
@@ -139,7 +139,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 trustRepository: _trustRepository,
                 credential: _credential,
                 skipDependencyCheck: skipDependencyCheck,
-                scope: scope);
+                scope: scope?? ScopeType.CurrentUser);
         }
 
         #endregion
@@ -600,7 +600,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 if (scope == ScopeType.CurrentUser)
                                 {
                                     string currentPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
-                                    string newPathEnvVarValue = String.IsNullOrEmpty(currentPathEnvVarValue) ? installPath : installPath + ";" + currentPathEnvVarValue;
+                                    string newPathEnvVarValue = String.IsNullOrEmpty(currentPathEnvVarValue) ? installPath : installPath + Path.PathSeparator + currentPathEnvVarValue;
 
                                     Environment.SetEnvironmentVariable("PATH", newPathEnvVarValue, EnvironmentVariableTarget.User);
                                 }
@@ -608,14 +608,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 {
                                     // ScopeType.AllUser
                                     string currentPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine);
-                                    string newPathEnvVarValue = String.IsNullOrEmpty(currentPathEnvVarValue) ? installPath : installPath + ";" + currentPathEnvVarValue;
+                                    string newPathEnvVarValue = String.IsNullOrEmpty(currentPathEnvVarValue) ? installPath : installPath + Path.PathSeparator + currentPathEnvVarValue;
 
                                     Environment.SetEnvironmentVariable("PATH", newPathEnvVarValue, EnvironmentVariableTarget.Machine);
                                 }
 
                                 // Also update Process target
                                 string currentProcessPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Process);
-                                string newProcessPathEnvVarValue = String.IsNullOrEmpty(currentProcessPathEnvVarValue) ? installPath : installPath + ";" + currentProcessPathEnvVarValue;
+                                string newProcessPathEnvVarValue = String.IsNullOrEmpty(currentProcessPathEnvVarValue) ? installPath : installPath + Path.PathSeparator + currentProcessPathEnvVarValue;
                                 Environment.SetEnvironmentVariable("PATH", newProcessPathEnvVarValue, EnvironmentVariableTarget.Process);
                             }
                         }
