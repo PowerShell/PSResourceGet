@@ -16,7 +16,7 @@ The cmdlet creates a new script file, including metadata about the script.
 ### __AllParameterSets
 
 ```
-New-PSScriptFileInfo [-FilePath] <string> -Description <string> [-Version <string>]
+New-PSScriptFileInfo [-Path] <string> -Description <string> [-Version <string>]
  [-Author <string>] [-Guid <guid>] [-CompanyName <string>] [-Copyright <string>]
  [-RequiredModules <hashtable[]>] [-ExternalModuleDependencies <string[]>]
  [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>]
@@ -33,12 +33,12 @@ package.
 
 ### Example 1: Creating an empty script with minimal information
 
-This example runs the cmdlet using only required parameters. The **FilePath** parameter specifies
+This example runs the cmdlet using only required parameters. The **Path** parameter specifies
 the nane and location of the script. The **Description** parameter provide the description used in
 the comment-based help for the script.
 
 ```powershell
-New-PSScriptFileInfo -FilePath ./test_script.ps1 -Description "This is a test script."
+New-PSScriptFileInfo -Path ./test_script.ps1 -Description "This is a test script."
 Get-Content ./test_script.ps1
 ```
 
@@ -94,7 +94,7 @@ This example runs the cmdlet with additional parameters, including **RequiredMod
 
 ```powershell
 $parameters = @{
-    FilePath = './test_script2.ps1'
+    Path = './test_script2.ps1'
     Description = 'This is a test script.'
     Version = '2.0.0.0'
     Author = 'janedoe'
@@ -253,7 +253,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FilePath
+### -Path
 
 The filename and location where the script is created.
 

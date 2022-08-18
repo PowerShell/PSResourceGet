@@ -15,7 +15,7 @@ Tests the comment-based metadata in a `.ps1` file to ensure it's valid for publi
 ### __AllParameterSets
 
 ```
-Test-PSScriptFileInfo [-FilePath] <string> [<CommonParameters>]
+Test-PSScriptFileInfo [-Path] <string> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -31,8 +31,8 @@ This example creates a new script file then runs `Test-PSScriptFileInfo` to vali
 in the script.
 
 ```powershell
-New-PSScriptFileInfo -FilePath "C:\MyScripts\test_script.ps1" -Description "this is a test script"
-Test-PSScriptFileInfo -FilePath "C:\MyScripts\test_script.ps1"
+New-PSScriptFileInfo -Path "C:\MyScripts\test_script.ps1" -Description "this is a test script"
+Test-PSScriptFileInfo -Path "C:\MyScripts\test_script.ps1"
 True
 ```
 
@@ -43,7 +43,7 @@ the required **Author** metadata. The cmdlet writes a warning message and return
 `Get-Content` is used to view the contents of the script file.
 
 ```powershell
-Test-PSScriptFileInfo -FilePath "C:\MyScripts\invalid_test_script.ps1"
+Test-PSScriptFileInfo -Path "C:\MyScripts\invalid_test_script.ps1"
 Get-Content "C:\MyScripts\invalid_test_script.ps1"
 ```
 
@@ -93,7 +93,7 @@ this is a test script
 
 ## PARAMETERS
 
-### -FilePath
+### -Path
 
 The path to `.ps1` script file.
 

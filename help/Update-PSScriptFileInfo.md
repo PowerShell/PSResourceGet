@@ -16,7 +16,7 @@ This cmdlet updates the comment-based metadata in an existing script `.ps1` file
 ### __AllParameterSets
 
 ```
-Update-PSScriptFileInfo [-FilePath] <string> [-Author <string>] [-CompanyName <string>]
+Update-PSScriptFileInfo [-Path] <string> [-Author <string>] [-CompanyName <string>]
  [-Copyright <string>] [-Description <string>] [-ExternalModuleDependencies <string[]>]
  [-ExternalScriptDependencies <string[]>] [-Guid <guid>] [-IconUri <string>]
  [-LicenseUri <string>] [-PrivateData <string>] [-ProjectUri <string>] [-ReleaseNotes <string>]
@@ -190,7 +190,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FilePath
+### -Path
 
 The filename and location of the script.
 
