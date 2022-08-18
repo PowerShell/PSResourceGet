@@ -172,6 +172,32 @@ Computer_RenameComputerInDomain_Config            1.0.0.0            PSGallerySc
 Computer_RenameComputerInWorkgroup_Config         1.0.0.0            PSGalleryScripts This example will set the machin…
 ```
 
+### Example 8
+
+This example shows how to find modules by a tag. The `CrescendoBuilt` value is a tag that is
+automatically added to modules created using the **Microsoft.PowerShell.Crescendo** module.
+
+```powershell
+Find-PSResource -Tag CrescendoBuilt
+```
+
+```Output
+Name            Version Prerelease Repository Description
+----            ------- ---------- ---------- -----------
+Foil            0.1.0.0            PSGallery  A PowerShell Crescendo wrapper for Chocolatey
+Cobalt          0.3.1.0            PSGallery  A PowerShell Crescendo wrapper for WinGet
+SysInternals    1.1.0.0            PSGallery  PowerShell cmdlets for SysInternal tools
+Croze           0.0.4.0            PSGallery  A PowerShell Crescendo wrapper for Homebrew
+AptPackage      0.0.2.0            PSGallery  PowerShell Crescendo-generated Module to query APT-Package Information
+RoboCopy        1.0.1.0            PSGallery  PowerShell cmdlet for the official RoboCopy.exe
+TShark          1.0.2.0            PSGallery  PowerShell cmdlet for tshark.exe
+Image2Text      1.0.2.0            PSGallery  PowerShell Images into ASCII art
+SpeedTestCLI    1.0.0.0            PSGallery  PowerShell cmdlets speedtest-cli
+SpeedTest-CLI   1.0.0.0            PSGallery  PowerShell cmdlets for Internet Speed Test
+Quser.Crescendo 0.1.1.0            PSGallery  This module displays session information of users logged onto a local or…
+Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of takeown.exe
+```
+
 ## PARAMETERS
 
 ### -CommandName

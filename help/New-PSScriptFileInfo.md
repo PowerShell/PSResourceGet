@@ -89,10 +89,8 @@ This is a test script.
 
 ### Example 2: Creating a script with required modules
 
-This example runs the cmdlet with additional parameters, including **RequiredModules**. The
-**RequiredModules** parameter describes modules required by the script. The parameter takes an array
-of hashtables. The **ModuleName** key in the hashtable is required. You can also include
-**ModuleVersion**, **RequiredVersion**, **MaximumVersion**, or **MinimumVersion** keys.
+This example runs the cmdlet with additional parameters, including **RequiredModules**.
+**RequiredModules** is an array of module specifications.
 
 ```powershell
 $parameters = @{
@@ -389,12 +387,13 @@ Accept wildcard characters: False
 The parameter takes an array of module specification hashtables. A module specification is a
 hashtable that has the following keys.
 
-- **ModuleName** - Required Specifies the module name.
-- **GUID** - Optional Specifies the GUID of the module.
-- One of these three version key is Required. These keys can't be used together.
-  - **ModuleVersion** - Specifies a minimum acceptable version of the module.
-  - **RequiredVersion** - Specifies an exact, required version of the module.
-  - **MaximumVersion** - Specifies the maximum acceptable version of the module.
+- `ModuleName` - **Required** Specifies the module name.
+- `GUID` - **Optional** Specifies the GUID of the module.
+- It's also **Required** to specify at least one of the three below keys.
+  - `ModuleVersion` - Specifies a minimum acceptable version of the module.
+  - `MaximumVersion` - Specifies the maximum acceptable version of the module.
+  - `RequiredVersion` - Specifies an exact, required version of the module. This can't be used with
+    the other Version keys.
 
 ```yaml
 Type: System.Collections.Hashtable[]
