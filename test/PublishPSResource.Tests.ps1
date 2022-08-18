@@ -67,6 +67,9 @@ Describe "Test Publish-PSResource" {
 
         $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
         Remove-Item $pkgsToDelete -Recurse
+
+        $pkgsToDelete = Join-Path -Path $script:PublishModuleBase  -ChildPath "*"
+        Remove-Item $pkgsToDelete -Recurse -ErrorAction SilentlyContinue
     }
 
     It "Publish a module with -Path to the highest priority repo" {
@@ -84,6 +87,52 @@ Describe "Test Publish-PSResource" {
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish a module with -Path pointing to a module directory (parent directory has same name)" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish a module with -Path pointing to a module directory (parent directory has different name)" {
+        $version = "1.0.0"
+        $newModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath "NewTestParentDirectory"
+        New-Item -Path $newModuleRoot -ItemType Directory
+        New-ModuleManifest -Path (Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $newModuleRoot -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish a module with -Path pointing to a .psd1 (parent directory has same name)" {
+        $version = "1.0.0"
+        $manifestPath = Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1"
+        New-ModuleManifest -Path $manifestPath -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $manifestPath -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish a module with -Path pointing to a .psd1 (parent directory has different name)" {
+        $version = "1.0.0"
+        $newModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath "NewTestParentDirectory"
+        New-Item -Path $newModuleRoot -ItemType Directory
+        $manifestPath = Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1"
+        New-ModuleManifest -Path $manifestPath -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $manifestPath -Repository $testRepository2
 
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
