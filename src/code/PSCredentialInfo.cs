@@ -3,6 +3,8 @@
 
 using System;
 using System.Management.Automation;
+using System.Net;
+using System.Security;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -43,7 +45,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             VaultName = (string) psObject.Properties[PSCredentialInfo.VaultNameAttribute]?.Value;
             SecretName = (string) psObject.Properties[PSCredentialInfo.SecretNameAttribute]?.Value;
-            Credential = (PSCredential) psObject.Properties[PSCredentialInfo.CredentialAttribute]?.Value;
+
+            var credentialAttr = psObject.Properties[PSCredentialInfo.CredentialAttribute]?.Value;
+            if (credentialAttr is string credStr)
+            {
+                Credential = new PSCredential("PSGetUser", new NetworkCredential("", credStr).SecurePassword);
+            }
+            else if ((credentialAttr as PSObject)?.BaseObject is SecureString credSS)
+            {
+                Credential = new PSCredential("PSGetUser", credSS);
+            }
+            else if (credentialAttr is PSCredential psCred)
+            {
+                Credential = psCred;
+            }
         }
 
         #endregion
