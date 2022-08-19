@@ -590,11 +590,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         string installPathwithBackSlash = installPath + "\\";
                         if (!envPathValue.Contains(installPath) && !envPathValue.Contains(installPathwithBackSlash))
                         {
-                            // Prompt for altering PATH environment variable.
-                            var message = string.Format(CultureInfo.InvariantCulture, ScriptPATHPromptQuery, installPath);
-                            bool allowSettingEnvVar = _cmdletPassedIn.ShouldContinue(message, PATHEnvVarAlteration);
-                            
-                            if (allowSettingEnvVar)
+                            if (_cmdletPassedIn.ShouldProcess(
+                                String.Format("Adding {0} to environment PATH variable", installPath),
+                                String.Format(ScriptPATHPromptQuery, installPath),
+                                PATHEnvVarAlteration))
                             {
                                 // Determine scope for which to add installPath and also add to the Process target.
                                 if (scope == ScopeType.CurrentUser)
