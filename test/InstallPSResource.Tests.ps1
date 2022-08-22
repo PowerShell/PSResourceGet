@@ -463,7 +463,8 @@ Describe 'Test Install-PSResource for Module' {
     It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
         try 
         {
-            Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+            { Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId 'GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource'
+
         }
         catch
         {}
