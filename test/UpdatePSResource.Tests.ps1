@@ -351,9 +351,14 @@ Describe 'Test Update-PSResource' {
     # Update to module 1.4.4.1 (with incorrect catalog file)
     # Should FAIL to update the module
     It "Update module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
+        try
+        {
+            Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
+            Update-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        }
+        catch 
+        {}
+        $Error[0].FullyQualifiedErrorId | Should -be "TestFileCatalogError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     }
 
     # Update script that is signed
@@ -370,8 +375,13 @@ Describe 'Test Update-PSResource' {
     # Update script that is not signed
     # Should throw
     It "Update script that is not signed" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name "TestTestScript" -Version "1.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
+        try 
+        {
+            Install-PSResource -Name "TestTestScript" -Version "1.0" -Repository $PSGalleryName -TrustRepository
+            Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
+        }
+        catch 
+        {}
+        $Error[0].FullyQualifiedErrorId | Should -be "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     }
 }
