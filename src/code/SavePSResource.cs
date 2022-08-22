@@ -110,6 +110,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string _path;
 
         /// <summary>
+        /// The destination where the resource is to be temporarily saved to.
+
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty]
+        public string TemporaryPath
+        {
+            get
+            { return _tmpPath; }
+
+            set
+            {
+                if (WildcardPattern.ContainsWildcardCharacters(value)) 
+                { 
+                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path."); 
+                } 
+                
+                // This will throw if path cannot be resolved
+                _tmpPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+            }
+        }
+        private string _tmpPath;
+
+        /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
         [Parameter]
@@ -266,7 +290,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
-                pathsToInstallPkg: new List<string> { _path });
+                pathsToInstallPkg: new List<string> { _path },
+                tmpPath: _tmpPath);
 
             if (PassThru)
             {
