@@ -461,7 +461,8 @@ Describe 'Test Install-PSResource for Module' {
     # Install module that is not authenticode signed
     # Should FAIL to install the  module
     It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
-        try {
+        try 
+        {
             Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         }
         catch
