@@ -650,12 +650,13 @@ global session state, PowerShell imports them. If the required modules aren't av
 The value can be an array containing module names or module specifications. A module specification
 is a hashtable that has the following keys.
 
-- **ModuleName** - Required Specifies the module name.
-- **GUID** - Optional Specifies the GUID of the module.
-- One of these three version key is Required. These keys can't be used together.
-  - **ModuleVersion** - Specifies a minimum acceptable version of the module.
-  - **RequiredVersion** - Specifies an exact, required version of the module.
-  - **MaximumVersion** - Specifies the maximum acceptable version of the module.
+- `ModuleName` - **Required** Specifies the module name.
+- `GUID` - **Optional** Specifies the GUID of the module.
+- It's also **Required** to specify at least one of the three below keys.
+  - `ModuleVersion` - Specifies a minimum acceptable version of the module.
+  - `MaximumVersion` - Specifies the maximum acceptable version of the module.
+  - `RequiredVersion` - Specifies an exact, required version of the module. This can't be used with
+    the other Version keys.
 
 ```yaml
 Type: System.Object[]
