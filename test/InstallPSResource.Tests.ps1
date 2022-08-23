@@ -528,14 +528,13 @@ Describe 'Test Install-PSResource for Module' {
     # Install module that is not authenticode signed
     # Should FAIL to install the  module
     It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        { Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
+
     # Install 1.4.4.1 (with incorrect catalog file)
     # Should FAIL to install the  module
     It "Install module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        { Install-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "TestFileCatalogError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 
     # Install script that is signed
@@ -551,8 +550,7 @@ Describe 'Test Install-PSResource for Module' {
     # Install script that is not signed
     # Should throw
     It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        { Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 }
 

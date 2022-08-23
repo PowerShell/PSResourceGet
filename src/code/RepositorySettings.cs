@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
-                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null);
+                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, force: false);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -74,12 +74,159 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        public static PSRepositoryInfo AddRepository(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
+        {
+            errorMsg = String.Empty;
+            if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
+            {
+                errorMsg = "Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery";
+                return null;
+            }
+
+            return AddToRepositoryStore(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, force, cmdletPassedIn, out errorMsg);
+        }
+
+
+        public static PSRepositoryInfo AddToRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
+        {
+            errorMsg = string.Empty;
+            // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
+            repoName = repoName.Trim(' ');
+            if (String.IsNullOrEmpty(repoName) || repoName.Contains("*"))
+            {
+                throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
+            }
+
+            if (repoUri == null || !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
+            {
+                errorMsg = "Invalid Uri, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based";
+                return null;
+            }
+
+            if (repoCredentialInfo != null)
+            {
+                bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, cmdletPassedIn);
+
+                if (repoCredentialInfo.Credential != null)
+                {
+                    if (!isSecretManagementModuleAvailable)
+                    {
+                        errorMsg = $"Microsoft.PowerShell.SecretManagement module is not found, but is required for saving PSResourceRepository {repoName}'s Credential in a vault.";
+                        return null;
+                    }
+                    else
+                    {
+                        Utils.SaveRepositoryCredentialToSecretManagementVault(repoName, repoCredentialInfo, cmdletPassedIn);
+                    }
+                }
+
+                if (!isSecretManagementModuleAvailable)
+                {
+                    cmdletPassedIn.WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be found. Make sure it is installed before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                }
+            }
+
+            if (!cmdletPassedIn.ShouldProcess(repoName, "Register repository to repository store"))
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrEmpty(errorMsg))
+            {
+                return null;
+            }
+
+            var repo = RepositorySettings.Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, force);
+
+            return repo;
+        }
+
+
+        public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
+        {
+            errorMsg = string.Empty;
+            if (repoUri != null && !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
+            {
+                errorMsg = "Invalid Uri, Uri must be one of the following schemes: HTTPS, HTTP, FTP, File Based";
+                return null;
+            }
+
+            // check repoName can't contain * or just be whitespace
+            // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
+            repoName = repoName.Trim();
+            if (String.IsNullOrEmpty(repoName) || repoName.Contains("*"))
+            {
+                errorMsg = "Name cannot be null or empty, or contain wildcards";
+                return null;
+            }
+
+            // check PSGallery Uri is not trying to be set
+            if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) && repoUri != null)
+            {
+                errorMsg = "The PSGallery repository has a predefined Uri. Setting the -Uri parameter for this repository is not allowed. Please run 'Register-PSResourceRepository -PSGallery' to register the PowerShell Gallery.";
+                return null;
+            }
+
+            // check PSGallery CredentialInfo is not trying to be set
+            if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) && repoCredentialInfo != null)
+            {
+                errorMsg = "Setting the -CredentialInfo parameter for PSGallery is not allowed. Run 'Register-PSResourceRepository -PSGallery' to register the PowerShell Gallery.";
+                return null;
+            }
+
+            // determine trusted value to pass in (true/false if set, null otherwise, hence the nullable bool variable)
+            bool? _trustedNullable = isSet ? new bool?(repoTrusted) : new bool?();
+
+            if (repoCredentialInfo != null)
+            {
+                bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, cmdletPassedIn);
+
+                if (repoCredentialInfo.Credential != null)
+                {
+                    if (!isSecretManagementModuleAvailable)
+                    {
+                        errorMsg = $"Microsoft.PowerShell.SecretManagement module is not found, but is required for saving PSResourceRepository {repoName}'s Credential in a vault.";
+                        return null;
+                    }
+                    else
+                    {
+                        Utils.SaveRepositoryCredentialToSecretManagementVault(repoName, repoCredentialInfo, cmdletPassedIn);
+                    }
+                }
+
+                if (!isSecretManagementModuleAvailable)
+                {
+                    cmdletPassedIn.WriteWarning($"Microsoft.PowerShell.SecretManagement module cannot be found. Make sure it is installed before performing PSResource operations in order to successfully authenticate to PSResourceRepository \"{repoName}\" with its CredentialInfo.");
+                }
+            }
+
+            // determine if either 1 of 4 values are attempting to be set: Uri, Priority, Trusted, CredentialInfo.
+            // if none are (i.e only Name parameter was provided, write error)
+            if (repoUri == null && repoPriority == defaultPriority && _trustedNullable == null && repoCredentialInfo == null)
+            {
+                errorMsg = "Must set Uri, Priority, Trusted or CredentialInfo parameter";
+                return null;
+            }
+
+            if (!cmdletPassedIn.ShouldProcess(repoName, "Set repository's value(s) in repository store"))
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrEmpty(errorMsg))
+            {
+                return null;
+            }
+
+            return Update(repoName, repoUri, repoPriority, _trustedNullable, repoCredentialInfo, cmdletPassedIn, out errorMsg);
+        }
+
         /// <summary>
         /// Add a repository to the store
         /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryInfo Add(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo)
+        public static PSRepositoryInfo Add(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, bool force)
         {
             try
             {
@@ -87,7 +234,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XDocument doc = LoadXDocument(FullRepositoryPath);
                 if (FindRepositoryElement(doc, repoName) != null)
                 {
-                    throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
+                    if (!force)
+                    {
+                        throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
+                    }
+
+                    // Delete the existing repository before overwriting it (otherwire multiple repos with the same name will be added)
+                    List<PSRepositoryInfo> removedRepositories = RepositorySettings.Remove(new string[] { repoName }, out string[] errorList);
+
+                    // Need to load the document again because of changes after removing
+                    doc = LoadXDocument(FullRepositoryPath);
+
+                    if (errorList.Count() > 0)
+                    {
+                        throw new PSInvalidOperationException($"The PSResource Repository '{repoName}' cannot be overwritten: ${errorList.FirstOrDefault()}");
+                    }
+
                 }
 
                 // Else, keep going
@@ -126,8 +288,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// Updates a repository name, Uri, priority, installation policy, or credential information
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo)
+        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
+            errorMsg = string.Empty;
             PSRepositoryInfo updatedRepo;
             try
             {
@@ -136,7 +299,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 XElement node = FindRepositoryElement(doc, repoName);
                 if (node == null)
                 {
-                    throw new ArgumentException("Cannot find the repository because it does not exist. Try registering the repository using 'Register-PSResourceRepository'");
+                    bool repoIsTrusted = !(repoTrusted == null || repoTrusted == false);
+                    repoPriority = repoPriority < 0 ? DefaultPriority : repoPriority;
+                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, repoCredentialInfo, force:true, cmdletPassedIn, out errorMsg);
                 }
 
                 // Check that repository node we are attempting to update has all required attributes: Name, Url (or Uri), Priority, Trusted.
@@ -144,19 +309,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 if (node.Attribute("Priority") == null)
                 {
-                    throw new ArgumentException("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath);
+                    errorMsg = $"Repository element does not contain neccessary 'Priority' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
+                    return null;
                 }
                 
                 if (node.Attribute("Trusted") == null)
                 {
-                    throw new ArgumentException("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath);
+                    errorMsg = $"Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
+                    return null;
                 }                
 
                 bool urlAttributeExists = node.Attribute("Url") != null;
                 bool uriAttributeExists = node.Attribute("Uri") != null;
                 if (!urlAttributeExists && !uriAttributeExists)
                 {
-                    throw new ArgumentException("Repository element does not contain neccessary 'Url' attribute (or alternatively 'Uri' attribute), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath); 
+                    errorMsg = $"Repository element does not contain neccessary 'Url' attribute (or alternatively 'Uri' attribute), in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
+                    return null;
                 }
 
                 // Else, keep going
@@ -166,32 +334,41 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // A null Uri (or Url) value passed in signifies the Uri was not attempted to be set.
                 // So only set Uri attribute if non-null value passed in for repoUri
 
-                // determine if existing repository node (which we wish to update) had Url to Uri attribute
+                // determine if existing repository node (which we wish to update) had Url or Uri attribute
                 Uri thisUrl = null;
-                if (repoUri != null)
+                if (repoUri != null) 
+                {
+                    if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
+                    {
+                        throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
+                    }
+
+                    if (urlAttributeExists)
+                    {
+                        node.Attribute("Url").Value = thisUrl.AbsoluteUri;
+                    }
+                    else
+                    {
+                        node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
+                    }
+                }
+                else 
                 {
                     if (urlAttributeExists)
                     {
-                        node.Attribute("Url").Value = repoUri.AbsoluteUri;
-                        // Create Uri from node Uri attribute to create PSRepositoryInfo item to return.
-                        if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
+                        if(!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
                         {
-                            throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
+                            throw new PSInvalidOperationException(String.Format("The 'Url' for repository {0} is invalid and the repository cannot be used. Please update the Url field or remove the repository entry.", repoName));
                         }
                     }
                     else
                     {
-                        // Uri attribute exists
-                        node.Attribute("Uri").Value = repoUri.AbsoluteUri;
-                        if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
+                        if(!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
                         {
-                            throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repoName));
+                            throw new PSInvalidOperationException(String.Format("The 'Url' for repository {0} is invalid and the repository cannot be used. Please update the Url field or remove the repository entry.", repoName));
                         }
                     }
                 }
-
-
-
 
                 // A negative Priority value passed in signifies the Priority value was not attempted to be set.
                 // So only set Priority attribute if non-null value passed in for repoPriority

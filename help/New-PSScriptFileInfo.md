@@ -16,7 +16,7 @@ The cmdlet creates a new script file, including metadata about the script.
 ### __AllParameterSets
 
 ```
-New-PSScriptFileInfo [-FilePath] <string> -Description <string> [-Version <string>]
+New-PSScriptFileInfo [-Path] <string> -Description <string> [-Version <string>]
  [-Author <string>] [-Guid <guid>] [-CompanyName <string>] [-Copyright <string>]
  [-RequiredModules <hashtable[]>] [-ExternalModuleDependencies <string[]>]
  [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>]
@@ -33,12 +33,12 @@ package.
 
 ### Example 1: Creating an empty script with minimal information
 
-This example runs the cmdlet using only required parameters. The **FilePath** parameter specifies
+This example runs the cmdlet using only required parameters. The **Path** parameter specifies
 the nane and location of the script. The **Description** parameter provide the description used in
 the comment-based help for the script.
 
 ```powershell
-New-PSScriptFileInfo -FilePath ./test_script.ps1 -Description "This is a test script."
+New-PSScriptFileInfo -Path ./test_script.ps1 -Description "This is a test script."
 Get-Content ./test_script.ps1
 ```
 
@@ -89,14 +89,12 @@ This is a test script.
 
 ### Example 2: Creating a script with required modules
 
-This example runs the cmdlet with additional parameters, including **RequiredModules**. The
-**RequiredModules** parameter describes modules required by the script. The parameter takes an array
-of hashtables. The **ModuleName** key in the hashtable is required. You can also include
-**ModuleVersion**, **RequiredVersion**, **MaximumVersion**, or **MinimumVersion** keys.
+This example runs the cmdlet with additional parameters, including **RequiredModules**.
+**RequiredModules** is an array of module specifications.
 
 ```powershell
 $parameters = @{
-    FilePath = './test_script2.ps1'
+    Path = './test_script2.ps1'
     Description = 'This is a test script.'
     Version = '2.0.0.0'
     Author = 'janedoe'
@@ -255,7 +253,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FilePath
+### -Path
 
 The filename and location where the script is created.
 
@@ -389,12 +387,13 @@ Accept wildcard characters: False
 The parameter takes an array of module specification hashtables. A module specification is a
 hashtable that has the following keys.
 
-- **ModuleName** - Required Specifies the module name.
-- **GUID** - Optional Specifies the GUID of the module.
-- One of these three version key is Required. These keys can't be used together.
-  - **ModuleVersion** - Specifies a minimum acceptable version of the module.
-  - **RequiredVersion** - Specifies an exact, required version of the module.
-  - **MaximumVersion** - Specifies the maximum acceptable version of the module.
+- `ModuleName` - **Required** Specifies the module name.
+- `GUID` - **Optional** Specifies the GUID of the module.
+- It's also **Required** to specify at least one of the three below keys.
+  - `ModuleVersion` - Specifies a minimum acceptable version of the module.
+  - `MaximumVersion` - Specifies the maximum acceptable version of the module.
+  - `RequiredVersion` - Specifies an exact, required version of the module. This can't be used with
+    the other Version keys.
 
 ```yaml
 Type: System.Collections.Hashtable[]

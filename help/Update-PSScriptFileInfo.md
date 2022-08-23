@@ -16,7 +16,7 @@ This cmdlet updates the comment-based metadata in an existing script `.ps1` file
 ### __AllParameterSets
 
 ```
-Update-PSScriptFileInfo [-FilePath] <string> [-Author <string>] [-CompanyName <string>]
+Update-PSScriptFileInfo [-Path] <string> [-Author <string>] [-CompanyName <string>]
  [-Copyright <string>] [-Description <string>] [-ExternalModuleDependencies <string[]>]
  [-ExternalScriptDependencies <string[]>] [-Guid <guid>] [-IconUri <string>]
  [-LicenseUri <string>] [-PrivateData <string>] [-ProjectUri <string>] [-ReleaseNotes <string>]
@@ -38,9 +38,15 @@ changes the **Version**' to `2.0.0.0`. The `Get-Content` cmdlet shows the update
 script.
 
 ```powershell
-New-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Version "1.0.0.0" -Description "this is a test script"
-Update-PSScriptFileInfo -FilePath "C:\Users\johndoe\MyScripts\test_script.ps1" -Version "2.0.0.0"
-Get-Content "C:\Users\johndoe\MyScripts\test_script.ps1"
+$parameters = @{
+    FilePath = "C:\Users\johndoe\MyScripts\test_script.ps1"
+    Version = "1.0.0.0"
+    Description = "this is a test script"
+}
+New-PSScriptFileInfo @parameters
+$parameters.Version = "2.0.0.0"
+Update-PSScriptFileInfo @parameters
+Get-Content $parameters.FilePath
 ```
 
 ```Output
@@ -184,7 +190,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FilePath
+### -Path
 
 The filename and location of the script.
 
@@ -318,12 +324,13 @@ Accept wildcard characters: False
 The parameter takes an array of module specification hashtables. A module specification is a
 hashtable that has the following keys.
 
-- **ModuleName** - Required Specifies the module name.
-- **GUID** - Optional Specifies the GUID of the module.
-- One of these three version key is Required. These keys can't be used together.
-  - **ModuleVersion** - Specifies a minimum acceptable version of the module.
-  - **RequiredVersion** - Specifies an exact, required version of the module.
-  - **MaximumVersion** - Specifies the maximum acceptable version of the module.
+- `ModuleName` - **Required** Specifies the module name.
+- `GUID` - **Optional** Specifies the GUID of the module.
+- It's also **Required** to specify at least one of the three below keys.
+  - `ModuleVersion` - Specifies a minimum acceptable version of the module.
+  - `MaximumVersion` - Specifies the maximum acceptable version of the module.
+  - `RequiredVersion` - Specifies an exact, required version of the module. This can't be used with
+    the other Version keys.
 
 ```yaml
 Type: System.Collections.Hashtable[]

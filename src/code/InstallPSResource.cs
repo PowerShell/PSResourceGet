@@ -68,6 +68,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public ScopeType Scope { get; set; }
 
         /// <summary>
+        /// The destination where the resource is to be temporarily installed
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty]
+        public string TemporaryPath
+        {
+            get
+            { return _tmpPath; }
+
+            set
+            {
+                if (WildcardPattern.ContainsWildcardCharacters(value)) 
+                { 
+                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path."); 
+                } 
+                
+                // This will throw if path cannot be resolved
+                _tmpPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+            }
+        }
+        private string _tmpPath;
+
+        /// <summary>
         /// Suppresses being prompted for untrusted sources.
         /// </summary>
         [Parameter]
@@ -529,7 +552,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg,
-                scope: Scope);
+                scope: Scope,
+                tmpPath: _tmpPath);
 
             if (PassThru)
             {

@@ -109,8 +109,8 @@ Describe "Test Set-PSResourceRepository" {
         {Set-PSResourceRepository -Name $Name -Priority 25 -ErrorAction Stop} | Should -Throw -ErrorId "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
     }
 
-    $testCases2 = @{Type = "contains *";     Name = "test*Repository2";  ErrorId = "ErrorSettingIndividualRepoFromRepositories"},
-                  @{Type = "is whitespace";  Name = " ";                 ErrorId = "ErrorSettingIndividualRepoFromRepositories"},
+    $testCases2 = @{Type = "contains *";     Name = "test*Repository2";  ErrorId = "ErrorSettingRepository"},
+                  @{Type = "is whitespace";  Name = " ";                 ErrorId = "ErrorSettingRepository"},
                   @{Type = "is null";        Name = $null;               ErrorId = "NullNameForRepositoriesParameterSetRepo"}
     It "not set repository and write error given Name <Type> (RepositoriesParameterSet)" -TestCases $testCases2 {
         param($Type, $Name, $ErrorId)
@@ -205,7 +205,7 @@ Describe "Test Set-PSResourceRepository" {
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingIndividualRepoFromRepositories,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingRepository,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
@@ -235,7 +235,7 @@ Describe "Test Set-PSResourceRepository" {
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingIndividualRepoFromRepositories,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingRepository,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
@@ -252,12 +252,32 @@ Describe "Test Set-PSResourceRepository" {
         $Res.Uri.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
     }
 
-    It "set repository and see updated repository with -PassThru" {
+    It "set repository should register repository if it does not already exist" {
+        $testRepoName = "NewForceTestRepo"
+        Set-PSResourceRepository -Name $testRepoName -Uri $tmpDir1Path -PassThru
+
+        $res = Get-PSResourceRepository -Name $testRepoName
+        $res.Name | Should -Be $testRepoName
+        $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
+        $res.Priority | Should -Be 50
+        $res.Trusted | Should -Be False
+    }
+
+    It "set repository given Uri and see updated repository with -PassThru" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         $res = Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir2Path -PassThru
         $res.Name | Should -Be $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir2Path
         $res.Priority | Should -Be 50
+        $res.Trusted | Should -Be False
+    }
+
+    It "set repository given Priority and see updated repository with -PassThru" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        $res = Set-PSResourceRepository -Name $TestRepoName1 -Priority 30 -PassThru
+        $res.Name | Should -Be $TestRepoName1
+        $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
+        $res.Priority | Should -Be 30
         $res.Trusted | Should -Be False
     }
 
@@ -274,7 +294,7 @@ Describe "Test Set-PSResourceRepository" {
         {
             Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
             Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo2
-        } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementUnavailableModule"
+        } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res.CredentialInfo | Should -BeNullOrEmpty

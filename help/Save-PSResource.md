@@ -17,7 +17,7 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 
 ```
 Save-PSResource [-Name] <string[]> [-Version <string>] [-Prerelease] [-Repository <string[]>]
- [-Credential <pscredential>] [-AsNupkg] [-IncludeXML] [-Path <string>] [-TrustRepository]
+ [-Credential <pscredential>] [-AsNupkg] [-IncludeXML] [-Path <string>] [-TemporaryPath <string>] [-TrustRepository]
  [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-Quiet] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
@@ -194,6 +194,22 @@ Accept wildcard characters: False
 
 Specifies the path to save the resource to. If no path is provided, the resource is saved to the
 current location.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TemporaryPath
+
+Specifies the path to temporarily install the resource before saving. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder. 
 
 ```yaml
 Type: System.String
