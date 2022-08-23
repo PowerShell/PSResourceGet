@@ -257,15 +257,13 @@ Describe 'Test Save-PSResource for PSResources' {
     # Save module that is not authenticode signed
     # Should FAIL to save the module
     It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
-        Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        { Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     # Save 1.4.4.1 (with incorrect catalog file)
     # Should FAIL to save the module
     It "Save module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
-        Save-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        { Save-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir } | Should -Throw -ErrorId "TestFileCatalogError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     # Save script that is signed
@@ -282,8 +280,7 @@ Describe 'Test Save-PSResource for PSResources' {
     # Save script that is not signed
     # Should throw
     It "Save script that is not signed" -Skip:(!(Get-IsWindows)) {
-        Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        { Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
 <#
