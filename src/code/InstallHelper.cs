@@ -27,7 +27,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Install helper class
     /// </summary>
-    internal class InstallHelper : PSCmdlet
+    internal class InstallHelper
     {
         #region Members
 
@@ -512,7 +512,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         _cmdletPassedIn,
                         out ErrorRecord errorRecord))
                     {
-                        ThrowTerminatingError(errorRecord);
+                        _cmdletPassedIn.ThrowTerminatingError(errorRecord);
                     }
 
                     if (isModule)
@@ -534,7 +534,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             manifestInfo: out Hashtable parsedMetadataHashtable,
                             error: out Exception manifestReadError))
                         {
-                            WriteError(
+                            _cmdletPassedIn.WriteError(
                                 new ErrorRecord(
                                     exception: manifestReadError,
                                     errorId: "ManifestFileReadParseError",
