@@ -3,22 +3,19 @@ using NuGet.Versioning;
 
 public interface IFindPSResource
 {
-    #region Properties
-    #endregion
-
     #region Methods
 
     /// <summary>
     /// Find method which allows for searching for all packages from a repository and returns latest version for each.
     /// Examples: Search -Repository PSGallery
     /// </summary>
-    void FindAll(string repositoryName);
+    PSResourceInfo FindAll(PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
     /// Examples: Search -Tag "JSON" -Repository PSGallery
     /// </summary>
-    void FindTags(string[] tags, string repositoryName);
+    PSResourceInfo FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for packages with resource type specified from a repository and returns latest version for each.
@@ -27,34 +24,34 @@ public interface IFindPSResource
     /// Examples: Search -Type Module -Repository PSGallery
     ///           Search "Az*" -Type Module -Repository PSGallery
     /// </summary>
-    void FindTypes(ResourceType packageResourceType, string packageName, string repositoryName);
+    PSResourceInfo FindTypes(ResourceType packageResourceType, string packageName, PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for command names and returns latest version of matching packages.
     /// Name: supports wildcards
     /// Examples: Search -Name "Command1", "Command2" -Repository PSGallery
     /// </summary>
-    void FindCommandName(string[] commandNames, string repositoryName);
+    PSResourceInfo FindCommandName(string[] commandNames, PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for DSC Resource names and returns latest version of matching packages.
     /// Name: supports wildcards
     /// Examples: Search -Name "DSCResource1", "DSCResource2" -Repository PSGallery
-    void FindDSCResourceName(string[] dscResourceName, string repositoryName);
+    PSResourceInfo FindDSCResourceName(string[] dscResourceName, PSRepositoryInfo repository, bool includePrerPSResourceInfoPSResourceInfoelease);
 
     /// <summary>
     /// Find method which allows for searching for single name and returns latest version.
     /// Name: no wildcard support
     /// Examples: Search "PowerShellGet"
     /// </summary>
-    void FindName(string packageName, string repositoryName);
+    PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for single name with wildcards and returns latest version.
     /// Name: supports wildcards
     /// Examples: Search "PowerShell*"
     /// </summary>
-    void FindNameGlobbing(string packageName, string repositoryName);
+    PSResourceInfo FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for single name with version range.
@@ -63,7 +60,7 @@ public interface IFindPSResource
     /// Examples: Search "PowerShellGet" "[3.0.0.0, 5.0.0.0]"
     ///           Search "PowerShellGet" "3.*"
     /// </summary>
-    void FindVersionGlobbing(string packageName, VersionRange versionRange, string repositoryName);
+    PSResourceInfo FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for single name with specific version.
@@ -71,7 +68,7 @@ public interface IFindPSResource
     /// Version: no wildcard support
     /// Examples: Search "PowerShellGet" "3.0.0.0"
     /// </summary>
-    void FindVersion(string packageName, NuGetVersion version, string repositoryName);
+    PSResourceInfo FindVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository);
 
     /// <summary>
     /// Find method which allows for searching for single name with wildcards with version range.
@@ -80,7 +77,7 @@ public interface IFindPSResource
     /// Examples: Search "PowerShell*" "[3.0.0.0, 5.0.0.0]"
     ///           Search "PowerShell*" "3.*"
     /// </summary>
-    void FindNameGlobbingAndVersionGlobbing(string packageName, VersionRange versionRange, string repositoryName);
+    PSResourceInfo FindNameGlobbingAndVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for single name with wildcards with specific version.
@@ -88,14 +85,14 @@ public interface IFindPSResource
     /// Version: no wildcard support
     /// Examples: Search "PowerShell*" "3.0.0.0"
     /// </summary>
-    void FindNameGlobbingAndVersion(string packageName, NuGetVersion version, string repositoryName);
+    PSResourceInfo FindNameGlobbingAndVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository);
 
     /// <summary>
     /// Find method which allows for searching for multiple names and returns latest version for each.
     /// Name: supports wildcards
     /// Examples: Search "PowerShellGet", "Package*", "PSReadLine"
     /// </summary>
-    void FindNamesGlobbing(string[] packageNames, string repositoryName);
+    PSResourceInfo FindNamesGlobbing(string[] packageNames, PSRepositoryInfo repository, bool includePrerelease);
 
     /// <summary>
     /// Find method which allows for searching for multiple names with specific version.
@@ -103,7 +100,7 @@ public interface IFindPSResource
     /// Version: no wildcard support
     /// Examples: Search "PowerShellGet", "Package*", "PSReadLine" "3.0.0.0"
     /// </summary>
-    void FindNamesGlobbingAndVersion(string[] packageNames, NuGetVersion version, string repositoryName);
+    PSResourceInfo FindNamesGlobbingAndVersion(string[] packageNames, NuGetVersion version, PSRepositoryInfo repository);
 
     /// <summary>
     /// Find method which allows for searching for multiple names with version range.
@@ -112,7 +109,7 @@ public interface IFindPSResource
     /// Examples: Search "PowerShellGet", "Package*", "PSReadLine" "[3.0.0.0, 5.0.0.0]"
     ///           Search "PowerShellGet", "Package*", "PSReadLine" "3.*"
     /// </summary>
-    void FindNamesGlobbingAndVersionGlobbing(string[] packageNames, VersionRange versionRange, string repositoryName); 
+    PSResourceInfo FindNamesGlobbingAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease); 
 
     #endregion
 }
