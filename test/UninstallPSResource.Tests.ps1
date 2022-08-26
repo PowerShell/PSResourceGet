@@ -265,13 +265,14 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $res | Should -BeNullOrEmpty
     }
 
+    <#
     It "Uninstall PSResourceInfo object piped in for prerelease version object" {
         Install-PSResource -Name $testModuleName -Version "2.5.0-beta" -Repository $PSGalleryName -TrustRepository
         Get-PSResource -Name $testModuleName -Version "2.5.0-beta" | Uninstall-PSResource
         $res = Get-PSResource -Name $testModuleName -Version "2.5.0-beta"
         $res | Should -BeNullOrEmpty
     }
-
+#>
     It "Uninstall PSResourceInfo object piped in should only uninstall version specified" {
         Install-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -TrustRepository
         Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $PSGalleryName -TrustRepository
