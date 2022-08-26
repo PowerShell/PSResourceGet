@@ -192,15 +192,14 @@ Accept wildcard characters: False
 
 ### -Path
 
-Specifies the path to save the resource to. If no path is provided, the resource is saved to the
-current location.
+Specifies the path to save the resource to. 
 
 ```yaml
 Type: System.String
 Parameter Sets: (All)
 Aliases:
 
-Required: False
+Required: True
 Position: Named
 Default value: None
 Accept pipeline input: False
