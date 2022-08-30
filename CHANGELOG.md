@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 3.0.17-beta17
+
+### New Features
+- Add -TemporaryPath parameter to Install-PSResource, Save-PSResource, and Update-PSResource (#763)
+- Add String and SecureString as credential types in PSCredentialInfo (#764)
+- Add Install interface design (#776)
+- Add a warning for when the script installation path is not in Path variable (#750)
+
+### Bug Fixes
+- Change casing of -IncludeXML to -IncludeXml (#739)
+- Update priority range for PSResourceRepository to 0-100 (#741)
+- Editorial pass on cmdlet reference (#743)
+- Fix issue when PSScriptInfo has no empty lines (#744)
+- Make ConfirmImpact low for Register-PSResourceRepository and Save-PSResource
+- Fix -PassThru for Set-PSResourceRepository cmdlet to return all properties (#748)
+- Rename -FilePath parameter to -Path for PSScriptFileInfo cmdlets (#765)
+- Fix RequiredModules description and add Find example to docs (#769)
+- Remove unneeded inheritance in InstallHelper.cs (#773)
+- Make -Path a required parameter for Save-PSResource cmdlet (#780)
+- Improve script validation for publishing and installing (#781)
+
 ## 3.0.16-beta16
 
 ### Bug Fixes
