@@ -35,7 +35,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public const string PSScriptFileExt = ".ps1";
         private const string MsgRepositoryNotTrusted = "Untrusted repository";
         private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
-        private const string ScriptPATHPromptQuery = "Your system has not been configured with a default script installation path yet, which means you can only run a script by specifying the full path to the script file. This action places the script into the folder '{0}', and adds that folder to your PATH environment variable. Do you want to add the script installation path '{0}' to the PATH environment variable?";
+        private const string ScriptPATHPromptQuery = "The installation path for the script does not appear in the {scope} path environment variable. Do you want the script installation path, {path}, added to the {scope} PATH environment variable?";
+
         private const string PATHEnvVarAlteration = "Updating PATH environment variable";
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
