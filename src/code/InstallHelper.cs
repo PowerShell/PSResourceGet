@@ -591,7 +591,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!_savePkg && !isModule)
                     {
-                        // Add Scripts install path to Path environment variable so that it can be ran without prepending the path
+                        // Add Scripts install path to Path environment variable so that it can be discovered.
+
                         string envPathValue = Environment.GetEnvironmentVariable("PATH"); // todo anam- does this get all targets?
                         string installPathwithBackSlash = installPath + "\\";
                         if (!envPathValue.Contains(installPath) && !envPathValue.Contains(installPathwithBackSlash))
