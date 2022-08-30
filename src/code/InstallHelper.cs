@@ -590,22 +590,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!_savePkg && !isModule)
                     {
                         string installPathwithBackSlash = installPath + "\\";
-                        if (scope == ScopeType.CurrentUser)
+                        string envPATHVarValue = Environment.GetEnvironmentVariable("PATH",
+                            scope == ScopeType.CurrentUser ? EnvironmentVariableTarget.User : EnvironmentVariableTarget.Machine);
+
+                        if (!envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
                         {
-                            string currentUserPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
-                            if (!currentUserPathEnvVarValue.Contains(installPath) && !currentUserPathEnvVarValue.Contains(installPathwithBackSlash))
-                            {
-                                _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
-                            }
-                        }
-                        else
-                        {
-                            // ScopeType.AllUsers
-                            string allUsersPathEnvVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine);
-                            if (!allUsersPathEnvVarValue.Contains(installPath) && !allUsersPathEnvVarValue.Contains(installPathwithBackSlash))
-                            {
-                                _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
-                            }
+                            _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
                         }
                     }
                 }
