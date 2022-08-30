@@ -283,12 +283,6 @@ Describe 'Test Save-PSResource for PSResources' {
         { Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir} | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
-    # Save module without specifying -Path
-    # Should FAIL to save the module
-    It "Save module without specifying -Path" {
-        {Save-PSResource -Name $testModuleName -Repository $PSGalleryName } | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
-    }
-
 <#
     # Tests should not write to module directory
     It "Save specific module resource by name if no -Path param is specifed" {
