@@ -234,8 +234,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public Dictionary<string, string> AdditionalMetadata { get; }
         public string Author { get; }
-        public string CompanyName { get; }
-        public string Copyright { get; }
+        public string CompanyName { get; internal set; }
+        public string Copyright { get; internal set; }
         public Dependency[] Dependencies { get; }
         public string Description { get; }
         public Uri IconUri { get; }
@@ -250,9 +250,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string Prerelease { get; }
         public Uri ProjectUri { get; }
         public DateTime? PublishedDate { get; }
-        public string ReleaseNotes { get; }
+        public string ReleaseNotes { get; internal set; }
         public string Repository { get; }
-        public string RepositorySourceLocation { get; }
+        public string RepositorySourceLocation { get; internal set; }
         public string[] Tags { get; }
         public ResourceType Type { get; }
         public DateTime? UpdatedDate { get; }

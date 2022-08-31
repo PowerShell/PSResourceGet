@@ -1,3 +1,4 @@
+using System.Collections;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -487,6 +488,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             psScriptFileContents = fileContentsList.ToArray();
             return fileContentsSuccessfullyCreated;
+        }
+
+
+        internal Hashtable ToHashtable()
+        {
+            Hashtable scriptHashtable = new Hashtable(StringComparer.OrdinalIgnoreCase);
+
+            Hashtable metadataObjectHashtable = ScriptMetadataComment.ToHashtable();
+            foreach(string key in metadataObjectHashtable.Keys)
+            {
+                if (!scriptHashtable.ContainsKey(key))
+                {
+                    // shouldn't have duplicate keys, but just for unexpected error handling
+                    scriptHashtable.Add(key, metadataObjectHashtable[key]);
+                }
+            }
+
+            scriptHashtable.Add(nameof(ScriptHelpComment.Description), ScriptHelpComment.Description);
+
+            if (ScriptRequiresComment.RequiredModules.Length != 0)
+            {
+                scriptHashtable.Add(nameof(ScriptRequiresComment.RequiredModules), ScriptRequiresComment.RequiredModules);
+            }
+
+            return scriptHashtable;
         }
 
         #endregion
