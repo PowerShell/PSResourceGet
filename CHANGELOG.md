@@ -5,7 +5,6 @@
 ### New Features
 - Add -TemporaryPath parameter to Install-PSResource, Save-PSResource, and Update-PSResource (#763)
 - Add String and SecureString as credential types in PSCredentialInfo (#764)
-- Add Install interface design (#776)
 - Add a warning for when the script installation path is not in Path variable (#750)
 - Expand acceptable paths for Publish-PSResource (Module root directory, module manifest file, script file)(#704)
 - Add -Force parameter to Register-PSResourceRepository cmdlet, to override an existing repository (#717)
