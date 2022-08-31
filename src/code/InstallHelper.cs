@@ -35,6 +35,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public const string PSScriptFileExt = ".ps1";
         private const string MsgRepositoryNotTrusted = "Untrusted repository";
         private const string MsgInstallUntrustedPackage = "You are installing the modules from an untrusted repository. If you trust this repository, change its Trusted value by running the Set-PSResourceRepository cmdlet. Are you sure you want to install the PSresource from '{0}' ?";
+        private const string ScriptPATHWarning = "The installation path for the script does not currently appear in the {0} path environment variable. To make the script discoverable, add the script installation path, {1}, to the environment PATH variable.";
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pathsToInstallPkg;
@@ -84,6 +85,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool authenticodeCheck,
             bool savePkg,
             List<string> pathsToInstallPkg,
+            ScopeType? scope,
             string tmpPath)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
@@ -140,7 +142,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 repository: repository,
                 trustRepository: _trustRepository,
                 credential: _credential,
-                skipDependencyCheck: skipDependencyCheck);
+                skipDependencyCheck: skipDependencyCheck,
+                scope: scope?? ScopeType.CurrentUser);
         }
 
         #endregion
@@ -152,7 +155,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string[] repository,
             bool trustRepository,
             PSCredential credential,
-            bool skipDependencyCheck)
+            bool skipDependencyCheck,
+            ScopeType scope)
         {
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
             var yesToAll = false;
@@ -238,7 +242,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repo.Uri.AbsoluteUri,
                     repo.CredentialInfo,
                     credential,
-                    isLocalRepo);
+                    isLocalRepo,
+                    scope: scope);
 
                 foreach (PSResourceInfo pkg in pkgsInstalled)
                 {
@@ -322,7 +327,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string repoUri,
             PSCredentialInfo repoCredentialInfo,
             PSCredential credential,
-            bool isLocalRepo)
+            bool isLocalRepo,
+            ScopeType scope)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
             int totalPkgs = pkgsToInstall.Count;
@@ -610,6 +616,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkg.Name, installPath));
                     pkgsSuccessfullyInstalled.Add(pkg);
+
+                    if (!_savePkg && !isModule)
+                    {
+                        string installPathwithBackSlash = installPath + "\\";
+                        string envPATHVarValue = Environment.GetEnvironmentVariable("PATH",
+                            scope == ScopeType.CurrentUser ? EnvironmentVariableTarget.User : EnvironmentVariableTarget.Machine);
+
+                        if (!envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
+                        {
+                            _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
+                        }
+                    }
                 }
                 catch (Exception e)
                 {

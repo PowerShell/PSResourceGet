@@ -552,6 +552,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg,
+                scope: Scope,
                 tmpPath: _tmpPath);
 
             if (PassThru)
