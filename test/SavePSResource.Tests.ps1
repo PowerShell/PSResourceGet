@@ -280,7 +280,7 @@ Describe 'Test Save-PSResource for PSResources' {
     # Save script that is not signed
     # Should throw
     It "Save script that is not signed" -Skip:(!(Get-IsWindows)) {
-        { Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        { Save-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir} | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
 <#

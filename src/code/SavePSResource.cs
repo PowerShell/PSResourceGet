@@ -81,7 +81,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
-        [Parameter]
+        [Parameter(Mandatory = true)]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -90,21 +90,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             set
             {
-                string resolvedPath = string.Empty;
-                if (string.IsNullOrEmpty(value))
-                {
-                    // If the user does not specify a path to save to, use the user's current working directory
-                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(SessionState.Path.CurrentFileSystemLocation.Path).First().Path;
-                }
-                else {
-                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
-                }
+                if (WildcardPattern.ContainsWildcardCharacters(value)) 
+                { 
+                    throw new PSArgumentException("Wildcard characters are not allowed in the path."); 
+                } 
 
-                // Path where resource is saved must be a directory
-                if (Directory.Exists(resolvedPath))
-                {
-                    _path = resolvedPath;
-                }
+                // This will throw if path cannot be resolved
+                _path = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
             }
         }
         private string _path;
