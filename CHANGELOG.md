@@ -7,13 +7,15 @@
 - Add String and SecureString as credential types in PSCredentialInfo (#764)
 - Add Install interface design (#776)
 - Add a warning for when the script installation path is not in Path variable (#750)
+- Expand acceptable paths for Publish-PSResource (Module root directory, module manifest file, script file)(#704)
+- Add -Force parameter to Register-PSResourceRepository cmdlet, to override an existing repository (#717)
 
 ### Bug Fixes
 - Change casing of -IncludeXML to -IncludeXml (#739)
 - Update priority range for PSResourceRepository to 0-100 (#741)
 - Editorial pass on cmdlet reference (#743)
 - Fix issue when PSScriptInfo has no empty lines (#744)
-- Make ConfirmImpact low for Register-PSResourceRepository and Save-PSResource
+- Make ConfirmImpact low for Register-PSResourceRepository and Save-PSResource (#745)
 - Fix -PassThru for Set-PSResourceRepository cmdlet to return all properties (#748)
 - Rename -FilePath parameter to -Path for PSScriptFileInfo cmdlets (#765)
 - Fix RequiredModules description and add Find example to docs (#769)
