@@ -291,6 +291,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
                 pathsToInstallPkg: new List<string> { _path },
+                scope: null,
                 tmpPath: _tmpPath);
 
             if (PassThru)
