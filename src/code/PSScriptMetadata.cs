@@ -544,6 +544,29 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return true;
         }
 
+
+        internal Hashtable ToHashtable()
+        {
+            // Constructor would be called first, which handles empty null values for required properties.
+            Hashtable metadataHashtable = new Hashtable(StringComparer.OrdinalIgnoreCase);
+            metadataHashtable.Add(nameof(Version), Version);
+            metadataHashtable.Add(nameof(Guid), Guid);
+            metadataHashtable.Add(nameof(Author), Author);
+            metadataHashtable.Add(nameof(CompanyName), CompanyName);
+            metadataHashtable.Add(nameof(Copyright), Copyright);
+            metadataHashtable.Add(nameof(Tags), Tags);
+            metadataHashtable.Add(nameof(LicenseUri), LicenseUri);
+            metadataHashtable.Add(nameof(ProjectUri), ProjectUri);
+            metadataHashtable.Add(nameof(IconUri), IconUri);
+            metadataHashtable.Add(nameof(ExternalModuleDependencies), ExternalModuleDependencies);
+            metadataHashtable.Add(nameof(RequiredScripts), RequiredScripts);
+            metadataHashtable.Add(nameof(ExternalScriptDependencies), ExternalScriptDependencies);
+            metadataHashtable.Add(nameof(ReleaseNotes), ReleaseNotes);
+            metadataHashtable.Add(nameof(PrivateData), PrivateData);
+
+            return metadataHashtable;
+        }
+
         #endregion
     }
 }

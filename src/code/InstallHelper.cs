@@ -545,6 +545,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
+                        pkg.CompanyName = parsedMetadataHashtable.ContainsKey("CompanyName") ? parsedMetadataHashtable["CompanyName"] as string : String.Empty;
+                        pkg.Copyright = parsedMetadataHashtable.ContainsKey("Copyright") ? parsedMetadataHashtable["Copyright"] as string : String.Empty;
+                        pkg.ReleaseNotes = parsedMetadataHashtable.ContainsKey("ReleaseNotes") ? parsedMetadataHashtable["ReleaseNotes"] as string : String.Empty;
+                        pkg.RepositorySourceLocation = repoUri;
 
                         // Accept License verification
                         if (!_savePkg && !CallAcceptLicense(pkg, moduleManifest, tempInstallPath, newVersion))
@@ -557,6 +561,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             continue;
                         }
+                    }
+                    else
+                    {
+                        // is script
+                        if (!PSScriptFileInfo.TryTestPSScriptFile(
+                            scriptFileInfoPath: scriptPath,
+                            parsedScript: out PSScriptFileInfo scriptToInstall,
+                            out ErrorRecord[] errors,
+                            out string[] _
+                        ))
+                        {
+                            foreach (ErrorRecord error in errors)
+                            {
+                                _cmdletPassedIn.WriteError(error);
+                            }
+
+                            continue;
+                        }
+
+                        Hashtable parsedMetadataHashtable = scriptToInstall.ToHashtable();
+
+                        moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
+                        pkg.CompanyName = parsedMetadataHashtable.ContainsKey("CompanyName") ? parsedMetadataHashtable["CompanyName"] as string : String.Empty;
+                        pkg.Copyright = parsedMetadataHashtable.ContainsKey("Copyright") ? parsedMetadataHashtable["Copyright"] as string : String.Empty;
+                        pkg.ReleaseNotes = parsedMetadataHashtable.ContainsKey("ReleaseNotes") ? parsedMetadataHashtable["ReleaseNotes"] as string : String.Empty;
+                        pkg.RepositorySourceLocation = repoUri;
                     }
 
                     // Delete the extra nupkg related files that are not needed and not part of the module/script

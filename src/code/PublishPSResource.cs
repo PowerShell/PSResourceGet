@@ -219,29 +219,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            Hashtable parsedMetadata;
+            Hashtable parsedMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             if (resourceType == ResourceType.Script)
             {
-                // Check that script metadata is valid
-                if (!TryParseScriptMetadata(
-                    out parsedMetadata,
-                    pathToScriptFileToPublish,
-                    out ErrorRecord[] errors))
+                if (!PSScriptFileInfo.TryTestPSScriptFile(
+                    scriptFileInfoPath: pathToScriptFileToPublish,
+                    parsedScript: out PSScriptFileInfo scriptToPublish,
+                    out ErrorRecord[] errors,
+                    out string[] _
+                ))
                 {
-                    foreach (ErrorRecord err in errors)
+                    foreach (ErrorRecord error in errors)
                     {
-                        WriteError(err);
+                        WriteError(error);
                     }
 
                     return;
                 }
+
+                parsedMetadata = scriptToPublish.ToHashtable();
 
                 _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
             }
             else
             {
                 // parsedMetadata needs to be initialized for modules, will later be passed in to create nuspec
-                parsedMetadata = new Hashtable();
                 if (!string.IsNullOrEmpty(pathToModuleManifestToPublish))
                 {
                     _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
@@ -744,183 +746,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return dependenciesHash;
-        }
-
-        private bool TryParseScriptMetadata(
-            out Hashtable parsedMetadata,
-            string filePath,
-            out ErrorRecord[] errors)
-        {
-            parsedMetadata = new Hashtable();
-            List<ErrorRecord> parseMetadataErrors = new List<ErrorRecord>();
-
-            // a valid example script will have this format:
-            /* <#PSScriptInfo
-                .VERSION 1.6
-                .GUID abf490023 - 9128 - 4323 - sdf9a - jf209888ajkl
-                .AUTHOR Jane Doe
-                .COMPANYNAME Microsoft
-                .COPYRIGHT
-                .TAGS Windows MacOS
-                #>
-                
-                <#
-
-                .SYNOPSIS
-                 Synopsis description here
-                .DESCRIPTION
-                 Description here
-                .PARAMETER Name
-                .EXAMPLE
-                 Example cmdlet here
-
-                #>
-            */
-
-            // Parse the script file
-            var ast = Parser.ParseFile(
-                filePath,
-                out System.Management.Automation.Language.Token[] tokens,
-                out ParseError[] parserErrors);
-
-            if (parserErrors.Length > 0)
-            {
-                foreach (ParseError err in parserErrors)
-                {
-                    // we ignore WorkFlowNotSupportedInPowerShellCore errors, as this is common in scripts currently on PSGallery
-                    if (!String.Equals(err.ErrorId, "WorkflowNotSupportedInPowerShellCore", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to {1}.", filePath, err.Message);
-                        var ex = new ArgumentException(message);
-                        var psScriptFileParseError = new ErrorRecord(ex, err.ErrorId, ErrorCategory.ParserError, null);
-                        parseMetadataErrors.Add(psScriptFileParseError);
-                    }
-                }
-
-                errors = parseMetadataErrors.ToArray();
-                return false;
-            }
-
-            if (ast == null)
-            {
-                var astNullMessage = String.Format(".ps1 file was parsed but AST was null");
-                var astNullEx = new ArgumentException(astNullMessage);
-                var astCouldNotBeCreatedError = new ErrorRecord(astNullEx, "ASTCouldNotBeCreated", ErrorCategory.ParserError, null);
-
-                parseMetadataErrors.Add(astCouldNotBeCreatedError);
-                errors = parseMetadataErrors.ToArray();
-                return false;
-
-            }
-
-            // Get the block/group comment beginning with <#PSScriptInfo
-            List<System.Management.Automation.Language.Token> commentTokens = tokens.Where(a => String.Equals(a.Kind.ToString(), "Comment", StringComparison.OrdinalIgnoreCase)).ToList();
-            string commentPattern = PSScriptInfoCommentString;
-            Regex rg = new Regex(commentPattern);
-            List<System.Management.Automation.Language.Token> psScriptInfoCommentTokens = commentTokens.Where(a => rg.IsMatch(a.Extent.Text)).ToList();
-
-            if (psScriptInfoCommentTokens.Count() == 0 || psScriptInfoCommentTokens[0] == null)
-            {
-                var message = String.Format("PSScriptInfo comment was missing or could not be parsed");
-                var ex = new ArgumentException(message);
-                var psCommentMissingError = new ErrorRecord(ex, "psScriptInfoCommentMissingError", ErrorCategory.ParserError, null);
-                parseMetadataErrors.Add(psCommentMissingError);
-                errors = parseMetadataErrors.ToArray();
-                return false;
-            }
-
-            string[] commentLines = Regex.Split(psScriptInfoCommentTokens[0].Text, "[\r\n]").Where(x => !String.IsNullOrEmpty(x)).ToArray();
-            string keyName = String.Empty;
-            string value = String.Empty;
-
-            /**
-            If comment line count is not more than two, it doesn't have the any metadata property
-            comment block would look like:
-            <#PSScriptInfo
-            #>
-            */
-
-            if (commentLines.Count() > 2)
-            {
-                for (int i = 1; i < commentLines.Count(); i++)
-                {
-                    string line = commentLines[i];
-                    if (String.IsNullOrEmpty(line))
-                    {
-                        continue;
-                    }
-
-                    // A line is starting with . conveys a new metadata property
-                    if (line.Trim().StartsWith("."))
-                    {
-                        string[] parts = line.Trim().TrimStart('.').Split();
-                        keyName = parts[0].ToLower();
-                        value = parts.Count() > 1 ? String.Join(" ", parts.Skip(1)) : String.Empty;
-                        parsedMetadata.Add(keyName, value);
-                    }
-                }
-            }
-
-            // get .DESCRIPTION comment
-            CommentHelpInfo scriptCommentInfo = ast.GetHelpContent();
-            if (scriptCommentInfo == null)
-            {
-                var message = String.Format("PSScript file is missing the required Description comment block in the script contents.");
-                var ex = new ArgumentException(message);
-                var psScriptMissingHelpContentCommentBlockError = new ErrorRecord(ex, "PSScriptMissingHelpContentCommentBlock", ErrorCategory.ParserError, null);
-                parseMetadataErrors.Add(psScriptMissingHelpContentCommentBlockError);
-                errors = parseMetadataErrors.ToArray();
-                return false;
-            }
-
-            if (!String.IsNullOrEmpty(scriptCommentInfo.Description) && !scriptCommentInfo.Description.Contains("<#") && !scriptCommentInfo.Description.Contains("#>"))
-            {
-                parsedMetadata.Add("description", scriptCommentInfo.Description);
-            }
-            else
-            {
-                var message = String.Format("PSScript is missing the required Description property or Description value contains '<#' or '#>' which is invalid");
-                var ex = new ArgumentException(message);
-                var psScriptMissingDescriptionOrInvalidPropertyError = new ErrorRecord(ex, "MissingOrInvalidDescriptionInScriptMetadata", ErrorCategory.ParserError, null);
-                parseMetadataErrors.Add(psScriptMissingDescriptionOrInvalidPropertyError);
-                errors = parseMetadataErrors.ToArray();
-                return false;
-            }
-            
-
-            // Check that the mandatory properites for a script are there (version, author, guid, in addition to description)
-            if (!parsedMetadata.ContainsKey("version") || String.IsNullOrWhiteSpace(parsedMetadata["version"].ToString()))
-            {
-                var message = "No version was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
-                var ex = new ArgumentException(message);
-                var MissingVersionInScriptMetadataError = new ErrorRecord(ex, "MissingVersionInScriptMetadata", ErrorCategory.InvalidData, null);
-                parseMetadataErrors.Add(MissingVersionInScriptMetadataError);
-                errors = parseMetadataErrors.ToArray();
-                return false;
-            }
-
-            if (!parsedMetadata.ContainsKey("author") || String.IsNullOrWhiteSpace(parsedMetadata["author"].ToString()))
-            {
-                var message = "No author was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
-                var ex = new ArgumentException(message);
-                var MissingAuthorInScriptMetadataError = new ErrorRecord(ex, "MissingAuthorInScriptMetadata", ErrorCategory.InvalidData, null);
-                parseMetadataErrors.Add(MissingAuthorInScriptMetadataError);
-                errors = parseMetadataErrors.ToArray();
-                return false;
-            }
-
-            if (!parsedMetadata.ContainsKey("guid") || String.IsNullOrWhiteSpace(parsedMetadata["guid"].ToString()))
-            {
-                var message = "No guid was provided in the script metadata. Script metadata must specify a version, author, description, and Guid.";
-                var ex = new ArgumentException(message);
-                var MissingGuidInScriptMetadataError = new ErrorRecord(ex, "MissingGuidInScriptMetadata", ErrorCategory.InvalidData, null);
-                parseMetadataErrors.Add(MissingGuidInScriptMetadataError);
-                errors = parseMetadataErrors.ToArray();
-                return false;
-            }
-
-            errors = parseMetadataErrors.ToArray();
-            return true;
         }
 
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName)

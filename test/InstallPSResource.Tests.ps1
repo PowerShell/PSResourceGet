@@ -8,6 +8,7 @@ Describe 'Test Install-PSResource for Module' {
 
     BeforeAll {
         $PSGalleryName = Get-PSGalleryName
+        $PSGalleryUri = Get-PSGalleryLocation
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = "test_module"
         $testModuleName2 = "TestModule99"
@@ -178,6 +179,29 @@ Describe 'Test Install-PSResource for Module' {
         $pkg = Get-PSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName 
         ($env:PSModulePath).Contains($pkg.InstalledLocation)
+    }
+
+    It "Install resource with companyname, copyright and repository source location and validate" {
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository PSGallery -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Version | Should -Be "5.2.5"
+        $pkg.Prerelease | Should -Be "alpha001"
+
+        $pkg.CompanyName | Should -Be "Anam"
+        $pkg.Copyright | Should -Be "(c) Anam Navied. All rights reserved."
+        $pkg.RepositorySourceLocation | Should -Be $PSGalleryUri
+    }
+
+
+    It "Install script with companyname, copyright, and repository source location and validate" {
+        Install-PSResource -Name "Install-VSCode" -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
+
+        $res = Get-PSResource "Install-VSCode" -Version "1.4.2"
+        $res.Name | Should -Be "Install-VSCode"
+        $res.Version | Should -Be "1.4.2.0"
+        $res.CompanyName | Should -Be "Microsoft Corporation"
+        $res.Copyright | Should -Be "(c) Microsoft Corporation"
+        $res.RepositorySourceLocation | Should -Be $PSGalleryUri
     }
 
     # Windows only

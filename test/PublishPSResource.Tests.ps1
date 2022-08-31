@@ -378,6 +378,28 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
+    It "should publish a script without lines in between comment blocks locally" {
+        $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks"
+        $scriptVersion = "1.0.0"
+        $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
+
+        Publish-PSResource -Path $scriptPath
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
+    It "should publish a script without lines in help block locally" {
+        $scriptName = "ScriptWithoutEmptyLinesInMetadata"
+        $scriptVersion = "1.0.0"
+        $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
+
+        Publish-PSResource -Path $scriptPath
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
     It "should write error and not publish script when Author property is missing" {
         $scriptName = "InvalidScriptMissingAuthor.ps1"
         $scriptVersion = "1.0.0"
@@ -385,7 +407,7 @@ Describe "Test Publish-PSResource" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingAuthorInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingAuthor,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
@@ -397,7 +419,7 @@ Describe "Test Publish-PSResource" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingVersionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingVersion,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPkgs = Get-ChildItem -Path $script:repositoryPath -Filter *.nupkg
         $publishedPkgs.Count | Should -Be 0
@@ -410,7 +432,7 @@ Describe "Test Publish-PSResource" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingGuidInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingGuid,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
@@ -423,7 +445,7 @@ Describe "Test Publish-PSResource" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "MissingOrInvalidDescriptionInScriptMetadata,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptInfoMissingDescription,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
@@ -437,7 +459,7 @@ Describe "Test Publish-PSResource" {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptMissingHelpContentCommentBlock,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "missingHelpInfoCommentError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
