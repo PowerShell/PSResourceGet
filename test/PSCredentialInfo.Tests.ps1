@@ -34,7 +34,8 @@ Describe "Create PSCredentialInfo with VaultName, SecretName, and Credential" -t
 
     It "Creates PSCredentialInfo successfully if Credential is non-null and of type PSCredential" {
         $randomSecret = [System.IO.Path]::GetRandomFileName()
-        $credential = New-Object System.Management.Automation.PSCredential ("username", (ConvertTo-SecureString "password" -AsPlainText -Force))
+        $randomPassword = [System.IO.Path]::GetRandomFileName()
+        $credential = New-Object System.Management.Automation.PSCredential ("username", (ConvertTo-SecureString $randomPassword -AsPlainText -Force))
         $credentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret, $credential)
 
         $credentialInfo.VaultName | Should -Be "testvault"
