@@ -22,10 +22,13 @@ Describe "Test Register-PSResourceRepository" {
 
         $relativeCurrentPath = Get-Location
 
-        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
-        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
+        $randomSecret = [System.IO.Path]::GetRandomFileName()
+        $randomPassword = [System.IO.Path]::GetRandomFileName()
+        
+        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)
+        $secureString = ConvertTo-SecureString $randomPassword -AsPlainText -Force
         $credential = New-Object pscredential ("testusername", $secureString)
-        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
+        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret, $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -68,7 +71,7 @@ Describe "Test Register-PSResourceRepository" {
         $res.Trusted | Should -Be True
         $res.Priority | Should -Be 20
         $res.CredentialInfo.VaultName | Should -Be "testvault"
-        $res.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res.CredentialInfo.SecretName | Should -Be $randomSecret
     }
 
     It "register repository with PSGallery parameter (PSGalleryParameterSet)" {
@@ -102,7 +105,7 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
         $hashtable2 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $hashtable3 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable4 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret"))}
+        $hashtable4 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Register-PSResourceRepository -Repository $arrayOfHashtables
@@ -126,7 +129,7 @@ Describe "Test Register-PSResourceRepository" {
         $res4.Trusted | Should -Be True
         $res4.Priority | Should -Be 30
         $res4.CredentialInfo.VaultName | Should -Be "testvault"
-        $res4.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res4.CredentialInfo.SecretName | Should -Be $randomSecret
         $res4.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
@@ -146,7 +149,7 @@ Describe "Test Register-PSResourceRepository" {
         $hashtable2 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
         $hashtable3 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $hashtable4 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable5 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret"))}
+        $hashtable5 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4, $hashtable5
 
         Register-PSResourceRepository -Repository $arrayOfHashtables
@@ -176,7 +179,7 @@ Describe "Test Register-PSResourceRepository" {
         $res5.Trusted | Should -Be True
         $res5.Priority | Should -Be 30
         $res5.CredentialInfo.VaultName | Should -Be "testvault"
-        $res5.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res5.CredentialInfo.SecretName | Should -Be $randomSecret
         $res5.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
