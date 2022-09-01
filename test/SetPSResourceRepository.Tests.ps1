@@ -21,10 +21,13 @@ Describe "Test Set-PSResourceRepository" {
 
         $relativeCurrentPath = Get-Location
 
-        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret")
-        $secureString = ConvertTo-SecureString "testpassword" -AsPlainText -Force
+        $randomSecret = [System.IO.Path]::GetRandomFileName()
+        $randomPassword = [System.IO.Path]::GetRandomFileName()
+
+        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)
+        $secureString = ConvertTo-SecureString $randomPassword -AsPlainText -Force
         $credential = New-Object pscredential ("testusername", $secureString)
-        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", "testsecret", $credential)
+        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret, $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -89,7 +92,7 @@ Describe "Test Set-PSResourceRepository" {
         $res.Priority | Should -Be 50
         $res.Trusted | Should -Be False
         $res.CredentialInfo.VaultName | Should -Be "testvault"
-        $res.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res.CredentialInfo.SecretName | Should -Be $randomSecret
         $res.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
@@ -145,7 +148,7 @@ Describe "Test Set-PSResourceRepository" {
 
         $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir2Path};
         $hashtable2 = @{Name = $TestRepoName2; Priority = 25};
-        $hashtable3 = @{Name = $TestRepoName3; CredentialInfo = [PSCustomObject] @{ VaultName = "testvault"; SecretName = "testsecret" }};
+        $hashtable3 = @{Name = $TestRepoName3; CredentialInfo = [PSCustomObject] @{ VaultName = "testvault"; SecretName = $randomSecret }};
         $hashtable4 = @{Name = $PSGalleryName; Trusted = $True};
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
@@ -170,7 +173,7 @@ Describe "Test Set-PSResourceRepository" {
         $res3.Priority | Should -Be 50
         $res3.Trusted | Should -Be False
         $res3.CredentialInfo.VaultName | Should -Be "testvault"
-        $res3.CredentialInfo.SecretName | Should -Be "testsecret"
+        $res3.CredentialInfo.SecretName | Should -Be $randomSecret
         $res3.CredentialInfo.Credential | Should -BeNullOrEmpty
 
         $res4 = Get-PSResourceRepository -Name $PSGalleryName
