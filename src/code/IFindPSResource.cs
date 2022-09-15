@@ -47,7 +47,7 @@ public interface IFindPSResource
 
     /// <summary>
     /// Find method which allows for searching for DSC Resource names and returns latest version of matching packages.
-    /// Name: no wildcard support
+    /// Name: Support wildcards.
     /// Examples: Search -Name "DSCResource1", "DSCResource2" -Repository PSGallery
     /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSDSCResource_DSCResource1 tag:PSDSCResource_DSCResource2'
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSDSCResource_DSCResource1 tag:PSDSCResource_DSCResource2'&includePrerelease=true
