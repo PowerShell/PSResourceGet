@@ -38,7 +38,7 @@ public interface IFindPSResource
 
     /// <summary>
     /// Find method which allows for searching for command names and returns latest version of matching packages.
-    /// Name: no wildcard support
+    /// Name: supports wildcards.
     /// Examples: Search -Name "Command1", "Command2" -Repository PSGallery
     /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSCommand_Command1 tag:PSCommand_Command2'
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSCommand_Command1 tag:PSCommand_Command2'&includePrerelease=true
