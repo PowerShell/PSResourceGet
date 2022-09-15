@@ -9,6 +9,8 @@ public interface IInstallPSResource
     /// Installs specific package.
     /// Name: no wildcard support.
     /// Examples: Install "PowerShellGet"
+    /// Implementation Note: if prerelease: call IFindPSResource.FindName()
+    ///                      if not prerelease: https://www.powershellgallery.com/api/v2/package/Id (Returns latest stable)
     /// </summary>
     PSResourceInfo InstallName(string pkgName, PSRepositoryInfo repository, bool includePrerelease);
 
@@ -18,10 +20,12 @@ public interface IInstallPSResource
     /// Version: no wildcard support.
     /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
     ///           Install "PowerShellGet" -Version "3.0.0-beta16"
+    /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
     /// </summary>    
     PSResourceInfo InstallVersion(string pkgName, NuGetVersion version, PSRepositoryInfo repository);
 
     /// <summary>
+    /// Implementation note: We'd call IFindPSResource.FindVersionGlobbing() first and InstallVersion().
     /// Installs latest package within version range provided.
     /// Name: no wildcard support.
     /// Version: supports wilcard.
