@@ -109,17 +109,6 @@ public interface IServerAPICalls
     string FindName(string packageName, PSRepositoryInfo repository, out string[] errRecord);
 
     /// <summary>
-    /// Find method which allows for searching for single name with wildcards and returns latest version.
-    /// Name: supports wildcards
-    /// Examples: Search "PowerShell*"
-    /// API call: 
-    /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
-    /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='az*'&includePrerelease=true
-    /// Implementation Note: filter additionally and verify ONLY package name was a match.
-    /// </summary>
-    PSResourceInfo FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease);
-
-    /// <summary>
     /// Find method which allows for searching for single name with version range.
     /// Name: no wildcard support
     /// Version: supports wildcards
