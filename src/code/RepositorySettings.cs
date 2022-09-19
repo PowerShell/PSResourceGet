@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using static Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -281,7 +282,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            return new PSRepositoryInfo(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo);
+            RepositoryProviderType repositoryProvider = GetRepositoryProviderType(repoUri);
+            return new PSRepositoryInfo(repoName, repoUri, repoPriority, repoTrusted, repositoryProvider, repoCredentialInfo);
         }
 
         /// <summary>
@@ -417,10 +419,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
                 }
 
+                RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
                     Boolean.Parse(node.Attribute("Trusted").Value),
+                    repositoryProvider,
                     thisCredentialInfo);
 
                 // Close the file
@@ -494,11 +498,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 string attributeUrlUriName = urlAttributeExists ? "Url" : "Uri";
+                Uri repoUri = new Uri(node.Attribute(attributeUrlUriName).Value);
+                RepositoryProviderType repositoryProvider= GetRepositoryProviderType(repoUri);
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
-                        new Uri(node.Attribute(attributeUrlUriName).Value),
+                        repoUri,
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
+                        repositoryProvider,
                         repoCredentialInfo));
                 // Remove item from file
                 node.Remove();
@@ -612,10 +619,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         continue;
                     }
 
+                    RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
+                        repositoryProvider,
                         thisCredentialInfo);
 
                     foundRepos.Add(currentRepoItem);
@@ -705,10 +714,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             continue;
                         }
 
+                        RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
+                            repositoryProvider,
                             thisCredentialInfo);
 
                         foundRepos.Add(currentRepoItem);
@@ -759,6 +770,23 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             using var xmlReader = XmlReader.Create(filePath, XDocReaderSettings);
             return XDocument.Load(xmlReader);
+        }
+
+        private static RepositoryProviderType GetRepositoryProviderType(Uri repoUri)
+        {
+            string absoluteUri = repoUri.AbsoluteUri;
+            // We want to use contains instead of EndsWith to accomodate for trailing '/'
+            if (absoluteUri.Contains("azurecr.io")){
+                return RepositoryProviderType.ACR;
+            }
+            // TODO: add a regex for this match
+            // eg: *pkgs.*/_packaging/*
+            else if (absoluteUri.Contains("pkgs.")){
+                return RepositoryProviderType.AzureDevOps;
+            }
+            else {
+                return RepositoryProviderType.None;
+            }
         }
 
         #endregion
