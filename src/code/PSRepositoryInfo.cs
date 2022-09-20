@@ -13,13 +13,31 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo)
+        public PSRepositoryInfo(
+            string name, 
+            Uri uri, 
+            int priority, 
+            bool trusted, 
+            RepositoryProviderType repositoryProvider, 
+            PSCredentialInfo credentialInfo)
         {
             Name = name;
             Uri = uri;
             Priority = priority;
             Trusted = trusted;
+            RepositoryProvider = repositoryProvider;
             CredentialInfo = credentialInfo;
+        }
+
+        #endregion
+
+        #region Enum
+
+        public enum RepositoryProviderType
+        {
+            None,
+            ACR,
+            AzureDevOps
         }
 
         #endregion
@@ -46,6 +64,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// </summary>
         [ValidateRange(0, 100)]
         public int Priority { get; }
+
+        /// <summary>
+        /// the type of repository provider (eg, AzureDevOps, ACR, etc.)
+        /// </summary>
+        public RepositoryProviderType RepositoryProvider { get; }
 
         /// <summary>
         /// the credential information for repository authentication
