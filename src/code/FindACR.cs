@@ -45,12 +45,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version of the resource to be found and returned.
         /// </summary>
+        [Parameter()]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
 
         /// <summary>
         /// Specifies one or more repository names to search. If not specified, search will include all currently registered repositories.
         /// </summary>
+        [Parameter()]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
@@ -128,7 +130,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return; 
             }
 
-            if (pwsh.HadErrors)
+            if (!pwsh.HadErrors)
             {
                 if (results.Count() != 0)
                 {
@@ -143,9 +145,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var header = new AuthenticationHeaderValue("Bearer", aad_access_token);
                 client.DefaultRequestHeaders.Authorization = header;
                 string url = $"https://{registry}/oauth2/exchange";
-                string content = "Content-Type";
-                StringContent stringContent = new StringContent(content, Encoding.UTF8, "application/x-www-form-urlencoded");
-                HttpResponseMessage response = client.PostAsync(url, stringContent).GetAwaiter().GetResult();
+
+                HttpRequestMessage request = new HttpRequestMessage();
+                request.Content = new StringContent($"grant_type=access_token&service={registry}&tenant={tenant}&access_token={aad_access_token}");
+                request.Content.Headers.Clear();
+                request.Content.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
+                request.RequestUri = new Uri(url);
+                request.Method = HttpMethod.Post;
+                
+                HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult();
                 response.EnsureSuccessStatusCode();
                 string responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                 // Above three lines can be replaced with new helper method below
