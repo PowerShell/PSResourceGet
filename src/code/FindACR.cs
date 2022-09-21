@@ -104,6 +104,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (repo.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
                 {
+                    string accessToken = string.Empty;
+                    string tenantID = string.Empty;
+
+                    // Need to set up secret management vault before hand 
+                    var repositoryCredentialInfo = repo.CredentialInfo;
+                    if (repositoryCredentialInfo != null)
+                    {
+                        accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                            repo.Name,
+                            repositoryCredentialInfo,
+                            this);
+                        
+                        WriteVerbose("Access token retrieved.");
+
+                        tenantID = Utils.GetSecretInfoFromSecretManagement(
+                            repo.Name,
+                            repositoryCredentialInfo,
+                            this);
+                    }
+
                     AcrSearchHelper(repo);
                 }
             }
