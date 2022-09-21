@@ -453,6 +453,135 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return null;
         }
 
+        public static string GetACRAccessTokenFromSecretManagement(
+            string repositoryName,
+            PSCredentialInfo repositoryCredentialInfo,
+            PSCmdlet cmdletPassedIn)
+        {
+            if (!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException($"Cannot access Microsoft.PowerShell.SecretManagement vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication."),
+                        "RepositoryCredentialSecretManagementInaccessibleVault",
+                        ErrorCategory.ResourceUnavailable,
+                        cmdletPassedIn));
+                return null;
+            }
+
+            var results = PowerShellInvoker.InvokeScriptWithHost<object>(
+                cmdlet: cmdletPassedIn,
+                script: @"
+                    param (
+                        [string] $VaultName,
+                        [string] $SecretName
+                    )
+                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
+                    if ($null -eq $module) {
+                        return
+                    }
+                    & $module ""Get-Secret"" -Name $SecretName -Vault $VaultName
+                ",
+                args: new object[] { repositoryCredentialInfo.VaultName, repositoryCredentialInfo.SecretName },
+                out Exception terminatingError);
+
+            var secretValue = (results.Count == 1) ? results[0] : null;
+            if (secretValue == null)
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            innerException: terminatingError),
+                        "ACRRepositoryCannotGetSecretFromVault",
+                        ErrorCategory.InvalidOperation,
+                        cmdletPassedIn));
+            }
+
+            if (secretValue is SecureString secretSecureString)
+            {
+                string password = new NetworkCredential(string.Empty, secretSecureString).Password;
+                return password;
+            }
+
+            cmdletPassedIn.ThrowTerminatingError(
+                new ErrorRecord(
+                    new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
+                    "ACRRepositoryTokenIsInvalidSecretType",
+                    ErrorCategory.InvalidType,
+                    cmdletPassedIn));
+
+            return null;
+        }
+
+        public static string GetSecretInfoFromSecretManagement(
+            string repositoryName,
+            PSCredentialInfo repositoryCredentialInfo,
+            PSCmdlet cmdletPassedIn)
+        {
+            if (!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException($"Cannot access Microsoft.PowerShell.SecretManagement vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication."),
+                        "RepositoryCredentialSecretManagementInaccessibleVault",
+                        ErrorCategory.ResourceUnavailable,
+                        cmdletPassedIn));
+                return null;
+            }
+
+            var results = PowerShellInvoker.InvokeScriptWithHost<object>(
+                cmdlet: cmdletPassedIn,
+                script: @"
+                    param (
+                        [string] $VaultName,
+                        [string] $SecretName
+                    )
+                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
+                    if ($null -eq $module) {
+                        return
+                    }
+
+                    $secretInfo = & $module ""Get-SecretInfo"" -Name $SecretName -Vault $VaultName
+                    $secretInfo.Metadata
+                ",
+                args: new object[] { repositoryCredentialInfo.VaultName, repositoryCredentialInfo.SecretName },
+                out Exception terminatingError);
+
+            var secretInfoValue = (results.Count == 1) ? results[0] : null;
+            if (secretInfoValue == null)
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            innerException: terminatingError),
+                        "ACRRepositoryCannotGetSecretInfoFromVault",
+                        ErrorCategory.InvalidOperation,
+                        cmdletPassedIn));
+            }
+
+            var tenantMetadata = secretInfoValue as ReadOnlyDictionary<string, System.Object>;
+
+            // "TenantID" is case sensitive so we want to loop through and do a string comparison to accommodate for this
+            foreach (var entry in tenantMetadata)
+            {
+                if (entry.Key.Equals("TenantId", StringComparison.OrdinalIgnoreCase))
+                {
+                    return entry.Value as string;
+                }
+            }
+
+            cmdletPassedIn.ThrowTerminatingError(
+                new ErrorRecord(
+                    new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
+                    "RepositorySecretInfoIsInvalidSecretType",
+                    ErrorCategory.InvalidType,
+                    cmdletPassedIn));
+
+            return null;
+        }
+
         public static void SaveRepositoryCredentialToSecretManagementVault(
             string repositoryName,
             PSCredentialInfo repositoryCredentialInfo,
