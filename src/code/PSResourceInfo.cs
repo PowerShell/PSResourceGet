@@ -264,6 +264,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private PSResourceInfo() { }
 
+        internal PSResourceInfo(string name, string version)
+        {
+            Name = name;
+            Version = new Version(version);
+        }
+
         private PSResourceInfo(
             Dictionary<string, string> additionalMetadata,
             string author,
