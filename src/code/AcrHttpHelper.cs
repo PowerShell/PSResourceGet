@@ -110,7 +110,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     throw new ArgumentNullException("content");
                 }
 
-
                 request.Content = new StringContent(content);
                 request.Content.Headers.Clear();
                 if (contentHeaders != null)
