@@ -124,8 +124,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this);
                     }
 
-                    WriteVerbose("AccessToken: " + accessToken);
-                    WriteVerbose("Tenant ID: " + tenantID);
                     AcrSearchHelper(repo);
                 }
             }
