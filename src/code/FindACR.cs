@@ -32,9 +32,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     [OutputType(typeof(PSResourceInfo), typeof(PSCommandResourceInfo))]
     public sealed class FindACR : PSCmdlet
     {
-        static readonly HttpClient client = new HttpClient();
-        System.Management.Automation.PowerShell pwsh;
-
         #region Parameters
 
         /// <summary>
@@ -107,7 +104,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string accessToken = string.Empty;
                     string tenantID = string.Empty;
 
-                    // Need to set up secret management vault before hand 
+                    // Need to set up secret management vault before hand
                     var repositoryCredentialInfo = repo.CredentialInfo;
                     if (repositoryCredentialInfo != null)
                     {
@@ -115,7 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             repo.Name,
                             repositoryCredentialInfo,
                             this);
-                        
+
                         WriteVerbose("Access token retrieved.");
 
                         tenantID = Utils.GetSecretInfoFromSecretManagement(
@@ -124,7 +121,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this);
                     }
 
-                    AcrSearchHelper(repo);
+                    AcrSearchHelper(repo, tenantID, accessToken);
                 }
             }
         }
@@ -133,40 +130,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private Methods
 
-        private void AcrSearchHelper(PSRepositoryInfo repository)
+        private void AcrSearchHelper(PSRepositoryInfo repository, string tenantID, string aadAccessToken)
         {
             // Call asynchronous network methods in a try/catch block to handle exceptions.
             string registry = repository.Uri.Host;
-            string tenant = "72f988bf-86f1-41af-91ab-2d7cd011db47";
-            string aad_access_token = String.Empty;
-
-            // Setting up the PowerShell runspace
-            var defaultSS = System.Management.Automation.Runspaces.InitialSessionState.CreateDefault2();
-            defaultSS.ExecutionPolicy = ExecutionPolicy.Unrestricted;
-            pwsh = System.Management.Automation.PowerShell.Create(defaultSS);
-
-            Collection<PSObject> results;
-            try
-            {
-                results = pwsh.AddScript("(Get-AzAccessToken).Token").Invoke();
-            }
-            catch (Exception e)
-            {
-                WriteVerbose($"Error occured while running 'Test-ModuleManifest': {e.Message}");
-
-                return;
-            }
-
-            if (!pwsh.HadErrors)
-            {
-                if (results.Count() != 0)
-                {
-                    aad_access_token = results[0].BaseObject as string;
-                }
-            }
 
             WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = AcrHttpHelper.GetAcrRefreshTokenAsync(registry, tenant, aad_access_token).Result;
+            var acrRefreshToken = AcrHttpHelper.GetAcrRefreshTokenAsync(registry, tenantID, aadAccessToken).Result;
             WriteVerbose("Getting acr access token");
             var acrAccessToken = AcrHttpHelper.GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
             WriteVerbose($"Getting manifest for {Name} - {Version}");
