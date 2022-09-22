@@ -177,12 +177,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (repo.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
                 {
                     // branch to ACR code
-
                     List<PSResourceInfo> pkgsInstalledFromACR = new List<PSResourceInfo>();
-                    string temppath = Path.GetTempPath();
-                    List<string> installPath = Utils.GetAllInstallationPaths(_cmdletPassedIn, ScopeType.CurrentUser);
 
-                    _cmdletPassedIn.WriteVerbose($"Installation Path is: {installPath.FirstOrDefault()}");
+                    _cmdletPassedIn.WriteVerbose($"Installation Path is: {_pathsToInstallPkg}");
 
                     foreach (var pkgToInstall in _pkgNamesToInstall)
                     {
@@ -192,7 +189,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             _versionRange.OriginalString, 
                             _savePkg, 
                             _asNupkg, 
-                            installPath,
+                            _pathsToInstallPkg,
                             _cmdletPassedIn);
                         pkgsInstalledFromACR.Add(pkgInfo);
                     }

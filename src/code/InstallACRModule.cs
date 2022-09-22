@@ -69,7 +69,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             callingCmdlet.WriteVerbose($"Writing module zip to temp path: {tempPath}");
             
             // download the module
-            var pathToFile = Path.Combine(tempPath, moduleName + ".zip");
+            var pathToFile = Path.Combine(tempPath, $"{moduleName}.{moduleVersion}.zip");
             using var content = responseContent.ReadAsStreamAsync().Result;
             using var fs = File.Create(pathToFile);
             content.Seek(0, System.IO.SeekOrigin.Begin);
@@ -82,7 +82,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if  (savePkg && asZip) 
             {
                 // Just move to the zip to the proper path
-                Utils.MoveFiles(pathToFile, installPath.FirstOrDefault());
+                Utils.MoveFiles(pathToFile, Path.Combine(installPath.FirstOrDefault(), $"{moduleName}.{moduleVersion}.zip"));
 
             }
             // If saving the package and unpacking OR installing the package
