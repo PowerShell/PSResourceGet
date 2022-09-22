@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string accessToken = string.Empty;
                     string tenantID = string.Empty;
 
-                    // Need to set up secret management vault before hand 
+                    // Need to set up secret management vault before hand
                     var repositoryCredentialInfo = repo.CredentialInfo;
                     if (repositoryCredentialInfo != null)
                     {
@@ -102,7 +102,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             repo.Name,
                             repositoryCredentialInfo,
                             this);
-                        
+
                         WriteVerbose("Access token retrieved.");
 
                         tenantID = Utils.GetSecretInfoFromSecretManagement(
@@ -120,64 +120,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private Methods
 
-        private JObject GetResponse(
-            List<KeyValuePair<string, string>> defaultHeaders,
-            string url,
-            string content,
-            List<KeyValuePair<string, string>> contentHeaders,
-            HttpMethod method)
-        {
-            try
-            {
-                if (defaultHeaders != null)
-                {
-                    foreach (var header in defaultHeaders)
-                    {
-                        if (header.Key == "Authorization")
-                        {
-                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", header.Value);
-                        }
-                        else if (header.Key == "Accept")
-                        {
-                            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
-                        }
-                        else
-                        {
-                            client.DefaultRequestHeaders.Add(header.Key, header.Value);
-                        }
-                    }
-                }
-
-                HttpRequestMessage request = new HttpRequestMessage();
-                if (!string.IsNullOrEmpty(content))
-                {
-                    request.Content = new StringContent(content);
-                    request.Content.Headers.Clear();
-                    if (contentHeaders != null)
-                    {
-                        foreach (var header in contentHeaders)
-                        {
-                            request.Content.Headers.Add(header.Key, header.Value);
-                        }
-                    }
-                }
-
-                request.RequestUri = new Uri(url);
-                request.Method = method;
-
-                HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult();
-                response.EnsureSuccessStatusCode();
-                return JsonConvert.DeserializeObject<JObject>(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", e.Message);
-            }
-
-            return null;
-        }
-
         private void AcrSearchHelper(PSRepositoryInfo repository, string aadAccessToken, string tenant)
         {
             // Call asynchronous network methods in a try/catch block to handle exceptions.
@@ -186,49 +128,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 WriteVerbose("Getting refresh token for ACR");
+                var acrRefreshToken = AcrHttpHelper.GetAcrRefreshTokenAsync(registry, tenant, aadAccessToken).Result;
+                WriteVerbose("Getting acr access token");
+                var acrAccessToken = AcrHttpHelper.GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+                WriteVerbose("Getting tags");
+                var foundTags = AcrHttpHelper.FindAcrImageTags(registry, Name, Version, acrAccessToken).Result;
 
-                // Get ACR refresh token.
-                string content = $"grant_type=access_token&service={registry}&tenant={tenant}&access_token={aadAccessToken}";
-                var acrRefreshTokenJson = GetResponse(
-                    null,
-                    $"https://{registry}/oauth2/exchange",
-                    content,
-                    new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") },
-                    HttpMethod.Post
-                );
-
-                string acrRefreshToken = acrRefreshTokenJson["refresh_token"].ToString();
-                WriteVerbose($"ACR Refresh token {acrRefreshToken}");
-
-
-                // Get ACR access token.
-                WriteVerbose("Getting access token for ACR");
-                string scope = "repository:*:*";
-
-                var acrAccessTokenJson = GetResponse(
-                    null,
-                    $"https://{registry}/oauth2/token",
-                    $"grant_type=refresh_token&service={registry}&scope={scope}&refresh_token={acrRefreshToken}",
-                    new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") },
-                    HttpMethod.Post
-                );
-
-                string acrAccessToken = acrAccessTokenJson["access_token"].ToString();
-                WriteVerbose($"ACR access token {acrAccessToken}");
-
-                // Call Find APIs.
-
-                // Scenario: Find package without version
-                if (!Name.Contains("*"))
+                if (foundTags != null)
                 {
-                    // if (String.IsNullOrEmpty(Version)) // TODO: return latest version
-                    if (Version.Equals("*"))
+                    if (string.Equals(Version, "*", StringComparison.OrdinalIgnoreCase))
                     {
-                        SearchAllVersionsHelper(acrAccessToken, registry);
+                        foreach (var item in foundTags["tags"])
+                        {
+                            string info = $"{Name} - {item["name"]} - {item["digest"]}";
+                            WriteObject(info);
+                        }
                     }
-                    else if (!Version.Contains("*"))
+                    else
                     {
-                        SearchSpecificVersionHelper(acrAccessToken, registry);
+                        string info = $"{Name} - {Version} - {foundTags["tag"]["digest"]}";
+                        WriteObject(info);
                     }
                 }
             }
@@ -237,57 +156,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 Console.WriteLine("\nException Caught!");
                 Console.WriteLine("Message :{0} ", e.Message);
             }
-        }
-
-        private void SearchAllVersionsHelper(string acrAccessToken, string registry)
-    {
-        // Invoke-RestMethod -uri "https://psgexp.azurecr.io/acr/v1/pester/_tags"
-
-            var defaultHeaders = new List<KeyValuePair<string, string>> {
-                new KeyValuePair<string, string>("Authorization", acrAccessToken)
-            };
-
-            var searchResultJson = GetResponse(
-                defaultHeaders,
-                $"https://{registry}/acr/v1/{Name}/_tags",
-                null,
-                null,
-                HttpMethod.Get
-            );
-
-            Console.WriteLine(searchResultJson["tags"].ToString());
-            foreach (JToken tag in searchResultJson["tags"])
-            {
-                Console.WriteLine(tag["name"].ToString());
-                Console.WriteLine(tag["digest"].ToString());
-            }
-        }
-
-        private void SearchSpecificVersionHelper(string acrAccessToken, string registry)
-        {
-            // Invoke-RestMethod -uri "https://psgexp.azurecr.io/acr/v1/pester/_tags/5.3.3" -Headers $header -Method Get
-            var defaultHeaders = new List<KeyValuePair<string, string>> {
-                new KeyValuePair<string, string>("Authorization", acrAccessToken)
-
-            };
-
-            System.Version.TryParse(Version, out System.Version pkgVersion);
-
-            string pkgVersionAsString = pkgVersion.ToString();
-
-            var searchResultJson = GetResponse(
-                defaultHeaders,
-                $"https://{registry}/acr/v1/{Name}/_tags/{pkgVersionAsString}",
-                null,
-                null,
-                HttpMethod.Get
-
-            );
-
-            Console.WriteLine(searchResultJson["tag"]["name"].ToString());
-            Console.WriteLine(searchResultJson["tag"]["digest"].ToString());
-
-            //Console.WriteLine(searchResultJson.Property("tag"));
         }
 
         #endregion

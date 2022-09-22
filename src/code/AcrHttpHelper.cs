@@ -28,6 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         const string acrOAuthTokenUrlTemplate = "https://{0}/oauth2/token"; // 0 - registry
         const string acrManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
         const string acrBlobDownloadUrlTemplate = "https://{0}/v2/{1}/blobs/{2}"; // 0 - registry, 1 - repo(modulename), 2 - layer digest
+        const string acrFindImageVersionUrlTemplate = "https://{0}/acr/v1/{1}/_tags{2}"; // 0 - registry, 1 - repo(modulename), 2 - /tag(version)
 
         private static readonly HttpClient s_client = new HttpClient();
 
@@ -50,25 +51,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         internal static async Task<JObject> GetAcrRepositoryManifestAsync(string registry, string repositoryName, string version, string acrAccessToken)
         {
             string manifestUrl = string.Format(acrManifestUrlTemplate, registry, repositoryName, version);
-
-            var defaultHeaders = new Collection<KeyValuePair<string, string>> {
-                    new KeyValuePair<string, string>("Authorization", acrAccessToken),
-                    new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.manifest.v1+json")
-                };
-
+            var defaultHeaders = GetDefaultHeaders(acrAccessToken);
             return await GetHttpResponseJObject(manifestUrl, HttpMethod.Get, defaultHeaders);
         }
 
         internal static async Task<HttpContent> GetAcrBlobAsync(string registry, string repositoryName, string digest, string acrAccessToken)
         {
             string blobUrl = string.Format(acrBlobDownloadUrlTemplate, registry, repositoryName, digest);
-
-            var defaultHeaders = new Collection<KeyValuePair<string, string>> {
-                    new KeyValuePair<string, string>("Authorization", acrAccessToken),
-                    new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.manifest.v1+json")
-                };
-
+            var defaultHeaders = GetDefaultHeaders(acrAccessToken);
             return await GetHttpContentResponseJObject(blobUrl, defaultHeaders);
+        }
+
+        internal static async Task<JObject> FindAcrImageTags(string registry, string repositoryName, string version, string acrAccessToken)
+        {
+            try
+            {
+                string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
+                string findImageUrl = string.Format(acrFindImageVersionUrlTemplate, registry, repositoryName, resolvedVersion);
+                var defaultHeaders = GetDefaultHeaders(acrAccessToken);
+                return await GetHttpResponseJObject(findImageUrl, HttpMethod.Get, defaultHeaders);
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error finding ACR artifact: " + e.Message);
+            }
         }
 
         internal static async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
@@ -177,6 +183,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
             }
+        }
+
+        private static Collection<KeyValuePair<string, string>> GetDefaultHeaders(string acrAccessToken)
+        {
+            return new Collection<KeyValuePair<string, string>> {
+                    new KeyValuePair<string, string>("Authorization", acrAccessToken),
+                    new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.manifest.v1+json")
+                };
         }
     }
 }
