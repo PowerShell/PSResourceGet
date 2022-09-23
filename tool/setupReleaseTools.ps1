@@ -7,8 +7,8 @@ param(
 )
 
 Write-Host "Install and import PowerShell modules"
-Set-PSRepository -Name PSGallery -InstallationPolicy Trusted | Out-Null
-Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force
+#Set-PSRepository -Name PSGallery -InstallationPolicy Trusted | Out-Null
+#Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force
 Import-Module $PSScriptRoot/releaseTools.psm1
 
 Write-Host "Setup authentication"

@@ -139,10 +139,11 @@ function New-ReleasePR {
     }
 
     $Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PowerShellGet
+    Write-Host "Gotten repo $($Repo)"
 
     $Params = @{
-        Head = "release"
-        Base = "master"
+        Head = "alyss1303/PowerShellGet:release"
+        Base = "PowerShell/PowerShellGet:master"
         Draft = $true
         Title = "Update CHANGELOG for $($Version)"
     }
