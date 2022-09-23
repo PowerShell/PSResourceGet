@@ -54,18 +54,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     foreach (var item in foundTags["tags"])
                     {
+                        // digest: {item["digest"]";
                         string tagVersion = item["name"].ToString();
-                        string info = $"{pkgName} - {tagVersion} - {item["digest"]}";
-                        foundPkgs.Add(new PSResourceInfo(name: pkgName, version: tagVersion));
-                        callingCmdlet.WriteObject(info);
+                        foundPkgs.Add(new PSResourceInfo(name: pkgName, version: tagVersion, repository: repo.Name));
                     }
                 }
                 else
                 {
                     // pkgVersion was used in the API call (same as foundTags["name"])
-                    string info = $"{pkgName} - {pkgVersion} - {foundTags["tag"]["digest"]}";
-                    foundPkgs.Add(new PSResourceInfo(name: pkgName, version: pkgVersion));
-                    callingCmdlet.WriteObject(info);
+                    // digest: foundTags["tag"]["digest"]";
+                    foundPkgs.Add(new PSResourceInfo(name: pkgName, version: pkgVersion, repository: repo.Name));
                 }
             }
 

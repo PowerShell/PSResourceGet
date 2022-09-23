@@ -264,10 +264,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private PSResourceInfo() { }
 
-        internal PSResourceInfo(string name, string version)
+        internal PSResourceInfo(string name, string version, string repository)
         {
             Name = name;
             Version = new Version(version);
+            Repository = repository;
         }
 
         private PSResourceInfo(

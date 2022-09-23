@@ -76,7 +76,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             content.CopyTo(fs);
             fs.Close();
 
-            var pkgInfo = new PSResourceInfo(moduleName, moduleVersion);
+            var pkgInfo = new PSResourceInfo(moduleName, moduleVersion, repo.Name);
 
             // If saving the package as a zip
             if  (savePkg && asZip) 
