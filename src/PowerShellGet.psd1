@@ -14,6 +14,7 @@
     CLRVersion = '4.0.0'
     FormatsToProcess  = 'PSGet.Format.ps1xml'
     CmdletsToExport = @(
+        'Find-PSACR',
         'Find-ACR',
         'Find-PSResource',
         'Get-PSResource',
