@@ -161,8 +161,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
                 foreach (var pkg in SearchFromRepository(
                     repositoryObject: repositoriesToSearch[i],
-                    // repositoryName: repositoriesToSearch[i].Name,
-                    // repositoryUri: repositoriesToSearch[i].Uri,
                     repositoryCredentialInfo: repositoriesToSearch[i].CredentialInfo))
                 {
                     foundPackages.Add(pkg);
