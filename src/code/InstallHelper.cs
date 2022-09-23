@@ -174,6 +174,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
+                if (repo.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
+                {
+                    // branch to ACR code
+
+                    List<PSResourceInfo> pkgsInstalledFromACR = new List<PSResourceInfo>();
+                    string temppath = Path.GetTempPath();
+                    List<string> installPath = Utils.GetAllInstallationPaths(_cmdletPassedIn, ScopeType.CurrentUser);
+
+                    _cmdletPassedIn.WriteVerbose($"Installation Path is: {installPath.FirstOrDefault()}");
+
+                    foreach (var pkgToInstall in _pkgNamesToInstall)
+                    {
+                        var pkgInfo = InstallACRModule.Install(repo, pkgToInstall, _versionRange.OriginalString, _cmdletPassedIn);
+                        pkgsInstalledFromACR.Add(pkgInfo);
+                        MoveFilesIntoInstallPath(
+                            pkgInfo,
+                            isModule: true,
+                            isLocalRepo: false,
+                            _versionRange.OriginalString,
+                            temppath,
+                            installPath.FirstOrDefault(),
+                            _versionRange.OriginalString,
+                            _versionRange.OriginalString,
+                            scriptPath: null);
+
+                        var expandedFolder = System.IO.Path.Combine(temppath, pkgToInstall);
+                        _cmdletPassedIn.WriteVerbose($"Expanded folder is: {expandedFolder}");
+                        Directory.Delete(expandedFolder);
+                    }
+
+                    return pkgsInstalledFromACR;
+                }
+
                 // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
                 // OR the user issues trust interactively via console.
                 if (repo.Trusted == false && !trustRepository && !_force)

@@ -4,7 +4,6 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Threading;
@@ -12,8 +11,6 @@ using System.Text;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Collections.ObjectModel;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 //using Microsoft.Azure.Commands.Profile.Models;
 //using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
@@ -40,10 +37,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies name of a resource or resources to find. Accepts wild card characters.
         /// </summary>
-        [Parameter(Position = 0,
+        [Parameter(Position = 0, 
                    ValueFromPipeline = true)]
         [ValidateNotNullOrEmpty]
-        public string Name { get; set; }
+        public string[] Name { get; set; }
 
         /// <summary>
         /// Specifies the version of the resource to be found and returned.
@@ -59,9 +56,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
-
-        [Parameter()]
-        public string Path { get; set; }
 
         #endregion
 
@@ -102,29 +96,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (PSRepositoryInfo repo in repositoriesToSearch)
             {
-                if (repo.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
+                if (repo.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR) 
                 {
-                    string accessToken = string.Empty;
-                    string tenantID = string.Empty;
-
-                    // Need to set up secret management vault before hand 
-                    var repositoryCredentialInfo = repo.CredentialInfo;
-                    if (repositoryCredentialInfo != null)
-                    {
-                        accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                            repo.Name,
-                            repositoryCredentialInfo,
-                            this);
-                        
-                        WriteVerbose("Access token retrieved.");
-
-                        tenantID = Utils.GetSecretInfoFromSecretManagement(
-                            repo.Name,
-                            repositoryCredentialInfo,
-                            this);
-                    }
-
-                    AcrSearchHelper(repo);
+                    AcrSearchHelper(repo); 
                 }
             }
         }
@@ -133,114 +107,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private Methods
 
-        private void AcrDownloadBlob(string url, List<KeyValuePair<string, string>> defaultHeaders)
-        {
-            try
-            {
-                if (defaultHeaders != null)
-                {
-                    foreach (var header in defaultHeaders)
-                    {
-                        if (header.Key == "Authorization")
-                        {
-                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", header.Value);
-                        }
-                        else if (header.Key == "Accept")
-                        {
-                            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
-                        }
-                        else
-                        {
-                            client.DefaultRequestHeaders.Add(header.Key, header.Value);
-                        }
-                    }
-                }
-
-                HttpRequestMessage request = new HttpRequestMessage();
-                request.RequestUri = new Uri(url);
-                request.Method = HttpMethod.Get;
-
-                var response = client.SendAsync(request).GetAwaiter().GetResult();
-                if (response.IsSuccessStatusCode)
-                {
-                    using var content = response.Content.ReadAsStreamAsync().Result;
-                    using var fs = File.Create(Path);
-                    content.Seek(0, System.IO.SeekOrigin.Begin);
-                    content.CopyTo(fs);
-                }
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", e.Message);
-            }
-        }
-
-        private JObject GetResponse(
-            List<KeyValuePair<string, string>> defaultHeaders,
-            string url,
-            string content,
-            List<KeyValuePair<string, string>> contentHeaders,
-            HttpMethod method)
-        {
-            try
-            {
-                if (defaultHeaders != null)
-                {
-                    foreach (var header in defaultHeaders)
-                    {
-                        if (header.Key == "Authorization")
-                        {
-                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", header.Value);
-                        }
-                        else if (header.Key == "Accept")
-                        {
-                            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
-                        }
-                        else
-                        {
-                            client.DefaultRequestHeaders.Add(header.Key, header.Value);
-                        }
-                    }
-                }
-
-                HttpRequestMessage request = new HttpRequestMessage();
-                if (!string.IsNullOrEmpty(content))
-                {
-                    request.Content = new StringContent(content);
-                    request.Content.Headers.Clear();
-                    if (contentHeaders != null)
-                    {
-                        foreach (var header in contentHeaders)
-                        {
-                            request.Content.Headers.Add(header.Key, header.Value);
-                        }
-                    }
-                }
-
-                request.RequestUri = new Uri(url);
-                request.Method = method;
-
-                HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult();
-                response.EnsureSuccessStatusCode();
-                return JsonConvert.DeserializeObject<JObject>(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", e.Message);
-            }
-
-            return null;
-        }
-
-        private void AcrSearchHelper(PSRepositoryInfo repository)
-        {
+        private void AcrSearchHelper(PSRepositoryInfo repository) {
             // Call asynchronous network methods in a try/catch block to handle exceptions.
             string registry = repository.Uri.Host;
             string tenant = "72f988bf-86f1-41af-91ab-2d7cd011db47";
             string aad_access_token = String.Empty;
-
+            
             // Setting up the PowerShell runspace
             var defaultSS = System.Management.Automation.Runspaces.InitialSessionState.CreateDefault2();
             defaultSS.ExecutionPolicy = ExecutionPolicy.Unrestricted;
@@ -255,7 +127,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 WriteVerbose($"Error occured while running 'Test-ModuleManifest': {e.Message}");
 
-                return;
+                return; 
             }
 
             if (!pwsh.HadErrors)
@@ -266,68 +138,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     WriteVerbose("Access Token: " + aad_access_token);
                 }
             }
-
-            try
+            
+            
+            try	
             {
-                WriteVerbose("Getting token for ACR");
-                string content = $"grant_type=access_token&service={registry}&tenant={tenant}&access_token={aad_access_token}";
-                var acrRefreshTokenJson = GetResponse(
-                    null,
-                    $"https://{registry}/oauth2/exchange",
-                    content,
-                    new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") },
-                    HttpMethod.Post
-                );
+                var header = new AuthenticationHeaderValue("Bearer", aad_access_token);
+                client.DefaultRequestHeaders.Authorization = header;
+                string url = $"https://{registry}/oauth2/exchange";
 
-                string acr_refresh_token = acrRefreshTokenJson["refresh_token"].ToString();
+                HttpRequestMessage request = new HttpRequestMessage();
+                request.Content = new StringContent($"grant_type=access_token&service={registry}&tenant={tenant}&access_token={aad_access_token}");
+                request.Content.Headers.Clear();
+                request.Content.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
+                request.RequestUri = new Uri(url);
+                request.Method = HttpMethod.Post;
+                
+                HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult();
+                response.EnsureSuccessStatusCode();
+                string responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                // Above three lines can be replaced with new helper method below
+                // string responseBody = await client.GetStringAsync(uri);
 
-                WriteVerbose($"ACR Refresh token {acr_refresh_token}");
-
-                WriteVerbose("Getting access token for ACR");
-                string scope = "repository:*:*";
-
-                var acrAccessTokenJson = GetResponse(
-                    null,
-                    $"https://{registry}/oauth2/token",
-                    $"grant_type=refresh_token&service={registry}&scope={scope}&refresh_token={acr_refresh_token}",
-                    new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") },
-                    HttpMethod.Post
-                );
-
-                string acr_access_token = acrAccessTokenJson["access_token"].ToString();
-
-                WriteVerbose($"ACR access token {acr_access_token}");
-
-                WriteVerbose("Getting ACR Manifests");
-
-                var defaultHeaders = new List<KeyValuePair<string, string>> {
-                    new KeyValuePair<string, string>("Authorization", acr_access_token),
-                    new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.manifest.v1+json")
-                };
-
-                var acrManifestJson = GetResponse(
-                    defaultHeaders,
-                    $"https://{registry}/v2/{Name}/manifests/{Version}",
-                    null,
-                    null,
-                    HttpMethod.Get
-                );
-
-                string moduleBlobDigest = acrManifestJson["layers"][0]["digest"].ToString();
-
-                WriteVerbose($"{Name} Module Blob Digest for {Version} {moduleBlobDigest}");
-
-                string downloadUrl = $"https://{registry}/v2/{Name}/blobs/{moduleBlobDigest}";
-
-                AcrDownloadBlob(downloadUrl, defaultHeaders);
-
-                WriteVerbose("Downloaded module blob");
-
+                Console.WriteLine(responseBody);
             }
-            catch (HttpRequestException e)
+            catch(HttpRequestException e)
             {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", e.Message);
+                Console.WriteLine("\nException Caught!");	
+                Console.WriteLine("Message :{0} ",e.Message);
             }
         }
 
