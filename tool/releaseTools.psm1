@@ -2,8 +2,23 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-#using module PowerShellForGitHub
+using module PowerShellForGitHub
 using namespace System.Management.Automation
+
+$PullRequests = @()
+$Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PowerShellGet
+$Path = (Get-Item $PSScriptRoot).Parent.FullName
+$ChangelogFile = "$Path/CHANGELOG.md"
+
+function Update-Branch {
+    [CmdletBinding(SupportsShouldProcess)]
+    $Branch = git branch --show-current
+    if ($Branch -ne "release") {
+        if ($PSCmdlet.ShouldProcess("release", "git checkout -B")) {
+            git checkout -B "release"
+        }
+    }
+}
 
 function Get-Bullet {
     [CmdletBinding()]
@@ -12,7 +27,7 @@ function Get-Bullet {
         [PSCustomObject]$PullRequest
     )
 
-    $PullRequest | -Process { ("-", $_.title, ("(#" + $_.PullRequestNumber + ")") -join " ").Trim() }
+    ("-", $PullRequest.title, ("(#" + $PullRequest.PullRequestNumber + ")") -join " ").Trim() 
 }
 
 <#
@@ -24,7 +39,6 @@ function Get-Bullet {
   the GitHub release. It just gets the first header's contents.
 #>
 function Get-FirstChangelog {
-    $ChangelogFile = ".\CHANGELOG.md"
     $Changelog = Get-Content -Path $ChangelogFile
     
     # NOTE: The space after the header marker is important! Otherwise ### matches.
@@ -57,6 +71,44 @@ function Get-Version {
   want it. Creates the branch `release` if not already checked out. Handles any
   merge option for PRs, but is a little slow as it queries all PRs.
 #>
+function Get-Changelog {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        # TODO: Validate version style for each repo.
+        [Parameter(Mandatory)]
+        [string]$Version
+    )
+
+    $BugFixes = @()
+    $NewFeatures = @()
+    # This will take some time because it has to pull all PRs and then filter
+
+    $PullRequests = $Repo | Get-GitHubPullRequest -State 'closed' |
+    Where-Object { $_.labels.LabelName -match 'Release' } |
+    Where-Object { -not $_.title.StartsWith("[WIP]") } | 
+    Where-Object { -not $_.title.StartsWith("WIP") } 
+
+    $PullRequests | ForEach-Object {
+        if ($_.labels.LabelName -match 'PR-Bug') {
+            $BugFixes += Get-Bullet($_)
+        }
+        else {
+            $NewFeatures += Get-Bullet($_)
+        }
+    }
+
+    @(
+        "## $Version"
+        ""
+        "### New Features"
+        $NewFeatures
+        ""
+        "### Bug Fixes"
+        $BugFixes
+        ""
+    )
+}
+
 function Update-Changelog {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -65,39 +117,46 @@ function Update-Changelog {
         [string]$Version
     )
 
-    $RepositoryName = 'PowerShellGet'
-    $Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName $RepositoryName
+    $CurrentChangeLog = Get-Content -Path $ChangelogFile
+    @(
+        $CurrentChangeLog[0..1]
+        Get-Changelog $Version
+        $CurrentChangeLog[2..$CurrentChangeLog.Length]
+    ) | Set-Content -Encoding utf8NoBOM -Path $ChangelogFile
+}
 
-    $BugFixes = @()
-    $NewFeatures = @()
-    # This will take some time because it has to pull all PRs and then filter
-    $PullRequests = $Repo | Get-GitHubPullRequest -State 'closed' |
-        Where-Object { $_.labels.LabelName -match 'Release' } |
-        Where-Object { -not $_.title.StartsWith("[WIP]") } | 
-        Where-Object { -not $_.title.StartsWith("WIP") } |
-        if ($_.labels.LabelName -match 'PR-Bug') {
-            $BugFixes += Get-Bullet($_)
-        }
-        else {
-            $NewFeatures += Get-Bullet($_)
-        }
-        
-    $NewSection = switch ($PullRequests.labels.LabelName) {
-        'PR-Bug' {
+function New-ReleasePR {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Version
+    )
 
-        }
+    Update-Branch
+    if ($PSCmdlet.ShouldProcess("release", "git push")) {
+        Write-Host "Pushing release branch..."
+        git push --force-with-lease origin release
+    }
+
+    $Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PowerShellGet
+
+    $Params = @{
+        Head = "release"
+        Base = "master"
+        Draft = $true
+        Title = "Update CHANGELOG for $($Version)"
+    }
+
+    $PR = $Repo | New-GitHubPullRequest @Params
+    Write-Host "Draft PR URL: $($PR.html_url)"
+}
+
+function Remove-Release-Label {
+    $PullRequests | ForEach-Object {
+        $Repo | Remove-GitHubIssueLabel -Label Release -Issue $_.PullRequestNumber
     }
 }
 
-
-
-$allIssues = $Repo | Get-GitHubIssue -State 'closed'
-$closedIssues = $allIssues | Where-Object { $_.pull_request -eq $null }
-$labelledIssues = $closedIssues | Where-Object { $_.labels.LabelName -match 'Issue-Bug|feature_request' }
-
 # Get all GitHub labels and filter the labels for release
 $labels = Get-GitHubLabel -OwnerName PowerShell -RepositoryName PowerShellGet
-$labels | Where-Object { $_.color -match 'B2F74F' }
-
-# Remove a label from a pull request
-Remove-GitHubIssueLabel -OwnerName PowerShell -RepositoryName PowerShellGet -Label Release -Issue 806
+$labels | Where-Object { $_.color -match 'B2F74F' } #>
