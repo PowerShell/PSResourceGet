@@ -160,8 +160,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
                 foreach (var pkg in SearchFromRepository(
-                    repositoryName: repositoriesToSearch[i].Name,
-                    repositoryUri: repositoriesToSearch[i].Uri,
+                    repositoryObject: repositoriesToSearch[i],
+                    // repositoryName: repositoriesToSearch[i].Name,
+                    // repositoryUri: repositoriesToSearch[i].Uri,
                     repositoryCredentialInfo: repositoriesToSearch[i].CredentialInfo))
                 {
                     foundPackages.Add(pkg);
@@ -176,8 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Private methods
 
         private IEnumerable<PSResourceInfo> SearchFromRepository(
-            string repositoryName,
-            Uri repositoryUri,
+            PSRepositoryInfo repositoryObject,
             PSCredentialInfo repositoryCredentialInfo)
         {
             PackageSearchResource resourceSearch;
@@ -186,16 +186,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceCacheContext context;
 
             // File based Uri scheme.
-            if (repositoryUri.Scheme == Uri.UriSchemeFile)
+            if (repositoryObject.Uri.Scheme == Uri.UriSchemeFile)
             {
-                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryUri.ToString());
+                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryObject.Uri.ToString());
                 resourceSearch = new LocalPackageSearchResource(localResource);
                 resourceMetadata = new LocalPackageMetadataResource(localResource);
                 filter = new SearchFilter(_prerelease);
                 context = new SourceCacheContext();
 
                 foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                    repositoryName: repositoryName,
+                    repositoryName: repositoryObject.Name,
                     pkgSearchResource: resourceSearch,
                     pkgMetadataResource: resourceMetadata,
                     searchFilter: filter,
@@ -206,32 +206,87 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
 
+            if (repositoryObject.RepositoryProvider == RepositoryProviderType.ACR)
+            {
+                // branch out code for ACR
+                foreach (string pkgName in _pkgsLeftToFind.ToArray())
+                {
+                    // check if name is empty, null or contains a wildcard - ACR not support
+                    // check if _version (string) - a valid System.Version, wildcard scenarios ("*" - is allowed, "3.0.*" - not allowed)
+                    if (!String.IsNullOrWhiteSpace(pkgName) && !pkgName.Contains("*"))
+                    {
+                        if (String.IsNullOrEmpty(_version) || (!_version.Equals("*") && _version.Contains("*")))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ArgumentException(
+                                    "Empty version (i.e return latest version) is not yet supported for ACR endpoints. Version equals '*' is allowed but Version containing wildcard (i.e '3.0.*') is not allowed."),
+                                "VersionFormatNotSupportedForACREndpoint",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                            continue;
+                        }
+
+                        System.Version parsedVersion = null;
+                        if (!_version.Equals("*") && !System.Version.TryParse(_version, out parsedVersion))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ArgumentException(
+                                    "Specific version could not be parsed into a System.Version instance."),
+                                "SpecificVersionInvalidFormat",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                            continue;
+                        }
+
+                        foreach (PSResourceInfo pkg in FindACRModule.Find(repo: repositoryObject,
+                            pkgName: pkgName,
+                            pkgVersion: parsedVersion == null ? "*" : parsedVersion.ToString(),
+                            callingCmdlet: _cmdletPassedIn))
+                        {
+                            yield return pkg;
+                        }
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ArgumentException(
+                                "Wildcard names are yet not supported for ACR"),
+                            "WildcardNameNotSupportedForACREndpoint",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        continue;
+                    }
+                }
+                
+                yield break;
+            }
+            
             // Check if ADOFeed- for which searching for Name with wildcard has a different logic flow.
-            if (repositoryUri.ToString().Contains("pkgs."))
+            if (repositoryObject.RepositoryProvider == RepositoryProviderType.AzureDevOps)
             {
                 _isADOFeedRepository = true;
             }
 
             // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API).
-            PackageSource source = new PackageSource(repositoryUri.ToString());
+            PackageSource source = new PackageSource(repositoryObject.Uri.ToString());
 
             // Explicitly passed in Credential takes precedence over repository CredentialInfo.
             if (_credential != null)
             {
                 string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUri.ToString(), _credential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryName);
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryObject.Uri.ToString(), _credential.UserName, password, true, null);
+                _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryObject.Name);
             }
             else if (repositoryCredentialInfo != null)
             {
                 PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                    repositoryName,
+                    repositoryObject.Name,
                     repositoryCredentialInfo,
                     _cmdletPassedIn);
 
                 string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUri.ToString(), repoCredential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryObject.Uri.ToString(), repoCredential.UserName, password, true, null);
+                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryObject.Name);
             }
 
             // GetCoreV3() API is able to handle V2 and V3 repository endpoints.
@@ -259,7 +314,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             context = new SourceCacheContext();
 
             foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                repositoryName: String.Equals(repositoryUri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName : repositoryName,
+                repositoryName: String.Equals(repositoryObject.Uri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName : repositoryObject.Name,
                 pkgSearchResource: resourceSearch,
                 pkgMetadataResource: resourceMetadata,
                 searchFilter: filter,
