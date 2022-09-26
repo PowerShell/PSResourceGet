@@ -1,11 +1,5 @@
 # CHANGELOG
 
-## 3.0.18-beta18
-
-### New Features
-
-### Bug Fixes
-
 ## 3.0.17-beta17
 
 ### New Features
