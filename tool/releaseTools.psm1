@@ -4,9 +4,9 @@
 using module PowerShellForGitHub
 using namespace System.Management.Automation
 
-$PullRequests = @()
-$BugFixes = @()
-$NewFeatures = @()
+$script:PullRequests = @()
+$script:BugFixes = @()
+$script:NewFeatures = @()
 $Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PowerShellGet
 $Path = (Get-Item $PSScriptRoot).Parent.FullName
 $ChangelogFile = "$Path/CHANGELOG.md"
@@ -48,17 +48,17 @@ function Get-Changelog {
     )
     
     # This will take some time because it has to pull all PRs and then filter
-    $PullRequests = $Repo | Get-GitHubPullRequest -State 'closed' |
+    $script:PullRequests = $Repo | Get-GitHubPullRequest -State 'closed' |
     Where-Object { $_.labels.LabelName -match 'Release' } |
     Where-Object { -not $_.title.StartsWith("[WIP]") } | 
     Where-Object { -not $_.title.StartsWith("WIP") } 
 
     $PullRequests | ForEach-Object {
         if ($_.labels.LabelName -match 'PR-Bug') {
-            $BugFixes += Get-Bullet($_)
+            $script:BugFixes += Get-Bullet($_)
         }
         else {
-            $NewFeatures += Get-Bullet($_)
+            $script:NewFeatures += Get-Bullet($_)
         }
     }
 }
@@ -68,10 +68,10 @@ function Set-Changelog {
         "## $Version"
         ""
         "### New Features"
-        $NewFeatures
+        $script:NewFeatures
         ""
         "### Bug Fixes"
-        $BugFixes
+        $script:BugFixes
         ""
     )
 }
@@ -95,7 +95,7 @@ function Update-Changelog {
         $CurrentChangeLog[2..$CurrentChangeLog.Length]
     ) | Set-Content -Encoding utf8NoBOM -Path $ChangelogFile
 
-    if ($PSCmdlet.ShouldProcess("$ChangelogFile", "git commit")) {
+    if ($PSCmdlet.ShouldProcess("$ChangelogFile", "git add")) {
         git add $ChangelogFile
     }
 }
@@ -115,7 +115,7 @@ function Update-PSDFile {
         $CurrentPSDFile.Where({ $_ -eq $Header }, "SkipUntil")
     ) | Set-Content -Encoding utf8NoBOM -Path ".\src\PowerShellGet.psd1"
 
-    if ($PSCmdlet.ShouldProcess(".\src\PowerShellGet.psd1", "git commit")) {
+    if ($PSCmdlet.ShouldProcess(".\src\PowerShellGet.psd1", "git add")) {
         git add "src\PowerShellGet.psd1"
     }
 }
@@ -152,8 +152,22 @@ function New-ReleasePR {
     Write-Host "Draft PR URL: $($PR.html_url)"
 }
 
+function New-Release {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Version,
+
+        [Parameter(Mandatory)]
+        [string]$Username
+    )
+    Update-Changelog $Version
+    Update-PSDFile $Version
+    New-ReleasePR -Version $Version -Username $Username
+}
+
 function Remove-Release-Label {
-    $PullRequests | ForEach-Object {
+    $script:PullRequests | ForEach-Object {
         $Repo | Remove-GitHubIssueLabel -Label Release -Issue $_.PullRequestNumber
     }
 }
