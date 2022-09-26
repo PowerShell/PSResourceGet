@@ -97,7 +97,6 @@ function Update-Changelog {
 
     if ($PSCmdlet.ShouldProcess("$ChangelogFile", "git commit")) {
         git add $ChangelogFile
-        git commit -m "Update CHANGELOG for ``$Version``"
     }
 }
 
@@ -114,11 +113,10 @@ function Update-PSDFile {
         $CurrentPSDFile.Where({ $_ -eq $Header }, "Until")
         Set-Changelog $Version
         $CurrentPSDFile.Where({ $_ -eq $Header }, "SkipUntil")
-    )
+    ) | Set-Content -Encoding utf8NoBOM -Path ".\src\PowerShellGet.psd1"
 
     if ($PSCmdlet.ShouldProcess(".\src\PowerShellGet.psd1", "git commit")) {
         git add "src\PowerShellGet.psd1"
-        git commit -m "Update CHANGELOG for ``$Version``"
     }
 }
 
