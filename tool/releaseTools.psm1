@@ -7,7 +7,7 @@ using namespace System.Management.Automation
 $script:PullRequests = @()
 $script:BugFixes = @()
 $script:NewFeatures = @()
-$Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PowerShellGet
+$script:Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PowerShellGet
 $Path = (Get-Item $PSScriptRoot).Parent.FullName
 $ChangelogFile = "$Path/CHANGELOG.md"
 
@@ -48,7 +48,7 @@ function Get-Changelog {
     )
     
     # This will take some time because it has to pull all PRs and then filter
-    $script:PullRequests = $Repo | Get-GitHubPullRequest -State 'closed' |
+    $script:PullRequests = $script:Repo | Get-GitHubPullRequest -State 'closed' |
     Where-Object { $_.labels.LabelName -match 'Release' } |
     Where-Object { -not $_.title.StartsWith("[WIP]") } | 
     Where-Object { -not $_.title.StartsWith("WIP") } 
@@ -138,17 +138,22 @@ function New-ReleasePR {
 
     $PRTemplate = Get-Content -Path ".\.github\PULL_REQUEST_TEMPLATE.md"
 
+    $Body = @(
+        $PRTemplate[0..4]
+        "Updates CHANGELOG.md file"
+        $PRTemplate[5..$PRTemplate.Length]
+        )
+    $NewBody = $Body -join "<br/>"
+
     $Params = @{
-        Head = "``$Username``:release"
+        Head = "$($Username):release"
         Base = "master"
         Draft = $true
         Title = "Update CHANGELOG for ``$Version``"
-        Body = @($PRTemplate[0..4]
-                "Updates CHANGELOG.md file"
-                $PRTemplate[5..$PRTemplate.Length]).ToString()
+        Body = "$NewBody"
     }
 
-    $PR = $Repo | New-GitHubPullRequest @Params
+    $PR = $script:Repo | New-GitHubPullRequest @Params
     Write-Host "Draft PR URL: $($PR.html_url)"
 }
 
@@ -168,6 +173,6 @@ function New-Release {
 
 function Remove-Release-Label {
     $script:PullRequests | ForEach-Object {
-        $Repo | Remove-GitHubIssueLabel -Label Release -Issue $_.PullRequestNumber
+        $script:Repo | Remove-GitHubIssueLabel -Label Release -Issue $_.PullRequestNumber
     }
 }
