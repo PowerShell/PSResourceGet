@@ -145,7 +145,7 @@ function New-ReleasePR {
         Title = "Update CHANGELOG for ``$Version``"
         Body = @($PRTemplate[0..4]
                 "Updates CHANGELOG.md file"
-                $PRTemplate[5..$PRTemplate.Length])
+                $PRTemplate[5..$PRTemplate.Length]).ToString()
     }
 
     $PR = $Repo | New-GitHubPullRequest @Params
