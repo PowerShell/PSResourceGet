@@ -86,7 +86,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             }
             // If saving the package and unpacking OR installing the package
-            else {
+            else 
+            {
                 callingCmdlet.WriteVerbose($"Expanding module to temp path: {tempPath}");
                 // Expand the zip file
                 System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, tempPath);
