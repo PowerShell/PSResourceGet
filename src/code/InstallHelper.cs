@@ -177,31 +177,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (repo.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
                 {
                     // branch to ACR code
-
                     List<PSResourceInfo> pkgsInstalledFromACR = new List<PSResourceInfo>();
-                    string temppath = Path.GetTempPath();
-                    List<string> installPath = Utils.GetAllInstallationPaths(_cmdletPassedIn, ScopeType.CurrentUser);
 
-                    _cmdletPassedIn.WriteVerbose($"Installation Path is: {installPath.FirstOrDefault()}");
+                    _cmdletPassedIn.WriteVerbose($"Installation Path is: {_pathsToInstallPkg}");
 
                     foreach (var pkgToInstall in _pkgNamesToInstall)
                     {
-                        var pkgInfo = InstallACRModule.Install(repo, pkgToInstall, _versionRange.OriginalString, _cmdletPassedIn);
+                        var pkgInfo = ACRHelper.Install(
+                            repo, 
+                            pkgToInstall, 
+                            _versionRange.OriginalString, 
+                            _savePkg, 
+                            _asNupkg, 
+                            _pathsToInstallPkg,
+                            _cmdletPassedIn);
                         pkgsInstalledFromACR.Add(pkgInfo);
-                        MoveFilesIntoInstallPath(
-                            pkgInfo,
-                            isModule: true,
-                            isLocalRepo: false,
-                            _versionRange.OriginalString,
-                            temppath,
-                            installPath.FirstOrDefault(),
-                            _versionRange.OriginalString,
-                            _versionRange.OriginalString,
-                            scriptPath: null);
-
-                        var expandedFolder = System.IO.Path.Combine(temppath, pkgToInstall);
-                        _cmdletPassedIn.WriteVerbose($"Expanded folder is: {expandedFolder}");
-                        Directory.Delete(expandedFolder);
                     }
 
                     return pkgsInstalledFromACR;
@@ -636,16 +626,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         CreateMetadataXMLFile(tempDirNameVersion, installPath, pkg, isModule);
                     }
 
-                    MoveFilesIntoInstallPath(
+                    Utils.MoveFilesIntoInstallPath(
                         pkg,
                         isModule,
                         isLocalRepo,
+                        _savePkg,
                         tempDirNameVersion,
                         tempInstallPath,
                         installPath,
                         newVersion,
                         moduleManifestVersion,
-                        scriptPath);
+                        scriptPath,
+                        _cmdletPassedIn);
 
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkg.Name, installPath));
                     pkgsSuccessfullyInstalled.Add(pkg);
@@ -921,84 +913,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return true;
-        }
-
-        private void MoveFilesIntoInstallPath(
-            PSResourceInfo pkgInfo,
-            bool isModule,
-            bool isLocalRepo,
-            string dirNameVersion,
-            string tempInstallPath,
-            string installPath,
-            string newVersion,
-            string moduleManifestVersion,
-            string scriptPath)
-        {
-            // Creating the proper installation path depending on whether pkg is a module or script
-            var newPathParent = isModule ? Path.Combine(installPath, pkgInfo.Name) : installPath;
-            var finalModuleVersionDir = isModule ? Path.Combine(installPath, pkgInfo.Name, moduleManifestVersion) : installPath;
-
-            // If script, just move the files over, if module, move the version directory over
-            var tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
-                : Path.Combine(tempInstallPath, pkgInfo.Name.ToLower(), newVersion);
-
-            _cmdletPassedIn.WriteVerbose(string.Format("Installation source path is: '{0}'", tempModuleVersionDir));
-            _cmdletPassedIn.WriteVerbose(string.Format("Installation destination path is: '{0}'", finalModuleVersionDir));
-
-            if (isModule)
-            {
-                // If new path does not exist
-                if (!Directory.Exists(newPathParent))
-                {
-                    _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
-                    Directory.CreateDirectory(newPathParent);
-                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteVerbose(string.Format("Temporary module version directory is: '{0}'", tempModuleVersionDir));
-
-                    if (Directory.Exists(finalModuleVersionDir))
-                    {
-                        // Delete the directory path before replacing it with the new module.
-                        // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
-                        // installed module is not corrupted.
-                        _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete with restore on failure.'{0}'", finalModuleVersionDir));
-                        Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
-                    }
-
-                    _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
-                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
-                }
-            }
-            else
-            {
-                if (!_savePkg)
-                {
-                    // Need to delete old xml files because there can only be 1 per script
-                    var scriptXML = pkgInfo.Name + "_InstalledScriptInfo.xml";
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML))));
-                    if (File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML)))
-                    {
-                        _cmdletPassedIn.WriteVerbose(string.Format("Deleting script metadata XML"));
-                        File.Delete(Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
-                    }
-
-                    _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
-                    Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
-
-                    // Need to delete old script file, if that exists
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
-                    if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)))
-                    {
-                        _cmdletPassedIn.WriteVerbose(string.Format("Deleting script file"));
-                        File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
-                    }
-                }
-
-                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
-                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
-            }
         }
 
         #endregion

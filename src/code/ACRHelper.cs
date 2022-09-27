@@ -21,9 +21,16 @@ using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-    internal static class InstallACRModule
+    internal static class ACRHelper
     {
-        internal static PSResourceInfo Install(PSRepositoryInfo repo, string moduleName, string moduleVersion, PSCmdlet callingCmdlet)
+        internal static PSResourceInfo Install(
+            PSRepositoryInfo repo, 
+            string moduleName, 
+            string moduleVersion, 
+            bool savePkg,
+            bool asZip,
+            List<string> installPath,
+            PSCmdlet callingCmdlet)
         {
             string accessToken = string.Empty;
             string tenantID = string.Empty;
@@ -60,25 +67,53 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var responseContent = AcrHttpHelper.GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
 
             callingCmdlet.WriteVerbose($"Writing module zip to temp path: {tempPath}");
-
+            
             // download the module
-            var pathToFile = Path.Combine(tempPath, moduleName + ".zip");
+            var pathToFile = Path.Combine(tempPath, $"{moduleName}.{moduleVersion}.zip");
             using var content = responseContent.ReadAsStreamAsync().Result;
             using var fs = File.Create(pathToFile);
             content.Seek(0, System.IO.SeekOrigin.Begin);
             content.CopyTo(fs);
             fs.Close();
 
-            callingCmdlet.WriteVerbose($"Expanding module to temp path: {tempPath}");
+            var pkgInfo = new PSResourceInfo(moduleName, moduleVersion);
 
-            // Expand the zip file
-            System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, tempPath);
+            // If saving the package as a zip
+            if  (savePkg && asZip) 
+            {
+                // Just move to the zip to the proper path
+                Utils.MoveFiles(pathToFile, Path.Combine(installPath.FirstOrDefault(), $"{moduleName}.{moduleVersion}.zip"));
 
-            callingCmdlet.WriteVerbose("Exapnding completed");
+            }
+            // If saving the package and unpacking OR installing the package
+            else 
+            {
+                callingCmdlet.WriteVerbose($"Expanding module to temp path: {tempPath}");
+                // Expand the zip file
+                System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, tempPath);
 
-            File.Delete(pathToFile);
+                callingCmdlet.WriteVerbose("Expanding completed");
+                File.Delete(pathToFile);
 
-            return new PSResourceInfo(moduleName, moduleVersion);
+                Utils.MoveFilesIntoInstallPath(
+                            pkgInfo,
+                            isModule: true,
+                            isLocalRepo: false,
+                            savePkg,
+                            moduleVersion,
+                            tempPath,
+                            installPath.FirstOrDefault(),
+                            moduleVersion,
+                            moduleVersion,
+                            scriptPath: null,
+                            callingCmdlet);
+
+                        var expandedFolder = System.IO.Path.Combine(tempPath, moduleName);
+                        callingCmdlet.WriteVerbose($"Expanded folder is: {expandedFolder}");
+                        Directory.Delete(expandedFolder);
+            }
+
+            return pkgInfo;
         }
     }
 }
