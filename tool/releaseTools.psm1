@@ -48,9 +48,9 @@ function Get-Bullet {
 function Get-Changelog {  
     # This will take some time because it has to pull all PRs and then filter
     $script:PullRequests = $script:Repo | Get-GitHubPullRequest -State 'closed' |
-    Where-Object { $_.labels.LabelName -match 'Release' } |
-    Where-Object { -not $_.title.StartsWith("[WIP]") } | 
-    Where-Object { -not $_.title.StartsWith("WIP") } 
+        Where-Object { $_.labels.LabelName -match 'Release' } |
+        Where-Object { -not $_.title.StartsWith("[WIP]") } | 
+        Where-Object { -not $_.title.StartsWith("WIP") } 
 
     $PullRequests | ForEach-Object {
         if ($_.labels.LabelName -match 'PR-Bug') {
@@ -135,7 +135,10 @@ function New-ReleasePR {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
-        [string]$Version
+        [string]$Version,
+
+        [Parameter(Mandatory)]
+        [string]$Username
     )
 
     Update-Branch
@@ -150,7 +153,7 @@ function New-ReleasePR {
     }
 
     $Params = @{
-        Head = "release"
+        Head = "$($Username):release"
         Base = "master"
         Draft = $true
         Title = "Update CHANGELOG for ``$Version``"
@@ -163,10 +166,9 @@ function New-ReleasePR {
 
 <#
 .SYNOPSIS
-    Given the version, updates the CHANGELOG.md file and creates a draft GitHub PR 
+    Given the version and the username for the forked repository, updates the CHANGELOG.md file and creates a draft GitHub PR 
 #>
 function New-Release {
-    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
         [string]$Version,
@@ -175,10 +177,19 @@ function New-Release {
         [string]$Username
     )
     Update-Changelog $Version
-    New-ReleasePR -Version $Version
+    New-ReleasePR -Version $Version -Username $Username
 }
 
+<#
+.SYNOPSIS
+    Removes the `Release` label after updating the CHANGELOG.md file 
+#>
 function Remove-Release-Label {
+    $script:PullRequests = $script:Repo | Get-GitHubPullRequest -State 'closed' |
+        Where-Object { $_.labels.LabelName -match 'Release' } |
+        Where-Object { -not $_.title.StartsWith("[WIP]") } | 
+        Where-Object { -not $_.title.StartsWith("WIP") }
+
     $script:PullRequests | ForEach-Object {
         $script:Repo | Remove-GitHubIssueLabel -Label Release -Issue $_.PullRequestNumber
     }
