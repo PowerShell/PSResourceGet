@@ -8,9 +8,13 @@ $script:PullRequests = @()
 $script:BugFixes = @()
 $script:NewFeatures = @()
 $script:Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PowerShellGet
-$Path = (Get-Item $PSScriptRoot).Parent.FullName
-$ChangelogFile = "$Path/CHANGELOG.md"
+$script:Path = (Get-Item $PSScriptRoot).Parent.FullName
+$script:ChangelogFile = "$Path/CHANGELOG.md"
 
+<#
+.SYNOPSIS
+    Creates and checks out the `release` branch if not already existing
+#>
 function Update-Branch {
     [CmdletBinding(SupportsShouldProcess)]
     param()
@@ -22,8 +26,11 @@ function Update-Branch {
     }
 }
 
+<#
+.SYNOPSIS
+    Formats the pull requests into bullet points
+#>
 function Get-Bullet {
-    [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
         [PSCustomObject]$PullRequest
@@ -33,20 +40,12 @@ function Get-Bullet {
 
 <#
 .SYNOPSIS
-  Creates the CHANGELOG content with PRs merged since the last release.
+  Gets and categorizes the CHANGELOG content with PRs merged since the last release.
 .DESCRIPTION
   Uses the local Git repositories but does not pull, so ensure HEAD is where you
-  want it. Creates the branch `release` if not already checked out. Handles any
-  merge option for PRs, but is a little slow as it queries all PRs.
+  want it.
 #>
-function Get-Changelog {
-    [CmdletBinding(SupportsShouldProcess)]
-    param(
-        # TODO: Validate version style for each repo.
-        [Parameter(Mandatory)]
-        [string]$Version
-    )
-    
+function Get-Changelog {  
     # This will take some time because it has to pull all PRs and then filter
     $script:PullRequests = $script:Repo | Get-GitHubPullRequest -State 'closed' |
     Where-Object { $_.labels.LabelName -match 'Release' } |
@@ -63,7 +62,15 @@ function Get-Changelog {
     }
 }
 
+<#
+.SYNOPSIS
+  Creates the CHANGELOG content
+#>
 function Set-Changelog {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Version
+    )
     @(
         "## $Version"
         ""
@@ -78,28 +85,28 @@ function Set-Changelog {
 
 <#
 .SYNOPSIS
-  Updates the CHANGELOG file given a version
+  Updates the CHANGELOG file
 #>
 function Update-Changelog {
-    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
         [string]$Version
     )
+    Get-Changelog
 
-    Get-Changelog $Version
-    $CurrentChangeLog = Get-Content -Path $ChangelogFile
+    $CurrentChangeLog = Get-Content -Path $script:ChangelogFile
     @(
         $CurrentChangeLog[0..1]
         Set-Changelog $Version
         $CurrentChangeLog[2..$CurrentChangeLog.Length]
-    ) | Set-Content -Encoding utf8NoBOM -Path $ChangelogFile
-
-    if ($PSCmdlet.ShouldProcess("$ChangelogFile", "git add")) {
-        git add $ChangelogFile
-    }
+    ) | Set-Content -Encoding utf8NoBOM -Path $script:ChangelogFile
 }
 
+<#
+.SYNOPSIS
+    Updates the PowerShellGet.psd1 file
+# TODO: Update ModuleVersion and Prerelease once the format is agreed upon
+#>
 function Update-PSDFile {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -120,43 +127,44 @@ function Update-PSDFile {
     }
 }
 
+<#
+.SYNOPSIS
+    Creates a draft GitHub PR to update the CHANGELOG.md file
+#>
 function New-ReleasePR {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
-        [string]$Version,
-
-        [Parameter(Mandatory)]
-        [string]$Username
+        [string]$Version
     )
 
     Update-Branch
+    if ($PSCmdlet.ShouldProcess("$script:ChangelogFile", "git commit")) {
+        git add $ChangelogFile
+        git commit -m "Update CHANGELOG for ``$Version``"
+    }
+
     if ($PSCmdlet.ShouldProcess("release", "git push")) {
         Write-Host "Pushing release branch..."
         git push --force-with-lease origin release
     }
 
-    $PRTemplate = Get-Content -Path ".\.github\PULL_REQUEST_TEMPLATE.md"
-
-    $Body = @(
-        $PRTemplate[0..4]
-        "Updates CHANGELOG.md file"
-        $PRTemplate[5..$PRTemplate.Length]
-        )
-    $NewBody = $Body -join "<br/>"
-
     $Params = @{
-        Head = "$($Username):release"
+        Head = "release"
         Base = "master"
         Draft = $true
         Title = "Update CHANGELOG for ``$Version``"
-        Body = "$NewBody"
+        Body = "An automated PR to update the CHANGELOG.md file for a new release"
     }
 
     $PR = $script:Repo | New-GitHubPullRequest @Params
     Write-Host "Draft PR URL: $($PR.html_url)"
 }
 
+<#
+.SYNOPSIS
+    Given the version, updates the CHANGELOG.md file and creates a draft GitHub PR 
+#>
 function New-Release {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -167,8 +175,7 @@ function New-Release {
         [string]$Username
     )
     Update-Changelog $Version
-    Update-PSDFile $Version
-    New-ReleasePR -Version $Version -Username $Username
+    New-ReleasePR -Version $Version
 }
 
 function Remove-Release-Label {
