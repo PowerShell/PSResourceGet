@@ -177,6 +177,7 @@ function New-Release {
         [string]$Username
     )
     Update-Changelog $Version
+    Update-PSDFile $Version
     New-ReleasePR -Version $Version -Username $Username
 }
 
