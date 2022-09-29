@@ -105,7 +105,7 @@ function Update-Changelog {
 <#
 .SYNOPSIS
     Updates the PowerShellGet.psd1 file
-# TODO: Update ModuleVersion and Prerelease once the format is agreed upon
+# Note: Update ModuleVersion and Prerelease after this, manually.
 #>
 function Update-PSDFile {
     [CmdletBinding(SupportsShouldProcess)]
