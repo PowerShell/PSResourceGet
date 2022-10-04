@@ -7,16 +7,17 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Net.Http;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
+using System.Threading.Tasks;
 using System.Runtime.InteropServices;
-using System.Security;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.PowerShell.Commands;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -1185,6 +1186,24 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 string destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
                 RestoreDirContents(srcSubDirPath, destSubDirPath);
+            }
+        }
+
+        #endregion
+
+        #region HttpRequest
+
+        public static async Task<JObject> SendRequestAsync(HttpRequestMessage message, HttpClient s_client)
+        {
+            try
+            {
+                HttpResponseMessage response = await s_client.SendAsync(message);
+                response.EnsureSuccessStatusCode();
+                return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
             }
         }
 
