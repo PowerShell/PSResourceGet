@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using NuGet.Versioning;
 
 public interface IServerAPICalls
 {
