@@ -92,7 +92,8 @@ public interface IServerAPICalls
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
     /// </summary>
-    string FindName(string packageName, PSRepositoryInfo repository, out string errRecord);
+    /// // TODO:  change repository from string to PSRepositoryInfo
+    string FindName(string packageName, string repository, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with version range.
@@ -114,7 +115,6 @@ public interface IServerAPICalls
     /// Implementation Note: filter additionally and verify ONLY package name was a match.
     /// </summary>
     string FindNameGlobbingWithPrerelease(string packageName, PSRepositoryInfo repository, out string errRecord);
-    {
 
 
     /// <summary>

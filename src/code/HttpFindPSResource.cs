@@ -1,12 +1,20 @@
+using System.Xml;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System.Collections.Generic;
+using System.Xml.Schema;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     internal class HttpFindPSResource : IFindPSResource
     {
         V2ServerAPICalls v2ServerAPICall = new V2ServerAPICalls();
+
+        #region Constructor
+
+        public HttpFindPSResource() {}
+
+        #endregion
 
         #region Methods
 
@@ -36,16 +44,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 /*
             // Convert to PSResourceInfo object 
-            if (!PSResourceInfo.TryConvert(
-                    metadataToParse: pkg,
-                    psGetInfo: out PSResourceInfo currentPkg,
-                    repositoryName: repositoryName,
-                    type: _type,
-                    errorMsg: out string errorMsg))
-                    {
-                        errRecord = $"Error parsing IPackageSearchMetadata to PSResourceInfo with message: {errorMsg}";
-                        yield break;
-                }
 */
             return currentPkg;
         }
@@ -148,11 +146,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        /// // Note, change repository back to PSRepositoryInfo
+        public PSResourceInfo FindName(string packageName, string repository, bool includePrerelease, out string errRecord)
         {
             // Same API calls for both prerelease and non-prerelease
             var response = v2ServerAPICall.FindName(packageName, repository, out errRecord);
 
+            var elemList = ConvertResponseToXML(response);
+
+            // Loop through and try to convert each xml entry into a PSResourceInfo object
+            for (int i = 0; i < elemList.Length; i++)
+            {
+                PSResourceInfo.TryConvertFromXml(
+                    elemList[i],
+                    out PSResourceInfo2 psGetInfo,
+                    "PSGallery",
+                    null,
+                    out string errorMsg);
+            }
+ 
             PSResourceInfo currentPkg = null;
             if (!string.IsNullOrEmpty(errRecord))
             {
@@ -365,6 +377,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return currentPkg;
         }
 
+
+        #endregion
+
+        #region HelperMethods
+
+        // TODO:  in progress
+        public XmlNode[] ConvertResponseToXML(string httpResponse) {
+
+            //Create the XmlDocument.
+            XmlDocument doc = new XmlDocument();
+            doc.LoadXml(httpResponse);
+
+            XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
+            
+            XmlNode[] nodes = new XmlNode[elemList.Count]; 
+            for (int i=0; i<elemList.Count; i++) 
+            {
+                nodes[i] = elemList[i]; 
+            }
+            return nodes;
+        }
 
         #endregion
     }

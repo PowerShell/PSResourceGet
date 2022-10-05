@@ -1,3 +1,4 @@
+using System.Xml;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -9,6 +10,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
+using System.Xml.Serialization;
 
 using Dbg = System.Diagnostics.Debug;
 
@@ -535,7 +537,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     licenseUri: ParseMetadataLicenseUri(metadataToParse),
                     name: ParseMetadataName(metadataToParse),
                     packageManagementProvider: null,
-                    powershellGetFormatVersion: null,
+                    powershellGetFormatVersion: null,   
                     prerelease: ParsePrerelease(metadataToParse),
                     projectUri: ParseMetadataProjectUri(metadataToParse),
                     publishedDate: ParseMetadataPublishedDate(metadataToParse),
@@ -555,6 +557,45 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
                     @"TryReadPSGetInfo: Cannot parse PSResourceInfo from IPackageSearchMetadata with error: {0}",
+                    ex.Message);
+                return false;
+            }
+        }
+
+        // TODO:  in progress
+        // write a serializer
+        public static bool TryConvertFromXml(
+            XmlNode entry,  // XmlDocument doc  that is already loaded
+            out PSResourceInfo2 psGetInfo,
+            string repositoryName,
+            ResourceType? type,
+            out string errorMsg)
+        {
+            psGetInfo = null;
+            errorMsg = String.Empty;
+
+            if (entry == null)
+            {
+                errorMsg = "TryConvertXmlToPSResourceInfo: Invalid XmlNodeList object. Object cannot be null.";
+                return false;
+            }
+            
+            try
+            {
+                //XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
+
+                var xNodeReader = new XmlNodeReader(entry);
+                var xmlSerializer = new XmlSerializer(typeof(PSResourceInfo2));
+                psGetInfo = xmlSerializer.Deserialize(xNodeReader) as PSResourceInfo2;
+                
+                // Note:  still need to add some info to the psGetInfo obj, 
+                return true;
+            }
+            catch (Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryReadPSGetInfo: Cannot parse PSResourceInfo from XmlNode with error: {0}",
                     ex.Message);
                 return false;
             }
@@ -947,6 +988,94 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
     }
 
+    #endregion
+
+    // TODO: tmp class for testing/debugging 
+    #region PSResourceInfo2
+
+    public sealed class PSResourceInfo2
+    {
+        #region Properties
+
+        public string Author { get; set;}
+        public string Copyright { get; set; }
+        public string Description { get; set;}
+        public string IconUri { get; set; }
+        public ResourceIncludes Includes { get; set;}
+        public DateTime? InstalledDate { get; set; }
+        public string InstalledLocation { get; set; }
+        public bool IsPrerelease { get; set;}
+        public string LicenseUri { get; set;}
+        public string Name { get; set;}
+        public string PackageManagementProvider { get; set;}
+        public string PowerShellGetFormatVersion { get; set;}
+        public string Prerelease { get; set;}
+        public string ProjectUri { get; set;}
+        public DateTime? PublishedDate { get; set;}
+        public string ReleaseNotes { get; set;}
+        public string Repository { get; set; }
+        public string RepositorySourceLocation { get;  set; }
+        public string[] Tags { get; set;}
+        public ResourceType Type { get; set;}
+        public DateTime? UpdatedDate { get; set;}
+        public Version Version { get; set;}
+
+        #endregion
+
+        #region Constructors
+
+        private PSResourceInfo2() { }
+
+        private PSResourceInfo2(
+            string author,
+            string copyright,
+            string description,
+            string iconUri,
+            ResourceIncludes includes,
+            DateTime? installedDate,
+            string installedLocation,
+            bool isPrelease,
+            string licenseUri,
+            string name,
+            string packageManagementProvider,
+            string powershellGetFormatVersion,
+            string prerelease,
+            string projectUri,
+            DateTime? publishedDate,
+            string releaseNotes,
+            string repository,
+            string repositorySourceLocation,
+            string[] tags,
+            ResourceType type,
+            DateTime? updatedDate,
+            Version version)
+        {
+            Author = author ?? string.Empty;
+            Copyright = copyright ?? string.Empty;
+            Description = description ?? string.Empty;
+            IconUri = iconUri;
+            Includes = includes ?? new ResourceIncludes();
+            InstalledDate = installedDate;
+            InstalledLocation = installedLocation ?? string.Empty;
+            IsPrerelease = isPrelease;
+            LicenseUri = licenseUri;
+            Name = name ?? string.Empty;
+            PackageManagementProvider = packageManagementProvider ?? string.Empty;
+            PowerShellGetFormatVersion = powershellGetFormatVersion ?? string.Empty;
+            Prerelease = prerelease ?? string.Empty;
+            ProjectUri = projectUri;
+            PublishedDate = publishedDate;
+            ReleaseNotes = releaseNotes ?? string.Empty;
+            Repository = repository ?? string.Empty;
+            RepositorySourceLocation = repositorySourceLocation ?? string.Empty;
+            Tags = tags ?? Utils.EmptyStrArray;
+            Type = type;
+            UpdatedDate = updatedDate;
+            Version = version ?? new Version();
+        }
+        #endregion
+
+    }
     #endregion
 
     #region Test Hooks
