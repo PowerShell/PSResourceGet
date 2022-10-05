@@ -165,9 +165,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public string FindName(string packageName, PSRepositoryInfo repository, out string errRecord) {
+        /// // TODO:  change repository from string to PSRepositoryInfo
+        public string FindName(string packageName, string repository, out string errRecord) {
             // Make sure to include quotations around the package name
-            var requestUrlV2 = $"{repository.Uri}/FindPackagesById()?id='{packageName}'";
+            var requestUrlV2 = $"{repository}/FindPackagesById()?id='{packageName}'";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -284,7 +285,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
                     
                     // We can have this return a Task, or the response (json string)
-                    var response = Utils.SendRequestAsync(request, s_client).GetAwaiter().GetResult();
+                    var response = Utils.SendV2RequestAsync(request, s_client).GetAwaiter().GetResult();
 
                     // Do we want to check if response is 200?
                     // response will be json metadata object that will get returned

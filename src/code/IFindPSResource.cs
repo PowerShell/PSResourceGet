@@ -54,7 +54,8 @@ public interface IFindPSResource
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
     /// </summary>
-    PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord);
+    /// // TODO:  change repository from string to PSRepositoryInfo
+    PSResourceInfo FindName(string packageName, string repository, bool includePrerelease, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with wildcards and returns latest version.
