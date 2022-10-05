@@ -182,6 +182,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private void ProcessResourceNameParameterSet()
         {
+            // This is for testing/debugging purposes, will be removed later
+            HttpFindPSResource httpFindPSResource = new HttpFindPSResource();
+            httpFindPSResource.FindName(Name.FirstOrDefault(), Repository.FirstOrDefault(), Prerelease, out string errRecord);
+
+
             if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {
                 // only cases where Name is allowed to not be specified is if Type or Tag parameters are

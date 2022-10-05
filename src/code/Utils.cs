@@ -1193,13 +1193,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region HttpRequest
 
-        public static async Task<JObject> SendRequestAsync(HttpRequestMessage message, HttpClient s_client)
+        public static async Task<JObject> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
                 response.EnsureSuccessStatusCode();
                 return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+            }
+        }
+
+        public static async Task<string> SendV2RequestAsync(HttpRequestMessage message, HttpClient s_client)
+        {
+            try
+            {
+                HttpResponseMessage response = await s_client.SendAsync(message);
+                response.EnsureSuccessStatusCode();
+                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
             {
