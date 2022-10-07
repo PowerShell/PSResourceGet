@@ -582,8 +582,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             
             try
             {
-                //XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
-
                 var xNodeReader = new XmlNodeReader(entry);
                 var xmlSerializer = new XmlSerializer(typeof(PSResourceInfo2));
                 psGetInfo = xmlSerializer.Deserialize(xNodeReader) as PSResourceInfo2;
@@ -993,9 +991,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     // TODO: tmp class for testing/debugging 
     #region PSResourceInfo2
 
+    [Serializable]
+    [XmlRoot(ElementName = "properties", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata")]
     public sealed class PSResourceInfo2
     {
         #region Properties
+
 
         public string Author { get; set;}
         public string Copyright { get; set; }
@@ -1006,6 +1007,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public string InstalledLocation { get; set; }
         public bool IsPrerelease { get; set;}
         public string LicenseUri { get; set;}
+
+        [XmlElement("Id", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public string Name { get; set;}
         public string PackageManagementProvider { get; set;}
         public string PowerShellGetFormatVersion { get; set;}
