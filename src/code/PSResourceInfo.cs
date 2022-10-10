@@ -182,6 +182,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Constructor
 
         /// <summary>
+        /// Parameterless constructor needed for XmlSerializer
+        /// </summary>
+        public Dependency() { }
+
+        /// <summary>
         /// Constructor
         ///
         /// </summary>
@@ -230,34 +235,51 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #region PSResourceInfo
 
+    [Serializable]
+    [XmlRoot(ElementName = "properties", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata")]
     public sealed class PSResourceInfo
     {
         #region Properties
 
+        [XmlIgnoreAttribute]
         public Dictionary<string, string> AdditionalMetadata { get; }
-        public string Author { get; }
-        public string CompanyName { get; internal set; }
-        public string Copyright { get; internal set; }
-        public Dependency[] Dependencies { get; }
-        public string Description { get; }
-        public Uri IconUri { get; }
+        [XmlElement("Authors", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public string Author { get; set; }
+        [XmlElement("CompanyName", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public string CompanyName { get; set; }
+        [XmlElement("Copyright", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public string Copyright { get; set; }
+        [XmlElement("Dependencies", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public Dependency[] Dependencies { get; set; }
+        [XmlElement("Description", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public string Description { get; set; }
+        [XmlElement("IconUrl", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public Uri IconUri { get; set; }
         public ResourceIncludes Includes { get; }
-        public DateTime? InstalledDate { get; internal set; }
-        public string InstalledLocation { get; internal set; }
-        public bool IsPrerelease { get; }
-        public Uri LicenseUri { get; }
-        public string Name { get; }
+        public DateTime? InstalledDate { get; set; }
+        public string InstalledLocation { get; set; }
+        [XmlElement("IsPrerelease", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public bool IsPrerelease { get; set; }
+        [XmlElement("LicenseUrl", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public Uri LicenseUri { get; set; }
+        [XmlElement("Id", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public string Name { get; set; }
         public string PackageManagementProvider { get; }
         public string PowerShellGetFormatVersion { get; }
         public string Prerelease { get; }
-        public Uri ProjectUri { get; }
-        public DateTime? PublishedDate { get; }
-        public string ReleaseNotes { get; internal set; }
-        public string Repository { get; }
-        public string RepositorySourceLocation { get; internal set; }
-        public string[] Tags { get; }
+        [XmlElement("ProjectUrl", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public Uri ProjectUri { get; set; }
+        [XmlElement("Published", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public DateTime? PublishedDate { get; set; }
+        [XmlElement("ReleaseNotes", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public string ReleaseNotes { get; set; }
+        public string Repository { get; set; }
+        public string RepositorySourceLocation { get; set; }
+        [XmlElement("Tags", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
+        public string[] Tags { get; set; }
         public ResourceType Type { get; }
         public DateTime? UpdatedDate { get; }
+        [XmlElement("Version", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public Version Version { get; }
 
         #endregion
@@ -565,8 +587,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // TODO:  in progress
         // write a serializer
         public static bool TryConvertFromXml(
-            XmlNode entry,  // XmlDocument doc  that is already loaded
-            out PSResourceInfo2 psGetInfo,
+            XmlNode entry,
+            out PSResourceInfo psGetInfo,
             string repositoryName,
             ResourceType? type,
             out string errorMsg)
@@ -583,8 +605,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             try
             {
                 var xNodeReader = new XmlNodeReader(entry);
-                var xmlSerializer = new XmlSerializer(typeof(PSResourceInfo2));
-                psGetInfo = xmlSerializer.Deserialize(xNodeReader) as PSResourceInfo2;
+                var xmlSerializer = new XmlSerializer(typeof(PSResourceInfo));
+                psGetInfo = xmlSerializer.Deserialize(xNodeReader) as PSResourceInfo;
                 
                 // Note:  still need to add some info to the psGetInfo obj, 
                 return true;
@@ -986,99 +1008,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
     }
 
-    #endregion
-
-    // TODO: tmp class for testing/debugging 
-    #region PSResourceInfo2
-
-    [Serializable]
-    [XmlRoot(ElementName = "properties", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata")]
-    public sealed class PSResourceInfo2
-    {
-        #region Properties
-
-
-        public string Author { get; set;}
-        public string Copyright { get; set; }
-        public string Description { get; set;}
-        public string IconUri { get; set; }
-        public ResourceIncludes Includes { get; set;}
-        public DateTime? InstalledDate { get; set; }
-        public string InstalledLocation { get; set; }
-        public bool IsPrerelease { get; set;}
-        public string LicenseUri { get; set;}
-
-        [XmlElement("Id", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
-        public string Name { get; set;}
-        public string PackageManagementProvider { get; set;}
-        public string PowerShellGetFormatVersion { get; set;}
-        public string Prerelease { get; set;}
-        public string ProjectUri { get; set;}
-        public DateTime? PublishedDate { get; set;}
-        public string ReleaseNotes { get; set;}
-        public string Repository { get; set; }
-        public string RepositorySourceLocation { get;  set; }
-        public string[] Tags { get; set;}
-        public ResourceType Type { get; set;}
-        public DateTime? UpdatedDate { get; set;}
-        public Version Version { get; set;}
-
-        #endregion
-
-        #region Constructors
-
-        private PSResourceInfo2() { }
-
-        private PSResourceInfo2(
-            string author,
-            string copyright,
-            string description,
-            string iconUri,
-            ResourceIncludes includes,
-            DateTime? installedDate,
-            string installedLocation,
-            bool isPrelease,
-            string licenseUri,
-            string name,
-            string packageManagementProvider,
-            string powershellGetFormatVersion,
-            string prerelease,
-            string projectUri,
-            DateTime? publishedDate,
-            string releaseNotes,
-            string repository,
-            string repositorySourceLocation,
-            string[] tags,
-            ResourceType type,
-            DateTime? updatedDate,
-            Version version)
-        {
-            Author = author ?? string.Empty;
-            Copyright = copyright ?? string.Empty;
-            Description = description ?? string.Empty;
-            IconUri = iconUri;
-            Includes = includes ?? new ResourceIncludes();
-            InstalledDate = installedDate;
-            InstalledLocation = installedLocation ?? string.Empty;
-            IsPrerelease = isPrelease;
-            LicenseUri = licenseUri;
-            Name = name ?? string.Empty;
-            PackageManagementProvider = packageManagementProvider ?? string.Empty;
-            PowerShellGetFormatVersion = powershellGetFormatVersion ?? string.Empty;
-            Prerelease = prerelease ?? string.Empty;
-            ProjectUri = projectUri;
-            PublishedDate = publishedDate;
-            ReleaseNotes = releaseNotes ?? string.Empty;
-            Repository = repository ?? string.Empty;
-            RepositorySourceLocation = repositorySourceLocation ?? string.Empty;
-            Tags = tags ?? Utils.EmptyStrArray;
-            Type = type;
-            UpdatedDate = updatedDate;
-            Version = version ?? new Version();
-        }
-        #endregion
-
-    }
     #endregion
 
     #region Test Hooks
