@@ -159,7 +159,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 PSResourceInfo.TryConvertFromXml(
                     elemList[i],
-                    out PSResourceInfo2 psGetInfo,
+                    out PSResourceInfo psGetInfo,
                     "PSGallery",
                     null,
                     out string errorMsg);
