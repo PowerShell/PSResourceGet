@@ -814,6 +814,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return Utils.GetNormalizedVersionString(version, prerelease);
         }
 
+        #endregion
+
         #region Parse Metadata private static methods
 
         private static string ParseMetadataAuthor(IPackageSearchMetadata pkg)
@@ -1032,8 +1034,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             string[] dependencies = dependencyString.Split(new string[]{":|"}, StringSplitOptions.None);
             return new Dependency[]{};
         }
-
-        #endregion
 
         #endregion
 
