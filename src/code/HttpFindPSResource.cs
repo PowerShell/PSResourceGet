@@ -396,6 +396,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 nodes[i] = elemList[i]; 
             }
+
             return nodes;
         }
 

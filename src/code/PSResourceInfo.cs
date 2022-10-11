@@ -604,11 +604,41 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             
             try
             {
-                var xNodeReader = new XmlNodeReader(entry);
-                var xmlSerializer = new XmlSerializer(typeof(PSResourceInfo));
-                psGetInfo = xmlSerializer.Deserialize(xNodeReader) as PSResourceInfo;
+                Hashtable metadata = new Hashtable();
+                var childNodes = entry.ChildNodes;
+                foreach (XmlElement child in childNodes)
+                {
+                    var key = child.LocalName;
+                    var value = child.InnerText;
+
+
+                    if (key.Equals("Version", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        metadata[key] = ParseHttpVersion(value, out string prereleaseLabel);
+                        metadata["Prerelease"] = prereleaseLabel;
+                    }
+                    else if (key.EndsWith("Url", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        metadata[key] = ParseHttpUrl(value) as Uri;
+                    }
+                    else if (key.Equals("Tags", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        metadata[key] = value.Split(new char[]{' '});
+                    }
+                    else if (key.Equals("Published", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        metadata[key] = ParseHttpDateTime(value);
+                    }
+                    else if (key.Equals("Dependencies", StringComparison.InvariantCultureIgnoreCase)) 
+                    {
+                        metadata[key] = ParseHttpDependencies(value);
+                    }
+                    else 
+                    {
+                        metadata[key] = value;
+                    }
+                }
                 
-                // Note:  still need to add some info to the psGetInfo obj, 
                 return true;
             }
             catch (Exception ex)
@@ -784,6 +814,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return Utils.GetNormalizedVersionString(version, prerelease);
         }
 
+        #endregion
+
         #region Parse Metadata private static methods
 
         private static string ParseMetadataAuthor(IPackageSearchMetadata pkg)
@@ -938,7 +970,70 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return null;
         }
 
-        #endregion
+        private static Version ParseHttpVersion(string versionString, out string prereleaseLabel)
+        {
+            prereleaseLabel = String.Empty;
+
+            if (!String.IsNullOrEmpty(versionString))
+            {
+                string pkgVersion = versionString;
+                if (versionString.Contains("-"))
+                {
+                    // versionString: "1.2.0-alpha1"
+                    string[] versionStringParsed = versionString.Split('-');
+                    if (versionStringParsed.Length == 1)
+                    {
+                        // versionString: "1.2.0-" (unlikely, at least should not be from our PSResourceInfo.TryWrite())
+                        pkgVersion = versionStringParsed[0];
+                    }
+                    else
+                    {
+                        // versionStringParsed.Length > 1 (because string contained '-' so couldn't be 0)
+                        // versionString: "1.2.0-alpha1"
+                        pkgVersion = versionStringParsed[0];
+                        prereleaseLabel = versionStringParsed[1];
+                    }
+                }
+
+                // at this point, version is normalized (i.e either "1.2.0" (if part of prerelease) or "1.2.0.0" otherwise)
+                // parse the pkgVersion parsed out above into a System.Version object
+                if (!Version.TryParse(pkgVersion, out Version parsedVersion))
+                {
+                    prereleaseLabel = String.Empty;
+                    return null;
+                }
+                else
+                {
+                    return parsedVersion;
+                }
+            }
+
+            // version could not be parsed as string, it was written to XML file as a System.Version object
+            // V3 code briefly did so, I believe so we provide support for it
+            return new System.Version();
+        }
+
+        public static Uri ParseHttpUrl(string uriString)
+        {
+            Uri parsedUri;
+            if (!Uri.TryCreate(uriString, UriKind.Absolute, out parsedUri))
+            {
+                //return parsedUri;
+            }
+            return parsedUri;
+        }
+
+        public static DateTime? ParseHttpDateTime(string publishedString)
+        {
+            DateTime.TryParse(publishedString, out DateTime parsedDateTime);
+            return parsedDateTime;
+        }
+
+        public static Dependency[] ParseHttpDependencies(string dependencyString)
+        {
+            string[] dependencies = dependencyString.Split(new string[]{":|"}, StringSplitOptions.None);
+            return new Dependency[]{};
+        }
 
         #endregion
 
