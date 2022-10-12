@@ -599,12 +599,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             try
             {
                 Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
                 var childNodes = entry.ChildNodes;
                 foreach (XmlElement child in childNodes)
                 {
                     var key = child.LocalName;
                     var value = child.InnerText;
-
 
                     if (key.Equals("Version"))
                     {
@@ -1054,7 +1054,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             Uri parsedUri;
             Uri.TryCreate(uriString, UriKind.Absolute, out parsedUri);
-
+            
             return parsedUri;
         }
 
@@ -1063,7 +1063,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             DateTime.TryParse(publishedString, out DateTime parsedDateTime);
             return parsedDateTime;
         }
-
 
         public static Dependency[] ParseHttpDependencies(string dependencyString)
         {
