@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Xml;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
@@ -155,24 +156,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var elemList = ConvertResponseToXML(response);
 
             // Loop through and try to convert each xml entry into a PSResourceInfo object
-            for (int i = 0; i < elemList.Length; i++)
+            for (int i = elemList.Length - 1; i >= 0; i--)
             {
                 PSResourceInfo.TryConvertFromXml(
                     elemList[i],
+                    includePrerelease,
                     out PSResourceInfo psGetInfo,
                     "PSGallery",
-                    null,
                     out string errorMsg);
-            }
- 
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
-            {
-                return currentPkg;
+
+                if (psGetInfo != null)
+                {
+                    return psGetInfo;
+                }
+                else 
+                {
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
+                }
             }
 
-            // Convert to PSResourceInfo object 
-            return currentPkg;
+            return null;
         }
 
         /// <summary>
