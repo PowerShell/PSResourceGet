@@ -182,15 +182,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Constructor
 
         /// <summary>
-        /// Parameterless constructor needed for XmlSerializer
-        /// </summary>
-        public Dependency() { }
-
-        /// <summary>
         /// Constructor
-        ///
+        /// An object describes a package dependency
         /// </summary>
-        /// <param name="includes">Hashtable of PSGet includes</param>
         public Dependency(string dependencyName, VersionRange dependencyVersionRange)
         {
             Name = dependencyName;
@@ -588,9 +582,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // write a serializer
         public static bool TryConvertFromXml(
             XmlNode entry,
+            bool includePrerelease,
             out PSResourceInfo psGetInfo,
             string repositoryName,
-            ResourceType? type,
             out string errorMsg)
         {
             psGetInfo = null;
@@ -604,40 +598,83 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             
             try
             {
-                Hashtable metadata = new Hashtable();
+                Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
                 var childNodes = entry.ChildNodes;
                 foreach (XmlElement child in childNodes)
                 {
                     var key = child.LocalName;
                     var value = child.InnerText;
 
-
-                    if (key.Equals("Version", StringComparison.InvariantCultureIgnoreCase))
+                    if (key.Equals("Version"))
                     {
                         metadata[key] = ParseHttpVersion(value, out string prereleaseLabel);
                         metadata["Prerelease"] = prereleaseLabel;
                     }
-                    else if (key.EndsWith("Url", StringComparison.InvariantCultureIgnoreCase))
+                    else if (key.EndsWith("Url"))
                     {
                         metadata[key] = ParseHttpUrl(value) as Uri;
                     }
-                    else if (key.Equals("Tags", StringComparison.InvariantCultureIgnoreCase))
+                    else if (key.Equals("Tags"))
                     {
                         metadata[key] = value.Split(new char[]{' '});
                     }
-                    else if (key.Equals("Published", StringComparison.InvariantCultureIgnoreCase))
+                    else if (key.Equals("Published"))
                     {
                         metadata[key] = ParseHttpDateTime(value);
                     }
-                    else if (key.Equals("Dependencies", StringComparison.InvariantCultureIgnoreCase)) 
+                    else if (key.Equals("Dependencies")) 
                     {
                         metadata[key] = ParseHttpDependencies(value);
+                    }
+                    else if (key.Equals("IsPrerelease")) 
+                    {
+                        bool.TryParse(value, out bool isPrerelease);
+                        // For FindName 
+                        if (!includePrerelease && isPrerelease)
+                        {
+                            return false;
+                        }
+                        metadata[key] = isPrerelease;
                     }
                     else 
                     {
                         metadata[key] = value;
                     }
                 }
+
+                var typeInfo = ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var includes = new ResourceIncludes(resourceHashtable);
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: null,
+                    author: metadata["Author"] as String,
+                    companyName: metadata["CompanyName"] as String,
+                    copyright: metadata["Copyright"] as String,
+                    dependencies: metadata["Dependencies"] as Dependency[],
+                    description: metadata["Description"] as String,
+                    iconUri: metadata["IconUrl"] as Uri,
+                    includes: includes,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: (bool) metadata["IsPrerelease"],
+                    licenseUri: metadata["LicenseUrl"] as Uri,
+                    name: metadata["Id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,   
+                    prerelease: metadata["Prerelease"] as String,
+                    projectUri: metadata["ProjectUrl"] as Uri,
+                    publishedDate: metadata["Published"] as DateTime?,
+                    releaseNotes: metadata["ReleaseNotes"] as String,
+                    repository: repositoryName,
+                    repositorySourceLocation: null,
+                    tags: metadata["Tags"] as string[],
+                    type: typeInfo,
+                    updatedDate: null,
+                    version: metadata["Version"] as Version);
                 
                 return true;
             }
@@ -1016,10 +1053,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static Uri ParseHttpUrl(string uriString)
         {
             Uri parsedUri;
-            if (!Uri.TryCreate(uriString, UriKind.Absolute, out parsedUri))
-            {
-                //return parsedUri;
-            }
+            Uri.TryCreate(uriString, UriKind.Absolute, out parsedUri);
+            
             return parsedUri;
         }
 
@@ -1031,8 +1066,79 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static Dependency[] ParseHttpDependencies(string dependencyString)
         {
-            string[] dependencies = dependencyString.Split(new string[]{":|"}, StringSplitOptions.None);
-            return new Dependency[]{};
+            /*
+            Az.Profile:[0.1.0, ):|Az.Aks:[0.1.0, ):|Az.AnalysisServices:[0.1.0, ):
+            Post 1st Split: 
+            ["Az.Profile:[0.1.0, ):", "Az.Aks:[0.1.0, ):", "Az.AnalysisServices:[0.1.0, ):"]
+            */
+            string[] dependencies = dependencyString.Split(new char[]{'|'}, StringSplitOptions.RemoveEmptyEntries);
+
+            List<Dependency> dependencyList = new List<Dependency>();
+            foreach (string dependency in dependencies)
+            {
+                /*
+                The Element: "Az.Profile:[0.1.0, ):"
+                Post 2nd Split: ["Az.Profile", "[0.1.0, )"]
+                */
+                string[] dependencyParts = dependency.Split(new char[]{':'}, StringSplitOptions.RemoveEmptyEntries);
+
+                VersionRange dependencyVersion;
+                if (dependencyParts.Length == 1)
+                {
+                    dependencyVersion = VersionRange.All;
+                }
+                else 
+                {
+                    if (!Utils.TryParseVersionOrVersionRange(dependencyParts[1], out dependencyVersion))
+                    {
+                        dependencyVersion = VersionRange.All;
+                    }
+                }
+
+                dependencyList.Add(new Dependency(dependencyParts[0], dependencyVersion));
+            }
+            
+            return dependencyList.ToArray();
+        }
+
+        private static ResourceType ParseHttpMetadataType(
+            string[] tags,
+            out ArrayList commandNames,
+            out ArrayList dscResourceNames)
+        {
+            // possible type combinations:
+            // M, C
+            // M, D
+            // M
+            // S
+
+            commandNames = new ArrayList();
+            dscResourceNames = new ArrayList();
+
+            ResourceType pkgType = ResourceType.Module;
+            foreach (string tag in tags)
+            {
+                if(String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    // clear default Module tag, because a Script resource cannot be a Module resource also
+                    pkgType = ResourceType.Script;
+                    pkgType &= ~ResourceType.Module;
+                }
+
+                if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    pkgType |= ResourceType.Command;
+                    commandNames.Add(tag.Split('_')[1]);
+                }
+
+                if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    pkgType |= ResourceType.DscResource;
+                    dscResourceNames.Add(tag.Split('_')[1]);
+                }
+            }
+
+            return pkgType;
         }
 
         #endregion
