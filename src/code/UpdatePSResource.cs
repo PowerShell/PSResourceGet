@@ -354,7 +354,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                NuGetVersion.TryParse(repositoryPackage.Version.ToString(), out NuGetVersion repositoryPackageNuGetVersion);
+                if (!NuGetVersion.TryParse(repositoryPackage.Version.ToString(), out NuGetVersion repositoryPackageNuGetVersion))
+                {
+                    WriteWarning($"Cannot parse nuget version in repository package '{repositoryPackage.Name}'. Cannot update package.");
+                    continue;
+                }
+
                 if ((versionRange == VersionRange.All && repositoryPackageNuGetVersion > installedVersion) ||
                     !versionRange.Satisfies(installedVersion))
                 {
