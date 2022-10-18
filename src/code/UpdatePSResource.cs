@@ -354,7 +354,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                if ((versionRange == VersionRange.All && repositoryPackage.Version > installedPackage.Version) ||
+                NuGetVersion.TryParse(repositoryPackage.Version.ToString(), out NuGetVersion repositoryPackageNuGetVersion);
+                if ((versionRange == VersionRange.All && repositoryPackageNuGetVersion > installedVersion) ||
                     !versionRange.Satisfies(installedVersion))
                 {
                     namesToUpdate.Add(repositoryPackage.Name);
