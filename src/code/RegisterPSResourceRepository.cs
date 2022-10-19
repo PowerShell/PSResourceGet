@@ -89,6 +89,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [PSCredentialInfoTransform()]
         public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
