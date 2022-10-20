@@ -36,6 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version of the resource to include to look for. 
         /// </summary>
+        [SupportsWildcards]
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Version { get; set; }
