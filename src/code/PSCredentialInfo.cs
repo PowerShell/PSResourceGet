@@ -119,35 +119,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         internal static readonly string CredentialAttribute = nameof(Credential);
 
         #endregion
-
-        /* #region Methods
-        
-        public override object Transform(EngineIntrinsics engineIntrinsics, object inputData)
-        {
-            if (inputData is Hashtable)
-            {
-                var ht = inputData as Hashtable;
-
-                if (ht.ContainsKey(VaultNameAttribute) && ht.ContainsKey(SecretNameAttribute))
-                {
-                    return new PSCredentialInfo(ht[VaultNameAttribute] as string, ht[SecretNameAttribute] as string);
-                }
-                else
-                {
-                    throw new ArgumentTransformationMetadataException();
-                }
-            }
-            else if (inputData is PSCredentialInfo)
-            {
-                return inputData;
-            }
-            else
-            {
-                throw new ArgumentTransformationMetadataException();
-            }
-        }
-
-        #endregion */
     }
 
     class PSCredentialInfoTransformAttribute : ArgumentTransformationAttribute {
@@ -169,7 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     throw new ArgumentTransformationMetadataException();
                 }
             }
-            else if (inputData is PSCredentialInfo)
+            else if (inputData is PSObject)
             {
                 return inputData;
             }
