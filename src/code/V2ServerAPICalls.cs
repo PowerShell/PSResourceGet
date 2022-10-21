@@ -166,7 +166,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
         /// // TODO:  change repository from string to PSRepositoryInfo
-        public string FindName(string packageName, string repository, out string errRecord) {
+        public string FindName(string packageName, PSRepositoryInfo repository, out string errRecord) {
             // Make sure to include quotations around the package name
             var requestUrlV2 = $"{repository}/FindPackagesById()?id='{packageName}'";
 

@@ -148,14 +148,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
         /// // Note, change repository back to PSRepositoryInfo
-        public PSResourceInfo FindName(string packageName, string repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
         {
+            errRecord = string.Empty;
+
+            if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
+            {
             // Same API calls for both prerelease and non-prerelease
             var response = v2ServerAPICall.FindName(packageName, repository, out errRecord);
 
             var elemList = ConvertResponseToXML(response);
 
-            // Loop through and try to convert each xml entry into a PSResourceInfo object
+            /*
+           // Loop through and try to convert each xml entry into a PSResourceInfo object
             for (int i = elemList.Length - 1; i >= 0; i--)
             {
                 PSResourceInfo.TryConvertFromXml(
@@ -174,6 +179,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // TODO: Write error for corresponding null scenario
                     errRecord = errorMsg;
                 }
+            }
+            */
+
+            }
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+            {
+
+
             }
 
             return null;
