@@ -360,6 +360,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
+                // We compare NuGetVersions instead of System.Version as repositoryPackage.Version (3.0.17.0) and installedPackage.Version (3.0.17.-1)
+                // should refer to the same version but with System.Version end up having discrepancies which yields incorrect results.
                 if ((versionRange == VersionRange.All && repositoryPackageNuGetVersion > installedVersion) ||
                     !versionRange.Satisfies(installedVersion))
                 {
