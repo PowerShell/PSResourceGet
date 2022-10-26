@@ -85,7 +85,7 @@ public interface IFindPSResource
     /// Examples: Search "PowerShellGet" "2.2.5"
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
-    PSResourceInfo FindVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord);
+    PSResourceInfo FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord);
     
     /// <summary>
     /// *** we will not support this scenario ***

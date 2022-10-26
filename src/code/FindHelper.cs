@@ -43,6 +43,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly string _poshTestGalleryUri = "https://www.poshtestgallery.com/api/v2";
         private bool _isADOFeedRepository;
         private bool _repositoryNameContainsWildcard;
+        private HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
 
         // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
         // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
@@ -316,6 +317,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> HttpSearchAcrossNamesInRepository(PSRepositoryInfo repository)
         {
+            VersionRange versionRange = null;
+            NuGetVersion nugetVersion = null;
+
+            if (_version != null)
+            {
+                if (!NuGetVersion.TryParse(_version, out nugetVersion))
+                {
+                    if (_version.Trim().Equals("*"))
+                    {
+                        versionRange = VersionRange.All;
+                    }
+                    else if (!VersionRange.TryParse(_version, out versionRange))
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                            "IncorrectVersionFormat",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        yield break;
+                    }
+                }
+
+                // Checking 
+                // eg:  -Version "3.0.0" -IncludePrerelease (there may be multiple prerelease versions of 3.0.0) 
+                        //  3.0.0-beta1, 3.0.0-beta2, 3.0.0-beta3
+                        //  query+IsAbsoluteLatest  =>  3.0.0-beta3
+
+                // -Version "3.0.0.0" -IncludePrerelease  -> 
+                //if (_version.Contains("-"))
+                //{
+                //    doVersionPrereleaseGlobbing = true;
+                //}
+            }
+
+            // TODO: reconsider looping through each package name
             foreach (string pkgName in _pkgsLeftToFind.ToArray())
             {
                 if (String.IsNullOrWhiteSpace(pkgName))
@@ -325,34 +361,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
+                // Version =  versionRange, IncludePrerelease = _prerelease
 
-
-                VersionRange versionRange = null;
-
-                if (_version != null)
+                // check if there's a wildcard in the name
+                if (pkgName.Contains('*'))
                 {
-                    if (!Utils.TryParseVersionOrVersionRange(_version, out versionRange))
-                    {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(
-                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
-                            "IncorrectVersionFormat",
-                            ErrorCategory.InvalidArgument,
-                            this));
-                        yield break;
-                    }
+                    // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
 
-                    if (_version.Contains("-"))
-                    {
-                        _prerelease = true;
-                    }
                 }
-
+                else {
+                    // call 'FindName'  or 'FindNameAndVersion'
+                    if (versionRange == null)
+                    {
+                        _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
+                    }
+                    else {
+                        if (versionRange != null)
+                        {
+                            // version range (all versions)
+                            _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, out string errRecord);
+                        }
+                        else {
+                            // specific version
+                            _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToString(), repository, out string errRecord);
+                        }
+                   }
+                }
                 
-
-                foreach (PSResourceInfo pkg in HttpFindFromPackageSourceSearchAPI(repository: repository, pkgName: pkgName))
-                {
-                    yield return pkg;
-                }
             }
         }
 
@@ -384,15 +419,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield return pkg;
                 }
             }
-        }
-
-        private IEnumerable<PSResourceInfo> HttpFindFromPackageSourceSearchAPI(PSRepositoryInfo repository, string pkgName)
-        {
-            
-            // 
-            
-
-
         }
 
         private IEnumerable<PSResourceInfo> FindFromPackageSourceSearchAPI(
