@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+Import-Module "$PSScriptRoot\PSGetTestUtils.psm1" -Force
 
 Describe "Test Get-PSScriptFileInfo" {
     BeforeAll {
@@ -10,7 +10,7 @@ Describe "Test Get-PSScriptFileInfo" {
         Get-NewTestDirs($tmpDirPaths)
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
-        $script:testFilesFolderPath = Join-Path $psscriptroot -ChildPath "testFiles"
+        $script:testFilesFolderPath = Join-Path $PSScriptRoot -ChildPath "testFiles"
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
@@ -52,13 +52,6 @@ Describe "Test Get-PSScriptFileInfo" {
         { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPSScriptFile,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSScriptFileInfo"
     }
 
-    It "should not get script file object given script with Description block missing altogether" {
-        $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
-        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
-
-        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPSScriptFile,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSScriptFileInfo"
-    }
-
     It "should get script file object given script without empty lines in PSScriptInfo comment content" {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
@@ -73,5 +66,14 @@ Describe "Test Get-PSScriptFileInfo" {
 
         $res = Get-PSScriptFileInfo $scriptFilePath   
         $res.Name | Should -Be "ScriptWithoutEmptyLinesBetweenCommentBlocks"
+    }
+
+    It "should get script file object given script with invalid ProjectUri" {
+        $scriptName = "ScriptWithInvalidProjectUri.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        $res = Get-PSScriptFileInfo $scriptFilePath   
+        $res.Name | Should -Be "ScriptWithInvalidProjectUri"
+        $res.ScriptMetadataComment.ProjectUri | Should -BeNullOrEmpty
     }
 }

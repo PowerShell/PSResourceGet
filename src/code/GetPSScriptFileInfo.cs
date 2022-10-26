@@ -59,11 +59,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     WriteVerbose("The .ps1 script file passed in was not valid due to: " + error.Exception.Message);
                 }
-
-                foreach (string msg in verboseMsgs)
-                {
-                    WriteVerbose(msg);
-                }
                 
                 var exMessage = "Error: Invalid .ps1 script file. Verify that the script file has Version, Guid, Description and Author properties.";
                 var ex = new PSArgumentException(exMessage);
@@ -78,6 +73,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 psScriptFileInfoWithName.Properties.Add(new PSNoteProperty(nameof(Name), Name));
 
                 WriteObject(psScriptFileInfoWithName);
+            }
+
+            foreach (string msg in verboseMsgs)
+            {
+                WriteVerbose(msg);
             }
         }
 
