@@ -174,27 +174,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
-                // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
-                // OR the user issues trust interactively via console.
-                if (repo.Trusted == false && !trustRepository && !_force)
-                {
-                    _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
-
-                    if (!(yesToAll || noToAll))
-                    {
-                        // Prompt for installation of package from untrusted repository
-                        var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
-                        sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
-                    }
-                }
-
-                if (!sourceTrusted && !yesToAll)
-                {
-                    continue;
-                }
-
-                _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
-
                 // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
                 var isLocalRepo = repo.Uri.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
 
@@ -213,6 +192,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
                     continue;
+                }
+                else
+                {
+                    // Check trust for repository where package was found.
+                    // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
+                    // OR the user issues trust interactively via console.
+                    if (repo.Trusted == false && !trustRepository && !_force)
+                    {
+                        _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
+
+                        if (!(yesToAll || noToAll))
+                        {
+                            // Prompt for installation of package from untrusted repository
+                            var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
+                            sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
+                        }
+                    }
+
+                    if (!sourceTrusted && !yesToAll)
+                    {
+                        continue;
+                    }
+
+                    _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
                 }
 
                 // Select the first package from each name group, which is guaranteed to be the latest version.
