@@ -47,15 +47,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             var resolvedPath = resolvedPaths[0].Path;
-
-            if (!File.Exists(resolvedPath))
-            {
-                var exMessage = "A .ps1 file does not exist at the location specified.";
-                var ex = new ArgumentException(exMessage);
-                var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(FileDoesNotExistError);
-            }
-
             bool isValidScript = PSScriptFileInfo.TryTestPSScriptFile(
                 scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo psScriptFileInfo,
@@ -68,19 +59,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     WriteVerbose("The .ps1 script file passed in was not valid due to: " + error.Exception.Message);
                 }
-            }
 
-            foreach (string msg in verboseMsgs)
+                foreach (string msg in verboseMsgs)
+                {
+                    WriteVerbose(msg);
+                }
+                
+                var exMessage = "Error: Invalid .ps1 script file. Verify that the script file has Version, Guid, Description and Author properties.";
+                var ex = new PSArgumentException(exMessage);
+                var InvalidPSScriptFileError = new ErrorRecord(ex, "InvalidPSScriptFile", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(InvalidPSScriptFileError);
+            }
+            else
             {
-                WriteVerbose(msg);
+                PSObject psScriptFileInfoWithName = new PSObject(psScriptFileInfo);
+
+                string Name = System.IO.Path.GetFileNameWithoutExtension(Path);
+                psScriptFileInfoWithName.Properties.Add(new PSNoteProperty(nameof(Name), Name));
+
+                WriteObject(psScriptFileInfoWithName);
             }
-
-            PSObject psScriptFileInfoWithName = new PSObject(psScriptFileInfo);
-
-            string Name = System.IO.Path.GetFileNameWithoutExtension(Path);
-            psScriptFileInfoWithName.Properties.Add(new PSNoteProperty(nameof(Name), Name));
-
-            WriteObject(psScriptFileInfoWithName);
         }
 
         #endregion
