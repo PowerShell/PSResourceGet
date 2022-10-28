@@ -31,7 +31,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {            
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
+                var exMessage = "The script file pathname must end with a .ps1 file extension. Example: C:/Users/john/x/MyScript.ps1";
                 var ex = new ArgumentException(exMessage);
                 var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(InvalidPathError);   
@@ -57,10 +57,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 foreach (ErrorRecord error in errors)
                 {
-                    WriteVerbose("The .ps1 script file passed in was not valid due to: " + error.Exception.Message);
+                    WriteVerbose($"The '{fileName}' script file passed in was not valid due to: {error.Exception.Message}");
                 }
                 
-                var exMessage = "Error: Invalid .ps1 script file. Verify that the script file has Version, Guid, Description and Author properties.";
+                var exMessage = $"Error: '{fileName}' script file is invalid. The script file must include Version, Guid, Description and Author properties.";
                 var ex = new PSArgumentException(exMessage);
                 var InvalidPSScriptFileError = new ErrorRecord(ex, "InvalidPSScriptFile", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(InvalidPSScriptFileError);
