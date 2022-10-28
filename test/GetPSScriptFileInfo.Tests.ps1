@@ -38,8 +38,8 @@ Describe "Test Get-PSScriptFileInfo" {
         { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "PathNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSScriptFileInfo"
     }
 
-    It "should not get script file object given script with Author field missing" {
-        $scriptName = "InvalidScriptMissingAuthor.ps1"
+    It "should not get script file object given script with Author and Version field missing" {
+        $scriptName = "InvalidScriptMissingAuthorAndVersion.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
         { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPSScriptFile,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSScriptFileInfo"

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.IO;
 using System.Management.Automation;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 
@@ -12,6 +11,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// Retrieve the contents of a .ps1 file
     /// </summary>
     [Cmdlet(VerbsCommon.Get, "PSScriptFileInfo")]
+    [OutputType(typeof(PSScriptFileInfo))]
     public sealed class GetPSScriptFileInfo : PSCmdlet
     {
         #region Parameters
@@ -55,25 +55,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!isValidScript)
             {
+                string fileName = System.IO.Path.GetFileName(resolvedPath);
+
+                var exMessage = $"Error: '{fileName}' script file is invalid. The script file must include Version, Guid, Description and Author properties.";
                 foreach (ErrorRecord error in errors)
                 {
-                    WriteVerbose($"The '{fileName}' script file passed in was not valid due to: {error.Exception.Message}");
+                    exMessage += Environment.NewLine + error.Exception.Message;
                 }
                 
-                var exMessage = $"Error: '{fileName}' script file is invalid. The script file must include Version, Guid, Description and Author properties.";
                 var ex = new PSArgumentException(exMessage);
                 var InvalidPSScriptFileError = new ErrorRecord(ex, "InvalidPSScriptFile", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(InvalidPSScriptFileError);
             }
-            else
-            {
-                PSObject psScriptFileInfoWithName = new PSObject(psScriptFileInfo);
 
-                string Name = System.IO.Path.GetFileNameWithoutExtension(Path);
-                psScriptFileInfoWithName.Properties.Add(new PSNoteProperty(nameof(Name), Name));
+            PSObject psScriptFileInfoWithName = new PSObject(psScriptFileInfo);
 
-                WriteObject(psScriptFileInfoWithName);
-            }
+            string Name = System.IO.Path.GetFileNameWithoutExtension(resolvedPath);
+            psScriptFileInfoWithName.Properties.Add(new PSNoteProperty(nameof(Name), Name));
+
+            WriteObject(psScriptFileInfoWithName);
 
             foreach (string msg in verboseMsgs)
             {
