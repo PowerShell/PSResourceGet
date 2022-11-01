@@ -25,6 +25,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
 
         private static readonly HttpClient s_client = new HttpClient();
+        private static readonly string select = "&$select=Id,Version,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
 
         #endregion
 
@@ -166,9 +167,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
         /// // TODO:  change repository from string to PSRepositoryInfo
-        public string FindName(string packageName, string repository, out string errRecord) {
+        public string FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        {
             // Make sure to include quotations around the package name
-            var requestUrlV2 = $"{repository}/FindPackagesById()?id='{packageName}'";
+            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
+
+            // This should return the latest stable version or the latest prerelease version (respectively)
+            var requestUrlV2 = $"{repository}/FindPackagesById()?id='{packageName}'?&$orderby=Version desc&$filter={prerelease}{select}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -233,7 +238,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public string FindVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord) {
+        public string FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord) {
             // Quotations around package name and version do not matter, same metadata gets returned.
             var requestUrlV2 = $"{repository.Uri}/Packages(Id='{packageName}', Version='{version}') ";
             

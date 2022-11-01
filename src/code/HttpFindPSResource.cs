@@ -147,22 +147,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        /// // Note, change repository back to PSRepositoryInfo
-        public PSResourceInfo FindName(string packageName, string repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
         {
-            // Same API calls for both prerelease and non-prerelease
-            var response = v2ServerAPICall.FindName(packageName, repository, out errRecord);
+            errRecord = string.Empty;
 
-            var elemList = ConvertResponseToXML(response);
-
-            // Loop through and try to convert each xml entry into a PSResourceInfo object
-            for (int i = elemList.Length - 1; i >= 0; i--)
+            if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
+                // Same API calls for both prerelease and non-prerelease
+                var response = v2ServerAPICall.FindName(packageName, repository, includePrerelease, out errRecord);
+
+                var elemList = ConvertResponseToXML(response);
+
+        
                 PSResourceInfo.TryConvertFromXml(
-                    elemList[i],
+                    elemList[0],
                     includePrerelease,
                     out PSResourceInfo psGetInfo,
-                    "PSGallery",
+                    repository.Name,
                     out string errorMsg);
 
                 if (psGetInfo != null)
@@ -174,6 +175,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // TODO: Write error for corresponding null scenario
                     errRecord = errorMsg;
                 }
+            
+
+            }
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+            {
+
+
             }
 
             return null;
@@ -240,9 +248,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public PSResourceInfo FindVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord)
+        public PSResourceInfo FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord)
         {
-            var response = FindVersion(packageName, version, repository, out errRecord);
+            var response = v2ServerAPICall.FindVersion(packageName, version, repository, out errRecord);
 
             PSResourceInfo currentPkg = null;
             if (!string.IsNullOrEmpty(errRecord))
