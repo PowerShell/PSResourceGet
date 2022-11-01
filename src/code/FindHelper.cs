@@ -43,6 +43,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly string _poshTestGalleryUri = "https://www.poshtestgallery.com/api/v2";
         private bool _isADOFeedRepository;
         private bool _repositoryNameContainsWildcard;
+        private HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
 
         // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
         // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
@@ -143,7 +144,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
                     Uri psGalleryScriptsUri = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(_psGalleryScriptsRepoName, psGalleryScriptsUri, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
+                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(
+                                _psGalleryScriptsRepoName, 
+                                psGalleryScriptsUri, 
+                                repositoriesToSearch[i].Priority, 
+                                trusted: false, 
+                                credentialInfo: null,
+                                repositoriesToSearch[i].ApiVersion);
+
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteVerbose("Null Type provided, so add PSGalleryScripts repository");
@@ -163,7 +171,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // detect if Script repository needs to be added and/or Module repository needs to be skipped
                     Uri poshTestGalleryScriptsUri = new Uri("https://www.poshtestgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(_poshTestGalleryScriptsRepoName, poshTestGalleryScriptsUri, repositoriesToSearch[i].Priority, trusted: false, credentialInfo: null);
+                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(
+                            _poshTestGalleryScriptsRepoName, 
+                            poshTestGalleryScriptsUri, 
+                            repositoriesToSearch[i].Priority, 
+                            trusted: false, 
+                            credentialInfo: null, 
+                            repositoriesToSearch[i].ApiVersion);
+
                     if (_type == ResourceType.None)
                     {
                         _cmdletPassedIn.WriteVerbose("Null Type provided, so add PoshTestGalleryScripts repository");
@@ -182,10 +197,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                foreach (var pkg in SearchFromRepository(
-                    repositoryName: repositoriesToSearch[i].Name,
-                    repositoryUri: repositoriesToSearch[i].Uri,
-                    repositoryCredentialInfo: repositoriesToSearch[i].CredentialInfo))
+                foreach (var pkg in SearchFromRepository(repositoriesToSearch[i]))
                 {
                     foundPackages.Add(pkg);
                 }
@@ -198,10 +210,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private methods
 
-        private IEnumerable<PSResourceInfo> SearchFromRepository(
-            string repositoryName,
-            Uri repositoryUri,
-            PSCredentialInfo repositoryCredentialInfo)
+        private IEnumerable<PSResourceInfo> HttpSearchFromRepository(PSRepositoryInfo repositoryInfo)
+        {
+            // File based Uri scheme.
+            if (repositoryInfo.Uri.Scheme == Uri.UriSchemeFile)
+            {
+                foreach(PSResourceInfo pkg in HttpSearchAcrossNamesInRepository(repositoryInfo))
+                {
+                    yield return pkg;
+                }
+                yield break;
+            }
+        }
+
+        private IEnumerable<PSResourceInfo> SearchFromRepository(PSRepositoryInfo repositoryInfo)
         {
             PackageSearchResource resourceSearch;
             PackageMetadataResource resourceMetadata;
@@ -209,16 +231,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceCacheContext context;
 
             // File based Uri scheme.
-            if (repositoryUri.Scheme == Uri.UriSchemeFile)
+            if (repositoryInfo.Uri.Scheme == Uri.UriSchemeFile)
             {
-                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryUri.ToString());
+                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryInfo.Uri.ToString());
                 resourceSearch = new LocalPackageSearchResource(localResource);
                 resourceMetadata = new LocalPackageMetadataResource(localResource);
                 filter = new SearchFilter(_prerelease);
                 context = new SourceCacheContext();
 
                 foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                    repositoryName: repositoryName,
+                    repositoryName: repositoryInfo.Name,
                     pkgSearchResource: resourceSearch,
                     pkgMetadataResource: resourceMetadata,
                     searchFilter: filter,
@@ -230,31 +252,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Check if ADOFeed- for which searching for Name with wildcard has a different logic flow.
-            if (repositoryUri.ToString().Contains("pkgs."))
+            if (repositoryInfo.Uri.ToString().Contains("pkgs."))
             {
                 _isADOFeedRepository = true;
             }
 
             // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API).
-            PackageSource source = new PackageSource(repositoryUri.ToString());
+            PackageSource source = new PackageSource(repositoryInfo.Uri.ToString());
 
             // Explicitly passed in Credential takes precedence over repository CredentialInfo.
             if (_credential != null)
             {
                 string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUri.ToString(), _credential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryName);
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), _credential.UserName, password, true, null);
+                _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryInfo.Name);
             }
-            else if (repositoryCredentialInfo != null)
+            else if (repositoryInfo.CredentialInfo != null)
             {
                 PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                    repositoryName,
-                    repositoryCredentialInfo,
+                    repositoryInfo.Name,
+                    repositoryInfo.CredentialInfo,
                     _cmdletPassedIn);
 
                 string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryUri.ToString(), repoCredential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryName);
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), repoCredential.UserName, password, true, null);
+                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryInfo.Name);
             }
 
             // GetCoreV3() API is able to handle V2 and V3 repository endpoints.
@@ -282,14 +304,90 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             context = new SourceCacheContext();
 
             foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                repositoryName: String.Equals(repositoryUri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName :
-                                (String.Equals(repositoryUri.AbsoluteUri, _poshTestGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryName),
+                repositoryName: String.Equals(repositoryInfo.Uri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName :
+                                (String.Equals(repositoryInfo.Uri.AbsoluteUri, _poshTestGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryInfo.Name),
                 pkgSearchResource: resourceSearch,
                 pkgMetadataResource: resourceMetadata,
                 searchFilter: filter,
                 sourceContext: context))
             {
                 yield return pkg;
+            }
+        }
+
+        private IEnumerable<PSResourceInfo> HttpSearchAcrossNamesInRepository(PSRepositoryInfo repository)
+        {
+            VersionRange versionRange = null;
+            NuGetVersion nugetVersion = null;
+
+            if (_version != null)
+            {
+                if (!NuGetVersion.TryParse(_version, out nugetVersion))
+                {
+                    if (_version.Trim().Equals("*"))
+                    {
+                        versionRange = VersionRange.All;
+                    }
+                    else if (!VersionRange.TryParse(_version, out versionRange))
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                            "IncorrectVersionFormat",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        yield break;
+                    }
+                }
+
+                // Checking 
+                // eg:  -Version "3.0.0" -IncludePrerelease (there may be multiple prerelease versions of 3.0.0) 
+                        //  3.0.0-beta1, 3.0.0-beta2, 3.0.0-beta3
+                        //  query+IsAbsoluteLatest  =>  3.0.0-beta3
+
+                // -Version "3.0.0.0" -IncludePrerelease  -> 
+                //if (_version.Contains("-"))
+                //{
+                //    doVersionPrereleaseGlobbing = true;
+                //}
+            }
+
+            // TODO: reconsider looping through each package name
+            foreach (string pkgName in _pkgsLeftToFind.ToArray())
+            {
+                if (String.IsNullOrWhiteSpace(pkgName))
+                {
+                    _cmdletPassedIn.WriteVerbose(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.",
+                        pkgName?? "null string"));
+                    continue;
+                }
+
+                // Version =  versionRange, IncludePrerelease = _prerelease
+
+                // check if there's a wildcard in the name
+                if (pkgName.Contains('*'))
+                {
+                    // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
+
+                }
+                else {
+                    // call 'FindName'  or 'FindNameAndVersion'
+                    if (versionRange == null)
+                    {
+                        _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
+                    }
+                    else {
+                        if (versionRange != null)
+                        {
+                            // version range (all versions)
+                            _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, out string errRecord);
+                        }
+                        else {
+                            // specific version
+                            _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToString(), repository, out string errRecord);
+                        }
+                   }
+                }
+                
             }
         }
 
@@ -309,6 +407,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
+                // call NuGet client API
                 foreach (PSResourceInfo pkg in FindFromPackageSourceSearchAPI(
                     repositoryName: repositoryName,
                     pkgName: pkgName,
