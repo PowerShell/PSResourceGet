@@ -11,15 +11,28 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     /// </summary>
     public sealed class PSRepositoryInfo
     {
+        #region Enums
+
+        public enum APIVersion
+        {
+            Unknown,
+            v2,
+            v3,
+            v4
+        }
+
+        #endregion
+
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo)
+        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo, APIVersion apiVersion)
         {
             Name = name;
             Uri = uri;
             Priority = priority;
             Trusted = trusted;
             CredentialInfo = credentialInfo;
+            ApiVersion = apiVersion;
         }
 
         #endregion
@@ -51,6 +64,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// the credential information for repository authentication
         /// </summary>
         public PSCredentialInfo CredentialInfo { get; }
+
+        /// <summary>
+        /// the API protocol version for the repository
+        /// </summary>
+        public APIVersion ApiVersion { get; }
 
         #endregion
     }
