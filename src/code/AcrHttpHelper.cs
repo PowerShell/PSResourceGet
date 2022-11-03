@@ -1,14 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Management.Automation;
 using System.Threading.Tasks;
-using System.Text;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Collections.ObjectModel;
@@ -29,6 +24,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         const string acrManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
         const string acrBlobDownloadUrlTemplate = "https://{0}/v2/{1}/blobs/{2}"; // 0 - registry, 1 - repo(modulename), 2 - layer digest
         const string acrFindImageVersionUrlTemplate = "https://{0}/acr/v1/{1}/_tags{2}"; // 0 - registry, 1 - repo(modulename), 2 - /tag(version)
+        const string acrStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads"; // 0 - registry, 1 - packagename
+        const string acrEndUploadTemplate = "https://{0}{1}"; // 0 - registry, 1 - location
 
         private static readonly HttpClient s_client = new HttpClient();
 
@@ -74,6 +71,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             catch (HttpRequestException e)
             {
                 throw new HttpRequestException("Error finding ACR artifact: " + e.Message);
+            }
+        }
+
+        internal static async Task<string> GetStartUploadBlobLocation(string registry, string packageName, string acrAccessToken)
+        {
+            try
+            {
+                var defaultHeaders = GetDefaultHeaders(acrAccessToken);
+                var startUploadUrl = string.Format(acrStartUploadTemplate, registry, packageName);
+                return (await GetHttpResponseHeader(startUploadUrl, HttpMethod.Post, defaultHeaders)).Location.ToString();
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error starting publishing to ACR: " + e.Message);
+            }
+        }
+
+        internal static async Task<JObject> GetEndUploadBlobLocation(string registry, string location, string fileLocation, string acrAccessToken)
+        {
+            try
+            {
+                var contentHeaders = GetDefaultHeaders(acrAccessToken);
+                contentHeaders.Add(new KeyValuePair<string, string>("Content-Type", "application/octet-stream"));
+                var endUploadUrl = string.Format(acrEndUploadTemplate, registry, location);
+
+                return await GetHttpResponseJObject(endUploadUrl, HttpMethod.Patch, contentHeaders);
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error starting publishing to ACR: " + e.Message);
             }
         }
 
@@ -134,6 +161,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
+        internal static async Task<HttpResponseHeaders> GetHttpResponseHeader (string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
+        {
+            try
+            {
+                HttpRequestMessage request = new HttpRequestMessage(method, url);
+                SetDefaultHeaders(defaultHeaders);
+                return await SendRequestHeaderAsync(request);
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error occured while trying to retrieve response header: " + e.Message);
+            }
+        }
+
         private static void SetDefaultHeaders(Collection<KeyValuePair<string, string>> defaultHeaders)
         {
             s_client.DefaultRequestHeaders.Clear();
@@ -178,6 +219,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 HttpResponseMessage response = await s_client.SendAsync(message);
                 response.EnsureSuccessStatusCode();
                 return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+            }
+        }
+
+        private static async Task<HttpResponseHeaders> SendRequestHeaderAsync(HttpRequestMessage message)
+        {
+            try
+            {
+                HttpResponseMessage response = await s_client.SendAsync(message);
+                response.EnsureSuccessStatusCode();
+                return response.Headers;
             }
             catch (HttpRequestException e)
             {

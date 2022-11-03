@@ -454,13 +454,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
-                
-                // This call does not throw any exceptions, but it will write unsuccessful responses to the console
-                if (!PushNupkg(outputNupkgDir, repository.Name, repositoryUri, out ErrorRecord pushNupkgError))
+
+                if (repository.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
                 {
-                    WriteError(pushNupkgError);
-                    // exit out of processing
-                    return;
+                    if (!PushNupkgACR(outputNupkgDir, repository, out ErrorRecord pushNupkgACRError))
+                    {
+                        WriteError(pushNupkgACRError);
+                        return;
+                    }
+                }
+                else
+                {
+                    // This call does not throw any exceptions, but it will write unsuccessful responses to the console
+                    if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), out ErrorRecord pushNupkgError))
+                    {
+                        WriteError(pushNupkgError);
+                        // exit out of processing
+                        return;
+                    }
                 }
             }
             finally
@@ -928,6 +939,48 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             success = true;
             return success;
 
+        }
+
+        private bool PushNupkgACR(string outputNupkgDir, PSRepositoryInfo repository, out ErrorRecord error)
+        {
+            // Push the nupkg to the appropriate repository
+            var fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg");
+
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+
+            // Need to set up secret management vault before hand
+            var repositoryCredentialInfo = repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    repository.Name,
+                    repositoryCredentialInfo,
+                    this);
+
+                this.WriteVerbose("Access token retrieved.");
+
+                tenantID = Utils.GetSecretInfoFromSecretManagement(
+                    repository.Name,
+                    repositoryCredentialInfo,
+                    this);
+            }
+
+             // Call asynchronous network methods in a try/catch block to handle exceptions.
+            string registry = repository.Uri.Host;
+
+            this.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = AcrHttpHelper.GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            this.WriteVerbose("Getting acr access token");
+            var acrAccessToken = AcrHttpHelper.GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+
+            this.WriteVerbose("Start uploading blob");
+            var location = AcrHttpHelper.GetStartUploadBlobLocation(registry, _pkgName, accessToken).Result;
+            this.WriteVerbose("End uploading blob");
+            var location2 = AcrHttpHelper.GetEndUploadBlobLocation(registry, location, fullNupkgFile, accessToken);
+
+            error = null;
+            return false;
         }
     }
 
