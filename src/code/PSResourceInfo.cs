@@ -635,6 +635,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         {
                             return false;
                         }
+
                         metadata[key] = isPrerelease;
                     }
                     else 
@@ -651,7 +652,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: null,
-                    author: metadata["Author"] as String,
+                    author: metadata["Authors"] as String,
                     companyName: metadata["CompanyName"] as String,
                     copyright: metadata["Copyright"] as String,
                     dependencies: metadata["Dependencies"] as Dependency[],
