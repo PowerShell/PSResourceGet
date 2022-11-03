@@ -73,12 +73,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string Name = System.IO.Path.GetFileNameWithoutExtension(resolvedPath);
             psScriptFileInfoWithName.Properties.Add(new PSNoteProperty(nameof(Name), Name));
 
-            WriteObject(psScriptFileInfoWithName);
-
             foreach (string msg in verboseMsgs)
             {
                 WriteVerbose(msg);
             }
+
+            WriteObject(psScriptFileInfoWithName);
         }
 
         #endregion
