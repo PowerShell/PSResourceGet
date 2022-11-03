@@ -167,6 +167,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             GetHelper getHelper = new GetHelper(this);
             List<string>  dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
+			int totalDirs = dirsToDelete.Count;
 
             // Checking if module or script
             // a module path will look like:
@@ -177,8 +178,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // note that the xml file is located in ./Scripts/InstalledScriptInfos, eg: ./Scripts/InstalledScriptInfos/TestScript_InstalledScriptInfo.xml
 
             string pkgName;
+
+			// Counter for tracking current dir out of total 
+			int currentUninstalledDirCount = 0;
             foreach (string pkgPath in getHelper.FilterPkgPathsByVersion(_versionRange, dirsToDelete, selectPrereleaseOnly: Prerelease))
             {
+				currentUninstalledDirCount++;
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
@@ -186,6 +191,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     WriteVerbose("ShouldProcess is set to false.");
                     continue;
                 }
+
+				// show uninstall progress info
+                int activityId = 0;
+				int percentComplete = ((currentUninstalledDirCount * 100) / totalDirs);
+				string activity = string.Format("Uninstalling {0}...", pkgName);
+				string statusDescription = string.Format("{0}% Complete", percentComplete);
+                this.WriteProgress(
+						new ProgressRecord(activityId, activity, statusDescription));
 
                 ErrorRecord errRecord = null;
                 if (pkgPath.EndsWith(PSScriptFileExt))
