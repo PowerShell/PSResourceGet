@@ -85,5 +85,29 @@
                 </TableRowEntries>
             </TableControl>
         </View>
+        <View>
+            <Name>PSScriptFileInfo</Name>
+            <ViewSelectedBy>
+                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSScriptFileInfo</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader><Label>Name</Label></TableColumnHeader>
+                    <TableColumnHeader><Label>Version</Label></TableColumnHeader>
+                    <TableColumnHeader><Label>Author</Label></TableColumnHeader>
+                    <TableColumnHeader><Label>Description</Label></TableColumnHeader>
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem><PropertyName>Name</PropertyName></TableColumnItem>
+                            <TableColumnItem><ScriptBlock>$_.ScriptMetadataComment.Version.Version</ScriptBlock></TableColumnItem>
+                            <TableColumnItem><ScriptBlock>$_.ScriptMetadataComment.Author</ScriptBlock></TableColumnItem>
+                            <TableColumnItem><ScriptBlock>$_.ScriptHelpComment.Description</ScriptBlock></TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
     </ViewDefinitions>
 </Configuration>

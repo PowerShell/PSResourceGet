@@ -17,6 +17,7 @@
         'Find-PSResource',
         'Get-PSResource',
         'Get-PSResourceRepository',
+        'Get-PSScriptFileInfo',
         'Install-PSResource',
         'Register-PSResourceRepository',
         'Save-PSResource',
