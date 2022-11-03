@@ -369,7 +369,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    WriteVerbose($"Installed package {repositoryPackage.Name} is up to date.");
+                    WriteVerbose($"Installed package {repositoryPackage.Name} {repositoryPackageNuGetVersion} is already up to date.");
                 }
             }
 
