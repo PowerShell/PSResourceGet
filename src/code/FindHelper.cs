@@ -197,10 +197,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                foreach (var pkg in SearchFromRepository(repositoriesToSearch[i]))
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2)
                 {
-                    foundPackages.Add(pkg);
+                    foreach (var pkg in HttpSearchFromRepository(repositoriesToSearch[i]))
+                    {
+                        foundPackages.Add(pkg);
+                    }
                 }
+                else
+                {
+                    foreach (var pkg in SearchFromRepository(repositoriesToSearch[i]))
+                    {
+                        foundPackages.Add(pkg);
+                    } 
+                }
+
             }
 
             return foundPackages;
@@ -213,12 +224,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private IEnumerable<PSResourceInfo> HttpSearchFromRepository(PSRepositoryInfo repositoryInfo)
         {
             // File based Uri scheme.
-            if (repositoryInfo.Uri.Scheme == Uri.UriSchemeFile)
+            if (repositoryInfo.Uri.Scheme != Uri.UriSchemeFile)
             {
                 foreach(PSResourceInfo pkg in HttpSearchAcrossNamesInRepository(repositoryInfo))
                 {
                     yield return pkg;
                 }
+
                 yield break;
             }
         }
@@ -371,23 +383,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else {
                     // call 'FindName'  or 'FindNameAndVersion'
-                    if (versionRange == null)
+                    if (versionRange == null && nugetVersion == null)
                     {
-                        _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
+                        PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
+                        if (foundPkg != null)
+                        {
+                            if (!_repositoryNameContainsWildcard)
+                            {
+                                _pkgsLeftToFind.Remove(pkgName);
+                            }
+
+                            yield return foundPkg;
+                        }
                     }
-                    else {
+                    else
+                    {
                         if (versionRange != null)
                         {
                             // version range (all versions)
-                            _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, out string errRecord);
+                            yield return _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, out string errRecord);
                         }
-                        else {
+                        else
+                        {
                             // specific version
-                            _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToString(), repository, out string errRecord);
+                            PSResourceInfo foundPkg = _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToString(), repository, out string errRecord);
+                            if (!_repositoryNameContainsWildcard)
+                            {
+                                _pkgsLeftToFind.Remove(pkgName);
+                            }
+
+                            yield return foundPkg;
                         }
-                   }
-                }
-                
+                    }
+                } 
             }
         }
 

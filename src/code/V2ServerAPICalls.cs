@@ -173,7 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
             // This should return the latest stable version or the latest prerelease version (respectively)
-            var requestUrlV2 = $"{repository}/FindPackagesById()?id='{packageName}'?&$orderby=Version desc&$filter={prerelease}{select}";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'?&$orderby=Version desc&$filter={prerelease}{select}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -191,7 +191,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TODO:  figure out why this is happening
             // It's unclear whether we should be using quotations around package name or not,
             // both return metadata, but responses are different.
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsLatestVersion&searchTerm='{packageName}'";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?$filter=IsLatestVersion&searchTerm='{packageName}'";
             
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -209,7 +209,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TODO:  figure out why this is happening
             // It's unclear whether we should be using quotations around package name or not,
             // both return metadata, but responses are different.
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='{packageName}'&includePrerelease=true";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='{packageName}'&includePrerelease=true";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -226,7 +226,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, out string errRecord)
         {
             // Make sure to include quotations around the package name
-            var requestUrlV2 = $"{repository.Uri}/FindPackagesById()?id='{packageName}'"; 
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'"; 
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -240,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public string FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord) {
             // Quotations around package name and version do not matter, same metadata gets returned.
-            var requestUrlV2 = $"{repository.Uri}/Packages(Id='{packageName}', Version='{version}') ";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/Packages(Id='{packageName}', Version='{version}') ";
             
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -256,7 +256,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///                             then find the exact version to install, then call into install version
         /// </summary>
         public string InstallName(string packageName, PSRepositoryInfo repository, out string errRecord) {
-            var requestUrlV2 = $"{repository.Uri}/package/{packageName}";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}";
 
             // The request returns a byte array, so think about what we want to return here
             // ACR code to read stream may be helpful here. 
@@ -273,7 +273,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
         public string InstallVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord) {
-            var requestUrlV2 = $"{repository.Uri}/package/{packageName}/{version}";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}/{version}";
 
             // The request returns a byte array, so think about what we want to return here
             // ACR code to read stream may be helpful here. 

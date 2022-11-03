@@ -180,8 +180,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
-
-
+                // TODO: handle V3 endpoints, test for NuGetGallery
             }
 
             return null;
@@ -250,16 +249,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public PSResourceInfo FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord)
         {
-            var response = v2ServerAPICall.FindVersion(packageName, version, repository, out errRecord);
+            errRecord = string.Empty;
 
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
+            if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
-                return currentPkg;
+                // Same API calls for both prerelease and non-prerelease
+                var response = v2ServerAPICall.FindVersion(packageName, version, repository, out errRecord);
+
+                var elemList = ConvertResponseToXML(response);
+
+
+                PSResourceInfo.TryConvertFromXml(
+                    elemList[0],
+                    false, // TODO: confirm, but this seems to only apply for FindName() cases
+                    out PSResourceInfo psGetInfo,
+                    repository.Name,
+                    out string errorMsg);
+
+                if (psGetInfo != null)
+                {
+                    return psGetInfo;
+                }
+                else
+                {
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
+                }
+            }
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+            {
+                // TODO: handle V3 endpoints, test for NuGetGallery
             }
 
-            // Convert to PSResourceInfo object 
-            return currentPkg;
+            return null;
         }
         
         /// <summary>
