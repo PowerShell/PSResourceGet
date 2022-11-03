@@ -5,6 +5,7 @@ using System;
 using System.Management.Automation;
 using System.Net;
 using System.Security;
+using System.Collections;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -116,6 +117,38 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         internal static readonly string VaultNameAttribute = nameof(VaultName);
         internal static readonly string SecretNameAttribute = nameof(SecretName);
         internal static readonly string CredentialAttribute = nameof(Credential);
+
+        #endregion
+    }
+
+    class PSCredentialInfoTransformAttribute : ArgumentTransformationAttribute {
+
+        #region Methods
+        
+        public override object Transform(EngineIntrinsics engineIntrinsics, object inputData)
+        {
+            if (inputData is Hashtable)
+            {
+                var ht = inputData as Hashtable;
+
+                if (ht.ContainsKey("VaultName") && ht.ContainsKey("SecretName"))
+                {
+                    return new PSCredentialInfo(ht["VaultName"] as string, ht["SecretName"] as string);
+                }
+                else
+                {
+                    throw new ArgumentTransformationMetadataException();
+                }
+            }
+            else if (inputData is PSObject)
+            {
+                return inputData;
+            }
+            else
+            {
+                throw new ArgumentTransformationMetadataException();
+            }
+        }
 
         #endregion
     }
