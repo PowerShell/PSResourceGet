@@ -247,6 +247,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (!string.IsNullOrEmpty(pathToModuleManifestToPublish))
                 {
                     _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
+                    _pkgName = _pkgName.ToLower();
                 }
                 else {
                     // directory
@@ -259,7 +260,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             pathToModuleManifestToPublish = file.FullName;
                             _pkgName = System.IO.Path.GetFileNameWithoutExtension(file.Name);
-
+                            _pkgName = _pkgName.ToLower();
                             break;
                         }
                     }
@@ -943,9 +944,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private bool CreateDigest(string fileName, out string digest, out ErrorRecord error)
         {
-            FileInfo nupkgFileInfo = new FileInfo(fileName);
+            FileInfo fileInfo = new FileInfo(fileName);
             SHA256 mySHA256 = SHA256.Create();
-            FileStream fileStream = nupkgFileInfo.Open(FileMode.Open, FileAccess.Read);
+            FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read);
             digest = string.Empty;
 
             try
@@ -960,22 +961,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     stringBuilder.AppendFormat("{0:x2}", b);
                 digest = stringBuilder.ToString();
                 // Write the name and hash value of the file to the console.
-                WriteVerbose($"{nupkgFileInfo.Name}: {hashValue}");
+                WriteVerbose($"{fileInfo.Name}: {hashValue}");
                 error = null;
-                return true;
             }
             catch (IOException ex)
             {
                 var IOError = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
                 error = IOError;
-                return false;
             }
             catch (UnauthorizedAccessException ex)
             {
                 var AuthorizationError = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
                 error = AuthorizationError;
+            }
+
+            fileStream.Close();
+            if (error != null)
+            {
                 return false;
             }
+            return true;
         }
 
         private string CreateJsonContent(string digest, string emptyDigest, long fileSize, string fileName)
@@ -1028,9 +1033,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private bool PushNupkgACR(string outputNupkgDir, PSRepositoryInfo repository, out ErrorRecord error)
         {
+            error = null;
             // Push the nupkg to the appropriate repository
             var fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg");
-
+        
             string accessToken = string.Empty;
             string tenantID = string.Empty;
 
@@ -1070,7 +1076,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             WriteVerbose("Finish uploading blob");
-            bool moduleUploadSuccess = AcrHttpHelper.EndUploadBlob(registry, moduleLocation, fullNupkgFile, digest, acrAccessToken).Result;
+            bool moduleUploadSuccess = AcrHttpHelper.EndUploadBlob(registry, moduleLocation, fullNupkgFile, digest, false, acrAccessToken).Result;
 
             WriteVerbose("Create an empty file");
             string emptyFileName = "empty.txt";
@@ -1080,38 +1086,45 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 emptyFilePath = Guid.NewGuid().ToString() + ".txt";
             }
-            File.Create(emptyFilePath);
-
+            FileStream emptyStream = File.Create(emptyFilePath);
+            emptyStream.Close();
+            
             WriteVerbose("Start uploading an empty file");
             var emptyLocation = AcrHttpHelper.GetStartUploadBlobLocation(registry, _pkgName, acrAccessToken).Result;
 
             WriteVerbose("Computing digest for empty file");
-            bool emptyDigestCreated = CreateDigest(fullNupkgFile, out string emptyDigest, out ErrorRecord emptyDigestError);
+            bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
             if (!emptyDigestCreated)
             {
                 ThrowTerminatingError(emptyDigestError);
             }
 
             WriteVerbose("Finish uploading empty file");
-            bool emptyFileUploadSuccess = AcrHttpHelper.EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, acrAccessToken).Result;
+            bool emptyFileUploadSuccess = AcrHttpHelper.EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
 
             WriteVerbose("Create the config file");
-            string configFileName = "config.txt";
+            string configFileName = "config.json";
             var configFilePath = System.IO.Path.Combine(outputNupkgDir, configFileName);
             while (File.Exists(configFilePath))
             {
-                configFilePath = Guid.NewGuid().ToString() + ".txt";
+                configFilePath = Guid.NewGuid().ToString() + ".json";
             }
+            FileStream configStream = File.Create(configFilePath);
+            configStream.Close();
 
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);
             string fileContent = CreateJsonContent(digest, emptyDigest, fileSize, fileName);
+            File.WriteAllText(configFilePath, fileContent);
 
             WriteVerbose("Create the manifest layer");
-            bool manifestCreated = AcrHttpHelper.CreateManifest(registry, _pkgName, _pkgVersion.OriginalVersion, configFilePath, acrAccessToken).Result;
+            bool manifestCreated = AcrHttpHelper.CreateManifest(registry, _pkgName, _pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
 
-            error = null;
+            if (manifestCreated)
+            {
+                return true;
+            }
             return false;
         }
     }

@@ -11,9 +11,6 @@ using System.Collections.ObjectModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-
-using Dbg = System.Diagnostics.Debug;
-
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     internal static class AcrHttpHelper
@@ -89,15 +86,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        internal static async Task<bool> EndUploadBlob(string registry, string location, string filePath, string digest, string acrAccessToken)
+        internal static async Task<bool> EndUploadBlob(string registry, string location, string filePath, string digest, bool isManifest, string acrAccessToken)
         {
             try
             {
                 var endUploadUrl = string.Format(acrEndUploadTemplate, registry, location, digest);
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-                // var contentHeaders = GetDefaultHeaders(acrAccessToken);
-                // contentHeaders.Add(new KeyValuePair<string, string>("Content-Type", "application/octet-stream"));
-                return await PutRequestAsync(endUploadUrl, filePath, defaultHeaders);
+                return await PutRequestAsync(endUploadUrl, filePath, isManifest, defaultHeaders);
             }
             catch (HttpRequestException e)
             {
@@ -105,18 +100,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        internal static async Task<bool> CreateManifest(string registry, string pkgName, string pkgVersion, string configPath, string acrAccessToken)
+        internal static async Task<bool> CreateManifest(string registry, string pkgName, string pkgVersion, string configPath, bool isManifest, string acrAccessToken)
         {
             try
             {
                 var createManifestUrl = string.Format(acrManifestUrlTemplate, registry, pkgName, pkgVersion);
-                var contentHeaders = GetDefaultHeaders(acrAccessToken);
-                contentHeaders.Add(new KeyValuePair<string, string>("Content-Type", "application/vnd.oci.image.manifest.v1+json"));
-                return await PutRequestAsync(createManifestUrl, configPath, contentHeaders);
+                var defaultHeaders = GetDefaultHeaders(acrAccessToken);
+                return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to uploading module to ACR: " + e.Message);
+                throw new HttpRequestException("Error occured while trying to create manifest: " + e.Message);
             }
         }
 
@@ -256,20 +250,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private static async Task<bool> PutRequestAsync(string url, string filePath, Collection<KeyValuePair<string, string>> contentHeaders)
+        private static async Task<bool> PutRequestAsync(string url, string filePath, bool isManifest, Collection<KeyValuePair<string, string>> contentHeaders)
         {
             try
             {
                 SetDefaultHeaders(contentHeaders);
 
-                FileInfo nupkgFileInfo = new FileInfo(filePath);
-                FileStream fileStream = nupkgFileInfo.Open(FileMode.Open, FileAccess.Read);
-                StreamContent fileStreamContent = new StreamContent(fileStream);
-                HttpContent httpContent = fileStreamContent as HttpContent;
-                httpContent.Headers.Add("Content-Type", "application/octet-stream");
-
-                HttpResponseMessage response = await s_client.PutAsync(url, fileStreamContent);
+                FileInfo fileInfo = new FileInfo(filePath);
+                FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read);
+                HttpContent httpContent = new StreamContent(fileStream);
+                if (isManifest)
+                {
+                    httpContent.Headers.Add("Content-Type", "application/vnd.oci.image.manifest.v1+json");
+                }
+                else
+                {
+                    httpContent.Headers.Add("Content-Type", "application/octet-stream");
+                }
+                
+                HttpResponseMessage response = await s_client.PutAsync(url, httpContent);
                 response.EnsureSuccessStatusCode();
+                fileStream.Close();
                 return response.IsSuccessStatusCode;
             }
             catch (HttpRequestException e)
