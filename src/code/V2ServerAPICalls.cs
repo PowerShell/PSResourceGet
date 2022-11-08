@@ -186,6 +186,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
+        public string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        {
+            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
+            // startsWith/endsWith scenarios:
+            // *ShellGet
+            // PowerShell*
+            // Power*Get
+            // Pow*She*
+
+            // TODO: discuss this in PSGet Check in to see which scenarios we want to support
+            
+            // TODO:  figure out why this is happening
+            // It's unclear whether we should be using quotations around package name or not,
+            // both return metadata, but responses are different.
+            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
+
+            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?searchTerm='{packageName}'&$filter={prerelease}{select}";
+            
+            return HttpRequestCall(requestUrlV2, out errRecord);  
+        }
+
+        // /// <summary>
+        // /// Find method which allows for searching for single name with wildcards and returns latest version.
+        // /// Name: supports wildcards
+        // /// Examples: Search "PowerShell*"
+        // /// API call: 
+        // /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
+        // /// Implementation Note: filter additionally and verify ONLY package name was a match.
+        // /// </summary>
         public string FindNameGlobbingWithNoPrerelease(string packageName, PSRepositoryInfo repository, out string errRecord)
         {
             // TODO:  figure out why this is happening
@@ -223,10 +252,68 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, out string errRecord)
+        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
         {
+            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
+            // NormalizedVersion doesn't include trailing zeroes
+            // Notes: this could allow us to take a version range (i.e (2.0.0, 3.0.0.0]) and deconstruct it and add options to the Filter for Version to describe that range
+            // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
+            // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
             // Make sure to include quotations around the package name
-            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'"; 
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'{select}&$filter=IsPrerelease eq {includePrerelease}";
+            
+            //and IsPrerelease eq false
+            // ex:
+            // (2.0.0, 3.0.0)
+            // $filter= NVersion gt '2.0.0' and NVersion lt '3.0.0'
+
+            // [2.0.0, 3.0.0]
+            // $filter= NVersion ge '2.0.0' and NVersion le '3.0.0'
+
+            // [2.0.0, 3.0.0)
+            // $filter= NVersion ge '2.0.0' and NVersion lt '3.0.0'
+
+            // (2.0.0, 3.0.0]
+            // $filter= NVersion gt '2.0.0' and NVersion le '3.0.0'
+
+            // [, 2.0.0]
+            // $filter= NVersion le '2.0.0'
+
+            string format = "NormalizedVersion {0} {1}";
+            string minPart = String.Empty;
+            string maxPart = String.Empty;
+
+            if (versionRange.MinVersion != null)
+            {
+                string operation = versionRange.IsMinInclusive ? "ge" : "gt";
+                minPart = String.Format(format, operation, versionRange.MinVersion.ToNormalizedString());
+            }
+
+            if (versionRange.MaxVersion != null)
+            {
+                string operation = versionRange.IsMaxInclusive ? "le" : "lt";
+                maxPart = String.Format(format, operation, versionRange.MaxVersion.ToNormalizedString());
+            }
+
+            string versionFilterParts = String.Empty;
+            if (!String.IsNullOrEmpty(minPart) && !String.IsNullOrEmpty(maxPart))
+            {
+                versionFilterParts += minPart + " and " + maxPart;
+            }
+            else if (!String.IsNullOrEmpty(minPart))
+            {
+                versionFilterParts += minPart;
+            }
+            else if (!String.IsNullOrEmpty(maxPart))
+            {
+                versionFilterParts += maxPart;
+            }
+
+            if (!String.IsNullOrEmpty(versionFilterParts))
+            {
+                // Note: could be null/empty if Version was "*" -> [,]
+                requestUrlV2 += " and " + versionFilterParts;
+            }
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
