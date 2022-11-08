@@ -195,7 +195,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='az*'&includePrerelease=true
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public PSResourceInfo FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
         {
             var response = string.Empty;
             if (includePrerelease)
@@ -206,14 +206,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 response = v2ServerAPICall.FindNameGlobbingWithNoPrerelease(packageName, repository, out errRecord);
             }
 
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
+            var elemList = ConvertResponseToXML(response);
+            
+            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); // TODO: discuss if we want to yield return here for better performance
+
+            foreach (var element in elemList)
             {
-                return currentPkg;
+                PSResourceInfo.TryConvertFromXml(
+                    element,
+                    includePrerelease,
+                    out PSResourceInfo psGetInfo,
+                    repository.Name,
+                    out string errorMsg);
+
+                if (psGetInfo != null)
+                {
+                    pkgsFound.Add(psGetInfo);
+                }
+                else 
+                {
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
+                }
             }
 
-            // Convert to PSResourceInfo object 
-            return currentPkg;
+            return pkgsFound.ToArray();
         }
 
         /// <summary>
@@ -225,19 +242,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public PSResourceInfo FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
         {
-            var response = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, out errRecord);
+            var response = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, out errRecord);
             
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
+            var elemList = ConvertResponseToXML(response);
+            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
+            
+            foreach (var element in elemList)
             {
-                return currentPkg;
+                PSResourceInfo.TryConvertFromXml(
+                    element,
+                    includePrerelease,
+                    out PSResourceInfo psGetInfo,
+                    repository.Name,
+                    out string errorMsg);
+
+                if (psGetInfo != null)
+                {
+                    pkgsFound.Add(psGetInfo);
+                }
+                else 
+                {
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
+                }
             }
 
-            // Convert to PSResourceInfo object 
-            return currentPkg;
-
+            return pkgsFound.ToArray();
         }
 
         /// <summary>
@@ -381,7 +413,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else {
                         // Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
-                        response = v2ServerAPICall.FindVersionGlobbing(pkgName, versionRange, repository, out string errRecord);
+                        response = v2ServerAPICall.FindVersionGlobbing(pkgName, versionRange, repository, includePrerelease, out string errRecord);
                         tmpErrRecords.Add(errRecord);
                     }
                 }
