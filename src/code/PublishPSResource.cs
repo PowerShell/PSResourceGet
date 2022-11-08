@@ -559,7 +559,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
 
                         {
-                            metadataElementsDictionary.Add("license", licenseUri.Trim());
+                            metadataElementsDictionary.Add("licenseUrl", licenseUri.Trim());
                         }
 
                         if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
