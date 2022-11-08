@@ -331,6 +331,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             VersionRange versionRange = null;
             NuGetVersion nugetVersion = null;
+            bool isSingleVersion = false;
 
             if (_version != null)
             {
@@ -349,6 +350,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this));
                         yield break;
                     }
+
+                    if (versionRange.MinVersion == versionRange.MaxVersion)
+                    {
+                        isSingleVersion = true;
+                    }
                 }
 
                 // Checking 
@@ -363,29 +369,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 //}
             }
 
-            // TODO: reconsider looping through each package name
-            foreach (string pkgName in _pkgsLeftToFind.ToArray())
+            // Note: For a single version, we have 1 or more name, with or without globbing
+            if (isSingleVersion)
             {
-                if (String.IsNullOrWhiteSpace(pkgName))
+                foreach (string pkgName in _pkgsLeftToFind.ToArray())
                 {
-                    _cmdletPassedIn.WriteVerbose(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.",
-                        pkgName?? "null string"));
-                    continue;
-                }
-
-                // Version =  versionRange, IncludePrerelease = _prerelease
-
-                // check if there's a wildcard in the name
-                if (pkgName.Contains('*'))
-                {
-                    // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
-
-                }
-                else {
-                    // call 'FindName'  or 'FindNameAndVersion'
-                    if (versionRange == null && nugetVersion == null)
+                    if (String.IsNullOrWhiteSpace(pkgName))
                     {
-                        PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
+                        _cmdletPassedIn.WriteVerbose(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.",
+                            pkgName?? "null string"));
+                        continue;
+                    }
+
+                    if (pkgName.Contains('*'))
+                    {
+                        // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
+                    }
+                    else 
+                    {
+                    PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
                         if (foundPkg != null)
                         {
                             if (!_repositoryNameContainsWildcard)
@@ -394,28 +396,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
 
                             yield return foundPkg;
-                        }
+                        } 
+                    }
+                }
+            }
+            else
+            {
+                // Note: we have 1 or more names, but no name globbing if it's a version range
+                foreach (string pkgName in _pkgsLeftToFind.ToArray())
+                {
+                    if (String.IsNullOrWhiteSpace(pkgName))
+                    {
+                        _cmdletPassedIn.WriteVerbose(String.Format("Package name: {0} provided was null or whitespace, so name was skipped in search.",
+                            pkgName?? "null string"));
+                        continue;
+                    }
+
+                    // TODO: Check if this is handled in parameter binding
+                    if (pkgName.Contains('*'))
+                    {
+                        var exMessage = "Cannot have wildcard in name when using version range";
+                        var ex = new ArgumentException(exMessage);
+                        var WildcardError = new ErrorRecord(ex, "InvalidWildCardUsage", ErrorCategory.InvalidOperation, null);
+                        _cmdletPassedIn.WriteError(WildcardError);
                     }
                     else
                     {
-                        if (versionRange != null)
+                        PSResourceInfo[] foundPkgs =  _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, out string errRecord);
+                        foreach (PSResourceInfo pkg in foundPkgs)
                         {
-                            // version range (all versions)
-                            yield return _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, out string errRecord);
-                        }
-                        else
-                        {
-                            // specific version
-                            PSResourceInfo foundPkg = _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToString(), repository, out string errRecord);
-                            if (!_repositoryNameContainsWildcard)
-                            {
-                                _pkgsLeftToFind.Remove(pkgName);
-                            }
-
-                            yield return foundPkg;
+                            yield return pkg;
                         }
                     }
-                } 
+                }
             }
         }
 
