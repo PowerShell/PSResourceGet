@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
 
         private static readonly HttpClient s_client = new HttpClient();
-        private static readonly string select = "&$select=Id,Version,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
+        private static readonly string select = "$select=Id,Version,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
 
         #endregion
 
@@ -173,7 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
             // This should return the latest stable version or the latest prerelease version (respectively)
-            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'?&$orderby=Version desc&$filter={prerelease}{select}";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'?&$orderby=Version desc&$filter={prerelease}&{select}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -202,7 +202,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // both return metadata, but responses are different.
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
-            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?searchTerm='{packageName}'&$filter={prerelease}{select}";
+            // TODO: "&" in url may need to be changed to "?"
+            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?searchTerm='{packageName}'&$filter={prerelease}&{select}";
             
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -260,7 +261,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
             // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
             // Make sure to include quotations around the package name
-            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'{select}&$filter=IsPrerelease eq {includePrerelease}";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&{select}&$filter=IsPrerelease eq {includePrerelease}";
             
             //and IsPrerelease eq false
             // ex:
@@ -327,7 +328,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public string FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord) {
             // Quotations around package name and version do not matter, same metadata gets returned.
-            var requestUrlV2 = $"{repository.Uri.ToString()}/Packages(Id='{packageName}', Version='{version}') ";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/Packages(Id='{packageName}', Version='{version}')?{select}";
             
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
