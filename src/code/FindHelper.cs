@@ -431,6 +431,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
+                        // TODO: deal with errRecord and making FindVesionGlobbing yield single packages instead of returning an array.
                         PSResourceInfo[] foundPkgs =  _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, out string errRecord);
                         foreach (PSResourceInfo pkg in foundPkgs)
                         {
