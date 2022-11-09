@@ -40,9 +40,7 @@ param (
     [string] $BuildFramework = "netstandard2.0"
 )
 
-if ( -not (Get-Module -ErrorAction SilentlyContinue PSPackageProject) -and -not (Import-Module -PassThru -ErrorAction SilentlyContinue PSPackageProject -MinimumVersion 0.1.18) ) {
-    Install-Module -Name PSPackageProject -MinimumVersion 0.1.18 -Force
-}
+. $PSScriptRoot/helpBuild.ps1
 
 $config = Get-PSPackageProjectConfiguration -ConfigPath $PSScriptRoot
 
