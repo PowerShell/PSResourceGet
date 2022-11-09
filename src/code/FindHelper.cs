@@ -331,7 +331,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             VersionRange versionRange = null;
             NuGetVersion nugetVersion = null;
-            bool isSingleVersion = false;
 
             if (_version != null)
             {
@@ -350,11 +349,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             this));
                         yield break;
                     }
-
-                    if (versionRange.MinVersion == versionRange.MaxVersion)
-                    {
-                        isSingleVersion = true;
-                    }
                 }
 
                 // Checking 
@@ -370,7 +364,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Note: For a single version, we have 1 or more name, with or without globbing
-            if (isSingleVersion)
+            if (nugetVersion != null || string.IsNullOrEmpty(_version))
             {
                 foreach (string pkgName in _pkgsLeftToFind.ToArray())
                 {
@@ -385,9 +379,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
                     }
-                    else 
+                    else if (nugetVersion != null)
                     {
-                    PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
+                        // TODO: User should not use -Prerelease parameter with a specific version.  Write out some kind of messaging (warning, error, verbose) to inform user of this
+                        // if they attempt this combination
+                        PSResourceInfo foundPkg = _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToNormalizedString(), repository, out string errRecord);
+                        if (foundPkg != null)
+                        {
+                            if (!_repositoryNameContainsWildcard)
+                            {
+                                _pkgsLeftToFind.Remove(pkgName);
+                            }
+
+                            yield return foundPkg;
+                        }
+                    }
+                    else {
+                        // If no version is specified, just retrieve the latest version
+                        PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
                         if (foundPkg != null)
                         {
                             if (!_repositoryNameContainsWildcard)
