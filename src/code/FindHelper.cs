@@ -226,13 +226,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // File based Uri scheme.
             if (repositoryInfo.Uri.Scheme != Uri.UriSchemeFile)
             {
-                foreach(PSResourceInfo pkg in HttpSearchAcrossNamesInRepository(repositoryInfo))
+                // -Name parameter and -Tag parameter are exclusive
+                if (_tag != null)
                 {
-                    yield return pkg;
+                    // TODO:  this is currently very buggy and the url queries need to be fixed
+                    foreach (PSResourceInfo pkgs in HttpFindTags(repositoryInfo))
+                    {
+                        yield return pkgs;
+                    }
                 }
-
+                else if (_pkgsLeftToFind.Count > 0)
+                {
+                    foreach (PSResourceInfo pkg in HttpSearchAcrossNamesInRepository(repositoryInfo))
+                    {
+                        yield return pkg;
+                    }
+                }
                 yield break;
             }
+
+            // TODO:  ADD command search, dscresource search, etc. 
         }
 
         private IEnumerable<PSResourceInfo> SearchFromRepository(PSRepositoryInfo repositoryInfo)
@@ -742,6 +755,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool IsTagMatch(PSResourceInfo pkg)
         {
             return _tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList().Count > 0;
+        }
+
+        private PSResourceInfo[] HttpFindTags(PSRepositoryInfo repository)
+        {
+            return _httpFindPSResource.FindTags(_tag, repository, _prerelease, out string errRecord);
+            // TODO:  write out error
         }
 
         private List<PSResourceInfo> FindDependencyPackages(

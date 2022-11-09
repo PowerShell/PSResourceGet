@@ -35,6 +35,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
         
+        // http://www.powershellgallery.com/api/v2/Search()?$filter=Id eq 'PowerShellGet' &includePrerelease=true
+
         #region Methods
         // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
 
@@ -62,19 +64,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
-        /// <summary>
-        /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
-        /// Examples: Search -Tag "JSON" -Repository PSGallery
-        /// API call: 
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm=tag:JSON
-        /// </summary>
-        public string FindTagsWithNoPrerelease(string[] tags, PSRepositoryInfo repository, out string errRecord) {
-            var tagsString = String.Join(" ", tags);
-            // There are no quotations around tag(s) in the url because this should be an "or" operation
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsLatestVersion&searchTerm=tag:{tagsString}";
-
-            return HttpRequestCall(requestUrlV2, out errRecord);  
-        }
 
         /// <summary>
         /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
@@ -82,31 +71,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: 
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
-        public string FindTagsWithPrerelease(string[] tags, PSRepositoryInfo repository, out string errRecord)
+        public string FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
         {
             var tagsString = String.Join(" ", tags);
+            var prereleaseFilter = includePrerelease ? "&includePrerelease=true" : string.Empty;
+            
             // There are no quotations around tag(s) in the url because this should be an "or" operation
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:{tagsString}&includePrerelease=true";
+            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tagsString}'{prereleaseFilter}&{select}";
 
+            Console.WriteLine(requestUrlV2);
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
-        /// <summary>
-        /// Find method which allows for searching for packages with resource type specified from a repository and returns latest version for each.
-        /// Name: supports wildcards
-        /// Type: Module, Script, Command, DSCResource (can take multiple)
-        /// Examples: Search -Type Module -Repository PSGallery
-        ///           Search -Type Module -Name "Az*" -Repository PSGallery
-        /// TODO: discuss consolidating Modules and Scripts endpoints (move scripts to modules endpoint)
-        /// TODO Note: searchTerm is tokenized by whitespace.
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSModule'
-        /// </summary>
-        public string FindTypesWithNoPrerelease(ResourceType packageResourceType, string packageName, PSRepositoryInfo repository, out string errRecord) {
-            // There are quotations around search term and tag(s) in the url since this should be an "and" operation
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsLatestVersion&searchTerm='{packageName} tag:{packageResourceType}'";
-
-            return HttpRequestCall(requestUrlV2, out errRecord);  
-        }
 
         /// <summary>
         /// Find method which allows for searching for packages with resource type specified from a repository and returns latest version for each.
