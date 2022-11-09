@@ -25,13 +25,6 @@ public interface IServerAPICalls
     /// </summary>
     string FindAllWithPrerelease(PSRepositoryInfo repository, out string errRecord);
 
-    /// <summary>
-    /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
-    /// Examples: Search -Tag "JSON" -Repository PSGallery
-    /// API call: 
-    /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
-    /// </summary>
-    string FindTagsWithNoPrerelease(string[] tags, PSRepositoryInfo repository, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
@@ -39,20 +32,8 @@ public interface IServerAPICalls
     /// API call: 
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
     /// </summary>
-    string FindTagsWithPrerelease(string[] tags, PSRepositoryInfo repository, out string errRecord);
+    string FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, out string errRecord);
 
-
-    /// <summary>
-    /// Find method which allows for searching for packages with resource type specified from a repository and returns latest version for each.
-    /// Name: supports wildcards
-    /// Type: Module, Script, Command, DSCResource (can take multiple)
-    /// Examples: Search -Type Module -Repository PSGallery
-    ///           Search -Type Module -Name "Az*" -Repository PSGallery
-    /// TODO: discuss consolidating Modules and Scripts endpoints (move scripts to modules endpoint)
-    /// TODO Note: searchTerm is tokenized by whitespace.
-    /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSModule'
-    /// </summary>
-    string FindTypesWithNoPrerelease(ResourceType packageResourceType, string packageName, PSRepositoryInfo repository, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for packages with resource type specified from a repository and returns latest version for each.

@@ -56,25 +56,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
         /// </summary>
-        public PSResourceInfo FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo[] FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
         {
-            var response = string.Empty;
-            if (includePrerelease)
+            var response = v2ServerAPICall.FindTags(tags, repository, includePrerelease, out errRecord);
+
+            var elemList = ConvertResponseToXML(response);
+            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
+            
+            foreach (var element in elemList)
             {
-                response = v2ServerAPICall.FindTagsWithPrerelease(tags, repository, out errRecord);
-            }
-            else {
-                response = v2ServerAPICall.FindTagsWithNoPrerelease(tags, repository, out errRecord);
+                PSResourceInfo.TryConvertFromXml(
+                    element,
+                    includePrerelease,
+                    out PSResourceInfo psGetInfo,
+                    repository.Name,
+                    out string errorMsg);
+
+                if (psGetInfo != null)
+                {
+                    pkgsFound.Add(psGetInfo);
+                }
+                else 
+                {
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
+                }
             }
 
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
-            {
-                return currentPkg;
-            }
-
-            // Convert to PSResourceInfo object 
-            return currentPkg;
+            return pkgsFound.ToArray();
         }
 
         /// <summary>
@@ -96,7 +105,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 response = v2ServerAPICall.FindTypesWithPrerelease(packageResourceType, packageName, repository, out errRecord);
             }
             else {
-                response = v2ServerAPICall.FindTypesWithNoPrerelease(packageResourceType, packageName, repository, out errRecord);
+                response = v2ServerAPICall.FindTypesWithPrerelease(packageResourceType, packageName, repository, out errRecord);
             }
 
             PSResourceInfo currentPkg = null;
