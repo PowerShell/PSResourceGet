@@ -630,11 +630,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     else if (key.Equals("IsPrerelease")) 
                     {
                         bool.TryParse(value, out bool isPrerelease);
-                        // For FindName 
-                        if (!includePrerelease && isPrerelease)
-                        {
-                            return false;
-                        }
 
                         metadata[key] = isPrerelease;
                     }
