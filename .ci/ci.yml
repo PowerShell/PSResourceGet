@@ -64,7 +64,7 @@ stages:
       displayName: Build and publish artifact
 
     - pwsh: |
-        Import-Module -Name PowerShellGet -Verbose
+        Import-Module -Name PowerShellGet -MinimumVersion 3.0 -Verbose
         Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
         . $(Build.SourcesDirectory)/helpBuild.ps1
         $config = Get-ProjectConfiguration
