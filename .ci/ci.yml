@@ -68,7 +68,7 @@ stages:
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
         $modPath = Join-Path -Path $modulePath -ChildPath PowerShellGet
         Write-Verbose -Verbose "Importing PowerShellGet from: $modPath"
-        Import-Module -Name $modPath -Force
+        Import-Module -Name $modPath -Verbose -Force
         Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
         . $(Build.SourcesDirectory)/helpBuild.ps1
         $config = Get-ProjectConfiguration
