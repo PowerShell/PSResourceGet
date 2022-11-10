@@ -195,7 +195,6 @@ function New-ProjectPackage
 
     Write-Verbose -Message "Dependency download complete" -Verbose
 
-    # Use PowerShellGet V3 to publish locally
     try {
         $repositoryExists = $null -ne (Get-PSResourceRepository -Name $sourceName -ErrorAction Ignore)
     }
@@ -203,6 +202,7 @@ function New-ProjectPackage
         $repositoryExists = $false
     }
     if ( !$repositoryExists) {
+        Write-Verbose -Message "Register local repository" -Verbose
         Register-PSResourceRepository -Name $sourceName -Uri (Convert-ToUri $modulesLocation)
     }
  
