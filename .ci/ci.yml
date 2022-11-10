@@ -64,9 +64,10 @@ stages:
       displayName: Build and publish artifact
 
     - pwsh: |
+        Import-Module -Name PowerShellGet
         Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
         . $(Build.SourcesDirectory)/helpBuild.ps1
-        $config = Get-PSPackageProjectConfiguration
+        $config = Get-ProjectConfiguration
         #
         $srcModulePath = Resolve-Path -Path "$($config.BuildOutputPath)/$($config.ModuleName)"
         Get-ChildItem $srcModulePath

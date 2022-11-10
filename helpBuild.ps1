@@ -21,7 +21,7 @@ function SearchConfigFile {
     } while ($newPath -ne '')
 }
 
-function Get-PSPackageProjectConfiguration {
+function Get-ProjectConfiguration {
     param(
         [Parameter()]
         [string] $ConfigPath = "."
@@ -63,7 +63,7 @@ function Get-PSPackageProjectConfiguration {
     }
 }
 
-function Invoke-PSPackageProjectBuild {
+function Invoke-ProjectBuild {
     [CmdletBinding()]
     param(
         [Parameter()]
@@ -132,7 +132,7 @@ function Convert-ToUri ( [string]$location ) {
     throw "Cannot convert '$location' to System.Uri"
 }
 
-function New-PSPackageProjectPackage
+function New-ProjectPackage
 {
     [CmdletBinding()]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions","")]
@@ -223,7 +223,7 @@ function New-PSPackageProjectPackage
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
 }
 
-function Invoke-PSPackageProjectPublish {
+function Invoke-ProjectPublish {
     [CmdletBinding()]
     param(
         [Switch]
@@ -375,7 +375,7 @@ function Invoke-StaticValidation {
     Test-PSPesterResult -TestResultsFile $resultBinSkim -ErrorAction Stop
 }
 
-function Invoke-PSPackageProjectTest {
+function Invoke-ProjectTest {
     param(
         [Parameter()]
         [ValidateSet("Functional", "StaticAnalysis")]
