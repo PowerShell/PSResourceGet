@@ -64,6 +64,8 @@ stages:
       displayName: Build and publish artifact
 
     - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Set-Location $modulePath
         Import-Module -Name PowerShellGet -MinimumVersion 3.0 -Verbose
         Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
         . $(Build.SourcesDirectory)/helpBuild.ps1
