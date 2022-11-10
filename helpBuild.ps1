@@ -203,7 +203,7 @@ function New-ProjectPackage
     }
     if ( !$repositoryExists) {
         Write-Verbose -Message "Register local repository" -Verbose
-        Register-PSResourceRepository -Name $sourceName -Uri (Convert-ToUri $modulesLocation)
+        Register-PSResourceRepository -Name $sourceName -URL (Convert-ToUri $modulesLocation)
     }
  
     Write-Verbose -Verbose -Message "Starting to publish module: $modulePath"
