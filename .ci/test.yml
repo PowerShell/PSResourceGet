@@ -52,7 +52,7 @@ jobs:
       $sourceName = 'pspackageproject-local-repo'
       Register-PackageSource -Name $sourceName -Location "$(System.ArtifactsDirectory)" -ProviderName PowerShellGet -Force -ErrorAction Ignore
       Get-PackageSource -Name $sourceName
-      $config = Get-PSPackageProjectConfiguration
+      $config = Get-ProjectConfiguration
       $buildOutputPath = $config.BuildOutputPath
       Write-Verbose -Verbose -Message "PSPackage build output path: $buildOutputPath"
       $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
@@ -65,7 +65,7 @@ jobs:
       Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
       . $(Build.SourcesDirectory)/helpBuild.ps1
       #
-      Invoke-PSPackageProjectTest -Type Functional
+      Invoke-ProjectTest -Type Functional
     displayName: Execute functional tests
     errorActionPreference: continue
 
@@ -73,7 +73,7 @@ jobs:
       Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
       . $(Build.SourcesDirectory)/helpBuild.ps1
       #
-      Invoke-PSPackageProjectTest -Type StaticAnalysis
+      Invoke-ProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
     errorActionPreference: continue
     condition: succeededOrFailed()

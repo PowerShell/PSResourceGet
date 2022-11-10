@@ -42,7 +42,7 @@ param (
 
 . $PSScriptRoot/helpBuild.ps1
 
-$config = Get-PSPackageProjectConfiguration -ConfigPath $PSScriptRoot
+$config = Get-ProjectConfiguration -ConfigPath $PSScriptRoot
 
 $script:ModuleName = $config.ModuleName
 $script:FormatFileName = $config.FormatFileName
@@ -98,16 +98,16 @@ else
 if ($Build.IsPresent)
 {
     $sb = (Get-Item Function:DoBuild).ScriptBlock
-    Invoke-PSPackageProjectBuild -BuildScript $sb -SkipPublish
+    Invoke-ProjectBuild -BuildScript $sb -SkipPublish
 }
 
 if ($Publish.IsPresent)
 {
-    Invoke-PSPackageProjectPublish -Signed:$Signed.IsPresent -AllowPreReleaseDependencies
+    Invoke-ProjectPublish -Signed:$Signed.IsPresent -AllowPreReleaseDependencies
 }
 
 if ( $Test.IsPresent ) {
-    Invoke-PSPackageProjectTest -Type $TestType
+    Invoke-ProjectTest -Type $TestType
 }
 
 if ($UpdateHelp.IsPresent) {
