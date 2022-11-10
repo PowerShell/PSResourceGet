@@ -78,7 +78,7 @@ function Invoke-ProjectBuild {
     $BuildScript.Invoke()
 
     if (!$SkipPublish.IsPresent) {
-        Invoke-PSPackageProjectPublish
+        Invoke-ProjectPublish
     }
 
     Write-Verbose -Verbose -Message "Finished invoking build script"
@@ -143,8 +143,8 @@ function New-ProjectPackage
         $AllowPreReleaseDependencies
     )
 
-    Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
-    $config = Get-PSPackageProjectConfiguration
+    Write-Verbose -Message "Starting New-ProjectPackage" -Verbose
+    $config = Get-ProjectConfiguration
     if(!$Signed.IsPresent)
     {
         $modulePath = Join-Path -Path $config.BuildOutputPath -ChildPath $config.ModuleName
@@ -220,7 +220,7 @@ function New-ProjectPackage
     
     Publish-Artifact -Path $nupkgPath -Name nupkg
 
-    Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
+    Write-Verbose -Message "Starting New-ProjectPackage" -Verbose
 }
 
 function Invoke-ProjectPublish {
@@ -234,7 +234,7 @@ function Invoke-ProjectPublish {
 
     Write-Verbose -Verbose -Message "Publishing package ..."
 
-    New-PSPackageProjectPackage -Signed:$Signed.IsPresent -AllowPreReleaseDependencies:$AllowPreReleaseDependencies.IsPresent -ErrorAction Stop
+    New-ProjectPackage -Signed:$Signed.IsPresent -AllowPreReleaseDependencies:$AllowPreReleaseDependencies.IsPresent -ErrorAction Stop
 
     Write-Verbose -Verbose -Message "Finished publishing package"
 }
@@ -254,7 +254,7 @@ function RunPwshCommandInSubprocess {
 
 function Invoke-FunctionalValidation {
     param ( $tags = "CI" )
-    $config = Get-PSPackageProjectConfiguration
+    $config = Get-ProjectConfiguration
     try {
         $testResultFile = "result.pester.xml"
         $testPath = $config.TestPath
@@ -361,7 +361,7 @@ function Publish-AzDevOpsTestResult {
 
 function Invoke-StaticValidation {
 
-    $config = Get-PSPackageProjectConfiguration
+    $config = Get-ProjectConfiguration
 
     Write-Verbose -Message "Running ScriptAnalyzer" -Verbose
     $resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
