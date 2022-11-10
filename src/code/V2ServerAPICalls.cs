@@ -3,6 +3,7 @@
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using NuGet.Versioning;
 
@@ -66,21 +67,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
         /// <summary>
-        /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
+        /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
         /// Examples: Search -Tag "JSON" -Repository PSGallery
         /// API call: 
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
-        public string FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            var tagsString = String.Join(" ", tags);
+            // scenarios with type + tags:
+            // type: None -> search both endpoints
+            // type: M -> just search Module endpoint
+            // type: S -> just search Scripts end point
+            // type: DSCResource -> just search Modules
+            // type: Command -> just search Modules
+            errRecord = String.Empty;
             var prereleaseFilter = includePrerelease ? "&includePrerelease=true" : string.Empty;
+            List<string> responses = new List<string>();
             
-            // There are no quotations around tag(s) in the url because this should be an "or" operation
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tagsString}'{prereleaseFilter}&{select}";
+            if (type == ResourceType.Script || type == ResourceType.None)
+            {
+                // $"{repository.Uri}/items/psscript/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tag}+tag:PSScript'{prereleaseFilter}&{select}";
+                var scriptsRequestUrlV2 = $"{repository.Uri}/items/psscript/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tag}'{prereleaseFilter}&{select}";
+                responses.Add(HttpRequestCall(requestUrlV2: scriptsRequestUrlV2, out string scriptErrorRecord));
+                // TODO: add error handling here
+            }
+            
+            if (type != ResourceType.Script)
+            {
+                if (type == ResourceType.None || type == ResourceType.Module)
+                {
+                    // type: Module or Command or DSCResource or None
+                    var modulesRequestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tag}'{prereleaseFilter}&{select}";
+                    responses.Add(HttpRequestCall(requestUrlV2: modulesRequestUrlV2, out string moduleErrorRecord));
+                }
+                else if (type == ResourceType.Command)
+                {
+                    // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
+                    var commandRequestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:PSCommand_{tag}'{prereleaseFilter}&{select}";
+                    responses.Add(HttpRequestCall(requestUrlV2: commandRequestUrlV2, out string commandErrorRecord)); 
+                }
+                else
+                {
+                    // DSCResource type
+                    var dscResourceRequestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:PSDscResource_{tag}'{prereleaseFilter}&{select}";
+                    responses.Add(HttpRequestCall(requestUrlV2: dscResourceRequestUrlV2, out string dscResourceErrorRecord)); 
+                }
 
-            Console.WriteLine(requestUrlV2);
-            return HttpRequestCall(requestUrlV2, out errRecord);  
+                // TODO: add error handling here
+
+            }
+
+            return responses.ToArray();  
         }
 
 

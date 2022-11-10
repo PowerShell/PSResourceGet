@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Linq;
 using System.Xml;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
@@ -56,31 +58,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
         /// </summary>
-        public PSResourceInfo[] FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo[] FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            var response = v2ServerAPICall.FindTags(tags, repository, includePrerelease, out errRecord);
-
-            var elemList = ConvertResponseToXML(response);
+            errRecord = String.Empty;
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
+            HashSet<string> tagPkgs = new HashSet<string>();
             
-            foreach (var element in elemList)
+            foreach (string tag in tags)
             {
-                PSResourceInfo.TryConvertFromXml(
-                    element,
-                    includePrerelease,
-                    out PSResourceInfo psGetInfo,
-                    repository.Name,
-                    out string errorMsg);
+                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
 
-                if (psGetInfo != null)
+                foreach (string response in responses)
                 {
-                    pkgsFound.Add(psGetInfo);
-                }
-                else 
-                {
-                    // TODO: Write error for corresponding null scenario
-                    errRecord = errorMsg;
-                }
+                    var elemList = ConvertResponseToXML(response);
+                    
+                    foreach (var element in elemList)
+                    {
+                        PSResourceInfo.TryConvertFromXml(
+                            element,
+                            includePrerelease,
+                            out PSResourceInfo psGetInfo,
+                            repository.Name,
+                            out string errorMsg);
+
+                        if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
+                        {
+                            tagPkgs.Add(psGetInfo.Name);
+                            pkgsFound.Add(psGetInfo);
+                        }
+                        else 
+                        {
+                            // TODO: Write error for corresponding null scenario
+                            // TODO: array out of bounds exception when name does not exist
+                            // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
+                            errRecord = errorMsg;
+                        }
+                    }
+                }                
             }
 
             return pkgsFound.ToArray();

@@ -21,7 +21,7 @@ public interface IFindPSResource
     /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
     /// </summary>
-    PSResourceInfo[] FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, out string errRecord);
+    PSResourceInfo[] FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for packages with resource type specified from a repository and returns latest version for each.
