@@ -62,11 +62,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             errRecord = String.Empty;
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
-            HashSet<string> tagPkgs = new HashSet<string>();
+            HashSet<string> tagPkgs = new HashSet<string>();   
             
+            // TAG example:
+            // chocolatey, crescendo 
+            //  >  chocolatey  ===  ModuleA
+            //  >  crescendo   ===  ModuleA
+            // --->   for tags get rid of duplicate modules 
+
             foreach (string tag in tags)
             {
                 string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
+
+                // TODO:  map the tag with the package which the tag came from 
 
                 foreach (string response in responses)
                 {
@@ -99,6 +107,80 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return pkgsFound.ToArray();
         }
+
+        /// <summary>
+        /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
+        /// Examples: Search -Tag "JSON" -Repository PSGallery
+        /// API call: 
+        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
+        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
+        /// </summary>
+        public PSCommandResourceInfo[] FindCommandOrDscResource(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        {
+            errRecord = String.Empty;
+            Hashtable pkgHash = new Hashtable();   
+            List<PSCommandResourceInfo> cmdInfoObjs = new List<PSCommandResourceInfo>();
+
+            // COMMAND example:
+            // command1, command2 
+            //  >  command1  ===  ModuleA
+            //  >  command2   ===  ModuleA            
+            //
+            //  >  command1, command2   ===  ModuleA
+
+            foreach (string tag in tags)
+            {
+                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
+
+
+                foreach (string response in responses)
+                {
+                    var elemList = ConvertResponseToXML(response);
+                    
+                    foreach (var element in elemList)
+                    {
+                        PSResourceInfo.TryConvertFromXml(
+                            element,
+                            includePrerelease,
+                            out PSResourceInfo psGetInfo,
+                            repository.Name,
+                            out string errorMsg);
+
+                        if (psGetInfo != null )
+                        {
+                            // Map the tag with the package which the tag came from 
+                            if (!pkgHash.Contains(psGetInfo.Name))
+                            {
+                                pkgHash.Add(psGetInfo.Name, Tuple.Create<List<string>, PSResourceInfo>(new List<string> { tag }, psGetInfo)); 
+                            }
+                            else {
+                                // if the package is already in the hashtable, add this tag to the list of tags associated with that package
+                                Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>)pkgHash[psGetInfo.Name];
+                                hashValue.Item1.Add(tag);
+                            }
+                        }
+                        else 
+                        {
+                            // TODO: Write error for corresponding null scenario
+                            // TODO: array out of bounds exception when name does not exist
+                            // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
+                            errRecord = errorMsg;
+                        }
+                    }
+                }                
+            }
+
+            // convert hashtable to PSCommandInfo
+            foreach(DictionaryEntry pkg in pkgHash)
+            {
+                Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>) pkg.Value;
+
+                cmdInfoObjs.Add(new PSCommandResourceInfo(hashValue.Item1.ToArray(), hashValue.Item2));
+            }
+
+            return cmdInfoObjs.ToArray();
+        }
+
 
         /// <summary>
         /// Find method which allows for searching for packages with resource type specified from a repository and returns latest version for each.
