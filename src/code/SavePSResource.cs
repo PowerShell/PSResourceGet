@@ -232,7 +232,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private void ProcessSaveHelper(string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
         {
-            var namesToSave = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
+            var namesToSave = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(

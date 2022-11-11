@@ -118,7 +118,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             WriteVerbose("Entering GetPSResource");
 
-            var namesToSearch = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
+            var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(

@@ -28,6 +28,28 @@
             </TableControl>
         </View>
         <View>
+            <Name>PSCommandResourceInfo</Name>
+            <ViewSelectedBy>
+                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCommandResourceInfo</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader><Label>Name</Label></TableColumnHeader>
+                    <TableColumnHeader><Label>Package Name</Label></TableColumnHeader>
+                    <TableColumnHeader><Label>Version</Label></TableColumnHeader>
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem><PropertyName>Names</PropertyName></TableColumnItem>
+                            <TableColumnItem><ScriptBlock>$_.ParentResource.Name</ScriptBlock></TableColumnItem>
+                            <TableColumnItem><ScriptBlock>$_.ParentResource.Version</ScriptBlock></TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
             <Name>PSIncludedResourceInfoTable</Name>
             <ViewSelectedBy>
                 <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSIncludedResourceInfo</TypeName>
