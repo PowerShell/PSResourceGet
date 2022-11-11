@@ -39,7 +39,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
         private readonly string _psGalleryUri = "https://www.powershellgallery.com/api/v2";
         private readonly string _poshTestGalleryRepoName = "PoshTestGallery";
-        private readonly string _poshTestGalleryScriptsRepoName = "PoshTestGalleryScripts";
         private readonly string _poshTestGalleryUri = "https://www.poshtestgallery.com/api/v2";
         private bool _isADOFeedRepository;
         private bool _repositoryNameContainsWildcard;
@@ -132,68 +131,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return foundPackages;
             }
 
-            // Loop through repositoriesToSearch and if PSGallery or PoshTestGallery add its Scripts endpoint repo
-            // to list with same priority as PSGallery repo.
-            // This special casing is done to handle PSGallery and PoshTestGallery having 2 endpoints currently for different resources.
-            for (int i = 0; i < repositoriesToSearch.Count; i++)
-            {
-                if (String.Equals(repositoriesToSearch[i].Uri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    // special case: for PowerShellGallery, Module and Script resources have different endpoints so separate repositories have to be registered
-                    // with those endpoints in order for the NuGet APIs to search across both in the case where name includes '*'
-
-                    // detect if Script repository needs to be added and/or Module repository needs to be skipped
-                    Uri psGalleryScriptsUri = new Uri("http://www.powershellgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo psGalleryScripts = new PSRepositoryInfo(
-                                _psGalleryScriptsRepoName, 
-                                psGalleryScriptsUri, 
-                                repositoriesToSearch[i].Priority, 
-                                trusted: false, 
-                                credentialInfo: null,
-                                repositoriesToSearch[i].ApiVersion);
-
-                    if (_type == ResourceType.None)
-                    {
-                        _cmdletPassedIn.WriteVerbose("Null Type provided, so add PSGalleryScripts repository");
-                        repositoriesToSearch.Insert(i + 1, psGalleryScripts);
-                    }
-                    else if (_type != ResourceType.None && _type == ResourceType.Script)
-                    {
-                        _cmdletPassedIn.WriteVerbose("Type Script provided, so add PSGalleryScripts and remove PSGallery (Modules only) from search consideration");
-                        repositoriesToSearch.Insert(i + 1, psGalleryScripts);
-                        repositoriesToSearch.RemoveAt(i); // remove PSGallery
-                    }
-                }
-                else if (String.Equals(repositoriesToSearch[i].Uri.AbsoluteUri, _poshTestGalleryUri, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    // special case: for PoshTestGallery, Module and Script resources have different endpoints so separate repositories have to be registered
-                    // with those endpoints in order for the NuGet APIs to search across both in the case where name includes '*'
-
-                    // detect if Script repository needs to be added and/or Module repository needs to be skipped
-                    Uri poshTestGalleryScriptsUri = new Uri("https://www.poshtestgallery.com/api/v2/items/psscript/");
-                    PSRepositoryInfo poshTestGalleryScripts = new PSRepositoryInfo(
-                            _poshTestGalleryScriptsRepoName, 
-                            poshTestGalleryScriptsUri, 
-                            repositoriesToSearch[i].Priority, 
-                            trusted: false, 
-                            credentialInfo: null, 
-                            repositoriesToSearch[i].ApiVersion);
-
-                    if (_type == ResourceType.None)
-                    {
-                        _cmdletPassedIn.WriteVerbose("Null Type provided, so add PoshTestGalleryScripts repository");
-                        repositoriesToSearch.Insert(i + 1, poshTestGalleryScripts);
-                    }
-                    else if (_type != ResourceType.None && _type == ResourceType.Script)
-                    {
-                        _cmdletPassedIn.WriteVerbose("Type Script provided, so add PoshTestGalleryScripts and remove PoshTestGallery (Modules only) from search consideration");
-                        repositoriesToSearch.Insert(i + 1, poshTestGalleryScripts);
-                        repositoriesToSearch.RemoveAt(i); // remove PoshTestGallery
-                    }
-                }
-
-            }
-
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
@@ -230,7 +167,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (_tag != null)
                 {
                     // TODO:  this is currently very buggy and the url queries need to be fixed
-                    foreach (PSResourceInfo pkgs in HttpFindTags(repositoryInfo))
+                    foreach (PSResourceInfo pkgs in HttpFindTags(repositoryInfo, _type))
                     {
                         yield return pkgs;
                     }
@@ -242,6 +179,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         yield return pkg;
                     }
                 }
+
                 yield break;
             }
 
@@ -757,9 +695,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return _tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList().Count > 0;
         }
 
-        private PSResourceInfo[] HttpFindTags(PSRepositoryInfo repository)
+        private PSResourceInfo[] HttpFindTags(PSRepositoryInfo repository, ResourceType type)
         {
-            return _httpFindPSResource.FindTags(_tag, repository, _prerelease, out string errRecord);
+            return _httpFindPSResource.FindTags(_tag, repository, _prerelease, type, out string errRecord);
             // TODO:  write out error
         }
 

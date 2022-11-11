@@ -27,12 +27,12 @@ public interface IServerAPICalls
 
 
     /// <summary>
-    /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
+    /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
     /// Examples: Search -Tag "JSON" -Repository PSGallery
     /// API call: 
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
     /// </summary>
-    string FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, out string errRecord);
+    string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord);
 
 
     /// <summary>
