@@ -90,12 +90,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return foundPackages;
             }
 
-            _pkgsLeftToFind = name.ToList();
+            _pkgsLeftToFind = new List<string>(name);
 
             // Error out if repository array of names to be searched contains wildcards.
             if (repository != null)
             {
-                repository = Utils.ProcessNameWildcards(repository, out string[] errorMsgs, out _repositoryNameContainsWildcard);
+                repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -154,6 +154,161 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return foundPackages;
         }
 
+        public List<PSCommandResourceInfo> FindCommandOrDscResource(
+            ResourceType type,
+            SwitchParameter prerelease,
+            string[] tag,
+            string[] repository,
+            PSCredential credential)
+        {
+            _type = type;
+            _prerelease = prerelease;
+            _tag = tag;
+            _credential = credential;
+
+            List<PSCommandResourceInfo> foundPackages = new List<PSCommandResourceInfo>();
+            List<string> cmdsLeftToFind = new List<string>(tag);
+
+            if (tag.Length == 0)
+            {
+                return foundPackages;
+            }
+
+            // Error out if repository array of names to be searched contains wildcards.
+            if (repository != null)
+            {
+                repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
+                foreach (string error in errorMsgs)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+            }
+
+            // Get repositories to search.
+            List<PSRepositoryInfo> repositoriesToSearch;
+            try
+            {
+                repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
+                foreach (string error in errorList)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorGettingSpecifiedRepo",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                }
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorLoadingRepositoryStoreFile",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                
+                return foundPackages;
+            }
+
+            for (int i = 0; i < repositoriesToSearch.Count && cmdsLeftToFind.Any(); i++)
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                {
+                    foreach (PSCommandResourceInfo cmdInfo in HttpFindCmdOrDsc(repositoriesToSearch[i], _type))
+                    {
+                        foundPackages.Add(cmdInfo);
+                        
+                        foreach (string cmd in cmdInfo.Names)
+                        {
+                            cmdsLeftToFind.Remove(cmd);
+                        }
+                    }                        
+                }
+            }
+
+            return foundPackages;
+        }
+
+        public List<PSResourceInfo> FindTag(
+            ResourceType type,
+            SwitchParameter prerelease,
+            string[] tag,
+            string[] repository,
+            PSCredential credential)
+        {
+            _type = type;
+            _prerelease = prerelease;
+            _tag = tag;
+            _credential = credential;
+
+            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
+            List<string> tagsLeftToFind = new List<string>(tag);
+
+            if (tag.Length == 0)
+            {
+                return foundPackages;
+            }
+
+            // Error out if repository array of names to be searched contains wildcards.
+            if (repository != null)
+            {
+                repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
+                foreach (string error in errorMsgs)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+            }
+
+            // Get repositories to search.
+            List<PSRepositoryInfo> repositoriesToSearch;
+            try
+            {
+                repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
+                foreach (string error in errorList)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(error),
+                        "ErrorGettingSpecifiedRepo",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                }
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorLoadingRepositoryStoreFile",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                
+                return foundPackages;
+            }
+
+            for (int i = 0; i < repositoriesToSearch.Count && tagsLeftToFind.Any(); i++)
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                {
+                    //  tag1, tag2, tag3 
+                    
+                    // TODO:  didn't really finsh come back here
+                    foreach (PSResourceInfo cmdInfo in HttpSearchFromRepository(repositoriesToSearch[i]))
+                    {
+                        foundPackages.Add(cmdInfo);
+                    }                        
+                }
+            }
+
+            return foundPackages;
+        }
         #endregion
 
         #region Private methods
@@ -698,6 +853,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private PSResourceInfo[] HttpFindTags(PSRepositoryInfo repository, ResourceType type)
         {
             return _httpFindPSResource.FindTags(_tag, repository, _prerelease, type, out string errRecord);
+            // TODO:  write out error
+        }
+
+        private PSCommandResourceInfo[] HttpFindCmdOrDsc(PSRepositoryInfo repository, ResourceType type)
+        {
+            return _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, type, out string errRecord);
             // TODO:  write out error
         }
 

@@ -128,6 +128,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static string[] ProcessNameWildcards(
             string[] pkgNames,
+            bool removeWildcardEntries,
             out string[] errorMsgs,
             out bool isContainWildcard)
         {
@@ -146,6 +147,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 if (WildcardPattern.ContainsWildcardCharacters(name))
                 {
+                    if (removeWildcardEntries)
+                    {
+                        // Tag   // CommandName  // DSCResourceName 
+                        errorMsgsList.Add($"{name} will be discarded from the provided entries.");
+                        continue;
+                    }
+
                     if (String.Equals(name, "*", StringComparison.InvariantCultureIgnoreCase))
                     {
                         isContainWildcard = true;

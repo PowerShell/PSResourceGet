@@ -202,7 +202,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // included by the PSResourceInfo property
         #region Properties
 
-        public string Name { get; }
+        public string[] Names { get; }
 
         public PSResourceInfo ParentResource { get; }
 
@@ -213,11 +213,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="name">Name of the command or DSC resource</param>
+        /// <param name="names">Name of the command or DSC resource</param>
         /// <param name="parentResource">the parent module resource the command or dsc resource belongs to</param>
-        public PSCommandResourceInfo(string name, PSResourceInfo parentResource)
+        public PSCommandResourceInfo(string[] names, PSResourceInfo parentResource)
         {
-           Name = name;
+           Names = names;
            ParentResource = parentResource;
         }
 
