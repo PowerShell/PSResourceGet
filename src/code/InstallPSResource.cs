@@ -501,7 +501,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private void ProcessInstallHelper(string[] pkgNames, VersionRange pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
         {
-            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
+            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(

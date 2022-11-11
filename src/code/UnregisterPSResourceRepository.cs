@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         protected override void ProcessRecord()
         {
-            Name = Utils.ProcessNameWildcards(Name, out string[] _, out bool nameContainsWildcard);
+            Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] _, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 var message = String.Format("Name: '{0}, cannot contain wildcards", String.Join(", ", Name));

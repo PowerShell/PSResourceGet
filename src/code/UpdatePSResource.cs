@@ -255,6 +255,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             namesToProcess = Utils.ProcessNameWildcards(
                 pkgNames: namesToProcess,
+                removeWildcardEntries:false, 
                 errorMsgs: out string[] errorMsgs,
                 isContainWildcard: out bool _);
             
