@@ -248,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<PSCommandResourceInfo> foundPackages = _findHelper.FindCommandOrDscResource(
                 type: isSearchingForCommands? ResourceType.Command : ResourceType.DscResource,
                 prerelease: Prerelease,
-                tag: Tag,
+                tag: commandOrDSCNamesToSearch,
                 repository: Repository,
                 credential: Credential);
 
@@ -290,7 +290,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 type: Type,
                 version: Version,
                 prerelease: Prerelease,
-                tag: Tag,
+                tag: tagsToSearch,
                 repository: Repository,
                 credential: Credential,
                 includeDependencies: IncludeDependencies);
