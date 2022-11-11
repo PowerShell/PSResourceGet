@@ -18,14 +18,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     #region Enums
 
-    [Flags]
     public enum ResourceType
     {
-        None = 0x0,
-        Module = 0x1,
-        Script = 0x2,
-        Command = 0x4,
-        DscResource = 0x8
+        None,
+        Module,
+        Script,
+        Command,
+        DscResource
     }
 
     public enum VersionType
