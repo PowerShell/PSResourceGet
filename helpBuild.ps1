@@ -500,6 +500,41 @@ Describe "BinSkim" {
     return $xmlPath
 }
 
+function ConvertPssaDiagnosticsToNUnit {
+    param(
+        [Parameter(ValueFromPipeline)]
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
+        $Diagnostic
+    )
+
+    $sb = [System.Text.StringBuilder]::new()
+    $null = $sb.Append("Describe 'PSScriptAnalyzer Diagnostics' { `n")
+    foreach ($d in $Diagnostic) {
+        $ruleName = $d.RuleName
+        $scriptName = $d.ScriptName -replace "'", "``"
+        $line = $d.line
+        $message = $d.Message -replace "'", "``"
+        $null = $sb.Append("It '$scriptName - $line - $ruleName' { `nthrow '$message' }`n")
+    }
+    if ($null -eq $Diagnostic) {
+        $null = $sb.Append('It "no failures found" { $true | Should -Be $true }')
+    }
+    $null = $sb.Append('}')
+
+    $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.tests.ps1"
+    $xmlPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.xml"
+
+    try {
+        Set-Content -Path $testPath -Value $sb.ToString()
+        Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
+    }
+    finally {
+        Remove-Item -Path $testPath -Force
+    }
+
+    return $xmlPath
+}
+
 function RunScriptAnalysis {
     try {
         Push-Location
