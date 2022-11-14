@@ -29,6 +29,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pkgsLeftToFind;
+        private List<string> _tagsLeftToFind;
+
         private ResourceType _type;
         private string _version;
         private SwitchParameter _prerelease = false;
@@ -246,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _credential = credential;
 
             List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
-            List<string> tagsLeftToFind = new List<string>(tag);
+            _tagsLeftToFind = new List<string>(tag);
 
             if (tag.Length == 0)
             {
@@ -292,18 +294,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return foundPackages;
             }
 
-            for (int i = 0; i < repositoriesToSearch.Count && tagsLeftToFind.Any(); i++)
+            for (int i = 0; i < repositoriesToSearch.Count && _tagsLeftToFind.Any(); i++)
             {
+                if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException("-Type parameter is only supported with the PowerShellGallery."),
+                        "ErrorUsingTypeParameter",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                }
+                
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
                 if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2)
-                {
-                    //  tag1, tag2, tag3 
-                    
+                {                    
                     // TODO:  didn't really finsh come back here
                     foreach (PSResourceInfo cmdInfo in HttpSearchFromRepository(repositoriesToSearch[i]))
                     {
                         foundPackages.Add(cmdInfo);
-                    }                        
+                    }
+                }
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                {
+                    // TODO: implement this when we work on v3 requests
+                    break;
                 }
             }
 
@@ -321,10 +335,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // -Name parameter and -Tag parameter are exclusive
                 if (_tag != null)
                 {
+                    HashSet<string> tagsFound;
                     // TODO:  this is currently very buggy and the url queries need to be fixed
-                    foreach (PSResourceInfo pkgs in HttpFindTags(repositoryInfo, _type))
+                    foreach (PSResourceInfo pkgs in HttpFindTags(repositoryInfo, _type, out tagsFound))
                     {
                         yield return pkgs;
+                    }
+
+                    foreach(string tag in tagsFound)
+                    {
+                        _tagsLeftToFind.Remove(tag);
                     }
                 }
                 else if (_pkgsLeftToFind.Count > 0)
@@ -337,7 +357,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 yield break;
             }
-
             // TODO:  ADD command search, dscresource search, etc. 
         }
 
@@ -850,9 +869,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return _tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList().Count > 0;
         }
 
-        private PSResourceInfo[] HttpFindTags(PSRepositoryInfo repository, ResourceType type)
+        private PSResourceInfo[] HttpFindTags(PSRepositoryInfo repository, ResourceType type, out HashSet<string> tagsFound)
         {
-            return _httpFindPSResource.FindTags(_tag, repository, _prerelease, type, out string errRecord);
+            return _httpFindPSResource.FindTags(_tag, repository, _prerelease, type, out tagsFound, out string errRecord);
             // TODO:  write out error
         }
 
