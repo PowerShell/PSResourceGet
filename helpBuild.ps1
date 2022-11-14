@@ -458,7 +458,9 @@ Describe "BinSkim" {
         Write-Verbose -Message "Finding binskim..." -Verbose
         $packageInfo = Find-Package -Name $packageName -Source $sourceName
         $dirName = $packageInfo.Name + '.' + $packageInfo.Version
-        $toolLocation = Join-Path -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, $binaryName
+        $childPaths = $dirName, 'tools', 'netcoreapp2.0', $rid, $binaryName
+        $toolLocation = $packageLocation
+        $childPaths | ForEach-Object { $toolLocation = Join-Path $toolLocation -ChildPath $_ }
         if (!(test-path -path $toolLocation)) {
             Write-Verbose -Message "Installing binskim..." -Verbose
             $null = $packageInfo | Install-Package -Destination $packageLocation -Force
