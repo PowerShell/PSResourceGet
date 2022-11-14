@@ -285,15 +285,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  return;
             }
             
-            List<PSResourceInfo> foundPackages = _findHelper.FindByResourceName(
-                name: Utils.EmptyStrArray,
+            List<PSResourceInfo> foundPackages = _findHelper.FindTag(
                 type: Type,
-                version: Version,
                 prerelease: Prerelease,
                 tag: tagsToSearch,
                 repository: Repository,
-                credential: Credential,
-                includeDependencies: IncludeDependencies);
+                credential: Credential);
        
             foreach (var package in foundPackages)
             {
