@@ -504,9 +504,11 @@ function RunScriptAnalysis {
     try {
         Push-Location
 
+        $config = Get-ProjectConfiguration
+
         $pssaParams = @{
             Severity = 'Warning', 'ParseError'
-            Path     = GetOutputModulePath
+            Path     = Join-Path $config.BuildOutputPath $config.ModuleName
             Recurse  = $true
         }
 
