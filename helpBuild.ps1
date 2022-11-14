@@ -500,6 +500,30 @@ Describe "BinSkim" {
     return $xmlPath
 }
 
+function RunScriptAnalysis {
+    try {
+        Push-Location
+
+        $pssaParams = @{
+            Severity = 'Warning', 'ParseError'
+            Path     = GetOutputModulePath
+            Recurse  = $true
+        }
+
+        $results = Invoke-ScriptAnalyzer @pssaParams
+        $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
+        # send back the xml file path.
+        $xmlPath
+        if ($env:TF_BUILD) {
+            $powershellName = GetPowerShellName
+            Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnitXml -FailTaskOnFailedTests $false
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Invoke-StaticValidation {
 
     $config = Get-ProjectConfiguration
