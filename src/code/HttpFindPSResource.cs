@@ -58,12 +58,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
         /// </summary>
-        public PSResourceInfo[] FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public PSResourceInfo[] FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out HashSet<string> tagsFound, out string errRecord)
         {
             errRecord = String.Empty;
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
             HashSet<string> tagPkgs = new HashSet<string>();   
-            
+            tagsFound = new HashSet<string>();   
+
             // TAG example:
             // chocolatey, crescendo 
             //  >  chocolatey  ===  ModuleA
@@ -73,8 +74,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (string tag in tags)
             {
                 string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
-
-                // TODO:  map the tag with the package which the tag came from 
 
                 foreach (string response in responses)
                 {
@@ -93,6 +92,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             tagPkgs.Add(psGetInfo.Name);
                             pkgsFound.Add(psGetInfo);
+                            tagsFound.Add(tag);
                         }
                         else 
                         {
@@ -102,7 +102,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             errRecord = errorMsg;
                         }
                     }
-                }                
+                }
             }
 
             return pkgsFound.ToArray();
