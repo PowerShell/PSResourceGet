@@ -252,16 +252,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
             errRecord = string.Empty;
 
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
                 // Same API calls for both prerelease and non-prerelease
-                var response = v2ServerAPICall.FindName(packageName, repository, includePrerelease, out errRecord);
+                var response = v2ServerAPICall.FindName(packageName, repository, includePrerelease, type, out errRecord);
 
                 var elemList = ConvertResponseToXML(response);
+
+                if (elemList.Length == 0)
+                {
+                    Console.WriteLine("empty response. Error handle");
+                }
 
         
                 PSResourceInfo.TryConvertFromXml(
@@ -347,9 +352,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            var response = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, out errRecord);
+            var response = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, out errRecord);
             
             var elemList = ConvertResponseToXML(response);
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
@@ -384,16 +389,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public PSResourceInfo FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord)
+        public PSResourceInfo FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord)
         {
             errRecord = string.Empty;
 
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
                 // Same API calls for both prerelease and non-prerelease
-                var response = v2ServerAPICall.FindVersion(packageName, version, repository, out errRecord);
+                var response = v2ServerAPICall.FindVersion(packageName, version, repository, type, out errRecord);
 
                 var elemList = ConvertResponseToXML(response);
+
+                if (elemList.Length == 0)
+                {
+                    Console.WriteLine("empty response. Error handle");
+                }
 
 
                 PSResourceInfo.TryConvertFromXml(
@@ -503,7 +513,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///           Search "PowerShellGet", "Package*", "PSReadLine" "3.*" --> do it for first, write error for second, do it for third
         ///           Search "Package*", "PSReadLin*" "3.*" --> not supported
         /// </summary>
-        public PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string[] errRecords)
+        public PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string[] errRecords)
         {
             var response = string.Empty;
             var tmpErrRecords = new List<string>();
@@ -518,7 +528,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else {
                         // Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
-                        response = v2ServerAPICall.FindVersionGlobbing(pkgName, versionRange, repository, includePrerelease, out string errRecord);
+                        response = v2ServerAPICall.FindVersionGlobbing(pkgName, versionRange, repository, includePrerelease, type, out string errRecord);
                         tmpErrRecords.Add(errRecord);
                     }
                 }
