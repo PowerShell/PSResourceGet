@@ -133,7 +133,7 @@ public interface IFindPSResource
     ///           Search "PowerShellGet", "Package*", "PSReadLine" "3.*" --> do it for first, write error for second, do it for third
     ///           Search "Package*", "PSReadLin*" "3.*" --> not supported
     /// </summary>
-    PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string[] errRecord); 
+    PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string[] errRecord); 
 
     #endregion
 }

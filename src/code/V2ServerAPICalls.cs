@@ -272,7 +272,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
 
@@ -284,8 +284,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
             // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
             // Make sure to include quotations around the package name
-            string prereleaseFilter = includePrerelease ? string.Empty : "&$filter=IsPrerelease eq false";
-            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&{select}{prereleaseFilter}";
             
             //and IsPrerelease eq false
             // ex:
@@ -334,14 +332,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 versionFilterParts += maxPart;
             }
 
+            string filterQuery = "&$filter=";
+            filterQuery += includePrerelease ? string.Empty : "IsPrerelease eq false";
+            //filterQuery +=  type == ResourceType.None ? String.Empty : $" and substringof('PS{type.ToString()}', Tags) eq true";
+
+            string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
+            filterQuery += type == ResourceType.None ? String.Empty : $"{joiningOperator}substringof('PS{type.ToString()}', Tags) eq true";
+
             if (!String.IsNullOrEmpty(versionFilterParts))
             {
                 // Check if includePrerelease is true, if it is we want to add "$filter"
                 // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
         
                 // Note: could be null/empty if Version was "*" -> [,]
-                requestUrlV2 += includePrerelease ?  $"&$filter={versionFilterParts}" : $" and {versionFilterParts}";
+                joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
+                filterQuery +=  $"{joiningOperator}{versionFilterParts}";
             }
+
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{select}{filterQuery}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
