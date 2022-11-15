@@ -255,10 +255,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return foundPackages;
             }
 
-            // Error out if repository array of names to be searched contains wildcards.
             if (repository != null)
             {
                 repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
+
+                if (string.Equals(repository[0], '*'))
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSArgumentException ("-Repository parameter does not support entry '*'."),
+                        "RepositoryDoesNotSupportWildcardEntry",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -274,6 +283,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
+                if (repository != null && repositoriesToSearch.Count == 0)
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                        "RepositoryNameIsNotResolved",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
