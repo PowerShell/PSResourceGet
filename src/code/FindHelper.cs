@@ -180,6 +180,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (repository != null)
             {
                 repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
+
+                if (string.Equals(repository[0], '*'))
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSArgumentException ("-Repository parameter does not support entry '*' with -CommandName and -DSCResourceName parameters."),
+                        "RepositoryDoesNotSupportWildcardEntryWithCmdOrDSCName",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -195,6 +205,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
+                if (repository != null && repositoriesToSearch.Count == 0)
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                        "RepositoryNameIsNotResolved",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -262,8 +281,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (string.Equals(repository[0], '*'))
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSArgumentException ("-Repository parameter does not support entry '*'."),
-                        "RepositoryDoesNotSupportWildcardEntry",
+                        new PSArgumentException ("-Repository parameter does not support entry '*' with -Tag parameter."),
+                        "RepositoryDoesNotSupportWildcardEntryWithTag",
                         ErrorCategory.InvalidArgument,
                         this));
                 }
@@ -526,7 +545,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // TODO: User should not use -Prerelease parameter with a specific version.  Write out some kind of messaging (warning, error, verbose) to inform user of this
                         // if they attempt this combination
-                        PSResourceInfo foundPkg = _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToNormalizedString(), repository, out string errRecord);
+                        PSResourceInfo foundPkg = _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToNormalizedString(), repository, _type, out string errRecord);
                         if (foundPkg != null)
                         {
                             if (!_repositoryNameContainsWildcard)
@@ -539,7 +558,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else {
                         // If no version is specified, just retrieve the latest version
-                        PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, out string errRecord);
+                        PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, _type, out string errRecord);
                         if (foundPkg != null)
                         {
                             if (!_repositoryNameContainsWildcard)
@@ -575,7 +594,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         // TODO: deal with errRecord and making FindVesionGlobbing yield single packages instead of returning an array.
-                        PSResourceInfo[] foundPkgs =  _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, out string errRecord);
+                        PSResourceInfo[] foundPkgs =  _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, _type, out string errRecord);
                         foreach (PSResourceInfo pkg in foundPkgs)
                         {
                             yield return pkg;
