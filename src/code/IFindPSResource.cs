@@ -55,7 +55,7 @@ public interface IFindPSResource
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
     /// </summary>
-    PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord);
+    PSResourceInfo FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with wildcards and returns latest version.
@@ -77,7 +77,7 @@ public interface IFindPSResource
     /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
     /// </summary>
-    PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string errRecord);
+    PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with specific version.
@@ -86,7 +86,7 @@ public interface IFindPSResource
     /// Examples: Search "PowerShellGet" "2.2.5"
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
-    PSResourceInfo FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord);
+    PSResourceInfo FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord);
     
     /// <summary>
     /// *** we will not support this scenario ***
@@ -133,7 +133,7 @@ public interface IFindPSResource
     ///           Search "PowerShellGet", "Package*", "PSReadLine" "3.*" --> do it for first, write error for second, do it for third
     ///           Search "Package*", "PSReadLin*" "3.*" --> not supported
     /// </summary>
-    PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string[] errRecord); 
+    PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string[] errRecord); 
 
     #endregion
 }

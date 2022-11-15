@@ -180,13 +180,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
         /// // TODO:  change repository from string to PSRepositoryInfo
-        public string FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public string FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
             // Make sure to include quotations around the package name
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
             // This should return the latest stable version or the latest prerelease version (respectively)
-            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'?&$orderby=Version desc&$filter={prerelease}&{select}";
+            //var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'?&$orderby=Version desc&$filter={prerelease}&{select}";
+
+
+
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+            string typeFilterPart = type == ResourceType.None ? $" and Id eq '{packageName}'" :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{typeFilterPart}&{select}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -266,16 +272,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
+            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
+
+
+
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
             // NormalizedVersion doesn't include trailing zeroes
             // Notes: this could allow us to take a version range (i.e (2.0.0, 3.0.0.0]) and deconstruct it and add options to the Filter for Version to describe that range
             // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
             // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
             // Make sure to include quotations around the package name
-            string prereleaseFilter = includePrerelease ? string.Empty : "&$filter=IsPrerelease eq false";
-            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&{select}{prereleaseFilter}";
             
             //and IsPrerelease eq false
             // ex:
@@ -324,14 +332,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 versionFilterParts += maxPart;
             }
 
+            string filterQuery = "&$filter=";
+            filterQuery += includePrerelease ? string.Empty : "IsPrerelease eq false";
+            //filterQuery +=  type == ResourceType.None ? String.Empty : $" and substringof('PS{type.ToString()}', Tags) eq true";
+
+            string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
+            filterQuery += type == ResourceType.None ? String.Empty : $"{joiningOperator}substringof('PS{type.ToString()}', Tags) eq true";
+
             if (!String.IsNullOrEmpty(versionFilterParts))
             {
                 // Check if includePrerelease is true, if it is we want to add "$filter"
                 // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
         
                 // Note: could be null/empty if Version was "*" -> [,]
-                requestUrlV2 += includePrerelease ?  $"&$filter={versionFilterParts}" : $" and {versionFilterParts}";
+                joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
+                filterQuery +=  $"{joiningOperator}{versionFilterParts}";
             }
+
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{select}{filterQuery}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
@@ -343,9 +361,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public string FindVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord) {
+        public string FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord) {
+            // https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true 
+
             // Quotations around package name and version do not matter, same metadata gets returned.
-            var requestUrlV2 = $"{repository.Uri.ToString()}/Packages(Id='{packageName}', Version='{version}')?{select}";
+            //var requestUrlV2 = $"{repository.Uri.ToString()}/Packages(Id='{packageName}', Version='{version}')?{select}";
+            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{typeFilterPart}&{select}";
             
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
