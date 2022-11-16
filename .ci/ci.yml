@@ -54,19 +54,11 @@ stages:
         Save-Module -Name "platyPS" -Path $modulePath -Force
         Write-Verbose -Verbose "Install PSScriptAnalyzer to temp module path"
         Save-Module -Name "PSScriptAnalyzer" -Path $modulePath -RequiredVersion 1.18.0 -Force
-        Write-Verbose -Verbose "Install Pester 4.X to temp module path"
-        Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
-        Write-Verbose -Verbose "Install PSPackageProject to temp module path"
-        Save-Module -Name PSPackageProject -Path $modulePath -Force
-      displayName: Install PSPackageProject and dependencies
+        Write-Verbose -Verbose "Install Pester 5.X to temp module path"
+        Save-Module -Name "Pester" -MinimumVersion 5.0 -Path $modulePath -Force
+      displayName: Install PowerShellGet and dependencies
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-        #
         # Build for netstandard2.0 framework
         $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'netstandard2.0'
       displayName: Build and publish artifact
@@ -74,10 +66,12 @@ stages:
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-        $config = Get-PSPackageProjectConfiguration
+        $modPath = Join-Path -Path $modulePath -ChildPath PowerShellGet
+        Write-Verbose -Verbose "Importing PowerShellGet from: $modPath"
+        Import-Module -Name $modPath -Verbose -Force
+        Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
+        . $(Build.SourcesDirectory)/helpBuild.ps1
+        $config = Get-ProjectConfiguration
         #
         $srcModulePath = Resolve-Path -Path "$($config.BuildOutputPath)/$($config.ModuleName)"
         Get-ChildItem $srcModulePath
@@ -134,3 +128,4 @@ stages:
       jobName: TestPkgWinMacOS
       displayName: PowerShell Core on macOS
       imageName: macOS-latest
+      

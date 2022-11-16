@@ -29,10 +29,6 @@ param (
     [ValidateSet("Functional","StaticAnalysis")]
     $TestType = @("Functional"),
 
-    [Parameter(ParameterSetName="help")]
-    [switch]
-    $UpdateHelp,
-
     [ValidateSet("Debug", "Release")]
     [string] $BuildConfiguration = "Debug",
 
@@ -40,11 +36,9 @@ param (
     [string] $BuildFramework = "netstandard2.0"
 )
 
-if ( -not (Get-Module -ErrorAction SilentlyContinue PSPackageProject) -and -not (Import-Module -PassThru -ErrorAction SilentlyContinue PSPackageProject -MinimumVersion 0.1.18) ) {
-    Install-Module -Name PSPackageProject -MinimumVersion 0.1.18 -Force
-}
+. $PSScriptRoot/helpBuild.ps1
 
-$config = Get-PSPackageProjectConfiguration -ConfigPath $PSScriptRoot
+$config = Get-ProjectConfiguration -ConfigPath $PSScriptRoot
 
 $script:ModuleName = $config.ModuleName
 $script:FormatFileName = $config.FormatFileName
@@ -99,19 +93,20 @@ else
 
 if ($Build.IsPresent)
 {
+    Write-Verbose -Verbose -Message "Invoking build script"
+    
     $sb = (Get-Item Function:DoBuild).ScriptBlock
-    Invoke-PSPackageProjectBuild -BuildScript $sb -SkipPublish
+    $sb.Invoke()
+
+    Write-Verbose -Verbose -Message "Finished invoking build script"
 }
 
 if ($Publish.IsPresent)
 {
-    Invoke-PSPackageProjectPublish -Signed:$Signed.IsPresent -AllowPreReleaseDependencies
+    Invoke-ProjectPublish -Signed:$Signed.IsPresent -AllowPreReleaseDependencies
 }
 
-if ( $Test.IsPresent ) {
-    Invoke-PSPackageProjectTest -Type $TestType
-}
-
-if ($UpdateHelp.IsPresent) {
-    Add-PSPackageProjectCmdletHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName -Culture $Culture
+if ($Test.IsPresent) 
+{
+    Invoke-ProjectTest -Type $TestType
 }

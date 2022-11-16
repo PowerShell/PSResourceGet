@@ -42,23 +42,17 @@ jobs:
       Save-Module -Name "platyPS" -Path $modulePath -Force
       Write-Verbose -Verbose "Install PSScriptAnalyzer to temp module path"
       Save-Module -Name "PSScriptAnalyzer" -Path $modulePath -RequiredVersion 1.18.0 -Force
-      Write-Verbose -Verbose "Install Pester 4.X to temp module path"
-      Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
-      Write-Verbose -Verbose "Install PSPackageProject to temp module path"
-      Save-Module -Name PSPackageProject -Path $modulePath -Force
-    displayName: Install PSPackageProject and dependencies
+      Write-Verbose -Verbose "Install Pester 5.X to temp module path"
+      Save-Module -Name "Pester" -MinimumVersion 5.0 -Path $modulePath -Force
+    displayName: Install PowerShellGet and dependencies
 
   - ${{ parameters.powershellExecutable }}: |
-      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-      $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-      $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-      Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-      Import-Module -Name $modPath -Force
-      #
+      Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
+      . $(Build.SourcesDirectory)/helpBuild.ps1
       $sourceName = 'pspackageproject-local-repo'
       Register-PackageSource -Name $sourceName -Location "$(System.ArtifactsDirectory)" -ProviderName PowerShellGet -Force -ErrorAction Ignore
       Get-PackageSource -Name $sourceName
-      $config = Get-PSPackageProjectConfiguration
+      $config = Get-ProjectConfiguration
       $buildOutputPath = $config.BuildOutputPath
       Write-Verbose -Verbose -Message "PSPackage build output path: $buildOutputPath"
       $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
@@ -68,26 +62,18 @@ jobs:
     displayName: Extract product artifact
 
   - ${{ parameters.powershellExecutable }}: |
-      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-      $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-      $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-      Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-      Import-Module -Name $modPath -Force
-      Get-Module
+      Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
+      . $(Build.SourcesDirectory)/helpBuild.ps1
       #
-      Invoke-PSPackageProjectTest -Type Functional
+      Invoke-ProjectTest -Type Functional
     displayName: Execute functional tests
     errorActionPreference: continue
 
   - ${{ parameters.powershellExecutable }}: |
-      $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-      $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-      $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-      Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-      Import-Module -Name $modPath -Force
-      Get-Module
+      Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
+      . $(Build.SourcesDirectory)/helpBuild.ps1
       #
-      Invoke-PSPackageProjectTest -Type StaticAnalysis
+      Invoke-ProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
     errorActionPreference: continue
     condition: succeededOrFailed()
@@ -96,3 +82,4 @@ jobs:
       Unregister-PSRepository -Name 'pspackageproject-local-repo' -ErrorAction Ignore
     displayName: Unregister temporary PSRepository
     condition: always()
+    

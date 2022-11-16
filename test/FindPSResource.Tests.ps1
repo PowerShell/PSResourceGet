@@ -50,7 +50,7 @@ Describe 'Test Find-PSResource for Module' {
             }
         }
 
-        $foundScript | Should -BeTrue
+        $foundScript | Should -Be True
     }
 
     # TODO: get working with local repo
