@@ -66,7 +66,7 @@ public interface IFindPSResource
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='az*'&includePrerelease=true
     /// Implementation Note: filter additionally and verify ONLY package name was a match.
     /// </summary>
-    PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord);
+    PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with version range.
@@ -113,7 +113,7 @@ public interface IFindPSResource
     /// Name: supports wildcards
     /// Examples: Search "PowerShellGet", "Package*", "PSReadLine"
     /// </summary>
-    PSResourceInfo FindNamesGlobbing(string[] packageNames, PSRepositoryInfo repository, bool includePrerelease, out string[] errRecords);
+    // PSResourceInfo FindNamesGlobbing(string[] packageNames, PSRepositoryInfo repository, bool includePrerelease, out string[] errRecords);
 
     /// <summary>
     /// *** we will not support this scenario ***
@@ -133,7 +133,7 @@ public interface IFindPSResource
     ///           Search "PowerShellGet", "Package*", "PSReadLine" "3.*" --> do it for first, write error for second, do it for third
     ///           Search "Package*", "PSReadLin*" "3.*" --> not supported
     /// </summary>
-    PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string[] errRecord); 
+    // PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string[] errRecord); 
 
     #endregion
 }
