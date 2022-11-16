@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using NuGet.Versioning;
+using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -91,33 +92,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 responses.Add(HttpRequestCall(requestUrlV2: scriptsRequestUrlV2, out string scriptErrorRecord));
                 // TODO: add error handling here
             }
-            
+
             if (type != ResourceType.Script)
             {
-                if (type == ResourceType.None || type == ResourceType.Module)
-                {
-                    // type: Module or Command or DSCResource or None
-                    var modulesRequestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tag}'{prereleaseFilter}&{select}";
-                    responses.Add(HttpRequestCall(requestUrlV2: modulesRequestUrlV2, out string moduleErrorRecord));
-                }
-                else if (type == ResourceType.Command)
-                {
-                    // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
-                    var commandRequestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:PSCommand_{tag}'{prereleaseFilter}&{select}";
-                    responses.Add(HttpRequestCall(requestUrlV2: commandRequestUrlV2, out string commandErrorRecord)); 
-                }
-                else
-                {
-                    // DSCResource type
-                    var dscResourceRequestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:PSDscResource_{tag}'{prereleaseFilter}&{select}";
-                    responses.Add(HttpRequestCall(requestUrlV2: dscResourceRequestUrlV2, out string dscResourceErrorRecord)); 
-                }
-
+                // type: Module or Command or DSCResource or None
+                var modulesRequestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tag}'{prereleaseFilter}&{select}";
+                responses.Add(HttpRequestCall(requestUrlV2: modulesRequestUrlV2, out string moduleErrorRecord));
                 // TODO: add error handling here
-
             }
 
             return responses.ToArray();  
+        }
+
+        public string FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
+        {
+            // type: DSCResource -> just search Modules
+            var prereleaseFilter = includePrerelease ? "&includePrerelease=true" : string.Empty;
+            var tagFilter = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
+            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tagFilter}{tag}'{prereleaseFilter}&{select}";
+
+            return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
 
@@ -205,61 +199,58 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
-            // startsWith/endsWith scenarios:
-            // *ShellGet
-            // PowerShell*
-            // Power*Get
-            // Pow*She*
-
-            // TODO: discuss this in PSGet Check in to see which scenarios we want to support
+            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
+            // Useful links: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-odata/505b6322-c57f-4c37-94ef-daf8b6e2abd3
+            // https://github.com/NuGet/Home/wiki/Filter-OData-query-requests
             
-            // TODO:  figure out why this is happening
-            // It's unclear whether we should be using quotations around package name or not,
-            // both return metadata, but responses are different.
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
+            string extraParam = "&$orderby=Id desc&$inlinecount=allpages&$skip=0&$top=6000";
+            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
+            var nameFilter = string.Empty;
 
-            // TODO: "&" in url may need to be changed to "?"
-            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?searchTerm='{packageName}'&$filter={prerelease}&{select}";
+            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+
+            if (names.Length == 0)
+            {
+                errRecord = "We don't support -Name *";
+                return string.Empty;
+            }
+            if (names.Length == 1)
+            {
+                if (packageName.StartsWith("*") && packageName.EndsWith("*"))
+                {
+                    // *get*
+                    nameFilter = $"substringof('{names[0]}', Id)";
+                }
+                else if (packageName.EndsWith("*"))
+                {
+                    // PowerShell*
+                    nameFilter = $"startswith(Id, '{names[0]}')";
+                }
+                else
+                {
+                    // *ShellGet
+                    nameFilter = $"endswith(Id, '{names[0]}')";
+                }
+            }
+            else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
+            {
+                // *pow*get*
+                // pow*get -> only support this
+                // pow*get*
+                // *pow*get
+                nameFilter = $"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')";
+            }
+            else 
+            {
+                errRecord = "We only support wildcards for scenarios similar to the following examples: PowerShell*, *ShellGet, Power*Get, *Shell*.";
+                return string.Empty;
+            }
             
-            return HttpRequestCall(requestUrlV2, out errRecord);  
-        }
-
-        // /// <summary>
-        // /// Find method which allows for searching for single name with wildcards and returns latest version.
-        // /// Name: supports wildcards
-        // /// Examples: Search "PowerShell*"
-        // /// API call: 
-        // /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
-        // /// Implementation Note: filter additionally and verify ONLY package name was a match.
-        // /// </summary>
-        public string FindNameGlobbingWithNoPrerelease(string packageName, PSRepositoryInfo repository, out string errRecord)
-        {
-            // TODO:  figure out why this is happening
-            // It's unclear whether we should be using quotations around package name or not,
-            // both return metadata, but responses are different.
-            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?$filter=IsLatestVersion&searchTerm='{packageName}'";
+            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?$filter={nameFilter} and {prerelease}&{select}{extraParam}";
             
-            return HttpRequestCall(requestUrlV2, out errRecord);  
-        }
-
-        /// <summary>
-        /// Find method which allows for searching for single name with wildcards and returns latest version.
-        /// Name: supports wildcards
-        /// Examples: Search "PowerShell*"
-        /// API call: 
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='az*'&includePrerelease=true
-        /// Implementation Note: filter additionally and verify ONLY package name was a match.
-        /// </summary>
-        public string FindNameGlobbingWithPrerelease(string packageName, PSRepositoryInfo repository, out string errRecord)
-        {
-            // TODO:  figure out why this is happening
-            // It's unclear whether we should be using quotations around package name or not,
-            // both return metadata, but responses are different.
-            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='{packageName}'&includePrerelease=true";
-
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 

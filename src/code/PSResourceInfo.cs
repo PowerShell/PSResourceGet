@@ -22,9 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     {
         None,
         Module,
-        Script,
-        Command,
-        DscResource
+        Script
     }
 
     public enum VersionType
@@ -976,17 +974,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     currentPkgType |= ResourceType.Script;
                 }
 
-                if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    currentPkgType |= ResourceType.Command;
-                    commandNames.Add(tag.Split('_')[1]);
-                }
+                // if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
+                // {
+                //     currentPkgType |= ResourceType.Command;
+                //     commandNames.Add(tag.Split('_')[1]);
+                // }
 
-                if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    currentPkgType |= ResourceType.DscResource;
-                    dscResourceNames.Add(tag.Split('_')[1]);
-                }
+                // if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
+                // {
+                //     currentPkgType |= ResourceType.DscResource;
+                //     dscResourceNames.Add(tag.Split('_')[1]);
+                // }
             }
 
             return currentPkgType;
@@ -1120,17 +1118,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     pkgType &= ~ResourceType.Module;
                 }
 
-                if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    pkgType |= ResourceType.Command;
-                    commandNames.Add(tag.Split('_')[1]);
-                }
+                // if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
+                // {
+                //     pkgType |= ResourceType.Command;
+                //     commandNames.Add(tag.Split('_')[1]);
+                // }
 
-                if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    pkgType |= ResourceType.DscResource;
-                    dscResourceNames.Add(tag.Split('_')[1]);
-                }
+                // if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
+                // {
+                //     pkgType |= ResourceType.DscResource;
+                //     dscResourceNames.Add(tag.Split('_')[1]);
+                // }
             }
 
             return pkgType;

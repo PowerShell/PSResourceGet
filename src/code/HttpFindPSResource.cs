@@ -115,7 +115,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
         /// </summary>
-        public PSCommandResourceInfo[] FindCommandOrDscResource(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public PSCommandResourceInfo[] FindCommandOrDscResource(string[] tags, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
         {
             errRecord = String.Empty;
             Hashtable pkgHash = new Hashtable();   
@@ -130,44 +130,40 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (string tag in tags)
             {
-                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
+                string response = v2ServerAPICall.FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, out errRecord);
 
-
-                foreach (string response in responses)
+                var elemList = ConvertResponseToXML(response);
+                
+                foreach (var element in elemList)
                 {
-                    var elemList = ConvertResponseToXML(response);
-                    
-                    foreach (var element in elemList)
-                    {
-                        PSResourceInfo.TryConvertFromXml(
-                            element,
-                            includePrerelease,
-                            out PSResourceInfo psGetInfo,
-                            repository.Name,
-                            out string errorMsg);
+                    PSResourceInfo.TryConvertFromXml(
+                        element,
+                        includePrerelease,
+                        out PSResourceInfo psGetInfo,
+                        repository.Name,
+                        out string errorMsg);
 
-                        if (psGetInfo != null )
+                    if (psGetInfo != null )
+                    {
+                        // Map the tag with the package which the tag came from 
+                        if (!pkgHash.Contains(psGetInfo.Name))
                         {
-                            // Map the tag with the package which the tag came from 
-                            if (!pkgHash.Contains(psGetInfo.Name))
-                            {
-                                pkgHash.Add(psGetInfo.Name, Tuple.Create<List<string>, PSResourceInfo>(new List<string> { tag }, psGetInfo)); 
-                            }
-                            else {
-                                // if the package is already in the hashtable, add this tag to the list of tags associated with that package
-                                Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>)pkgHash[psGetInfo.Name];
-                                hashValue.Item1.Add(tag);
-                            }
+                            pkgHash.Add(psGetInfo.Name, Tuple.Create<List<string>, PSResourceInfo>(new List<string> { tag }, psGetInfo)); 
                         }
-                        else 
-                        {
-                            // TODO: Write error for corresponding null scenario
-                            // TODO: array out of bounds exception when name does not exist
-                            // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
-                            errRecord = errorMsg;
+                        else {
+                            // if the package is already in the hashtable, add this tag to the list of tags associated with that package
+                            Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>)pkgHash[psGetInfo.Name];
+                            hashValue.Item1.Add(tag);
                         }
                     }
-                }                
+                    else 
+                    {
+                        // TODO: Write error for corresponding null scenario
+                        // TODO: array out of bounds exception when name does not exist
+                        // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
+                        errRecord = errorMsg;
+                    }
+                }               
             }
 
             // convert hashtable to PSCommandInfo
@@ -305,16 +301,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='az*'&includePrerelease=true
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            var response = string.Empty;
-            if (includePrerelease)
-            {
-                response = v2ServerAPICall.FindNameGlobbingWithPrerelease(packageName, repository, out errRecord);
-            }
-            else {
-                response = v2ServerAPICall.FindNameGlobbingWithNoPrerelease(packageName, repository, out errRecord);
-            }
+
+            var response = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out errRecord);
 
             var elemList = ConvertResponseToXML(response);
             
@@ -452,49 +442,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
         /// <summary>
-        /// *** Note: we would just iterate through the names client side and call FindName() or FindNameGlobbing() *** 
-        /// Find method which allows for searching for multiple names and returns latest version for each.
-        /// Name: supports wildcards
-        /// Examples: Search "PowerShellGet", "Package*", "PSReadLine"
-        /// </summary>
-        public PSResourceInfo FindNamesGlobbing(string[] packageNames, PSRepositoryInfo repository, bool includePrerelease, out string[] errRecords)
-        {
-            var response = string.Empty;
-            var tmpErrRecords = new List<string>();
-            if (includePrerelease)
-            {
-                foreach (var pkgName in packageNames)
-                {
-                    response = v2ServerAPICall.FindNameGlobbingWithPrerelease(pkgName, repository, out string errRecord);
-                    tmpErrRecords.Add(errRecord);
-                }
-            }
-            else {
-                foreach (var pkgName in packageNames)
-                {
-                    response = v2ServerAPICall.FindNameGlobbingWithNoPrerelease(pkgName, repository, out string errRecord);
-                    tmpErrRecords.Add(errRecord);
-                }
-            }
-
-            PSResourceInfo currentPkg = null;
-            if (tmpErrRecords.Count > 0)
-            {
-                errRecords = tmpErrRecords.ToArray();
-
-                return currentPkg;
-            }
-
-            // Convert to PSResourceInfo object 
-
-
-
-            errRecords = tmpErrRecords.ToArray();
-
-            return currentPkg;
-        }
-
-        /// <summary>
         /// *** we will not support this scenario ***
         /// Find method which allows for searching for multiple names with specific version.
         /// Name: supports wildcards
@@ -502,62 +449,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet", "Package*", "PSReadLine" "3.0.0.0"
         /// </summary>
         //PSResourceInfo FindNamesGlobbingAndVersion(string[] packageNames, NuGetVersion version, PSRepositoryInfo repository)
-
-
-        /// <summary>
-        /// *** Note: would just iterate through names client side, and call FindVersionGlobbing() for each and discard (error) for name with globbing) ***
-        /// Find method which allows for searching for multiple names with version range.
-        /// Name: supports wildcards
-        /// Version: support wildcards
-        /// Examples: Search "PowerShellGet", "Package*", "PSReadLine" "[3.0.0.0, 5.0.0.0]" --> do it for first, write error for second, do it for third
-        ///           Search "PowerShellGet", "Package*", "PSReadLine" "3.*" --> do it for first, write error for second, do it for third
-        ///           Search "Package*", "PSReadLin*" "3.*" --> not supported
-        /// </summary>
-        public PSResourceInfo FindNamesAndVersionGlobbing(string[] packageNames, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string[] errRecords)
-        {
-            var response = string.Empty;
-            var tmpErrRecords = new List<string>();
-            if (includePrerelease)
-            {
-                foreach (var pkgName in packageNames)
-                {
-                    if (pkgName.Contains("*"))
-                    {
-                        // write error
-
-                    }
-                    else {
-                        // Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
-                        response = v2ServerAPICall.FindVersionGlobbing(pkgName, versionRange, repository, includePrerelease, type, out string errRecord);
-                        tmpErrRecords.Add(errRecord);
-                    }
-                }
-            }
-            else {
-                foreach (var pkgName in packageNames)
-                {
-                    response = v2ServerAPICall.FindNameGlobbingWithNoPrerelease(pkgName, repository, out string errRecord);
-                    tmpErrRecords.Add(errRecord);
-                }
-            }
-
-            PSResourceInfo currentPkg = null;
-            if (tmpErrRecords.Count > 0)
-            {
-                errRecords = tmpErrRecords.ToArray();
-
-                return currentPkg;
-            }
-
-            // Convert to PSResourceInfo object 
-
-
-
-            errRecords = tmpErrRecords.ToArray();
-
-            return currentPkg;
-        }
-
 
         #endregion
 

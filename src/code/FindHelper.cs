@@ -113,6 +113,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
+                if (repository != null && repositoriesToSearch.Count == 0)
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                        "RepositoryNameIsNotResolved",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -157,13 +166,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         public List<PSCommandResourceInfo> FindCommandOrDscResource(
-            ResourceType type,
+            bool isSearchingForCommands,
             SwitchParameter prerelease,
             string[] tag,
             string[] repository,
             PSCredential credential)
         {
-            _type = type;
             _prerelease = prerelease;
             _tag = tag;
             _credential = credential;
@@ -181,7 +189,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
 
-                if (string.Equals(repository[0], '*'))
+                if (string.Equals(repository[0], "*"))
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSArgumentException ("-Repository parameter does not support entry '*' with -CommandName and -DSCResourceName parameters."),
@@ -237,9 +245,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && cmdsLeftToFind.Any(); i++)
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2 && repositoriesToSearch[i].Name.Equals("PSGallery"))
                 {
-                    foreach (PSCommandResourceInfo cmdInfo in HttpFindCmdOrDsc(repositoriesToSearch[i], _type))
+                    foreach (PSCommandResourceInfo cmdInfo in HttpFindCmdOrDsc(repositoriesToSearch[i], isSearchingForCommands))
                     {
                         foundPackages.Add(cmdInfo);
                         
@@ -248,6 +256,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             cmdsLeftToFind.Remove(cmd);
                         }
                     }                        
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteVerbose($"Searching by -CommandName or -DSCResource is not supported for {repositoriesToSearch[i].Name}. It is only supported for PSGallery.");
                 }
             }
 
@@ -278,7 +290,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
 
-                if (string.Equals(repository[0], '*'))
+                if (string.Equals(repository[0], "*"))
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSArgumentException ("-Repository parameter does not support entry '*' with -Tag parameter."),
@@ -354,7 +366,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
                     // TODO: implement this when we work on v3 requests
-                    break;
+                    _cmdletPassedIn.WriteVerbose($"Searching by -Tag is not yet supported for {repositoriesToSearch[i].Name}. It is only supported for v2 endpoint.");
                 }
             }
 
@@ -540,6 +552,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (pkgName.Contains('*'))
                     {
                         // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
+                        if (string.IsNullOrEmpty(_version))
+                        {
+                            PSResourceInfo[] foundPkgs = _httpFindPSResource.FindNameGlobbing(pkgName, repository, _prerelease, _type, out string errRecord);
+                            foreach (PSResourceInfo pkg in foundPkgs)
+                            {
+                                yield return pkg;
+                            }
+                        }
                     }
                     else if (nugetVersion != null)
                     {
@@ -873,17 +893,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield break;
                 }
 
-                if (_type != ResourceType.None)
-                {
-                    if (_type == ResourceType.Command && !currentPkg.Type.HasFlag(ResourceType.Command))
-                    {
-                        continue;
-                    }
-                    if (_type == ResourceType.DscResource && !currentPkg.Type.HasFlag(ResourceType.DscResource))
-                    {
-                        continue;
-                    }
-                }
+                // if (_type != ResourceType.None)
+                // {
+                //     if (_type == ResourceType.Command && !currentPkg.Type.HasFlag(ResourceType.Command))
+                //     {
+                //         continue;
+                //     }
+                //     if (_type == ResourceType.DscResource && !currentPkg.Type.HasFlag(ResourceType.DscResource))
+                //     {
+                //         continue;
+                //     }
+                // }
 
                 // Only going to go in here for the main package, resolve Type and Tag requirements if any, and then find dependencies
                 if (_tag == null || (_tag != null && IsTagMatch(currentPkg)))
@@ -903,7 +923,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private bool IsTagMatch(PSResourceInfo pkg)
         {
-            return _tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList().Count > 0;
+            List<string> matchedTags = _tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList();
+
+            foreach (string tag in matchedTags)
+            {
+                _tagsLeftToFind.Remove(tag);
+            }
+
+            return matchedTags.Count > 0;
         }
 
         private PSResourceInfo[] HttpFindTags(PSRepositoryInfo repository, ResourceType type, out HashSet<string> tagsFound)
@@ -912,9 +939,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TODO:  write out error
         }
 
-        private PSCommandResourceInfo[] HttpFindCmdOrDsc(PSRepositoryInfo repository, ResourceType type)
+        private PSCommandResourceInfo[] HttpFindCmdOrDsc(PSRepositoryInfo repository, bool isSearchingForCommands)
         {
-            return _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, type, out string errRecord);
+            return _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, isSearchingForCommands, out string errRecord);
             // TODO:  write out error
         }
 
