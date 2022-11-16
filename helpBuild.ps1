@@ -63,29 +63,7 @@ function Get-ProjectConfiguration {
     }
 }
 
-function Invoke-ProjectBuild {
-    [CmdletBinding()]
-    param(
-        [Parameter()]
-        [ScriptBlock]
-        $BuildScript,
-        [Switch]
-        $SkipPublish
-    )
-
-    Write-Verbose -Verbose -Message "Invoking build script"
-
-    $BuildScript.Invoke()
-
-    if (!$SkipPublish.IsPresent) {
-        Invoke-ProjectPublish
-    }
-
-    Write-Verbose -Verbose -Message "Finished invoking build script"
-}
-
-function Publish-Artifact
-{
+function Publish-Artifact {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
     param(
         [Parameter(Mandatory)]
@@ -103,7 +81,7 @@ function Publish-Artifact
 
     if(!$Name)
     {
-        $artifactName = [system.io.path]::GetFileName($Path)
+        $artifactName = [System.IO.Path]::GetFileName($Path)
     }
     else
     {
@@ -155,7 +133,7 @@ function New-ProjectPackage
     }
 
     $sourceName = 'pspackageproject-local-repo'
-    $packageLocation = Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath $sourceName
+    $packageLocation = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $sourceName
     $modulesLocation = Join-Path -Path $packageLocation -ChildPath 'modules'
 
     if (Test-Path $modulesLocation) {
@@ -391,7 +369,7 @@ function Invoke-BinSkim {
     $testscript = @'
 Describe "BinSkim" {
     BeforeAll{
-        $outputPath =  Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
+        $outputPath =  Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
         if(Test-Path $outputPath)
         {
             $results = Get-Content $outputPath | ConvertFrom-Json
@@ -433,8 +411,8 @@ Describe "BinSkim" {
         $PowerShellName = GetPowerShellName
         $sourceName = 'Nuget'
         $null = Register-PackageSource -ProviderName NuGet -Name $sourceName -Location "https://api.nuget.org/v3/index.json" -erroraction ignore
-        $packageName = 'microsoft.codeanalysis.binskim'
-        $packageLocation = Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
+        $packageName = 'Microsoft.CodeAnalysis.BinSkim'
+        $packageLocation = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
         if ($IsLinux) {
             $binaryName = 'BinSkim'
             $rid = 'linux-x64'
@@ -458,7 +436,7 @@ Describe "BinSkim" {
         Write-Verbose -Message "Finding binskim..." -Verbose
         $packageInfo = Find-Package -Name $packageName -Source $sourceName
         $dirName = $packageInfo.Name + '.' + $packageInfo.Version
-        $childPaths = $dirName, 'tools', 'netcoreapp2.0', $rid, $binaryName
+        $childPaths = $dirName, 'tools', 'netcoreapp3.1', $rid, $binaryName
         $toolLocation = $packageLocation
         $childPaths | ForEach-Object { $toolLocation = Join-Path $toolLocation -ChildPath $_ }
         if (!(test-path -path $toolLocation)) {
@@ -473,7 +451,7 @@ Describe "BinSkim" {
         $resolvedPath = (Resolve-Path -Path $Location).ProviderPath
         $toAnalyze = Join-Path -Path $resolvedPath -ChildPath $Filter
 
-        $outputPath = Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
+        $outputPath = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
         Write-Verbose -Message "Running binskim..." -Verbose
         & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print --recurse  > binskim.log 2>&1
         Write-Verbose -Message "binskim exitcode: $LASTEXITCODE" -Verbose
@@ -482,7 +460,9 @@ Describe "BinSkim" {
 
         $null = Publish-Artifact -Path $outputPath -Name "binskim-result-${env:AGENT_OS}-${PowerShellName}"
 
-        $testsPath = Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
+        $testsPath = [System.IO.Path]::GetTempPath()
+        $testChildPaths = 'pspackageproject', 'BinSkim', 'binskim.tests.ps1'
+        $testChildPaths | ForEach-Object { $testsPath = Join-Path $testsPath -ChildPath $_ }
 
         $null = New-Item -ItemType Directory -Path (Split-Path $testsPath)
 
@@ -492,7 +472,6 @@ Describe "BinSkim" {
 
         $xmlPath = "$PWD/binskim-results.xml"
         $null = Invoke-Pester -Script $testsPath -OutputFile $xmlPath -OutputFormat NUnitXml
-
     }
     else {
         $xmlPath = Get-EmptyBinSkimResult

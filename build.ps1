@@ -29,10 +29,6 @@ param (
     [ValidateSet("Functional","StaticAnalysis")]
     $TestType = @("Functional"),
 
-    [Parameter(ParameterSetName="help")]
-    [switch]
-    $UpdateHelp,
-
     [ValidateSet("Debug", "Release")]
     [string] $BuildConfiguration = "Debug",
 
@@ -97,8 +93,12 @@ else
 
 if ($Build.IsPresent)
 {
+    Write-Verbose -Verbose -Message "Invoking build script"
+    
     $sb = (Get-Item Function:DoBuild).ScriptBlock
-    Invoke-ProjectBuild -BuildScript $sb -SkipPublish
+    $sb.Invoke()
+
+    Write-Verbose -Verbose -Message "Finished invoking build script"
 }
 
 if ($Publish.IsPresent)
@@ -106,10 +106,7 @@ if ($Publish.IsPresent)
     Invoke-ProjectPublish -Signed:$Signed.IsPresent -AllowPreReleaseDependencies
 }
 
-if ( $Test.IsPresent ) {
+if ($Test.IsPresent) 
+{
     Invoke-ProjectTest -Type $TestType
-}
-
-if ($UpdateHelp.IsPresent) {
-    Add-PSPackageProjectCmdletHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName -Culture $Culture
 }
