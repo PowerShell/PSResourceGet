@@ -48,8 +48,8 @@ stages:
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        Write-Verbose -Verbose "Install PowerShellGet V3 to temp module path"
-        Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.0-beta10 -AllowPrerelease -Force
+        Write-Verbose -Verbose "Install PowerShellGet V3"
+        Install-Module -Name PowerShellGet -RequiredVersion 3.0.16-beta16 -AllowPrerelease -Force
         Write-Verbose -Verbose "Install PlatyPS to temp module path"
         Save-Module -Name "platyPS" -Path $modulePath -Force
         Write-Verbose -Verbose "Install PSScriptAnalyzer to temp module path"
@@ -64,11 +64,8 @@ stages:
       displayName: Build and publish artifact
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PowerShellGet
-        Write-Verbose -Verbose "Importing PowerShellGet from: $modPath"
-        Import-Module -Name $modPath -Verbose -Force
+        Write-Verbose -Verbose "Importing PowerShellGet"
+        Import-Module -Name PowerShellGet -Verbose
         Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
         . $(Build.SourcesDirectory)/helpBuild.ps1
         $config = Get-ProjectConfiguration
