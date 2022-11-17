@@ -64,17 +64,9 @@ stages:
         Save-Module -Name "PSScriptAnalyzer" -Path $modulePath -RequiredVersion 1.18.0 -Force
         Write-Verbose -Verbose "Install Pester 5.X to temp module path"
         Save-Module -Name "Pester" -MinimumVersion 5.0 -Path $modulePath -Repository PSGallery -Force
-        Write-Verbose -Verbose "Install PSPackageProject to temp module path"
-        Save-Module -Name PSPackageProject -Path $modulePath -Force
-      displayName: Install PSPackageProject and dependencies
+      displayName: Install PowerShellGet and dependencies
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-        #
         # Build for netstandard2.0 framework
         $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'netstandard2.0'
       displayName: Build and publish artifact
@@ -93,13 +85,9 @@ stages:
       condition: succeeded()
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-
-        $config = Get-PSPackageProjectConfiguration
+        Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
+        . $(Build.SourcesDirectory)/helpBuild.ps1
+        $config = Get-ProjectConfiguration
 
         # Created files signing directory
         $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
@@ -159,13 +147,9 @@ stages:
         useMinimatch: true
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-
-        $config = Get-PSPackageProjectConfiguration
+        Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
+        . $(Build.SourcesDirectory)/helpBuild.ps1
+        $config = Get-ProjectConfiguration
 
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
         if (! (Test-Path -Path $signOutPath)) {
@@ -217,13 +201,9 @@ stages:
         useMinimatch: true
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-
-        $config = Get-PSPackageProjectConfiguration
+        Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
+        . $(Build.SourcesDirectory)/helpBuild.ps1
+        $config = Get-ProjectConfiguration
 
         $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
@@ -258,11 +238,13 @@ stages:
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-        #
-        $config = Get-PSPackageProjectConfiguration
+        $modPath = Join-Path -Path $modulePath -ChildPath PowerShellGet
+        Write-Verbose -Verbose "Importing PowerShellGet from: $modPath"
+        Import-Module -Name $modPath -Verbose -Force
+        Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
+        . $(Build.SourcesDirectory)/helpBuild.ps1
+        
+        $config = Get-ProjectConfiguration
         $artifactName = "$($config.ModuleName)"
         $srcModulePath = Resolve-Path -Path "$($config.SignedOutputPath)/$($config.ModuleName)"
         Get-ChildItem $srcModulePath

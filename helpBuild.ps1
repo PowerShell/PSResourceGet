@@ -31,9 +31,9 @@ function Get-ProjectConfiguration {
 
     $foundConfigFilePath = if (Test-Path $resolvedPath -PathType Container) {
         SearchConfigFile -Path $resolvedPath
-    }
+    } 
     else {
-        if ($resolvedPath.ToString().EndsWith('pspackageproject.json') -and (Test-Path $resolvedPath -PathType Leaf)) {
+        if ($resolvedPath.Path.EndsWith('pspackageproject.json') -and (Test-Path $resolvedPath -PathType Leaf)) {
             $resolvedPath
         }
     }
@@ -41,14 +41,13 @@ function Get-ProjectConfiguration {
     if (Test-Path $foundConfigFilePath) {
         $configObj = Get-Content -Path $foundConfigFilePath | ConvertFrom-Json
 
-        # Populate with full paths
-
         $projectRoot = Split-Path $foundConfigFilePath
 
         $configObj.SourcePath = Join-Path $projectRoot -ChildPath $configObj.SourcePath
         $configObj.TestPath = Join-Path $projectRoot -ChildPath $configObj.TestPath
         $configObj.HelpPath = Join-Path $projectRoot -ChildPath $configObj.HelpPath
         $configObj.BuildOutputPath = Join-Path $projectRoot -ChildPath $configObj.BuildOutputPath
+
         if ($configObj.SignedOutputPath) {
             $configObj.SignedOutputPath = Join-Path $projectRoot -ChildPath $configObj.SignedOutputPath
         }
@@ -198,7 +197,7 @@ function New-ProjectPackage
     
     Publish-Artifact -Path $nupkgPath -Name nupkg
 
-    Write-Verbose -Message "Starting New-ProjectPackage" -Verbose
+    Write-Verbose -Message "Finishing New-ProjectPackage" -Verbose
 }
 
 function Invoke-ProjectPublish {
