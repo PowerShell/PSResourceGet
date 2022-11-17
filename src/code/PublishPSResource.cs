@@ -571,7 +571,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
 
                         {
-                            metadataElementsDictionary.Add("license", licenseUri.Trim());
+                            metadataElementsDictionary.Add("licenseUrl", licenseUri.Trim());
                         }
 
                         if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
@@ -1088,9 +1088,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             FileStream emptyStream = File.Create(emptyFilePath);
             emptyStream.Close();
-            
-            WriteVerbose("Start uploading an empty file");
-            var emptyLocation = AcrHttpHelper.GetStartUploadBlobLocation(registry, _pkgName, acrAccessToken).Result;
 
             WriteVerbose("Computing digest for empty file");
             bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
@@ -1098,9 +1095,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 ThrowTerminatingError(emptyDigestError);
             }
-
-            WriteVerbose("Finish uploading empty file");
-            bool emptyFileUploadSuccess = AcrHttpHelper.EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
 
             WriteVerbose("Create the config file");
             string configFileName = "config.json";
