@@ -1,17 +1,19 @@
 using System;
 using System.Collections;
-using System.Linq;
 using System.Xml;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System.Collections.Generic;
-using System.Xml.Schema;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     internal class HttpFindPSResource : IFindPSResource
     {
-        V2ServerAPICalls v2ServerAPICall = new V2ServerAPICalls();
+        #region Members
+        
+        readonly V2ServerAPICalls v2ServerAPICall = new V2ServerAPICalls();
+
+        #endregion
 
         #region Constructor
 
@@ -28,16 +30,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
         /// </summary>
-        public PSResourceInfo FindAll(PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
+        public PSResourceInfo FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            var response = string.Empty;
-            if (includePrerelease)
-            {
-                response = v2ServerAPICall.FindAllWithPrerelease(repository, out errRecord);
-            }
-            else {
-                response = v2ServerAPICall.FindAllWithNoPrerelease(repository, out errRecord);
-            }
+            var response = v2ServerAPICall.FindAll(repository, includePrerelease, type, out errRecord);
 
             PSResourceInfo currentPkg = null;
             if (!string.IsNullOrEmpty(errRecord))
@@ -45,9 +40,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return currentPkg;
             }
 
-/*
-            // Convert to PSResourceInfo object 
-*/
             return currentPkg;
         }
 
@@ -175,68 +167,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return cmdInfoObjs.ToArray();
-        }
-
-
-        /// <summary>
-        /// Find method which allows for searching for packages with resource type specified from a repository and returns latest version for each.
-        /// Name: supports wildcards
-        /// Type: Module, Script, Command, DSCResource (can take multiple)
-        /// Examples: Search -Type Module -Repository PSGallery
-        ///           Search -Type Module -Name "Az*" -Repository PSGallery
-        /// TODO: discuss consolidating Modules and Scripts endpoints (move scripts to modules endpoint)
-        /// TODO Note: searchTerm is tokenized by whitespace.
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSModule'
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az* tag:PSScript'&includePrerelease=true
-        /// </summary>
-        public PSResourceInfo FindTypes(ResourceType packageResourceType, string packageName, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
-        {
-            var response = string.Empty;
-            if (includePrerelease)
-            {
-                response = v2ServerAPICall.FindTypesWithPrerelease(packageResourceType, packageName, repository, out errRecord);
-            }
-            else {
-                response = v2ServerAPICall.FindTypesWithPrerelease(packageResourceType, packageName, repository, out errRecord);
-            }
-
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
-            {
-                return currentPkg;
-            }
-
-            // Convert to PSResourceInfo object 
-            return currentPkg;
-
-        }
-
-        /// <summary>
-        /// Find method which allows for searching for command names AND/OR DSC resource names and returns latest version of matching packages.
-        /// Name: supports wildcards.
-        /// Examples: Search -Name "Command1", "Command2" -Repository PSGallery
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSCommand_Command1 tag:PSCommand_Command2'
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='Az* tag:PSCommand_Command1 tag:PSCommand_Command2'&includePrerelease=true
-        /// </summary>
-        public PSResourceInfo FindCommandName(string[] commandNames, PSRepositoryInfo repository, bool includePrerelease, out string errRecord)
-        {
-            var response = string.Empty;
-            if (includePrerelease)
-            {
-                response = v2ServerAPICall.FindCommandNameWithPrerelease(commandNames, repository, out errRecord);
-            }
-            else {
-                response = v2ServerAPICall.FindCommandNameWithNoPrerelease(commandNames, repository, out errRecord);
-            }
-
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
-            {
-                return currentPkg;
-            }
-
-            // Convert to PSResourceInfo object 
-            return currentPkg;
         }
 
         /// <summary>
@@ -421,40 +351,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return null;
         }
         
-        /// <summary>
-        /// *** we will not support this scenario ***
-        /// Find method which allows for searching for single name with wildcards with version range.
-        /// Name: supports wildcards
-        /// Version: support wildcards
-        /// Examples: Search "PowerShell*" "[3.0.0.0, 5.0.0.0]"
-        ///           Search "PowerShell*" "3.*"
-        /// </summary>
-        //PSResourceInfo FindNameGlobbingAndVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, out string errRecord);
-
-        /// <summary>
-        /// *** we will not support this scenario ***
-        /// Find method which allows for searching for single name with wildcards with specific version.
-        /// Name: supports wildcards
-        /// Version: no wildcard support
-        /// Examples: Search "PowerShell*" "3.0.0.0"
-        /// </summary>
-        //PSResourceInfo FindNameGlobbingAndVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord);
-
-
-        /// <summary>
-        /// *** we will not support this scenario ***
-        /// Find method which allows for searching for multiple names with specific version.
-        /// Name: supports wildcards
-        /// Version: no wildcard support
-        /// Examples: Search "PowerShellGet", "Package*", "PSReadLine" "3.0.0.0"
-        /// </summary>
-        //PSResourceInfo FindNamesGlobbingAndVersion(string[] packageNames, NuGetVersion version, PSRepositoryInfo repository)
-
         #endregion
 
         #region HelperMethods
 
-        // TODO:  in progress
         public XmlNode[] ConvertResponseToXML(string httpResponse) {
 
             //Create the XmlDocument.
