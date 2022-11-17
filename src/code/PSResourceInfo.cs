@@ -226,51 +226,34 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #region PSResourceInfo
 
-    [Serializable]
-    [XmlRoot(ElementName = "properties", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata")]
     public sealed class PSResourceInfo
     {
         #region Properties
 
-        [XmlIgnoreAttribute]
         public Dictionary<string, string> AdditionalMetadata { get; }
-        [XmlElement("Authors", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public string Author { get; set; }
-        [XmlElement("CompanyName", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public string CompanyName { get; set; }
-        [XmlElement("Copyright", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public string Copyright { get; set; }
-        [XmlElement("Dependencies", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public Dependency[] Dependencies { get; set; }
-        [XmlElement("Description", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public string Description { get; set; }
-        [XmlElement("IconUrl", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public Uri IconUri { get; set; }
         public ResourceIncludes Includes { get; }
         public DateTime? InstalledDate { get; set; }
         public string InstalledLocation { get; set; }
-        [XmlElement("IsPrerelease", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public bool IsPrerelease { get; set; }
-        [XmlElement("LicenseUrl", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public Uri LicenseUri { get; set; }
-        [XmlElement("Id", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public string Name { get; set; }
         public string PackageManagementProvider { get; }
         public string PowerShellGetFormatVersion { get; }
         public string Prerelease { get; }
-        [XmlElement("ProjectUrl", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public Uri ProjectUri { get; set; }
-        [XmlElement("Published", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public DateTime? PublishedDate { get; set; }
-        [XmlElement("ReleaseNotes", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public string ReleaseNotes { get; set; }
         public string Repository { get; set; }
         public string RepositorySourceLocation { get; set; }
-        [XmlElement("Tags", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public string[] Tags { get; set; }
         public ResourceType Type { get; }
         public DateTime? UpdatedDate { get; }
-        [XmlElement("Version", Namespace = "http://schemas.microsoft.com/ado/2007/08/dataservices")]
         public Version Version { get; }
 
         #endregion
