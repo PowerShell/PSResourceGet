@@ -196,7 +196,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 int activityId = 0;
                 int percentComplete = ((currentUninstalledDirCount * 100) / totalDirs);
                 string activity = string.Format("Uninstalling {0}...", pkgName);
-                string statusDescription = string.Format("{0}/{1} directories uninstalled", currentUninstalledDirCount, totalDirs);
+                string statusDescription = string.Format("{0}/{1} directory uninstalling...", currentUninstalledDirCount, totalDirs);
                 ProgressRecord pr = new ProgressRecord(activityId, activity, statusDescription);
                 pr.PercentComplete = percentComplete;
                 this.WriteProgress(pr);

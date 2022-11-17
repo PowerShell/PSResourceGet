@@ -360,9 +360,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         int activityId = 0;
                         int percentComplete = ((currentInstalledPkgCount * 100) / totalPkgs);
                         string activity = string.Format("Installing {0}...", pkg.Name);
-                        string statusDescription = string.Format("{0}% Complete", percentComplete);
-                        _cmdletPassedIn.WriteProgress(
-                            new ProgressRecord(activityId, activity, statusDescription));
+                        string statusDescription = string.Format("{0}/{1} package installing...", currentInstalledPkgCount, totalPkgs);
+                        ProgressRecord pr = new ProgressRecord(activityId, activity, statusDescription);
+                        _cmdletPassedIn.WriteProgress(pr);
                     }
 
                     // Create PackageIdentity in order to download
