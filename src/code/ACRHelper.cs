@@ -34,6 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             string accessToken = string.Empty;
             string tenantID = string.Empty;
+            //string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             string tempPath = Path.GetTempPath();
 
             // Need to set up secret management vault before hand
@@ -70,6 +71,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             // download the module
             var pathToFile = Path.Combine(tempPath, $"{moduleName}.{moduleVersion}.zip");
+            //var pathToFile = Path.Combine(tempPath, $"{moduleName}.{moduleVersion}");
             using var content = responseContent.ReadAsStreamAsync().Result;
             using var fs = File.Create(pathToFile);
             content.Seek(0, System.IO.SeekOrigin.Begin);
@@ -88,9 +90,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // If saving the package and unpacking OR installing the package
             else 
             {
-                callingCmdlet.WriteVerbose($"Expanding module to temp path: {tempPath}");
+                string expandedPath = Path.Combine(tempPath, moduleName);
+                expandedPath = Path.Combine(expandedPath, moduleVersion);
+
+                if (!Directory.Exists(expandedPath))
+                {
+                    Directory.CreateDirectory(expandedPath);
+                }
+                callingCmdlet.WriteVerbose($"Expanding module to temp path: {expandedPath}");
                 // Expand the zip file
-                System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, tempPath);
+                System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, expandedPath);
 
                 callingCmdlet.WriteVerbose("Expanding completed");
                 File.Delete(pathToFile);

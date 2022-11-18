@@ -563,7 +563,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (privateData["PSData"] is Hashtable psData)
                     {
-                        if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
+                        if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion && !string.IsNullOrEmpty(preReleaseVersion))
                         {
                             version = string.Format(@"{0}-{1}", version, preReleaseVersion);
                         }
@@ -1001,7 +1001,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             jsonWriter.WritePropertyName("mediaType");
             jsonWriter.WriteValue("application/vnd.unknown.config.v1+json");
             jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{digest}");
+            jsonWriter.WriteValue($"sha256:{emptyDigest}");
             jsonWriter.WritePropertyName("size");
             jsonWriter.WriteValue(0);
             jsonWriter.WriteEndObject();
@@ -1013,7 +1013,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             jsonWriter.WritePropertyName("mediaType");
             jsonWriter.WriteValue("application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'");
             jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{emptyDigest}");
+            jsonWriter.WriteValue($"sha256:{digest}");
             jsonWriter.WritePropertyName("size");
             jsonWriter.WriteValue(fileSize);
             jsonWriter.WritePropertyName("annotations");
@@ -1089,6 +1089,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FileStream emptyStream = File.Create(emptyFilePath);
             emptyStream.Close();
 
+            WriteVerbose("Start uploading an empty file");
+            var emptyLocation = AcrHttpHelper.GetStartUploadBlobLocation(registry, _pkgName, acrAccessToken).Result;
+
             WriteVerbose("Computing digest for empty file");
             bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
             if (!emptyDigestCreated)
@@ -1096,6 +1099,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(emptyDigestError);
             }
 
+            WriteVerbose("Finish uploading empty file");
+            bool emptyFileUploadSuccess = AcrHttpHelper.EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
+            
             WriteVerbose("Create the config file");
             string configFileName = "config.json";
             var configFilePath = System.IO.Path.Combine(outputNupkgDir, configFileName);

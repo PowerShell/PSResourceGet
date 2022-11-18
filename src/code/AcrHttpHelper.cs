@@ -77,7 +77,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-                defaultHeaders.Add(new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip"));
                 var startUploadUrl = string.Format(acrStartUploadTemplate, registry, pkgName);
                 return (await GetHttpResponseHeader(startUploadUrl, HttpMethod.Post, defaultHeaders)).Location.ToString();
             }
@@ -93,7 +92,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 var endUploadUrl = string.Format(acrEndUploadTemplate, registry, location, digest);
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-                defaultHeaders.Add(new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip"));
                 return await PutRequestAsync(endUploadUrl, filePath, isManifest, defaultHeaders);
             }
             catch (HttpRequestException e)
