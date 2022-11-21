@@ -196,12 +196,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord)
         {
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
-
-
-
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
             // NormalizedVersion doesn't include trailing zeroes
             // Notes: this could allow us to take a version range (i.e (2.0.0, 3.0.0.0]) and deconstruct it and add options to the Filter for Version to describe that range
@@ -273,7 +270,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 filterQuery +=  $"{joiningOperator}{versionFilterParts}";
             }
 
-            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{select}{filterQuery}";
+            string paginationParam = $"$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
+
+            filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}&{select}{filterQuery}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }

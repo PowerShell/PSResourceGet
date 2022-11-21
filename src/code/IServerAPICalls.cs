@@ -53,7 +53,7 @@ public interface IServerAPICalls
     /// Examples: Search "PowerShellGet" "2.2.5"
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
-    string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord);
     
     // <summary>
     /// Find method which allows for searching for single name with specific version.

@@ -292,28 +292,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            var response = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, out errRecord);
-            
-            var elemList = ConvertResponseToXML(response);
+            List<string> responses = new List<string>();
+            int skip = 0;
+
+            var initialResponse = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, out errRecord);
+            responses.Add(initialResponse);
+
+            int initalCount = GetCountFromResponse(initialResponse);
+            int count = initalCount / 100;
+
+            while (count > 0)
+            {
+                // skip 100
+                skip += 100;
+                var tmpResponse = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, out errRecord);
+                responses.Add(tmpResponse);
+                count--;
+            }
+
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
             
-            foreach (var element in elemList)
+            foreach (string response in responses)
             {
-                PSResourceInfo.TryConvertFromXml(
-                    element,
-                    includePrerelease,
-                    out PSResourceInfo psGetInfo,
-                    repository.Name,
-                    out string errorMsg);
+                var elemList = ConvertResponseToXML(response);
+                foreach (var element in elemList)
+                {
+                    PSResourceInfo.TryConvertFromXml(
+                        element,
+                        includePrerelease,
+                        out PSResourceInfo psGetInfo,
+                        repository.Name,
+                        out string errorMsg);
 
-                if (psGetInfo != null)
-                {
-                    pkgsFound.Add(psGetInfo);
-                }
-                else 
-                {
-                    // TODO: Write error for corresponding null scenario
-                    errRecord = errorMsg;
+                    if (psGetInfo != null)
+                    {
+                        pkgsFound.Add(psGetInfo);
+                    }
+                    else 
+                    {
+                        // TODO: Write error for corresponding null scenario
+                        errRecord = errorMsg;
+                    }
                 }
             }
 
