@@ -132,14 +132,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord)
         {
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
             // Useful links: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-odata/505b6322-c57f-4c37-94ef-daf8b6e2abd3
             // https://github.com/NuGet/Home/wiki/Filter-OData-query-requests
             
-            string extraParam = "&$orderby=Id desc&$inlinecount=allpages&$skip=0&$top=6000";
+            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
             var nameFilter = string.Empty;
 

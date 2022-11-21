@@ -44,7 +44,7 @@ public interface IServerAPICalls
     /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
     /// </summary>
-    string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with specific version.

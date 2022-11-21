@@ -233,30 +233,48 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
+            List<string> responses = new List<string>();
+            int skip = 0;
 
-            var response = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out errRecord);
+            var initialResponse = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, skip, out errRecord);
+            responses.Add(initialResponse);
 
-            var elemList = ConvertResponseToXML(response);
-            
+            // check count (regex)  425 ==> count/100  ~~>  4 calls 
+            int initalCount = GetCountFromResponse(initialResponse);  // count = 4
+            int count = initalCount / 100;
+            // if more than 100 count, loop and add response to list
+            while (count > 0)
+            {
+                // skip 100
+                skip += 100;
+                var tmpResponse = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, skip, out errRecord);
+                responses.Add(tmpResponse);
+                count--;
+            }
+
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); // TODO: discuss if we want to yield return here for better performance
 
-            foreach (var element in elemList)
+            foreach (string response in responses)
             {
-                PSResourceInfo.TryConvertFromXml(
-                    element,
-                    includePrerelease,
-                    out PSResourceInfo psGetInfo,
-                    repository.Name,
-                    out string errorMsg);
+                var elemList = ConvertResponseToXML(response);
+                foreach (var element in elemList)
+                {
+                    PSResourceInfo.TryConvertFromXml(
+                        element,
+                        includePrerelease,
+                        out PSResourceInfo psGetInfo,
+                        repository.Name,
+                        out string errorMsg);
 
-                if (psGetInfo != null)
-                {
-                    pkgsFound.Add(psGetInfo);
-                }
-                else 
-                {
-                    // TODO: Write error for corresponding null scenario
-                    errRecord = errorMsg;
+                    if (psGetInfo != null)
+                    {
+                        pkgsFound.Add(psGetInfo);
+                    }
+                    else 
+                    {
+                        // TODO: Write error for corresponding null scenario
+                        errRecord = errorMsg;
+                    }
                 }
             }
 
@@ -370,6 +388,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return nodes;
+        }
+
+        public int GetCountFromResponse(string httpResponse) {
+            int count = 0;
+
+            //Create the XmlDocument.
+            XmlDocument doc = new XmlDocument();
+            doc.LoadXml(httpResponse);
+
+            XmlNodeList elemList = doc.GetElementsByTagName("m:count");            
+            if (elemList.Count > 0) {
+                XmlNode node = elemList[0];
+                count = int.Parse(node.InnerText);
+            }
+            
+            return count;
         }
 
         #endregion
