@@ -54,14 +54,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
-        public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, int skip, out string errRecord)
+        public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord)
         {
             errRecord = string.Empty;
             List<string> responses = new List<string>();
 
             if (_type == ResourceType.Script || _type == ResourceType.None)
             {
-                string initialScriptResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                int scriptSkip = 0;
+                string initialScriptResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, scriptSkip, out errRecord);
                 responses.Add(initialScriptResponse);
                 int initalScriptCount = _httpFindPSResource.GetCountFromResponse(initialScriptResponse);
                 int count = initalScriptCount / 100;
@@ -69,27 +70,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 while (count > 0)
                 {
                     // skip 100
-                    skip += 100;
-                    var tmpResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                    scriptSkip += 100;
+                    var tmpResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, scriptSkip, out errRecord);
                     responses.Add(tmpResponse);
                     count--;
-                 }
+                }
             }
             if (_type != ResourceType.Script)
             {
-                string initialModuleResponse = FindTagFromModuleEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                int moduleSkip = 0;
+                string initialModuleResponse = FindTagFromModuleEndpoint(tag, repository, includePrerelease, moduleSkip, out errRecord);
                 responses.Add(initialModuleResponse);
                 int initalModuleCount = _httpFindPSResource.GetCountFromResponse(initialModuleResponse);
                 int count = initalModuleCount / 100;
                     // if more than 100 count, loop and add response to list
                 while (count > 0)
                 {
-                        // skip 100
-                    skip += 100;
-                    var tmpResponse = FindTagFromModuleEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                    moduleSkip += 100;
+                    var tmpResponse = FindTagFromModuleEndpoint(tag, repository, includePrerelease, moduleSkip, out errRecord);
                     responses.Add(tmpResponse);
                     count--;
-                 }
+                }
             }
 
             return responses.ToArray();
@@ -131,8 +132,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // type: None -> search both endpoints
             // type: M -> just search Module endpoint
             // type: S -> just search Scripts end point
-            // type: DSCResource -> just search Modules
-            // type: Command -> just search Modules
             errRecord = String.Empty;
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
             var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
@@ -143,12 +142,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2: modulesRequestUrlV2, out string moduleErrorRecord);  
         }
 
-        public string FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
+        public string[] FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
         {
-            // type: DSCResource -> just search Modules
-            var prereleaseFilter = includePrerelease ? "&includePrerelease=true" : string.Empty;
+            List<string> responses = new List<string>();
+            int skip = 0;
+
+            string initialResponse = FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, skip, out errRecord);
+            responses.Add(initialResponse);
+            int initialCount = _httpFindPSResource.GetCountFromResponse(initialResponse);
+            int count = initialCount / 100;
+
+            while (count > 0)
+            {
+                skip += 100;
+                var tmpResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                responses.Add(tmpResponse);
+                count--;
+            }
+
+            return responses.ToArray();
+        }
+
+        public string FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, int skip, out string errRecord)
+        {
+            // can only find from Modules endpoint
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
+            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
             var tagFilter = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tagFilter}{tag}'{prereleaseFilter}&{select}";
+            var requestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}&searchTerm='tag:{tagFilter}{tag}'{prereleaseFilter}{paginationParam}&{select}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
