@@ -42,6 +42,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
 
+        /// <summary>
+        /// Find method which allows for searching for all packages from a repository and returns latest version for each.
+        /// Examples: Search -Repository PSGallery
+        /// API call: 
+        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
+        /// </summary>
         public string[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord) {
             errRecord = string.Empty;
             List<string> responses = new List<string>();
@@ -83,14 +89,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return responses.ToArray();
         }
 
-        /// <summary>
-        /// Find method which allows for searching for all packages from a repository and returns latest version for each.
-        /// Examples: Search -Repository PSGallery
-        /// API call: 
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
-        /// </summary>
         public string FindAllFromModuleEndpoint(PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord) {
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000+skip}";
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
 
             var requestUrlV2 = $"{repository.Uri}/Search()?$filter={prereleaseFilter}{paginationParam}";
@@ -99,7 +99,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         public string FindAllFromScriptEndpoint(PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord) {
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000+skip}";
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
 
             var requestUrlV2 = $"{repository.Uri}/items/psscript/Search()?$filter={prereleaseFilter}{paginationParam}";
