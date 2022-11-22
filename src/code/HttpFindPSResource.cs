@@ -33,32 +33,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public PSResourceInfo[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            List<string> responses = new List<string>();
-            int skip = 0;
-
-            var initialResponse = v2ServerAPICall.FindAll(repository, includePrerelease, type, skip, out errRecord);
-            responses.Add(initialResponse);
-
-            // Note: response returned can contain up to 6000 packages. Search() has different top constraints
-            // than FindPackageById()
-            // check count (regex)  425 ==> count/100  ~~>  4 calls 
-            int initalCount = GetCountFromResponse(initialResponse);  // count = 4
-            int count = initalCount / 6000;
-            // if more than 100 count, loop and add response to list
-            while (count > 0)
-            {
-                // skip 100
-                skip += 6000;
-                var tmpResponse = v2ServerAPICall.FindAll(repository, includePrerelease, type, skip, out errRecord);
-                responses.Add(tmpResponse);
-                count--;
-            }
-
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); // TODO: discuss if we want to yield return here for better performance
+
+            string[] responses = v2ServerAPICall.FindAll(repository, includePrerelease, type, out errRecord);
 
             foreach (string response in responses)
             {
                 var elemList = ConvertResponseToXML(response);
+                
                 foreach (var element in elemList)
                 {
                     PSResourceInfo.TryConvertFromXml(

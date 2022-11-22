@@ -42,17 +42,67 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Methods
         // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
 
+        public string[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord) {
+            errRecord = string.Empty;
+            List<string> responses = new List<string>();
+
+            if (type == ResourceType.Script || type == ResourceType.None)
+            {
+                int scriptSkip = 0;
+                string initialScriptResponse = FindAllFromScriptEndpoint(repository, includePrerelease, scriptSkip, out errRecord);
+                responses.Add(initialScriptResponse);
+                int initalScriptCount = _httpFindPSResource.GetCountFromResponse(initialScriptResponse);
+                int count = initalScriptCount / 6000;
+                    // if more than 100 count, loop and add response to list
+                while (count > 0)
+                {
+                    // skip 100
+                    scriptSkip += 6000;
+                    var tmpResponse = FindAllFromScriptEndpoint(repository, includePrerelease, scriptSkip, out errRecord);
+                    responses.Add(tmpResponse);
+                    count--;
+                }
+            }
+            if (type != ResourceType.Script)
+            {
+                int moduleSkip = 0;
+                string initialModuleResponse = FindAllFromModuleEndpoint(repository, includePrerelease, moduleSkip, out errRecord);
+                responses.Add(initialModuleResponse);
+                int initalModuleCount = _httpFindPSResource.GetCountFromResponse(initialModuleResponse);
+                int count = initalModuleCount / 6000;
+                    // if more than 100 count, loop and add response to list
+                while (count > 0)
+                {
+                    moduleSkip += 6000;
+                    var tmpResponse = FindAllFromModuleEndpoint(repository, includePrerelease, moduleSkip, out errRecord);
+                    responses.Add(tmpResponse);
+                    count--;
+                }
+            }
+
+            return responses.ToArray();
+        }
+
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
         /// Examples: Search -Repository PSGallery
         /// API call: 
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
-        public string FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord) {
+        public string FindAllFromModuleEndpoint(PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord) {
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000+skip}";
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
 
             var requestUrlV2 = $"{repository.Uri}/Search()?$filter={prereleaseFilter}{paginationParam}";
+
+            return HttpRequestCall(requestUrlV2, out errRecord);
+        }
+
+        public string FindAllFromScriptEndpoint(PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord) {
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000+skip}";
+            var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
+
+            var requestUrlV2 = $"{repository.Uri}/items/psscript/Search()?$filter={prereleaseFilter}{paginationParam}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
