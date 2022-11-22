@@ -21,7 +21,7 @@ public interface IServerAPICalls
     /// API call: 
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
     /// </summary>
-    string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord);
+    string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, int skip, out string errRecord);
   
     /// <summary>
     /// Find method which allows for searching for single name and returns latest version.
@@ -44,7 +44,7 @@ public interface IServerAPICalls
     /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
     /// </summary>
-    string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with specific version.
@@ -53,7 +53,7 @@ public interface IServerAPICalls
     /// Examples: Search "PowerShellGet" "2.2.5"
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
-    string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord);
     
     // <summary>
     /// Find method which allows for searching for single name with specific version.
