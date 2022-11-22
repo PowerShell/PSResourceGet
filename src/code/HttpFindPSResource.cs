@@ -40,7 +40,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (string response in responses)
             {
                 var elemList = ConvertResponseToXML(response);
-                
+
                 foreach (var element in elemList)
                 {
                     PSResourceInfo.TryConvertFromXml(
@@ -258,27 +258,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            List<string> responses = new List<string>();
-            int skip = 0;
-
-            var initialResponse = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, skip, out errRecord);
-            responses.Add(initialResponse);
-
-            // check count (regex)  425 ==> count/100  ~~>  4 calls 
-            int initalCount = GetCountFromResponse(initialResponse);  // count = 4
-            int count = initalCount / 100;
-            // if more than 100 count, loop and add response to list
-            while (count > 0)
-            {
-                // skip 100
-                skip += 100;
-                var tmpResponse = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, skip, out errRecord);
-                responses.Add(tmpResponse);
-                count--;
-            }
-
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); // TODO: discuss if we want to yield return here for better performance
-
+            string[] responses = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out errRecord);
+            
             foreach (string response in responses)
             {
                 var elemList = ConvertResponseToXML(response);
@@ -317,24 +299,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            List<string> responses = new List<string>();
-            int skip = 0;
-
-            var initialResponse = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, out errRecord);
-            responses.Add(initialResponse);
-
-            int initalCount = GetCountFromResponse(initialResponse);
-            int count = initalCount / 100;
-
-            while (count > 0)
-            {
-                // skip 100
-                skip += 100;
-                var tmpResponse = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, out errRecord);
-                responses.Add(tmpResponse);
-                count--;
-            }
-
+            string[] responses = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, out errRecord);
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
             
             foreach (string response in responses)
