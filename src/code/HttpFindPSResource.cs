@@ -56,16 +56,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
             HashSet<string> tagPkgs = new HashSet<string>();   
             tagsFound = new HashSet<string>();   
+            int skip = 0;
 
             // TAG example:
             // chocolatey, crescendo 
             //  >  chocolatey  ===  ModuleA
             //  >  crescendo   ===  ModuleA
-            // --->   for tags get rid of duplicate modules 
-
+            // --->   for tags get rid of duplicate modules             
             foreach (string tag in tags)
             {
-                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
+                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, skip, out errRecord);
 
                 foreach (string response in responses)
                 {

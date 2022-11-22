@@ -1,3 +1,4 @@
+using System.Security.AccessControl;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -26,6 +27,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
 
         private static readonly HttpClient s_client = new HttpClient();
+        private static readonly HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
+
         private static readonly string select = "$select=Id,Version,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
 
         #endregion
@@ -51,13 +54,54 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
+        public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, int skip, out string errRecord)
+        {
+            errRecord = string.Empty;
+            List<string> responses = new List<string>();
+
+            if (_type == ResourceType.Script || _type == ResourceType.None)
+            {
+                string initialScriptResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                responses.Add(initialScriptResponse);
+                int initalScriptCount = _httpFindPSResource.GetCountFromResponse(initialScriptResponse);
+                int count = initalScriptCount / 100;
+                    // if more than 100 count, loop and add response to list
+                while (count > 0)
+                {
+                    // skip 100
+                    skip += 100;
+                    var tmpResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                    responses.Add(tmpResponse);
+                    count--;
+                 }
+            }
+            if (_type != ResourceType.Script)
+            {
+                string initialModuleResponse = FindTagFromModuleEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                responses.Add(initialModuleResponse);
+                int initalModuleCount = _httpFindPSResource.GetCountFromResponse(initialModuleResponse);
+                int count = initalModuleCount / 100;
+                    // if more than 100 count, loop and add response to list
+                while (count > 0)
+                {
+                        // skip 100
+                    skip += 100;
+                    var tmpResponse = FindTagFromModuleEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                    responses.Add(tmpResponse);
+                    count--;
+                 }
+            }
+
+            return responses.ToArray();
+        }
+
         /// <summary>
         /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
         /// Examples: Search -Tag "JSON" -Repository PSGallery
         /// API call: 
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
-        public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public string FindTagFromScriptEndpoint(string tag, PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord)
         {
             // scenarios with type + tags:
             // type: None -> search both endpoints
@@ -66,26 +110,37 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // type: DSCResource -> just search Modules
             // type: Command -> just search Modules
             errRecord = String.Empty;
-            var prereleaseFilter = includePrerelease ? "&includePrerelease=true" : string.Empty;
-            List<string> responses = new List<string>();
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
+            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
             
-            if (type == ResourceType.Script || type == ResourceType.None)
-            {
-                // $"{repository.Uri}/items/psscript/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tag}+tag:PSScript'{prereleaseFilter}&{select}";
-                var scriptsRequestUrlV2 = $"{repository.Uri}/items/psscript/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tag}'{prereleaseFilter}&{select}";
-                responses.Add(HttpRequestCall(requestUrlV2: scriptsRequestUrlV2, out string scriptErrorRecord));
-                // TODO: add error handling here
-            }
+            var scriptsRequestUrlV2 = $"{repository.Uri}/items/psscript/Search()?{prereleaseFilter}&searchTerm='tag:{tag}'{paginationParam}&{select}";
+            // TODO: add error handling here
 
-            if (type != ResourceType.Script)
-            {
-                // type: Module or Command or DSCResource or None
-                var modulesRequestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:{tag}'{prereleaseFilter}&{select}";
-                responses.Add(HttpRequestCall(requestUrlV2: modulesRequestUrlV2, out string moduleErrorRecord));
-                // TODO: add error handling here
-            }
+            return HttpRequestCall(requestUrlV2: scriptsRequestUrlV2, out string scriptErrorRecord);  
+        }
 
-            return responses.ToArray();  
+        /// <summary>
+        /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
+        /// Examples: Search -Tag "JSON" -Repository PSGallery
+        /// API call: 
+        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
+        /// </summary>
+        public string FindTagFromModuleEndpoint(string tag, PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord)
+        {
+            // scenarios with type + tags:
+            // type: None -> search both endpoints
+            // type: M -> just search Module endpoint
+            // type: S -> just search Scripts end point
+            // type: DSCResource -> just search Modules
+            // type: Command -> just search Modules
+            errRecord = String.Empty;
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
+            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
+
+            var modulesRequestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}&searchTerm='tag:{tag}'{paginationParam}&{select}";
+            // TODO: add error handling here
+
+            return HttpRequestCall(requestUrlV2: modulesRequestUrlV2, out string moduleErrorRecord);  
         }
 
         public string FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
