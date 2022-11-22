@@ -13,7 +13,7 @@ public interface IServerAPICalls
     /// API call: 
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
     /// </summary>
-    string FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.

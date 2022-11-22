@@ -48,10 +48,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: 
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
-        public string FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord) {
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true";
+        public string FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord) {
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000+skip}";
+            var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
 
-            return HttpRequestCall(requestUrlV2, out errRecord);  
+            var requestUrlV2 = $"{repository.Uri}/Search()?$filter={prereleaseFilter}{paginationParam}";
+
+            return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
         public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord)

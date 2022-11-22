@@ -31,17 +31,56 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
         /// </summary>
-        public PSResourceInfo FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public PSResourceInfo[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            var response = v2ServerAPICall.FindAll(repository, includePrerelease, type, out errRecord);
+            List<string> responses = new List<string>();
+            int skip = 0;
 
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
+            var initialResponse = v2ServerAPICall.FindAll(repository, includePrerelease, type, skip, out errRecord);
+            responses.Add(initialResponse);
+
+            // Note: response returned can contain up to 6000 packages. Search() has different top constraints
+            // than FindPackageById()
+            // check count (regex)  425 ==> count/100  ~~>  4 calls 
+            int initalCount = GetCountFromResponse(initialResponse);  // count = 4
+            int count = initalCount / 6000;
+            // if more than 100 count, loop and add response to list
+            while (count > 0)
             {
-                return currentPkg;
+                // skip 100
+                skip += 6000;
+                var tmpResponse = v2ServerAPICall.FindAll(repository, includePrerelease, type, skip, out errRecord);
+                responses.Add(tmpResponse);
+                count--;
             }
 
-            return currentPkg;
+            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); // TODO: discuss if we want to yield return here for better performance
+
+            foreach (string response in responses)
+            {
+                var elemList = ConvertResponseToXML(response);
+                foreach (var element in elemList)
+                {
+                    PSResourceInfo.TryConvertFromXml(
+                        element,
+                        includePrerelease,
+                        out PSResourceInfo psGetInfo,
+                        repository.Name,
+                        out string errorMsg);
+
+                    if (psGetInfo != null)
+                    {
+                        pkgsFound.Add(psGetInfo);
+                    }
+                    else 
+                    {
+                        // TODO: Write error for corresponding null scenario
+                        errRecord = errorMsg;
+                    }
+                }
+            }
+
+            return pkgsFound.ToArray();
         }
 
         /// <summary>

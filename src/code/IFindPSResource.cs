@@ -13,7 +13,7 @@ public interface IFindPSResource
     /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
     /// </summary>
-    PSResourceInfo FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    PSResourceInfo[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
