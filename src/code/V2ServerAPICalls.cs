@@ -55,16 +55,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (type == ResourceType.Script || type == ResourceType.None)
             {
                 int scriptSkip = 0;
-                string initialScriptResponse = FindAllFromScriptEndpoint(repository, includePrerelease, scriptSkip, out errRecord);
+                string initialScriptResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
                 responses.Add(initialScriptResponse);
                 int initalScriptCount = _httpFindPSResource.GetCountFromResponse(initialScriptResponse);
                 int count = initalScriptCount / 6000;
                     // if more than 100 count, loop and add response to list
                 while (count > 0)
                 {
-                    // skip 100
                     scriptSkip += 6000;
-                    var tmpResponse = FindAllFromScriptEndpoint(repository, includePrerelease, scriptSkip, out errRecord);
+                    var tmpResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
                     responses.Add(tmpResponse);
                     count--;
                 }
@@ -72,15 +71,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (type != ResourceType.Script)
             {
                 int moduleSkip = 0;
-                string initialModuleResponse = FindAllFromModuleEndpoint(repository, includePrerelease, moduleSkip, out errRecord);
+                string initialModuleResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                 responses.Add(initialModuleResponse);
                 int initalModuleCount = _httpFindPSResource.GetCountFromResponse(initialModuleResponse);
                 int count = initalModuleCount / 6000;
-                    // if more than 100 count, loop and add response to list
+                
+                // if more than 100 count, loop and add response to list
                 while (count > 0)
                 {
                     moduleSkip += 6000;
-                    var tmpResponse = FindAllFromModuleEndpoint(repository, includePrerelease, moduleSkip, out errRecord);
+                    var tmpResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                     responses.Add(tmpResponse);
                     count--;
                 }
@@ -89,24 +89,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return responses.ToArray();
         }
 
-        public string FindAllFromModuleEndpoint(PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord) {
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
-            var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
-
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter={prereleaseFilter}{paginationParam}";
-
-            return HttpRequestCall(requestUrlV2, out errRecord);
-        }
-
-        public string FindAllFromScriptEndpoint(PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord) {
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
-            var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
-
-            var requestUrlV2 = $"{repository.Uri}/items/psscript/Search()?$filter={prereleaseFilter}{paginationParam}";
-
-            return HttpRequestCall(requestUrlV2, out errRecord);
-        }
-
+        /// <summary>
+        /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
+        /// Examples: Search -Tag "JSON" -Repository PSGallery
+        /// API call: 
+        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
+        /// </summary>
         public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord)
         {
             errRecord = string.Empty;
@@ -115,7 +103,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (_type == ResourceType.Script || _type == ResourceType.None)
             {
                 int scriptSkip = 0;
-                string initialScriptResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, scriptSkip, out errRecord);
+                string initialScriptResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
                 responses.Add(initialScriptResponse);
                 int initalScriptCount = _httpFindPSResource.GetCountFromResponse(initialScriptResponse);
                 int count = initalScriptCount / 100;
@@ -124,7 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // skip 100
                     scriptSkip += 100;
-                    var tmpResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, scriptSkip, out errRecord);
+                    var tmpResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: false,  scriptSkip, out errRecord);
                     responses.Add(tmpResponse);
                     count--;
                 }
@@ -132,7 +120,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (_type != ResourceType.Script)
             {
                 int moduleSkip = 0;
-                string initialModuleResponse = FindTagFromModuleEndpoint(tag, repository, includePrerelease, moduleSkip, out errRecord);
+                string initialModuleResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                 responses.Add(initialModuleResponse);
                 int initalModuleCount = _httpFindPSResource.GetCountFromResponse(initialModuleResponse);
                 int count = initalModuleCount / 100;
@@ -140,59 +128,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 while (count > 0)
                 {
                     moduleSkip += 100;
-                    var tmpResponse = FindTagFromModuleEndpoint(tag, repository, includePrerelease, moduleSkip, out errRecord);
+                    var tmpResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                     responses.Add(tmpResponse);
                     count--;
                 }
             }
 
             return responses.ToArray();
-        }
-
-        /// <summary>
-        /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
-        /// Examples: Search -Tag "JSON" -Repository PSGallery
-        /// API call: 
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
-        /// </summary>
-        public string FindTagFromScriptEndpoint(string tag, PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord)
-        {
-            // scenarios with type + tags:
-            // type: None -> search both endpoints
-            // type: M -> just search Module endpoint
-            // type: S -> just search Scripts end point
-            // type: DSCResource -> just search Modules
-            // type: Command -> just search Modules
-            errRecord = String.Empty;
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
-            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
-            
-            var scriptsRequestUrlV2 = $"{repository.Uri}/items/psscript/Search()?{prereleaseFilter}&searchTerm='tag:{tag}'{paginationParam}&{select}";
-            // TODO: add error handling here
-
-            return HttpRequestCall(requestUrlV2: scriptsRequestUrlV2, out string scriptErrorRecord);  
-        }
-
-        /// <summary>
-        /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
-        /// Examples: Search -Tag "JSON" -Repository PSGallery
-        /// API call: 
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
-        /// </summary>
-        public string FindTagFromModuleEndpoint(string tag, PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord)
-        {
-            // scenarios with type + tags:
-            // type: None -> search both endpoints
-            // type: M -> just search Module endpoint
-            // type: S -> just search Scripts end point
-            errRecord = String.Empty;
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
-            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
-
-            var modulesRequestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}&searchTerm='tag:{tag}'{paginationParam}&{select}";
-            // TODO: add error handling here
-
-            return HttpRequestCall(requestUrlV2: modulesRequestUrlV2, out string moduleErrorRecord);  
         }
 
         public string[] FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
@@ -208,23 +150,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             while (count > 0)
             {
                 skip += 100;
-                var tmpResponse = FindTagFromScriptEndpoint(tag, repository, includePrerelease, skip, out errRecord);
+                var tmpResponse = FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, skip, out errRecord);
                 responses.Add(tmpResponse);
                 count--;
             }
 
             return responses.ToArray();
-        }
-
-        public string FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, int skip, out string errRecord)
-        {
-            // can only find from Modules endpoint
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
-            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
-            var tagFilter = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
-            var requestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}&searchTerm='tag:{tagFilter}{tag}'{prereleaseFilter}{paginationParam}&{select}";
-
-            return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
         /// <summary>
@@ -266,7 +197,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindNameGlobbing(packageName, repository, includePrerelease, type, skip, out errRecord);
+            var initialResponse = FindNameGlobbing(packageName, repository, includePrerelease, skip, out errRecord);
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls 
@@ -277,70 +208,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // skip 100
                 skip += 100;
-                var tmpResponse = FindNameGlobbing(packageName, repository, includePrerelease, type, skip, out errRecord);
+                var tmpResponse = FindNameGlobbing(packageName, repository, includePrerelease, skip, out errRecord);
                 responses.Add(tmpResponse);
                 count--;
             }
 
             return responses.ToArray();
-        }
-
-        /// <summary>
-        /// Helper method for string[] FindNameGlobbing(string, PSRepositoryInfo, bool, ResourceType, out string)
-        /// </summary>
-        public string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord)
-        {
-            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
-            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
-            // Useful links: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-odata/505b6322-c57f-4c37-94ef-daf8b6e2abd3
-            // https://github.com/NuGet/Home/wiki/Filter-OData-query-requests
-            
-            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
-            var nameFilter = string.Empty;
-
-            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
-
-            if (names.Length == 0)
-            {
-                errRecord = "We don't support -Name *";
-                return string.Empty;
-            }
-            if (names.Length == 1)
-            {
-                if (packageName.StartsWith("*") && packageName.EndsWith("*"))
-                {
-                    // *get*
-                    nameFilter = $"substringof('{names[0]}', Id)";
-                }
-                else if (packageName.EndsWith("*"))
-                {
-                    // PowerShell*
-                    nameFilter = $"startswith(Id, '{names[0]}')";
-                }
-                else
-                {
-                    // *ShellGet
-                    nameFilter = $"endswith(Id, '{names[0]}')";
-                }
-            }
-            else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
-            {
-                // *pow*get*
-                // pow*get -> only support this
-                // pow*get*
-                // *pow*get
-                nameFilter = $"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')";
-            }
-            else 
-            {
-                errRecord = "We only support wildcards for scenarios similar to the following examples: PowerShell*, *ShellGet, Power*Get, *Shell*.";
-                return string.Empty;
-            }
-            
-            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?$filter={nameFilter} and {prerelease}&{select}{extraParam}";
-            
-            return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
         /// <summary>
@@ -373,91 +246,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return responses.ToArray();
-        }
-
-        /// <summary>
-        /// Helper method for string[] FindVersionGlobbing(string, VersionRange, PSRepositoryInfo, bool, ResourceType, out string)
-        /// </summary>
-        public string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord)
-        {
-            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
-            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
-            // NormalizedVersion doesn't include trailing zeroes
-            // Notes: this could allow us to take a version range (i.e (2.0.0, 3.0.0.0]) and deconstruct it and add options to the Filter for Version to describe that range
-            // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
-            // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
-            // Make sure to include quotations around the package name
-            
-            //and IsPrerelease eq false
-            // ex:
-            // (2.0.0, 3.0.0)
-            // $filter= NVersion gt '2.0.0' and NVersion lt '3.0.0'
-
-            // [2.0.0, 3.0.0]
-            // $filter= NVersion ge '2.0.0' and NVersion le '3.0.0'
-
-            // [2.0.0, 3.0.0)
-            // $filter= NVersion ge '2.0.0' and NVersion lt '3.0.0'
-
-            // (2.0.0, 3.0.0]
-            // $filter= NVersion gt '2.0.0' and NVersion le '3.0.0'
-
-            // [, 2.0.0]
-            // $filter= NVersion le '2.0.0'
-
-            string format = "NormalizedVersion {0} {1}";
-            string minPart = String.Empty;
-            string maxPart = String.Empty;
-
-            if (versionRange.MinVersion != null)
-            {
-                string operation = versionRange.IsMinInclusive ? "ge" : "gt";
-                minPart = String.Format(format, operation, $"'{versionRange.MinVersion.ToNormalizedString()}'");
-            }
-
-            if (versionRange.MaxVersion != null)
-            {
-                string operation = versionRange.IsMaxInclusive ? "le" : "lt";
-                maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
-            }
-
-            string versionFilterParts = String.Empty;
-            if (!String.IsNullOrEmpty(minPart) && !String.IsNullOrEmpty(maxPart))
-            {
-                versionFilterParts += minPart + " and " + maxPart;
-            }
-            else if (!String.IsNullOrEmpty(minPart))
-            {
-                versionFilterParts += minPart;
-            }
-            else if (!String.IsNullOrEmpty(maxPart))
-            {
-                versionFilterParts += maxPart;
-            }
-
-            string filterQuery = "&$filter=";
-            filterQuery += includePrerelease ? string.Empty : "IsPrerelease eq false";
-            //filterQuery +=  type == ResourceType.None ? String.Empty : $" and substringof('PS{type.ToString()}', Tags) eq true";
-
-            string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
-            filterQuery += type == ResourceType.None ? String.Empty : $"{joiningOperator}substringof('PS{type.ToString()}', Tags) eq true";
-
-            if (!String.IsNullOrEmpty(versionFilterParts))
-            {
-                // Check if includePrerelease is true, if it is we want to add "$filter"
-                // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
-        
-                // Note: could be null/empty if Version was "*" -> [,]
-                joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
-                filterQuery +=  $"{joiningOperator}{versionFilterParts}";
-            }
-
-            string paginationParam = $"$inlinecount=allpages&$skip={skip}&$top={6000-skip}";
-
-            filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
-            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}&{select}{filterQuery}";
-
-            return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
         /// <summary>
@@ -536,6 +324,200 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return string.Empty;
         }
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// Helper method for string[] FindAll(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
+        /// </summary>
+        private string FindAllFromTypeEndPoint(PSRepositoryInfo repository, bool includePrerelease, bool isSearchingModule, int skip, out string errRecord) {
+            string typeEndpoint = isSearchingModule ? String.Empty : "/items/psscript";
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
+            var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
+
+            var requestUrlV2 = $"{repository.Uri}{typeEndpoint}/Search()?$filter={prereleaseFilter}{paginationParam}";
+
+            return HttpRequestCall(requestUrlV2, out errRecord);
+        }
+
+        /// <summary>
+        /// Helper method for string[] FindTag(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
+        /// </summary>
+        private string FindTagFromEndpoint(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingModule, int skip, out string errRecord)
+        {
+            // scenarios with type + tags:
+            // type: None -> search both endpoints
+            // type: M -> just search Module endpoint
+            // type: S -> just search Scripts end point
+            // type: DSCResource -> just search Modules
+            // type: Command -> just search Modules
+            errRecord = String.Empty;
+            string typeEndpoint = isSearchingModule ? String.Empty : "/items/psscript";
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
+            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
+            
+            var scriptsRequestUrlV2 = $"{repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}&searchTerm='tag:{tag}'{paginationParam}&{select}";
+            // TODO: add error handling here
+
+            return HttpRequestCall(requestUrlV2: scriptsRequestUrlV2, out string scriptErrorRecord);  
+        }
+
+        /// <summary>
+        /// Helper method for string[] FindCommandOrDSCResource(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
+        /// </summary>
+        private string FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, int skip, out string errRecord)
+        {
+            // can only find from Modules endpoint
+            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
+            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
+            var tagFilter = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
+            var requestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}&searchTerm='tag:{tagFilter}{tag}'{prereleaseFilter}{paginationParam}&{select}";
+
+            return HttpRequestCall(requestUrlV2, out errRecord);
+        }
+
+        /// <summary>
+        /// Helper method for string[] FindNameGlobbing(string, PSRepositoryInfo, bool, ResourceType, out string)
+        /// </summary>
+        private string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord)
+        {
+            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
+            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
+            
+            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100";
+            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
+            var nameFilter = string.Empty;
+
+            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+
+            if (names.Length == 0)
+            {
+                errRecord = "We don't support -Name *";
+                return string.Empty;
+            }
+            if (names.Length == 1)
+            {
+                if (packageName.StartsWith("*") && packageName.EndsWith("*"))
+                {
+                    // *get*
+                    nameFilter = $"substringof('{names[0]}', Id)";
+                }
+                else if (packageName.EndsWith("*"))
+                {
+                    // PowerShell*
+                    nameFilter = $"startswith(Id, '{names[0]}')";
+                }
+                else
+                {
+                    // *ShellGet
+                    nameFilter = $"endswith(Id, '{names[0]}')";
+                }
+            }
+            else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
+            {
+                // *pow*get*
+                // pow*get -> only support this
+                // pow*get*
+                // *pow*get
+                nameFilter = $"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')";
+            }
+            else 
+            {
+                errRecord = "We only support wildcards for scenarios similar to the following examples: PowerShell*, *ShellGet, Power*Get, *Shell*.";
+                return string.Empty;
+            }
+            
+            var requestUrlV2 = $"{repository.Uri.ToString()}/Search()?$filter={nameFilter} and {prerelease}&{select}{extraParam}";
+            
+            return HttpRequestCall(requestUrlV2, out errRecord);  
+        }
+
+        /// <summary>
+        /// Helper method for string[] FindVersionGlobbing(string, VersionRange, PSRepositoryInfo, bool, ResourceType, out string)
+        /// </summary>
+        private string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord)
+        {
+            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
+            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
+            // NormalizedVersion doesn't include trailing zeroes
+            // Notes: this could allow us to take a version range (i.e (2.0.0, 3.0.0.0]) and deconstruct it and add options to the Filter for Version to describe that range
+            // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
+            // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
+            // Make sure to include quotations around the package name
+            
+            //and IsPrerelease eq false
+            // ex:
+            // (2.0.0, 3.0.0)
+            // $filter= NVersion gt '2.0.0' and NVersion lt '3.0.0'
+
+            // [2.0.0, 3.0.0]
+            // $filter= NVersion ge '2.0.0' and NVersion le '3.0.0'
+
+            // [2.0.0, 3.0.0)
+            // $filter= NVersion ge '2.0.0' and NVersion lt '3.0.0'
+
+            // (2.0.0, 3.0.0]
+            // $filter= NVersion gt '2.0.0' and NVersion le '3.0.0'
+
+            // [, 2.0.0]
+            // $filter= NVersion le '2.0.0'
+
+            string format = "NormalizedVersion {0} {1}";
+            string minPart = String.Empty;
+            string maxPart = String.Empty;
+
+            if (versionRange.MinVersion != null)
+            {
+                string operation = versionRange.IsMinInclusive ? "ge" : "gt";
+                minPart = String.Format(format, operation, $"'{versionRange.MinVersion.ToNormalizedString()}'");
+            }
+
+            if (versionRange.MaxVersion != null)
+            {
+                string operation = versionRange.IsMaxInclusive ? "le" : "lt";
+                maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
+            }
+
+            string versionFilterParts = String.Empty;
+            if (!String.IsNullOrEmpty(minPart) && !String.IsNullOrEmpty(maxPart))
+            {
+                versionFilterParts += minPart + " and " + maxPart;
+            }
+            else if (!String.IsNullOrEmpty(minPart))
+            {
+                versionFilterParts += minPart;
+            }
+            else if (!String.IsNullOrEmpty(maxPart))
+            {
+                versionFilterParts += maxPart;
+            }
+
+            string filterQuery = "&$filter=";
+            filterQuery += includePrerelease ? string.Empty : "IsPrerelease eq false";
+            //filterQuery +=  type == ResourceType.None ? String.Empty : $" and substringof('PS{type.ToString()}', Tags) eq true";
+
+            string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
+            filterQuery += type == ResourceType.None ? String.Empty : $"{joiningOperator}substringof('PS{type.ToString()}', Tags) eq true";
+
+            if (!String.IsNullOrEmpty(versionFilterParts))
+            {
+                // Check if includePrerelease is true, if it is we want to add "$filter"
+                // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
+        
+                // Note: could be null/empty if Version was "*" -> [,]
+                joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
+                filterQuery +=  $"{joiningOperator}{versionFilterParts}";
+            }
+
+            string paginationParam = $"$inlinecount=allpages&$skip={skip}&$top=100";
+
+            filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
+            var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}&{select}{filterQuery}";
+
+            return HttpRequestCall(requestUrlV2, out errRecord);  
+        }
+
         #endregion
     }
 }
