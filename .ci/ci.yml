@@ -35,18 +35,6 @@ stages:
       condition: succeededOrFailed()
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        if (Test-Path -Path $modulePath) {
-          Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
-          Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
-        }
-        if (! (Test-Path -Path $modulePath)) {
-          Write-Verbose -Verbose "Creating new temp module path: $modulePath"
-          $null = New-Item -Path $modulePath -ItemType Directory
-        }
-      displayName: Create temporary module path
-
-    - pwsh: |
         Write-Verbose -Verbose "Install PowerShellGet V3"
         Install-Module -Name PowerShellGet -RequiredVersion 3.0.16-beta16 -AllowPrerelease -Force
         Write-Verbose -Verbose "Install PlatyPS"
