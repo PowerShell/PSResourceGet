@@ -522,7 +522,7 @@ function RunScriptAnalysis {
         $config = Get-ProjectConfiguration
 
         $pssaParams = @{
-            Severity = 'Warning', 'ParseError'
+            Severity = @('Warning', 'Error')
             Path     = Join-Path $config.BuildOutputPath $config.ModuleName
             Recurse  = $true
         }
