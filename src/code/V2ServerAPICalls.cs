@@ -6,6 +6,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading.Tasks;
 using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -29,7 +30,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static readonly HttpClient s_client = new HttpClient();
         private static readonly HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
 
-        private static readonly string select = "$select=Id,Version,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
+        private static readonly string select = "$select=Id,Version,NormalizedVersion,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
 
         #endregion
 
@@ -276,12 +277,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
         ///                             then find the exact version to install, then call into install version
         /// </summary>
-        public string InstallName(string packageName, PSRepositoryInfo repository, out string errRecord) {
+        public HttpContent InstallName(string packageName, PSRepositoryInfo repository, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}";
 
             // The request returns a byte array, so think about what we want to return here
             // ACR code to read stream may be helpful here. 
-            return HttpRequestCall(requestUrlV2, out errRecord);  
+            return HttpRequestCallForContent(requestUrlV2, out errRecord);  
         }
 
 
@@ -293,12 +294,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
-        public string InstallVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord) {
+        public HttpContent InstallVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}/{version}";
 
             // The request returns a byte array, so think about what we want to return here
             // ACR code to read stream may be helpful here. 
-            return HttpRequestCall(requestUrlV2, out errRecord); 
+            return HttpRequestCallForContent(requestUrlV2, out errRecord); 
         }
 
 
@@ -307,23 +308,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // request object will send requestUrl 
             try
-                {
-                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
-                    
-                    // We can have this return a Task, or the response (json string)
-                    var response = Utils.SendV2RequestAsync(request, s_client).GetAwaiter().GetResult();
+            {
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
+                
+                // We can have this return a Task, or the response (json string)
+                var response = Utils.SendV2RequestAsync(request, s_client).GetAwaiter().GetResult();
 
-                    // Do we want to check if response is 200?
-                    // response will be json metadata object that will get returned
-                    return response.ToString();
-                }
-                catch (HttpRequestException e)
-                {
-                    errRecord = "Error occured while trying to retrieve response: " + e.Message;
-                }
+                // Do we want to check if response is 200?
+                // response will be json metadata object that will get returned
+                return response.ToString();
+            }
+            catch (HttpRequestException e)
+            {
+                errRecord = "Error occured while trying to retrieve response: " + e.Message;
+            }
 
             return string.Empty;
         }
+
+        private static HttpContent HttpRequestCallForContent(string requestUrlV2, out string errRecord) {
+            errRecord = string.Empty;
+
+            // request object will send requestUrl 
+            try
+            {
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
+                
+                // We can have this return a Task, or the response (json string)
+                var response = Utils.SendV2RequestForContentAsync(request, s_client).GetAwaiter().GetResult();
+
+                // Do we want to check if response is 200?
+                // response will be json metadata object that will get returned
+                return response;
+            }
+            catch (HttpRequestException e)
+            {
+                errRecord = "Error occured while trying to retrieve response: " + e.Message;
+                throw new HttpRequestException(errRecord);
+            }
+        }
+
+
         #endregion
 
         #region Private Methods

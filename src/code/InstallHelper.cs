@@ -19,6 +19,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -40,6 +41,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pathsToInstallPkg;
         private VersionRange _versionRange;
+        private string _versionString;
         private bool _prerelease;
         private bool _acceptLicense;
         private bool _quiet;
@@ -55,6 +57,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
+        private V2ServerAPICalls _v2ServerApiCalls = new V2ServerAPICalls();
+        private HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
 
         #endregion
 
@@ -70,6 +74,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public List<PSResourceInfo> InstallPackages(
             string[] names,
             VersionRange versionRange,
+            string versionString,
             bool prerelease,
             string[] repository,
             bool acceptLicense,
@@ -92,6 +97,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXml '{10}'; SavePackage '{11}'; TemporaryPath '{12}'",
                 string.Join(",", names),
                 versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
+                versionString != null ? versionString : String.Empty,
                 prerelease.ToString(),
                 repository != null ? string.Join(",", repository) : string.Empty,
                 acceptLicense.ToString(),
@@ -106,6 +112,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
             _versionRange = versionRange;
+            _versionString = versionString ?? String.Empty;
             _prerelease = prerelease;
             _acceptLicense = acceptLicense || force;
             _authenticodeCheck = authenticodeCheck;
@@ -173,6 +180,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
+
+                if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                {
+                    HttpInstallPackage(_pkgNamesToInstall.ToArray(), repo, credential, scope);
+                    return new List<PSResourceInfo>();
+                }
 
                 // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
                 // OR the user issues trust interactively via console.
@@ -317,6 +330,139 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return filteredPackages;
         }
+
+        private List<PSResourceInfo> HttpInstallPackage(
+            string[] pkgNamesToInstall,
+            PSRepositoryInfo repository,
+            PSCredential credential,
+            ScopeType scope)
+        {
+            List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
+            var tempInstallPath = Path.Combine(_tmpPath, Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempInstallPath);
+            _cmdletPassedIn.WriteVerbose(string.Format("Created following temp install path: '{0}'", tempInstallPath));
+
+            if (!String.IsNullOrEmpty(_versionString))
+            {
+                if (_versionString.Contains("*"))
+                {
+                    // error
+                    // throw
+                }
+                if (!NuGetVersion.TryParse(_versionString, out NuGetVersion nugetVersion))
+                {
+                    if (!VersionRange.TryParse(_versionString, out VersionRange versionRange))
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                            "IncorrectVersionFormat",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        return pkgsSuccessfullyInstalled;
+                    }
+                    else
+                    {
+                        // VersionRange not null
+                        // FindVersionGlobbing, pick latest, InstallVersion
+
+                    }
+                }
+                else
+                {
+                    // NuGetVersion not null.\
+                    // InstallVersion
+                }
+
+            }
+            else
+            {
+                // InstallName
+                foreach (string pkgName in pkgNamesToInstall)
+                {
+                    PSResourceInfo pkgToInstall = _httpFindPSResource.FindName(pkgName, repository, _prerelease, ResourceType.None, out string errRecord);
+                    string pkgVersion = pkgToInstall.Version.ToString();
+
+                    try
+                    {
+                        // download the module
+                        HttpContent responseContent = _v2ServerApiCalls.InstallName(pkgName, repository, out string errorRecord);
+
+                        var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{pkgVersion}.zip");
+                        using var content = responseContent.ReadAsStreamAsync().Result;
+                        using var fs = File.Create(pathToFile);
+                        content.Seek(0, System.IO.SeekOrigin.Begin);
+                        content.CopyTo(fs);
+                        fs.Close();
+
+                        // Expand the zip file
+                        var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName.ToLower(), pkgVersion);
+                        Directory.CreateDirectory(tempDirNameVersion);
+                        System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, tempDirNameVersion);
+
+                        File.Delete(pathToFile);
+
+                        bool isModule = pkgToInstall.Type == ResourceType.Module || pkgToInstall.Type == ResourceType.None;
+                        string installPath = isModule ? _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase))
+                            : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
+
+                        // pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string newVersion);
+
+                        var scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
+
+                        DeleteExtraneousFiles(pkgName, pkgVersion, tempDirNameVersion);
+
+                        if (_includeXml)
+                        {
+                            CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule);
+                        }
+
+                        MoveFilesIntoInstallPath(
+                            pkgToInstall,
+                            isModule,
+                            isLocalRepo: false, // false for HTTP repo
+                            tempDirNameVersion,
+                            tempInstallPath,
+                            installPath,
+                            newVersion: pkgVersion, // would not have prerelease label in this string
+                            moduleManifestVersion: pkgVersion,
+                            scriptPath);
+
+                        _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkgName, installPath));
+                        pkgsSuccessfullyInstalled.Add(pkgToInstall);
+                    }
+                    catch (Exception e)
+                    {
+                        _cmdletPassedIn.WriteError(
+                            new ErrorRecord(
+                                new PSInvalidOperationException(
+                                    message: $"Unable to successfully install package '{pkgName}': '{e.Message}'",
+                                    innerException: e),
+                                "InstallPackageFailed",
+                                ErrorCategory.InvalidOperation,
+                                _cmdletPassedIn));
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                    }
+                }
+
+                // Delete the temp directory and all its contents
+                _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", tempInstallPath));
+
+                if (Directory.Exists(tempInstallPath))
+                {
+                    if (!TryDeleteDirectory(tempInstallPath, out ErrorRecord errorMsg))
+                    {
+                        _cmdletPassedIn.WriteError(errorMsg);
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteVerbose(String.Format("Successfully deleted '{0}'", tempInstallPath));
+                    }
+                } 
+            }
+
+            return pkgsSuccessfullyInstalled;
+        }
+
 
         /// <summary>
         /// Install provided list of packages, which include Dependent packages if requested.
@@ -468,7 +614,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     // pkgIdentity.Version.Version gets the version without metadata or release labels.
                     string newVersion = pkgIdentity.Version.ToNormalizedString();
-                    string normalizedVersionNoPrerelease = newVersion;
+                    string normalizedVersionNoPrerelease = newVersion; // 3.0.17-beta or 2.2.5
                     if (pkgIdentity.Version.IsPrerelease)
                     {
                         // eg: 2.0.2
@@ -817,6 +963,59 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 _cmdletPassedIn.WriteError(ErrorParsingMetadata);
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+            }
+        }
+
+        private void DeleteExtraneousFiles(string packageName, string packageVersion, string dirNameVersion)
+        {
+            // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
+            //TODO: this seems to be packageId.packageVersion
+            // var pkgIdString = $"{packageName}.{packageVersion}"; 
+
+            // since we download as .zip for HTTP calls, we shouldn't have .nupkg* files
+            // var nupkgSHAToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.sha512");
+            // var nupkgToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg");
+            // var nupkgMetadataToDelete =  Path.Combine(dirNameVersion, ".nupkg.metadata");
+            var nuspecToDelete = Path.Combine(dirNameVersion, packageName + ".nuspec");
+            var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
+            var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
+            var packageDirToDelete = Path.Combine(dirNameVersion, "package");
+
+            // Unforunately have to check if each file exists because it may or may not be there
+            // if (File.Exists(nupkgSHAToDelete))
+            // {
+            //     _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgSHAToDelete));
+            //     File.Delete(nupkgSHAToDelete);
+            // }
+            // if (File.Exists(nupkgToDelete))
+            // {
+            //     _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgToDelete));
+            //     File.Delete(nupkgToDelete);
+            // }
+            // if (File.Exists(nupkgMetadataToDelete))
+            // {
+            //     _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgMetadataToDelete));
+            //     File.Delete(nupkgMetadataToDelete);
+            // }
+            if (File.Exists(nuspecToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));
+                File.Delete(nuspecToDelete);
+            }
+            if (File.Exists(contentTypesToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", contentTypesToDelete));
+                File.Delete(contentTypesToDelete);
+            }
+            if (Directory.Exists(relsDirToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", relsDirToDelete));
+                Utils.DeleteDirectory(relsDirToDelete);
+            }
+            if (Directory.Exists(packageDirToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
+                Utils.DeleteDirectory(packageDirToDelete);
             }
         }
 

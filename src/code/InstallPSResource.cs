@@ -537,6 +537,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var installedPkgs = _installHelper.InstallPackages(
                 names: pkgNames,
                 versionRange: pkgVersion,
+                versionString: Version,
                 prerelease: pkgPrerelease,
                 repository: pkgRepository,
                 acceptLicense: AcceptLicense,
