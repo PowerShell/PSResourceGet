@@ -7,15 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Threading;
-using System.Text;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Collections.ObjectModel;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-//using Microsoft.Azure.Commands.Profile.Models;
-//using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 using Dbg = System.Diagnostics.Debug;
 
@@ -34,8 +25,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             string accessToken = string.Empty;
             string tenantID = string.Empty;
-            //string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            string tempPath = Path.GetTempPath();
+            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempPath);
 
             // Need to set up secret management vault before hand
             var repositoryCredentialInfo = repo.CredentialInfo;
@@ -71,7 +62,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             // download the module
             var pathToFile = Path.Combine(tempPath, $"{moduleName}.{moduleVersion}.zip");
-            //var pathToFile = Path.Combine(tempPath, $"{moduleName}.{moduleVersion}");
             using var content = responseContent.ReadAsStreamAsync().Result;
             using var fs = File.Create(pathToFile);
             content.Seek(0, System.IO.SeekOrigin.Begin);
@@ -90,16 +80,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // If saving the package and unpacking OR installing the package
             else 
             {
-                string expandedPath = Path.Combine(tempPath, moduleName);
-                expandedPath = Path.Combine(expandedPath, moduleVersion);
-
-                if (!Directory.Exists(expandedPath))
-                {
-                    Directory.CreateDirectory(expandedPath);
-                }
+                string expandedPath = Path.Combine(tempPath, moduleName.ToLower(), moduleVersion);
+                Directory.CreateDirectory(expandedPath);
                 callingCmdlet.WriteVerbose($"Expanding module to temp path: {expandedPath}");
                 // Expand the zip file
                 System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, expandedPath);
+                Utils.DeleteExtraneousFiles(callingCmdlet, moduleName, expandedPath);
 
                 callingCmdlet.WriteVerbose("Expanding completed");
                 File.Delete(pathToFile);
@@ -117,9 +103,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             scriptPath: null,
                             callingCmdlet);
 
-                        var expandedFolder = System.IO.Path.Combine(tempPath, moduleName);
-                        callingCmdlet.WriteVerbose($"Expanded folder is: {expandedFolder}");
-                        Directory.Delete(expandedFolder);
+                if (Directory.Exists(tempPath))
+                {
+                    try
+                    {
+                        Utils.DeleteDirectory(tempPath);
+                        callingCmdlet.WriteVerbose(String.Format("Successfully deleted '{0}'", tempPath));
+                    }
+                    catch (Exception e)
+                    {
+                        ErrorRecord TempDirCouldNotBeDeletedError = new ErrorRecord(e, "errorDeletingTempInstallPath", ErrorCategory.InvalidResult, null);
+                        callingCmdlet.WriteError(TempDirCouldNotBeDeletedError);
+                    }
+                }
             }
 
             return pkgInfo;

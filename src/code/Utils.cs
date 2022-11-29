@@ -1293,6 +1293,37 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        public static void DeleteExtraneousFiles(PSCmdlet callingCmdlet, string pkgName, string dirNameVersion)
+        {
+            // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
+            var nuspecToDelete = Path.Combine(dirNameVersion, pkgName + ".nuspec");
+            var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
+            var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
+            var packageDirToDelete = Path.Combine(dirNameVersion, "package");
+
+            // Unforunately have to check if each file exists because it may or may not be there
+            if (File.Exists(nuspecToDelete))
+            {
+                callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));
+                File.Delete(nuspecToDelete);
+            }
+            if (File.Exists(contentTypesToDelete))
+            {
+                callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", contentTypesToDelete));
+                File.Delete(contentTypesToDelete);
+            }
+            if (Directory.Exists(relsDirToDelete))
+            {
+                callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", relsDirToDelete));
+                Utils.DeleteDirectory(relsDirToDelete);
+            }
+            if (Directory.Exists(packageDirToDelete))
+            {
+                callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
+                Utils.DeleteDirectory(packageDirToDelete);
+            }
+        }
+
         public static void MoveFilesIntoInstallPath(
             PSResourceInfo pkgInfo,
             bool isModule,
