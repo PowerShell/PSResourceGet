@@ -43,28 +43,15 @@ stages:
       condition: succeededOrFailed()
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        if (Test-Path -Path $modulePath) {
-          Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
-          Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
-        }
-        if (! (Test-Path -Path $modulePath)) {
-          Write-Verbose -Verbose "Creating new temp module path: $modulePath"
-          $null = New-Item -Path $modulePath -ItemType Directory
-        }
-      displayName: Create temporary module path
-
-    - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        Write-Verbose -Verbose "Install PowerShellGet V3 to temp module path"
-        Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.0-beta10 -AllowPrerelease -Force
-        Write-Verbose -Verbose "Install PlatyPS to temp module path"
-        Save-Module -Name "platyPS" -Path $modulePath -Force
-        Write-Verbose -Verbose "Install PSScriptAnalyzer to temp module path"
-        Save-Module -Name "PSScriptAnalyzer" -Path $modulePath -RequiredVersion 1.18.0 -Force
-        Write-Verbose -Verbose "Install Pester 5.X to temp module path"
-        Save-Module -Name "Pester" -MinimumVersion 5.0 -Path $modulePath -Repository PSGallery -Force
-      displayName: Install PowerShellGet and dependencies
+        Write-Verbose -Verbose "Install PowerShellGet V3"
+        Install-Module -Name PowerShellGet -RequiredVersion 3.0.16-beta16 -AllowPrerelease -Force
+        Write-Verbose -Verbose "Install PlatyPS"
+        Install-Module -Name "platyPS" -Force
+        Write-Verbose -Verbose "Install PSScriptAnalyzer"
+        Install-Module -Name "PSScriptAnalyzer" -Force
+        Write-Verbose -Verbose "Install Pester 5.X"
+        Install-Module -Name "Pester" -MinimumVersion 5.0 -Force
+      displayName: Install PowerShellGet and build dependencies
 
     - pwsh: |
         # Build for netstandard2.0 framework
@@ -236,11 +223,8 @@ stages:
       condition: succeeded()
 
     - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PowerShellGet
-        Write-Verbose -Verbose "Importing PowerShellGet from: $modPath"
-        Import-Module -Name $modPath -Verbose -Force
+        Write-Verbose -Verbose "Importing PowerShellGet"
+        Import-Module -Name PowerShellGet -Verbose
         Write-Verbose -Verbose "Importing helpBuild from: $($Build.SourcesDirectory)"
         . $(Build.SourcesDirectory)/helpBuild.ps1
         
