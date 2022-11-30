@@ -340,6 +340,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
             var tempInstallPath = Path.Combine(_tmpPath, Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempInstallPath);
+
+            // TODO: btiwise check for read only complement was being done in InstallPackage. Do we need this here?
+            // discuss how to handle credential for V2 repositories
+
             _cmdletPassedIn.WriteVerbose(string.Format("Created following temp install path: '{0}'", tempInstallPath));
 
             NuGetVersion nugetVersion;
@@ -389,12 +393,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
 
                             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+                            pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                             // download the module
                             HttpContent responseContent = _v2ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
                             // TODO: add error handling
 
-                            bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall);
+                            bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall, scope);
 
                             if (installedSuccessfully)
                             {
@@ -411,12 +416,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         string nugetVersionString = nugetVersion.ToNormalizedString(); // 3.0.17-beta
                         PSResourceInfo pkgToInstall = _httpFindPSResource.FindVersion(pkgName, nugetVersionString, repository, ResourceType.None, out string errRecord);
+                        pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                         // download the module
                         HttpContent responseContent = _v2ServerApiCalls.InstallVersion(pkgName, nugetVersionString, repository, out string errorRecord);
                         // TODO: add error handling
 
-                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall);
+                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall, scope);
 
                         if (installedSuccessfully)
                         {
@@ -431,6 +437,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (string pkgName in pkgNamesToInstall)
                 {
                     PSResourceInfo pkgToInstall = _httpFindPSResource.FindName(pkgName, repository, _prerelease, ResourceType.None, out string errRecord);
+                    pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                     // pkgToInstall.Dependencies -> Dependency[] (string, VersionRange)
                     // helper method that takes Dependency[], checks with GetHelper which are already installed, construct dependency tree
@@ -439,7 +446,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // download the module
                     HttpContent responseContent = _v2ServerApiCalls.InstallName(pkgName, repository, out string errorRecord);
                     // TODO: add error handling
-                    bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall);
+                    bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall, scope);
 
                     if (installedSuccessfully)
                     {
@@ -465,7 +472,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return pkgsSuccessfullyInstalled;
         }
 
-        private bool TryMoveInstallContent(HttpContent responseContent, string tempInstallPath, PSResourceInfo pkgToInstall)
+        private bool TryMoveInstallContent(HttpContent responseContent, string tempInstallPath, PSResourceInfo pkgToInstall, ScopeType scope)
         {
             string pkgName = pkgToInstall.Name;
             string pkgVersion = pkgToInstall.Version.ToString();
@@ -495,9 +502,75 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 var scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
 
-                // TODO: save pkg code
-                // check Authenticode signature if that switch is used
-                // if PSGallery, check psd1 (for modules) or ps1 (for scripts)
+                // TODO: add Save pkg code
+
+                if (_authenticodeCheck && !AuthenticodeSignature.CheckAuthenticodeSignature(
+                    pkgName,
+                    tempDirNameVersion,
+                    _cmdletPassedIn,
+                    out ErrorRecord errorRecord))
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(errorRecord);
+                }
+
+                if (isModule)
+                {
+                    var moduleManifest = Path.Combine(tempDirNameVersion, pkgName + PSDataFileExt);
+                    if (!File.Exists(moduleManifest))
+                    {
+                        var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgName, moduleManifest);
+
+                        var ex = new ArgumentException(message);
+                        var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
+                        _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                        return false;
+                    }
+
+                    if (!Utils.TryReadManifestFile(
+                        manifestFilePath: moduleManifest,
+                        manifestInfo: out Hashtable parsedMetadataHashtable,
+                        error: out Exception manifestReadError))
+                    {
+                        _cmdletPassedIn.WriteError(
+                            new ErrorRecord(
+                                exception: manifestReadError,
+                                errorId: "ManifestFileReadParseError",
+                                errorCategory: ErrorCategory.ReadError,
+                                this));
+
+                        return false;
+                    }
+
+                    // Accept License verification
+                    if (!_savePkg && !CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion))
+                    {
+                        return false;
+                    }
+
+                    // If NoClobber is specified, ensure command clobbering does not happen
+                    if (_noClobber && !DetectClobber(pkgName, parsedMetadataHashtable))
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    // is script
+                    if (!PSScriptFileInfo.TryTestPSScriptFile(
+                        scriptFileInfoPath: scriptPath,
+                        parsedScript: out PSScriptFileInfo scriptToInstall,
+                        out ErrorRecord[] errors,
+                        out string[] _))
+                    {
+                        foreach (ErrorRecord error in errors)
+                        {
+                            _cmdletPassedIn.WriteError(error);
+                        }
+
+                        return false;
+                    }
+                }
 
                 DeleteExtraneousFiles(pkgName, pkgVersion, tempDirNameVersion);
 
@@ -518,6 +591,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     scriptPath);
 
                 _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkgName, installPath));
+
+                if (!_savePkg && !isModule)
+                {
+                    string installPathwithBackSlash = installPath + "\\";
+                    string envPATHVarValue = Environment.GetEnvironmentVariable("PATH",
+                        scope == ScopeType.CurrentUser ? EnvironmentVariableTarget.User : EnvironmentVariableTarget.Machine);
+
+                    if (!envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
+                    {
+                        _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
+                    }
+                }
+
                 return true;
             }
             catch (Exception e)
@@ -655,6 +741,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
                             source.Credentials = PackageSourceCredential.FromUserInput(repoUri, repoCredential.UserName, password, true, null);
                         }
+
                         var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
                         SourceRepository repository = new SourceRepository(source, provider);
 
