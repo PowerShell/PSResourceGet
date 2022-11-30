@@ -342,37 +342,88 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Directory.CreateDirectory(tempInstallPath);
             _cmdletPassedIn.WriteVerbose(string.Format("Created following temp install path: '{0}'", tempInstallPath));
 
+            NuGetVersion nugetVersion;
+            VersionRange versionRange;
+
             if (!String.IsNullOrEmpty(_versionString))
             {
                 if (_versionString.Contains("*"))
                 {
-                    // error
-                    // throw
+                    // TODO: discuss if we allow Version containing *
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new ArgumentException("Argument for -Version parameter cannot contain wildcards."),
+                        "VersionCannotContainWildcard",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                    
+                    return pkgsSuccessfullyInstalled;
                 }
-                if (!NuGetVersion.TryParse(_versionString, out NuGetVersion nugetVersion))
+
+                if (!NuGetVersion.TryParse(_versionString, out nugetVersion))
                 {
-                    if (!VersionRange.TryParse(_versionString, out VersionRange versionRange))
+                    if (!VersionRange.TryParse(_versionString, out versionRange))
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(
                             new ArgumentException("Argument for -Version parameter is not in the proper format"),
                             "IncorrectVersionFormat",
                             ErrorCategory.InvalidArgument,
                             this));
+                        
                         return pkgsSuccessfullyInstalled;
                     }
                     else
                     {
                         // VersionRange not null
                         // FindVersionGlobbing, pick latest, InstallVersion
+                        foreach (string pkgName in pkgNamesToInstall)
+                        {
+                            PSResourceInfo[] pkgsSatisfyingRange = _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true, out string errRecord);
+                            PSResourceInfo pkgToInstall;
+                            if (pkgsSatisfyingRange.Length != 0)
+                            {
+                                pkgToInstall = pkgsSatisfyingRange[0];
+                            }
+                            else
+                            {
+                                continue;
+                            }
 
+                            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+
+                            // download the module
+                            HttpContent responseContent = _v2ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
+                            // TODO: add error handling
+
+                            bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall);
+
+                            if (installedSuccessfully)
+                            {
+                                pkgsSuccessfullyInstalled.Add(pkgToInstall);
+                            }
+                        }
                     }
                 }
                 else
                 {
-                    // NuGetVersion not null.\
+                    // NuGetVersion not null.
                     // InstallVersion
-                }
+                    foreach (string pkgName in pkgNamesToInstall)
+                    {
+                        string nugetVersionString = nugetVersion.ToNormalizedString(); // 3.0.17-beta
+                        PSResourceInfo pkgToInstall = _httpFindPSResource.FindVersion(pkgName, nugetVersionString, repository, ResourceType.None, out string errRecord);
 
+                        // download the module
+                        HttpContent responseContent = _v2ServerApiCalls.InstallVersion(pkgName, nugetVersionString, repository, out string errorRecord);
+                        // TODO: add error handling
+
+                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall);
+
+                        if (installedSuccessfully)
+                        {
+                            pkgsSuccessfullyInstalled.Add(pkgToInstall);
+                        }
+                    }
+                }
             }
             else
             {
@@ -380,89 +431,109 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (string pkgName in pkgNamesToInstall)
                 {
                     PSResourceInfo pkgToInstall = _httpFindPSResource.FindName(pkgName, repository, _prerelease, ResourceType.None, out string errRecord);
-                    string pkgVersion = pkgToInstall.Version.ToString();
 
-                    try
+                    // pkgToInstall.Dependencies -> Dependency[] (string, VersionRange)
+                    // helper method that takes Dependency[], checks with GetHelper which are already installed, construct dependency tree
+                    // install those only which are needed
+
+                    // download the module
+                    HttpContent responseContent = _v2ServerApiCalls.InstallName(pkgName, repository, out string errorRecord);
+                    // TODO: add error handling
+                    bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall);
+
+                    if (installedSuccessfully)
                     {
-                        // download the module
-                        HttpContent responseContent = _v2ServerApiCalls.InstallName(pkgName, repository, out string errorRecord);
-
-                        var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{pkgVersion}.zip");
-                        using var content = responseContent.ReadAsStreamAsync().Result;
-                        using var fs = File.Create(pathToFile);
-                        content.Seek(0, System.IO.SeekOrigin.Begin);
-                        content.CopyTo(fs);
-                        fs.Close();
-
-                        // Expand the zip file
-                        var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName.ToLower(), pkgVersion);
-                        Directory.CreateDirectory(tempDirNameVersion);
-                        System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, tempDirNameVersion);
-
-                        File.Delete(pathToFile);
-
-                        bool isModule = pkgToInstall.Type == ResourceType.Module || pkgToInstall.Type == ResourceType.None;
-                        string installPath = isModule ? _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase))
-                            : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
-
-                        // pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string newVersion);
-
-                        var scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
-
-                        DeleteExtraneousFiles(pkgName, pkgVersion, tempDirNameVersion);
-
-                        if (_includeXml)
-                        {
-                            CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule);
-                        }
-
-                        MoveFilesIntoInstallPath(
-                            pkgToInstall,
-                            isModule,
-                            isLocalRepo: false, // false for HTTP repo
-                            tempDirNameVersion,
-                            tempInstallPath,
-                            installPath,
-                            newVersion: pkgVersion, // would not have prerelease label in this string
-                            moduleManifestVersion: pkgVersion,
-                            scriptPath);
-
-                        _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkgName, installPath));
                         pkgsSuccessfullyInstalled.Add(pkgToInstall);
                     }
-                    catch (Exception e)
-                    {
-                        _cmdletPassedIn.WriteError(
-                            new ErrorRecord(
-                                new PSInvalidOperationException(
-                                    message: $"Unable to successfully install package '{pkgName}': '{e.Message}'",
-                                    innerException: e),
-                                "InstallPackageFailed",
-                                ErrorCategory.InvalidOperation,
-                                _cmdletPassedIn));
-                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
-                    }
                 }
+            }
 
+            if (Directory.Exists(tempInstallPath))
+            {
                 // Delete the temp directory and all its contents
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", tempInstallPath));
-
-                if (Directory.Exists(tempInstallPath))
+                if (!TryDeleteDirectory(tempInstallPath, out ErrorRecord errorMsg))
                 {
-                    if (!TryDeleteDirectory(tempInstallPath, out ErrorRecord errorMsg))
-                    {
-                        _cmdletPassedIn.WriteError(errorMsg);
-                    }
-                    else
-                    {
-                        _cmdletPassedIn.WriteVerbose(String.Format("Successfully deleted '{0}'", tempInstallPath));
-                    }
-                } 
+                    _cmdletPassedIn.WriteError(errorMsg);
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully deleted '{0}'", tempInstallPath));
+                }
             }
 
             return pkgsSuccessfullyInstalled;
         }
 
+        private bool TryMoveInstallContent(HttpContent responseContent, string tempInstallPath, PSResourceInfo pkgToInstall)
+        {
+            string pkgName = pkgToInstall.Name;
+            string pkgVersion = pkgToInstall.Version.ToString();
+
+            // takes response content for HTTPInstallPackage and moves files into neccessary install path and cleans up.
+            try
+            {
+                var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{pkgVersion}.zip");
+                using var content = responseContent.ReadAsStreamAsync().Result;
+                using var fs = File.Create(pathToFile);
+                content.Seek(0, System.IO.SeekOrigin.Begin);
+                content.CopyTo(fs);
+                fs.Close();
+
+                // Expand the zip file
+                var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName.ToLower(), pkgVersion);
+                Directory.CreateDirectory(tempDirNameVersion);
+                System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, tempDirNameVersion);
+
+                File.Delete(pathToFile);
+
+                bool isModule = pkgToInstall.Type == ResourceType.Module || pkgToInstall.Type == ResourceType.None;
+                string installPath = isModule ? _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase))
+                    : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
+
+                // pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string newVersion);
+
+                var scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
+
+                // TODO: save pkg code
+                // check Authenticode signature if that switch is used
+                // if PSGallery, check psd1 (for modules) or ps1 (for scripts)
+
+                DeleteExtraneousFiles(pkgName, pkgVersion, tempDirNameVersion);
+
+                if (_includeXml)
+                {
+                    CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule);
+                }
+
+                MoveFilesIntoInstallPath(
+                    pkgToInstall,
+                    isModule,
+                    isLocalRepo: false, // false for HTTP repo
+                    tempDirNameVersion,
+                    tempInstallPath,
+                    installPath,
+                    newVersion: pkgVersion, // would not have prerelease label in this string
+                    moduleManifestVersion: pkgVersion,
+                    scriptPath);
+
+                _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkgName, installPath));
+                return true;
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.WriteError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Unable to successfully install package '{pkgName}': '{e.Message}'",
+                            innerException: e),
+                        "InstallPackageFailed",
+                        ErrorCategory.InvalidOperation,
+                        _cmdletPassedIn));
+                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                return false;
+            }
+        }
 
         /// <summary>
         /// Install provided list of packages, which include Dependent packages if requested.

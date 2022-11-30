@@ -226,24 +226,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
         {
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, out errRecord);
+            var initialResponse = FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, getOnlyLatest, out errRecord);
             responses.Add(initialResponse);
 
-            int initalCount = _httpFindPSResource.GetCountFromResponse(initialResponse);
-            int count = initalCount / 100;
-
-            while (count > 0)
+            if (!getOnlyLatest)
             {
-                // skip 100
-                skip += 100;
-                var tmpResponse = FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, out errRecord);
-                responses.Add(tmpResponse);
-                count--;
+                int initalCount = _httpFindPSResource.GetCountFromResponse(initialResponse);
+                int count = initalCount / 100;
+
+                while (count > 0)
+                {
+                    // skip 100
+                    skip += 100;
+                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, getOnlyLatest, out errRecord);
+                    responses.Add(tmpResponse);
+                    count--;
+                }
             }
 
             return responses.ToArray();
@@ -280,8 +283,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public HttpContent InstallName(string packageName, PSRepositoryInfo repository, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}";
 
-            // The request returns a byte array, so think about what we want to return here
-            // ACR code to read stream may be helpful here. 
             return HttpRequestCallForContent(requestUrlV2, out errRecord);  
         }
 
@@ -294,11 +295,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
-        public HttpContent InstallVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord) {
+        public HttpContent InstallVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}/{version}";
 
-            // The request returns a byte array, so think about what we want to return here
-            // ACR code to read stream may be helpful here. 
             return HttpRequestCallForContent(requestUrlV2, out errRecord); 
         }
 
@@ -461,7 +460,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindVersionGlobbing(string, VersionRange, PSRepositoryInfo, bool, ResourceType, out string)
         /// </summary>
-        private string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, out string errRecord)
+        private string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, bool getOnlyLatest, out string errRecord)
         {
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
@@ -535,7 +534,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 filterQuery +=  $"{joiningOperator}{versionFilterParts}";
             }
 
-            string paginationParam = $"$inlinecount=allpages&$skip={skip}&$top=100";
+            string topParam = getOnlyLatest ? "$top=1" : "$top=100"; // only need 1 package if interested in latest
+            string paginationParam = $"$inlinecount=allpages&$skip={skip}&{topParam}";
 
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
             var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}&{select}{filterQuery}";

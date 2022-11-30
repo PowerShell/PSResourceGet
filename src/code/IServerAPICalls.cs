@@ -54,7 +54,7 @@ public interface IServerAPICalls
     /// Examples: Search "PowerShellGet" "2.2.5"
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
-    string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord);
     
     // <summary>
     /// Find method which allows for searching for single name with specific version.
@@ -83,7 +83,7 @@ public interface IServerAPICalls
     ///           Install "PowerShellGet" -Version "3.0.0-beta16"
     /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
     /// </summary>    
-    HttpContent InstallVersion(string packageName, NuGetVersion version, PSRepositoryInfo repository, out string errRecord);
+    HttpContent InstallVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord);
 
     #endregion
 }
