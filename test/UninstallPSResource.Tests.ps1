@@ -275,7 +275,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
     It "Uninstall module that is not installed should throw error" {
             Uninstall-PSResource -Name "NonInstalledModule" -ErrorVariable ev -ErrorAction SilentlyContinue
             $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
-        }
+    }
 
     # Windows only
     It "Uninstall resource under CurrentUser scope only- Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
