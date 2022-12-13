@@ -121,8 +121,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!UninstallPkgHelper())
                     {
-                        // any errors should be caught lower in the stack, this debug statement will let us know if there was an unusual failure
-                        WriteVerbose("Did not successfully uninstall all packages");
+                        // any errors should be caught lower in the stack
+                        var exMessage = "Did not successfully uninstall package";
+                        var ex = new Exception(exMessage);
+                        var UninstallPackageError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
+                        WriteError(UninstallPackageError);
                     }
                     break;
 

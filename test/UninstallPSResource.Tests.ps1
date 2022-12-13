@@ -246,7 +246,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $pkg = Get-PSResource "RequiredModule1"
         $pkg | Should -Not -Be $null
 
-        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsaDependency,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
+        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsaDependency,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource', 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
     }
 
     It "Uninstall module that is a dependency for another module using -SkipDependencyCheck" {
@@ -270,6 +270,11 @@ Describe 'Test Uninstall-PSResource for Modules' {
         Get-PSResource -Name $testModuleName -Version "2.5.0-beta" | Uninstall-PSResource
         $res = Get-PSResource -Name $testModuleName -Version "2.5.0-beta"
         $res | Should -BeNullOrEmpty
+    }
+    
+    It "Uninstall module that is not installed should throw error" {
+            Uninstall-PSResource -Name "NonInstalledModule" -ErrorVariable ev -ErrorAction SilentlyContinue
+            $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
     }
 
     # Windows only
