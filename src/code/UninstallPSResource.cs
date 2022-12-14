@@ -194,12 +194,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // show uninstall progress info
                 int activityId = 0;
-                int percentComplete = ((currentUninstalledDirCount * 100) / totalDirs);
                 string activity = string.Format("Uninstalling {0}...", pkgName);
                 string statusDescription = string.Format("{0}/{1} directory uninstalling...", currentUninstalledDirCount, totalDirs);
-                ProgressRecord pr = new ProgressRecord(activityId, activity, statusDescription);
-                pr.PercentComplete = percentComplete;
-                this.WriteProgress(pr);
+                this.WriteProgress(new ProgressRecord(activityId, activity, statusDescription));
 
                 ErrorRecord errRecord = null;
                 if (pkgPath.EndsWith(PSScriptFileExt))
