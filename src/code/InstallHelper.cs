@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
-            bool sourceTrusted = true;
+            bool sourceTrusted = false;
 
             foreach (var repo in listOfRepositories)
             {
@@ -200,7 +200,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // OR the user issues trust interactively via console.
                     if (repo.Trusted == false && !trustRepository && !_force)
                     {
-                        _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
+                        _cmdletPassedIn.WriteVerbose(string.Format("Checking if untrusted repository '{0}' should be used", repoName));
 
                         if (!(yesToAll || noToAll))
                         {
@@ -208,14 +208,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
                             sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
                         }
-                    }
 
-                    if (!sourceTrusted && !yesToAll)
-                    {
-                        continue;
+                        if (sourceTrusted || yesToAll)
+                        {
+                            _cmdletPassedIn.WriteVerbose(string.Format("Untrusted repository '{0}' accepted as trusted source.", repoName));
+                        }
+                        else
+                        {
+                            continue;
+                        }
                     }
-
-                    _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
                 }
 
                 // Select the first package from each name group, which is guaranteed to be the latest version.
