@@ -162,30 +162,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the functions that the module exports. 
         /// </summary>
+        [SupportsWildcards]
         [Parameter]
         public string[] FunctionsToExport { get; set; }
 
         /// <summary>
         /// Specifies the aliases that the module exports.
         /// </summary>
+        [SupportsWildcards]
         [Parameter]
         public string[] AliasesToExport { get; set; }
 
         /// <summary>
         /// Specifies the variables that the module exports.
         /// </summary>
+        [SupportsWildcards]
         [Parameter]
         public string[] VariablesToExport { get; set; }
 
         /// <summary>
         /// Specifies the cmdlets that the module exports. 
         /// </summary>
+        [SupportsWildcards]
         [Parameter]
         public string[] CmdletsToExport { get; set; }
 
         /// <summary>
         /// Specifies the Desired State Configuration (DSC) resources that the module exports. 
         /// </summary>
+        [SupportsWildcards]
         [Parameter]
         public string[] DscResourcesToExport { get; set; }
 

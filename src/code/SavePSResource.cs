@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Version { get; set; }
 
         /// <summary>
-        /// Specifies to allow saveing of prerelease versions
+        /// Specifies to allow saving of prerelease versions
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         public SwitchParameter Prerelease { get; set; }
@@ -55,6 +55,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the specific repositories to search within.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = NameParameterSet)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]

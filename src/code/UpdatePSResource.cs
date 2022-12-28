@@ -58,6 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies one or more repository names to update packages from.
         /// If not specified, search will include all currently registered repositories in order of highest priority.
         /// </summary>
+        [SupportsWildcards]
         [Parameter]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]

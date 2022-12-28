@@ -54,8 +54,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public ResourceType Type { get; set; }
 
         /// <summary>
-        /// Specifies the version of the resource to be found and returned.
+        /// Specifies the version of the resource to be found and returned. Wildcards are supported.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ParameterSetName = CommandNameParameterSet)]
         [Parameter(ParameterSetName = DscResourceNameParameterSet)]
@@ -73,20 +74,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a module resource package name type to search for. Wildcards are supported.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = CommandNameParameterSet)]
         [Parameter(ParameterSetName = DscResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] ModuleName { get; set; }
 
         /// <summary>
-        /// Specifies a list of command names that searched module packages will provide. Wildcards are supported.
+        /// Specifies a list of command names that searched module packages will provide.
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = CommandNameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] CommandName { get; set; }
 
         /// <summary>
-        /// Specifies a list of dsc resource names that searched module packages will provide. Wildcards are supported.
+        /// Specifies a list of dsc resource names that searched module packages will provide.
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = DscResourceNameParameterSet)]
         [ValidateNotNullOrEmpty]
@@ -104,6 +106,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies one or more repository names to search. If not specified, search will include all currently registered repositories.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = ResourceNameParameterSet)]
         [Parameter(ParameterSetName = CommandNameParameterSet)]
         [Parameter(ParameterSetName = DscResourceNameParameterSet)]
