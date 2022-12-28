@@ -61,7 +61,7 @@ body:
     label: Environment data
     description: Paste verbatim output from `Get-Module PowerShellGet; $PSVersionTable` below.
     render: powershell
-    placeholder: PS> Get-Module PowerShellGet; $PSVersionTable
+    placeholder: PS> Get-Module PowerShellGet; $PSVersionTable | Format-Table
   validations:
     required: true
 - type: textarea
