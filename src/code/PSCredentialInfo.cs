@@ -31,6 +31,30 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Credential = credential;
         }
 
+		/// <summary>
+        /// Initializes a new instance of the PSCredentialInfo class with
+        /// containing vaultName and secretName of type string, and
+        /// (optionally) credential of type PSCredential from a Hashtable.
+        /// </summary>
+        /// <param name="hashtable"></param>
+        public PSCredentialInfo(Hashtable hashtable)
+		{
+			if (!(hashtable.ContainsKey("VaultName") && (hashtable.ContainsKey("SecretName") || hashtable.ContainsKey("Name"))))
+            {
+				throw new ArgumentException("Credential Information must contain the keys 'VaultName' and 'SecretName'!");
+			}
+            VaultName = hashtable["VaultName"] as string;
+			if (hashtable.ContainsKey("SecretName"))
+				SecretName = hashtable["SecretName"] as string;
+			else
+				SecretName = hashtable["Name"] as string;
+
+			if (hashtable.ContainsKey("Credential") && hashtable["PSCredential"] is PSCredential psCred)
+			{
+				Credential = psCred;
+			}
+		}
+
         /// <summary>
         /// Initializes a new instance of the PSCredentialInfo class with
         /// vaultName and secretName of type string, and
@@ -46,7 +70,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             VaultName = (string) psObject.Properties[PSCredentialInfo.VaultNameAttribute]?.Value;
             SecretName = (string) psObject.Properties[PSCredentialInfo.SecretNameAttribute]?.Value;
-
+			if (String.IsNullOrEmpty(SecretName))
+				SecretName = (string) psObject.Properties["Name"]?.Value;
+			
             var credentialAttr = psObject.Properties[PSCredentialInfo.CredentialAttribute]?.Value;
             if (credentialAttr is string credStr)
             {
@@ -117,38 +143,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         internal static readonly string VaultNameAttribute = nameof(VaultName);
         internal static readonly string SecretNameAttribute = nameof(SecretName);
         internal static readonly string CredentialAttribute = nameof(Credential);
-
-        #endregion
-    }
-
-    class PSCredentialInfoTransformAttribute : ArgumentTransformationAttribute {
-
-        #region Methods
-        
-        public override object Transform(EngineIntrinsics engineIntrinsics, object inputData)
-        {
-            if (inputData is Hashtable)
-            {
-                var ht = inputData as Hashtable;
-
-                if (ht.ContainsKey("VaultName") && ht.ContainsKey("SecretName"))
-                {
-                    return new PSCredentialInfo(ht["VaultName"] as string, ht["SecretName"] as string);
-                }
-                else
-                {
-                    throw new ArgumentTransformationMetadataException();
-                }
-            }
-            else if (inputData is PSObject)
-            {
-                return inputData;
-            }
-            else
-            {
-                throw new ArgumentTransformationMetadataException();
-            }
-        }
 
         #endregion
     }
