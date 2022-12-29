@@ -400,13 +400,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         foreach (string fileNamePath in System.IO.Directory.GetFiles(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
                         {
                             // if file is hidden, do not copy it over
-                            System.IO.FileAttributes attributes = File.GetAttributes(fileNamePath);
-                            if ((attributes & FileAttributes.Hidden) == FileAttributes.Hidden) {
-                                continue;
-                            }
+                            //System.IO.FileAttributes attributes = File.GetAttributes(fileNamePath);
+                            //if ((attributes & FileAttributes.Hidden) == FileAttributes.Hidden) {
+                            //    continue;
+                            //}
 
-                            var fileName = fileNamePath.Substring(fileNamePath.Length).Trim(_PathSeparators);
-                            var newFilePath = System.IO.Path.Combine(outputDir, fileName);
+                            //var fileName = fileNamePath.Substring(fileNamePath.Length).Trim(_PathSeparators);
+                            //var newFilePath = System.IO.Path.Combine(outputDir, fileName);
+                            FileInfo fileInfo = new FileInfo(fileNamePath);
+                            var newFilePath = System.IO.Path.Combine(outputDir, fileInfo.Name);
                             // The user may have a .nuspec defined in the module directory
                             // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
                             // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
