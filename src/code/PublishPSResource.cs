@@ -399,19 +399,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Copy files over to temp folder
                         foreach (string fileNamePath in System.IO.Directory.GetFiles(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
                         {
-                            FileInfo fileInfo = new FileInfo(fileNamePath);
+                            // if file is hidden, do not copy it over
+                            System.IO.FileAttributes attributes = File.GetAttributes(fileNamePath);
+                            if ((attributes & FileAttributes.Hidden) == FileAttributes.Hidden) {
+                                continue;
+                            }
 
-                            var newFilePath = System.IO.Path.Combine(outputDir, fileInfo.Name);
+                            var fileName = fileNamePath.Substring(fileNamePath.Length).Trim(_PathSeparators);
+                            var newFilePath = System.IO.Path.Combine(outputDir, fileName);
                             // The user may have a .nuspec defined in the module directory
                             // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
                             // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
+
                             if (!File.Exists(newFilePath))
                             {
                                 System.IO.File.Copy(fileNamePath, newFilePath);
                             }
                         }
-
-
                     }
                     catch (Exception e)
                     {
