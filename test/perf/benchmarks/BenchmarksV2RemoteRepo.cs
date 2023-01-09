@@ -27,7 +27,7 @@ namespace Benchmarks
             pwsh.Invoke();
         }
 		
-        [GloblaCleanup]
+        [GlobalCleanup]
         public void IterationCleanup()
         {
             pwsh.Dispose();

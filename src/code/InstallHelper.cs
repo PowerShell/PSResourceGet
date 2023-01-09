@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
-            bool sourceTrusted = true;
+            bool sourceTrusted = false;
 
             foreach (var repo in listOfRepositories)
             {
@@ -173,27 +173,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
-
-                // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
-                // OR the user issues trust interactively via console.
-                if (repo.Trusted == false && !trustRepository && !_force)
-                {
-                    _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
-
-                    if (!(yesToAll || noToAll))
-                    {
-                        // Prompt for installation of package from untrusted repository
-                        var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
-                        sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
-                    }
-                }
-
-                if (!sourceTrusted && !yesToAll)
-                {
-                    continue;
-                }
-
-                _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
 
                 // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
                 var isLocalRepo = repo.Uri.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
@@ -213,6 +192,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
                     continue;
+                }
+                else
+                {
+                    // Check trust for repository where package was found.
+                    // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
+                    // OR the user issues trust interactively via console.
+                    if (repo.Trusted == false && !trustRepository && !_force)
+                    {
+                        _cmdletPassedIn.WriteVerbose(string.Format("Checking if untrusted repository '{0}' should be used", repoName));
+
+                        if (!(yesToAll || noToAll))
+                        {
+                            // Prompt for installation of package from untrusted repository
+                            var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
+                            sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
+                        }
+
+                        if (sourceTrusted || yesToAll)
+                        {
+                            _cmdletPassedIn.WriteVerbose(string.Format("Untrusted repository '{0}' accepted as trusted source.", repoName));
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
                 }
 
                 // Select the first package from each name group, which is guaranteed to be the latest version.
@@ -355,11 +360,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!_quiet)
                     {
                         int activityId = 0;
-                        int percentComplete = ((currentInstalledPkgCount * 100) / totalPkgs);
                         string activity = string.Format("Installing {0}...", pkg.Name);
-                        string statusDescription = string.Format("{0}% Complete", percentComplete);
-                        _cmdletPassedIn.WriteProgress(
-                            new ProgressRecord(activityId, activity, statusDescription));
+                        string statusDescription = string.Format("{0}/{1} package installing...", currentInstalledPkgCount, totalPkgs);
+                        _cmdletPassedIn.WriteProgress(new ProgressRecord(activityId, activity, statusDescription));
                     }
 
                     // Create PackageIdentity in order to download

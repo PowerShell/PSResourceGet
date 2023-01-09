@@ -17,6 +17,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
     public sealed class PSScriptFileInfo
     {
         #region Properties
+        
         public PSScriptMetadata ScriptMetadataComment { get; set; }
 
         public PSScriptHelp ScriptHelpComment { get; set; }

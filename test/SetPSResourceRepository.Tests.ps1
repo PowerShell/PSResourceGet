@@ -302,4 +302,19 @@ Describe "Test Set-PSResourceRepository" {
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res.CredentialInfo | Should -BeNullOrEmpty
     }
+
+    It "set repository with a hashtable passed in as CredentialInfo" {
+        $hashtable = @{VaultName = "testvault"; SecretName = $randomSecret}
+
+        $newRandomSecret = [System.IO.Path]::GetRandomFileName()
+        $newHashtable = @{VaultName = "testvault"; SecretName = $newRandomSecret}
+
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $hashtable 
+        Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $newHashtable 
+
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+        $res.CredentialInfo.VaultName | Should -Be "testvault"
+        $res.CredentialInfo.SecretName | Should -Be $newRandomSecret
+        $res.CredentialInfo.Credential | Should -BeNullOrEmpty
+    }
 }

@@ -1,0 +1,39 @@
+<#PSScriptInfo
+
+.VERSION 1.0.0.0
+
+.GUID 465905fb-e242-4ead-a186-ea2ecf37d280
+
+.AUTHOR alyssavu
+
+.COMPANYNAME 
+
+.COPYRIGHT 
+
+.TAGS 
+
+.LICENSEURI 
+
+.PROJECTURI www.powershellgallery.com/api/v2 
+
+.ICONURI 
+
+.EXTERNALMODULEDEPENDENCIES 
+
+.REQUIREDSCRIPTS 
+
+.EXTERNALSCRIPTDEPENDENCIES 
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+
+#>
+<#
+
+.DESCRIPTION
+This is a test file for a script with invalid ProjectUri
+
+#>

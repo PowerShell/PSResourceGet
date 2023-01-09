@@ -380,4 +380,15 @@ Describe "Test Register-PSResourceRepository" {
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res | Should -BeNullOrEmpty
     }
+
+    It "should register a repository with a hashtable passed in as CredentialInfo" {
+        $hashtable = @{VaultName = "testvault"; SecretName = $randomSecret}
+
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $hashtable 
+
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+        $res.CredentialInfo.VaultName | Should -Be "testvault"
+        $res.CredentialInfo.SecretName | Should -Be $randomSecret
+        $res.CredentialInfo.Credential | Should -BeNullOrEmpty
+    }
 }
