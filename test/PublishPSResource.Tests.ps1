@@ -182,9 +182,12 @@ Describe "Test Publish-PSResource" {
         New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -Force
 
         Publish-PSResource -Path $script:PublishModuleBase
-
-        $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        $unzippedPath = Join-Path -Path $TestDrive -ChildPath "tmpPathForPreservingFileStructure\$script:PublishModuleName"
+        
+        # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
+        $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
+        Rename-Item -Path $nupkgPath -NewName $zipPath 
+        $unzippedPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName"
         New-Item $unzippedPath -Itemtype directory -Force
         Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
 
