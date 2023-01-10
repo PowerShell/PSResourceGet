@@ -274,7 +274,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
-                // validate that the module manifest has correct data
+                // Validate that the module manifest has correct data
                 if (! Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
                 {
                     ThrowTerminatingError(new ErrorRecord(
@@ -369,7 +369,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // copy the script file to the temp directory
                     File.Copy(pathToScriptFileToPublish, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
-
                 }
                 else
                 {
@@ -399,8 +398,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 File.Copy(fileNamePath, newFilePath);
                             }
                         }
-
-
                     }
                     catch (Exception e)
                     {
