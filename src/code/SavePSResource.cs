@@ -271,14 +271,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             var installedPkgs = _installHelper.InstallPackages(
-                names: namesToSave,
-                versionRange: _versionRange,
-                prerelease: pkgPrerelease,
-                repository: pkgRepository,
-                acceptLicense: true,
-                quiet: Quiet,
-                reinstall: true,
-                force: false,
+                names: namesToSave, 
+                versionRange: _versionRange, 
+                versionString: Version,
+                prerelease: pkgPrerelease, 
+                repository: pkgRepository, 
+                acceptLicense: true, 
+                quiet: Quiet, 
+                reinstall: true, 
+                force: false, 
                 trustRepository: TrustRepository,
                 credential: Credential,
                 noClobber: false,

@@ -613,6 +613,19 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                         metadata[key] = isPrerelease;
                     }
+                    else if (key.Equals("NormalizedVersion"))
+                    {
+                        if (!NuGetVersion.TryParse(value, out NuGetVersion parsedNormalizedVersion))
+                        {
+                            errorMsg = string.Format(
+                                CultureInfo.InvariantCulture,
+                                @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+
+                            parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                        }
+
+                        metadata[key] = parsedNormalizedVersion;
+                    }
                     else 
                     {
                         metadata[key] = value;
@@ -623,10 +636,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var resourceHashtable = new Hashtable();
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+
+                var additionalMetadataHashtable = new Dictionary<string, string>();
+                additionalMetadataHashtable.Add("NormalizedVersion", metadata["NormalizedVersion"].ToString());
+
                 var includes = new ResourceIncludes(resourceHashtable);
 
                 psGetInfo = new PSResourceInfo(
-                    additionalMetadata: null,
+                    additionalMetadata: additionalMetadataHashtable,
                     author: metadata["Authors"] as String,
                     companyName: metadata["CompanyName"] as String,
                     copyright: metadata["Copyright"] as String,
