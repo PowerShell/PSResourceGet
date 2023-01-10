@@ -538,6 +538,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             // Note: For a single version, we have 1 or more name, with or without globbing
+            // TODO: do we mean 2nd condition to be !?
+            // scenario: specific version (case 1) or no version (case 2, for which we get latest version)
             if (nugetVersion != null || string.IsNullOrEmpty(_version))
             {
                 foreach (string pkgName in _pkgsLeftToFind.ToArray())
@@ -549,7 +551,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         continue;
                     }
 
-                    if (pkgName.Contains('*'))
+                    if (pkgName.Equals("*"))
+                    {
+                        if (nugetVersion != null)
+                        { 
+                            // TODO: write error about name "*" -Version X not being supported. Version must be empty
+                            continue;
+                        }
+
+                        PSResourceInfo[] foundPkgs = _httpFindPSResource.FindAll(repository, _prerelease, _type, out string errRecord);
+                        foreach (PSResourceInfo pkg in foundPkgs)
+                        {
+                            yield return pkg;
+                        }
+                    }
+
+                    else if (pkgName.Contains('*'))
                     {
                         // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
                         if (string.IsNullOrEmpty(_version))
@@ -614,7 +631,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         // TODO: deal with errRecord and making FindVesionGlobbing yield single packages instead of returning an array.
-                        PSResourceInfo[] foundPkgs =  _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, _type, out string errRecord);
+                        PSResourceInfo[] foundPkgs =  _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, _type, getOnlyLatest: false, out string errRecord);
                         foreach (PSResourceInfo pkg in foundPkgs)
                         {
                             yield return pkg;
