@@ -178,16 +178,15 @@ Describe "Test Publish-PSResource" {
     It "Publish a module and preserve file structure" {
         $version = "1.0.0"
         $testFile = Join-Path -Path "TestSubDirectory" -ChildPath "TestSubDirFile.ps1"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @{ModuleName = "$script:DependencyModuleName"; ModuleVersion = "$dependencyVersion" }
-        New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -ItemType "file" -Force  
-        
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -Force
+
         Publish-PSResource -Path $script:PublishModuleBase
 
         $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         $unzippedPath = Join-Path -Path $TestDrive -ChildPath "tmpPathForPreservingFileStructure\$script:PublishModuleName"
         New-Item $unzippedPath -Itemtype directory -Force
-
-        Expand-Archive -Path $zipPath -DestinationPath $unzippedPkgPath
+        Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
 
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
     }
