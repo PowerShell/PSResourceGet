@@ -3,7 +3,7 @@
 
 @{
     RootModule        = './netstandard2.0/PowerShellGet.dll'
-    ModuleVersion     = '3.0.17'
+    ModuleVersion     = '3.0.18'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'
     CompanyName       = 'Microsoft Corporation'
@@ -35,7 +35,7 @@
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData = @{
         PSData = @{
-            Prerelease = 'beta17'
+            Prerelease = 'beta18'
             Tags = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
