@@ -175,6 +175,25 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath).FullName | select-object -Last 1 | Should -Be $expectedPath
     }
     
+    It "Publish a module and preserve file structure" {
+        $version = "1.0.0"
+        $testFile = Join-Path -Path "TestSubDirectory" -ChildPath "TestSubDirFile.ps1"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -Force
+
+        Publish-PSResource -Path $script:PublishModuleBase
+        
+        # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
+        $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
+        Rename-Item -Path $nupkgPath -NewName $zipPath 
+        $unzippedPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName"
+        New-Item $unzippedPath -Itemtype directory -Force
+        Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
+
+        Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
+    }
+
     <# The following tests are related to passing in parameters to customize a nuspec.
      # These parameters are not going in the current release, but is open for discussion to include in the future.
     It "Publish a module with -Nuspec" {

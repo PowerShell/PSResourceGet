@@ -392,26 +392,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Create subdirectory structure in temp folder
                         foreach (string dir in System.IO.Directory.GetDirectories(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
                         {
-                            DirectoryInfo dirInfo = new DirectoryInfo(dir);
-                            System.IO.Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirInfo.Name));
+                            var dirName = dir.Substring(rootModuleDir.Length).Trim(_PathSeparators);
+                            System.IO.Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirName));
                         }
 
                         // Copy files over to temp folder
                         foreach (string fileNamePath in System.IO.Directory.GetFiles(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
                         {
-                            FileInfo fileInfo = new FileInfo(fileNamePath);
-
-                            var newFilePath = System.IO.Path.Combine(outputDir, fileInfo.Name);
+                            var fileName = fileNamePath.Substring(rootModuleDir.Length).Trim(_PathSeparators);
+                            var newFilePath = System.IO.Path.Combine(outputDir, fileName);
                             // The user may have a .nuspec defined in the module directory
                             // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
                             // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
+
                             if (!File.Exists(newFilePath))
                             {
                                 System.IO.File.Copy(fileNamePath, newFilePath);
                             }
                         }
-
-
                     }
                     catch (Exception e)
                     {
