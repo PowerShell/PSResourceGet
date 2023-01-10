@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System;
 using System.Collections;
 using System.Xml;
@@ -30,17 +31,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
         /// </summary>
-        public PSResourceInfo FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public PSResourceInfo[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            var response = v2ServerAPICall.FindAll(repository, includePrerelease, type, out errRecord);
+            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); // TODO: discuss if we want to yield return here for better performance
 
-            PSResourceInfo currentPkg = null;
-            if (!string.IsNullOrEmpty(errRecord))
+            string[] responses = v2ServerAPICall.FindAll(repository, includePrerelease, type, out errRecord);
+
+            foreach (string response in responses)
             {
-                return currentPkg;
+                var elemList = ConvertResponseToXML(response);
+
+                foreach (var element in elemList)
+                {
+                    PSResourceInfo.TryConvertFromXml(
+                        element,
+                        includePrerelease,
+                        out PSResourceInfo psGetInfo,
+                        repository.Name,
+                        out string errorMsg);
+
+                    if (psGetInfo != null)
+                    {
+                        pkgsFound.Add(psGetInfo);
+                    }
+                    else 
+                    {
+                        // TODO: Write error for corresponding null scenario
+                        errRecord = errorMsg;
+                    }
+                }
             }
 
-            return currentPkg;
+            return pkgsFound.ToArray();
         }
 
         /// <summary>
@@ -55,8 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             errRecord = String.Empty;
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
             HashSet<string> tagPkgs = new HashSet<string>();   
-            tagsFound = new HashSet<string>();   
-            int skip = 0;
+            tagsFound = new HashSet<string>();
 
             // TAG example:
             // chocolatey, crescendo 
@@ -65,7 +86,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // --->   for tags get rid of duplicate modules             
             foreach (string tag in tags)
             {
-                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, skip, out errRecord);
+                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
 
                 foreach (string response in responses)
                 {
@@ -122,40 +143,44 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (string tag in tags)
             {
-                string response = v2ServerAPICall.FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, out errRecord);
-
-                var elemList = ConvertResponseToXML(response);
+                string[] responses = v2ServerAPICall.FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, out errRecord);
                 
-                foreach (var element in elemList)
+                foreach (string response in responses)
                 {
-                    PSResourceInfo.TryConvertFromXml(
-                        element,
-                        includePrerelease,
-                        out PSResourceInfo psGetInfo,
-                        repository.Name,
-                        out string errorMsg);
+                    var elemList = ConvertResponseToXML(response);
+                    
+                    foreach (var element in elemList)
+                    {
+                        PSResourceInfo.TryConvertFromXml(
+                            element,
+                            includePrerelease,
+                            out PSResourceInfo psGetInfo,
+                            repository.Name,
+                            out string errorMsg);
 
-                    if (psGetInfo != null )
-                    {
-                        // Map the tag with the package which the tag came from 
-                        if (!pkgHash.Contains(psGetInfo.Name))
+                        if (psGetInfo != null )
                         {
-                            pkgHash.Add(psGetInfo.Name, Tuple.Create<List<string>, PSResourceInfo>(new List<string> { tag }, psGetInfo)); 
+                            // Map the tag with the package which the tag came from 
+                            if (!pkgHash.Contains(psGetInfo.Name))
+                            {
+                                pkgHash.Add(psGetInfo.Name, Tuple.Create<List<string>, PSResourceInfo>(new List<string> { tag }, psGetInfo)); 
+                            }
+                            else
+                            {
+                                // if the package is already in the hashtable, add this tag to the list of tags associated with that package
+                                Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>)pkgHash[psGetInfo.Name];
+                                hashValue.Item1.Add(tag);
+                            }
                         }
-                        else {
-                            // if the package is already in the hashtable, add this tag to the list of tags associated with that package
-                            Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>)pkgHash[psGetInfo.Name];
-                            hashValue.Item1.Add(tag);
+                        else 
+                        {
+                            // TODO: Write error for corresponding null scenario
+                            // TODO: array out of bounds exception when name does not exist
+                            // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
+                            errRecord = errorMsg;
                         }
                     }
-                    else 
-                    {
-                        // TODO: Write error for corresponding null scenario
-                        // TODO: array out of bounds exception when name does not exist
-                        // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
-                        errRecord = errorMsg;
-                    }
-                }               
+                }             
             }
 
             // convert hashtable to PSCommandInfo
@@ -233,27 +258,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            List<string> responses = new List<string>();
-            int skip = 0;
-
-            var initialResponse = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, skip, out errRecord);
-            responses.Add(initialResponse);
-
-            // check count (regex)  425 ==> count/100  ~~>  4 calls 
-            int initalCount = GetCountFromResponse(initialResponse);  // count = 4
-            int count = initalCount / 100;
-            // if more than 100 count, loop and add response to list
-            while (count > 0)
-            {
-                // skip 100
-                skip += 100;
-                var tmpResponse = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, skip, out errRecord);
-                responses.Add(tmpResponse);
-                count--;
-            }
-
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); // TODO: discuss if we want to yield return here for better performance
-
+            string[] responses = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out errRecord);
+            
             foreach (string response in responses)
             {
                 var elemList = ConvertResponseToXML(response);
@@ -290,26 +297,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
         {
-            List<string> responses = new List<string>();
-            int skip = 0;
-
-            var initialResponse = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, out errRecord);
-            responses.Add(initialResponse);
-
-            int initalCount = GetCountFromResponse(initialResponse);
-            int count = initalCount / 100;
-
-            while (count > 0)
-            {
-                // skip 100
-                skip += 100;
-                var tmpResponse = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, out errRecord);
-                responses.Add(tmpResponse);
-                count--;
-            }
-
+            string[] responses = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, getOnlyLatest, out errRecord);
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
             
             foreach (string response in responses)

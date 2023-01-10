@@ -13,7 +13,7 @@ public interface IFindPSResource
     /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
     /// </summary>
-    PSResourceInfo FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    PSResourceInfo[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
@@ -55,7 +55,7 @@ public interface IFindPSResource
     /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
     /// </summary>
-    PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with specific version.
