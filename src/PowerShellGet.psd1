@@ -45,6 +45,21 @@
             ProjectUri = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 3.0.18-beta18
+
+### New Features
+- Add Get-PSScriptFileInfo cmdlet (#839)
+- Allow CredentialInfo parameter to accept a hashtable  (#836)
+
+### Bug Fixes
+- Publish-PSResource now preserves folder and file structure (#882)
+- Fix verbose message for untrusted repos gaining trust (#841)
+- Fix for Update-PSResource attempting to reinstall latest preview version (#834)
+- Add SupportsWildcards() attribute to parameters accepting wildcards (#833)
+- Perform Repository trust check when installing a package (#831)
+- Fix casing of `PSResource` in `Install-PSResource` (#820)
+- Update .nuspec 'license' property to 'licenseUrl' (#850)
+
 ## 3.0.17-beta17
 
 ### New Features
