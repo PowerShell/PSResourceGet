@@ -6,6 +6,28 @@
 - Add Get-PSScriptFileInfo cmdlet (#839)
 - Allow CredentialInfo parameter to accept a hashtable  (#836)
 - Automate updating `CHANGELOG.md` file (#817)
+- Add Get-PSScriptFileInfo cmdlet (#839)
+- Allow CredentialInfo parameter to accept a hashtable  (#836)
+- Automate updating `CHANGELOG.md` file (#817)
+
+### Bug Fixes
+- fix verbose message for untrusted repos gaining trust (#841)
+- Bugfix for Update cmdlet attempting to reinstall latest preview version (#834)
+- Add SupportsWildcards() attribute to parameters accepting wildcards (#833)
+- Perform Repository Trust Check at Install, not Search, Time (#831)
+- Fix casing of `PSResource` in `Install-PSResource` (#820)
+- fix verbose message for untrusted repos gaining trust (#841)
+- Bugfix for Update cmdlet attempting to reinstall latest preview version (#834)
+- Add SupportsWildcards() attribute to parameters accepting wildcards (#833)
+- Perform Repository Trust Check at Install, not Search, Time (#831)
+- Fix casing of `PSResource` in `Install-PSResource` (#820)
+
+## 3.0.18-beta18
+
+### New Features
+- Add Get-PSScriptFileInfo cmdlet (#839)
+- Allow CredentialInfo parameter to accept a hashtable  (#836)
+- Automate updating `CHANGELOG.md` file (#817)
 
 ### Bug Fixes
 - fix verbose message for untrusted repos gaining trust (#841)
