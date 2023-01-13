@@ -15,8 +15,9 @@ Publishes a specified module from the local computer to PSResource repository.
 
 ```
 Publish-PSResource -Path <string> [-ApiKey <string>] [-Repository <string>]
- [-DestinationPath <string>] [-Credential <pscredential>] [-SkipDependenciesCheck] [-Proxy <uri>]
- [-ProxyCredential <pscredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-DestinationPath <string>] [-Credential <pscredential>] [-SkipDependenciesCheck]
+ [-SkipModuleManifestValidate] [-Proxy <uri>] [-ProxyCredential <pscredential>] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -165,6 +166,22 @@ Accept wildcard characters: False
 ### -SkipDependenciesCheck
 
 Bypasses the default check that all dependencies are present in the target repository.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SkipModuleManifestValidate
+
+Bypasses testing a resource module manifest before publishing.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter

@@ -77,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public SwitchParameter SkipDependenciesCheck { get; set; }
 
         /// <summary>
-        /// Skips testing a resource module manifest before publishing.
+        /// Bypasses testing a resource module manifest before publishing.
         /// </summary>
         [Parameter]
         public SwitchParameter SkipModuleManifestValidate { get; set; }
