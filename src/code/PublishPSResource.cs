@@ -74,8 +74,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Bypasses the default check that all dependencies are present.
         /// </summary>
         [Parameter]
-        [ValidateNotNullOrEmpty]
         public SwitchParameter SkipDependenciesCheck { get; set; }
+
+        /// <summary>
+        /// Skips testing a resource module manifest before publishing.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipModuleManifestValidate { get; set; }
 
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
@@ -275,7 +280,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // Validate that the module manifest has correct data
-                if (! Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
+                if (! SkipModuleManifestValidate && 
+                    ! Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
                 {
                     ThrowTerminatingError(new ErrorRecord(
                         new PSInvalidOperationException(errorMsg),
