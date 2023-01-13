@@ -2147,6 +2147,17 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>SkipModuleManifestValidate</maml:name>
+          <maml:description>
+            <maml:para>Bypasses testing a resource module manifest before publishing.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
           <maml:name>Confirm</maml:name>
           <maml:description>
@@ -2260,6 +2271,18 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <maml:name>SkipDependenciesCheck</maml:name>
         <maml:description>
           <maml:para>Bypasses the default check that all dependencies are present in the target repository.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>SkipModuleManifestValidate</maml:name>
+        <maml:description>
+          <maml:para>Bypasses testing a resource module manifest before publishing.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
         <dev:type>
