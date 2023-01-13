@@ -45,9 +45,6 @@
             ProjectUri = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
-## 3.0.18-beta19
-- Make resource publish module manifest file test optional (#891)
-
 ## 3.0.18-beta18
 
 ### New Features

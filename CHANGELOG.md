@@ -2,11 +2,6 @@
 
 ## 3.0.18-beta18
 
-### Bug Fixes
-- Make resource publish module manifest file test optional (#891)
-
-## 3.0.18-beta18
-
 ### New Features
 - Add Get-PSScriptFileInfo cmdlet (#839)
 - Allow CredentialInfo parameter to accept a hashtable (#836)
