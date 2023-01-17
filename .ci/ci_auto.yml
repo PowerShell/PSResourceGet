@@ -15,6 +15,9 @@ schedules:
 
 variables:
   - group: ESRP
+  # Prevents auto-injection of nuget-security-analysis (not needed for open source projects)
+  - name: skipNugetSecurityAnalysis
+    value: true
 
 resources:
   repositories:
@@ -38,7 +41,6 @@ stages:
 
     - pwsh: |
         Get-ChildItem -Path env:
-        Get-ChildItem -Path env:
       displayName: Capture environment for build
       condition: succeededOrFailed()
 
@@ -57,27 +59,18 @@ stages:
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         Write-Verbose -Verbose "Install PowerShellGet V3 to temp module path"
-        Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.0-beta10 -AllowPrerelease -Force
-        Write-Verbose -Verbose "Install PlatyPS to temp module path"
-        Save-Module -Name "platyPS" -Path $modulePath -Force
-        Write-Verbose -Verbose "Install PSScriptAnalyzer to temp module path"
-        Save-Module -Name "PSScriptAnalyzer" -Path $modulePath -RequiredVersion 1.18.0 -Force
-        Write-Verbose -Verbose "Install Pester 5.X to temp module path"
-        Save-Module -Name "Pester" -MinimumVersion 5.0 -Path $modulePath -Repository PSGallery -Force
-        Write-Verbose -Verbose "Install PSPackageProject to temp module path"
-        Save-Module -Name PSPackageProject -Path $modulePath -Force
-      displayName: Install PSPackageProject and dependencies
+        Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.18-beta18 -AllowPrerelease -Force
+      displayName: Install PowerShellGetV3
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
         #
         # Build for netstandard2.0 framework
         $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'netstandard2.0'
-      displayName: Build and publish artifact
+      displayName: Build module
 
     - pwsh: |
         $signSrcPath = "$($config.BuildOutputPath)"
@@ -95,11 +88,9 @@ stages:
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-
-        $config = Get-PSPackageProjectConfiguration
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
 
         # Created files signing directory
         $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
@@ -161,11 +152,9 @@ stages:
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-
-        $config = Get-PSPackageProjectConfiguration
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
 
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
         if (! (Test-Path -Path $signOutPath)) {
@@ -219,11 +208,10 @@ stages:
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
-
-        $config = Get-PSPackageProjectConfiguration
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        #
+        $config = Get-BuildConfiguration
 
         $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
@@ -258,18 +246,32 @@ stages:
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        $modPath = Join-Path -Path $modulePath -ChildPath PSPackageProject
-        Write-Verbose -Verbose "Importing PSPackageProject from: $modPath"
-        Import-Module -Name $modPath -Force
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
         #
-        $config = Get-PSPackageProjectConfiguration
+        if ($env:ShouldSign -ne 'True')
+        {
+          $(Build.SourcesDirectory)/build.ps1 -Publish
+        }
+        else
+        {
+          $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+        }
+      displayName: Publish module nuget package and upload package artifact
+      condition: succeeded()
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        #
+        $config = Get-BuildConfiguration
         $artifactName = "$($config.ModuleName)"
         $srcModulePath = Resolve-Path -Path "$($config.SignedOutputPath)/$($config.ModuleName)"
         Get-ChildItem $srcModulePath
         Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$srcModulePath"
-        #
-        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
-      displayName: Create signed module artifact
+      displayName: Upload module artifact
 
 - stage: Compliance
   displayName: Compliance
