@@ -69,9 +69,10 @@ function DoBuild
             Write-Verbose -Verbose -Message "DotNet version: $(& ($dotnetCommand) --version)"
 
             # Build source
-            Write-Verbose -Verbose -Message "Building with configuration: $BuildConfiguration, framework: $BuildFramework"
             Write-Verbose -Verbose -Message "Build location: PSScriptRoot: $PSScriptRoot, PWD: $pwd"
-            & ($dotnetCommand) publish --configuration $BuildConfiguration --framework $BuildFramework --output $BuildSrcPath -warnaserror
+            $buildCommand = "$($dotnetCommand.Name) publish --configuration $BuildConfiguration --framework $BuildFramework --output $BuildSrcPath"
+            Write-Verbose -Verbose -Message "Starting dotnet build command: $buildCommand"
+            Invoke-Expression -Command $buildCommand
             if ($LASTEXITCODE -ne 0) {
                 throw "Build failed with exit code: $LASTEXITCODE"
             }
