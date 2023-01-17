@@ -3,6 +3,7 @@ parameters:
   imageName: windows-latest
   displayName: PowerShell Core on Windows
   powershellExecutable: pwsh
+  buildDirectory: '.'
 
 jobs:
 - job: ${{ parameters.jobName }}
