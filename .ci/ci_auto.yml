@@ -92,6 +92,100 @@ stages:
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
         $config = Get-BuildConfiguration
 
+        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
+        if (! (Test-Path -Path $signOutPath)) {
+          $null = New-Item -Path $signOutPath -ItemType Directory
+        }
+
+        # Third party files signing directory
+        $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
+        $thirdPartySignSrcPath = "$($config.BuildOutputPath)\ThirdParty"
+        if (! (Test-Path -Path $thirdPartySignSrcPath)) {
+          $null = New-Item -Path $thirdPartySignSrcPath -ItemType Directory -Verbose
+        }
+        
+        # NetStandard directory
+        $netStandardPath = Join-Path -Path $thirdPartySignSrcPath -ChildPath "netstandard2.0"
+        if (! (Test-Path -Path $netStandardPath)) {
+          $null = New-Item -Path $netStandardPath -ItemType Directory -Verbose
+        }
+        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0") -Filter '*.dll' | Foreach-Object {
+          if ($_.Name -ne 'PowerShellGet.dll') {
+            $sig = Get-AuthenticodeSignature -FilePath $_.FullName
+            if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
+              # Copy for third party signing
+              Copy-Item -Path $_.FullName -Dest $netStandardPath -Force -Verbose
+            }
+          }
+        }
+
+        # Set signing src path variable
+        $vstsCommandString = "vso[task.setvariable variable=signSrcPath]${thirdPartySignSrcPath}"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+
+        # Set signing out path variable
+        $vstsCommandString = "vso[task.setvariable variable=signOutPath]${signOutPath}"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+      displayName: Set up for module third party files code signing
+      condition: succeeded()
+
+    - template: EsrpSign.yml@ComplianceRepo
+      parameters:
+        buildOutputPath: $(signSrcPath)
+        signOutputPath: $(signOutPath)
+        certificateId: "CP-231522"
+        shouldSign: $(ShouldSign)
+        pattern: |
+          **\*.dll
+        useMinimatch: true
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        #
+        $config = Get-BuildConfiguration
+
+        $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
+        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
+        if (! (Test-Path -Path $signOutPath)) {
+          $null = New-Item -Path $signOutPath -ItemType Directory
+        }
+
+        # en-US
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "en-US") -Dest $signOutPath -Recurse
+        # Copy Notice.txt
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Notice.txt") -Dest $signOutPath
+        # Copy LICENSE
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "LICENSE") -Dest $signOutPath
+
+        # NetStandard directory
+        $netStandardSignedOutPath = Join-Path -Path $signOutPath -ChildPath "netstandard2.0"
+        if (! (Test-Path -Path $netStandardSignedOutPath)) {
+          $null = New-Item -Path $netStandardSignedOutPath -ItemType Directory -Verbose
+        }
+        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0") -Filter '*.dll' | Foreach-Object {
+          if ($_.Name -ne 'PowerShellGet.dll') {
+            $sig = Get-AuthenticodeSignature -FilePath $_.FullName
+            if ($sig.Status -eq 'Valid' -and ($sig.SignerCertificate.Subject -like '*Microsoft*' -and $sig.SignerCertificate.Issuer -like '*Microsoft Code Signing PCA*')) {
+              # Copy already signed files directly to output
+              Copy-Item -Path $_.FullName -Dest $netStandardSignedOutPath -Force -Verbose
+            }
+          }
+        }
+      displayName: Copy already properly signed third party files
+      condition: succeeded()
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
+
         # Created files signing directory
         $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
         $createdSignSrcPath = "$($config.BuildOutputPath)\CreatedFiles"
@@ -142,105 +236,11 @@ stages:
         certificateId: "CP-460906"
         shouldSign: $(ShouldSign)
         pattern: |
-          out\CreatedFiles\**\*.dll
+          **\*.dll
           **\*.psd1
           **\*.psm1
           **\*.ps1xml
         useMinimatch: true
-
-    - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
-        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
-        $config = Get-BuildConfiguration
-
-        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
-        if (! (Test-Path -Path $signOutPath)) {
-          $null = New-Item -Path $signOutPath -ItemType Directory
-        }
-
-        # Third party files signing directory
-        $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
-        $thirdPartySignSrcPath = "$($config.BuildOutputPath)\ThirdParty"
-        if (! (Test-Path -Path $thirdPartySignSrcPath)) {
-          $null = New-Item -Path $thirdPartySignSrcPath -ItemType Directory -Verbose
-        }
-        
-        # NetStandard directory
-        $netStandardPath = Join-Path -Path $thirdPartySignSrcPath -ChildPath "netstandard2.0"
-        if (! (Test-Path -Path $netStandardPath)) {
-          $null = New-Item -Path $netStandardPath -ItemType Directory -Verbose
-        }
-        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0") -Filter '*.dll' | Foreach-Object {
-          if ($_.Name -ne 'PowerShellGet.dll') {
-            $sig = Get-AuthenticodeSignature -FilePath $_.FullName
-            if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
-              # Copy for third party signing
-              Copy-Item -Path $_.FullName -Dest $netStandardPath -Force -Verbose
-            }
-          }
-        }
-
-        # Set signing src path variable
-        $vstsCommandString = "vso[task.setvariable variable=signSrcPath]${thirdPartySignSrcPath}"
-        Write-Host "sending " + $vstsCommandString
-        Write-Host "##$vstsCommandString"
-
-        # Set signing out path variable
-        $vstsCommandString = "vso[task.setvariable variable=signOutPath]${signOutPath}"
-        Write-Host "sending " + $vstsCommandString
-        Write-Host "##$vstsCommandString"
-      displayName: Set up for module third party files code signing
-      condition: succeeded()
-
-    - template: EsrpSign.yml@ComplianceRepo
-      parameters:
-        buildOutputPath: $(signSrcPath)
-        signOutputPath: $(signOutPath)
-        certificateId: "CP-231522"
-        shouldSign: $(ShouldSign)
-        pattern: |
-          out\ThirdParty\**\*.dll
-        useMinimatch: true
-
-    - pwsh: |
-        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
-        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
-        #
-        $config = Get-BuildConfiguration
-
-        $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
-        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
-        if (! (Test-Path -Path $signOutPath)) {
-          $null = New-Item -Path $signOutPath -ItemType Directory
-        }
-
-        # en-US
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "en-US") -Dest $signOutPath -Recurse
-        # Copy Notice.txt
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Notice.txt") -Dest $signOutPath
-        # Copy LICENSE
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "LICENSE") -Dest $signOutPath
-
-        # NetStandard directory
-        $netStandardSignedOutPath = Join-Path -Path $signOutPath -ChildPath "netstandard2.0"
-        if (! (Test-Path -Path $netStandardSignedOutPath)) {
-          $null = New-Item -Path $netStandardSignedOutPath -ItemType Directory -Verbose
-        }
-        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0") -Filter '*.dll' | Foreach-Object {
-          if ($_.Name -ne 'PowerShellGet.dll') {
-            $sig = Get-AuthenticodeSignature -FilePath $_.FullName
-            if ($sig.Status -eq 'Valid' -and ($sig.SignerCertificate.Subject -like '*Microsoft*' -and $sig.SignerCertificate.Issuer -like '*Microsoft Code Signing PCA*')) {
-              # Copy already signed files directly to output
-              Copy-Item -Path $_.FullName -Dest $netStandardSignedOutPath -Force -Verbose
-            }
-          }
-        }
-      displayName: Copy already properly signed third party files
-      condition: succeeded()
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
