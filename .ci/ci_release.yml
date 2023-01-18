@@ -79,7 +79,6 @@ stages:
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
-
         $config = Get-BuildConfiguration
 
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
@@ -121,6 +120,18 @@ stages:
       displayName: Set up for module third party files code signing
       condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
+
+        $thirdPartySignSrcPath = "$($config.BuildOutputPath)\ThirdParty"
+        Get-ChildItem -Path $thirdPartySignSrcPath -Recurse 
+      displayName: Capture third party files for signing
+      condition: succeededOrFailed()
+
     - template: EsrpSign.yml@ComplianceRepo
       parameters:
         buildOutputPath: $(signSrcPath)
@@ -129,6 +140,18 @@ stages:
         pattern: |
           **\*.dll
         useMinimatch: true
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
+
+        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
+        Get-ChildItem -Path $signOutPath -Recurse 
+      displayName: Capture third party signed files output
+      condition: succeededOrFailed()
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -173,6 +196,18 @@ stages:
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
+
+        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
+        Get-ChildItem -Path $signOutPath -Recurse 
+      displayName: Capture other third party files copied
+      condition: succeededOrFailed()
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
 
         $config = Get-BuildConfiguration
 
@@ -189,7 +224,7 @@ stages:
         if (! (Test-Path -Path $netStandardPath)) {
           $null = New-Item -Path $netStandardPath -ItemType Directory -Verbose
         }
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0\PowerShellGet.*") -Dest $netStandardPath -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0\PowerShellGet.dll") -Dest $netStandardPath -Force -Verbose
         
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
         if (! (Test-Path -Path $signOutPath)) {
@@ -201,22 +236,23 @@ stages:
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
 
-        $outSignPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
-        if (! (Test-Path -Path $outSignPath)) {
-          $null = New-Item -Path $outSignPath -ItemType Directory -Verbose
-        }
-
         # Set signing out path variable
-        $vstsCommandString = "vso[task.setvariable variable=signOutPath]${outSignPath}"
+        $vstsCommandString = "vso[task.setvariable variable=signOutPath]${signOutPath}"
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
       displayName: Set up for module created files code signing
       condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
     - pwsh: |
-        Get-ChildItem -Path env:
-        Get-ChildItem -Path . -Recurse -Directory
-      displayName: Capture environment for code signing
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
+
+        $createdSignSrcPath = "$($config.BuildOutputPath)\CreatedFiles"
+        Get-ChildItem -Path $createdSignSrcPath -Recurse 
+      displayName: Capture created files to sign source
       condition: succeededOrFailed()
 
     - template: EsrpSign.yml@ComplianceRepo
@@ -230,6 +266,18 @@ stages:
           **\*.psm1
           **\*.ps1xml
         useMinimatch: true
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
+
+        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
+        Get-ChildItem -Path $signOutPath -Recurse 
+      displayName: Capture all signed files output
+      condition: succeededOrFailed()
 
     - ${{ if ne(variables.SkipSigning, 'True') }}:
       - template: Sbom.yml@ComplianceRepo
