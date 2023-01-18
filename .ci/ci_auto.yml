@@ -142,11 +142,10 @@ stages:
         certificateId: "CP-460906"
         shouldSign: $(ShouldSign)
         pattern: |
-          **\*.dll
+          out\CreatedFiles\**\*.dll
           **\*.psd1
           **\*.psm1
           **\*.ps1xml
-          **\*.mof
         useMinimatch: true
 
     - pwsh: |
@@ -202,7 +201,7 @@ stages:
         certificateId: "CP-231522"
         shouldSign: $(ShouldSign)
         pattern: |
-          **\*.dll
+          out\ThirdParty\**\*.dll
         useMinimatch: true
 
     - pwsh: |
