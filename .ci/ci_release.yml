@@ -131,11 +131,10 @@ stages:
         signOutputPath: $(signOutPath)
         certificateId: "CP-230012"
         pattern: |
-          **\*.dll
+          out\CreatedFiles\**\*.dll
           **\*.psd1
           **\*.psm1
           **\*.ps1xml
-          **\*.mof
         useMinimatch: true
 
     - pwsh: |
@@ -191,7 +190,7 @@ stages:
         signOutputPath: $(signOutPath)
         certificateId: "CP-231522"
         pattern: |
-          **\*.dll
+          out\ThirdParty\**\*.dll
         useMinimatch: true
 
     - pwsh: |
