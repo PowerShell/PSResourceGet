@@ -207,12 +207,12 @@ stages:
         Write-Host "##$vstsCommandString"
 
         $signOutPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'CreatedFilesOut'
-        if (! (Test-Path -Path $outSignPath)) {
-          $null = New-Item -Path $outSignPath -ItemType Directory -Verbose
+        if (! (Test-Path -Path $signOutPath)) {
+          $null = New-Item -Path $signOutPath -ItemType Directory -Verbose
         }
 
         # Set signing out path variable
-        $vstsCommandString = "vso[task.setvariable variable=signOutPath]${outSignPath}"
+        $vstsCommandString = "vso[task.setvariable variable=signOutPath]${signOutPath}"
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
       displayName: Set up for module created files code signing
