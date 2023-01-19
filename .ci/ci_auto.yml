@@ -206,7 +206,7 @@ stages:
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
 
-        $outSignPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
+        $signOutPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'CreatedFilesOut'
         if (! (Test-Path -Path $outSignPath)) {
           $null = New-Item -Path $outSignPath -ItemType Directory -Verbose
         }
@@ -236,6 +236,19 @@ stages:
           **\*.psm1
           **\*.ps1xml
         useMinimatch: true
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
+
+        $signSrcPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'CreatedFilesOut'
+        $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
+        Copy-Item -Path "$signSrcPath/*" -Dest $signOutPath -Recurse -Force -Verbose
+      displayName: Copy signed created files to output
+      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
