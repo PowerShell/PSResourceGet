@@ -188,7 +188,7 @@ stages:
 
         # Created files signing directory
         $srcPath = "$($config.BuildOutputPath)\$($config.ModuleName)"
-        $createdSignSrcPath = "$($config.BuildOutputPath)\CreatedFiles"
+        $createdSignSrcPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'CreatedFiles'
         if (! (Test-Path -Path $createdSignSrcPath)) {
           $null = New-Item -Path $createdSignSrcPath -ItemType Directory -Verbose
         }
