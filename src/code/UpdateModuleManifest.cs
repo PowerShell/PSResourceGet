@@ -136,7 +136,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] FormatsToProcess { get; set; }
 
         /// <summary>
-        /// Specifies script (.ps1) files that run in the caller's session state when the module is imported. 
+        /// Specifies script (.ps1) files that run in the caller's session state when the module is imported.
         /// </summary>
         [Parameter]
         public string[] ScriptsToProcess { get; set; }
@@ -160,7 +160,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public Object[] ModuleList { get; set; }
 
         /// <summary>
-        /// Specifies the functions that the module exports. 
+        /// Specifies the functions that the module exports.
         /// </summary>
         [SupportsWildcards]
         [Parameter]
@@ -181,14 +181,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] VariablesToExport { get; set; }
 
         /// <summary>
-        /// Specifies the cmdlets that the module exports. 
+        /// Specifies the cmdlets that the module exports.
         /// </summary>
         [SupportsWildcards]
         [Parameter]
         public string[] CmdletsToExport { get; set; }
 
         /// <summary>
-        /// Specifies the Desired State Configuration (DSC) resources that the module exports. 
+        /// Specifies the Desired State Configuration (DSC) resources that the module exports.
         /// </summary>
         [SupportsWildcards]
         [Parameter]
@@ -213,7 +213,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public Uri LicenseUri { get; set; }
 
         /// <summary>
-        /// Specifies the URL of an icon for the module. 
+        /// Specifies the URL of an icon for the module.
         /// </summary>
         [Parameter]
         public Uri IconUri { get; set; }
@@ -232,16 +232,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Prerelease { get; set; }
 
         /// <summary>
-        /// Specifies the internet address of the module's HelpInfo XML file. 
+        /// Specifies the internet address of the module's HelpInfo XML file.
         /// </summary>
         [Parameter]
         public Uri HelpInfoUri { get; set; }
-
-        /// <summary>
-        /// Returns an object representing the item with which you're working. 
-        /// </summary>
-        [Parameter]
-        public SwitchParameter PassThru { get; set; }
 
         /// <summary>
         /// Specifies the default command prefix.
@@ -256,13 +250,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] ExternalModuleDependencies { get; set; }
 
         /// <summary>
-        /// Specifies that a license acceptance is required for the module. 
+        /// Specifies that a license acceptance is required for the module.
         /// </summary>
         [Parameter]
         public SwitchParameter RequireLicenseAcceptance { get; set; }
 
         /// <summary>
-        /// Specifies data that is passed to the module when it's imported. 
+        /// Specifies data that is passed to the module when it's imported.
         /// </summary>
         [Parameter]
         public Hashtable PrivateData { get; set; }
@@ -301,10 +295,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                        targetObject: this));
             }
 
-            // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance, 
-            // and ExternalModuleDependencies are all properties within a hashtable property called 'PSData' 
-            // which is within another hashtable property called 'PrivateData' 
-            // All of the properties mentioned above have their own parameter in 'New-ModuleManifest', so 
+            // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance,
+            // and ExternalModuleDependencies are all properties within a hashtable property called 'PSData'
+            // which is within another hashtable property called 'PrivateData'
+            // All of the properties mentioned above have their own parameter in 'New-ModuleManifest', so
             // we will parse out these values from the parsedMetadata and create entries for each one in individualy.
             // This way any values that were previously specified here will get transfered over to the new manifest.
             // Example of the contents of PSData:
@@ -379,13 +373,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 parsedMetadata["ExternalModuleDependencies"] = PSData["ExternalModuleDependencies"];
             }
-            
-            // Now we need to remove 'PSData' becaues if we leave this value in the hashtable, 
+
+            // Now we need to remove 'PSData' becaues if we leave this value in the hashtable,
             // New-ModuleManifest will keep this value and also attempt to create a new value for 'PSData'
             // and then complain that there's two keys within the PrivateData hashtable.
             PrivateData.Remove("PSData");
 
-            // After getting the original module manifest contents, migrate all the fields to the new module manifest, 
+            // After getting the original module manifest contents, migrate all the fields to the new module manifest,
 
             // adding in any new values specified via cmdlet parameters.
             // Set up params to pass to New-ModuleManifest module
@@ -575,7 +569,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 parsedMetadata["ExternalModuleDependencies"] = ExternalModuleDependencies;
             }
-            
+
             // create a tmp path to create the module manifest
             string tmpParentPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
             try
