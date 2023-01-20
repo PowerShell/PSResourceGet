@@ -248,7 +248,7 @@ stages:
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
         Copy-Item -Path "$signSrcPath/*" -Dest $signOutPath -Recurse -Force -Verbose
       displayName: Copy signed created files to output
-      condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
+      condition: and(succeeded(), eq(variables['ShouldSign'], 'True'))
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
