@@ -233,7 +233,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
                 if (!_reinstall)
                 {
-                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
+                    pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall, _pkgNamesToInstall);
                 }
 
                 if (pkgsFromRepoToInstall.Count is 0)
@@ -273,7 +273,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
-        private List<PSResourceInfo> FilterByInstalledPkgs(List<PSResourceInfo> packages)
+        private List<PSResourceInfo> FilterByInstalledPkgs(List<PSResourceInfo> packages, List<string> pkgNamesToInstall)
         {
             // Package install paths.
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable).
@@ -310,12 +310,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    // Remove from tracking list of packages to install.
-                    _cmdletPassedIn.WriteWarning(
-                        string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
-                        pkg.Name,
-                        pkg.Version));
+                    // Only write warning if the package is not a dependency package being installed.
+                    if (pkgNamesToInstall.Contains(pkg.Name)) {
+                        _cmdletPassedIn.WriteWarning(
+                            string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
+                            pkg.Name,
+                            pkg.Version));
+                    }
+                    else {
+                        _cmdletPassedIn.WriteVerbose(
+                            string.Format("Dependency resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
+                            pkg.Name,
+                            pkg.Version));
+                    }
 
+                    // Remove from tracking list of packages to install.
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
             }
