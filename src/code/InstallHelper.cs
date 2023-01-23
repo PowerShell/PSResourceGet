@@ -566,7 +566,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         // If NoClobber is specified, ensure command clobbering does not happen
-                        if (_noClobber && !DetectClobber(pkg.Name, parsedMetadataHashtable))
+                        if (_noClobber && DetectClobber(pkg.Name, parsedMetadataHashtable))
                         {
                             continue;
                         }
@@ -754,19 +754,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 versionRange: VersionRange.All,
                 pathsToSearch: _pathsToSearch,
                 selectPrereleaseOnly: false);
-            // user parsed metadata hash
+            // User parsed metadata hash.
             List<string> listOfCmdlets = new List<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
             {
                 listOfCmdlets.Add(cmdletName as string);
+            }
 
+            // Exit early if there's no cmdlets in the package to be installed.
+            if (listOfCmdlets.Count == 0) 
+            {
+                return foundClobber;
             }
 
             foreach (var pkg in pkgsAlreadyInstalled)
             {
                 List<string> duplicateCmdlets = new List<string>();
                 List<string> duplicateCmds = new List<string>();
-                // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed
+                // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed.
                 if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
                 {
                     duplicateCmdlets = listOfCmdlets.Where(cmdlet => pkg.Includes.Cmdlet.Contains(cmdlet)).ToList();
