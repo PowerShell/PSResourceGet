@@ -13,12 +13,10 @@ Downloads and installs the newest version of a package already installed on the 
 
 ## SYNTAX
 
-### __AllParameterSets
-
 ```
-Update-PSResource [[-Name] <string[]>] [-Version <string>] [-Prerelease] [-Repository <string[]>]
- [-Scope <ScopeType>] [-TemporaryPath <string>] [-TrustRepository] [-Credential <pscredential>] [-Quiet] [-AcceptLicense]
- [-Force] [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm]
+Update-PSResource [[-Name] <String[]>] [-Version <String>] [-Prerelease] [-Repository <String[]>]
+ [-Scope <ScopeType>] [-TemporaryPath <String>] [-TrustRepository] [-Credential <PSCredential>] [-Quiet]
+ [-AcceptLicense] [-Force] [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
 
@@ -344,11 +342,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

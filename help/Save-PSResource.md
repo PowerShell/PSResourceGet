@@ -2,7 +2,7 @@
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -13,21 +13,25 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 
 ## SYNTAX
 
-### NameParameterSet
-
+### IncludeXmlParameterSet (Default)
 ```
-Save-PSResource [-Name] <string[]> [-Version <string>] [-Prerelease] [-Repository <string[]>]
- [-Credential <pscredential>] [-AsNupkg] [-IncludeXML] [-Path <string>] [-TemporaryPath <string>] [-TrustRepository]
- [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-Quiet] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
+ [-Credential <PSCredential>] [-IncludeXml] -Path <String> [-TemporaryPath <String>] [-TrustRepository]
+ [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### AsNupkgParameterSet
+```
+Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
+ [-Credential <PSCredential>] [-AsNupkg] -Path <String> [-TemporaryPath <String>] [-TrustRepository]
+ [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
-
 ```
-Save-PSResource [-InputObject] <PSResourceInfo> [-Credential <pscredential>] [-AsNupkg]
- [-IncludeXML] [-Path <string>] [-TrustRepository] [-PassThru] [-SkipDependencyCheck]
- [-AuthenticodeCheck] [-Quiet] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-PSResource [-Credential <PSCredential>] -Path <String> [-TemporaryPath <String>] [-TrustRepository]
+ [-PassThru] -InputObject <PSResourceInfo> [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -83,7 +87,7 @@ Saves the resource as a `.nupkg` file.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: AsNupkgParameterSet
 Aliases:
 
 Required: False
@@ -125,23 +129,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeXML
-
-Includes the **PowerShellGet** metadata XML used to verify that **PowerShellGet** has installed a
-module.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -InputObject
 
 Used for pipeline input.
@@ -164,7 +151,7 @@ The name of one or more resources to install.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: NameParameterSet
+Parameter Sets: IncludeXmlParameterSet, AsNupkgParameterSet
 Aliases:
 
 Required: True
@@ -228,23 +215,7 @@ When specified, includes prerelease versions in search results returned.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: NameParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Quiet
-
-Supresses progress information.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: IncludeXmlParameterSet, AsNupkgParameterSet
 Aliases:
 
 Required: False
@@ -265,7 +236,7 @@ Lower **Priority** values have a higher precedence.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: NameParameterSet
+Parameter Sets: IncludeXmlParameterSet, AsNupkgParameterSet
 Aliases:
 
 Required: False
@@ -324,7 +295,7 @@ minimum inclusive range, use `[1.0.0.0, ]` as the version range.
 
 ```yaml
 Type: System.String
-Parameter Sets: NameParameterSet
+Parameter Sets: IncludeXmlParameterSet, AsNupkgParameterSet
 Aliases:
 
 Required: False
@@ -366,12 +337,25 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### CommonParameters
+### -IncludeXml
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+Includes the **PowerShellGet** metadata XML used to verify that **PowerShellGet** has installed a
+module.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: IncludeXmlParameterSet
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### CommonParameters
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

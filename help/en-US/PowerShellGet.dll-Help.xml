@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <helpItems schema="maml" xmlns="http://msh">
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
     <command:details>
@@ -50,7 +50,7 @@
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
           <maml:name>ModuleName</maml:name>
           <maml:description>
             <maml:para>Specifies a module resource package name type to search for. Wildcards are supported.</maml:para>
@@ -152,7 +152,7 @@
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
           <maml:name>ModuleName</maml:name>
           <maml:description>
             <maml:para>Specifies a module resource package name type to search for. Wildcards are supported.</maml:para>
@@ -378,7 +378,7 @@
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
         <maml:name>ModuleName</maml:name>
         <maml:description>
           <maml:para>Specifies a module resource package name type to search for. Wildcards are supported.</maml:para>
@@ -679,7 +679,7 @@ Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of ta
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
           <maml:name>Version</maml:name>
           <maml:description>
             <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -732,7 +732,7 @@ Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of ta
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
         <maml:name>Version</maml:name>
         <maml:description>
           <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -955,198 +955,23 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
     <command:details>
-      <command:name>Install-PSResource</command:name>
-      <command:verb>Install</command:verb>
-      <command:noun>PSResource</command:noun>
+      <command:name>Get-PSResourceRepository</command:name>
+      <command:verb>Get</command:verb>
+      <command:noun>PSResourceRepository</command:noun>
       <maml:description>
-        <maml:para>Installs resources from a registered repository.</maml:para>
+        <maml:para>Finds and returns registered repository information.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>This cmdlet installs resources from a registered repository to an installation path on a machine. By default, the cmdlet doesn't return any object. Other parameters allow you to specify the repository, scope, and version for a resource, and suppress license prompts.</maml:para>
-      <maml:para>This cmdlet combines the functions of the `Install-Module` and `Install-Script` cmdlets from PowerShellGet v2.</maml:para>
+      <maml:para>This cmdlet searches for PowerShell resource repositories that are registered on the machine. By default, it returns all registered repositories.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
-        <maml:name>Install-PSResource</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AcceptLicense</maml:name>
-          <maml:description>
-            <maml:para>Specifies that the resource should accept any request to accept the license agreement. This suppresses prompting if the module mandates that a user accept the license agreement.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AuthenticodeCheck</maml:name>
-          <maml:description>
-            <maml:para>Validates Authenticode signatures and catalog files on Windows.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Credential</maml:name>
-          <maml:description>
-            <maml:para>Optional credentials used when accessing a repository.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Management.Automation.PSCredential</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-          <maml:name>InputObject</maml:name>
-          <maml:description>
-            <maml:para>Used for pipeline input.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</command:parameterValue>
-          <dev:type>
-            <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoClobber</maml:name>
-          <maml:description>
-            <maml:para>Prevents installing a package that contains cmdlets that already exist on the machine.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TemporaryPath</maml:name>
-          <maml:description>
-            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Quiet</maml:name>
-          <maml:description>
-            <maml:para>Suppresses installation progress bar.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Reinstall</maml:name>
-          <maml:description>
-            <maml:para>Installs the latest version of a module even if the latest version is already installed. The installed version is overwritten. This allows you to repair a damaged installation of the module.</maml:para>
-            <maml:para>If an older version of the module is installed, the new version is installed side-by-side in a new version-specific folder.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Scope</maml:name>
-          <maml:description>
-            <maml:para>Specifies the installation scope. Accepted values are:</maml:para>
-            <maml:para>- `CurrentUser`</maml:para>
-            <maml:para>- `AllUsers`</maml:para>
-            <maml:para></maml:para>
-            <maml:para>The default scope is `CurrentUser`, which doesn't require elevation for install.</maml:para>
-            <maml:para>The `AllUsers` scope installs modules in a location accessible to all users of the computer. For example:</maml:para>
-            <maml:para>- `$env:ProgramFiles\PowerShell\Modules`</maml:para>
-            <maml:para>The `CurrentUser` installs modules in a location accessible only to the current user of the computer. For example:</maml:para>
-            <maml:para>- `$home\Documents\PowerShell\Modules`</maml:para>
-          </maml:description>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" command:variableLength="false">CurrentUser</command:parameterValue>
-            <command:parameterValue required="false" command:variableLength="false">AllUsers</command:parameterValue>
-          </command:parameterValueGroup>
-          <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</command:parameterValue>
-          <dev:type>
-            <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>SkipDependencyCheck</maml:name>
-          <maml:description>
-            <maml:para>Skips the check for resource dependencies. Only found resources are installed. No resources of the found resource are installed.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TrustRepository</maml:name>
-          <maml:description>
-            <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
-          <maml:name>Confirm</maml:name>
-          <maml:description>
-            <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="wi">
-          <maml:name>WhatIf</maml:name>
-          <maml:description>
-            <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem>
-        <maml:name>Install-PSResource</maml:name>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <maml:name>Get-PSResourceRepository</maml:name>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>The name of one or more resources to install.</maml:para>
+            <maml:para>The name of the repository to search for. Wildcards are supported. Tab completion for this parameter cycles through the registered repository names.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
           <dev:type>
@@ -1154,608 +979,14 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AcceptLicense</maml:name>
-          <maml:description>
-            <maml:para>Specifies that the resource should accept any request to accept the license agreement. This suppresses prompting if the module mandates that a user accept the license agreement.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AuthenticodeCheck</maml:name>
-          <maml:description>
-            <maml:para>Validates Authenticode signatures and catalog files on Windows.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Credential</maml:name>
-          <maml:description>
-            <maml:para>Optional credentials used when accessing a repository.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Management.Automation.PSCredential</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoClobber</maml:name>
-          <maml:description>
-            <maml:para>Prevents installing a package that contains cmdlets that already exist on the machine.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TemporaryPath</maml:name>
-          <maml:description>
-            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Prerelease</maml:name>
-          <maml:description>
-            <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Quiet</maml:name>
-          <maml:description>
-            <maml:para>Suppresses installation progress bar.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Reinstall</maml:name>
-          <maml:description>
-            <maml:para>Installs the latest version of a module even if the latest version is already installed. The installed version is overwritten. This allows you to repair a damaged installation of the module.</maml:para>
-            <maml:para>If an older version of the module is installed, the new version is installed side-by-side in a new version-specific folder.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Repository</maml:name>
-          <maml:description>
-            <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
-            <maml:para>If not specified, search includes all registered repositories, in priority order (highest first), until a repository is found that contains the package.</maml:para>
-            <maml:para>Lower Priority values have a higher precedence.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Scope</maml:name>
-          <maml:description>
-            <maml:para>Specifies the installation scope. Accepted values are:</maml:para>
-            <maml:para>- `CurrentUser`</maml:para>
-            <maml:para>- `AllUsers`</maml:para>
-            <maml:para></maml:para>
-            <maml:para>The default scope is `CurrentUser`, which doesn't require elevation for install.</maml:para>
-            <maml:para>The `AllUsers` scope installs modules in a location accessible to all users of the computer. For example:</maml:para>
-            <maml:para>- `$env:ProgramFiles\PowerShell\Modules`</maml:para>
-            <maml:para>The `CurrentUser` installs modules in a location accessible only to the current user of the computer. For example:</maml:para>
-            <maml:para>- `$home\Documents\PowerShell\Modules`</maml:para>
-          </maml:description>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" command:variableLength="false">CurrentUser</command:parameterValue>
-            <command:parameterValue required="false" command:variableLength="false">AllUsers</command:parameterValue>
-          </command:parameterValueGroup>
-          <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</command:parameterValue>
-          <dev:type>
-            <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>SkipDependencyCheck</maml:name>
-          <maml:description>
-            <maml:para>Skips the check for resource dependencies. Only found resources are installed. No resources of the found resource are installed.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TrustRepository</maml:name>
-          <maml:description>
-            <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Version</maml:name>
-          <maml:description>
-            <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
-            <maml:para>For more information about NuGet version ranges, see Package versioning (/nuget/concepts/package-versioning#version-ranges).</maml:para>
-            <maml:para>PowerShellGet supports all but the minimum inclusive version listed in the NuGet version range documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum inclusive range). Instead, the value is considered to be the required version. To search for a minimum inclusive range, use `[1.0.0.0, ]` as the version range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
-          <maml:name>Confirm</maml:name>
-          <maml:description>
-            <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="wi">
-          <maml:name>WhatIf</maml:name>
-          <maml:description>
-            <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem>
-        <maml:name>Install-PSResource</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
-          <maml:name>RequiredResource</maml:name>
-          <maml:description>
-            <maml:para>A hashtable or JSON string that specifies resources to install. Wildcard characters aren't allowed. See the NOTES (#notes)section for a description of the file formats.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Object</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Object</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AcceptLicense</maml:name>
-          <maml:description>
-            <maml:para>Specifies that the resource should accept any request to accept the license agreement. This suppresses prompting if the module mandates that a user accept the license agreement.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AuthenticodeCheck</maml:name>
-          <maml:description>
-            <maml:para>Validates Authenticode signatures and catalog files on Windows.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Credential</maml:name>
-          <maml:description>
-            <maml:para>Optional credentials used when accessing a repository.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Management.Automation.PSCredential</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoClobber</maml:name>
-          <maml:description>
-            <maml:para>Prevents installing a package that contains cmdlets that already exist on the machine.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TemporaryPath</maml:name>
-          <maml:description>
-            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Quiet</maml:name>
-          <maml:description>
-            <maml:para>Suppresses installation progress bar.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Reinstall</maml:name>
-          <maml:description>
-            <maml:para>Installs the latest version of a module even if the latest version is already installed. The installed version is overwritten. This allows you to repair a damaged installation of the module.</maml:para>
-            <maml:para>If an older version of the module is installed, the new version is installed side-by-side in a new version-specific folder.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Scope</maml:name>
-          <maml:description>
-            <maml:para>Specifies the installation scope. Accepted values are:</maml:para>
-            <maml:para>- `CurrentUser`</maml:para>
-            <maml:para>- `AllUsers`</maml:para>
-            <maml:para></maml:para>
-            <maml:para>The default scope is `CurrentUser`, which doesn't require elevation for install.</maml:para>
-            <maml:para>The `AllUsers` scope installs modules in a location accessible to all users of the computer. For example:</maml:para>
-            <maml:para>- `$env:ProgramFiles\PowerShell\Modules`</maml:para>
-            <maml:para>The `CurrentUser` installs modules in a location accessible only to the current user of the computer. For example:</maml:para>
-            <maml:para>- `$home\Documents\PowerShell\Modules`</maml:para>
-          </maml:description>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" command:variableLength="false">CurrentUser</command:parameterValue>
-            <command:parameterValue required="false" command:variableLength="false">AllUsers</command:parameterValue>
-          </command:parameterValueGroup>
-          <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</command:parameterValue>
-          <dev:type>
-            <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>SkipDependencyCheck</maml:name>
-          <maml:description>
-            <maml:para>Skips the check for resource dependencies. Only found resources are installed. No resources of the found resource are installed.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TrustRepository</maml:name>
-          <maml:description>
-            <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
-          <maml:name>Confirm</maml:name>
-          <maml:description>
-            <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="wi">
-          <maml:name>WhatIf</maml:name>
-          <maml:description>
-            <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem>
-        <maml:name>Install-PSResource</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
-          <maml:name>RequiredResourceFile</maml:name>
-          <maml:description>
-            <maml:para>Path to a `.psd1` or `.json` that specifies resources to install. Wildcard characters aren't allowed. See the NOTES (#notes)section for a description of the file formats.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AcceptLicense</maml:name>
-          <maml:description>
-            <maml:para>Specifies that the resource should accept any request to accept the license agreement. This suppresses prompting if the module mandates that a user accept the license agreement.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AuthenticodeCheck</maml:name>
-          <maml:description>
-            <maml:para>Validates Authenticode signatures and catalog files on Windows.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Credential</maml:name>
-          <maml:description>
-            <maml:para>Optional credentials used when accessing a repository.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Management.Automation.PSCredential</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>NoClobber</maml:name>
-          <maml:description>
-            <maml:para>Prevents installing a package that contains cmdlets that already exist on the machine.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TemporaryPath</maml:name>
-          <maml:description>
-            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Quiet</maml:name>
-          <maml:description>
-            <maml:para>Suppresses installation progress bar.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Reinstall</maml:name>
-          <maml:description>
-            <maml:para>Installs the latest version of a module even if the latest version is already installed. The installed version is overwritten. This allows you to repair a damaged installation of the module.</maml:para>
-            <maml:para>If an older version of the module is installed, the new version is installed side-by-side in a new version-specific folder.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Scope</maml:name>
-          <maml:description>
-            <maml:para>Specifies the installation scope. Accepted values are:</maml:para>
-            <maml:para>- `CurrentUser`</maml:para>
-            <maml:para>- `AllUsers`</maml:para>
-            <maml:para></maml:para>
-            <maml:para>The default scope is `CurrentUser`, which doesn't require elevation for install.</maml:para>
-            <maml:para>The `AllUsers` scope installs modules in a location accessible to all users of the computer. For example:</maml:para>
-            <maml:para>- `$env:ProgramFiles\PowerShell\Modules`</maml:para>
-            <maml:para>The `CurrentUser` installs modules in a location accessible only to the current user of the computer. For example:</maml:para>
-            <maml:para>- `$home\Documents\PowerShell\Modules`</maml:para>
-          </maml:description>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" command:variableLength="false">CurrentUser</command:parameterValue>
-            <command:parameterValue required="false" command:variableLength="false">AllUsers</command:parameterValue>
-          </command:parameterValueGroup>
-          <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</command:parameterValue>
-          <dev:type>
-            <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>SkipDependencyCheck</maml:name>
-          <maml:description>
-            <maml:para>Skips the check for resource dependencies. Only found resources are installed. No resources of the found resource are installed.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TrustRepository</maml:name>
-          <maml:description>
-            <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
-          <maml:name>Confirm</maml:name>
-          <maml:description>
-            <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="wi">
-          <maml:name>WhatIf</maml:name>
-          <maml:description>
-            <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>AcceptLicense</maml:name>
-        <maml:description>
-          <maml:para>Specifies that the resource should accept any request to accept the license agreement. This suppresses prompting if the module mandates that a user accept the license agreement.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>AuthenticodeCheck</maml:name>
-        <maml:description>
-          <maml:para>Validates Authenticode signatures and catalog files on Windows.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Credential</maml:name>
-        <maml:description>
-          <maml:para>Optional credentials used when accessing a repository.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.PSCredential</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-        <maml:name>InputObject</maml:name>
-        <maml:description>
-          <maml:para>Used for pipeline input.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</command:parameterValue>
-        <dev:type>
-          <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>The name of one or more resources to install.</maml:para>
+          <maml:para>The name of the repository to search for. Wildcards are supported. Tab completion for this parameter cycles through the registered repository names.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
         <dev:type>
@@ -1763,264 +994,672 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>NoClobber</maml:name>
-        <maml:description>
-          <maml:para>Prevents installing a package that contains cmdlets that already exist on the machine.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>TemporaryPath</maml:name>
-        <maml:description>
-          <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Prerelease</maml:name>
-        <maml:description>
-          <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Quiet</maml:name>
-        <maml:description>
-          <maml:para>Suppresses installation progress bar.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Reinstall</maml:name>
-        <maml:description>
-          <maml:para>Installs the latest version of a module even if the latest version is already installed. The installed version is overwritten. This allows you to repair a damaged installation of the module.</maml:para>
-          <maml:para>If an older version of the module is installed, the new version is installed side-by-side in a new version-specific folder.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Repository</maml:name>
-        <maml:description>
-          <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
-          <maml:para>If not specified, search includes all registered repositories, in priority order (highest first), until a repository is found that contains the package.</maml:para>
-          <maml:para>Lower Priority values have a higher precedence.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
-        <dev:type>
-          <maml:name>System.String[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
-        <maml:name>RequiredResource</maml:name>
-        <maml:description>
-          <maml:para>A hashtable or JSON string that specifies resources to install. Wildcard characters aren't allowed. See the NOTES (#notes)section for a description of the file formats.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Object</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Object</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
-        <maml:name>RequiredResourceFile</maml:name>
-        <maml:description>
-          <maml:para>Path to a `.psd1` or `.json` that specifies resources to install. Wildcard characters aren't allowed. See the NOTES (#notes)section for a description of the file formats.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Scope</maml:name>
-        <maml:description>
-          <maml:para>Specifies the installation scope. Accepted values are:</maml:para>
-          <maml:para>- `CurrentUser`</maml:para>
-          <maml:para>- `AllUsers`</maml:para>
-          <maml:para></maml:para>
-          <maml:para>The default scope is `CurrentUser`, which doesn't require elevation for install.</maml:para>
-          <maml:para>The `AllUsers` scope installs modules in a location accessible to all users of the computer. For example:</maml:para>
-          <maml:para>- `$env:ProgramFiles\PowerShell\Modules`</maml:para>
-          <maml:para>The `CurrentUser` installs modules in a location accessible only to the current user of the computer. For example:</maml:para>
-          <maml:para>- `$home\Documents\PowerShell\Modules`</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</command:parameterValue>
-        <dev:type>
-          <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.ScopeType</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>SkipDependencyCheck</maml:name>
-        <maml:description>
-          <maml:para>Skips the check for resource dependencies. Only found resources are installed. No resources of the found resource are installed.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>TrustRepository</maml:name>
-        <maml:description>
-          <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Version</maml:name>
-        <maml:description>
-          <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
-          <maml:para>For more information about NuGet version ranges, see Package versioning (/nuget/concepts/package-versioning#version-ranges).</maml:para>
-          <maml:para>PowerShellGet supports all but the minimum inclusive version listed in the NuGet version range documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum inclusive range). Instead, the value is considered to be the required version. To search for a minimum inclusive range, use `[1.0.0.0, ]` as the version range.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
-        <maml:name>Confirm</maml:name>
-        <maml:description>
-          <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="wi">
-        <maml:name>WhatIf</maml:name>
-        <maml:description>
-          <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
     </command:parameters>
-    <command:inputTypes />
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</maml:name>
+          <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>By default, the cmdlet doesn't return any objects. When the PassThru parameter is used, the cmdlet outputs a PSResourceInfo object for the saved resource.</maml:para>
+          <maml:para></maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
     <maml:alertSet>
       <maml:alert>
-        <maml:para>The RequiredResource and RequiredResourceFile parameters are used to match PSResources matching specific criteria. You can specify the criteria using a hashtable or a JSON object. For the RequiredResourceFile parameter, the hashtable is stored in a `.psd1` file and the JSON object is stored in a `.json` file.</maml:para>
-        <maml:para>The hashtable can contain attributes for multiple modules. The following example show the structure of the module specification:</maml:para>
         <maml:para></maml:para>
-        <maml:para></maml:para>
-        <maml:para>This example contains specifications for three modules. As you can, the module attributes are optional.</maml:para>
       </maml:alert>
     </maml:alertSet>
     <command:examples>
       <command:example>
         <maml:title>-------------------------- Example 1 --------------------------</maml:title>
-        <dev:code>Install-PSResource Az</dev:code>
+        <dev:code>Get-PSResourceRepository
+
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
+PSGallery        https://www.powershellgallery.com/api/v2       False         50
+psgettestlocal   file:///c:/code/testdir                         True         50</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 2 --------------------------</maml:title>
-        <dev:code>Install-PSResource Az -Version '[7.3.0, 8.3.0]'</dev:code>
+        <dev:code>Get-PSResourceRepository -Name PSGallery
+
+Name         Uri                                        Trusted   Priority
+----         ---                                        -------   --------
+PSGallery    https://www.powershellgallery.com/api/v2     False         50</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 3 --------------------------</maml:title>
-        <dev:code>Install-PSResource Az -Reinstall</dev:code>
+        <dev:code>Get-PSResourceRepository -Name "*Gallery"
+
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
+PSGallery        https://www.powershellgallery.com/api/v2       False         50</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 4 --------------------------</maml:title>
-        <dev:code>Install-PSResource -RequiredResourceFile myRequiredModules.psd1</dev:code>
+        <dev:code>Get-PSResourceRepository -Name "PSGallery","PoshTestGallery"
+
+Name             Uri                                          Trusted   Priority
+----             ---                                          -------   --------
+PoshTestGallery  https://www.poshtestgallery.com/api/v2          True         40
+PSGallery        https://www.powershellgallery.com/api/v2       False         50</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
+    <command:details>
+      <command:name>New-PSScriptFileInfo</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>PSScriptFileInfo</command:noun>
+      <maml:description>
+        <maml:para>The cmdlet creates a new script file, including metadata about the script.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>The cmdlet creates a new script file containing the required metadata needed to publish a script package.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>New-PSScriptFileInfo</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>The filename and location where the script is created.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Author</maml:name>
+          <maml:description>
+            <maml:para>The name of the author of the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>CompanyName</maml:name>
+          <maml:description>
+            <maml:para>The name of the company owning the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Copyright</maml:name>
+          <maml:description>
+            <maml:para>The copyright information for the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Description</maml:name>
+          <maml:description>
+            <maml:para>The description of the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ExternalModuleDependencies</maml:name>
+          <maml:description>
+            <maml:para>The list of external module dependencies taken by this script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ExternalScriptDependencies</maml:name>
+          <maml:description>
+            <maml:para>The list of external script dependencies taken by this script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>Forces the cmdlet to overwrite any existing file.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Guid</maml:name>
+          <maml:description>
+            <maml:para>The unique identifier for the script in GUID format. If you don't provide a GUID, the cmdlet creates a new one automatically.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Guid</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Guid</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>Randomly generated</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IconUri</maml:name>
+          <maml:description>
+            <maml:para>A Uniform Resource Identifier (URI) pointing to the icon associated with the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>LicenseUri</maml:name>
+          <maml:description>
+            <maml:para>The URI pointing to the license agreement file associated with the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PrivateData</maml:name>
+          <maml:description>
+            <maml:para>The private data associated with the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ProjectUri</maml:name>
+          <maml:description>
+            <maml:para>The URI pointing to the project site associated with the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ReleaseNotes</maml:name>
+          <maml:description>
+            <maml:para>The release notes for the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RequiredModules</maml:name>
+          <maml:description>
+            <maml:para>The parameter takes an array of module specification hashtables. A module specification is a hashtable that has the following keys.</maml:para>
+            <maml:para>- `ModuleName` - Required Specifies the module name. - `GUID` - Optional Specifies the GUID of the module. - It's also Required to specify at least one of the three below keys.   - `ModuleVersion` - Specifies a minimum acceptable version of the module.   - `MaximumVersion` - Specifies the maximum acceptable version of the module.   - `RequiredVersion` - Specifies an exact, required version of the module. This can't be used with     the other Version keys.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Collections.Hashtable[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Collections.Hashtable[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RequiredScripts</maml:name>
+          <maml:description>
+            <maml:para>The list of scripts required by the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Tags</maml:name>
+          <maml:description>
+            <maml:para>The tags associated with the script. Tag values are strings that should not contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Version</maml:name>
+          <maml:description>
+            <maml:para>The version of the script. If no value is provided Version defaults to `1.0.0.0`.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>1.0.0.0</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Author</maml:name>
+        <maml:description>
+          <maml:para>The name of the author of the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>CompanyName</maml:name>
+        <maml:description>
+          <maml:para>The name of the company owning the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Copyright</maml:name>
+        <maml:description>
+          <maml:para>The copyright information for the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Description</maml:name>
+        <maml:description>
+          <maml:para>The description of the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ExternalModuleDependencies</maml:name>
+        <maml:description>
+          <maml:para>The list of external module dependencies taken by this script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ExternalScriptDependencies</maml:name>
+        <maml:description>
+          <maml:para>The list of external script dependencies taken by this script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Force</maml:name>
+        <maml:description>
+          <maml:para>Forces the cmdlet to overwrite any existing file.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Guid</maml:name>
+        <maml:description>
+          <maml:para>The unique identifier for the script in GUID format. If you don't provide a GUID, the cmdlet creates a new one automatically.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Guid</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Guid</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>Randomly generated</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>IconUri</maml:name>
+        <maml:description>
+          <maml:para>A Uniform Resource Identifier (URI) pointing to the icon associated with the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>LicenseUri</maml:name>
+        <maml:description>
+          <maml:para>The URI pointing to the license agreement file associated with the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>The filename and location where the script is created.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PrivateData</maml:name>
+        <maml:description>
+          <maml:para>The private data associated with the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ProjectUri</maml:name>
+        <maml:description>
+          <maml:para>The URI pointing to the project site associated with the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ReleaseNotes</maml:name>
+        <maml:description>
+          <maml:para>The release notes for the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RequiredModules</maml:name>
+        <maml:description>
+          <maml:para>The parameter takes an array of module specification hashtables. A module specification is a hashtable that has the following keys.</maml:para>
+          <maml:para>- `ModuleName` - Required Specifies the module name. - `GUID` - Optional Specifies the GUID of the module. - It's also Required to specify at least one of the three below keys.   - `ModuleVersion` - Specifies a minimum acceptable version of the module.   - `MaximumVersion` - Specifies the maximum acceptable version of the module.   - `RequiredVersion` - Specifies an exact, required version of the module. This can't be used with     the other Version keys.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Collections.Hashtable[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Collections.Hashtable[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RequiredScripts</maml:name>
+        <maml:description>
+          <maml:para>The list of scripts required by the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Tags</maml:name>
+        <maml:description>
+          <maml:para>The tags associated with the script. Tag values are strings that should not contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Version</maml:name>
+        <maml:description>
+          <maml:para>The version of the script. If no value is provided Version defaults to `1.0.0.0`.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>1.0.0.0</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>- Example 1: Creating an empty script with minimal information -</maml:title>
+        <dev:code>New-PSScriptFileInfo -Path ./test_script.ps1 -Description "This is a test script."
+Get-Content ./test_script.ps1
+
+&lt;#PSScriptInfo
+
+.VERSION 1.0.0.0
+
+.GUID 6ec3934e-a2e0-495b-9a9c-480e555ad1d1
+
+.AUTHOR johndoe
+
+.COMPANYNAME
+
+.COPYRIGHT
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES
+
+.REQUIREDSCRIPTS
+
+.EXTERNALSCRIPTDEPENDENCIES
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+
+#&gt;
+
+&lt;#
+
+.DESCRIPTION
+This is a test script.
+
+
+#&gt;</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>-------------------------- Example 5 --------------------------</maml:title>
-        <dev:code>Install-PSResource -RequiredResource  @{
-    TestModule = @{
-        version = "[0.0.1,1.3.0]"
-        repository = "PSGallery"
-      }
-    TestModulePrerelease = @{
-        version = "[0.0.0,0.0.5]"
-        repository = "PSGallery"
-        prerelease = "true"
-    }
-    TestModule99 = @{}
-}</dev:code>
+        <maml:title>------ Example 2: Creating a script with required modules ------</maml:title>
+        <dev:code>$parameters = @{
+    Path = './test_script2.ps1'
+    Description = 'This is a test script.'
+    Version = '2.0.0.0'
+    Author = 'janedoe'
+    RequiredModules =  @(
+        @{ModuleName = "PackageManagement"; ModuleVersion = "1.0.0.0" },
+        @{ModuleName = "PSReadLine"}
+    )
+}
+New-PSScriptFileInfo @parameters
+Get-Content ./test_script2.ps1
+
+&lt;#PSScriptInfo
+
+.VERSION 2.0.0.0
+
+.GUID 7ec4832e-a4e1-562b-8a8c-241e535ad7d7
+
+.AUTHOR janedoe
+
+.COMPANYNAME
+
+.COPYRIGHT
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES
+
+.REQUIREDSCRIPTS
+
+.EXTERNALSCRIPTDEPENDENCIES
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+
+#&gt;
+
+#Requires -Module PSReadLine
+#Requires -Module @{ ModuleName = 'PackageManagement'; ModuleVersion = '1.0.0.0' }
+
+&lt;#
+
+.DESCRIPTION
+This is a test script.
+
+
+#&gt;</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -2028,11 +1667,11 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
     </command:examples>
     <command:relatedLinks>
       <maml:navigationLink>
-        <maml:linkText>Package versioning</maml:linkText>
+        <maml:linkText>PowerShellGallery Publishing Guidelines and Best Practices</maml:linkText>
         <maml:uri></maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
-        <maml:linkText>Uninstall-PSResource</maml:linkText>
+        <maml:linkText>Package manifest values that impact the PowerShell Gallery UI</maml:linkText>
         <maml:uri></maml:uri>
       </maml:navigationLink>
     </command:relatedLinks>
@@ -2169,6 +1808,17 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>SkipModuleManifestValidate</maml:name>
+          <maml:description>
+            <maml:para>{{ Fill SkipModuleManifestValidate Description }}</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
@@ -2292,6 +1942,18 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>SkipModuleManifestValidate</maml:name>
+        <maml:description>
+          <maml:para>{{ Fill SkipModuleManifestValidate Description }}</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
     </command:parameters>
     <command:inputTypes />
     <command:returnValues />
@@ -2366,9 +2028,9 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           <maml:description>
             <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that is stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">PSCredentialInfo</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo</command:parameterValue>
           <dev:type>
-            <maml:name>PSCredentialInfo</maml:name>
+            <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -2396,30 +2058,6 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
             <maml:uri />
           </dev:type>
           <dev:defaultValue>50</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Proxy</maml:name>
-          <maml:description>
-            <maml:para>The URL to a proxy server used to access repositories outside of your network.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Uri</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Uri</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>ProxyCredential</maml:name>
-          <maml:description>
-            <maml:para>The credentials required to use the proxy server.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Management.Automation.PSCredential</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Trusted</maml:name>
@@ -2454,6 +2092,17 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>{{ Fill Force Description }}</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
       <command:syntaxItem>
         <maml:name>Register-PSResourceRepository</maml:name>
@@ -2480,30 +2129,6 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
             <maml:uri />
           </dev:type>
           <dev:defaultValue>50</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Proxy</maml:name>
-          <maml:description>
-            <maml:para>The URL to a proxy server used to access repositories outside of your network.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Uri</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Uri</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>ProxyCredential</maml:name>
-          <maml:description>
-            <maml:para>The credentials required to use the proxy server.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Management.Automation.PSCredential</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PSGallery</maml:name>
@@ -2549,6 +2174,17 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>{{ Fill Force Description }}</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
       <command:syntaxItem>
         <maml:name>Register-PSResourceRepository</maml:name>
@@ -2562,30 +2198,6 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
             <maml:uri />
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Proxy</maml:name>
-          <maml:description>
-            <maml:para>The URL to a proxy server used to access repositories outside of your network.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Uri</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Uri</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>ProxyCredential</maml:name>
-          <maml:description>
-            <maml:para>The credentials required to use the proxy server.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Management.Automation.PSCredential</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Repository</maml:name>
@@ -2621,6 +2233,17 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>{{ Fill Force Description }}</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
@@ -2629,9 +2252,9 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <maml:description>
           <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that is stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">PSCredentialInfo</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo</command:parameterValue>
         <dev:type>
-          <maml:name>PSCredentialInfo</maml:name>
+          <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -2672,30 +2295,6 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           <maml:uri />
         </dev:type>
         <dev:defaultValue>50</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Proxy</maml:name>
-        <maml:description>
-          <maml:para>The URL to a proxy server used to access repositories outside of your network.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Uri</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Uri</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>ProxyCredential</maml:name>
-        <maml:description>
-          <maml:para>The credentials required to use the proxy server.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.PSCredential</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PSGallery</maml:name>
@@ -2765,6 +2364,18 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <maml:name>WhatIf</maml:name>
         <maml:description>
           <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Force</maml:name>
+        <maml:description>
+          <maml:para>{{ Fill Force Description }}</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
         <dev:type>
@@ -2887,156 +2498,6 @@ Credential     :</dev:code>
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Save-PSResource</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AsNupkg</maml:name>
-          <maml:description>
-            <maml:para>Saves the resource as a `.nupkg` file.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>AuthenticodeCheck</maml:name>
-          <maml:description>
-            <maml:para>Validates the resource's signed files and catalog files on Windows.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Credential</maml:name>
-          <maml:description>
-            <maml:para>Optional credentials used when accessing a repository.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
-          <dev:type>
-            <maml:name>System.Management.Automation.PSCredential</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>IncludeXML</maml:name>
-          <maml:description>
-            <maml:para>Includes the PowerShellGet metadata XML used to verify that PowerShellGet has installed a module.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
-          <maml:name>InputObject</maml:name>
-          <maml:description>
-            <maml:para>Used for pipeline input.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</command:parameterValue>
-          <dev:type>
-            <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Specifies the path to save the resource to.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TemporaryPath</maml:name>
-          <maml:description>
-            <maml:para>Specifies the path to temporarily install the resource before saving. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Quiet</maml:name>
-          <maml:description>
-            <maml:para>Supresses progress information.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>SkipDependencyCheck</maml:name>
-          <maml:description>
-            <maml:para>Skips the check for resource dependencies. Only found resources are installed. No resources of the found resource are installed.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>TrustRepository</maml:name>
-          <maml:description>
-            <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
-          <maml:name>Confirm</maml:name>
-          <maml:description>
-            <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="wi">
-          <maml:name>WhatIf</maml:name>
-          <maml:description>
-            <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem>
-        <maml:name>Save-PSResource</maml:name>
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
@@ -3084,17 +2545,6 @@ Credential     :</dev:code>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>IncludeXML</maml:name>
-          <maml:description>
-            <maml:para>Includes the PowerShellGet metadata XML used to verify that PowerShellGet has installed a module.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
             <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
@@ -3133,17 +2583,6 @@ Credential     :</dev:code>
           <maml:name>Prerelease</maml:name>
           <maml:description>
             <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Quiet</maml:name>
-          <maml:description>
-            <maml:para>Supresses progress information.</maml:para>
           </maml:description>
           <dev:type>
             <maml:name>System.Management.Automation.SwitchParameter</maml:name>
@@ -3224,6 +2663,290 @@ Credential     :</dev:code>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
+      <command:syntaxItem>
+        <maml:name>Save-PSResource</maml:name>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AuthenticodeCheck</maml:name>
+          <maml:description>
+            <maml:para>Validates the resource's signed files and catalog files on Windows.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Credential</maml:name>
+          <maml:description>
+            <maml:para>Optional credentials used when accessing a repository.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Management.Automation.PSCredential</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>InputObject</maml:name>
+          <maml:description>
+            <maml:para>Used for pipeline input.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</command:parameterValue>
+          <dev:type>
+            <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to save the resource to.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TemporaryPath</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to temporarily install the resource before saving. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>SkipDependencyCheck</maml:name>
+          <maml:description>
+            <maml:para>Skips the check for resource dependencies. Only found resources are installed. No resources of the found resource are installed.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TrustRepository</maml:name>
+          <maml:description>
+            <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
+          <maml:name>Confirm</maml:name>
+          <maml:description>
+            <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="wi">
+          <maml:name>WhatIf</maml:name>
+          <maml:description>
+            <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem>
+        <maml:name>Save-PSResource</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>The name of one or more resources to install.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AuthenticodeCheck</maml:name>
+          <maml:description>
+            <maml:para>Validates the resource's signed files and catalog files on Windows.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Credential</maml:name>
+          <maml:description>
+            <maml:para>Optional credentials used when accessing a repository.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Management.Automation.PSCredential</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Management.Automation.PSCredential</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>When specified, outputs a PSResourceInfo object for the saved resource.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to save the resource to.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TemporaryPath</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to temporarily install the resource before saving. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Prerelease</maml:name>
+          <maml:description>
+            <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Repository</maml:name>
+          <maml:description>
+            <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
+            <maml:para>If not specified, search includes all registered repositories, in priority order (highest first), until a repository is found that contains the package.</maml:para>
+            <maml:para>Lower Priority values have a higher precedence.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>SkipDependencyCheck</maml:name>
+          <maml:description>
+            <maml:para>Skips the check for resource dependencies. Only found resources are installed. No resources of the found resource are installed.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TrustRepository</maml:name>
+          <maml:description>
+            <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Version</maml:name>
+          <maml:description>
+            <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
+            <maml:para>For more information about NuGet version ranges, see Package versioning (/nuget/concepts/package-versioning#version-ranges).</maml:para>
+            <maml:para>PowerShellGet supports all but the minimum inclusive version listed in the NuGet version range documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum inclusive range). Instead, the value is considered to be the required version. To search for a minimum inclusive range, use `[1.0.0.0, ]` as the version range.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="cf">
+          <maml:name>Confirm</maml:name>
+          <maml:description>
+            <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="wi">
+          <maml:name>WhatIf</maml:name>
+          <maml:description>
+            <maml:para>Shows what would happen if the cmdlet runs. The cmdlet isn't run.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IncludeXml</maml:name>
+          <maml:description>
+            <maml:para>Includes the PowerShellGet metadata XML used to verify that PowerShellGet has installed a module.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
@@ -3261,18 +2984,6 @@ Credential     :</dev:code>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>IncludeXML</maml:name>
-        <maml:description>
-          <maml:para>Includes the PowerShellGet metadata XML used to verify that PowerShellGet has installed a module.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
       <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
         <maml:name>InputObject</maml:name>
@@ -3338,18 +3049,6 @@ Credential     :</dev:code>
         <maml:name>Prerelease</maml:name>
         <maml:description>
           <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>Quiet</maml:name>
-        <maml:description>
-          <maml:para>Supresses progress information.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
         <dev:type>
@@ -3434,6 +3133,18 @@ Credential     :</dev:code>
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>IncludeXml</maml:name>
+        <maml:description>
+          <maml:para>Includes the PowerShellGet metadata XML used to verify that PowerShellGet has installed a module.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
     </command:parameters>
     <command:inputTypes />
     <command:returnValues>
@@ -3498,7 +3209,7 @@ Credential     :</dev:code>
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Set-PSResourceRepository</maml:name>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName, ByValue)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
             <maml:para>Specifies the name of the repository to be modified.</maml:para>
@@ -3659,7 +3370,7 @@ Credential     :</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName, ByValue)" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
           <maml:para>Specifies the name of the repository to be modified.</maml:para>
@@ -3876,6 +3587,142 @@ Credential     :</dev:code>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Microsoft.PowerShell.SecretManagement</maml:linkText>
+        <maml:uri></maml:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
+    <command:details>
+      <command:name>Test-PSScriptFileInfo</command:name>
+      <command:verb>Test</command:verb>
+      <command:noun>PSScriptFileInfo</command:noun>
+      <maml:description>
+        <maml:para>Tests the comment-based metadata in a `.ps1` file to ensure it's valid for publication.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>This cmdlet tests the comment-based metadata in a `.ps1` file to ensure it's valid for publication to a repository.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Test-PSScriptFileInfo</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>The path to `.ps1` script file.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>The path to `.ps1` script file.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Boolean</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>---------------- Example 1: Test a valid script ----------------</maml:title>
+        <dev:code>New-PSScriptFileInfo -Path "C:\MyScripts\test_script.ps1" -Description "this is a test script"
+Test-PSScriptFileInfo -Path "C:\MyScripts\test_script.ps1"
+True</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>------ Example 2: Test an invalid script (missing Author) ------</maml:title>
+        <dev:code>Test-PSScriptFileInfo -Path "C:\MyScripts\invalid_test_script.ps1"
+Get-Content "C:\MyScripts\invalid_test_script.ps1"
+
+WARNING: The .ps1 script file passed in was not valid due to: PSScript file is missing the required
+Author property
+False
+&lt;#PSScriptInfo
+
+.VERSION 1.0.0.0
+
+.GUID 7ec4832e-a4e1-562b-8a8c-241e535ad7d7
+
+.AUTHOR
+
+.COMPANYNAME
+
+.COPYRIGHT
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES
+
+.REQUIREDSCRIPTS
+
+.EXTERNALSCRIPTDEPENDENCIES
+
+.RELEASENOTES
+
+.PRIVATEDATA
+
+#&gt;
+
+&lt;#
+
+.DESCRIPTION
+this is a test script
+
+#&gt;</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>New-PSScriptFileInfo</maml:linkText>
         <maml:uri></maml:uri>
       </maml:navigationLink>
     </command:relatedLinks>
@@ -4703,17 +4550,6 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para></maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PowerShellHostName</maml:name>
           <maml:description>
             <maml:para>Specifies the name of the PowerShell host program that the module requires. Enter the name of the host program, such as PowerShell ISE Host or ConsoleHost. Wildcards aren't permitted.</maml:para>
@@ -5191,18 +5027,6 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para></maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
       <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
         <maml:name>Path</maml:name>
@@ -5933,6 +5757,551 @@ TestModule                              1.2.0                                   
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Install-PSResource</maml:linkText>
+        <maml:uri></maml:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
+    <command:details>
+      <command:name>Update-PSScriptFileInfo</command:name>
+      <command:verb>Update</command:verb>
+      <command:noun>PSScriptFileInfo</command:noun>
+      <maml:description>
+        <maml:para>This cmdlet updates the comment-based metadata in an existing script `.ps1` file.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>This cmdlet updates the comment-based metadata in an existing script `.ps1` file. This is similar to `Update-ModuleManifest`.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Update-PSScriptFileInfo</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>The filename and location of the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Author</maml:name>
+          <maml:description>
+            <maml:para>The name of the author of the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>CompanyName</maml:name>
+          <maml:description>
+            <maml:para>The name of the company owning the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Copyright</maml:name>
+          <maml:description>
+            <maml:para>The copyright information for the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Description</maml:name>
+          <maml:description>
+            <maml:para>The description of the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ExternalModuleDependencies</maml:name>
+          <maml:description>
+            <maml:para>The list of external module dependencies taken by this script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ExternalScriptDependencies</maml:name>
+          <maml:description>
+            <maml:para>The list of external script dependencies taken by this script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Guid</maml:name>
+          <maml:description>
+            <maml:para>The unique identifier for the script in GUID format.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Guid</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Guid</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IconUri</maml:name>
+          <maml:description>
+            <maml:para>A Uniform Resource Identifier (URI) pointing to the icon associated with the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>LicenseUri</maml:name>
+          <maml:description>
+            <maml:para>The URI pointing to the license agreement file associated with the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PrivateData</maml:name>
+          <maml:description>
+            <maml:para>The private data associated with the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ProjectUri</maml:name>
+          <maml:description>
+            <maml:para>The URI pointing to the project site associated with the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ReleaseNotes</maml:name>
+          <maml:description>
+            <maml:para>The release notes for the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RemoveSignature</maml:name>
+          <maml:description>
+            <maml:para>Removes the signature from a signed `.ps1` file, allowing you to update the script. You should re-sign the after updating the file.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RequiredModules</maml:name>
+          <maml:description>
+            <maml:para>The parameter takes an array of module specification hashtables. A module specification is a hashtable that has the following keys.</maml:para>
+            <maml:para>- `ModuleName` - Required Specifies the module name. - `GUID` - Optional Specifies the GUID of the module. - It's also Required to specify at least one of the three below keys.   - `ModuleVersion` - Specifies a minimum acceptable version of the module.   - `MaximumVersion` - Specifies the maximum acceptable version of the module.   - `RequiredVersion` - Specifies an exact, required version of the module. This can't be used with     the other Version keys.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.Collections.Hashtable[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Collections.Hashtable[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>RequiredScripts</maml:name>
+          <maml:description>
+            <maml:para>The list of scripts required by the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Tags</maml:name>
+          <maml:description>
+            <maml:para>The tags associated with the script. Tag values are strings that should not contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Version</maml:name>
+          <maml:description>
+            <maml:para>The version of the script.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Author</maml:name>
+        <maml:description>
+          <maml:para>The name of the author of the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>CompanyName</maml:name>
+        <maml:description>
+          <maml:para>The name of the company owning the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Copyright</maml:name>
+        <maml:description>
+          <maml:para>The copyright information for the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Description</maml:name>
+        <maml:description>
+          <maml:para>The description of the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ExternalModuleDependencies</maml:name>
+        <maml:description>
+          <maml:para>The list of external module dependencies taken by this script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ExternalScriptDependencies</maml:name>
+        <maml:description>
+          <maml:para>The list of external script dependencies taken by this script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Guid</maml:name>
+        <maml:description>
+          <maml:para>The unique identifier for the script in GUID format.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Guid</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Guid</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>IconUri</maml:name>
+        <maml:description>
+          <maml:para>A Uniform Resource Identifier (URI) pointing to the icon associated with the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>LicenseUri</maml:name>
+        <maml:description>
+          <maml:para>The URI pointing to the license agreement file associated with the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>The filename and location of the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PrivateData</maml:name>
+        <maml:description>
+          <maml:para>The private data associated with the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ProjectUri</maml:name>
+        <maml:description>
+          <maml:para>The URI pointing to the project site associated with the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ReleaseNotes</maml:name>
+        <maml:description>
+          <maml:para>The release notes for the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RemoveSignature</maml:name>
+        <maml:description>
+          <maml:para>Removes the signature from a signed `.ps1` file, allowing you to update the script. You should re-sign the after updating the file.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>False</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RequiredModules</maml:name>
+        <maml:description>
+          <maml:para>The parameter takes an array of module specification hashtables. A module specification is a hashtable that has the following keys.</maml:para>
+          <maml:para>- `ModuleName` - Required Specifies the module name. - `GUID` - Optional Specifies the GUID of the module. - It's also Required to specify at least one of the three below keys.   - `ModuleVersion` - Specifies a minimum acceptable version of the module.   - `MaximumVersion` - Specifies the maximum acceptable version of the module.   - `RequiredVersion` - Specifies an exact, required version of the module. This can't be used with     the other Version keys.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.Collections.Hashtable[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Collections.Hashtable[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>RequiredScripts</maml:name>
+        <maml:description>
+          <maml:para>The list of scripts required by the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Tags</maml:name>
+        <maml:description>
+          <maml:para>The tags associated with the script. Tag values are strings that should not contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Version</maml:name>
+        <maml:description>
+          <maml:para>The version of the script.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>---------- Example 1: Update the version of a script ----------</maml:title>
+        <dev:code>$parameters = @{
+    FilePath = "C:\Users\johndoe\MyScripts\test_script.ps1"
+    Version = "1.0.0.0"
+    Description = "this is a test script"
+}
+New-PSScriptFileInfo @parameters
+$parameters.Version = "2.0.0.0"
+Update-PSScriptFileInfo @parameters
+Get-Content $parameters.FilePath
+
+&lt;#PSScriptInfo
+
+.VERSION 2.0.0.0
+
+.GUID 6ec3934e-a2e0-495b-9a9c-480e555ad1d1
+
+.AUTHOR johndoe
+
+.COMPANYNAME
+
+.COPYRIGHT
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES
+
+.REQUIREDSCRIPTS
+
+.EXTERNALSCRIPTDEPENDENCIES
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+#&gt;
+
+&lt;#
+
+.DESCRIPTION
+this is a test script
+
+#&gt;</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>PowerShellGallery Publishing Guidelines and Best Practices</maml:linkText>
+        <maml:uri></maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Package manifest values that impact the PowerShell Gallery UI</maml:linkText>
         <maml:uri></maml:uri>
       </maml:navigationLink>
     </command:relatedLinks>
