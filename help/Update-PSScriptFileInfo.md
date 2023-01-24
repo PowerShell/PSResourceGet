@@ -1,5 +1,5 @@
 ---
-external help file: PowerShellGet-help.xml
+external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
 online version:
@@ -13,15 +13,12 @@ This cmdlet updates the comment-based metadata in an existing script `.ps1` file
 
 ## SYNTAX
 
-### __AllParameterSets
-
 ```
-Update-PSScriptFileInfo [-Path] <string> [-Author <string>] [-CompanyName <string>]
- [-Copyright <string>] [-Description <string>] [-ExternalModuleDependencies <string[]>]
- [-ExternalScriptDependencies <string[]>] [-Guid <guid>] [-IconUri <string>]
- [-LicenseUri <string>] [-PrivateData <string>] [-ProjectUri <string>] [-ReleaseNotes <string>]
- [-RemoveSignature] [-RequiredModules <hashtable[]>] [-RequiredScripts <string[]>]
- [-Tags <string[]>] [-Version <string>] [<CommonParameters>]
+Update-PSScriptFileInfo [-Author <String>] [-CompanyName <String>] [-Copyright <String>]
+ [-Description <String>] [-ExternalModuleDependencies <String[]>] [-ExternalScriptDependencies <String[]>]
+ [-Guid <Guid>] [-IconUri <String>] [-LicenseUri <String>] [-Path] <String> [-PrivateData <String>]
+ [-ProjectUri <String>] [-ReleaseNotes <String>] [-RemoveSignature] [-RequiredModules <Hashtable[]>]
+ [-RequiredScripts <String[]>] [-Tags <String[]>] [-Version <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -89,7 +86,6 @@ Get-Content $parameters.FilePath
 this is a test script
 
 #>
-
 ```
 
 ## PARAMETERS
@@ -190,22 +186,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-
-The filename and location of the script.
-
-```yaml
-Type: System.String
-Parameter Sets: (All)
-Aliases:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Guid
 
 The unique identifier for the script in GUID format.
@@ -249,6 +229,22 @@ Aliases:
 
 Required: False
 Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+
+The filename and location of the script.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -363,7 +359,7 @@ Accept wildcard characters: False
 ### -Tags
 
 The tags associated with the script. Tag values are strings that should not contain spaces. For more
-information, see [Tag details][1].
+information, see [Tag details](/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).
 
 ```yaml
 Type: System.String[]
@@ -394,11 +390,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
@@ -412,12 +404,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[PowerShellGallery Publishing Guidelines and Best Practices][2]
+[PowerShellGallery Publishing Guidelines and Best Practices](/powershell/scripting/gallery/concepts/publishing-guidelines)
 
-[Package manifest values that impact the PowerShell Gallery UI][3]
-
-<!-- link references -->
-
-[1]: /powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details
-[2]: /powershell/scripting/gallery/concepts/publishing-guidelines
-[3]: /powershell/scripting/gallery/concepts/package-manifest-affecting-ui
+[Package manifest values that impact the PowerShell Gallery UI](/powershell/scripting/gallery/concepts/package-manifest-affecting-ui)
