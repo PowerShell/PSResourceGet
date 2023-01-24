@@ -755,7 +755,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pathsToSearch: _pathsToSearch,
                 selectPrereleaseOnly: false);
             // User parsed metadata hash.
-            List<string> listOfCmdlets = new List<string>();
+            HashSet<string> listOfCmdlets = new HashSet<string>();
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
             {
                 listOfCmdlets.Add(cmdletName as string);
@@ -775,7 +775,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
                 {
                     duplicateCmdlets = listOfCmdlets.Where(cmdlet => pkg.Includes.Cmdlet.Contains(cmdlet)).ToList();
-
                 }
 
                 if (pkg.Includes.Command != null && pkg.Includes.Command.Any())
@@ -785,7 +784,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (duplicateCmdlets.Any() || duplicateCmds.Any())
                 {
-
                     duplicateCmdlets.AddRange(duplicateCmds);
 
                     var errMessage = string.Format(
