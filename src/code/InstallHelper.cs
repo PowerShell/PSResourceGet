@@ -186,7 +186,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     tag: null,
                     repository: new string[] { repoName },
                     credential: credential,
-                    includeDependencies: !skipDependencyCheck);s
+                    includeDependencies: !skipDependencyCheck);
 
                 if (pkgsFromRepoToInstall.Count == 0)
                 {
