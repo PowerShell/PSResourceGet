@@ -45,6 +45,19 @@
             ProjectUri = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 3.0.18-beta19
+
+### New Features
+- Add `-SkipModuleManifestValidate` parameter to `Publish-PSResource` (#904)
+
+### Bug Fixes
+- Add new parameter sets for `-IncludeXml` and `-AsNupkg` parameters in `Install-PSResource` (#910)
+- Change warning to error in `Update-PSResource` when no module is already installed (#909)
+- Fix `-NoClobber` bug throwing error in `Install-PSResource` (#908)
+- Remove warning when installing dependencies (#907)
+- Remove Proxy parameters from `Register-PSResourceRepository` (#906)
+- Remove -PassThru parameter from `Update-ModuleManifest` (#900)
+
 ## 3.0.18-beta18
 
 ### New Features
