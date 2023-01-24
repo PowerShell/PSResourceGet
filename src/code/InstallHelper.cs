@@ -769,16 +769,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (var pkg in pkgsAlreadyInstalled)
             {
-                List<string> duplicateCmdlets = new List<string>();
-                List<string> duplicateCmds = new List<string>();
                 // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed.
                 if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
                 {
-                    foreach (string cmdlet in pkg.Includes.Cmdlet) 
+                    foreach (string cmdlet in pkg.Includes.Cmdlet)
                     {
-                        if (cmdletsToInstall.Contains(cmdlet)) { 
-                            duplicateCmdlets.Add(cmdlet);
-                        }   
+                        if (cmdletsToInstall.Contains(cmdlet))
+                        {
+                            foundClobber = true;
+
+                            break;
+                        }
                     }
                 }
 
@@ -788,25 +789,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         if (cmdletsToInstall.Contains(command))
                         {
-                            duplicateCmdlets.Add(command);
+                            foundClobber = true;
+
+                            break;
                         }
                     }
                 }
 
-                if (duplicateCmdlets.Any() || duplicateCmds.Any())
-                {
-                    duplicateCmdlets.AddRange(duplicateCmds);
+                if (foundClobber) { 
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException(
+                            string.Format("{0} package could not be installed with error: One or more of the package's commands are already available on this system. " +
+                                        "This module '{0}' may override the existing commands. If you still want to install this module '{0}', remove the -NoClobber parameter.",
+                                        pkgName)),
+                        "CommandAlreadyExists",
+                        ErrorCategory.ResourceExists,
+                        this));
 
-                    var errMessage = string.Format(
-                        "{1} package could not be installed with error: The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
-                        String.Join(", ", duplicateCmdlets), pkgName);
-
-                    var ex = new ArgumentException(errMessage);
-                    var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
-
-                    _cmdletPassedIn.WriteError(noClobberError);
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
-                    foundClobber = true;
 
                     return foundClobber;
                 }
