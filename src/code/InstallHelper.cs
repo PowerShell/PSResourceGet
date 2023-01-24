@@ -755,14 +755,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pathsToSearch: _pathsToSearch,
                 selectPrereleaseOnly: false);
             // User parsed metadata hash.
-            HashSet<string> listOfCmdlets = new HashSet<string>();
+            HashSet<string> cmdletsToInstall = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
             {
-                listOfCmdlets.Add(cmdletName as string);
+                cmdletsToInstall.Add(cmdletName as string);
             }
 
             // Exit early if there's no cmdlets in the package to be installed.
-            if (listOfCmdlets.Count == 0) 
+            if (cmdletsToInstall.Count == 0) 
             {
                 return foundClobber;
             }
@@ -774,12 +774,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed.
                 if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
                 {
-                    duplicateCmdlets = listOfCmdlets.Where(cmdlet => pkg.Includes.Cmdlet.Contains(cmdlet)).ToList();
+                    foreach (string cmdlet in pkg.Includes.Cmdlet) 
+                    {
+                        if (cmdletsToInstall.Contains(cmdlet)) { 
+                            duplicateCmdlets.Add(cmdlet);
+                        }   
+                    }
                 }
 
                 if (pkg.Includes.Command != null && pkg.Includes.Command.Any())
                 {
-                    duplicateCmds = listOfCmdlets.Where(commands => pkg.Includes.Command.Contains(commands, StringComparer.InvariantCultureIgnoreCase)).ToList();
+                    foreach (string command in pkg.Includes.Command)
+                    {
+                        if (cmdletsToInstall.Contains(command))
+                        {
+                            duplicateCmdlets.Add(command);
+                        }
+                    }
                 }
 
                 if (duplicateCmdlets.Any() || duplicateCmds.Any())
