@@ -816,6 +816,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
 
                     _pkgNamesToInstall.RemoveWhere(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+
+                    return foundClobber;
                 }
             }
 
