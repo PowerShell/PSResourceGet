@@ -8,7 +8,7 @@ schema: 2.0.0
 # Get-PSScriptFileInfo
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Returns the metadata for a script.
 
 ## SYNTAX
 
@@ -17,21 +17,26 @@ Get-PSScriptFileInfo [-Path] <String> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+This cmdlet searches for a PowerShell script located on the machine and returns the script metadata information.
 
 ## EXAMPLES
 
 ### Example 1
+This example returns the metadata for the script "MyScript.ps1".
+
 ```powershell
-PS C:\> {{ Add example code here }}
+Get-PSScriptFileInfo -Path ".\Scripts\MyScript.ps1"
 ```
 
-{{ Add example description here }}
+```Output
+Name               Version Author                 Description
+----               ------- ------                 -----------
+MyScript           1.0.0.0 dev@microsoft.com      This script is a test script for PowerShellGet…
 
 ## PARAMETERS
 
 ### -Path
-{{ Fill Path Description }}
+Specifies the path to the resource. 
 
 ```yaml
 Type: String
