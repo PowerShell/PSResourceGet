@@ -1,5 +1,5 @@
 ---
-external help file: PowerShellGet-help.xml
+external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
 online version:
@@ -13,15 +13,12 @@ The cmdlet creates a new script file, including metadata about the script.
 
 ## SYNTAX
 
-### __AllParameterSets
-
 ```
-New-PSScriptFileInfo [-Path] <string> -Description <string> [-Version <string>]
- [-Author <string>] [-Guid <guid>] [-CompanyName <string>] [-Copyright <string>]
- [-RequiredModules <hashtable[]>] [-ExternalModuleDependencies <string[]>]
- [-RequiredScripts <string[]>] [-ExternalScriptDependencies <string[]>] [-Tags <string[]>]
- [-ProjectUri <string>] [-LicenseUri <string>] [-IconUri <string>] [-ReleaseNotes <string>]
- [-PrivateData <string>] [-Force] [<CommonParameters>]
+New-PSScriptFileInfo [-Path] <String> [-Version <String>] [-Author <String>] -Description <String>
+ [-Guid <Guid>] [-CompanyName <String>] [-Copyright <String>] [-RequiredModules <Hashtable[]>]
+ [-ExternalModuleDependencies <String[]>] [-RequiredScripts <String[]>]
+ [-ExternalScriptDependencies <String[]>] [-Tags <String[]>] [-ProjectUri <String>] [-LicenseUri <String>]
+ [-IconUri <String>] [-ReleaseNotes <String>] [-PrivateData <String>] [-Force] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -84,7 +81,6 @@ This is a test script.
 
 
 #>
-
 ```
 
 ### Example 2: Creating a script with required modules
@@ -152,7 +148,6 @@ This is a test script.
 
 
 #>
-
 ```
 
 ## PARAMETERS
@@ -253,22 +248,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-
-The filename and location where the script is created.
-
-```yaml
-Type: System.String
-Parameter Sets: (All)
-Aliases:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Force
 
 Forces the cmdlet to overwrite any existing file.
@@ -329,6 +308,22 @@ Aliases:
 
 Required: False
 Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+
+The filename and location where the script is created.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -426,7 +421,7 @@ Accept wildcard characters: False
 ### -Tags
 
 The tags associated with the script. Tag values are strings that should not contain spaces. For more
-information, see [Tag details][1].
+information, see [Tag details](/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).
 
 ```yaml
 Type: System.String[]
@@ -457,11 +452,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
@@ -475,12 +466,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[PowerShellGallery Publishing Guidelines and Best Practices][2]
+[PowerShellGallery Publishing Guidelines and Best Practices](/powershell/scripting/gallery/concepts/publishing-guidelines)
 
-[Package manifest values that impact the PowerShell Gallery UI][3]
-
-<!-- link references -->
-
-[1]: /powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details
-[2]: /powershell/scripting/gallery/concepts/publishing-guidelines
-[3]: /powershell/scripting/gallery/concepts/package-manifest-affecting-ui
+[Package manifest values that impact the PowerShell Gallery UI](/powershell/scripting/gallery/concepts/package-manifest-affecting-ui)

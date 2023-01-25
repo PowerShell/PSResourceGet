@@ -15,27 +15,23 @@ properties.
 ## SYNTAX
 
 ### ResourceNameParameterSet (Default)
-
 ```
-Find-PSResource [[-Name] <string[]>] [-Type <ResourceType>] [-Version <string>] [-Prerelease]
- [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies]
- [<CommonParameters>]
+Find-PSResource [[-Name] <String[]>] [-Type <ResourceType>] [-Version <String>] [-Prerelease] [-Tag <String[]>]
+ [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies] [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
-
 ```
-Find-PSResource -CommandName <string[]> [-Version <string>] [-Prerelease] [-ModuleName <string[]>]
- [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies]
+Find-PSResource [-Version <String>] [-Prerelease] [-ModuleName <String[]>] -CommandName <String[]>
+ [-Tag <String[]>] [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies]
  [<CommonParameters>]
 ```
 
 ### DscResourceNameParameterSet
-
 ```
-Find-PSResource -DscResourceName <string[]> [-Version <string>] [-Prerelease]
- [-ModuleName <string[]>] [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>]
- [-IncludeDependencies] [<CommonParameters>]
+Find-PSResource [-Version <String>] [-Prerelease] [-ModuleName <String[]>] -DscResourceName <String[]>
+ [-Tag <String[]>] [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -280,7 +276,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Name
@@ -402,11 +398,7 @@ Accept wildcard characters: True
 ```
 
 ### CommonParameters
-
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

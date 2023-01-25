@@ -2,7 +2,7 @@
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -14,25 +14,21 @@ Registers a repository for PowerShell resources.
 ## SYNTAX
 
 ### NameParameterSet (Default)
-
 ```
-Register-PSResourceRepository [-Name] <string> [-Uri] <string> [-Trusted] [-Priority <int>]
- [-CredentialInfo <PSCredentialInfo>] [-Proxy <uri>] [-ProxyCredential <pscredential>] [-PassThru]
- [-WhatIf] [-Confirm] [<CommonParameters>]
+Register-PSResourceRepository [-Name] <String> [-Uri] <String> [-Trusted] [-Priority <Int32>]
+ [-CredentialInfo <PSCredentialInfo>] [-PassThru] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PSGalleryParameterSet
-
 ```
-Register-PSResourceRepository -PSGallery [-Trusted] [-Priority <int>] [-Proxy <uri>]
- [-ProxyCredential <pscredential>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Register-PSResourceRepository [-PSGallery] [-Trusted] [-Priority <Int32>] [-PassThru] [-Force] [-WhatIf]
+ [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
-
 ```
-Register-PSResourceRepository -Repository <hashtable[]> [-Proxy <uri>]
- [-ProxyCredential <pscredential>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Register-PSResourceRepository -Repository <Hashtable[]> [-PassThru] [-Force] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -133,7 +129,7 @@ A **PSCredentialInfo** object that includes the name of a vault and a secret tha
 **Microsoft.PowerShell.SecretManagement** store.
 
 ```yaml
-Type: PSCredentialInfo
+Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo
 Parameter Sets: NameParameterSet
 Aliases:
 
@@ -191,38 +187,6 @@ Aliases:
 Required: False
 Position: Named
 Default value: 50
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Proxy
-
-The URL to a proxy server used to access repositories outside of your network.
-
-```yaml
-Type: System.Uri
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ProxyCredential
-
-The credentials required to use the proxy server.
-
-```yaml
-Type: System.Management.Automation.PSCredential
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -331,12 +295,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### CommonParameters
+### -Force
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+Overwrites a repository if it already exists.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### CommonParameters
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

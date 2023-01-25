@@ -1,10 +1,11 @@
 ---
-external help file: PowerShellGet-help.xml
+external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
+
 # Test-PSScriptFileInfo
 
 ## SYNOPSIS
@@ -12,10 +13,8 @@ Tests the comment-based metadata in a `.ps1` file to ensure it's valid for publi
 
 ## SYNTAX
 
-### __AllParameterSets
-
 ```
-Test-PSScriptFileInfo [-Path] <string> [<CommonParameters>]
+Test-PSScriptFileInfo [-Path] <String> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -110,11 +109,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
