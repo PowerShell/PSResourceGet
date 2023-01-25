@@ -652,7 +652,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
                     // Actually find and return the dependency packages
-                    foreach (PSResourceInfo pkgDep in HttpFindDependencyPackages(currentPkg, repository, out string[] errors))
+                    foreach (PSResourceInfo pkgDep in HttpFindDependencyPackages(currentPkg, repository))
                     {
                         yield return pkgDep;
                     }
@@ -981,16 +981,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TODO:  write out error
         }
 
-        private List<PSResourceInfo> HttpFindDependencyPackages(PSResourceInfo currentPkg, PSRepositoryInfo repository, out string[] errors)
+        private IEnumerable<PSResourceInfo> HttpFindDependencyPackages(PSResourceInfo currentPkg, PSRepositoryInfo repository)
         {
-            List<PSResourceInfo> dependenciesToAdd = new List<PSResourceInfo>();
             List<string> errStrings = new List<string>();
+            //errors = errStrings.ToArray();
 
-            HttpFindDependencyPackagesHelper(currentPkg, repository, out dependenciesToAdd, out errStrings);
-
-            errors = errStrings.ToArray();
-
-            return dependenciesToAdd;
+            foreach (PSResourceInfo pkg in HttpFindDependencyPackagesHelper(currentPkg, repository)) {
+                yield return pkg;
+            }
         }
 
         private List<PSResourceInfo> FindDependencyPackages(
@@ -1004,11 +1002,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return thoseToAdd;
         }
 
-        private void HttpFindDependencyPackagesHelper(
+        private IEnumerable<PSResourceInfo> HttpFindDependencyPackagesHelper(
             PSResourceInfo currentPkg,
-            PSRepositoryInfo repository,
-            out List<PSResourceInfo> dependenciesToAdd, 
-            out List<string> errStrings
+            PSRepositoryInfo repository
+            //out List<string> errStrings
         )
         {
             foreach (var dep in currentPkg.Dependencies)
@@ -1016,17 +1013,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (dep.VersionRange == VersionRange.All)
                 {
                     PSResourceInfo latestDepPkg = _httpFindPSResource.FindName(dep.Name, repository, _prerelease, ResourceType.None, out string err);
-                    errStrings.Add(err);
+                    //errStrings.Add(err);  write error?
 
-                    dependenciesToAdd.Add(latestDepPkg);
-                    HttpFindDependencyPackagesHelper(latestDepPkg, repository, dependenciesToAdd, out errStrings);
+                    yield return latestDepPkg;
+
+                    HttpFindDependencyPackagesHelper(latestDepPkg, repository);
                 }
                 else
                 {
                     PSResourceInfo[] depPkg = _httpFindPSResource.FindVersionGlobbing(dep.Name, dep.VersionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true, out string errRecord);
-                    dependenciesToAdd.Add(depPkg[0]);
+                    //errStrings.Add(err);  write error?
 
-                    HttpFindDependencyPackagesHelper(depPkg[0], repository, dependenciesToAdd, out errStrings);
+                    yield return depPkg[0];
+
+                    HttpFindDependencyPackagesHelper(depPkg[0], repository);
                 }
             }
         }
