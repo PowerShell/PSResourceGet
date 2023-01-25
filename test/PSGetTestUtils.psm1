@@ -256,6 +256,18 @@ function Register-LocalRepos {
     Write-Verbose("registered psgettestlocal, psgettestlocal2")
 }
 
+function Register-PSGallery {
+    $PSGalleryRepoParams = @{
+        Name = $script:PSGalleryName
+        Uri = $script:PSGalleryLocation
+        Priority = 1
+        Trusted = $false
+    }
+    Register-PSResourceRepository @PSGalleryRepoParams
+
+    Write-Verbose("registered PSGallery")
+}
+
 function Unregister-LocalRepos {
     if(Get-PSResourceRepository -Name "psgettestlocal"){
         Unregister-PSResourceRepository -Name "psgettestlocal"
