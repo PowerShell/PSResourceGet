@@ -22,8 +22,8 @@ Returns modules and scripts installed on the machine via **PowerShellGet**.
 ### [Get-PSResourceRepository](Get-PSResourceRepository.md)
 Finds and returns registered repository information.
 
-### [Get-PSResourceRepository](Get-PSResourceRepository.md)
-Finds and returns registered repository information.
+### [Install-PSResource](Install-PSResource.md)
+Installs resources from a registered repository.
 
 ### [New-PSScriptFileInfo](New-PSScriptFileInfo.md)
 The cmdlet creates a new script file, including metadata about the script.
