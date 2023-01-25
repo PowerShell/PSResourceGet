@@ -211,7 +211,8 @@ Accept wildcard characters: False
 ```
 
 ### -SkipModuleManifestValidate
-{{ Fill SkipModuleManifestValidate Description }}
+
+Skips validating the module manifest before publishing.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
