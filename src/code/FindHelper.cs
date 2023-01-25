@@ -505,6 +505,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             VersionRange versionRange = null;
             NuGetVersion nugetVersion = null;
+            List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>(); 
 
             if (_version != null)
             {
@@ -560,6 +561,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         PSResourceInfo[] foundPkgs = _httpFindPSResource.FindAll(repository, _prerelease, _type, out string errRecord);
+                        parentPkgs.AddRange(foundPkgs);
                         foreach (PSResourceInfo pkg in foundPkgs)
                         {
                             yield return pkg;
@@ -572,6 +574,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (string.IsNullOrEmpty(_version))
                         {
                             PSResourceInfo[] foundPkgs = _httpFindPSResource.FindNameGlobbing(pkgName, repository, _prerelease, _type, out string errRecord);
+                            parentPkgs.AddRange(foundPkgs);
                             foreach (PSResourceInfo pkg in foundPkgs)
                             {
                                 yield return pkg;
@@ -583,6 +586,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // TODO: User should not use -Prerelease parameter with a specific version.  Write out some kind of messaging (warning, error, verbose) to inform user of this
                         // if they attempt this combination
                         PSResourceInfo foundPkg = _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToNormalizedString(), repository, _type, out string errRecord);
+                        parentPkgs.Add(foundPkg);
                         if (foundPkg != null)
                         {
                             if (!_repositoryNameContainsWildcard)
@@ -596,6 +600,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else {
                         // If no version is specified, just retrieve the latest version
                         PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, _type, out string errRecord);
+                        parentPkgs.Add(foundPkg);
                         if (foundPkg != null)
                         {
                             if (!_repositoryNameContainsWildcard)
@@ -632,10 +637,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // TODO: deal with errRecord and making FindVesionGlobbing yield single packages instead of returning an array.
                         PSResourceInfo[] foundPkgs =  _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, _type, getOnlyLatest: false, out string errRecord);
+                        parentPkgs.AddRange(foundPkgs);
                         foreach (PSResourceInfo pkg in foundPkgs)
                         {
                             yield return pkg;
                         }
+                    }
+                }
+            }
+
+            // After retrieving all packages
+            if (_includeDependencies)
+            {
+                foreach (PSResourceInfo currentPkg in parentPkgs)
+                {
+                    // Actually find and return the dependency packages
+                    foreach (PSResourceInfo pkgDep in HttpFindDependencyPackages(currentPkg, repository))
+                    {
+                        yield return pkgDep;
                     }
                 }
             }
@@ -962,6 +981,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // TODO:  write out error
         }
 
+        private IEnumerable<PSResourceInfo> HttpFindDependencyPackages(PSResourceInfo currentPkg, PSRepositoryInfo repository)
+        {
+            List<string> errStrings = new List<string>();
+            //errors = errStrings.ToArray();
+
+            foreach (PSResourceInfo pkg in HttpFindDependencyPackagesHelper(currentPkg, repository)) {
+                yield return pkg;
+            }
+        }
+
         private List<PSResourceInfo> FindDependencyPackages(
             PSResourceInfo currentPkg,
             PackageMetadataResource packageMetadataResource,
@@ -973,6 +1002,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return thoseToAdd;
         }
 
+        private IEnumerable<PSResourceInfo> HttpFindDependencyPackagesHelper(
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository
+            //out List<string> errStrings
+        )
+        {
+            foreach (var dep in currentPkg.Dependencies)
+            {
+                if (dep.VersionRange == VersionRange.All)
+                {
+                    PSResourceInfo latestDepPkg = _httpFindPSResource.FindName(dep.Name, repository, _prerelease, ResourceType.None, out string err);
+                    //errStrings.Add(err);  write error?
+
+                    yield return latestDepPkg;
+
+                    HttpFindDependencyPackagesHelper(latestDepPkg, repository);
+                }
+                else
+                {
+                    PSResourceInfo[] depPkg = _httpFindPSResource.FindVersionGlobbing(dep.Name, dep.VersionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true, out string errRecord);
+                    //errStrings.Add(err);  write error?
+
+                    yield return depPkg[0];
+
+                    HttpFindDependencyPackagesHelper(depPkg[0], repository);
+                }
+            }
+        }
+
+        // TODO: create HTTP version of FindDependencyPackagesHelper
         private void FindDependencyPackagesHelper(
             PSResourceInfo currentPkg,
             List<PSResourceInfo> thoseToAdd,
