@@ -265,6 +265,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
                 if (!_reinstall)
                 {
+                    // TODO: Update FilterByInstalledPkgs to use Http calls instead of nuget apis
                     pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
                 }
 
@@ -441,7 +442,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             HttpContent responseContent = _v2ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
                             // TODO: add error handling
 
-                            bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall, scope);
+                            bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkgToInstall);
 
                             if (installedSuccessfully)
                             {
@@ -459,14 +460,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         string nugetVersionString = nugetVersion.ToNormalizedString(); // 3.0.17-beta
                         // TODO: remove FindVersion and directly call install API. Add method to work with HTTPContent returned from Install to parse into PSResourceInfo
                         
-                        // PSResourceInfo pkgToInstall = _httpFindPSResource.FindVersion(pkgName, nugetVersionString, repository, ResourceType.None, out string errRecord);
+                         PSResourceInfo pkgToInstall = _httpFindPSResource.FindVersion(pkgName, nugetVersionString, repository, ResourceType.None, out string errRecord);
                         // pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                         // download the module
                         HttpContent responseContent = _v2ServerApiCalls.InstallVersion(pkgName, nugetVersionString, repository, out string errorRecord);
                         // TODO: add error handling
 
-                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall, scope);
+                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, nugetVersionString, scope, pkgToInstall);
 
                         if (installedSuccessfully)
                         {
@@ -488,10 +489,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // helper method that takes Dependency[], checks with GetHelper which are already installed, construct dependency tree
                     // install those only which are needed
 
+                    pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+
                     // download the module
                     HttpContent responseContent = _v2ServerApiCalls.InstallName(pkgName, repository, out string errorRecord);
                     // TODO: add error handling
-                    bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgToInstall, scope);
+                    bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkgToInstall);
 
                     if (installedSuccessfully)
                     {
@@ -517,9 +520,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return pkgsSuccessfullyInstalled;
         }
 
-        private bool TryMoveInstallContent(HttpContent responseContent, string tempInstallPath, string pkgName, string pkgVersion, ScopeType scope, out PSResourceInfo pkgToInstall)
+        private bool TryMoveInstallContent(HttpContent responseContent, string tempInstallPath, string pkgName, string pkgVersion, ScopeType scope, PSResourceInfo pkgToInstall)
         {
-            pkgToInstall = null;
             // takes response content for HTTPInstallPackage and moves files into neccessary install path and cleans up.
             try
             {
