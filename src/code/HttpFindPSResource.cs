@@ -13,6 +13,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
         
         readonly V2ServerAPICalls v2ServerAPICall = new V2ServerAPICalls();
+        readonly V3ServerAPICalls v3ServerAPICall = new V3ServerAPICalls();
 
         #endregion
 
@@ -242,6 +243,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
                 // TODO: handle V3 endpoints, test for NuGetGallery
+
+                // Same API calls for both prerelease and non-prerelease
+                var response = v3ServerAPICall.FindName(packageName, repository, includePrerelease, type, out errRecord);
+
+                var elemList = ConvertResponseToXML(response);
+
+                if (elemList.Length == 0)
+                {
+                    Console.WriteLine("empty response. Error handle");
+                }
+
             }
 
             return null;
