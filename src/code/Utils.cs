@@ -1229,6 +1229,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        public static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
+        {
+            try
+            {
+                HttpResponseMessage response = await s_client.SendAsync(message);
+                response.EnsureSuccessStatusCode();
+                return response.Content;
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+            }
+        }
+
         public static async Task<HttpContent> SendV2RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
             try

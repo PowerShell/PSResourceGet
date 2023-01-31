@@ -145,7 +145,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2 ||
+                    repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
                     foreach (var pkg in HttpSearchFromRepository(repositoriesToSearch[i]))
                     {
