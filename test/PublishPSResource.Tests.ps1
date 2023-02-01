@@ -3,6 +3,42 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
+function CreateTestModule
+{
+    param (
+        [string] $Path = "$TestDrive",
+        [string] $ModuleName = 'TestModule'
+    )
+
+    $modulePath = Join-Path -Path $Path -ChildPath $ModuleName
+    $moduleMan = Join-Path $modulePath -ChildPath ($ModuleName + '.psd1')
+    $moduleSrc = Join-Path $modulePath -ChildPath ($ModuleName + '.psm1')
+
+    if ( Test-Path -Path $modulePath) {
+        Remove-Item -Path $modulePath -Recurse -Force
+    }
+
+    $null = New-Item -Path $modulePath -ItemType Directory -Force
+
+    @'
+    @{{
+        RootModule        = "{0}.psm1"
+        ModuleVersion     = '1.0.0'
+        Author            = 'None'
+        Description       = 'None'
+        GUID              = '0c2829fc-b165-4d72-9038-ae3a71a755c1'
+        FunctionsToExport = @('Test1')
+        RequiredModules   = @('NonExistentModule')
+    }}
+'@ -f $ModuleName | Out-File -Path $moduleMan
+
+    @'
+    function Test1 {
+        Write-Output 'Hello from Test1'
+    }
+'@ | Out-File -Path $moduleSrc
+}
+
 Describe "Test Publish-PSResource" {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
@@ -56,6 +92,9 @@ Describe "Test Publish-PSResource" {
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
+
+        # Create test module with missing required module
+        CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
     }
     AfterAll {
        Get-RevertPSResourceRepositoryFile
@@ -70,6 +109,20 @@ Describe "Test Publish-PSResource" {
 
         $pkgsToDelete = Join-Path -Path $script:PublishModuleBase  -ChildPath "*"
         Remove-Item $pkgsToDelete -Recurse -ErrorAction SilentlyContinue
+    }
+
+    It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {
+        # Skip the module manifest validation test, which fails from the missing manifest required module.
+        $testModulePath = Join-Path -Path $TestDrive -ChildPath ModuleWithMissingRequiredModule
+        Publish-PSResource -Path $testModulePath -Repository $testRepository2 -Confirm:$false -SkipDependenciesCheck -SkipModuleManifestValidate
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath 'ModuleWithMissingRequiredModule.1.0.0.nupkg'
+        $publishedModuleFound = Test-Path -Path $expectedPath
+        $publishedModuleFound | Should -BeTrue
+
+        if ($publishedModuleFound) {
+            Remove-Item $expectedPath -Force -ErrorAction SilentlyContinue
+        }
     }
 
     It "Publish a module with -Path to the highest priority repo" {
@@ -175,6 +228,25 @@ Describe "Test Publish-PSResource" {
         (Get-ChildItem $script:repositoryPath).FullName | select-object -Last 1 | Should -Be $expectedPath
     }
     
+    It "Publish a module and preserve file structure" {
+        $version = "1.0.0"
+        $testFile = Join-Path -Path "TestSubDirectory" -ChildPath "TestSubDirFile.ps1"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -Force
+
+        Publish-PSResource -Path $script:PublishModuleBase
+        
+        # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
+        $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
+        Rename-Item -Path $nupkgPath -NewName $zipPath 
+        $unzippedPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName"
+        New-Item $unzippedPath -Itemtype directory -Force
+        Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
+
+        Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
+    }
+
     <# The following tests are related to passing in parameters to customize a nuspec.
      # These parameters are not going in the current release, but is open for discussion to include in the future.
     It "Publish a module with -Nuspec" {

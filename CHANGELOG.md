@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## 3.0.19-beta19
+
+### New Features
+- Add `-SkipModuleManifestValidate` parameter to `Publish-PSResource` (#904)
+
+### Bug Fixes
+- Add new parameter sets for `-IncludeXml` and `-AsNupkg` parameters in `Install-PSResource` (#910)
+- Change warning to error in `Update-PSResource` when no module is already installed (#909)
+- Fix `-NoClobber` bug throwing error in `Install-PSResource` (#908)
+- Remove warning when installing dependencies (#907)
+- Remove Proxy parameters from `Register-PSResourceRepository` (#906)
+- Remove -PassThru parameter from `Update-ModuleManifest` (#900)
+
+## 3.0.18-beta18
+
+### New Features
+- Add Get-PSScriptFileInfo cmdlet (#839)
+- Allow CredentialInfo parameter to accept a hashtable  (#836)
+
+### Bug Fixes
+- Publish-PSResource now preserves folder and file structure (#882)
+- Fix verbose message for untrusted repos gaining trust (#841)
+- Fix for Update-PSResource attempting to reinstall latest preview version (#834)
+- Add SupportsWildcards() attribute to parameters accepting wildcards (#833)
+- Perform Repository trust check when installing a package (#831)
+- Fix casing of `PSResource` in `Install-PSResource` (#820)
+- Update .nuspec 'license' property to 'licenseUrl' (#850)
+
 ## 3.0.17-beta17
 
 ### New Features

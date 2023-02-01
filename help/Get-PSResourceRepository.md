@@ -2,7 +2,7 @@
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
 ms.date: 08/03/2022
-online version:  
+online version:
 schema: 2.0.0
 ---
 
@@ -13,10 +13,8 @@ Finds and returns registered repository information.
 
 ## SYNTAX
 
-### __AllParameterSets
-
 ```
-Get-PSResourceRepository [[-Name] <string[]>] [<CommonParameters>]
+Get-PSResourceRepository [[-Name] <String[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -106,11 +104,7 @@ Accept wildcard characters: True
 ```
 
 ### CommonParameters
-
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

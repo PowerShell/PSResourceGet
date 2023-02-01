@@ -509,6 +509,14 @@ Describe 'Test Install-PSResource for Module' {
     It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
         { Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
+
+    It "Install module with -NoClobber parameter" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $TestModuleName -Version "5.0.0" -Repository $PSGalleryName -NoClobber -Reinstall -TrustRepository
+
+        $res = Get-PSResource $TestModuleName
+        $res.Name | Should -Be $TestModuleName
+        $res.Version | Should -Be "5.0.0.0"    
+    }
 }
 
 <# Temporarily commented until -Tag is implemented for this Describe block

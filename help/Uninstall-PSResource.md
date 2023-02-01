@@ -14,17 +14,15 @@ Uninstalls a resource that was installed using **PowerShellGet**.
 ## SYNTAX
 
 ### NameParameterSet (Default)
-
 ```
-Uninstall-PSResource [-Name] <string[]> [-Version <string>] [-Prerelease] [-SkipDependencyCheck]
+Uninstall-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-SkipDependencyCheck]
  [-Scope <ScopeType>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
-
 ```
-Uninstall-PSResource [-InputObject] <PSResourceInfo> [-Prerelease] [-SkipDependencyCheck]
- [-Scope <ScopeType>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Uninstall-PSResource [-Prerelease] -InputObject <PSResourceInfo> [-SkipDependencyCheck] [-Scope <ScopeType>]
+ [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -239,11 +237,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](https://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

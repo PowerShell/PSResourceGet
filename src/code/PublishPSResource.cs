@@ -74,8 +74,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Bypasses the default check that all dependencies are present.
         /// </summary>
         [Parameter]
-        [ValidateNotNullOrEmpty]
         public SwitchParameter SkipDependenciesCheck { get; set; }
+
+        /// <summary>
+        /// Bypasses validating a resource module manifest before publishing.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipModuleManifestValidate { get; set; }
 
         /// <summary>
         /// Specifies a proxy server for the request, rather than a direct connection to the internet resource.
@@ -249,11 +254,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
                 }
                 else {
-                    // directory
-                    // search for module manifest
-                    List<FileInfo> childFiles = new DirectoryInfo(pathToModuleDirToPublish).EnumerateFiles().ToList();
-
-                    foreach (FileInfo file in childFiles)
+                    // Search for module manifest
+                    foreach (FileInfo file in new DirectoryInfo(pathToModuleDirToPublish).EnumerateFiles())
                     {
                         if (file.Name.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
                         {
@@ -268,7 +270,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Validate that there's a module manifest
                 if (!File.Exists(pathToModuleManifestToPublish))
                 {
-                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid modulemanifest.", pathToModuleManifestToPublish);
+                    var message = String.Format("No file with a .psd1 extension was found in {0}.  Please specify a path to a valid module manifest.", pathToModuleManifestToPublish);
 
                     var ex = new ArgumentException(message);
                     var moduleManifestNotFound = new ErrorRecord(ex, "moduleManifestNotFound", ErrorCategory.ObjectNotFound, null);
@@ -277,22 +279,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return;
                 }
 
-                // validate that the module manifest has correct data
-                string[] errorMsgs = null;
-                try
+                // Validate that the module manifest has correct data
+                if (! SkipModuleManifestValidate &&
+                    ! Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
                 {
-                    Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out errorMsgs);
-
-                }
-                finally {
-                    if (errorMsgs.Length > 0)
-                    {
-                        ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException(errorMsgs.First()),
-                            "InvalidModuleManifest",
-                            ErrorCategory.InvalidOperation,
-                            this));
-                    }
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException(errorMsg),
+                        "InvalidModuleManifest",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
             }
 
@@ -380,7 +375,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // copy the script file to the temp directory
                     File.Copy(pathToScriptFileToPublish, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
-
                 }
                 else
                 {
@@ -390,28 +384,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         string rootModuleDir = !string.IsNullOrEmpty(pathToModuleManifestToPublish) ? System.IO.Path.GetDirectoryName(pathToModuleManifestToPublish) : pathToModuleDirToPublish;
 
                         // Create subdirectory structure in temp folder
-                        foreach (string dir in System.IO.Directory.GetDirectories(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
+                        foreach (string dir in Directory.GetDirectories(rootModuleDir, "*", SearchOption.AllDirectories))
                         {
-                            DirectoryInfo dirInfo = new DirectoryInfo(dir);
-                            System.IO.Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirInfo.Name));
+                            var dirName = dir.Substring(rootModuleDir.Length).Trim(_PathSeparators);
+                            Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirName));
                         }
 
                         // Copy files over to temp folder
-                        foreach (string fileNamePath in System.IO.Directory.GetFiles(rootModuleDir, "*", System.IO.SearchOption.AllDirectories))
+                        foreach (string fileNamePath in Directory.GetFiles(rootModuleDir, "*", SearchOption.AllDirectories))
                         {
-                            FileInfo fileInfo = new FileInfo(fileNamePath);
-
-                            var newFilePath = System.IO.Path.Combine(outputDir, fileInfo.Name);
+                            var fileName = fileNamePath.Substring(rootModuleDir.Length).Trim(_PathSeparators);
+                            var newFilePath = System.IO.Path.Combine(outputDir, fileName);
+                            
                             // The user may have a .nuspec defined in the module directory
                             // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
                             // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
                             if (!File.Exists(newFilePath))
                             {
-                                System.IO.File.Copy(fileNamePath, newFilePath);
+                                File.Copy(fileNamePath, newFilePath);
                             }
                         }
-
-
                     }
                     catch (Exception e)
                     {
@@ -929,7 +921,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return success;
 
         }
-    }
 
-    #endregion
+        #endregion
+    }
 }

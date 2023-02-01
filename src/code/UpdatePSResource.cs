@@ -299,7 +299,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (installedPackages.Count is 0)
             {
-                WriteWarning($"No installed packages were found with name '{string.Join(",", namesToProcess)}' in scope '{Scope}'. First install package using 'Install-PSResource'.");
+                var message = $"No installed packages were found with name '{string.Join(", ", namesToProcess)}' in scope '{Scope}'. First install package using 'Install-PSResource'.";
+
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(message),
+                    "NoInstalledPackagesFoundWithNameProvided",
+                    ErrorCategory.InvalidOperation,
+                    this));
+                    
                 return Utils.EmptyStrArray;
             }
 

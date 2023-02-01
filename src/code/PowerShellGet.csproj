@@ -5,9 +5,9 @@
     <OutputType>Library</OutputType>
     <RootNamespace>PowerShellGet</RootNamespace>
     <AssemblyName>PowerShellGet</AssemblyName>
-    <AssemblyVersion>3.0.17.0</AssemblyVersion>
-    <FileVersion>3.0.17</FileVersion>
-    <InformationalVersion>3.0.17</InformationalVersion>
+    <AssemblyVersion>3.0.19.0</AssemblyVersion>
+    <FileVersion>3.0.19</FileVersion>
+    <InformationalVersion>3.0.19</InformationalVersion>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
   </PropertyGroup>
