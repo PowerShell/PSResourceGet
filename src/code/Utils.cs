@@ -18,6 +18,9 @@ using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NuGet.Protocol.Plugins;
+using System.Text;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -1207,7 +1210,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
                 response.EnsureSuccessStatusCode();
-                return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
+                
+                var responseStr = await response.Content.ReadAsStringAsync();
+                //var cleanResponse = responseStr.Replace("\u001F", "");
+
+                JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.None, MaxDepth = 10 });
+
+                var strReader = new StringReader(responseStr);
+                using var jsonReader = new JsonTextReader(strReader);
+
+                //   return JsonConvert.Deserialize<JObject>(responseStr);
+
+                return serializer.Deserialize<JObject>(jsonReader);
             }
             catch (HttpRequestException e)
             {
