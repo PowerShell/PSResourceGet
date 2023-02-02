@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -14,14 +13,17 @@ Sets information for a registered repository.
 ## SYNTAX
 
 ### NameParameterSet (Default)
+
 ```
 Set-PSResourceRepository [-Name] <String> [-Uri <String>] [-Trusted] [-Priority <Int32>]
  [-CredentialInfo <PSCredentialInfo>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
+
 ```
-Set-PSResourceRepository -Repository <Hashtable[]> [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-PSResourceRepository -Repository <Hashtable[]> [-PassThru] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -71,7 +73,9 @@ Get-PSResourceRepository -Name "PSGallery"
 Name             Uri                                          Trusted   Priority
 ----             ---                                          -------   --------
 PSGallery        https://www.powershellgallery.com/api/v2       False         50
+```
 
+```powershell
 Set-PSResourceRepository -Name "PSGallery" -Priority 25 -Trusted -PassThru
 ```
 
@@ -83,7 +87,7 @@ PSGallery        https://www.powershellgallery.com/api/v2        True         25
 
 ### Example 3
 
-This example uses the **Repository** parameter to change values for multiple respositories. The
+This example uses the **Repository** parameter to change values for multiple repositories. The
 parameter takes an array of hashtables. Each hashtable contains information the repository being
 updated.
 
@@ -122,9 +126,10 @@ stored secret. The format of the secret must match the requirements of the repos
 $parameters = @{
     Name = "PoshTestGallery"
     Uri = "c:/code/testdir"
-    CredentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ('SecretStore', 'TestSecret')
+    CredentialInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo]::new('SecretStore', 'TestSecret')
 }
-Set-PSResourceRepository @parameters -PassThru | Select-Object * -ExpandProperty CredentialInfo
+Set-PSResourceRepository @parameters -PassThru |
+    Select-Object * -ExpandProperty CredentialInfo
 ```
 
 ```Output
@@ -142,7 +147,7 @@ Credential     :
 
 ### -CredentialInfo
 
-A **PSCredentialInfo** object that includes the name of a vault and a secret that is stored in a
+A **PSCredentialInfo** object that includes the name of a vault and a secret that's stored in a
 **Microsoft.PowerShell.SecretManagement** store.
 
 ```yaml
@@ -163,7 +168,6 @@ Specifies the name of the repository to be modified.
 
 > [!NOTE]
 > The **Uri** value of the default **PSGallery** repository can't be changed.
-
 
 ```yaml
 Type: System.String
@@ -215,8 +219,8 @@ Accept wildcard characters: False
 ### -Repository
 
 Specifies an array of hashtables that contain repository information. Use this parameter to register
-multiple repositories at once. Each hashtable can only have keys associated with parameters for
-the **NameParameterSet**.
+multiple repositories at once. Each hashtable can only have keys associated with parameters for the
+**NameParameterSet**.
 
 ```yaml
 Type: System.Collections.Hashtable[]
@@ -301,7 +305,11 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

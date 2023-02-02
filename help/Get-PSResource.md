@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -52,7 +51,7 @@ Get-PSResource Az -Path .
 
 ### Example 4
 
-This example returns a specific version of the Az module if it's installed on the system..
+This example returns a specific version of the Az module if it's installed on the system.
 
 ```powershell
 Get-PSResource Az -Version 1.0.0
@@ -131,7 +130,7 @@ According to NuGet version rules a prerelease version is less than a stable vers
 ### -Name
 
 Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet
-does not support wildcard searches of local (file-based) repositories.
+doesn't support wildcard searches of local (file-based) repositories.
 
 ```yaml
 Type: System.String[]
@@ -204,7 +203,11 @@ Accept wildcard characters: True
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

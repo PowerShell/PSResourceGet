@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -15,9 +14,9 @@ Downloads and installs the newest version of a package already installed on the 
 
 ```
 Update-PSResource [[-Name] <String[]>] [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Scope <ScopeType>] [-TemporaryPath <String>] [-TrustRepository] [-Credential <PSCredential>] [-Quiet]
- [-AcceptLicense] [-Force] [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+ [-Scope <ScopeType>] [-TemporaryPath <String>] [-TrustRepository] [-Credential <PSCredential>]
+ [-Quiet] [-AcceptLicense] [-Force] [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck]
+ [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -129,7 +128,7 @@ Accept wildcard characters: False
 ### -Name
 
 Specifies the name of one or more resources to update. Wildcards are supported but NuGet only
-accepts the `*` character. NuGet does not support wildcard searches of local (file-based)
+accepts the `*` character. NuGet doesn't support wildcard searches of local (file-based)
 repositories.
 
 ```yaml
@@ -160,22 +159,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TemporaryPath
-
-Specifies the path to temporarily install the resource before actual installatoin. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder. 
-
-```yaml
-Type: System.String
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Prerelease
 
 When specified, allows updating to a prerelease version.
@@ -194,7 +177,7 @@ Accept wildcard characters: False
 
 ### -Quiet
 
-Supresses progress information.
+Suppresses progress information.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -263,6 +246,23 @@ Aliases:
 Required: False
 Position: Named
 Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TemporaryPath
+
+Specifies the path to temporarily install the resource before actual installation. If no temporary
+path is provided, the resource is temporarily installed in the current user's temporary folder.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -342,7 +342,11 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

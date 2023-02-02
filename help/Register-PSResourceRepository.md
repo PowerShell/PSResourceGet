@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -14,18 +13,22 @@ Registers a repository for PowerShell resources.
 ## SYNTAX
 
 ### NameParameterSet (Default)
+
 ```
 Register-PSResourceRepository [-Name] <String> [-Uri] <String> [-Trusted] [-Priority <Int32>]
- [-CredentialInfo <PSCredentialInfo>] [-PassThru] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-CredentialInfo <PSCredentialInfo>] [-PassThru] [-Force] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ### PSGalleryParameterSet
+
 ```
-Register-PSResourceRepository [-PSGallery] [-Trusted] [-Priority <Int32>] [-PassThru] [-Force] [-WhatIf]
- [-Confirm] [<CommonParameters>]
+Register-PSResourceRepository [-PSGallery] [-Trusted] [-Priority <Int32>] [-PassThru] [-Force]
+ [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
+
 ```
 Register-PSResourceRepository -Repository <Hashtable[]> [-PassThru] [-Force] [-WhatIf] [-Confirm]
  [<CommonParameters>]
@@ -42,7 +45,7 @@ The cmdlet registers a NuGet repository containing PowerShell resources.
 This example registers the repository with the **Name** of `PoshTestGallery`.
 
 ```powershell
-Register-PSResourceRepository -Name PoshTestGallery -Uri "https://www.powershellgallery.com/api/v2"
+Register-PSResourceRepository -Name PoshTestGallery -Uri 'https://www.powershellgallery.com/api/v2'
 Get-PSResourceRepository -Name PoshTestGallery
 ```
 
@@ -61,7 +64,7 @@ registration.
 
 ```powershell
 Register-PSResourceRepository -PSGallery
-Get-PSResourceRepository -Name "PSGallery"
+Get-PSResourceRepository -Name 'PSGallery'
 ```
 
 ```Output
@@ -77,8 +80,10 @@ and provide an array of hashtables. Each hashtable can only have keys associated
 the **NameParameterSet** or the **PSGalleryParameterSet**.
 
 ```powershell
-$arrayOfHashtables = @{Name = "Local"; Uri = "D:/PSRepoLocal/"; Trusted = $true; Priority = 20 },
-                     @{Name = "PSGv3"; Uri = "https://www.powershellgallery.com/api/v3"; Trusted = $true; Priority = 50 },
+$arrayOfHashtables = @{Name = 'Local'; Uri = 'D:/PSRepoLocal/'; Trusted = $true;
+                       Priority = 20 },
+                     @{Name = 'PSGv3'; Uri = 'https://www.powershellgallery.com/api/v3';
+                       Trusted = $true; Priority = 50 },
                      @{PSGallery = $true;  Trusted = $true; Priority = 10 }
 Register-PSResourceRepository -Repository $arrayOfHashtables
 Get-PSResourceRepository
@@ -95,16 +100,16 @@ psgettestlocal   file:///c:/code/testdir                        False         50
 
 This example registers a repository with credential information to be retrieved from a registered
 **Microsoft.PowerShell.SecretManagement** vault. You must have the
-**Microsoft.PowerShell.SecretManagement** module install and have a registered vault containing the
-stored secret. The format of the secret must match the requirements of the repository.
+**Microsoft.PowerShell.SecretManagement** module installed and have a registered vault containing
+the stored secret. The format of the secret must match the requirements of the repository.
 
 ```powershell
 $parameters = @{
-    Name = "PSGv3"
-    Uri = "https://www.powershellgallery.com/api/v3"
+    Name = 'PSGv3'
+    Uri = 'https://www.powershellgallery.com/api/v3'
     Trusted = $true
     Priority = 50
-    CredentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ('SecretStore', 'TestSecret')
+    CredentialInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo]::new('SecretStore', 'TestSecret')
 }
 Register-PSResourceRepository @parameters
 Get-PSResourceRepository | Select-Object * -ExpandProperty CredentialInfo
@@ -125,7 +130,7 @@ Credential     :
 
 ### -CredentialInfo
 
-A **PSCredentialInfo** object that includes the name of a vault and a secret that is stored in a
+A **PSCredentialInfo** object that includes the name of a vault and a secret that's stored in a
 **Microsoft.PowerShell.SecretManagement** store.
 
 ```yaml
@@ -136,6 +141,22 @@ Aliases:
 Required: False
 Position: Named
 Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Force
+
+Overwrites a repository if it already exists.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -295,24 +316,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Force
-
-Overwrites a repository if it already exists.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

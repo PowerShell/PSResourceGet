@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -15,10 +14,11 @@ This cmdlet updates the comment-based metadata in an existing script `.ps1` file
 
 ```
 Update-PSScriptFileInfo [-Author <String>] [-CompanyName <String>] [-Copyright <String>]
- [-Description <String>] [-ExternalModuleDependencies <String[]>] [-ExternalScriptDependencies <String[]>]
- [-Guid <Guid>] [-IconUri <String>] [-LicenseUri <String>] [-Path] <String> [-PrivateData <String>]
- [-ProjectUri <String>] [-ReleaseNotes <String>] [-RemoveSignature] [-RequiredModules <Hashtable[]>]
- [-RequiredScripts <String[]>] [-Tags <String[]>] [-Version <String>] [<CommonParameters>]
+ [-Description <String>] [-ExternalModuleDependencies <String[]>]
+ [-ExternalScriptDependencies <String[]>] [-Guid <Guid>] [-IconUri <String>] [-LicenseUri <String>]
+ [-Path] <String> [-PrivateData <String>] [-ProjectUri <String>] [-ReleaseNotes <String>]
+ [-RemoveSignature] [-RequiredModules <Hashtable[]>] [-RequiredScripts <String[]>]
+ [-Tags <String[]>] [-Version <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -310,7 +310,7 @@ Aliases:
 
 Required: False
 Position: Named
-Default value: None
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -358,8 +358,9 @@ Accept wildcard characters: False
 
 ### -Tags
 
-The tags associated with the script. Tag values are strings that should not contain spaces. For more
-information, see [Tag details](/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).
+The tags associated with the script. Tag values are strings that shouldn't contain spaces. For more
+information, see
+[Tag details](/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).
 
 ```yaml
 Type: System.String[]
@@ -390,7 +391,11 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

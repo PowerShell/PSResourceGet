@@ -1,17 +1,22 @@
 ---
-Module Name: PowerShellGet
-Module Guid: 1d73a601-4a6c-43c5-ba3f-619b18bbb404
-Download Help Link: https://aka.ms/powershell73-help
+Download Help Link: https://aka.ms/powershell74-help
 Help Version: 3.0.16
 Locale: en-US
+Module Guid: 1d73a601-4a6c-43c5-ba3f-619b18bbb404
+Module Name: PowerShellGet
+ms.date: 02/01/2023
 ---
 
 # PowerShellGet Module
+
 ## Description
-PowerShellGet is a module with commands for discovering, installing, updating and publishing PowerShell artifacts like Modules, DSC Resources, Role Capabilities, and Scripts.
-This documentation covers the latest preview version PowerShellGet v3.
+
+PowerShellGet is a module with commands for discovering, installing, updating and publishing
+PowerShell artifacts like Modules, DSC Resources, Role Capabilities, and Scripts. This documentation
+covers the latest preview version PowerShellGet v3.
 
 ## PowerShellGet Cmdlets
+
 ### [Find-PSResource](Find-PSResource.md)
 Searches for packages from a repository (local or remote), based on a name or other package
 properties.
@@ -21,6 +26,9 @@ Returns modules and scripts installed on the machine via **PowerShellGet**.
 
 ### [Get-PSResourceRepository](Get-PSResourceRepository.md)
 Finds and returns registered repository information.
+
+### [Get-PSScriptFileInfo](Get-PSScriptFileInfo.md)
+The cmdlet creates a new script file, including metadata about the script.
 
 ### [Install-PSResource](Install-PSResource.md)
 Installs resources from a registered repository.
@@ -57,4 +65,3 @@ Downloads and installs the newest version of a package already installed on the 
 
 ### [Update-PSScriptFileInfo](Update-PSScriptFileInfo.md)
 This cmdlet updates the comment-based metadata in an existing script `.ps1` file.
-
