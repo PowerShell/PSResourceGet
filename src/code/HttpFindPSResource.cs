@@ -5,6 +5,7 @@ using System.Xml;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -46,7 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     PSResourceInfo.TryConvertFromXml(
                         element,
-                        includePrerelease,
+                        //includePrerelease,
                         out PSResourceInfo psGetInfo,
                         repository.Name,
                         out string errorMsg);
@@ -97,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         PSResourceInfo.TryConvertFromXml(
                             element,
-                            includePrerelease,
+                            //includePrerelease,
                             out PSResourceInfo psGetInfo,
                             repository.Name,
                             out string errorMsg);
@@ -154,7 +155,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         PSResourceInfo.TryConvertFromXml(
                             element,
-                            includePrerelease,
+                            //includePrerelease,
                             out PSResourceInfo psGetInfo,
                             repository.Name,
                             out string errorMsg);
@@ -223,7 +224,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         
                 PSResourceInfo.TryConvertFromXml(
                     elemList[0],
-                    includePrerelease,
+                    //includePrerelease,
                     out PSResourceInfo psGetInfo,
                     repository.Name,
                     out string errorMsg);
@@ -280,7 +281,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     PSResourceInfo.TryConvertFromXml(
                         element,
-                        includePrerelease,
+                        //includePrerelease,
                         out PSResourceInfo psGetInfo,
                         repository.Name,
                         out string errorMsg);
@@ -321,7 +322,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     PSResourceInfo.TryConvertFromXml(
                         element,
-                        includePrerelease,
+                        //includePrerelease,
                         out PSResourceInfo psGetInfo,
                         repository.Name,
                         out string errorMsg);
@@ -367,7 +368,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 PSResourceInfo.TryConvertFromXml(
                     elemList[0],
-                    false, // TODO: confirm, but this seems to only apply for FindName() cases
+                    //false, // TODO: confirm, but this seems to only apply for FindName() cases
                     out PSResourceInfo psGetInfo,
                     repository.Name,
                     out string errorMsg);
@@ -385,6 +386,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
                 // TODO: handle V3 endpoints, test for NuGetGallery
+                // Same API calls for both prerelease and non - prerelease
+                var response = v3ServerAPICall.FindVersion(packageName, version, repository, type, out errRecord);
+
+                // convert response to json here
+                JObject pkgVersionEntry = JObject.Parse(response);
+
+                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                {
+                    // write error
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
+                }
+
+
+                if (psGetInfo != null)
+                {
+                    return psGetInfo;
+                }
+                else
+                {
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
+                }
             }
 
             return null;
