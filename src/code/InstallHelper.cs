@@ -186,6 +186,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     HttpInstallPackage(_pkgNamesToInstall.ToArray(), repo, credential, scope);
                     return new List<PSResourceInfo>();
                 }
+                // else if APIVersion.v3 ???
 
                 // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
                 // OR the user issues trust interactively via console.

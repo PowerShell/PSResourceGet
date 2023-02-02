@@ -8,6 +8,10 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NuGet.Versioning;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Linq;
+using System.Net;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -17,14 +21,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // methods below.
         #region Members
 
-        private static readonly HttpClient s_client = new HttpClient();
         private static readonly HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
+		private static readonly HttpClientHandler handler = new HttpClientHandler()
+		{
+			AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+		};
+		private static readonly HttpClient s_client = new HttpClient(handler);
 
-        #endregion
+		#endregion
 
-        #region Constructor
+		#region Constructor
 
-        internal V3ServerAPICalls() {}
+		internal V3ServerAPICalls() {}
 
         #endregion
         
@@ -252,11 +260,52 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             // Quotations around package name and version do not matter, same metadata gets returned.
             //var requestUrlV2 = $"{repository.Uri.ToStrin g()}/Packages(Id='{packageName}', Version='{version}')?{select}";
-            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
-            var requestUrlV2 = $"";
+           // string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
             
-            return HttpRequestCall(requestUrlV2, out errRecord);  
-        }
+            // 1) find the RegistrationBaseUrl
+            // ie send a request out for the index resources (response is json)
+            var requestV3index = $"{repository.Uri}";
+            var indexResponse = HttpRequestCall(requestV3index, out errRecord);
+
+			JObject indexResources = JObject.Parse(indexResponse);
+
+			var resources = indexResources.SelectToken("resources");
+
+            string registrationBaseUrl = string.Empty;
+			foreach (JObject item in resources) 
+			{
+				string resourceType = item.GetValue("@type").ToString();
+
+                if (resourceType.Equals("RegistrationsBaseUrl/Versioned")) {
+                    // use this resourceId
+                    registrationBaseUrl = item.GetValue("@id").ToString();
+                    break;
+				}
+			}
+
+            if (String.IsNullOrEmpty(registrationBaseUrl)) { 
+                // throw error
+            }
+
+			// https://api.nuget.org/v3/registration5-gz-semver2/newtonsoft.json/13.0.2.json
+			var requestPkgMapping = $"{registrationBaseUrl}{packageName}/{version}.json";  
+			var responsePkgMapping = HttpRequestCall(requestPkgMapping, out errRecord);
+
+			JObject pkgMapping = JObject.Parse(responsePkgMapping);
+			JToken catalogEntryKey = pkgMapping.SelectToken("catalogEntry");
+
+            var catalogEntryValue = catalogEntryKey.Value<string>();
+
+            if (string.IsNullOrEmpty(catalogEntryValue)) {
+                // throw error
+                return "bye";
+            }
+
+			var requestPkgCatalogEntry = $"{catalogEntryValue}";
+			var responsePkgCatalogEntry = HttpRequestCall(requestPkgCatalogEntry, out errRecord);
+
+            return responsePkgCatalogEntry;
+		}
 
 
         /**  INSTALL APIS **/
@@ -300,9 +349,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
-                
-                // We can have this return a Task, or the response (json string)
-                var response = Utils.SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
+
+				// We can have this return a Task, or the response (json string)
+				var response = Utils.SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
 
                 // Do we want to check if response is 200?
                 // response will be json metadata object that will get returned
