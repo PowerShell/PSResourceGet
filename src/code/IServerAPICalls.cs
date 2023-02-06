@@ -55,7 +55,7 @@ public interface IServerAPICalls
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
     string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord);
-    
+
     // <summary>
     /// Find method which allows for searching for single name with specific version.
     /// Name: no wildcard support
