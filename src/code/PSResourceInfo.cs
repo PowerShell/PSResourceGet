@@ -799,7 +799,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
                 };
 
-
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
                     author: metadata["Authors"] as String,
@@ -826,6 +825,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     type: ResourceType.None,
                     updatedDate: null,
                     version: metadata["Version"] as Version);
+                    
                 return true;
                 
             }

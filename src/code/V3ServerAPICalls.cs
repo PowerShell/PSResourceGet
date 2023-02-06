@@ -365,8 +365,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
-				// We can have this return a Task, or the response (json string)
-				response = Utils.SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
+				        // We can have this return a Task, or the response (json string)
+				        response = Utils.SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
 
                 // response will be json metadata object that will get returned
                 //return response;
