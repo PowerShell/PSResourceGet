@@ -8,10 +8,13 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NuGet.Versioning;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
+using System.Collections;
+using System.Xml.Linq;
+using System.Drawing;
+using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -166,12 +169,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             List<string> responses = new List<string>();
             int skip = 0;
+            
+            var initialResponseDom = FindNameGlobbing(packageName, repository, includePrerelease, skip, out errRecord);
+            responses.Add(initialResponseDom);
 
-            var initialResponse = FindNameGlobbing(packageName, repository, includePrerelease, skip, out errRecord);
-            responses.Add(initialResponse);
-
+            /*
             // check count (regex)  425 ==> count/100  ~~>  4 calls 
-            int initalCount = _httpFindPSResource.GetCountFromResponse(initialResponse);  // count = 4
+            //int initalCount = _httpFindPSResource.GetCountFromResponse(initialResponse);  // count = 4
             int count = initalCount / 100;
             // if more than 100 count, loop and add response to list
             while (count > 0)
@@ -182,7 +186,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 responses.Add(tmpResponse);
                 count--;
             }
-
+            */
             return responses.ToArray();
         }
 
@@ -257,52 +261,61 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 		///     
 		/// </summary>
 		public string FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord) {
-            
+
+            string resourcesName = "resources";
+            string typeName = "RegistrationsBaseUrl/Versioned";
+            string registrationsBaseUrl = string.Empty;
+
             // Quotations around package name and version do not matter, same metadata gets returned.
             //var requestUrlV2 = $"{repository.Uri.ToStrin g()}/Packages(Id='{packageName}', Version='{version}')?{select}";
-           // string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+            // string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
             
             // 1) find the RegistrationBaseUrl
             // ie send a request out for the index resources (response is json)
             var requestV3index = $"{repository.Uri}";
-            var indexResponse = HttpRequestCall(requestV3index, out errRecord);
 
-			JObject indexResources = JObject.Parse(indexResponse);
+            // JSON Document
+            string indexResponse = HttpRequestCall(requestV3index, out errRecord);
+            JsonDocument indexDom = JsonDocument.Parse(indexResponse);
 
-			var resources = indexResources.SelectToken("resources");
+            JsonElement rootIndexDom = indexDom.RootElement;
+            rootIndexDom.TryGetProperty(resourcesName, out JsonElement resources);
 
-            string registrationBaseUrl = string.Empty;
-			foreach (JObject item in resources) 
-			{
-				string resourceType = item.GetValue("@type").ToString();
+            foreach (JsonElement resource in resources.EnumerateArray())
+            {
+                if (resource.TryGetProperty("@type", out JsonElement typeElement) && typeName.Equals(typeElement.ToString()))
+                {
+                    if (resource.TryGetProperty("@id", out JsonElement idElement))
+                    {
+                        registrationsBaseUrl = idElement.ToString();
+                    }
+                    else {
+                        // error out here
+                        errRecord = $"@id element not found in service index '{repository.Uri}' for {typeName}.";
+                    }
+                }
+            }
 
-                if (resourceType.Equals("RegistrationsBaseUrl/Versioned")) {
-                    // use this resourceId
-                    registrationBaseUrl = item.GetValue("@id").ToString();
-                    break;
-				}
-			}
-
-            if (String.IsNullOrEmpty(registrationBaseUrl)) { 
+            // todo: this is probably not necessary
+            if (String.IsNullOrEmpty(registrationsBaseUrl)) { 
                 // throw error
             }
 
 			// https://api.nuget.org/v3/registration5-gz-semver2/newtonsoft.json/13.0.2.json
-			var requestPkgMapping = $"{registrationBaseUrl}{packageName}/{version}.json";  
-			var responsePkgMapping = HttpRequestCall(requestPkgMapping, out errRecord);
+			var requestPkgMapping = $"{registrationsBaseUrl}{packageName}/{version}.json";  
+			string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errRecord);
+            JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
+            JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
+            rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement);
+            string catalogEntryUrl = catalogEntryUrlElement.ToString();
 
-			JObject pkgMapping = JObject.Parse(responsePkgMapping);
-			JToken catalogEntryKey = pkgMapping.SelectToken("catalogEntry");
-
-            var catalogEntryValue = catalogEntryKey.Value<string>();
-
-            if (string.IsNullOrEmpty(catalogEntryValue)) {
+            if (string.IsNullOrEmpty(catalogEntryUrl)) {
                 // throw error
-                return "bye";
+                return null;
             }
 
-			var requestPkgCatalogEntry = $"{catalogEntryValue}";
-			var responsePkgCatalogEntry = HttpRequestCall(requestPkgCatalogEntry, out errRecord);
+            // string response
+            string responsePkgCatalogEntry = HttpRequestCall(catalogEntryUrl, out errRecord);
 
             return responsePkgCatalogEntry;
 		}
@@ -310,15 +323,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /**  INSTALL APIS **/
 
-        // TODO:  Install name
-        /// <summary>
-        /// Installs specific package.
-        /// Name: no wildcard support.
-        /// Examples: Install "PowerShellGet"
-        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
-        ///                             then find the exact version to install, then call into install version
-        /// </summary>
+            // TODO:  Install name
+            /// <summary>
+            /// Installs specific package.
+            /// Name: no wildcard support.
+            /// Examples: Install "PowerShellGet"
+            /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
+            ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
+            ///                             then find the exact version to install, then call into install version
+            /// </summary>
         public HttpContent InstallName(string packageName, PSRepositoryInfo repository, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}";
 
@@ -342,27 +355,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
         // DONE FOR NOW
-        private static string HttpRequestCall(string requestUrlV3, out string errRecord) {
+        private static String HttpRequestCall(string requestUrlV3, out string errRecord) {
             errRecord = string.Empty;
+            //JsonDocument responseDom = null;
+            string response = string.Empty;
 
             // request object will send requestUrl 
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
-				// We can have this return a Task, or the response (json string)
-				var response = Utils.SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
+				        // We can have this return a Task, or the response (json string)
+				        response = Utils.SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
 
-                // Do we want to check if response is 200?
                 // response will be json metadata object that will get returned
-                return response.ToString();
+                //return response;
             }
             catch (HttpRequestException e)
             {
                 errRecord = "Error occured while trying to retrieve response: " + e.Message;
+                /*
+                if (responseDom != null) {
+                    responseDom.Dispose();
+                }*/
             }
 
-            return string.Empty;
+            // Todo: test that this works as expected if a responseDom was disposed before exiting this method
+            return response;
         }
 
         // DONE FOR NOW
@@ -401,7 +420,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
-            
+            //JsonDocument pkgDom = null;
+
             string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100";
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
             var nameFilter = string.Empty;
@@ -411,7 +431,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (names.Length == 0)
             {
                 errRecord = "We don't support -Name *";
-                return string.Empty;
+                return "";
             }
             if (names.Length == 1)
             {
@@ -442,7 +462,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             else 
             {
                 errRecord = "We only support wildcards for scenarios similar to the following examples: PowerShell*, *ShellGet, Power*Get, *Shell*.";
-                return string.Empty;
+                return "";
             }
             
             var requestUrlV2 = $"{repository.Uri.ToString()}";

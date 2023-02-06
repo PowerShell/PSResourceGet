@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using Newtonsoft.Json;
 using NuGet.Versioning;
 using System;
 using System.Collections;
