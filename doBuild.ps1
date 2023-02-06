@@ -91,6 +91,7 @@ function DoBuild
                 'NuGet.Repositories'
                 'NuGet.Versioning'
                 'Newtonsoft.Json'
+                'System.Text.Json'
             )
 
             $buildSuccess = $true

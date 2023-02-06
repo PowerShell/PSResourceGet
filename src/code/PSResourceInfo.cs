@@ -10,11 +10,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
-using System.Xml.Serialization;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 using Dbg = System.Diagnostics.Debug;
+using System.Management.Automation.Language;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -686,7 +685,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         // v3 json parsing into psresourceinfo object
         public static bool TryConvertFromJson(
-          JObject pkgJson,
+          JsonDocument pkgJson,
           out PSResourceInfo psGetInfo,
           string repositoryName,
           out string errorMsg)
@@ -703,95 +702,102 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             try
             {
                 Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+                JsonElement rootDom = pkgJson.RootElement;
 
                 // Version
-                JToken versionKey = pkgJson.SelectToken("version");  // version
-                var versionValue = versionKey.Value<string>();           // 3.0.0-beta1
-                metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
-                metadata["Prerelease"] = prereleaseLabel;
-
-                if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
+                if (rootDom.TryGetProperty("version", out JsonElement versionElement))
                 {
-                    errorMsg = string.Format(
-                        CultureInfo.InvariantCulture,
-                        @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+                    string versionValue = versionElement.ToString();
+                    metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
+                    metadata["Prerelease"] = prereleaseLabel;
 
-                    parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                    if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
+                    {
+                        errorMsg = string.Format(
+                            CultureInfo.InvariantCulture,
+                            @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+
+                        parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                    }
+                    metadata["NormalizedVersion"] = parsedNormalizedVersion;
                 }
-                metadata["NormalizedVersion"] = parsedNormalizedVersion;
-
 
                 // License Url
-                JToken licenseUrlKey = pkgJson.SelectToken("licenseUrl");
-                var licenseUrlValue = licenseUrlKey.Value<string>();
-                metadata["LicenseUri"] = ParseHttpUrl(licenseUrlValue) as Uri;
+                if (rootDom.TryGetProperty("licenseUrl", out JsonElement licenseUrlElement))
+                {
+                    metadata["LicenseUrl"] = ParseHttpUrl(licenseUrlElement.ToString()) as Uri;
+                }
 
                 // Project Url
-                JToken projectUrlKey = pkgJson.SelectToken("projectUrl");
-                var projectUrlValue = projectUrlKey.Value<string>();
-                metadata["ProjectUri"] = ParseHttpUrl(projectUrlValue) as Uri;
+                if (rootDom.TryGetProperty("projectUrl", out JsonElement projectUrlElement))
+                {
+                    metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
+                }
 
                 // Tags
-                JToken tagsKey = pkgJson.SelectToken("tags");
-                JArray tagsJArr = tagsKey.Value<JArray>();
-                List<string> tags = new List<string>();
-                var children = tagsJArr.Children();
-                foreach (JToken token in children) {
-                    tags.Add(token.Value<string>());
+                if (rootDom.TryGetProperty("tags", out JsonElement tagsElement))
+                {
+                    List<string> tags = new List<string>();
+                    foreach (var tag in tagsElement.EnumerateArray())
+                    {
+                        tags.Add(tag.ToString());
+                    }
+                    metadata["Tags"] = tags.ToArray();
                 }
-                metadata["Tags"] = tags.ToArray();
 
                 // PublishedDate
-                JToken publishedKey = pkgJson.SelectToken("published");
-                var publishedValue = publishedKey.Value<string>();
-                metadata["PublishedDate"] = ParseHttpDateTime(publishedValue);
+                if (rootDom.TryGetProperty("published", out JsonElement publishedElement))
+                {
+                    metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
+                }
 
                 // Dependencies 
                 // TODO, a little complicated 
 
                 // IsPrerelease
-                JToken isPrereleaseKey = pkgJson.SelectToken("isPrerelease");
-                var isPrereleaseValue = isPrereleaseKey.Value<string>();
-                bool.TryParse(isPrereleaseValue, out bool isPrerelease);
-                metadata["IsPrerelease"] = isPrerelease;
-
+                if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
+                {
+                    metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
+                }
 
                 // Author
-                JToken authorKey = pkgJson.SelectToken("authors");
-                var authorValue = authorKey.Value<string>();
-                metadata["Authors"] = authorValue;
+                if (rootDom.TryGetProperty("authors", out JsonElement authorsElement))
+                {
+                    metadata["Authors"] = authorsElement.ToString();
 
-                // CompanyName
-                // CompanyName is not provided in v3 pkg metadata response, so we've just set it to the author,
-                // which is often the company
-                metadata["CompanyName"] = authorValue;
+                    // CompanyName
+                    // CompanyName is not provided in v3 pkg metadata response, so we've just set it to the author,
+                    // which is often the company
+                    metadata["CompanyName"] = authorsElement.ToString();
+                }
 
                 // Copyright
-                JToken copyrightKey = pkgJson.SelectToken("copyright");
-                var copyrightValue = copyrightKey.Value<string>();
-                metadata["Copyright"] = copyrightValue;
+                if (rootDom.TryGetProperty("copyright", out JsonElement copyrightElement))
+                {
+                    metadata["Copyright"] = copyrightElement.ToString();
+                }
 
                 // Description
-                JToken descriptionKey = pkgJson.SelectToken("description");
-                var descriptionValue = descriptionKey.Value<string>();
-                metadata["Description"] = descriptionValue;
-
+                if (rootDom.TryGetProperty("description", out JsonElement descriptiontElement))
+                {
+                    metadata["Description"] = descriptiontElement.ToString();
+                }
 
                 // Id
-                JToken idKey = pkgJson.SelectToken("id");
-                var idValue = idKey.Value<string>();
-                metadata["Id"] = idValue;
-
+                if (rootDom.TryGetProperty("id", out JsonElement idElement))
+                {
+                    metadata["Id"] = idElement.ToString();
+                }
+                
                 // ReleaseNotes
-                JToken releaseNotesKey = pkgJson.SelectToken("releaseNotes");
-                metadata["ReleaseNotes"] = releaseNotesKey != null ? releaseNotesKey.Value<string>() : string.Empty;
-
+                if (rootDom.TryGetProperty("releaseNotes", out JsonElement releaseNotesElement)) {
+                    metadata["ReleaseNotes"] = releaseNotesElement.ToString();
+                }
 
                 var additionalMetadataHashtable = new Dictionary<string, string>
                 {
                     { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
                 };
-
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
@@ -819,7 +825,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     type: ResourceType.None,
                     updatedDate: null,
                     version: metadata["Version"] as Version);
-
+                    
                 return true;
                 
             }
