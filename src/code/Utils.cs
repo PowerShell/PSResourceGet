@@ -16,11 +16,10 @@ using System.Management.Automation.Runspaces;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NuGet.Protocol.Plugins;
 using System.Text;
 using System.Runtime.InteropServices.ComTypes;
+using System.Text.Json;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -1204,24 +1203,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region HttpRequest
 
-        public static async Task<JObject> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
+        public static async Task<string> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
                 response.EnsureSuccessStatusCode();
-                
+
                 var responseStr = await response.Content.ReadAsStringAsync();
-                //var cleanResponse = responseStr.Replace("\u001F", "");
-
-                JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.None, MaxDepth = 10 });
-
-                var strReader = new StringReader(responseStr);
-                using var jsonReader = new JsonTextReader(strReader);
-
-                //   return JsonConvert.Deserialize<JObject>(responseStr);
-
-                return serializer.Deserialize<JObject>(jsonReader);
+                //JsonDocument document = JsonDocument.Parse(responseStr);
+                // TODO:  this document needs to be disposed
+                
+                return responseStr;
             }
             catch (HttpRequestException e)
             {

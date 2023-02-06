@@ -5,7 +5,7 @@ using System.Xml;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -248,12 +248,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Same API calls for both prerelease and non-prerelease
                 var response = v3ServerAPICall.FindName(packageName, repository, includePrerelease, type, out errRecord);
 
-                var elemList = ConvertResponseToXML(response);
+                //var elemList = ConvertResponseToXML(response);
 
+                /*
                 if (elemList.Length == 0)
                 {
                     Console.WriteLine("empty response. Error handle");
                 }
+                */
 
             }
 
@@ -385,12 +387,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
-                // TODO: handle V3 endpoints, test for NuGetGallery
-                // Same API calls for both prerelease and non - prerelease
-                var response = v3ServerAPICall.FindVersion(packageName, version, repository, type, out errRecord);
-
-                // convert response to json here
-                JObject pkgVersionEntry = JObject.Parse(response);
+                string response = v3ServerAPICall.FindVersion(packageName, version, repository, type, out errRecord);
+                // convert response to json document
+                JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
 
                 if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                 {
