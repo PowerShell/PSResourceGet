@@ -191,16 +191,71 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             errRecord = string.Empty;
 
-            /*
+            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+            string querySearchTerm = String.Empty;
+
+            if (names.Length == 0)
+            {
+                errRecord = "We don't support -Name *";
+                return Utils.EmptyStrArray;
+            }
+            if (names.Length == 1)
+            {
+
+                // packageName: *get*       -> q: get
+                // packageName: PowerShell* -> q: PowerShell
+                // packageName: *ShellGet   -> q: ShellGet
+                querySearchTerm = names[0];
+            }
+            else
+            {
+                // *pow*get*
+                // pow*get -> only support this (V2)
+                // pow*get*
+                // *pow*get
+            
+                errRecord = "We only support wildcards for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*.";
+                return Utils.EmptyStrArray;
+            }
+
+            
             // 1) Find the package base address ("SearchQueryService/3.0.0-beta")
             string typeName = "SearchQueryService/3.0.0-beta";
-            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2
+            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
+            // https://azuresearch-usnc.nuget.org/query?q=Newtonsoft&prerelease=false&semVerLevel=1.0.0 (NuGet) (supports * at end of searchterm q but equivalent to q = text w/o *)
             string searchQueryServiceUrl = FindResourceType(typeName, repository, out errRecord);
-            string query = $""
 
-            string flattenedPkgVersionsUrl = $"{searchQueryServiceUrl}{packageName}/index.json";
-            */
-            return responses.ToArray();
+            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+
+            string registrationsBaseUrlType = "RegistrationsBaseUrl/Versioned";
+            string registrationsBaseUrl = FindResourceType(registrationsBaseUrlType, repository, out errRecord);
+
+            // 2) call query with search term, get unique names, see which ones truly match
+            string matchingPkgs = HttpRequestCall(query, out errRecord);
+            
+            JsonDocument matchingPkgsDom = JsonDocument.Parse(matchingPkgs);
+            JsonElement rootMatchingPkgsDom = matchingPkgsDom.RootElement;
+            rootMatchingPkgsDom.TryGetProperty("data", out JsonElement matchingPkgIds);
+
+            List<string> matchingResponses = new List<string>();
+            foreach (var pkgId in matchingPkgIds.EnumerateArray()) {
+                
+                pkgId.TryGetProperty("id", out JsonElement idItem);
+                pkgId.TryGetProperty("version", out JsonElement versionItem);
+
+                string id = idItem.ToString();
+                string latestVersion = versionItem.ToString();
+
+                // determine if id matches our wildcard criteria
+                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.Contains(querySearchTerm)) ||
+                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm)) ||
+                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm)))
+                {
+                    matchingResponses.Add(FindVersionHelper(registrationsBaseUrl, id, latestVersion, out errRecord));
+                }
+            }
+            
+            return matchingResponses.ToArray();
         }
 
         // Complete
@@ -435,7 +490,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private string FindVersionHelper(string registrationsBaseUrl, string packageName, string version, out string errMsg) {
             // https://api.nuget.org/v3/registration5-gz-semver2/newtonsoft.json/13.0.2.json
-            var requestPkgMapping = $"{registrationsBaseUrl}{packageName}/{version}.json";
+            var requestPkgMapping = $"{registrationsBaseUrl}{packageName.ToLower()}/{version}.json";
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errMsg);
 
             JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
