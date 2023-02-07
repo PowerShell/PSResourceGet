@@ -81,35 +81,75 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             HashSet<string> tagPkgs = new HashSet<string>();   
             tagsFound = new HashSet<string>();
 
-            // TAG example:
-            // chocolatey, crescendo 
-            //  >  chocolatey  ===  ModuleA
-            //  >  crescendo   ===  ModuleA
-            // --->   for tags get rid of duplicate modules             
-            foreach (string tag in tags)
+            if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
-                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
-
-                foreach (string response in responses)
+                // TAG example:
+                // chocolatey, crescendo 
+                //  >  chocolatey  ===  ModuleA
+                //  >  crescendo   ===  ModuleA
+                // --->   for tags get rid of duplicate modules             
+                foreach (string tag in tags)
                 {
-                    var elemList = ConvertResponseToXML(response);
-                    
-                    foreach (var element in elemList)
-                    {
-                        PSResourceInfo.TryConvertFromXml(
-                            element,
-                            //includePrerelease,
-                            out PSResourceInfo psGetInfo,
-                            repository.Name,
-                            out string errorMsg);
+                    string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
 
+                    foreach (string response in responses)
+                    {
+                        var elemList = ConvertResponseToXML(response);
+
+                        foreach (var element in elemList)
+                        {
+                            PSResourceInfo.TryConvertFromXml(
+                                element,
+                                //includePrerelease,
+                                out PSResourceInfo psGetInfo,
+                                repository.Name,
+                                out string errorMsg);
+
+                            if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
+                            {
+                                tagPkgs.Add(psGetInfo.Name);
+                                pkgsFound.Add(psGetInfo);
+                                tagsFound.Add(tag);
+                            }
+                            else
+                            {
+                                // TODO: Write error for corresponding null scenario
+                                // TODO: array out of bounds exception when name does not exist
+                                // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
+                                errRecord = errorMsg;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3) {
+                // TAG example:
+                // chocolatey, crescendo 
+                //  >  chocolatey  ===  ModuleA
+                //  >  crescendo   ===  ModuleA
+                // --->   for tags get rid of duplicate modules             
+                foreach (string tag in tags)
+                {
+                    string[] responses = v3ServerAPICall.FindTag(tag, repository, includePrerelease, type, out errRecord);
+
+                    foreach (string response in responses)
+                    {
+                        JsonDocument pkgEntry = JsonDocument.Parse(response);
+
+                        if (!PSResourceInfo.TryConvertFromJson(pkgEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                        {
+                            // write error
+                            // TODO: Write error for corresponding null scenario
+                            errRecord = errorMsg;
+                        }
+                            
                         if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
                         {
                             tagPkgs.Add(psGetInfo.Name);
                             pkgsFound.Add(psGetInfo);
                             tagsFound.Add(tag);
                         }
-                        else 
+                        else
                         {
                             // TODO: Write error for corresponding null scenario
                             // TODO: array out of bounds exception when name does not exist
