@@ -58,6 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
         private V2ServerAPICalls _v2ServerApiCalls = new V2ServerAPICalls();
+        private V3ServerAPICalls _v3ServerApiCalls = new V3ServerAPICalls();
         private HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
 
         #endregion
@@ -181,12 +182,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
-                if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
                     HttpInstallPackage(_pkgNamesToInstall.ToArray(), repo, credential, scope);
                     return new List<PSResourceInfo>();
                 }
-                // else if APIVersion.v3 ???
 
                 // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
                 // OR the user issues trust interactively via console.
@@ -416,7 +416,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                             // download the module
-                            HttpContent responseContent = _v2ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
+                            HttpContent responseContent = null;
+                            if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                            {
+                                responseContent = _v2ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
+                            }
+                            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                            {
+                                responseContent = _v3ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
+                            }
                             // TODO: add error handling
 
                             bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkgToInstall);
@@ -441,8 +449,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                         // download the module
-                        HttpContent responseContent = _v2ServerApiCalls.InstallVersion(pkgName, nugetVersionString, repository, out string errorRecord);
+                        HttpContent responseContent = null;
+                        if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                        {
+                            responseContent = _v2ServerApiCalls.InstallVersion(pkgName, nugetVersionString, repository, out string errorRecord);
+                        }
+                        else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3) {
+                            responseContent = _v3ServerApiCalls.InstallVersion(pkgName, nugetVersionString, repository, out string errorRecord);
+
+                        }
                         // TODO: add error handling
+
+
 
                         bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, nugetVersionString, scope, pkgToInstall);
 
@@ -458,7 +476,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // InstallName
                 foreach (string pkgName in pkgNamesToInstall)
                 {
-                    // TODO: remove FindVersion and directly call install API. Add method to work with HTTPContent returned from Install to parse into PSResourceInf
                     PSResourceInfo pkgToInstall = _httpFindPSResource.FindName(pkgName, repository, _prerelease, ResourceType.None, out string errRecord);
                     pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
@@ -469,7 +486,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
 
                     // download the module
-                    HttpContent responseContent = _v2ServerApiCalls.InstallName(pkgName, repository, out string errorRecord);
+                    HttpContent responseContent = null;
+                    if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                    {
+                        responseContent = _v2ServerApiCalls.InstallName(pkgName, _prerelease, repository, out string errorRecord);
+                    }
+                    else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                    {
+                        responseContent = _v3ServerApiCalls.InstallName(pkgName, _prerelease, repository, out string errorRecord);
+
+                    }
+
                     // TODO: add error handling
                     bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkgToInstall);
 
@@ -521,6 +548,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 // bool isModule = pkgToInstall.Type == ResourceType.Module || pkgToInstall.Type == ResourceType.None;
                 bool isModule = File.Exists(moduleManifest);
+                bool isScript = File.Exists(scriptPath);
                 string installPath = isModule ? _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase))
                     : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
 
@@ -579,7 +607,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return false;
                     }
                 }
-                else
+                else if (isScript)
                 {
                     // is script
                     if (!PSScriptFileInfo.TryTestPSScriptFile(
@@ -595,6 +623,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         return false;
                     }
+                }
+                else {
+                    // not a PowerShell package (eg a resource from the NuGet Gallery)
+
+                    // add verbose logging here
+                    isModule = true;
                 }
 
                 DeleteExtraneousFiles(pkgName, pkgVersion, tempDirNameVersion);

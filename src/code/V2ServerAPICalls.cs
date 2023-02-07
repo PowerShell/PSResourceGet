@@ -280,7 +280,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
         ///                             then find the exact version to install, then call into install version
         /// </summary>
-        public HttpContent InstallName(string packageName, PSRepositoryInfo repository, out string errRecord) {
+        public HttpContent InstallName(string packageName, bool includePrerelease, PSRepositoryInfo repository, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}";
 
             return HttpRequestCallForContent(requestUrlV2, out errRecord);  

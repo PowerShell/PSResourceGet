@@ -399,10 +399,50 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
             ///                             then find the exact version to install, then call into install version
             /// </summary>
-        public HttpContent InstallName(string packageName, PSRepositoryInfo repository, out string errRecord) {
-            var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}";
+        public HttpContent InstallName(string packageName, bool includePrerelease, PSRepositoryInfo repository, out string errRecord) {
+            
+            // 1) Find the package base address ("PackageBaseAddress/3.0.0")
+            string typeName = "PackageBaseAddress/3.0.0";
+            // https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/flat2/
+            string packageBaseAddressUrl = FindResourceType(typeName, repository, out errRecord);
+            string flattenedPkgVersionsUrl = $"{packageBaseAddressUrl}{packageName}/index.json";
 
-            return HttpRequestCallForContent(requestUrlV2, out errRecord);  
+            // TODO: note that .Contains() is case sensitive. This shouldn't matter since the url we recieve is a response and (we hope) is always lowercase. 
+            bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");
+
+            // This response will be an array called Versions that contains all the versions
+            string allPkgVersionsResponse = HttpRequestCall(flattenedPkgVersionsUrl, out errRecord);
+
+            JsonDocument pkgVersionsDom = JsonDocument.Parse(allPkgVersionsResponse);
+            JsonElement rootPkgVersionsDom = pkgVersionsDom.RootElement;
+            rootPkgVersionsDom.TryGetProperty("versions", out JsonElement pkgVersionsElement);
+
+            string registrationsBaseUrlType = "RegistrationsBaseUrl/Versioned";
+            string registrationsBaseUrl = FindResourceType(registrationsBaseUrlType, repository, out errRecord);
+
+            // sort array
+            JsonElement[] pkgVersionsArr = isNuGetRepo ? pkgVersionsElement.EnumerateArray().Reverse().ToArray() : pkgVersionsElement.EnumerateArray().ToArray();
+
+            List<string> responses = new List<string>();
+            foreach (JsonElement version in pkgVersionsArr)
+            {
+                // parse as NuGetVersion
+                if (NuGetVersion.TryParse(version.ToString(), out NuGetVersion nugetVersion))
+                {
+                    /* 
+                     * pkgVersion == !prerelease   &&   includePrerelease == true   -->   keep pkg   
+                     * pkgVersion == !prerelease   &&   includePrerelease == false  -->   keep pkg 
+                     * pkgVersion == prerelease    &&   includePrerelease == true   -->   keep pkg   
+                     * pkgVersion == prerelease    &&   includePrerelease == false  -->   throw away pkg 
+                     */
+                    if (!nugetVersion.IsPrerelease || includePrerelease)
+                    {
+                        return InstallVersion(packageName, version.ToString(), repository, out errRecord);
+                    }
+                }
+            }
+
+            return null;
         }
 
         // TODO:  Install version
@@ -412,12 +452,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Version: no wildcard support.
         /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
+        ///           
+        ///  https://api.nuget.org/v3-flatcontainer/newtonsoft.json/9.0.1/newtonsoft.json.9.0.1.nupkg
+        /// API Call: 
         /// </summary>    
         public HttpContent InstallVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord) {
-            var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}/{version}";
 
-            return HttpRequestCallForContent(requestUrlV2, out errRecord); 
+            // PackageBaseAddress/3.0.0
+            // 1) Find the package base address ("PackageBaseAddress/3.0.0")
+            string typeName = "PackageBaseAddress/3.0.0";
+            // https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/flat2/
+            string packageBaseAddressUrl = FindResourceType(typeName, repository, out errRecord);
+            string pkgName = packageName.ToLower();
+            string installPkgUrl = $"{packageBaseAddressUrl}{pkgName}/{version}/{pkgName}.{version}.nupkg";
+
+            var content = HttpRequestCallForContent(installPkgUrl, out errRecord);
+
+            return content;
         }
 
 
