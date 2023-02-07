@@ -80,36 +80,71 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
         /// Examples: Search -Tag "JSON" -Repository PSGallery
         /// API call: 
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
+        /// https://azuresearch-ussc.nuget.org/query?q=tags:redis&prerelease=False&semVerLevel=2.0.0
+        /// 
+        /// Azure Artifacts does not support querying on tags, so if support this scenario we need to search on the term and then filter
+        /// 
         /// </summary>
         public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord)
         {
             errRecord = string.Empty;
             List<string> responses = new List<string>();
 
-            /*
-                int moduleSkip = 0;
-                string initialModuleResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
-                responses.Add(initialModuleResponse);
-                int initalModuleCount = _httpFindPSResource.GetCountFromResponse(initialModuleResponse);
-                int count = initalModuleCount / 100;
-                    // if more than 100 count, loop and add response to list
-                while (count > 0)
-                {
-                    moduleSkip += 100;
-                    var tmpResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
-                    responses.Add(tmpResponse);
-                    count--;
-                }
-            */
-            return responses.ToArray();
-        }
+            // 1) Find the package base address ("SearchQueryService/3.0.0-beta")
+            string typeName = "SearchQueryService/3.0.0-beta";
+            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 
+            // 
+            string searchQueryServiceUrl = FindResourceType(typeName, repository, out errRecord);
+            string registrationsBaseUrlType = "RegistrationsBaseUrl/Versioned";
+            string registrationsBaseUrl = FindResourceType(registrationsBaseUrlType, repository, out errRecord);
+            bool isNuGetRepo = searchQueryServiceUrl.Contains("nuget.org");
 
-        // DONE FOR NOW
-        public void FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
-        {
-            // not applicable for v3 repositories
-            errRecord = string.Empty;
+
+            string query = string.Empty;
+            if (isNuGetRepo)
+            {
+                query = $"{searchQueryServiceUrl}?q=tags:{tag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+            }
+            else { 
+                query = $"{searchQueryServiceUrl}?q={tag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+            }
+
+            // 2) call query with tags. (for Azure artifacts) get unique names, see which ones truly match
+            string tagsResponse = HttpRequestCall(query, out errRecord);
+
+            JsonDocument tagPkgsDom = JsonDocument.Parse(tagsResponse);
+            JsonElement rootTagPkgsDom = tagPkgsDom.RootElement;
+            rootTagPkgsDom.TryGetProperty("data", out JsonElement tagPkgs);
+
+            List<string> matchingResponses = new List<string>();
+            foreach (var pkgId in tagPkgs.EnumerateArray())
+            {
+                pkgId.TryGetProperty("id", out JsonElement idItem);
+                pkgId.TryGetProperty("version", out JsonElement versionItem);
+
+                string id = idItem.ToString();
+                string latestVersion = versionItem.ToString();
+
+                // determine if id matches our wildcard criteria
+                if (isNuGetRepo)
+                {
+                    matchingResponses.Add(FindVersionHelper(registrationsBaseUrl, id, latestVersion, out errRecord));
+                }
+                else
+                {
+                    pkgId.TryGetProperty("tags", out JsonElement tagsItem);
+                    foreach (var tagItem in tagsItem.EnumerateArray())
+                    {
+                        if (tag.Equals(tagItem.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            matchingResponses.Add(FindVersionHelper(registrationsBaseUrl, id, latestVersion, out errRecord));
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return matchingResponses.ToArray();
         }
 
 		// TODO:  Complete this now - URL complete
