@@ -196,6 +196,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return cmdInfoObjs.ToArray();
         }
 
+        // Complete
         /// <summary>
         /// Find method which allows for searching for single name and returns latest version.
         /// Name: no wildcard support
@@ -238,25 +239,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // TODO: Write error for corresponding null scenario
                     errRecord = errorMsg;
                 }
-            
-
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
-                // TODO: handle V3 endpoints, test for NuGetGallery
-
                 // Same API calls for both prerelease and non-prerelease
                 var response = v3ServerAPICall.FindName(packageName, repository, includePrerelease, type, out errRecord);
 
-                //var elemList = ConvertResponseToXML(response);
+                JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
 
-                /*
-                if (elemList.Length == 0)
+                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                 {
-                    Console.WriteLine("empty response. Error handle");
+                    // write error
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
                 }
-                */
 
+                if (psGetInfo != null)
+                {
+                    return psGetInfo;
+                }
+                else
+                {
+                    // TODO: Write error for corresponding null scenario
+                    errRecord = errorMsg;
+                }
             }
 
             return null;
@@ -274,25 +280,56 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public PSResourceInfo[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); // TODO: discuss if we want to yield return here for better performance
-            string[] responses = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out errRecord);
-            
-            foreach (string response in responses)
+            errRecord = string.Empty;
+
+            if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
-                var elemList = ConvertResponseToXML(response);
-                foreach (var element in elemList)
+                string[] responses = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out errRecord);
+
+                foreach (string response in responses)
                 {
-                    PSResourceInfo.TryConvertFromXml(
-                        element,
-                        //includePrerelease,
-                        out PSResourceInfo psGetInfo,
-                        repository.Name,
-                        out string errorMsg);
+                    var elemList = ConvertResponseToXML(response);
+                    foreach (var element in elemList)
+                    {
+                        PSResourceInfo.TryConvertFromXml(
+                            element,
+                            //includePrerelease,
+                            out PSResourceInfo psGetInfo,
+                            repository.Name,
+                            out string errorMsg);
+
+                        if (psGetInfo != null)
+                        {
+                            pkgsFound.Add(psGetInfo);
+                        }
+                        else
+                        {
+                            // TODO: Write error for corresponding null scenario
+                            errRecord = errorMsg;
+                        }
+                    }
+                }
+            }
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3) {
+                string[] responses = v3ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out errRecord);
+                
+                // convert response to json document
+                foreach (string response in responses)
+                {
+                    JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
+
+                    if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                    {
+                        // write error
+                        // TODO: Write error for corresponding null scenario
+                        errRecord = errorMsg;
+                    }
 
                     if (psGetInfo != null)
                     {
                         pkgsFound.Add(psGetInfo);
                     }
-                    else 
+                    else
                     {
                         // TODO: Write error for corresponding null scenario
                         errRecord = errorMsg;
@@ -314,26 +351,57 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public PSResourceInfo[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
         {
-            string[] responses = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, getOnlyLatest, out errRecord);
-            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
-            
-            foreach (string response in responses)
+            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>();
+            errRecord = string.Empty;
+
+            if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
-                var elemList = ConvertResponseToXML(response);
-                foreach (var element in elemList)
+                string[] responses = v2ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, getOnlyLatest, out errRecord);
+
+                foreach (string response in responses)
                 {
-                    PSResourceInfo.TryConvertFromXml(
-                        element,
-                        //includePrerelease,
-                        out PSResourceInfo psGetInfo,
-                        repository.Name,
-                        out string errorMsg);
+                    var elemList = ConvertResponseToXML(response);
+                    foreach (var element in elemList)
+                    {
+                        PSResourceInfo.TryConvertFromXml(
+                            element,
+                            //includePrerelease,
+                            out PSResourceInfo psGetInfo,
+                            repository.Name,
+                            out string errorMsg);
+
+                        if (psGetInfo != null)
+                        {
+                            pkgsFound.Add(psGetInfo);
+                        }
+                        else
+                        {
+                            // TODO: Write error for corresponding null scenario
+                            errRecord = errorMsg;
+                        }
+                    }
+                }
+            }
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3) {
+                string[] responses = v3ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, getOnlyLatest, out errRecord);
+
+                // convert response to json document
+                foreach (string response in responses)
+                {
+                    JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
+
+                    if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                    {
+                        // write error
+                        // TODO: Write error for corresponding null scenario
+                        errRecord = errorMsg;
+                    }
 
                     if (psGetInfo != null)
                     {
                         pkgsFound.Add(psGetInfo);
                     }
-                    else 
+                    else
                     {
                         // TODO: Write error for corresponding null scenario
                         errRecord = errorMsg;

@@ -15,6 +15,7 @@ using System.Collections;
 using System.Xml.Linq;
 using System.Drawing;
 using System.Management.Automation;
+using NuGet.Protocol.Core.Types;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -126,120 +127,149 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 		/// </summary>
 		public string FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            // Make sure to include quotations around the package name
-            var prerelease = includePrerelease;
+            // 1) Find the package base address ("PackageBaseAddress/3.0.0")
+            string typeName = "PackageBaseAddress/3.0.0";
+            // https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/flat2/
+            string packageBaseAddressUrl = FindResourceType(typeName, repository, out errRecord);
+            string flattenedPkgVersionsUrl = $"{packageBaseAddressUrl}{packageName}/index.json";
 
-			// This should return all versions 
-			//var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{typeFilterPart}&{select}";
-			// registered URL: https://api.nuget.org/v3/index.json
-			// URL we need to create: "https://api.nuget.org/v3/registrations2/nuget.server.core/index.json";
-			
-			string repoUri = repository.Uri.ToString();
-			int idx = repoUri.LastIndexOf('/'); 
+            // TODO: note that .Contains() is case sensitive. This shouldn't matter since the url we recieve is a response and (we hope) is always lowercase. 
+            bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");
 
-			if (idx != -1)
-			{
-				// throw error
-			}
+            // This response will be an array called Versions that contains all the versions
+            string allPkgVersionsResponse = HttpRequestCall(flattenedPkgVersionsUrl, out errRecord);
 
-			// First part of Uri, eg:  "https://api.nuget.org/v3/"
-			string firstPartUri = repoUri.Substring(0, idx);
-			// Last part of the Uri, eg: "index.json"
-			string lastPartUri = repoUri.Substring(idx+1);
+            JsonDocument pkgVersionsDom = JsonDocument.Parse(allPkgVersionsResponse);
+            JsonElement rootPkgVersionsDom = pkgVersionsDom.RootElement;
+            rootPkgVersionsDom.TryGetProperty("versions", out JsonElement pkgVersionsElement);
 
-            var requestUrlV3 = $"{firstPartUri}/registrations2/{packageName}/{lastPartUri}";           
+            string registrationsBaseUrlType = "RegistrationsBaseUrl/Versioned";
+            string registrationsBaseUrl = FindResourceType(registrationsBaseUrlType, repository, out errRecord);
 
-            return HttpRequestCall(requestUrlV3, out errRecord);  
+            // sort array
+            JsonElement[] pkgVersionsArr = isNuGetRepo ? pkgVersionsElement.EnumerateArray().Reverse().ToArray() : pkgVersionsElement.EnumerateArray().ToArray();
+            
+            List<string> responses = new List<string>();
+            foreach (JsonElement version in pkgVersionsArr)
+            {
+                // parse as NuGetVersion
+                if (NuGetVersion.TryParse(version.ToString(), out NuGetVersion nugetVersion))
+                {
+                    /* 
+                     * pkgVersion == !prerelease   &&   includePrerelease == true   -->   keep pkg   
+                     * pkgVersion == !prerelease   &&   includePrerelease == false  -->   keep pkg 
+                     * pkgVersion == prerelease    &&   includePrerelease == true   -->   keep pkg   
+                     * pkgVersion == prerelease    &&   includePrerelease == false  -->   throw away pkg 
+                     */
+                    if (!nugetVersion.IsPrerelease || includePrerelease)
+                    {
+                        return FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out errRecord);
+                    }
+                }
+            }
+
+            return null;
         }
 
-		// TODO:  Complete this later - URL complete
-		/// <summary>
-		/// Find method which allows for searching for single name with wildcards and returns latest version.
-		/// Name: supports wildcards
-		/// Examples: Search "Nuget.Server*"
-		/// API call: 
-		/// - No prerelease: https://api-v2v3search-0.nuget.org/autocomplete?q=storage&prerelease=false
-		/// - Prerelease:  https://api-v2v3search-0.nuget.org/autocomplete?q=storage&prerelease=true  
+        // TODO:  Complete this later - URL complete
+        /// <summary>
+        /// Find method which allows for searching for single name with wildcards and returns latest version.
+        /// Name: supports wildcards
+        /// Examples: Search "Nuget.Server*"
+        /// API call: 
+        /// - No prerelease: https://api-v2v3search-0.nuget.org/autocomplete?q=storage&prerelease=false
+        /// - Prerelease:  https://api-v2v3search-0.nuget.org/autocomplete?q=storage&prerelease=true  
+        /// 
+        /// https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/query2?q=Newtonsoft&prerelease=false&semVerLevel=2.0.0
         ///         
         ///        Note:  response only returns names
         ///        
         ///        Make another query to get the latest version of each package  (ie call "FindVersionGlobbing")
-		/// </summary>
-		public string[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        /// </summary>
+        public string[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
         {
             List<string> responses = new List<string>();
-            int skip = 0;
-            
-            var initialResponseDom = FindNameGlobbing(packageName, repository, includePrerelease, skip, out errRecord);
-            responses.Add(initialResponseDom);
+            errRecord = string.Empty;
 
             /*
-            // check count (regex)  425 ==> count/100  ~~>  4 calls 
-            //int initalCount = _httpFindPSResource.GetCountFromResponse(initialResponse);  // count = 4
-            int count = initalCount / 100;
-            // if more than 100 count, loop and add response to list
-            while (count > 0)
-            {
-                // skip 100
-                skip += 100;
-                var tmpResponse = FindNameGlobbing(packageName, repository, includePrerelease, skip, out errRecord);
-                responses.Add(tmpResponse);
-                count--;
-            }
+            // 1) Find the package base address ("SearchQueryService/3.0.0-beta")
+            string typeName = "SearchQueryService/3.0.0-beta";
+            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2
+            string searchQueryServiceUrl = FindResourceType(typeName, repository, out errRecord);
+            string query = $""
+
+            string flattenedPkgVersionsUrl = $"{searchQueryServiceUrl}{packageName}/index.json";
             */
             return responses.ToArray();
         }
 
-		// TODO:  Complete this later -  URL complete
-		/// <summary>
-		/// Find method which allows for searching for single name with version range.
-		/// Name: no wildcard support
-		/// Version: supports wildcards
-		/// Examples: Search "NuGet.Server.Core" "[1.0.0.0, 5.0.0.0]"
-		///           Search "NuGet.Server.Core" "3.*"
-		/// API Call: 
-		///           first, find RegistrationBaseUrl (see FindName for details)
+        // Complete
+        /// <summary>
+        /// Find method which allows for searching for single name with version range.
+        /// Name: no wildcard support
+        /// Version: supports wildcards
+        /// Examples: Search "NuGet.Server.Core" "[1.0.0.0, 5.0.0.0]"
+        ///           Search "NuGet.Server.Core" "3.*"
+        /// API Call: 
+        ///           First, find "PackageBaseAddress/3.0.0" (see FindName for details)
         /// 
+        ///     
         ///           then, find all versions for a pkg
         ///           for nuget:
-        ///               https://api.nuget.org/v3/registration5-gz-semver2/nuget.server/index.json
-		///           for Azure Artifacts:
-		///               https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/flat2/newtonsoft.json/index.json
-		///            (azure artifacts)
+        ///               this contains all pkg version info: https://api.nuget.org/v3/registration5-gz-semver2/nuget.server/index.json
+        ///               However, we will use the flattened version list: https://api.nuget.org/v3-flatcontainer/newtonsoft.json/index.json
+        ///           for Azure Artifacts:
+        ///               https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/flat2/newtonsoft.json/index.json
+        ///            (azure artifacts)
         ///            
         ///             Note:  very different responses for nuget vs azure artifacts
-		///            
+        ///            
         ///            After we figure out what version we want, call "FindVersion" (or some helper method)
-		/// need to filter client side
-		/// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
-		/// </summary>
-		public string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
+        /// need to filter client side
+        /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
+        /// </summary>
+        public string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
         {
+            // 1) Find the package base address ("PackageBaseAddress/3.0.0")
+            string typeName = "PackageBaseAddress/3.0.0";  
+            // https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/flat2/
+            string packageBaseAddressUrl = FindResourceType(typeName, repository, out errRecord);
+            string flattenedPkgVersionsUrl = $"{packageBaseAddressUrl}{packageName}/index.json";
+
+            // TODO: note that .Contains() is case sensitive. This shouldn't matter since the url we recieve is a response and (we hope) is always lowercase. 
+            bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");
+
+            // This response will be an array called Versions that contains all the versions
+            string allPkgVersionsResponse = HttpRequestCall(flattenedPkgVersionsUrl, out errRecord);
+
+            JsonDocument pkgVersionsDom = JsonDocument.Parse(allPkgVersionsResponse);
+            JsonElement rootPkgVersionsDom = pkgVersionsDom.RootElement;
+            rootPkgVersionsDom.TryGetProperty("versions", out JsonElement pkgVersionsElement);
+
+            string registrationsBaseUrlType = "RegistrationsBaseUrl/Versioned";
+            string registrationsBaseUrl = FindResourceType(registrationsBaseUrlType, repository, out errRecord);
+
             List<string> responses = new List<string>();
-            int skip = 0;
-
-            var initialResponse = FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, getOnlyLatest, out errRecord);
-            responses.Add(initialResponse);
-
-            if (!getOnlyLatest)
-            {
-                int initalCount = _httpFindPSResource.GetCountFromResponse(initialResponse);
-                int count = initalCount / 100;
-
-                while (count > 0)
+            foreach (var version in pkgVersionsElement.EnumerateArray()) {
+                // parse as NuGetVersion
+                if (NuGetVersion.TryParse(version.ToString(), out NuGetVersion nugetVersion) && versionRange.Satisfies(nugetVersion))
                 {
-                    // skip 100
-                    skip += 100;
-                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, getOnlyLatest, out errRecord);
-                    responses.Add(tmpResponse);
-                    count--;
+                    /* 
+                     * pkgVersion == !prerelease   &&   includePrerelease == true   -->   keep pkg   
+                     * pkgVersion == !prerelease   &&   includePrerelease == false  -->   keep pkg 
+                     * pkgVersion == prerelease    &&   includePrerelease == true   -->   keep pkg   
+                     * pkgVersion == prerelease    &&   includePrerelease == false  -->   throw away pkg 
+                     */
+                    if (!nugetVersion.IsPrerelease || includePrerelease) {
+                        responses.Add(FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out errRecord));
+                    }
                 }
             }
 
             return responses.ToArray();
         }
 
-		// TODO:  Complete this now  -  URL complete
+		// Complete
 		/// <summary>
 		/// Find method which allows for searching for single name with specific version.
 		/// Name: no wildcard support
@@ -261,64 +291,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 		///     
 		/// </summary>
 		public string FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord) {
-
-            string resourcesName = "resources";
             string typeName = "RegistrationsBaseUrl/Versioned";
-            string registrationsBaseUrl = string.Empty;
+            string registrationsBaseUrl = FindResourceType(typeName, repository, out errRecord);
 
-            // Quotations around package name and version do not matter, same metadata gets returned.
-            //var requestUrlV2 = $"{repository.Uri.ToStrin g()}/Packages(Id='{packageName}', Version='{version}')?{select}";
-            // string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
-            
-            // 1) find the RegistrationBaseUrl
-            // ie send a request out for the index resources (response is json)
-            var requestV3index = $"{repository.Uri}";
-
-            // JSON Document
-            string indexResponse = HttpRequestCall(requestV3index, out errRecord);
-            JsonDocument indexDom = JsonDocument.Parse(indexResponse);
-
-            JsonElement rootIndexDom = indexDom.RootElement;
-            rootIndexDom.TryGetProperty(resourcesName, out JsonElement resources);
-
-            foreach (JsonElement resource in resources.EnumerateArray())
-            {
-                if (resource.TryGetProperty("@type", out JsonElement typeElement) && typeName.Equals(typeElement.ToString()))
-                {
-                    if (resource.TryGetProperty("@id", out JsonElement idElement))
-                    {
-                        registrationsBaseUrl = idElement.ToString();
-                    }
-                    else {
-                        // error out here
-                        errRecord = $"@id element not found in service index '{repository.Uri}' for {typeName}.";
-                    }
-                }
-            }
-
-            // todo: this is probably not necessary
-            if (String.IsNullOrEmpty(registrationsBaseUrl)) { 
-                // throw error
-            }
-
-			// https://api.nuget.org/v3/registration5-gz-semver2/newtonsoft.json/13.0.2.json
-			var requestPkgMapping = $"{registrationsBaseUrl}{packageName}/{version}.json";  
-			string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errRecord);
-            JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
-            JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
-            rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement);
-            string catalogEntryUrl = catalogEntryUrlElement.ToString();
-
-            if (string.IsNullOrEmpty(catalogEntryUrl)) {
-                // throw error
-                return null;
-            }
-
-            // string response
-            string responsePkgCatalogEntry = HttpRequestCall(catalogEntryUrl, out errRecord);
-
-            return responsePkgCatalogEntry;
-		}
+            return FindVersionHelper(registrationsBaseUrl, packageName, version, out errRecord);
+        }
 
 
         /**  INSTALL APIS **/
@@ -412,149 +389,70 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 		#region Private Methods
 
-		// TODO:  complete this for v3 -- below is all v2
-		/// <summary>
-		/// Helper method for string[] FindNameGlobbing(string, PSRepositoryInfo, bool, ResourceType, out string)
-		/// </summary>
-		private string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, int skip, out string errRecord)
-        {
-            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
-            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
-            //JsonDocument pkgDom = null;
+        private string FindResourceType(string resourceTypeName, PSRepositoryInfo repository, out string errMsg) {
+            string resourcesName = "resources";
+            string resourceUrl = string.Empty;
 
-            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100";
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
-            var nameFilter = string.Empty;
+            // Quotations around package name and version do not matter, same metadata gets returned.
+            //var requestUrlV2 = $"{repository.Uri.ToStrin g()}/Packages(Id='{packageName}', Version='{version}')?{select}";
+            // string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
 
-            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+            // 1) find the RegistrationBaseUrl
+            // ie send a request out for the index resources (response is json)
+            var requestV3index = $"{repository.Uri}";
 
-            if (names.Length == 0)
+            // JSON Document
+            string indexResponse = HttpRequestCall(requestV3index, out errMsg);
+            JsonDocument indexDom = JsonDocument.Parse(indexResponse);
+
+            JsonElement rootIndexDom = indexDom.RootElement;
+            rootIndexDom.TryGetProperty(resourcesName, out JsonElement resources);
+
+            foreach (JsonElement resource in resources.EnumerateArray())
             {
-                errRecord = "We don't support -Name *";
-                return "";
-            }
-            if (names.Length == 1)
-            {
-                if (packageName.StartsWith("*") && packageName.EndsWith("*"))
+                if (resource.TryGetProperty("@type", out JsonElement typeElement) && resourceTypeName.Equals(typeElement.ToString()))
                 {
-                    // *get*
-                    nameFilter = $"substringof('{names[0]}', Id)";
-                }
-                else if (packageName.EndsWith("*"))
-                {
-                    // PowerShell*
-                    nameFilter = $"startswith(Id, '{names[0]}')";
-                }
-                else
-                {
-                    // *ShellGet
-                    nameFilter = $"endswith(Id, '{names[0]}')";
+                    if (resource.TryGetProperty("@id", out JsonElement idElement))
+                    {
+                        resourceUrl = idElement.ToString();
+                    }
+                    else
+                    {
+                        // error out here
+                        errMsg = $"@id element not found in service index '{repository.Uri}' for {resourceTypeName}.";
+                    }
                 }
             }
-            else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
+
+            // todo: this is probably not necessary
+            if (String.IsNullOrEmpty(resourceUrl))
             {
-                // *pow*get*
-                // pow*get -> only support this
-                // pow*get*
-                // *pow*get
-                nameFilter = $"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')";
+                // throw error
             }
-            else 
-            {
-                errRecord = "We only support wildcards for scenarios similar to the following examples: PowerShell*, *ShellGet, Power*Get, *Shell*.";
-                return "";
-            }
-            
-            var requestUrlV2 = $"{repository.Uri.ToString()}";
-            
-            return HttpRequestCall(requestUrlV2, out errRecord);  
+
+            return resourceUrl;
         }
 
-        // TODO:  complete this for v3 -- below is all v2
-        /// <summary>
-        /// Helper method for string[] FindVersionGlobbing(string, VersionRange, PSRepositoryInfo, bool, ResourceType, out string)
-        /// </summary>
-        private string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, bool getOnlyLatest, out string errRecord)
-        {
-            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
-            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
-            // NormalizedVersion doesn't include trailing zeroes
-            // Notes: this could allow us to take a version range (i.e (2.0.0, 3.0.0.0]) and deconstruct it and add options to the Filter for Version to describe that range
-            // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
-            // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
-            // Make sure to include quotations around the package name
-            
-            //and IsPrerelease eq false
-            // ex:
-            // (2.0.0, 3.0.0)
-            // $filter= NVersion gt '2.0.0' and NVersion lt '3.0.0'
+        private string FindVersionHelper(string registrationsBaseUrl, string packageName, string version, out string errMsg) {
+            // https://api.nuget.org/v3/registration5-gz-semver2/newtonsoft.json/13.0.2.json
+            var requestPkgMapping = $"{registrationsBaseUrl}{packageName}/{version}.json";
+            string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errMsg);
 
-            // [2.0.0, 3.0.0]
-            // $filter= NVersion ge '2.0.0' and NVersion le '3.0.0'
+            JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
+            JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
+            rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement);
+            string catalogEntryUrl = catalogEntryUrlElement.ToString();
 
-            // [2.0.0, 3.0.0)
-            // $filter= NVersion ge '2.0.0' and NVersion lt '3.0.0'
-
-            // (2.0.0, 3.0.0]
-            // $filter= NVersion gt '2.0.0' and NVersion le '3.0.0'
-
-            // [, 2.0.0]
-            // $filter= NVersion le '2.0.0'
-
-            string format = "NormalizedVersion {0} {1}";
-            string minPart = String.Empty;
-            string maxPart = String.Empty;
-
-            if (versionRange.MinVersion != null)
+            if (string.IsNullOrEmpty(catalogEntryUrl))
             {
-                string operation = versionRange.IsMinInclusive ? "ge" : "gt";
-                minPart = String.Format(format, operation, $"'{versionRange.MinVersion.ToNormalizedString()}'");
+                // throw error
+                return null;
             }
 
-            if (versionRange.MaxVersion != null)
-            {
-                string operation = versionRange.IsMaxInclusive ? "le" : "lt";
-                maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
-            }
+            // string response
+            string responsePkgCatalogEntry = HttpRequestCall(catalogEntryUrl, out errMsg);
 
-            string versionFilterParts = String.Empty;
-            if (!String.IsNullOrEmpty(minPart) && !String.IsNullOrEmpty(maxPart))
-            {
-                versionFilterParts += minPart + " and " + maxPart;
-            }
-            else if (!String.IsNullOrEmpty(minPart))
-            {
-                versionFilterParts += minPart;
-            }
-            else if (!String.IsNullOrEmpty(maxPart))
-            {
-                versionFilterParts += maxPart;
-            }
-
-            string filterQuery = "&$filter=";
-            filterQuery += includePrerelease ? string.Empty : "IsPrerelease eq false";
-            //filterQuery +=  type == ResourceType.None ? String.Empty : $" and substringof('PS{type.ToString()}', Tags) eq true";
-
-            string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
-            filterQuery += type == ResourceType.None ? String.Empty : $"{joiningOperator}substringof('PS{type.ToString()}', Tags) eq true";
-
-            if (!String.IsNullOrEmpty(versionFilterParts))
-            {
-                // Check if includePrerelease is true, if it is we want to add "$filter"
-                // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
-        
-                // Note: could be null/empty if Version was "*" -> [,]
-                joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
-                filterQuery +=  $"{joiningOperator}{versionFilterParts}";
-            }
-
-            string topParam = getOnlyLatest ? "$top=1" : "$top=100"; // only need 1 package if interested in latest
-            string paginationParam = $"$inlinecount=allpages&$skip={skip}&{topParam}";
-
-            filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
-            var requestUrlV2 = $"{repository.Uri.ToString()}";
-
-            return HttpRequestCall(requestUrlV2, out errRecord);  
+            return responsePkgCatalogEntry;
         }
 
         #endregion
