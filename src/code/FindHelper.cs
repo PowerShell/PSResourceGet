@@ -366,8 +366,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
-                    // TODO: implement this when we work on v3 requests
-                    _cmdletPassedIn.WriteVerbose($"Searching by -Tag is not yet supported for {repositoriesToSearch[i].Name}. It is only supported for v2 endpoint.");
+                    foreach (PSResourceInfo cmdInfo in HttpSearchFromRepository(repositoriesToSearch[i]))
+                    {
+                        foundPackages.Add(cmdInfo);
+                    }
                 }
             }
 
