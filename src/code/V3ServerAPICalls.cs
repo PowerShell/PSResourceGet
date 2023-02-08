@@ -32,6 +32,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static readonly string idName = "id";
         private static readonly string versionName = "version";
         private static readonly string versionsName = "versions";
+
         #endregion
 
         #region Constructor
@@ -439,7 +440,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return resourceHash;
         }
 
-        private string FindVersionHelper(string registrationsBaseUrl, string packageName, string version, out string errMsg) {
+        private string FindVersionHelper(string registrationsBaseUrl, string packageName, string version, out string errMsg)
+        {
             // https://api.nuget.org/v3/registration5-gz-semver2/newtonsoft.json/13.0.2.json
             var requestPkgMapping = $"{registrationsBaseUrl}{packageName.ToLower()}/{version}.json";
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errMsg);
