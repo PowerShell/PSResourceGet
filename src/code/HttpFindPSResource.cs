@@ -35,11 +35,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
         /// </summary>
-        public IEnumerable<PSResourceInfo> FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public IEnumerable<PSResourceInfo> FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
         {
             List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
 
-            string[] responses = v2ServerAPICall.FindAll(repository, includePrerelease, type, out errRecord);
+            string[] responses = v2ServerAPICall.FindAll(repository, includePrerelease, type, out string errRecord);
             if (!String.IsNullOrEmpty(errRecord))
             {
                 throw new Exception(errRecord);
@@ -157,9 +157,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
         /// </summary>
-        public IEnumerable<PSCommandResourceInfo> FindCommandOrDscResource(string[] tags, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
+        public IEnumerable<PSCommandResourceInfo> FindCommandOrDscResource(string[] tags, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands)
         {
-            errRecord = String.Empty;
             Hashtable pkgHash = new Hashtable();   
             List<PSCommandResourceInfo> cmdInfoObjs = new List<PSCommandResourceInfo>();
 
@@ -172,7 +171,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (string tag in tags)
             {
-                string[] responses = v2ServerAPICall.FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, out errRecord);
+                string[] responses = v2ServerAPICall.FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, out string errRecord);
 
                 if (!String.IsNullOrEmpty(errRecord))
                 {

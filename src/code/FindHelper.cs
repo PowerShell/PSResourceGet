@@ -565,7 +565,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceInfo foundPkg = _httpFindPSResource.FindAll(repository, _prerelease, _type, out string errRecord).First();
+                        PSResourceInfo foundPkg = _httpFindPSResource.FindAll(repository, _prerelease, _type).First();
                         parentPkgs.Add(foundPkg);
 
                         yield return foundPkg;
@@ -999,7 +999,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSCommandResourceInfo> HttpFindCmdOrDsc(PSRepositoryInfo repository, bool isSearchingForCommands)
         {
-            yield return _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, isSearchingForCommands, out string errRecord).First();
+            yield return _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, isSearchingForCommands).First();
             // TODO:  write out error
         }
 
