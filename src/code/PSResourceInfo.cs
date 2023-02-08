@@ -837,7 +837,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     ex.Message);
                 return false;
             }
-                
         }
 
         #endregion

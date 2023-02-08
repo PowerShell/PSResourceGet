@@ -377,21 +377,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static String HttpRequestCall(string requestUrlV3, out string errRecord)
         {
             errRecord = string.Empty;
-            string response = string.Empty;
 
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
                 // We can have this return a Task, or the response (json string)
-                response = Utils.SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
+                return Utils.SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
             {
                 errRecord = "Error occured while trying to retrieve response: " + e.Message;
+                throw new HttpRequestException(errRecord);
             }
-
-            return response;
         }
 
         private static HttpContent HttpRequestCallForContent(string requestUrlV3, out string errRecord)
@@ -453,7 +451,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (string.IsNullOrEmpty(catalogEntryUrl))
             {
-                // throw error
+                errMsg = $"{packageName} catalog entry could not be found";
                 return null;
             }
 

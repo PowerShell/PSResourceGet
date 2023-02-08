@@ -1211,8 +1211,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 response.EnsureSuccessStatusCode();
 
                 var responseStr = await response.Content.ReadAsStringAsync();
-                //JsonDocument document = JsonDocument.Parse(responseStr);
-                // TODO:  this document needs to be disposed
                 
                 return responseStr;
             }

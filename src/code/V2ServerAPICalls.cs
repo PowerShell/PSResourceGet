@@ -261,9 +261,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public string FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord) {
             // https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true 
-
             // Quotations around package name and version do not matter, same metadata gets returned.
-            //var requestUrlV2 = $"{repository.Uri.ToString()}/Packages(Id='{packageName}', Version='{version}')?{select}";
             string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
             var requestUrlV2 = $"{repository.Uri.ToString()}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{typeFilterPart}&{select}";
             
@@ -305,39 +303,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static string HttpRequestCall(string requestUrlV2, out string errRecord) {
             errRecord = string.Empty;
 
-            // request object will send requestUrl 
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
                 
-                // We can have this return a Task, or the response (json string)
-                var response = Utils.SendV2RequestAsync(request, s_client).GetAwaiter().GetResult();
-
-                // Do we want to check if response is 200?
-                // response will be json metadata object that will get returned
-                return response.ToString();
+                return Utils.SendV2RequestAsync(request, s_client).GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
             {
                 errRecord = "Error occured while trying to retrieve response: " + e.Message;
+                throw new HttpRequestException(errRecord);
             }
-
-            return string.Empty;
         }
 
         private static HttpContent HttpRequestCallForContent(string requestUrlV2, out string errRecord) {
             errRecord = string.Empty;
 
-            // request object will send requestUrl 
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
                 
-                // We can have this return a Task, or the response (json string)
                 var response = Utils.SendV2RequestForContentAsync(request, s_client).GetAwaiter().GetResult();
 
                 // Do we want to check if response is 200?
-                // response will be json metadata object that will get returned
                 return response;
             }
             catch (HttpRequestException e)

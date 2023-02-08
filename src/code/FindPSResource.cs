@@ -245,7 +245,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  return;
             }
             
-            List<PSCommandResourceInfo> foundPackages = _findHelper.FindCommandOrDscResource(
+            IEnumerable<PSCommandResourceInfo> foundPackages = _findHelper.FindCommandOrDscResource(
                 isSearchingForCommands: isSearchingForCommands,
                 prerelease: Prerelease,
                 tag: commandOrDSCNamesToSearch,
