@@ -424,11 +424,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // FindVersionGlobbing, pick latest, InstallVersion
                         foreach (string pkgName in pkgNamesToInstall)
                         {
-                            PSResourceInfo[] pkgsSatisfyingRange = _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true, out string errRecord);
+                            IEnumerable<PSResourceInfo> pkgsSatisfyingRange = _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true);
+                            
                             PSResourceInfo pkgToInstall;
-                            if (pkgsSatisfyingRange.Length != 0)
+                            if (pkgsSatisfyingRange != null)
                             {
-                                pkgToInstall = pkgsSatisfyingRange[0];
+                                pkgToInstall = pkgsSatisfyingRange.First();
                             }
                             else
                             {
@@ -469,7 +470,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         string nugetVersionString = nugetVersion.ToNormalizedString(); // 3.0.17-beta
                         // TODO: remove FindVersion and directly call install API. Add method to work with HTTPContent returned from Install to parse into PSResourceInfo
                         
-                         PSResourceInfo pkgToInstall = _httpFindPSResource.FindVersion(pkgName, nugetVersionString, repository, ResourceType.None, out string errRecord);
+                         IEnumerable<PSResourceInfo> pkgToInstall = _httpFindPSResource.FindVersion(pkgName, nugetVersionString, repository, ResourceType.None);
                         // pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                         // download the module
@@ -486,11 +487,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
 
 
-                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, nugetVersionString, scope, pkgToInstall);
+                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, nugetVersionString, scope, pkgToInstall.First());
 
                         if (installedSuccessfully)
                         {
-                            pkgsSuccessfullyInstalled.Add(pkgToInstall);
+                            pkgsSuccessfullyInstalled.Add(pkgToInstall.First());
                         }
                     }
                 }
@@ -500,8 +501,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // InstallName
                 foreach (string pkgName in pkgNamesToInstall)
                 {
-                    PSResourceInfo pkgToInstall = _httpFindPSResource.FindName(pkgName, repository, _prerelease, ResourceType.None, out string errRecord);
-                    pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+                    PSResourceInfo pkgToInstall = _httpFindPSResource.FindName(pkgName, repository, _prerelease, ResourceType.None).First();
+                    //pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                     // pkgToInstall.Dependencies -> Dependency[] (string, VersionRange)
                     // helper method that takes Dependency[], checks with GetHelper which are already installed, construct dependency tree
