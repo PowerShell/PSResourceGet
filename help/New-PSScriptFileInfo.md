@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -17,8 +16,9 @@ The cmdlet creates a new script file, including metadata about the script.
 New-PSScriptFileInfo [-Path] <String> [-Version <String>] [-Author <String>] -Description <String>
  [-Guid <Guid>] [-CompanyName <String>] [-Copyright <String>] [-RequiredModules <Hashtable[]>]
  [-ExternalModuleDependencies <String[]>] [-RequiredScripts <String[]>]
- [-ExternalScriptDependencies <String[]>] [-Tags <String[]>] [-ProjectUri <String>] [-LicenseUri <String>]
- [-IconUri <String>] [-ReleaseNotes <String>] [-PrivateData <String>] [-Force] [<CommonParameters>]
+ [-ExternalScriptDependencies <String[]>] [-Tags <String[]>] [-ProjectUri <String>]
+ [-LicenseUri <String>] [-IconUri <String>] [-ReleaseNotes <String>] [-PrivateData <String>]
+ [-Force] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -30,12 +30,12 @@ package.
 
 ### Example 1: Creating an empty script with minimal information
 
-This example runs the cmdlet using only required parameters. The **Path** parameter specifies
-the nane and location of the script. The **Description** parameter provide the description used in
-the comment-based help for the script.
+This example runs the cmdlet using only required parameters. The **Path** parameter specifies the
+nane and location of the script. The **Description** parameter provide the description used in the
+comment-based help for the script.
 
 ```powershell
-New-PSScriptFileInfo -Path ./test_script.ps1 -Description "This is a test script."
+New-PSScriptFileInfo -Path ./test_script.ps1 -Description 'This is a test script.'
 Get-Content ./test_script.ps1
 ```
 
@@ -95,8 +95,8 @@ $parameters = @{
     Version = '2.0.0.0'
     Author = 'janedoe'
     RequiredModules =  @(
-        @{ModuleName = "PackageManagement"; ModuleVersion = "1.0.0.0" },
-        @{ModuleName = "PSReadLine"}
+        @{ModuleName = 'PackageManagement'; ModuleVersion = '1.0.0.0' },
+        @{ModuleName = 'PSReadLine'}
     )
 }
 New-PSScriptFileInfo @parameters
@@ -259,7 +259,7 @@ Aliases:
 
 Required: False
 Position: Named
-Default value: None
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -420,8 +420,9 @@ Accept wildcard characters: False
 
 ### -Tags
 
-The tags associated with the script. Tag values are strings that should not contain spaces. For more
-information, see [Tag details](/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).
+The tags associated with the script. Tag values are strings that shouldn't contain spaces. For more
+information, see
+[Tag details](/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).
 
 ```yaml
 Type: System.String[]
@@ -452,7 +453,11 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

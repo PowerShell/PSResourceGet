@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -14,7 +13,8 @@ Removes a registered repository from the local machine.
 ## SYNTAX
 
 ```
-Unregister-PSResourceRepository [-Name] <String[]> [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Unregister-PSResourceRepository [-Name] <String[]> [-PassThru] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -99,7 +99,7 @@ Accept wildcard characters: False
 
 ### -PassThru
 
-When specified, outputs a **PSRepositoryInfo** object for each repository that is removed.
+When specified, outputs a **PSRepositoryInfo** object for each repository that's removed.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -146,7 +146,11 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
@@ -157,7 +161,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo
 
 By default, the cmdlet doesn't return any objects. When the **PassThru** parameter is used, the
-cmdlet outputs a **PSRepositoryInfo** object for each repository that is removed.
+cmdlet outputs a **PSRepositoryInfo** object for each repository that's removed.
 
 ## NOTES
 

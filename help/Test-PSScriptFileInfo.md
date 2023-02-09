@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -47,7 +46,7 @@ Get-Content "C:\MyScripts\invalid_test_script.ps1"
 ```
 
 ```Output
-WARNING: The .ps1 script file passed in was not valid due to: PSScript file is missing the required
+WARNING: The .ps1 script file passed in wasn't valid due to: PSScript file is missing the required
 Author property
 False
 <#PSScriptInfo
@@ -109,7 +108,11 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

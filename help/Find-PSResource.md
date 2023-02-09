@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -15,12 +14,15 @@ properties.
 ## SYNTAX
 
 ### ResourceNameParameterSet (Default)
+
 ```
-Find-PSResource [[-Name] <String[]>] [-Type <ResourceType>] [-Version <String>] [-Prerelease] [-Tag <String[]>]
- [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies] [<CommonParameters>]
+Find-PSResource [-Name] <String[]> [-Type <ResourceType>] [-Version <String>] [-Prerelease]
+ [-Tag <String[]>] [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies]
+ [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
+
 ```
 Find-PSResource [-Version <String>] [-Prerelease] [-ModuleName <String[]>] -CommandName <String[]>
  [-Tag <String[]>] [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies]
@@ -28,10 +30,11 @@ Find-PSResource [-Version <String>] [-Prerelease] [-ModuleName <String[]>] -Comm
 ```
 
 ### DscResourceNameParameterSet
+
 ```
-Find-PSResource [-Version <String>] [-Prerelease] [-ModuleName <String[]>] -DscResourceName <String[]>
- [-Tag <String[]>] [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies]
- [<CommonParameters>]
+Find-PSResource [-Version <String>] [-Prerelease] [-ModuleName <String[]>]
+ -DscResourceName <String[]> [-Tag <String[]>] [-Repository <String[]>] [-Credential <PSCredential>]
+ [-IncludeDependencies] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -77,7 +80,13 @@ This examples searches PowerShell Gallery for the **Microsoft.PowerShell.SecretM
 The cmdlet returns all versions that satisfy the specified **Version** range.
 
 ```powershell
-Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "(0.9.0.0, 1.2.0.0]" -Repository PSGallery -Prerelease
+$parameters = @{
+    Name = 'Microsoft.PowerShell.SecretManagement'
+    Version = '(0.9.0.0, 1.2.0.0]'
+    Repository = 'PSGallery'
+    Prerelease = $true
+}
+Find-PSResource @parameters
 ```
 
 ```Output
@@ -116,7 +125,7 @@ supVsts                    1.1.17.0              PSGallery  Dsc module for inter
 
 ### Example 5
 
-This examples searches for a module resource with a a specific module with a named command.
+This examples searches for a module resource with a specific module with a named command.
 
 ```powershell
 Find-PSResource -CommandName Get-TargetResource -ModuleName SystemLocaleDsc -Repository PSGallery |
@@ -170,7 +179,7 @@ Computer_RenameComputerInWorkgroup_Config         1.0.0.0            PSGallerySc
 
 ### Example 8
 
-This example shows how to find modules by a tag. The `CrescendoBuilt` value is a tag that is
+This example shows how to find modules by a tag. The `CrescendoBuilt` value is a tag that's
 automatically added to modules created using the **Microsoft.PowerShell.Crescendo** module.
 
 ```powershell
@@ -198,7 +207,7 @@ Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of ta
 
 ### -CommandName
 
-The name of the command to search for.
+The name of the command to search for. The name is case-sensitive.
 
 ```yaml
 Type: System.String[]
@@ -265,8 +274,6 @@ Accept wildcard characters: False
 
 Specifies a module resource package name type to search for. Wildcards are supported.
 
-Not yet implemented.
-
 ```yaml
 Type: System.String[]
 Parameter Sets: CommandNameParameterSet, DscResourceNameParameterSet
@@ -282,15 +289,14 @@ Accept wildcard characters: True
 ### -Name
 
 Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet
-does not support wildcard searches of local (file-based) repositories.
-
+doesn't support wildcard searches of local (file-based) repositories.
 
 ```yaml
 Type: System.String[]
 Parameter Sets: ResourceNameParameterSet
 Aliases:
 
-Required: False
+Required: True
 Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -398,7 +404,11 @@ Accept wildcard characters: True
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

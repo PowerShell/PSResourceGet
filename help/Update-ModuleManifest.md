@@ -1,8 +1,7 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 08/03/2022
-online version:
+ms.date: 02/01/2023
 schema: 2.0.0
 ---
 
@@ -14,18 +13,19 @@ Updates a module manifest file.
 ## SYNTAX
 
 ```
-Update-ModuleManifest [-Path] <String> [-NestedModules <Object[]>] [-Guid <Guid>] [-Author <String>]
- [-CompanyName <String>] [-Copyright <String>] [-RootModule <String>] [-ModuleVersion <Version>]
- [-Description <String>] [-ProcessorArchitecture <ProcessorArchitecture>] [-CompatiblePSEditions <String[]>]
- [-PowerShellVersion <Version>] [-ClrVersion <Version>] [-DotNetFrameworkVersion <Version>]
- [-PowerShellHostName <String>] [-PowerShellHostVersion <Version>] [-RequiredModules <Object[]>]
- [-TypesToProcess <String[]>] [-FormatsToProcess <String[]>] [-ScriptsToProcess <String[]>]
- [-RequiredAssemblies <String[]>] [-FileList <String[]>] [-ModuleList <Object[]>]
- [-FunctionsToExport <String[]>] [-AliasesToExport <String[]>] [-VariablesToExport <String[]>]
- [-CmdletsToExport <String[]>] [-DscResourcesToExport <String[]>] [-Tags <String[]>] [-ProjectUri <Uri>]
- [-LicenseUri <Uri>] [-IconUri <Uri>] [-ReleaseNotes <String>] [-Prerelease <String>] [-HelpInfoUri <Uri>]
- [-DefaultCommandPrefix <String>] [-ExternalModuleDependencies <String[]>] [-RequireLicenseAcceptance]
- [-PrivateData <Hashtable>] [<CommonParameters>]
+Update-ModuleManifest [-Path] <String> [-NestedModules <Object[]>] [-Guid <Guid>]
+ [-Author <String>] [-CompanyName <String>] [-Copyright <String>] [-RootModule <String>]
+ [-ModuleVersion <Version>] [-Description <String>] [-ProcessorArchitecture <ProcessorArchitecture>]
+ [-CompatiblePSEditions <String[]>] [-PowerShellVersion <Version>] [-ClrVersion <Version>]
+ [-DotNetFrameworkVersion <Version>] [-PowerShellHostName <String>]
+ [-PowerShellHostVersion <Version>] [-RequiredModules <Object[]>] [-TypesToProcess <String[]>]
+ [-FormatsToProcess <String[]>] [-ScriptsToProcess <String[]>] [-RequiredAssemblies <String[]>]
+ [-FileList <String[]>] [-ModuleList <Object[]>] [-FunctionsToExport <String[]>]
+ [-AliasesToExport <String[]>] [-VariablesToExport <String[]>] [-CmdletsToExport <String[]>]
+ [-DscResourcesToExport <String[]>] [-Tags <String[]>] [-ProjectUri <Uri>] [-LicenseUri <Uri>]
+ [-IconUri <Uri>] [-ReleaseNotes <String>] [-Prerelease <String>] [-HelpInfoUri <Uri>]
+ [-DefaultCommandPrefix <String>] [-ExternalModuleDependencies <String[]>]
+ [-RequireLicenseAcceptance] [-PrivateData <Hashtable>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -43,7 +43,7 @@ The cmdlet doesn't return an object.
 This example changes the **Author** property in the module manifest to `New Author`.
 
 ```powershell
-Update-ModuleManifest -Path "C:\MyModules\TestModule" -Author "New Author"
+Update-ModuleManifest -Path 'C:\MyModules\TestModule' -Author 'New Author'
 ```
 
 ### Example 2
@@ -51,7 +51,7 @@ Update-ModuleManifest -Path "C:\MyModules\TestModule" -Author "New Author"
 This example changes the **Prerelease** property to `beta2`.
 
 ```powershell
-Update-ModuleManifest -Path "C:\MyModules\TestModule" -Prerelease "beta2"
+Update-ModuleManifest -Path 'C:\MyModules\TestModule' -Prerelease 'beta2'
 ```
 
 ### Example 3
@@ -59,7 +59,12 @@ Update-ModuleManifest -Path "C:\MyModules\TestModule" -Prerelease "beta2"
 This example updates multiple properties.
 
 ```powershell
-Update-ModuleManifest -Path "C:\MyModules\TestModule" -Tags "Windows", "Linux" -Description "A module for managing packages."
+$parameters = @{
+    Path = 'C:\MyModules\TestModule'
+    Tags = 'Windows', 'Linux'
+    Description = 'A module for managing packages.'
+}
+Update-ModuleManifest
 ```
 
 ## PARAMETERS
@@ -512,7 +517,7 @@ Accept wildcard characters: False
 
 ### -Prerelease
 
-Specifies the prerelease value that is appended to the module version. For example, if
+Specifies the prerelease value that's appended to the module version. For example, if
 **Prerelease** is `preview` and the **ModuleVersion** is `1.0.0`, the version of the module is
 `1.0.0-preview`.
 
@@ -530,7 +535,7 @@ Accept wildcard characters: False
 
 ### -PrivateData
 
-Specifies data that is passed to the module when it's imported. This can be any arbitrary values
+Specifies data that's passed to the module when it's imported. This can be any arbitrary values
 stored in a hashtable.
 
 ```yaml
@@ -671,7 +676,7 @@ Accept wildcard characters: False
 
 ### -RootModule
 
-Specifies the primary or root file of the module. Enter the file name of a script (`.ps1`), a script
+Specifies the primary or root file of the module. Enter the filename of a script (`.ps1`), a script
 module (`.psm1`), a module manifest (`.psd1`), an assembly (`.dll`), or a cmdlet definition XML file
 (`.cdxml`). When the module is imported, the members exported from the root module are imported into
 the caller's session state.
@@ -768,7 +773,11 @@ Accept wildcard characters: True
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
