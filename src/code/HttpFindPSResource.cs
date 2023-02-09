@@ -35,14 +35,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
         /// </summary>
-        public IEnumerable<PSResourceInfo> FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
+        public IEnumerable<PSResourceResult> FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
         {
-            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
-
             string[] responses = v2ServerAPICall.FindAll(repository, includePrerelease, type, out string errRecord);
             if (!String.IsNullOrEmpty(errRecord))
             {
-                throw new Exception(errRecord);
+                yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
             }
 
             foreach (string response in responses)
@@ -52,10 +50,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (var element in elemList)
                 {
                     if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) {
-                        throw new Exception(errorMsg);
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
 
-                    yield return psGetInfo;
+                    yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                 }
             }
         }
@@ -67,9 +65,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
         /// </summary>
-        public IEnumerable<PSResourceInfo> FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
+        public IEnumerable<PSResourceResult> FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
         {
-            List<PSResourceInfo> pkgsFound = new List<PSResourceInfo>(); 
             HashSet<string> tagPkgs = new HashSet<string>();
             
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
@@ -84,7 +81,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out string errRecord);
                     if (!String.IsNullOrEmpty(errRecord))
                     {
-                        throw new Exception(errRecord);
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
                     }
 
                     foreach (string response in responses)
@@ -94,20 +91,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         foreach (var element in elemList)
                         {
                             if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) {
-                                throw new Exception(errorMsg);
+                                yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                             }
 
                             if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
                             {
                                 tagPkgs.Add(psGetInfo.Name);
 
-                                yield return psGetInfo;
+                                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                             }
                         }
                     }
                 }
             }
-            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3) {
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+            {
                 // TAG example:
                 // chocolatey, crescendo 
                 //  >  chocolatey  ===  ModuleA
@@ -118,30 +116,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string[] responses = v3ServerAPICall.FindTag(tag, repository, includePrerelease, type, out string errMsg);
                     if (!String.IsNullOrEmpty(errMsg))
                     {
-                        throw new Exception(errMsg);
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
                     }
 
                     foreach (string response in responses)
                     {
-                        JsonDocument pkgEntry;
+                        string parseError = String.Empty;
+                        JsonDocument pkgEntry = null;
                         try
                         {
                             pkgEntry = JsonDocument.Parse(response);
                         }
                         catch (Exception e) {
-                            throw new Exception(e.Message);
+                            parseError = e.Message;
+                        }
+
+                        if (!String.IsNullOrEmpty(parseError))
+                        {
+                            yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
                         }
 
                         if (!PSResourceInfo.TryConvertFromJson(pkgEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                         {
-                            throw new Exception(errorMsg);
+                            yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                         }
                             
                         if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
                         {
                             tagPkgs.Add(psGetInfo.Name);
 
-                            yield return psGetInfo;
+                            yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                         }                       
                     }
                 }
@@ -159,8 +163,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public IEnumerable<PSCommandResourceInfo> FindCommandOrDscResource(string[] tags, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands)
         {
-            Hashtable pkgHash = new Hashtable();   
-            List<PSCommandResourceInfo> cmdInfoObjs = new List<PSCommandResourceInfo>();
+            Hashtable pkgHash = new Hashtable();
 
             // COMMAND example:
             // command1, command2 
@@ -202,13 +205,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 hashValue.Item1.Add(tag);
                             }
                         }
-                        else 
-                        {
-                            // TODO: Write error for corresponding null scenario
-                            // TODO: array out of bounds exception when name does not exist
-                            // http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:PSCommand_Get-TargetResource'
-                            errRecord = errorMsg;
-                        }
                     }
                 }             
             }
@@ -233,7 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public IEnumerable<PSResourceInfo> FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
+        public IEnumerable<PSResourceResult> FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
         {
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
@@ -241,22 +237,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var response = v2ServerAPICall.FindName(packageName, repository, includePrerelease, type, out string errMsg);
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    throw new Exception(errMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
                 var elemList = ConvertResponseToXML(response);
 
                 if (elemList.Length == 0)
                 {
-                    Console.WriteLine("empty response. Error handle");
+                    string xmlError = "Response could not be parsed into XML.";
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: xmlError, isTerminatingError: false);
                 }
 
 
                 if (!PSResourceInfo.TryConvertFromXml(elemList[0], out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) {
-                    throw new Exception(errorMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
 
-                yield return psGetInfo;
+                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
@@ -264,24 +261,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var response = v3ServerAPICall.FindName(packageName, repository, includePrerelease, type, out string errMsg);
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    throw new Exception(errMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
-                JsonDocument pkgVersionEntry;
+                string parseError = String.Empty;
+                JsonDocument pkgVersionEntry = null;
                 try
                 {
                     pkgVersionEntry = JsonDocument.Parse(response);
                 }
                 catch (Exception e) {
-                    throw new Exception(e.Message);
+                    parseError = e.Message;
+                }
+
+                if (!String.IsNullOrEmpty(parseError))
+                {
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
                 }
 
                 if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                 {
-                    throw new Exception(errorMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
 
-                yield return psGetInfo;
+                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
             }
 
             yield break;
@@ -296,14 +299,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='az*'&includePrerelease=true
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public IEnumerable<PSResourceInfo> FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
+        public IEnumerable<PSResourceResult> FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
         {
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
                 string[] responses = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out string errRecord);
                 if (!String.IsNullOrEmpty(errRecord))
                 {
-                    throw new Exception(errRecord);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
                 }
 
                 foreach (string response in responses)
@@ -313,38 +316,46 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                         {
-                            throw new Exception(errorMsg);
+                            yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                         }
 
-                        yield return psGetInfo;
+                        yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                     }
                 }
             }
-            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3) {
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+            {
                 string[] responses = v3ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out string errMsg);
 
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    throw new Exception(errMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
                 // convert response to json document
                 foreach (string response in responses)
                 {
-                    JsonDocument pkgVersionEntry;
+                    string parseError = String.Empty;
+                    JsonDocument pkgVersionEntry = null;
                     try
                     {
                         pkgVersionEntry = JsonDocument.Parse(response);
                     }
                     catch (Exception e) {
-                        throw new Exception(e.Message);
-                    }
-                    if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
-                    {
-                        throw new Exception(errorMsg);
+                        parseError = e.Message;
                     }
 
-                    yield return psGetInfo;
+                    if (!String.IsNullOrEmpty(parseError))
+                    {
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+                    }
+
+                    if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                    {
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                    }
+
+                    yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                 }
             }
 
@@ -360,7 +371,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public IEnumerable<PSResourceInfo> FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest)
+        public IEnumerable<PSResourceResult> FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest)
         {
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
@@ -368,7 +379,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (!String.IsNullOrEmpty(errRecord))
                     {
-                        throw new Exception(errRecord);
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
                     }
 
                     var elemList = ConvertResponseToXML(response);
@@ -376,39 +387,46 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) 
                         {
-                            throw new Exception(errorMsg);
+                            yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                         }
 
-                        yield return psGetInfo;
+                        yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                     }
                 }
             }
-            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3) {
+            else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+            {
                 string[] responses = v3ServerAPICall.FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, getOnlyLatest, out string errMsg);
                 
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    throw new Exception(errMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
                 // convert response to json document
                 foreach (string response in responses)
                 {
-                    JsonDocument pkgVersionEntry;
+                    string parseError = String.Empty;
+                    JsonDocument pkgVersionEntry = null;
                     try
                     {
                         pkgVersionEntry = JsonDocument.Parse(response);
                     }
                     catch (Exception e) {
-                        throw new Exception(e.Message);
+                        parseError = e.Message;
+                    }
+
+                    if (!String.IsNullOrEmpty(parseError))
+                    {
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
                     }
 
                     if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                     {
-                        throw new Exception(errorMsg);
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
 
-                    yield return psGetInfo;
+                    yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                 }
             }
 
@@ -422,7 +440,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public IEnumerable<PSResourceInfo> FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type)
+        public IEnumerable<PSResourceResult> FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type)
         {
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
@@ -431,54 +449,54 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    throw new Exception(errMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
                 var elemList = ConvertResponseToXML(response);
 
                 if (elemList.Length == 0)
                 {
-                    Console.WriteLine("empty response. Error handle");
+                    throw new Exception("Response could not be parsed into XML.");
                 }
 
-                if (!PSResourceInfo.TryConvertFromXml(
-                    elemList[0],
-                    //false, // TODO: confirm, but this seems to only apply for FindName() cases
-                    out PSResourceInfo psGetInfo,
-                    repository.Name,
-                    out string errorMsg))
+                if (!PSResourceInfo.TryConvertFromXml(elemList[0], out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                 {
-                    throw new Exception(errorMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
 
-                yield return psGetInfo;
+                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
 
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
                 string response = v3ServerAPICall.FindVersion(packageName, version, repository, type, out string errMsg);
-                JsonDocument pkgVersionEntry;
 
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    throw new Exception(errMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
+                string parseError = String.Empty;
+                JsonDocument pkgVersionEntry = null;
                 try
                 {
-                    // convert response to json document
                     pkgVersionEntry = JsonDocument.Parse(response);
                 }
                 catch (Exception e) {
-                    throw new Exception(e.Message);
+                    parseError = e.Message;
+                }
+
+                if (!String.IsNullOrEmpty(parseError))
+                {
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
                 }
 
                 if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                 {
-                    throw new Exception(errorMsg);
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
 
-                yield return psGetInfo;
+                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
             }
 
             yield break;
