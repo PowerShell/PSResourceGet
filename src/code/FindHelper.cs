@@ -389,17 +389,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // -Name parameter and -Tag parameter are exclusive
                 if (_tag != null)
                 {
-                    // TODO:  this is currently very buggy and the url queries need to be fixed
-                    
                     foreach (PSResourceInfo pkgs in HttpFindTags(repositoryInfo, _type))
                     {
                         yield return pkgs;
                     }
-
-                    /*
-                     * yield return HttpFindTags(repositoryInfo, _type).First();
-                     * 
-                     */
                 }
                 else if (_pkgsLeftToFind.Count > 0)
                 {
@@ -565,22 +558,37 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceInfo foundPkg = _httpFindPSResource.FindAll(repository, _prerelease, _type).First();
-                        parentPkgs.Add(foundPkg);
-
-                        yield return foundPkg;
+                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindAll(repository, _prerelease, _type))
+                        {
+                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                            {
+                                PSResourceInfo foundPkg = searchResult.returnedObject;
+                                parentPkgs.Add(foundPkg);
+                                yield return foundPkg;
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findAllFail", ErrorCategory.NotSpecified, null));
+                            }
+                        }
                     }
-
                     else if (pkgName.Contains('*'))
                     {
                         // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
                         if (string.IsNullOrEmpty(_version))
                         {
-                            PSResourceInfo foundPkg = _httpFindPSResource.FindNameGlobbing(pkgName, repository, _prerelease, _type).First();
-                            parentPkgs.Add(foundPkg);
-
-                            if (foundPkg != null) {
-                                yield return foundPkg;
+                            foreach (PSResourceResult searchResult in _httpFindPSResource.FindNameGlobbing(pkgName, repository, _prerelease, _type))
+                            {
+                                if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                                {
+                                    PSResourceInfo foundPkg = searchResult.returnedObject;
+                                    parentPkgs.Add(foundPkg);
+                                    yield return foundPkg;
+                                }
+                                else
+                                {
+                                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findNameGlobbingFail", ErrorCategory.NotSpecified, null));
+                                }
                             }
                         }
                     }
@@ -588,46 +596,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // TODO: User should not use -Prerelease parameter with a specific version.  Write out some kind of messaging (warning, error, verbose) to inform user of this
                         // if they attempt this combination
-                        IEnumerable<PSResourceInfo> foundPkg = null;
-                        try
+                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToNormalizedString(), repository, _type))
                         {
-                            foundPkg = _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToNormalizedString(), repository, _type);
-                        }
-                        catch (Exception e) {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(e.Message),
-                                "",
-                                ErrorCategory.InvalidOperation,
-                                this));
-                        }
-
-                        if (foundPkg != null)
-                        {
-                            var pkg = foundPkg.First();
-                            parentPkgs.Add(pkg);
-
-                            if (!_repositoryNameContainsWildcard)
+                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
                             {
-                                _pkgsLeftToFind.Remove(pkgName);
-                            }
+                                PSResourceInfo foundPkg = searchResult.returnedObject;
+                                parentPkgs.Add(foundPkg);
 
-                            // TODO:  think about how the parent/dependency packages are being streamed, especially when there's multiple parents
-                            yield return pkg;
+                                if (!_repositoryNameContainsWildcard)
+                                {
+                                    _pkgsLeftToFind.Remove(pkgName);
+                                }
+
+                                yield return foundPkg;
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findNameGlobbingFail", ErrorCategory.NotSpecified, null));
+                            }
                         }
+
+                        // TODO:  think about how the parent/dependency packages are being streamed, especially when there's multiple parents
                     }
                     else {
                         // If no version is specified, just retrieve the latest version
-                        PSResourceInfo foundPkg = _httpFindPSResource.FindName(pkgName, repository, _prerelease, _type).First();
-                        parentPkgs.Add(foundPkg);
-                        if (foundPkg != null)
+                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindName(pkgName, repository, _prerelease, _type))
                         {
-                            if (!_repositoryNameContainsWildcard)
+                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
                             {
-                                _pkgsLeftToFind.Remove(pkgName);
-                            }
+                                PSResourceInfo foundPkg = searchResult.returnedObject;
+                                parentPkgs.Add(foundPkg);
 
-                            yield return foundPkg;
-                        } 
+                                if (!_repositoryNameContainsWildcard)
+                                {
+                                    _pkgsLeftToFind.Remove(pkgName);
+                                }
+
+                                yield return foundPkg;
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findNameGlobbingFail", ErrorCategory.NotSpecified, null));
+                            }
+                        }
                     }
                 }
             }
@@ -654,10 +665,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         // TODO: deal with errRecord and making FindVesionGlobbing yield single packages instead of returning an array.
-                        PSResourceInfo foundPkg = _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, _type, getOnlyLatest: false).First();
-                        parentPkgs.Add(foundPkg);
-
-                        yield return foundPkg;
+                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, _type, getOnlyLatest: false))
+                        {
+                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                            {
+                                PSResourceInfo foundPkg = searchResult.returnedObject;
+                                parentPkgs.Add(foundPkg);
+                                yield return foundPkg;
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findVersionGlobbingFail", ErrorCategory.NotSpecified, null));
+                            }
+                        }
                     }
                 }
             }
@@ -987,14 +1007,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> HttpFindTags(PSRepositoryInfo repository, ResourceType type)
         {
-            foreach (PSResourceInfo pkgs in _httpFindPSResource.FindTags(_tag, repository, _prerelease, type))
+            foreach (PSResourceResult searchResult in _httpFindPSResource.FindTags(_tag, repository, _prerelease, type))
             {
-                yield return pkgs;
+                if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                {
+                    PSResourceInfo foundPkg = searchResult.returnedObject;
+                    yield return foundPkg;
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindTagsFail", ErrorCategory.NotSpecified, null));
+                }
             }
-
-            //yield return _httpFindPSResource.FindTags(_tag, repository, _prerelease, type).First();
-
-            // TODO:  write out error
         }
 
         private IEnumerable<PSCommandResourceInfo> HttpFindCmdOrDsc(PSRepositoryInfo repository, bool isSearchingForCommands)
@@ -1026,28 +1050,46 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> HttpFindDependencyPackagesHelper(
             PSResourceInfo currentPkg,
-            PSRepositoryInfo repository
-            //out List<string> errStrings
-        )
+            PSRepositoryInfo repository)
         {
-            foreach (var dep in currentPkg.Dependencies)
+            if (currentPkg != null)
             {
-                if (dep.VersionRange == VersionRange.All)
-                {
-                    PSResourceInfo latestDepPkg = _httpFindPSResource.FindName(dep.Name, repository, _prerelease, ResourceType.None).First();
-                    //errStrings.Add(err);  write error?
-
-                    yield return latestDepPkg;
-
-                    HttpFindDependencyPackagesHelper(latestDepPkg, repository);
-                }
-                else
-                {
-                    PSResourceInfo depPkg = _httpFindPSResource.FindVersionGlobbing(dep.Name, dep.VersionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true).First();
-
-                    yield return depPkg;
-
-                    HttpFindDependencyPackagesHelper(depPkg, repository);
+                foreach (var dep in currentPkg.Dependencies)
+                { 
+                    if (dep.VersionRange == VersionRange.All)
+                    {
+                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindName(dep.Name, repository, _prerelease, ResourceType.None))
+                        {
+                            if (String.IsNullOrEmpty(searchResult.errorMsg))
+                            {
+                                PSResourceInfo depPkg = searchResult.returnedObject;
+                                // should we make recursive call here?
+                                yield return searchResult.returnedObject;
+                                HttpFindDependencyPackagesHelper(depPkg, repository); // TODO: does this need to be before yield return?
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindNameForDepsFail", ErrorCategory.NotSpecified, null));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersionGlobbing(dep.Name, dep.VersionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true))
+                        {
+                            if (String.IsNullOrEmpty(searchResult.errorMsg))
+                            {
+                                PSResourceInfo depPkg = searchResult.returnedObject;
+                                // should we make recursive call here?
+                                yield return searchResult.returnedObject;
+                                HttpFindDependencyPackagesHelper(depPkg, repository); // TODO: does this need to be before yield return?
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindVersionGlobbingForDepsFail", ErrorCategory.NotSpecified, null));
+                            }
+                        }
+                    }
                 }
             }
         }

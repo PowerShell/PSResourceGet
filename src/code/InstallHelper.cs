@@ -1194,7 +1194,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 : Path.Combine(dirNameVersion, (pkg.Name + "_InstalledScriptInfo.xml"));
 
             pkg.InstalledDate = DateTime.Now;
-            pkg.InstalledLocation = installPath;
+            // pkg.InstalledLocation = installPath;
 
             // Write all metadata into metadataXMLPath
             if (!pkg.TryWrite(metadataXMLPath, out string error))
