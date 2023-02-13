@@ -358,16 +358,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2)
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2 ||
+                    repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {                    
                     // TODO:  didn't really finsh come back here
-                    foreach (PSResourceInfo cmdInfo in HttpSearchFromRepository(repositoriesToSearch[i]))
-                    {
-                        foundPackages.Add(cmdInfo);
-                    }
-                }
-                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
-                {
                     foreach (PSResourceInfo cmdInfo in HttpSearchFromRepository(repositoriesToSearch[i]))
                     {
                         foundPackages.Add(cmdInfo);
