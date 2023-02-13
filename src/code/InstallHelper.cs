@@ -424,18 +424,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // FindVersionGlobbing, pick latest, InstallVersion
                         foreach (string pkgName in pkgNamesToInstall)
                         {
-                            IEnumerable<PSResourceInfo> pkgsSatisfyingRange = _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true);
+                            PSResourceResult searchResult = _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true).First();
                             
-                            PSResourceInfo pkgToInstall;
-                            if (pkgsSatisfyingRange != null)
+                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
                             {
-                                pkgToInstall = pkgsSatisfyingRange.First();
-                            }
-                            else
-                            {
-                                // TODO: add error message saying nothing was found for this name,version range
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindVersionGlobbingForInstallFailed", ErrorCategory.NotSpecified, null));
                                 continue;
                             }
+
+                            PSResourceInfo pkgToInstall = searchResult.returnedObject;
+                            
 
                             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
                             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
@@ -445,12 +443,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
                             {
                                 responseContent = _v2ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
+                                if (!String.IsNullOrEmpty(errorRecord))
+                                {
+                                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, null));
+                                    continue;
+                                }
                             }
                             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                             {
                                 responseContent = _v3ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
+                                if (!String.IsNullOrEmpty(errorRecord))
+                                {
+                                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, null));
+                                    continue;
+                                }
                             }
-                            // TODO: add error handling
 
                             bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkgToInstall);
 
@@ -468,30 +475,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     foreach (string pkgName in pkgNamesToInstall)
                     {
                         string nugetVersionString = nugetVersion.ToNormalizedString(); // 3.0.17-beta
-                        // TODO: remove FindVersion and directly call install API. Add method to work with HTTPContent returned from Install to parse into PSResourceInfo
+
                         
-                         IEnumerable<PSResourceInfo> pkgToInstall = _httpFindPSResource.FindVersion(pkgName, nugetVersionString, repository, ResourceType.None);
-                        // pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+                        PSResourceResult searchResult = _httpFindPSResource.FindVersion(pkgName, nugetVersionString, repository, ResourceType.None).First();
+                        if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindVersionForInstallFailed", ErrorCategory.NotSpecified, null));
+                            continue;
+                        }
+
+                        PSResourceInfo pkgToInstall = searchResult.returnedObject;
+                        pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
                         // download the module
                         HttpContent responseContent = null;
                         if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
                         {
                             responseContent = _v2ServerApiCalls.InstallVersion(pkgName, nugetVersionString, repository, out string errorRecord);
+                            if (!String.IsNullOrEmpty(errorRecord))
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, null));
+                                continue;
+                            }
                         }
                         else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3) {
                             responseContent = _v3ServerApiCalls.InstallVersion(pkgName, nugetVersionString, repository, out string errorRecord);
-
+                            if (!String.IsNullOrEmpty(errorRecord))
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, null));
+                                continue;
+                            }
                         }
-                        // TODO: add error handling
 
-
-
-                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, nugetVersionString, scope, pkgToInstall.First());
+                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, nugetVersionString, scope, pkgToInstall);
 
                         if (installedSuccessfully)
                         {
-                            pkgsSuccessfullyInstalled.Add(pkgToInstall.First());
+                            pkgsSuccessfullyInstalled.Add(pkgToInstall);
                         }
                     }
                 }
@@ -501,28 +521,56 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // InstallName
                 foreach (string pkgName in pkgNamesToInstall)
                 {
-                    PSResourceInfo pkgToInstall = _httpFindPSResource.FindName(pkgName, repository, _prerelease, ResourceType.None).First();
-                    //pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+                    PSResourceResult searchResult = _httpFindPSResource.FindName(pkgName, repository, _prerelease, ResourceType.None).First();
+
+                    if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindVersionForInstallFailed", ErrorCategory.NotSpecified, null));
+                        continue;
+                    }
+
+                    PSResourceInfo pkgToInstall = searchResult.returnedObject;
+
+                    pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+                    pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
 
                     // pkgToInstall.Dependencies -> Dependency[] (string, VersionRange)
                     // helper method that takes Dependency[], checks with GetHelper which are already installed, construct dependency tree
                     // install those only which are needed
-
-                    pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
 
                     // download the module
                     HttpContent responseContent = null;
                     if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
                     {
                         responseContent = _v2ServerApiCalls.InstallName(pkgName, _prerelease, repository, out string errorRecord);
+                        if (!String.IsNullOrEmpty(errorRecord))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallNameFailed", ErrorCategory.NotSpecified, null));
+                            continue;
+                        }
                     }
                     else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                     {
-                        responseContent = _v3ServerApiCalls.InstallName(pkgName, _prerelease, repository, out string errorRecord);
-
+                        if (_prerelease)
+                        {
+                            responseContent = _v3ServerApiCalls.InstallVersion(pkgName, pkgVersion, repository, out string errorRecord);
+                            if (!String.IsNullOrEmpty(errorRecord))
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, null));
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            responseContent = _v3ServerApiCalls.InstallName(pkgName, _prerelease, repository, out string errorRecord);
+                            if (!String.IsNullOrEmpty(errorRecord))
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, null));
+                                continue;
+                            }
+                        }
                     }
 
-                    // TODO: add error handling
                     bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkgToInstall);
 
                     if (installedSuccessfully)
