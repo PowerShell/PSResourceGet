@@ -9,7 +9,7 @@
     <FileVersion>3.0.17</FileVersion>
     <InformationalVersion>3.0.17</InformationalVersion>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,13 +1,11 @@
-using System.Net.Http;
-using System;
-using System.Collections;
-using System.Xml;
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text.Json;
-using System.Management.Automation;
 using System.Linq;
+using System.Xml;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -68,90 +66,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public IEnumerable<PSResourceResult> FindTags(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
         {
             HashSet<string> tagPkgs = new HashSet<string>();
-            
+
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
-                // TAG example:
-                // chocolatey, crescendo 
-                //  >  chocolatey  ===  ModuleA
-                //  >  crescendo   ===  ModuleA
-                // --->   for tags get rid of duplicate modules             
-                foreach (string tag in tags)
-                {
-                    string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out string errRecord);
-                    if (!String.IsNullOrEmpty(errRecord))
-                    {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
-                    }
-
-                    foreach (string response in responses)
-                    {
-                        var elemList = ConvertResponseToXML(response);
-
-                        foreach (var element in elemList)
-                        {
-                            if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) {
-                                yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
-                            }
-
-                            if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
-                            {
-                                tagPkgs.Add(psGetInfo.Name);
-
-                                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
-                            }
-                        }
-                    }
-                }
+                yield return FindTagsV2(tags, repository, includePrerelease, type, tagPkgs).First();
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
-                // TAG example:
-                // chocolatey, crescendo 
-                //  >  chocolatey  ===  ModuleA
-                //  >  crescendo   ===  ModuleA
-                // --->   for tags get rid of duplicate modules             
-                foreach (string tag in tags)
-                {
-                    string[] responses = v3ServerAPICall.FindTag(tag, repository, includePrerelease, type, out string errMsg);
-                    if (!String.IsNullOrEmpty(errMsg))
-                    {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
-                    }
-
-                    foreach (string response in responses)
-                    {
-                        string parseError = String.Empty;
-                        JsonDocument pkgEntry = null;
-                        try
-                        {
-                            pkgEntry = JsonDocument.Parse(response);
-                        }
-                        catch (Exception e) {
-                            parseError = e.Message;
-                        }
-
-                        if (!String.IsNullOrEmpty(parseError))
-                        {
-                            yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
-                        }
-
-                        if (!PSResourceInfo.TryConvertFromJson(pkgEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
-                        {
-                            yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
-                        }
-                            
-                        if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
-                        {
-                            tagPkgs.Add(psGetInfo.Name);
-
-                            yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
-                        }                       
-                    }
-                }
+                yield return FindTagsV3(tags, repository, includePrerelease, type, tagPkgs).First();
             }
-
-            yield break;
         }
 
         /// <summary>
@@ -161,62 +84,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='tag:JSON'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
         /// </summary>
-        public IEnumerable<PSCommandResourceInfo> FindCommandOrDscResource(string[] tags, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands)
+        public IEnumerable<PSResourceResult> FindCommandOrDscResource(string[] tags, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands)
         {
-            Hashtable pkgHash = new Hashtable();
-
-            // COMMAND example:
-            // command1, command2 
-            //  >  command1  ===  ModuleA
-            //  >  command2   ===  ModuleA            
-            //
-            //  >  command1, command2   ===  ModuleA
-
-            foreach (string tag in tags)
-            {
-                string[] responses = v2ServerAPICall.FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, out string errRecord);
-
-                if (!String.IsNullOrEmpty(errRecord))
-                {
-                    throw new Exception(errRecord);
-                }
-
-                foreach (string response in responses)
-                {
-                    var elemList = ConvertResponseToXML(response);
-                    
-                    foreach (var element in elemList)
-                    {
-                        if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) {
-                            throw new Exception(errorMsg);
-                        }
-
-                        if (psGetInfo != null)
-                        {
-                            // Map the tag with the package which the tag came from 
-                            if (!pkgHash.Contains(psGetInfo.Name))
-                            {
-                                pkgHash.Add(psGetInfo.Name, Tuple.Create<List<string>, PSResourceInfo>(new List<string> { tag }, psGetInfo)); 
-                            }
-                            else
-                            {
-                                // if the package is already in the hashtable, add this tag to the list of tags associated with that package
-                                Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>)pkgHash[psGetInfo.Name];
-                                hashValue.Item1.Add(tag);
-                            }
-                        }
-                    }
-                }             
+            if (repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase)) {
+                // error out
             }
 
-            // convert hashtable to PSCommandInfo
-            foreach(DictionaryEntry pkg in pkgHash)
-            {
-                Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>) pkg.Value;
-
-                //cmdInfoObjs.Add(new PSCommandResourceInfo(hashValue.Item1.ToArray(), hashValue.Item2));
-                yield return new PSCommandResourceInfo(hashValue.Item1.ToArray(), hashValue.Item2);
-            }
+            yield return FindCommandOrDSCResourceV2(tags, repository, includePrerelease, isSearchingForCommands).First();
         }
 
         // Complete
@@ -233,58 +107,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
-                // Same API calls for both prerelease and non-prerelease
-                var response = v2ServerAPICall.FindName(packageName, repository, includePrerelease, type, out string errMsg);
-                if (!String.IsNullOrEmpty(errMsg))
-                {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
-                }
-
-                var elemList = ConvertResponseToXML(response);
-
-                if (elemList.Length == 0)
-                {
-                    string xmlError = "Response could not be parsed into XML.";
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: xmlError, isTerminatingError: false);
-                }
-
-
-                if (!PSResourceInfo.TryConvertFromXml(elemList[0], out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
-                }
-
-                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                yield return FindNameV2(packageName, repository, includePrerelease, type).First();
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
-                // Same API calls for both prerelease and non-prerelease
-                var response = v3ServerAPICall.FindName(packageName, repository, includePrerelease, type, out string errMsg);
-                if (!String.IsNullOrEmpty(errMsg))
-                {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
-                }
-
-                string parseError = String.Empty;
-                JsonDocument pkgVersionEntry = null;
-                try
-                {
-                    pkgVersionEntry = JsonDocument.Parse(response);
-                }
-                catch (Exception e) {
-                    parseError = e.Message;
-                }
-
-                if (!String.IsNullOrEmpty(parseError))
-                {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
-                }
-
-                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
-                {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
-                }
-
-                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                yield return FindNameV3(packageName, repository, includePrerelease, type).First();
             }
 
             yield break;
@@ -303,60 +130,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v2)
             {
-                string[] responses = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out string errRecord);
-                if (!String.IsNullOrEmpty(errRecord))
-                {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
-                }
-
-                foreach (string response in responses)
-                {
-                    var elemList = ConvertResponseToXML(response);
-                    foreach (var element in elemList)
-                    {
-                        if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
-                        {
-                            yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
-                        }
-
-                        yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
-                    }
-                }
+                yield return FindNameGlobbingV2(packageName, repository, includePrerelease, type).First();
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
             {
-                string[] responses = v3ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out string errMsg);
-
-                if (!String.IsNullOrEmpty(errMsg))
-                {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
-                }
-
-                // convert response to json document
-                foreach (string response in responses)
-                {
-                    string parseError = String.Empty;
-                    JsonDocument pkgVersionEntry = null;
-                    try
-                    {
-                        pkgVersionEntry = JsonDocument.Parse(response);
-                    }
-                    catch (Exception e) {
-                        parseError = e.Message;
-                    }
-
-                    if (!String.IsNullOrEmpty(parseError))
-                    {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
-                    }
-
-                    if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
-                    {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
-                    }
-
-                    yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
-                }
+                yield return FindNameGlobbingV3(packageName, repository, includePrerelease, type).First();
             }
 
             yield break;
@@ -501,11 +279,269 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             yield break;
         }
-        
+
         #endregion
 
         #region HelperMethods
 
+        private IEnumerable<PSResourceResult> FindTagsV2(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, HashSet<string> tagPkgs) {
+            // TAG example:
+            // chocolatey, crescendo 
+            //  >  chocolatey  ===  ModuleA
+            //  >  crescendo   ===  ModuleA
+            // --->   for tags get rid of duplicate modules             
+            foreach (string tag in tags)
+            {
+                string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out string errRecord);
+                if (!String.IsNullOrEmpty(errRecord))
+                {
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
+                }
+
+                foreach (string response in responses)
+                {
+                    var elemList = ConvertResponseToXML(response);
+
+                    foreach (var element in elemList)
+                    {
+                        if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                        {
+                            yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                        }
+
+                        if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
+                        {
+                            tagPkgs.Add(psGetInfo.Name);
+
+                            yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<PSResourceResult> FindTagsV3(string[] tags, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, HashSet<string> tagPkgs)
+        {
+            // TAG example:
+            // chocolatey, crescendo 
+            //  >  chocolatey  ===  ModuleA
+            //  >  crescendo   ===  ModuleA
+            // --->   for tags get rid of duplicate modules             
+            foreach (string tag in tags)
+            {
+                string[] responses = v3ServerAPICall.FindTag(tag, repository, includePrerelease, type, out string errMsg);
+                if (!String.IsNullOrEmpty(errMsg))
+                {
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+                }
+
+                foreach (string response in responses)
+                {
+                    string parseError = String.Empty;
+                    JsonDocument pkgEntry = null;
+                    try
+                    {
+                        pkgEntry = JsonDocument.Parse(response);
+                    }
+                    catch (Exception e)
+                    {
+                        parseError = e.Message;
+                    }
+
+                    if (!String.IsNullOrEmpty(parseError))
+                    {
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+                    }
+
+                    if (!PSResourceInfo.TryConvertFromJson(pkgEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                    {
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                    }
+
+                    if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
+                    {
+                        tagPkgs.Add(psGetInfo.Name);
+
+                        yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<PSResourceResult> FindCommandOrDSCResourceV2(string[] tags, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands) {
+            Hashtable pkgHash = new Hashtable();
+
+            // COMMAND example:
+            // command1, command2 
+            //  >  command1  ===  ModuleA
+            //  >  command2   ===  ModuleA            
+            //
+            //  >  command1, command2   ===  ModuleA
+
+            foreach (string tag in tags)
+            {
+                string[] responses = v2ServerAPICall.FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, out string errRecord);
+
+                if (!String.IsNullOrEmpty(errRecord))
+                {
+                    throw new Exception(errRecord);
+                }
+
+                foreach (string response in responses)
+                {
+                    var elemList = ConvertResponseToXML(response);
+
+                    foreach (var element in elemList)
+                    {
+                        if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                        {
+                            throw new Exception(errorMsg);
+                        }
+
+                        if (psGetInfo != null)
+                        {
+                            // Map the tag with the package which the tag came from 
+                            if (!pkgHash.Contains(psGetInfo.Name))
+                            {
+                                pkgHash.Add(psGetInfo.Name, Tuple.Create<List<string>, PSResourceInfo>(new List<string> { tag }, psGetInfo));
+                            }
+                            else
+                            {
+                                // if the package is already in the hashtable, add this tag to the list of tags associated with that package
+                                Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>)pkgHash[psGetInfo.Name];
+                                hashValue.Item1.Add(tag);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // convert hashtable to PSCommandInfo
+            foreach (DictionaryEntry pkg in pkgHash)
+            {
+                Tuple<List<string>, PSResourceInfo> hashValue = (Tuple<List<string>, PSResourceInfo>)pkg.Value;
+
+                var psGetCmdInfo = new PSCommandResourceInfo(hashValue.Item1.ToArray(), hashValue.Item2);
+                yield return new PSResourceResult(returnedCmdObject: psGetCmdInfo, errorMsg: String.Empty, isTerminatingError: false);
+
+            }
+        }
+
+        private IEnumerable<PSResourceResult> FindNameV2(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type) {
+            // Same API calls for both prerelease and non-prerelease
+            var response = v2ServerAPICall.FindName(packageName, repository, includePrerelease, type, out string errMsg);
+            if (!String.IsNullOrEmpty(errMsg))
+            {
+                yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+            }
+
+            var elemList = ConvertResponseToXML(response);
+
+            if (elemList.Length == 0)
+            {
+                string xmlError = "Response could not be parsed into XML.";
+                yield return new PSResourceResult(returnedObj: null, errorMsg: xmlError, isTerminatingError: false);
+            }
+
+
+            if (!PSResourceInfo.TryConvertFromXml(elemList[0], out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+            {
+                yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+            }
+
+            yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+        }
+
+        private IEnumerable<PSResourceResult> FindNameV3(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type) {
+            // Same API calls for both prerelease and non-prerelease
+            var response = v3ServerAPICall.FindName(packageName, repository, includePrerelease, type, out string errMsg);
+            if (!String.IsNullOrEmpty(errMsg))
+            {
+                yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+            }
+
+            string parseError = String.Empty;
+            JsonDocument pkgVersionEntry = null;
+            try
+            {
+                pkgVersionEntry = JsonDocument.Parse(response);
+            }
+            catch (Exception e)
+            {
+                parseError = e.Message;
+            }
+
+            if (!String.IsNullOrEmpty(parseError))
+            {
+                yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+            }
+
+            if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+            {
+                yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+            }
+
+            yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+
+        }
+
+        private IEnumerable<PSResourceResult> FindNameGlobbingV2(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type) {
+            string[] responses = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out string errRecord);
+            if (!String.IsNullOrEmpty(errRecord))
+            {
+                yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
+            }
+
+            foreach (string response in responses)
+            {
+                var elemList = ConvertResponseToXML(response);
+                foreach (var element in elemList)
+                {
+                    if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                    {
+                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                    }
+
+                    yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                }
+            }
+        }
+
+        private IEnumerable<PSResourceResult> FindNameGlobbingV3(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type) {
+            string[] responses = v3ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out string errMsg);
+
+            if (!String.IsNullOrEmpty(errMsg))
+            {
+                yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+            }
+
+            // convert response to json document
+            foreach (string response in responses)
+            {
+                string parseError = String.Empty;
+                JsonDocument pkgVersionEntry = null;
+                try
+                {
+                    pkgVersionEntry = JsonDocument.Parse(response);
+                }
+                catch (Exception e)
+                {
+                    parseError = e.Message;
+                }
+
+                if (!String.IsNullOrEmpty(parseError))
+                {
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+                }
+
+                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                {
+                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                }
+
+                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+            }
+        }
         public XmlNode[] ConvertResponseToXML(string httpResponse) {
 
             //Create the XmlDocument.
