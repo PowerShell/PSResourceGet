@@ -554,7 +554,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         foreach (PSResourceResult searchResult in _httpFindPSResource.FindAll(repository, _prerelease, _type))
                         {
-                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                            if (String.IsNullOrEmpty(searchResult.errorMsg))
                             {
                                 PSResourceInfo foundPkg = searchResult.returnedObject;
                                 parentPkgs.Add(foundPkg);
@@ -573,7 +573,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             foreach (PSResourceResult searchResult in _httpFindPSResource.FindNameGlobbing(pkgName, repository, _prerelease, _type))
                             {
-                                if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                                if (String.IsNullOrEmpty(searchResult.errorMsg))
                                 {
                                     PSResourceInfo foundPkg = searchResult.returnedObject;
                                     parentPkgs.Add(foundPkg);
@@ -592,7 +592,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // if they attempt this combination
                         foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToNormalizedString(), repository, _type))
                         {
-                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                            if (String.IsNullOrEmpty(searchResult.errorMsg))
                             {
                                 PSResourceInfo foundPkg = searchResult.returnedObject;
                                 parentPkgs.Add(foundPkg);
@@ -616,7 +616,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // If no version is specified, just retrieve the latest version
                         foreach (PSResourceResult searchResult in _httpFindPSResource.FindName(pkgName, repository, _prerelease, _type))
                         {
-                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                            if (String.IsNullOrEmpty(searchResult.errorMsg))
                             {
                                 PSResourceInfo foundPkg = searchResult.returnedObject;
                                 parentPkgs.Add(foundPkg);
@@ -661,7 +661,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // TODO: deal with errRecord and making FindVesionGlobbing yield single packages instead of returning an array.
                         foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, _type, getOnlyLatest: false))
                         {
-                            if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                            if (String.IsNullOrEmpty(searchResult.errorMsg))
                             {
                                 PSResourceInfo foundPkg = searchResult.returnedObject;
                                 parentPkgs.Add(foundPkg);
@@ -1003,7 +1003,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             foreach (PSResourceResult searchResult in _httpFindPSResource.FindTags(_tag, repository, _prerelease, type))
             {
-                if (!String.IsNullOrEmpty(searchResult.errorMsg))
+                if (String.IsNullOrEmpty(searchResult.errorMsg))
                 {
                     PSResourceInfo foundPkg = searchResult.returnedObject;
                     yield return foundPkg;
@@ -1017,8 +1017,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSCommandResourceInfo> HttpFindCmdOrDsc(PSRepositoryInfo repository, bool isSearchingForCommands)
         {
-            yield return _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, isSearchingForCommands).First();
-            // TODO:  write out error
+            foreach (PSResourceResult searchResult in _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, isSearchingForCommands))
+            {
+                if (String.IsNullOrEmpty(searchResult.errorMsg))
+                {
+                    yield return searchResult.returnedCmdObject;
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindCommandOrDscResourceFail", ErrorCategory.NotSpecified, null));
+                }
+            }
         }
 
         private IEnumerable<PSResourceInfo> HttpFindDependencyPackages(PSResourceInfo currentPkg, PSRepositoryInfo repository)
