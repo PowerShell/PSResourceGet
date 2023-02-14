@@ -9,6 +9,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Xml;
 using System.Xml.Linq;
+using System.Xml.XPath;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -103,18 +104,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return null;
             }
 
-            PSRepositoryInfo.APIVersion apiVersion;
-            if (repoUri.AbsoluteUri.EndsWith("api/v2"))
-            {
-                apiVersion = PSRepositoryInfo.APIVersion.v2;
-            }
-            else if (repoUri.AbsoluteUri.EndsWith("v3/index.json"))
-            {
-                apiVersion = PSRepositoryInfo.APIVersion.v3;
-            }
-            else {
-                apiVersion = PSRepositoryInfo.APIVersion.Unknown;
-            }
+            PSRepositoryInfo.APIVersion apiVersion = GetRepoAPIVersion(repoUri);
 
             if (repoCredentialInfo != null)
             {
@@ -274,7 +264,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     "Repository",
                     new XAttribute("Name", repoName),
                     new XAttribute("Url", repoUri),
-                    new XAttribute("ApiVersion", apiVersion),
+                    new XAttribute("APIVersion", apiVersion),
                     new XAttribute("Priority", repoPriority),
                     new XAttribute("Trusted", repoTrusted)
                     );
@@ -333,9 +323,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     return null;
                 }    
 
-                if (node.Attribute("ApiVersion") == null)
+                if (node.Attribute("APIVersion") == null)
                 {
-                    errorMsg = $"Repository element does not contain neccessary 'ApiVersion' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
+                    errorMsg = $"Repository element does not contain neccessary 'APIVersion' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
                     return null;
                 }
 
@@ -356,7 +346,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 // determine if existing repository node (which we wish to update) had Url or Uri attribute
                 Uri thisUrl = null;
-                PSRepositoryInfo.APIVersion apiVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("ApiVersion").Value);
+                PSRepositoryInfo.APIVersion apiVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value);
                 if (repoUri != null) 
                 {
                     if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
@@ -373,18 +363,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
                     }
 
-                    // Check the API protocol version
-                    if (repoUri.AbsoluteUri.EndsWith("api/v2"))
-                    {
-                        apiVersion = PSRepositoryInfo.APIVersion.v2;
-                    }
-                    else if (repoUri.AbsoluteUri.EndsWith("v3/index.json"))
-                    {
-                        apiVersion = PSRepositoryInfo.APIVersion.v3;
-                    }
-                    else {
-                        apiVersion = PSRepositoryInfo.APIVersion.Unknown;
-                    }
+                    apiVersion = GetRepoAPIVersion(repoUri);
                 }
                 else 
                 {
@@ -519,9 +498,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     continue;
                 }
 
-                if (node.Attribute("ApiVersion") == null)
+                if (node.Attribute("APIVersion") == null)
                 {
-                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'ApiVersion' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'APIVersion' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                     continue;
                 }
 
@@ -541,7 +520,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
                         repoCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("ApiVersion").Value)));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value)));
 
                 // Remove item from file
                 node.Remove();
@@ -594,12 +573,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         continue;
                     }
 
-                    if (repo.Attribute("ApiVersion") == null)
-                    {
-                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'ApiVersion' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
-                        continue;
-                    }
-
                     bool urlAttributeExists = repo.Attribute("Url") != null;
                     bool uriAttributeExists = repo.Attribute("Uri") != null;
                     // case: neither Url nor Uri attributes exist
@@ -619,6 +592,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             tempErrorList.Add(String.Format("Unable to read incorrectly formatted Url for repo {0}", repo.Attribute("Name").Value));
                             continue;
                         }
+
                     }
                     else if (uriAttributeExists)
                     {
@@ -627,6 +601,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", repo.Attribute("Name").Value));
                             continue;
                         }
+                    }
+
+                    if (repo.Attribute("APIVersion") == null)
+                    {
+                        PSRepositoryInfo.APIVersion apiVersion = GetRepoAPIVersion(thisUrl);
+
+                        XElement repoXElem = FindRepositoryElement(doc, repo.Attribute("Name").Value);
+                        repoXElem.SetAttributeValue("APIVersion", apiVersion.ToString());
+                        doc.Save(FullRepositoryPath);
                     }
 
                     PSCredentialInfo thisCredentialInfo;
@@ -666,7 +649,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
                         thisCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("ApiVersion").Value));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value));
 
                     foundRepos.Add(currentRepoItem);
                 }
@@ -689,12 +672,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                         if (node.Attribute("Trusted") == null)
                         {
                             tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
-                            continue;
-                        }
-
-                        if (node.Attribute("ApiVersion") == null)
-                        {
-                            tempErrorList.Add(String.Format("Repository element does not contain neccessary 'ApiVersion' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                             continue;
                         }
 
@@ -727,6 +704,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                                 tempErrorList.Add(String.Format("Unable to read incorrectly formatted Uri for repo {0}", node.Attribute("Name").Value));
                                 continue;
                             }
+                        }
+
+                        if (node.Attribute("APIVersion") == null)
+                        {
+                            PSRepositoryInfo.APIVersion apiVersion = GetRepoAPIVersion(thisUrl);
+
+                            XElement repoXElem = FindRepositoryElement(doc, node.Attribute("Name").Value);
+                            repoXElem.SetAttributeValue("APIVersion", apiVersion.ToString());
+                            doc.Save(FullRepositoryPath);
                         }
 
                         PSCredentialInfo thisCredentialInfo;
@@ -766,7 +752,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
                             thisCredentialInfo,
-                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("ApiVersion").Value));
+                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value));
 
                         foundRepos.Add(currentRepoItem);
                     }
@@ -816,6 +802,22 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             using var xmlReader = XmlReader.Create(filePath, XDocReaderSettings);
             return XDocument.Load(xmlReader);
+        }
+
+        private static PSRepositoryInfo.APIVersion GetRepoAPIVersion(Uri repoUri) {
+
+            if (repoUri.AbsoluteUri.EndsWith("api/v2"))
+            {
+                return PSRepositoryInfo.APIVersion.v2;
+            }
+            else if (repoUri.AbsoluteUri.EndsWith("v3/index.json"))
+            {
+                return PSRepositoryInfo.APIVersion.v3;
+            }
+            else
+            {
+                return PSRepositoryInfo.APIVersion.Unknown;
+            }
         }
 
         #endregion
