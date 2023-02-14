@@ -38,7 +38,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string[] responses = v2ServerAPICall.FindAll(repository, includePrerelease, type, out string errRecord);
             if (!String.IsNullOrEmpty(errRecord))
             {
-                yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: errRecord, isTerminatingError: false);
             }
 
             foreach (string response in responses)
@@ -48,10 +48,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (var element in elemList)
                 {
                     if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
 
-                    yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                 }
             }
         }
@@ -157,7 +157,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (!String.IsNullOrEmpty(errRecord))
                     {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: null, errorMsg: errRecord, isTerminatingError: false);
                     }
 
                     var elemList = ConvertResponseToXML(response);
@@ -165,10 +165,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg)) 
                         {
-                            yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                            yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                         }
 
-                        yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                     }
                 }
             }
@@ -178,7 +178,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
                 // convert response to json document
@@ -196,15 +196,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!String.IsNullOrEmpty(parseError))
                     {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
                     }
 
                     if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                     {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
 
-                    yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                 }
             }
 
@@ -227,7 +227,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
                 var elemList = ConvertResponseToXML(response);
@@ -239,10 +239,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!PSResourceInfo.TryConvertFromXml(elemList[0], out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
 
-                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
 
             }
             else if (repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
@@ -251,7 +251,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
                 string parseError = String.Empty;
@@ -266,15 +266,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(parseError))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
                 }
 
                 if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
 
-                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
             }
 
             yield break;
@@ -295,7 +295,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string[] responses = v2ServerAPICall.FindTag(tag, repository, includePrerelease, type, out string errRecord);
                 if (!String.IsNullOrEmpty(errRecord))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errRecord, isTerminatingError: false);
                 }
 
                 foreach (string response in responses)
@@ -306,14 +306,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                         {
-                            yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                            yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                         }
 
                         if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
                         {
                             tagPkgs.Add(psGetInfo.Name);
 
-                            yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                            yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                         }
                     }
                 }
@@ -332,7 +332,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string[] responses = v3ServerAPICall.FindTag(tag, repository, includePrerelease, type, out string errMsg);
                 if (!String.IsNullOrEmpty(errMsg))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errMsg, isTerminatingError: false);
                 }
 
                 foreach (string response in responses)
@@ -350,19 +350,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!String.IsNullOrEmpty(parseError))
                     {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
                     }
 
                     if (!PSResourceInfo.TryConvertFromJson(pkgEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                     {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
 
                     if (psGetInfo != null && !tagPkgs.Contains(psGetInfo.Name))
                     {
                         tagPkgs.Add(psGetInfo.Name);
 
-                        yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                     }
                 }
             }
@@ -427,12 +427,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private IEnumerable<PSResourceResult> FindNameV2(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type) {
+        private IEnumerable<PSResourceResult> FindNameV2(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type)
+        {
             // Same API calls for both prerelease and non-prerelease
             var response = v2ServerAPICall.FindName(packageName, repository, includePrerelease, type, out string errMsg);
             if (!String.IsNullOrEmpty(errMsg))
             {
-                yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: errMsg, isTerminatingError: false);
             }
 
             var elemList = ConvertResponseToXML(response);
@@ -440,16 +441,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (elemList.Length == 0)
             {
                 string xmlError = "Response could not be parsed into XML.";
-                yield return new PSResourceResult(returnedObj: null, errorMsg: xmlError, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: xmlError, isTerminatingError: false);
             }
 
 
             if (!PSResourceInfo.TryConvertFromXml(elemList[0], out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
             {
-                yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
             }
 
-            yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+            var test = new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+
+            yield return test;
         }
 
         private IEnumerable<PSResourceResult> FindNameV3(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type) {
@@ -457,7 +460,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var response = v3ServerAPICall.FindName(packageName, repository, includePrerelease, type, out string errMsg);
             if (!String.IsNullOrEmpty(errMsg))
             {
-                yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: errMsg, isTerminatingError: false);
             }
 
             string parseError = String.Empty;
@@ -473,15 +476,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!String.IsNullOrEmpty(parseError))
             {
-                yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
             }
 
             if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
             {
-                yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
             }
 
-            yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+            yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
 
         }
 
@@ -489,7 +492,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string[] responses = v2ServerAPICall.FindNameGlobbing(packageName, repository, includePrerelease, type, out string errRecord);
             if (!String.IsNullOrEmpty(errRecord))
             {
-                yield return new PSResourceResult(returnedObj: null, errorMsg: errRecord, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: errRecord, isTerminatingError: false);
             }
 
             foreach (string response in responses)
@@ -499,10 +502,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                     {
-                        yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
 
-                    yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
                 }
             }
         }
@@ -512,7 +515,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!String.IsNullOrEmpty(errMsg))
             {
-                yield return new PSResourceResult(returnedObj: null, errorMsg: errMsg, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: null, errorMsg: errMsg, isTerminatingError: false);
             }
 
             // convert response to json document
@@ -531,15 +534,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(parseError))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: parseError, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
                 }
 
                 if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
                 {
-                    yield return new PSResourceResult(returnedObj: null, errorMsg: errorMsg, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
 
-                yield return new PSResourceResult(returnedObj: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
             }
         }
         public XmlNode[] ConvertResponseToXML(string httpResponse) {
