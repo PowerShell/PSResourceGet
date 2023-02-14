@@ -9,7 +9,6 @@ using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -17,7 +16,6 @@ using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
-using System.Xml.Serialization;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -373,7 +371,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
         #endregion
 
-        #region Private methods
+        #region Private HTTP methods
 
         private IEnumerable<PSResourceInfo> HttpSearchFromRepository(PSRepositoryInfo repositoryInfo)
         {
@@ -399,98 +397,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
             // TODO:  ADD command search, dscresource search, etc. 
-        }
-
-        private IEnumerable<PSResourceInfo> SearchFromRepository(PSRepositoryInfo repositoryInfo)
-        {
-            PackageSearchResource resourceSearch;
-            PackageMetadataResource resourceMetadata;
-            SearchFilter filter;
-            SourceCacheContext context;
-
-            // File based Uri scheme.
-            if (repositoryInfo.Uri.Scheme == Uri.UriSchemeFile)
-            {
-                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryInfo.Uri.ToString());
-                resourceSearch = new LocalPackageSearchResource(localResource);
-                resourceMetadata = new LocalPackageMetadataResource(localResource);
-                filter = new SearchFilter(_prerelease);
-                context = new SourceCacheContext();
-
-                foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                    repositoryName: repositoryInfo.Name,
-                    pkgSearchResource: resourceSearch,
-                    pkgMetadataResource: resourceMetadata,
-                    searchFilter: filter,
-                    sourceContext: context))
-                {
-                    yield return pkg;
-                }
-                yield break;
-            }
-
-            // Check if ADOFeed- for which searching for Name with wildcard has a different logic flow.
-            if (repositoryInfo.Uri.ToString().Contains("pkgs."))
-            {
-                _isADOFeedRepository = true;
-            }
-
-            // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API).
-            PackageSource source = new PackageSource(repositoryInfo.Uri.ToString());
-
-            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-            if (_credential != null)
-            {
-                string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), _credential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryInfo.Name);
-            }
-            else if (repositoryInfo.CredentialInfo != null)
-            {
-                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                    repositoryInfo.Name,
-                    repositoryInfo.CredentialInfo,
-                    _cmdletPassedIn);
-
-                string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), repoCredential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryInfo.Name);
-            }
-
-            // GetCoreV3() API is able to handle V2 and V3 repository endpoints.
-            var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
-            SourceRepository repository = new SourceRepository(source, provider);
-            resourceSearch = null;
-            resourceMetadata = null;
-
-            try
-            {
-                resourceSearch = repository.GetResourceAsync<PackageSearchResource>().GetAwaiter().GetResult();
-                resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
-            }
-            catch (Exception e)
-            {
-                Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Error retrieving resource from repository: " + e.Message);
-            }
-
-            if (resourceSearch == null || resourceMetadata == null)
-            {
-                yield break;
-            }
-
-            filter = new SearchFilter(_prerelease);
-            context = new SourceCacheContext();
-
-            foreach(PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                repositoryName: String.Equals(repositoryInfo.Uri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName :
-                                (String.Equals(repositoryInfo.Uri.AbsoluteUri, _poshTestGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryInfo.Name),
-                pkgSearchResource: resourceSearch,
-                pkgMetadataResource: resourceMetadata,
-                searchFilter: filter,
-                sourceContext: context))
-            {
-                yield return pkg;
-            }
         }
 
         private IEnumerable<PSResourceInfo> HttpSearchAcrossNamesInRepository(PSRepositoryInfo repository)
@@ -690,12 +596,207 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
+        private bool IsTagMatch(PSResourceInfo pkg)
+        {
+            List<string> matchedTags = _tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList();
+
+            foreach (string tag in matchedTags)
+            {
+                _tagsLeftToFind.Remove(tag);
+            }
+
+            return matchedTags.Count > 0;
+        }
+
+        private IEnumerable<PSResourceInfo> HttpFindTags(PSRepositoryInfo repository, ResourceType type)
+        {
+            foreach (PSResourceResult searchResult in _httpFindPSResource.FindTags(_tag, repository, _prerelease, type))
+            {
+                if (String.IsNullOrEmpty(searchResult.errorMsg))
+                {
+                    PSResourceInfo foundPkg = searchResult.returnedObject;
+                    yield return foundPkg;
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindTagsFail", ErrorCategory.NotSpecified, null));
+                }
+            }
+        }
+
+        private IEnumerable<PSCommandResourceInfo> HttpFindCmdOrDsc(PSRepositoryInfo repository, bool isSearchingForCommands)
+        {
+            foreach (PSResourceResult searchResult in _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, isSearchingForCommands))
+            {
+                if (String.IsNullOrEmpty(searchResult.errorMsg))
+                {
+                    yield return searchResult.returnedCmdObject;
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindCommandOrDscResourceFail", ErrorCategory.NotSpecified, null));
+                }
+            }
+        }
+
+        private IEnumerable<PSResourceInfo> HttpFindDependencyPackages(PSResourceInfo currentPkg, PSRepositoryInfo repository)
+        {
+            List<string> errStrings = new List<string>();
+            //errors = errStrings.ToArray();
+
+            foreach (PSResourceInfo pkg in HttpFindDependencyPackagesHelper(currentPkg, repository)) {
+                yield return pkg;
+            }
+        }
+
+        private IEnumerable<PSResourceInfo> HttpFindDependencyPackagesHelper(
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository)
+        {
+            if (currentPkg != null)
+            {
+                foreach (var dep in currentPkg.Dependencies)
+                { 
+                    if (dep.VersionRange == VersionRange.All)
+                    {
+                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindName(dep.Name, repository, _prerelease, ResourceType.None))
+                        {
+                            if (String.IsNullOrEmpty(searchResult.errorMsg))
+                            {
+                                PSResourceInfo depPkg = searchResult.returnedObject;
+                                // should we make recursive call here?
+                                yield return searchResult.returnedObject;
+                                HttpFindDependencyPackagesHelper(depPkg, repository); // TODO: does this need to be before yield return?
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindNameForDepsFail", ErrorCategory.NotSpecified, null));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersionGlobbing(dep.Name, dep.VersionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true))
+                        {
+                            if (String.IsNullOrEmpty(searchResult.errorMsg))
+                            {
+                                PSResourceInfo depPkg = searchResult.returnedObject;
+                                // should we make recursive call here?
+                                yield return searchResult.returnedObject;
+                                HttpFindDependencyPackagesHelper(depPkg, repository); // TODO: does this need to be before yield return?
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindVersionGlobbingForDepsFail", ErrorCategory.NotSpecified, null));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region private NuGet client api methods
+
+        private IEnumerable<PSResourceInfo> SearchFromRepository(PSRepositoryInfo repositoryInfo)
+        {
+            PackageSearchResource resourceSearch;
+            PackageMetadataResource resourceMetadata;
+            SearchFilter filter;
+            SourceCacheContext context;
+
+            // File based Uri scheme.
+            if (repositoryInfo.Uri.Scheme == Uri.UriSchemeFile)
+            {
+                FindLocalPackagesResourceV2 localResource = new FindLocalPackagesResourceV2(repositoryInfo.Uri.ToString());
+                resourceSearch = new LocalPackageSearchResource(localResource);
+                resourceMetadata = new LocalPackageMetadataResource(localResource);
+                filter = new SearchFilter(_prerelease);
+                context = new SourceCacheContext();
+
+                foreach (PSResourceInfo pkg in SearchAcrossNamesInRepository(
+                    repositoryName: repositoryInfo.Name,
+                    pkgSearchResource: resourceSearch,
+                    pkgMetadataResource: resourceMetadata,
+                    searchFilter: filter,
+                    sourceContext: context))
+                {
+                    yield return pkg;
+                }
+                yield break;
+            }
+
+            // Check if ADOFeed- for which searching for Name with wildcard has a different logic flow.
+            if (repositoryInfo.Uri.ToString().Contains("pkgs."))
+            {
+                _isADOFeedRepository = true;
+            }
+
+            // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API).
+            PackageSource source = new PackageSource(repositoryInfo.Uri.ToString());
+
+            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+            if (_credential != null)
+            {
+                string password = new NetworkCredential(string.Empty, _credential.Password).Password;
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), _credential.UserName, password, true, null);
+                _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryInfo.Name);
+            }
+            else if (repositoryInfo.CredentialInfo != null)
+            {
+                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                    repositoryInfo.Name,
+                    repositoryInfo.CredentialInfo,
+                    _cmdletPassedIn);
+
+                string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), repoCredential.UserName, password, true, null);
+                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryInfo.Name);
+            }
+
+            // GetCoreV3() API is able to handle V2 and V3 repository endpoints.
+            var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
+            SourceRepository repository = new SourceRepository(source, provider);
+            resourceSearch = null;
+            resourceMetadata = null;
+
+            try
+            {
+                resourceSearch = repository.GetResourceAsync<PackageSearchResource>().GetAwaiter().GetResult();
+                resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Error retrieving resource from repository: " + e.Message);
+            }
+
+            if (resourceSearch == null || resourceMetadata == null)
+            {
+                yield break;
+            }
+
+            filter = new SearchFilter(_prerelease);
+            context = new SourceCacheContext();
+
+            foreach (PSResourceInfo pkg in SearchAcrossNamesInRepository(
+                repositoryName: String.Equals(repositoryInfo.Uri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName :
+                                (String.Equals(repositoryInfo.Uri.AbsoluteUri, _poshTestGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryInfo.Name),
+                pkgSearchResource: resourceSearch,
+                pkgMetadataResource: resourceMetadata,
+                searchFilter: filter,
+                sourceContext: context))
+            {
+                yield return pkg;
+            }
+        }
+
         private IEnumerable<PSResourceInfo> SearchAcrossNamesInRepository(
-            string repositoryName,
-            PackageSearchResource pkgSearchResource,
-            PackageMetadataResource pkgMetadataResource,
-            SearchFilter searchFilter,
-            SourceCacheContext sourceContext)
+           string repositoryName,
+           PackageSearchResource pkgSearchResource,
+           PackageMetadataResource pkgMetadataResource,
+           SearchFilter searchFilter,
+           SourceCacheContext sourceContext)
         {
             foreach (string pkgName in _pkgsLeftToFind.ToArray())
             {
@@ -719,6 +820,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
         }
+
 
         private IEnumerable<PSResourceInfo> FindFromPackageSourceSearchAPI(
             string repositoryName,
@@ -820,7 +922,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         take: SearchAsyncMaxTake,
                         log: NullLogger.Instance,
                         cancellationToken: _cancellationToken).GetAwaiter().GetResult().ToList();
-                    
+
                     if (wildcardPkgs.Count > SearchAsyncMaxReturned)
                     {
                         // Get the rest of the packages.
@@ -950,7 +1052,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     repositoryName: repositoryName,
                     type: _type,
                     errorMsg: out string errorMsg))
-                    {
+                {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Error parsing IPackageSearchMetadata to PSResourceInfo with message: " + errorMsg),
                         "IPackageSearchMetadataToPSResourceInfoParsingError",
@@ -987,59 +1089,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private bool IsTagMatch(PSResourceInfo pkg)
-        {
-            List<string> matchedTags = _tag.Intersect(pkg.Tags, StringComparer.InvariantCultureIgnoreCase).ToList();
-
-            foreach (string tag in matchedTags)
-            {
-                _tagsLeftToFind.Remove(tag);
-            }
-
-            return matchedTags.Count > 0;
-        }
-
-        private IEnumerable<PSResourceInfo> HttpFindTags(PSRepositoryInfo repository, ResourceType type)
-        {
-            foreach (PSResourceResult searchResult in _httpFindPSResource.FindTags(_tag, repository, _prerelease, type))
-            {
-                if (String.IsNullOrEmpty(searchResult.errorMsg))
-                {
-                    PSResourceInfo foundPkg = searchResult.returnedObject;
-                    yield return foundPkg;
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindTagsFail", ErrorCategory.NotSpecified, null));
-                }
-            }
-        }
-
-        private IEnumerable<PSCommandResourceInfo> HttpFindCmdOrDsc(PSRepositoryInfo repository, bool isSearchingForCommands)
-        {
-            foreach (PSResourceResult searchResult in _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, isSearchingForCommands))
-            {
-                if (String.IsNullOrEmpty(searchResult.errorMsg))
-                {
-                    yield return searchResult.returnedCmdObject;
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindCommandOrDscResourceFail", ErrorCategory.NotSpecified, null));
-                }
-            }
-        }
-
-        private IEnumerable<PSResourceInfo> HttpFindDependencyPackages(PSResourceInfo currentPkg, PSRepositoryInfo repository)
-        {
-            List<string> errStrings = new List<string>();
-            //errors = errStrings.ToArray();
-
-            foreach (PSResourceInfo pkg in HttpFindDependencyPackagesHelper(currentPkg, repository)) {
-                yield return pkg;
-            }
-        }
-
         private List<PSResourceInfo> FindDependencyPackages(
             PSResourceInfo currentPkg,
             PackageMetadataResource packageMetadataResource,
@@ -1051,52 +1100,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return thoseToAdd;
         }
 
-        private IEnumerable<PSResourceInfo> HttpFindDependencyPackagesHelper(
-            PSResourceInfo currentPkg,
-            PSRepositoryInfo repository)
-        {
-            if (currentPkg != null)
-            {
-                foreach (var dep in currentPkg.Dependencies)
-                { 
-                    if (dep.VersionRange == VersionRange.All)
-                    {
-                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindName(dep.Name, repository, _prerelease, ResourceType.None))
-                        {
-                            if (String.IsNullOrEmpty(searchResult.errorMsg))
-                            {
-                                PSResourceInfo depPkg = searchResult.returnedObject;
-                                // should we make recursive call here?
-                                yield return searchResult.returnedObject;
-                                HttpFindDependencyPackagesHelper(depPkg, repository); // TODO: does this need to be before yield return?
-                            }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindNameForDepsFail", ErrorCategory.NotSpecified, null));
-                            }
-                        }
-                    }
-                    else
-                    {
-                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersionGlobbing(dep.Name, dep.VersionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true))
-                        {
-                            if (String.IsNullOrEmpty(searchResult.errorMsg))
-                            {
-                                PSResourceInfo depPkg = searchResult.returnedObject;
-                                // should we make recursive call here?
-                                yield return searchResult.returnedObject;
-                                HttpFindDependencyPackagesHelper(depPkg, repository); // TODO: does this need to be before yield return?
-                            }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindVersionGlobbingForDepsFail", ErrorCategory.NotSpecified, null));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // TODO: create HTTP version of FindDependencyPackagesHelper
         private void FindDependencyPackagesHelper(
             PSResourceInfo currentPkg,
@@ -1105,7 +1108,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SourceCacheContext sourceCacheContext
         )
         {
-            foreach(var dep in currentPkg.Dependencies)
+            foreach (var dep in currentPkg.Dependencies)
             {
                 List<IPackageSearchMetadata> depPkgs = packageMetadataResource.GetMetadataAsync(
                     packageId: dep.Name,
@@ -1175,7 +1178,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
         }
-        
+
         #endregion
     }
 }
