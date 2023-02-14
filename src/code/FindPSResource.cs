@@ -245,20 +245,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  return;
             }
             
-            IEnumerable<PSCommandResourceInfo> foundPackages = _findHelper.FindCommandOrDscResource(
+            foreach (PSCommandResourceInfo cmdPkg in _findHelper.FindCommandOrDscResource(
                 isSearchingForCommands: isSearchingForCommands,
                 prerelease: Prerelease,
                 tag: commandOrDSCNamesToSearch,
                 repository: Repository,
-                credential: Credential);
+                credential: Credential))
+            {
+                WriteObject(cmdPkg);
+            }
 
             // if a single package contains multiple commands we are interested in, return a unique entry for each:
             // Command1 , PackageA
-            // Command2 , PackageA        
-            foreach (var package in foundPackages)
-            {
-                WriteObject(package);
-            }
+            // Command2 , PackageA
         }
 
         private void ProcessTagParameterSet()
@@ -285,16 +284,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  return;
             }
             
-            List<PSResourceInfo> foundPackages = _findHelper.FindTag(
+            foreach (PSResourceInfo tagPkg in _findHelper.FindTag(
                 type: Type,
                 prerelease: Prerelease,
                 tag: tagsToSearch,
                 repository: Repository,
-                credential: Credential);
-       
-            foreach (var package in foundPackages)
+                credential: Credential))
             {
-                WriteObject(package);
+                WriteObject(tagPkg);
             }
         }
 
