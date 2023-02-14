@@ -1,4 +1,3 @@
-using System.Xml;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -11,9 +10,9 @@ using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
 using System.Text.Json;
+using System.Xml;
 
 using Dbg = System.Diagnostics.Debug;
-using System.Management.Automation.Language;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
