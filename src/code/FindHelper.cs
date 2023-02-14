@@ -177,7 +177,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _tag = tag;
             _credential = credential;
 
-            List<PSCommandResourceInfo> foundPackages = new List<PSCommandResourceInfo>();
             List<string> cmdsLeftToFind = new List<string>(tag);
 
             if (tag.Length == 0)
@@ -249,15 +248,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2 && repositoriesToSearch[i].Name.Equals("PSGallery"))
                 {
                     foreach (PSCommandResourceInfo cmdInfo in HttpFindCmdOrDsc(repositoriesToSearch[i], isSearchingForCommands))
-                    {
-                        yield return cmdInfo;
-
-                        foundPackages.Add(cmdInfo);
-                        
+                    {                        
                         foreach (string cmd in cmdInfo.Names)
                         {
                             cmdsLeftToFind.Remove(cmd);
                         }
+                        
+                        yield return cmdInfo;
                     }                        
                 }
                 else
@@ -267,7 +264,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        public List<PSResourceInfo> FindTag(
+        public IEnumerable<PSResourceInfo> FindTag(
             ResourceType type,
             SwitchParameter prerelease,
             string[] tag,
@@ -279,12 +276,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _tag = tag;
             _credential = credential;
 
-            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
             _tagsLeftToFind = new List<string>(tag);
 
             if (tag.Length == 0)
             {
-                return foundPackages;
+                yield break;
             }
 
             if (repository != null)
@@ -341,7 +337,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.InvalidArgument,
                     this));
                 
-                return foundPackages;
+                yield break;
             }
 
             for (int i = 0; i < repositoriesToSearch.Count && _tagsLeftToFind.Any(); i++)
@@ -358,17 +354,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
                 if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2 ||
                     repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
-                {                    
-                    // TODO:  didn't really finsh come back here
-                    foreach (PSResourceInfo cmdInfo in HttpSearchFromRepository(repositoriesToSearch[i]))
+                {
+                    foreach (PSResourceInfo tagPkg in HttpSearchFromRepository(repositoriesToSearch[i]))
                     {
-                        foundPackages.Add(cmdInfo);
+                        yield return tagPkg;
                     }
                 }
             }
-
-            return foundPackages;
         }
+
         #endregion
 
         #region Private HTTP methods
@@ -396,7 +390,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 yield break;
             }
-            // TODO:  ADD command search, dscresource search, etc. 
         }
 
         private IEnumerable<PSResourceInfo> HttpSearchAcrossNamesInRepository(PSRepositoryInfo repository)
