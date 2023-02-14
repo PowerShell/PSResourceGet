@@ -4,15 +4,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     public sealed class PSResourceResult
     {
-        internal PSResourceInfo returnedObject { get; }
-        internal PSCommandResourceInfo returnedCmdObject { get; }
-        internal string errorMsg { get; }
-        internal bool isTerminatingError { get; }
+        internal PSResourceInfo returnedObject { get; set; }
+        internal PSCommandResourceInfo returnedCmdObject { get; set; }
+        internal string errorMsg { get; set; }
+        internal bool isTerminatingError { get; set; }
 
 
-        public PSResourceResult(PSResourceInfo returnedObj, string errorMsg, bool isTerminatingError)
+        public PSResourceResult(PSResourceInfo returnedObject, string errorMsg, bool isTerminatingError)
         {
-            returnedObj = this.returnedObject;
+            returnedObject = this.returnedObject;
             errorMsg = this.errorMsg;
             isTerminatingError = this.isTerminatingError;
         }
