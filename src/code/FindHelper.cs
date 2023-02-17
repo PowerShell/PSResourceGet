@@ -30,7 +30,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pkgsLeftToFind;
         private List<string> _tagsLeftToFind;
-
         private ResourceType _type;
         private string _version;
         private SwitchParameter _prerelease = false;
@@ -44,7 +43,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly string _poshTestGalleryUri = "https://www.poshtestgallery.com/api/v2";
         private bool _isADOFeedRepository;
         private bool _repositoryNameContainsWildcard;
-        private HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
 
         // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
         // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
@@ -68,7 +66,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Public methods
 
-        public List<PSResourceInfo> FindByResourceName(
+        public IEnumerable<PSResourceInfo> FindByResourceName(
             string[] name,
             ResourceType type,
             string version,
@@ -85,11 +83,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _credential = credential;
             _includeDependencies = includeDependencies;
 
-            List<PSResourceInfo> foundPackages = new List<PSResourceInfo>();
-
             if (name.Length == 0)
             {
-                return foundPackages;
+                yield break;
             }
 
             _pkgsLeftToFind = new List<string>(name);
@@ -139,31 +135,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.InvalidArgument,
                     this));
                 
-                return foundPackages;
+                yield break;
             }
 
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
+                PSRepositoryInfo currentRepository = repositoriesToSearch[i];
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository);
+                ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
+
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2 ||
-                    repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
+             
+                foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository))
                 {
-                    foreach (var pkg in HttpSearchFromRepository(repositoriesToSearch[i]))
-                    {
-                        foundPackages.Add(pkg);
-                    }
+                    yield return currentPkg;
                 }
-                else
-                {
-                    foreach (var pkg in SearchFromRepository(repositoriesToSearch[i]))
-                    {
-                        foundPackages.Add(pkg);
-                    } 
-                }
-
             }
-
-            return foundPackages;
         }
 
         public IEnumerable<PSCommandResourceInfo> FindCommandOrDscResource(
@@ -244,22 +231,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             for (int i = 0; i < repositoriesToSearch.Count && cmdsLeftToFind.Any(); i++)
             {
+                PSRepositoryInfo currentRepository = repositoriesToSearch[i];
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository);
+                ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
+
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2 && repositoriesToSearch[i].Name.Equals("PSGallery"))
+
+                foreach (string currentCmdOrDSC in tag)
                 {
-                    foreach (PSCommandResourceInfo cmdInfo in HttpFindCmdOrDsc(repositoriesToSearch[i], isSearchingForCommands))
-                    {                        
-                        foreach (string cmd in cmdInfo.Names)
+                    string[] responses = currentServer.FindCommandOrDscResource(currentCmdOrDSC, _prerelease, isSearchingForCommands, out string errRecord);
+                    if (!String.IsNullOrEmpty(errRecord))
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindCmdOrDSCServerFail", ErrorCategory.NotSpecified, this));
+                        continue;
+                    }
+
+                    foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                    {
+                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
-                            cmdsLeftToFind.Remove(cmd);
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindCmdOrDSCResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            continue;
                         }
-                        
-                        yield return cmdInfo;
-                    }                        
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteVerbose($"Searching by -CommandName or -DSCResource is not supported for {repositoriesToSearch[i].Name}. It is only supported for PSGallery.");
+
+                        cmdsLeftToFind.Remove(currentCmdOrDSC);
+                        yield return currentResult.returnedCmdObject;                    
+                    }
                 }
             }
         }
@@ -342,6 +339,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             for (int i = 0; i < repositoriesToSearch.Count && _tagsLeftToFind.Any(); i++)
             {
+                PSRepositoryInfo currentRepository = repositoriesToSearch[i];
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository);
+                ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
+
                 if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
@@ -351,15 +352,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 }
                 
-                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v2 ||
-                    repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                foreach (string currentTag in _tag)
                 {
-                    foreach (PSResourceInfo tagPkg in HttpSearchFromRepository(repositoriesToSearch[i]))
+                    // currentServer.FindTag() -> return string[] responses
+                    // loop thru responses
+                    // convert each response to PSResourceResult
+
+                    string[] responses = currentServer.FindTag(currentTag, _prerelease, type, out string errRecord);
+
+                    if (!String.IsNullOrEmpty(errRecord))
                     {
-                        yield return tagPkg;
+                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindTagServerFail", ErrorCategory.NotSpecified, this));
+                        continue;
                     }
-                }
+
+                    foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                    {
+                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindTagResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        yield return currentResult.returnedObject;                    
+                    }
+                }                
             }
         }
 
@@ -367,32 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private HTTP methods
 
-        private IEnumerable<PSResourceInfo> HttpSearchFromRepository(PSRepositoryInfo repositoryInfo)
-        {
-            // File based Uri scheme.
-            if (repositoryInfo.Uri.Scheme != Uri.UriSchemeFile)
-            {
-                // -Name parameter and -Tag parameter are exclusive
-                if (_tag != null)
-                {
-                    foreach (PSResourceInfo pkgs in HttpFindTags(repositoryInfo, _type))
-                    {
-                        yield return pkgs;
-                    }
-                }
-                else if (_pkgsLeftToFind.Count > 0)
-                {
-                    foreach (PSResourceInfo pkg in HttpSearchAcrossNamesInRepository(repositoryInfo))
-                    {
-                        yield return pkg;
-                    }
-                }
-
-                yield break;
-            }
-        }
-
-        private IEnumerable<PSResourceInfo> HttpSearchAcrossNamesInRepository(PSRepositoryInfo repository)
+        private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository)
         {
             VersionRange versionRange = null;
             NuGetVersion nugetVersion = null;
@@ -451,18 +443,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindAll(repository, _prerelease, _type))
+                        string[] responses = currentServer.FindAll(_prerelease, _type, out string errRecord);
+                        if (!String.IsNullOrEmpty(errRecord))
                         {
-                            if (String.IsNullOrEmpty(searchResult.errorMsg))
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindAllServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                        {
+                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
-                                PSResourceInfo foundPkg = searchResult.returnedObject;
-                                parentPkgs.Add(foundPkg);
-                                yield return foundPkg;
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindAllResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                continue;
                             }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findAllFail", ErrorCategory.NotSpecified, null));
-                            }
+
+                            PSResourceInfo foundPkg = currentResult.returnedObject;
+                            parentPkgs.Add(foundPkg);
+                            yield return foundPkg;                    
                         }
                     }
                     else if (pkgName.Contains('*'))
@@ -470,18 +468,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
                         if (string.IsNullOrEmpty(_version))
                         {
-                            foreach (PSResourceResult searchResult in _httpFindPSResource.FindNameGlobbing(pkgName, repository, _prerelease, _type))
+                            string[] responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out string errRecord);
+                            if (!String.IsNullOrEmpty(errRecord))
                             {
-                                if (String.IsNullOrEmpty(searchResult.errorMsg))
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindNameGlobbingServerFail", ErrorCategory.NotSpecified, this));
+                                continue;
+                            }
+
+                            foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                            {
+                                if (!String.IsNullOrEmpty(currentResult.errorMsg))
                                 {
-                                    PSResourceInfo foundPkg = searchResult.returnedObject;
-                                    parentPkgs.Add(foundPkg);
-                                    yield return foundPkg;
+                                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameGlobbingResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                    continue;
                                 }
-                                else
-                                {
-                                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findNameGlobbingFail", ErrorCategory.NotSpecified, null));
-                                }
+
+                                PSResourceInfo foundPkg = currentResult.returnedObject;
+                                parentPkgs.Add(foundPkg);
+                                yield return foundPkg;                    
                             }
                         }
                     }
@@ -489,49 +493,60 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // TODO: User should not use -Prerelease parameter with a specific version.  Write out some kind of messaging (warning, error, verbose) to inform user of this
                         // if they attempt this combination
-                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersion(pkgName, nugetVersion.ToNormalizedString(), repository, _type))
+
+                        string response = currentServer.FindVersion(pkgName, nugetVersion.ToNormalizedString(), _type, out string errRecord);
+                        string[] responses = new string[]{ response };
+                        if (!String.IsNullOrEmpty(errRecord))
                         {
-                            if (String.IsNullOrEmpty(searchResult.errorMsg))
-                            {
-                                PSResourceInfo foundPkg = searchResult.returnedObject;
-                                parentPkgs.Add(foundPkg);
-
-                                if (!_repositoryNameContainsWildcard)
-                                {
-                                    _pkgsLeftToFind.Remove(pkgName);
-                                }
-
-                                yield return foundPkg;
-                            }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findNameGlobbingFail", ErrorCategory.NotSpecified, null));
-                            }
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindVersionServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
                         }
 
-                        // TODO:  think about how the parent/dependency packages are being streamed, especially when there's multiple parents
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+                        
+                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        PSResourceInfo foundPkg = currentResult.returnedObject;
+                        parentPkgs.Add(foundPkg);
+
+                        // if (!_repositoryNameContainsWildcard)
+                        // {
+                        //     _pkgsLeftToFind.Remove(pkgName);
+                        // }
+
+                        yield return foundPkg;
                     }
                     else {
                         // If no version is specified, just retrieve the latest version
-                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindName(pkgName, repository, _prerelease, _type))
+                        string response = currentServer.FindName(pkgName, _prerelease, _type, out string errRecord);
+                        string[] responses = new string[]{ response };
+                        if (!String.IsNullOrEmpty(errRecord))
                         {
-                            if (String.IsNullOrEmpty(searchResult.errorMsg))
-                            {
-                                PSResourceInfo foundPkg = searchResult.returnedObject;
-                                parentPkgs.Add(foundPkg);
-
-                                if (!_repositoryNameContainsWildcard)
-                                {
-                                    _pkgsLeftToFind.Remove(pkgName);
-                                }
-
-                                yield return foundPkg;
-                            }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findNameGlobbingFail", ErrorCategory.NotSpecified, null));
-                            }
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindNameServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
                         }
+
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+                        
+                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        PSResourceInfo foundPkg = currentResult.returnedObject;
+                        parentPkgs.Add(foundPkg);
+
+                        // if (!_repositoryNameContainsWildcard)
+                        // {
+                        //     _pkgsLeftToFind.Remove(pkgName);
+                        // }
+
+                        yield return foundPkg;
                     }
                 }
             }
@@ -557,19 +572,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        // TODO: deal with errRecord and making FindVesionGlobbing yield single packages instead of returning an array.
-                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersionGlobbing(pkgName, versionRange, repository, _prerelease, _type, getOnlyLatest: false))
+                        string[] responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, _type, getOnlyLatest: false, out string errRecord);
+                        if (!String.IsNullOrEmpty(errRecord))
                         {
-                            if (String.IsNullOrEmpty(searchResult.errorMsg))
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindVersionGlobbingServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                        {
+                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
-                                PSResourceInfo foundPkg = searchResult.returnedObject;
-                                parentPkgs.Add(foundPkg);
-                                yield return foundPkg;
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                continue;
                             }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "findVersionGlobbingFail", ErrorCategory.NotSpecified, null));
-                            }
+
+                            PSResourceInfo foundPkg = currentResult.returnedObject;
+                            parentPkgs.Add(foundPkg);
+                            yield return foundPkg;                    
                         }
                     }
                 }
@@ -581,7 +601,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
                     // Actually find and return the dependency packages
-                    foreach (PSResourceInfo pkgDep in HttpFindDependencyPackages(currentPkg, repository))
+                    foreach (PSResourceInfo pkgDep in HttpFindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
                     {
                         yield return pkgDep;
                     }
@@ -601,48 +621,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return matchedTags.Count > 0;
         }
 
-        private IEnumerable<PSResourceInfo> HttpFindTags(PSRepositoryInfo repository, ResourceType type)
-        {
-            foreach (PSResourceResult searchResult in _httpFindPSResource.FindTags(_tag, repository, _prerelease, type))
-            {
-                if (String.IsNullOrEmpty(searchResult.errorMsg))
-                {
-                    PSResourceInfo foundPkg = searchResult.returnedObject;
-                    yield return foundPkg;
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindTagsFail", ErrorCategory.NotSpecified, null));
-                }
-            }
-        }
-
-        private IEnumerable<PSCommandResourceInfo> HttpFindCmdOrDsc(PSRepositoryInfo repository, bool isSearchingForCommands)
-        {
-            foreach (PSResourceResult searchResult in _httpFindPSResource.FindCommandOrDscResource(_tag, repository, _prerelease, isSearchingForCommands))
-            {
-                if (String.IsNullOrEmpty(searchResult.errorMsg))
-                {
-                    yield return searchResult.returnedCmdObject;
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindCommandOrDscResourceFail", ErrorCategory.NotSpecified, null));
-                }
-            }
-        }
-
-        private IEnumerable<PSResourceInfo> HttpFindDependencyPackages(PSResourceInfo currentPkg, PSRepositoryInfo repository)
-        {
-            List<string> errStrings = new List<string>();
-            //errors = errStrings.ToArray();
-
-            foreach (PSResourceInfo pkg in HttpFindDependencyPackagesHelper(currentPkg, repository)) {
-                yield return pkg;
-            }
-        }
-
-        private IEnumerable<PSResourceInfo> HttpFindDependencyPackagesHelper(
+        private IEnumerable<PSResourceInfo> HttpFindDependencyPackages(
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
             PSResourceInfo currentPkg,
             PSRepositoryInfo repository)
         {
@@ -652,36 +633,48 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 { 
                     if (dep.VersionRange == VersionRange.All)
                     {
-                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindName(dep.Name, repository, _prerelease, ResourceType.None))
+                        string response = currentServer.FindName(dep.Name, _prerelease, _type, out string errRecord);
+                        string[] responses = new string[]{ response };
+                        if (!String.IsNullOrEmpty(errRecord))
                         {
-                            if (String.IsNullOrEmpty(searchResult.errorMsg))
-                            {
-                                PSResourceInfo depPkg = searchResult.returnedObject;
-                                // should we make recursive call here?
-                                yield return searchResult.returnedObject;
-                                HttpFindDependencyPackagesHelper(depPkg, repository); // TODO: does this need to be before yield return?
-                            }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindNameForDepsFail", ErrorCategory.NotSpecified, null));
-                            }
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindNameForDepServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
                         }
+
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+                        
+                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameForDepResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        PSResourceInfo depPkg = currentResult.returnedObject;
+                        yield return depPkg;
+
+                        HttpFindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository);
                     }
                     else
                     {
-                        foreach (PSResourceResult searchResult in _httpFindPSResource.FindVersionGlobbing(dep.Name, dep.VersionRange, repository, _prerelease, ResourceType.None, getOnlyLatest: true))
+                        string[] responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out string errRecord);
+                        if (!String.IsNullOrEmpty(errRecord))
                         {
-                            if (String.IsNullOrEmpty(searchResult.errorMsg))
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindVersionGlobbingForDepServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                        {
+                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
-                                PSResourceInfo depPkg = searchResult.returnedObject;
-                                // should we make recursive call here?
-                                yield return searchResult.returnedObject;
-                                HttpFindDependencyPackagesHelper(depPkg, repository); // TODO: does this need to be before yield return?
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingForDepResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                continue;
                             }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(searchResult.errorMsg), "FindVersionGlobbingForDepsFail", ErrorCategory.NotSpecified, null));
-                            }
+
+                            PSResourceInfo depPkg = currentResult.returnedObject;
+                            yield return depPkg;
+
+                            HttpFindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository);         
                         }
                     }
                 }
@@ -690,7 +683,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region private NuGet client api methods
+        #region private NuGet APIs for Local Repo
 
         private IEnumerable<PSResourceInfo> SearchFromRepository(PSRepositoryInfo repositoryInfo)
         {
