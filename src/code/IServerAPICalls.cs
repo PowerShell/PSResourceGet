@@ -14,7 +14,7 @@ public interface IServerAPICalls
     /// API call: 
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&includePrerelease=true
     /// </summary>
-    string[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string[] FindAll(bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
@@ -22,7 +22,7 @@ public interface IServerAPICalls
     /// API call: 
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm='tag:JSON'&includePrerelease=true
     /// </summary>
-    string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord);
+    string[] FindTag(string tag, bool includePrerelease, ResourceType _type, out string errRecord);
   
     /// <summary>
     /// Find method which allows for searching for single name and returns latest version.
@@ -34,7 +34,7 @@ public interface IServerAPICalls
     /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
     /// </summary>
     /// // TODO:  change repository from string to PSRepositoryInfo
-    string FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string FindName(string packageName, bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with version range.
@@ -45,7 +45,7 @@ public interface IServerAPICalls
     /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
     /// </summary>
-    string[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord);
+    string[] FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out string errRecord);
 
     /// <summary>
     /// Find method which allows for searching for single name with specific version.
@@ -54,7 +54,7 @@ public interface IServerAPICalls
     /// Examples: Search "PowerShellGet" "2.2.5"
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
-    string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord);
+    string[] FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord);
 
     // <summary>
     /// Find method which allows for searching for single name with specific version.
@@ -63,7 +63,7 @@ public interface IServerAPICalls
     /// Examples: Search "PowerShellGet" "2.2.5"
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
-    string FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord);
+    string FindVersion(string packageName, string version, ResourceType type, out string errRecord);
     
 
     /// <summary>
@@ -73,7 +73,7 @@ public interface IServerAPICalls
     /// Implementation Note: if prerelease: call IFindPSResource.FindName()
     ///                      if not prerelease: https://www.powershellgallery.com/api/v2/package/Id (Returns latest stable)
     /// </summary>
-    HttpContent InstallName(string packageName, bool includePrerelease, PSRepositoryInfo repository, out string errRecord);
+    HttpContent InstallName(string packageName, bool includePrerelease, out string errRecord);
 
     /// <summary>
     /// Installs package with specific name and version.
@@ -83,7 +83,7 @@ public interface IServerAPICalls
     ///           Install "PowerShellGet" -Version "3.0.0-beta16"
     /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
     /// </summary>    
-    HttpContent InstallVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord);
+    HttpContent InstallVersion(string packageName, string version, out string errRecord);
 
     #endregion
 }
