@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using NuGet.Versioning;
+using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -25,20 +26,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         // methods below.
         #region Members
 
-        public readonly HttpClient s_client = new HttpClient();
-        public readonly HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
+        public override PSRepositoryInfo repository { get; set; }
+        private static readonly HttpClient s_client = new HttpClient();
 
-        public readonly string select = "$select=Id,Version,NormalizedVersion,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
+        private static readonly string select = "$select=Id,Version,NormalizedVersion,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
 
         #endregion
 
         #region Constructor
 
-        // internal V2ServerAPICalls() {}
+        public V2ServerAPICalls (PSRepositoryInfo repository) : base (repository)
+        {
+            this.repository = repository;
+        }
 
         #endregion
         
-        #region Methods
+        #region Overriden Methods
         // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
 
         /// <summary>
@@ -47,7 +51,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: 
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
-        public override string[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord) {
+        public override string[] FindAll(bool includePrerelease, ResourceType type, out string errRecord) {
             errRecord = string.Empty;
             List<string> responses = new List<string>();
 
@@ -94,7 +98,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: 
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
-        public override string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord)
+        public override string[] FindTag(string tag, bool includePrerelease, ResourceType _type, out string errRecord)
         {
             errRecord = string.Empty;
             List<string> responses = new List<string>();
@@ -136,7 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return responses.ToArray();
         }
 
-        public override string[] FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
+        public override string[] FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
         {
             List<string> responses = new List<string>();
             int skip = 0;
@@ -166,7 +170,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public override string FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public override string FindName(string packageName, bool includePrerelease, ResourceType type, out string errRecord)
         {
             // Make sure to include quotations around the package name
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
@@ -191,7 +195,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public override string[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public override string[] FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out string errRecord)
         {
             List<string> responses = new List<string>();
             int skip = 0;
@@ -224,7 +228,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public override string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
+        public override string[] FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
         {
             List<string> responses = new List<string>();
             int skip = 0;
@@ -257,7 +261,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public override string FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord) {
+        public override string FindVersion(string packageName, string version, ResourceType type, out string errRecord) {
             // https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true 
             // Quotations around package name and version do not matter, same metadata gets returned.
             string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
@@ -276,7 +280,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
         ///                             then find the exact version to install, then call into install version
         /// </summary>
-        public override HttpContent InstallName(string packageName, bool includePrerelease, PSRepositoryInfo repository, out string errRecord) {
+        public override HttpContent InstallName(string packageName, bool includePrerelease, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}";
 
             return HttpRequestCallForContent(requestUrlV2, out errRecord);  
@@ -291,7 +295,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
-        public override HttpContent InstallVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord) {
+        public override HttpContent InstallVersion(string packageName, string version, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}/{version}";
 
             return HttpRequestCallForContent(requestUrlV2, out errRecord); 
@@ -529,6 +533,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
+        public static async Task<HttpContent> SendV2RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
+        {
+            try
+            {
+                HttpResponseMessage response = await s_client.SendAsync(message);
+                response.EnsureSuccessStatusCode();
+                return response.Content;
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+            }
+        }  
+        
         #endregion
     }
 }
