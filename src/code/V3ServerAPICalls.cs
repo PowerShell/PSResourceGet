@@ -9,15 +9,15 @@ using System.Net.Http;
 using System.Linq;
 using System.Net;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Collections;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
-    internal class V3ServerAPICalls : IServerAPICalls
+    internal class V3ServerAPICalls : ServerApiCall
     {
         #region Members
-
-        private static readonly HttpFindPSResource _httpFindPSResource = new HttpFindPSResource();
+        public override PSRepositoryInfo repository { get; set; }
 		private static readonly HttpClientHandler handler = new HttpClientHandler()
 		{
 			AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
@@ -36,18 +36,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Constructor
 
-        internal V3ServerAPICalls() {}
+        public V3ServerAPICalls (PSRepositoryInfo repository) : base (repository)
+        {
+            this.repository = repository;
+        }
 
         #endregion
         
-        #region Methods
+        #region Overriden Methods
         // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
         /// Not supported
         /// </summary>
-        public string[] FindAll(PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public override string[] FindAll(bool includePrerelease, ResourceType type, out string errRecord)
         {
             errRecord = $"Find all is not supported for the repository {repository.Uri.ToString()}";
 
@@ -62,12 +65,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// 
         /// Azure Artifacts does not support querying on tags, so if support this scenario we need to search on the term and then filter
         /// </summary>
-        public string[] FindTag(string tag, PSRepositoryInfo repository, bool includePrerelease, ResourceType _type, out string errRecord)
+        public override string[] FindTag(string tag, bool includePrerelease, ResourceType _type, out string errRecord)
         {
             errRecord = string.Empty;
             List<string> responses = new List<string>();
 
-            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, repository, out errRecord);
+            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out errRecord);
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
@@ -110,6 +113,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return matchingResponses.ToArray();
         }
 
+        public override string[] FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out string errRecord)
+        {
+            errRecord = $"Find by CommandName or DSCResource is not supported for {repository.Name} as it uses the V3 server protocol";
+            return Utils.EmptyStrArray;
+        }
+
 		/// <summary>
 		/// Find method which allows for searching for single name and returns latest version.
 		/// Name: no wildcard support
@@ -122,9 +131,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 		/// This type points to the url to use (ex above)
 		/// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
 		/// </summary>
-		public string FindName(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+		public override string FindName(string packageName, bool includePrerelease, ResourceType type, out string errRecord)
         {
-            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, repository, out errRecord);
+            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out errRecord);
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
@@ -167,7 +176,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///        
         ///        Make another query to get the latest version of each package  (ie call "FindVersionGlobbing")
         /// </summary>
-        public string[] FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, out string errRecord)
+        public override string[] FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out string errRecord)
         {
             List<string> responses = new List<string>();
             errRecord = string.Empty;
@@ -200,7 +209,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
             // https://azuresearch-usnc.nuget.org/query?q=Newtonsoft&prerelease=false&semVerLevel=1.0.0 (NuGet) (supports * at end of searchterm q but equivalent to q = text w/o *)
-            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, repository, out errRecord);
+            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out errRecord);
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
@@ -251,9 +260,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// need to filter client side
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public string[] FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
+        public override string[] FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out string errRecord)
         {
-            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, repository, out errRecord);
+            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out errRecord);
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
@@ -299,9 +308,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 		///     https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/registrations2/newtonsoft.json/13.0.2.json 
 		///     
 		/// </summary>
-		public string FindVersion(string packageName, string version, PSRepositoryInfo repository, ResourceType type, out string errRecord)
+		public override string FindVersion(string packageName, string version, ResourceType type, out string errRecord)
         {
-            Hashtable resourceUrls = FindResourceType(new string[] { registrationsBaseUrlName }, repository, out errRecord);
+            Hashtable resourceUrls = FindResourceType(new string[] { registrationsBaseUrlName }, out errRecord);
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
             return FindVersionHelper(registrationsBaseUrl, packageName, version, out errRecord);
@@ -318,9 +327,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
         ///                             then find the exact version to install, then call into install version
         /// </summary>
-        public HttpContent InstallName(string packageName, bool includePrerelease, PSRepositoryInfo repository, out string errRecord)
+        public override HttpContent InstallName(string packageName, bool includePrerelease, out string errRecord)
         {
-            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, repository, out errRecord);
+            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, out errRecord);
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
 
             bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");
@@ -340,7 +349,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                      */
                     if (!nugetVersion.IsPrerelease || includePrerelease)
                     {
-                        return InstallVersion(packageName, version.ToString(), repository, out errRecord);
+                        return InstallVersion(packageName, version.ToString(), out errRecord);
                     }
                 }
             }
@@ -358,9 +367,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///  https://api.nuget.org/v3-flatcontainer/newtonsoft.json/9.0.1/newtonsoft.json.9.0.1.nupkg
         /// API Call: 
         /// </summary>    
-        public HttpContent InstallVersion(string packageName, string version, PSRepositoryInfo repository, out string errRecord)
+        public override HttpContent InstallVersion(string packageName, string version, out string errRecord)
         {
-            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, repository, out errRecord);
+            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, out errRecord);
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
 
             string pkgName = packageName.ToLower();
@@ -400,7 +409,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
                 // We can have this return a Task, or the response (json string)
-                var response = Utils.SendV3RequestForContentAsync(request, s_client).GetAwaiter().GetResult();
+                var response = SendV3RequestForContentAsync(request, s_client).GetAwaiter().GetResult();
 
                 return response;
             }
@@ -411,7 +420,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private Hashtable FindResourceType(string[] resourceTypeName, PSRepositoryInfo repository, out string errMsg)
+        private Hashtable FindResourceType(string[] resourceTypeName, out string errMsg)
         {
             string resourceUrl = string.Empty;
             Hashtable resourceHash = new Hashtable();
@@ -470,6 +479,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             pkgsDom.RootElement.TryGetProperty(propertyName, out JsonElement pkgs);
 
             return pkgs.EnumerateArray().ToArray();
+        }
+
+        public static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
+        {
+            try
+            {
+                HttpResponseMessage response = await s_client.SendAsync(message);
+                response.EnsureSuccessStatusCode();
+                return response.Content;
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+            }
         }
 
         #endregion

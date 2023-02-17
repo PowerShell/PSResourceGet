@@ -202,7 +202,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }            
 
-            List<PSResourceInfo> foundPackages = _findHelper.FindByResourceName(
+            foreach (PSResourceInfo pkg in _findHelper.FindByResourceName(
                 name: Name,
                 type: Type,
                 version: Version,
@@ -210,13 +210,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tag: Tag,
                 repository: Repository,
                 credential: Credential,
-                includeDependencies: IncludeDependencies);
-
-            foreach (var uniquePackageVersion in foundPackages.GroupBy(
-                m => new {m.Name, m.Version, m.Repository}).Select(
-                    group => group.First()))
+                includeDependencies: IncludeDependencies))
             {
-                WriteObject(uniquePackageVersion);
+                WriteObject(pkg);
             }
         }
 
