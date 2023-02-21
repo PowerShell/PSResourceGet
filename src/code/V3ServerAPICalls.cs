@@ -18,11 +18,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
         public override PSRepositoryInfo repository { get; set; }
-		private static readonly HttpClientHandler handler = new HttpClientHandler()
+        public override HttpClient s_client { get; set; }
+        private static readonly HttpClientHandler handler = new HttpClientHandler()
 		{
 			AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
 		};
-		private static readonly HttpClient s_client = new HttpClient(handler);
+
         private static readonly string resourcesName = "resources";
         private static readonly string packageBaseAddressName = "PackageBaseAddress/3.0.0";
         private static readonly string searchQueryServiceName = "SearchQueryService/3.0.0-beta";
@@ -39,6 +40,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public V3ServerAPICalls (PSRepositoryInfo repository) : base (repository)
         {
             this.repository = repository;
+            s_client = new HttpClient(handler);
         }
 
         #endregion
@@ -382,7 +384,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private Methods
 
-        private static String HttpRequestCall(string requestUrlV3, out string errRecord)
+        private String HttpRequestCall(string requestUrlV3, out string errRecord)
         {
             errRecord = string.Empty;
 
@@ -400,7 +402,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private static HttpContent HttpRequestCallForContent(string requestUrlV3, out string errRecord)
+        private HttpContent HttpRequestCallForContent(string requestUrlV3, out string errRecord)
         {
             errRecord = string.Empty;
 
@@ -428,18 +430,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (JsonElement resource in resources)
             {
-                if (resource.TryGetProperty("@type", out JsonElement typeElement) && resourceTypeName.Equals(typeElement.ToString()))
+                if (resource.TryGetProperty("@type", out JsonElement typeElement) && resourceTypeName.Contains(typeElement.ToString()))
                 {
                     if (resource.TryGetProperty("@id", out JsonElement idElement))
                     {
                         // add name of the resource and its url
-                        resourceHash.Add(resourceTypeName, idElement.ToString());
+                        resourceHash.Add(typeElement.ToString(), idElement.ToString());
                     }
                     else
                     {
                         // error out here
                         errMsg = $"@id element not found in service index '{repository.Uri}' for {resourceTypeName}.";
                     }
+                }
+
+                if (resourceHash.Count == resourceTypeName.Length)
+                {
+                    break;    
                 }
             }
 

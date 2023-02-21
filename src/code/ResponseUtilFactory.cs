@@ -15,11 +15,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (repoApiVersion)
             {
                 case PSRepositoryInfo.APIVersion.v2:
-                    currentResponseUtil = new V2ResponseUtil();
+                    currentResponseUtil = new V2ResponseUtil(repository);
                     break;
 
                 case PSRepositoryInfo.APIVersion.v3:
-                    currentResponseUtil = new V3ResponseUtil();
+                    currentResponseUtil = new V3ResponseUtil(repository);
                     break;
             }
 
