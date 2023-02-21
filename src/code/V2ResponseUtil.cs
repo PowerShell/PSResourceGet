@@ -4,6 +4,7 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Xml;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -17,6 +18,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Constructor
+
+        public V2ResponseUtil(PSRepositoryInfo repository) : base(repository)
+        {
+            this.repository = repository;
+        }
 
         #endregion
 
@@ -64,22 +70,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return nodes;
-        }
-
-        public int GetCountFromResponse(string httpResponse) {
-            int count = 0;
-
-            //Create the XmlDocument.
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml(httpResponse);
-
-            XmlNodeList elemList = doc.GetElementsByTagName("m:count");            
-            if (elemList.Count > 0) {
-                XmlNode node = elemList[0];
-                count = int.Parse(node.InnerText);
-            }
-            
-            return count;
         }
 
         #endregion

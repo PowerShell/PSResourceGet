@@ -4,6 +4,7 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Text.Json;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -18,8 +19,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Constructor
 
+        public V3ResponseUtil(PSRepositoryInfo repository) : base(repository)
+        {
+            this.repository = repository;
+        }
+
         #endregion
-        
+
         #region Overriden Methods
 
         public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(string[] responses)

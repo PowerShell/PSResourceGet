@@ -16,10 +16,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Constructor
 
+        public ResponseUtil(PSRepositoryInfo repository)
+        {
+            this.repository = repository;
+        }
+
         #endregion
-        
+
         #region Methods
-    
+
         public abstract IEnumerable<PSResourceResult> ConvertToPSResourceResult(string[] responses);
 
         #endregion
