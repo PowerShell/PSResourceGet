@@ -13,17 +13,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public PSResourceResult(PSResourceInfo returnedObject, string errorMsg, bool isTerminatingError)
         {
-            returnedObject = this.returnedObject;
-            errorMsg = this.errorMsg;
-            isTerminatingError = this.isTerminatingError;
+            this.returnedObject = returnedObject;
+            this.errorMsg = errorMsg;
+            this.isTerminatingError = isTerminatingError;
         }
 
 
         public PSResourceResult(PSCommandResourceInfo returnedCmdObject, string errorMsg, bool isTerminatingError)
         {
-            returnedCmdObject = this.returnedCmdObject;
-            errorMsg = this.errorMsg;
-            isTerminatingError = this.isTerminatingError;
+            this.returnedCmdObject = returnedCmdObject;
+            this.errorMsg = errorMsg;
+            this.isTerminatingError = isTerminatingError;
         }
     }
 }
