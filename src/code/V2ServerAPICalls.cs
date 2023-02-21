@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Net.Http;
 using NuGet.Versioning;
 using System.Threading.Tasks;
+using Microsoft.PowerShell.Commands;
+using System.Xml;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -27,8 +29,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
 
         public override PSRepositoryInfo repository { get; set; }
-        private static readonly HttpClient s_client = new HttpClient();
-
+        public override HttpClient s_client { get; set; }
         private static readonly string select = "$select=Id,Version,NormalizedVersion,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
 
         #endregion
@@ -38,6 +39,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public V2ServerAPICalls (PSRepositoryInfo repository) : base (repository)
         {
             this.repository = repository;
+            s_client = new HttpClient();
         }
 
         #endregion
@@ -60,7 +62,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 int scriptSkip = 0;
                 string initialScriptResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
                 responses.Add(initialScriptResponse);
-                int initalScriptCount = _httpFindPSResource.GetCountFromResponse(initialScriptResponse);
+                int initalScriptCount = GetCountFromResponse(initialScriptResponse);
                 int count = initalScriptCount / 6000;
                     // if more than 100 count, loop and add response to list
                 while (count > 0)
@@ -76,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 int moduleSkip = 0;
                 string initialModuleResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                 responses.Add(initialModuleResponse);
-                int initalModuleCount = _httpFindPSResource.GetCountFromResponse(initialModuleResponse);
+                int initalModuleCount = GetCountFromResponse(initialModuleResponse);
                 int count = initalModuleCount / 6000;
                 
                 // if more than 100 count, loop and add response to list
@@ -108,7 +110,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 int scriptSkip = 0;
                 string initialScriptResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
                 responses.Add(initialScriptResponse);
-                int initalScriptCount = _httpFindPSResource.GetCountFromResponse(initialScriptResponse);
+                int initalScriptCount = GetCountFromResponse(initialScriptResponse);
                 int count = initalScriptCount / 100;
                     // if more than 100 count, loop and add response to list
                 while (count > 0)
@@ -125,7 +127,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 int moduleSkip = 0;
                 string initialModuleResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                 responses.Add(initialModuleResponse);
-                int initalModuleCount = _httpFindPSResource.GetCountFromResponse(initialModuleResponse);
+                int initalModuleCount = GetCountFromResponse(initialModuleResponse);
                 int count = initalModuleCount / 100;
                     // if more than 100 count, loop and add response to list
                 while (count > 0)
@@ -147,7 +149,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             string initialResponse = FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, skip, out errRecord);
             responses.Add(initialResponse);
-            int initialCount = _httpFindPSResource.GetCountFromResponse(initialResponse);
+            int initialCount = GetCountFromResponse(initialResponse);
             int count = initialCount / 100;
 
             while (count > 0)
@@ -204,7 +206,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls 
-            int initalCount = _httpFindPSResource.GetCountFromResponse(initialResponse);  // count = 4
+            int initalCount = GetCountFromResponse(initialResponse);  // count = 4
             int count = initalCount / 100;
             // if more than 100 count, loop and add response to list
             while (count > 0)
@@ -238,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!getOnlyLatest)
             {
-                int initalCount = _httpFindPSResource.GetCountFromResponse(initialResponse);
+                int initalCount = GetCountFromResponse(initialResponse);
                 int count = initalCount / 100;
 
                 while (count > 0)
@@ -277,8 +279,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
         /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
-        ///                             then find the exact version to install, then call into install version
+        ///                        if prerelease, call into InstallVersion instead. 
         /// </summary>
         public override HttpContent InstallName(string packageName, bool includePrerelease, out string errRecord) {
             var requestUrlV2 = $"{repository.Uri.ToString()}/package/{packageName}";
@@ -302,7 +303,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
 
-        private static string HttpRequestCall(string requestUrlV2, out string errRecord) {
+        private string HttpRequestCall(string requestUrlV2, out string errRecord) {
             errRecord = string.Empty;
 
             try
@@ -318,7 +319,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private static HttpContent HttpRequestCallForContent(string requestUrlV2, out string errRecord) {
+        private HttpContent HttpRequestCallForContent(string requestUrlV2, out string errRecord) {
             errRecord = string.Empty;
 
             try
@@ -533,7 +534,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
-        public static async Task<HttpContent> SendV2RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
+        public async Task<HttpContent> SendV2RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
             try
             {
@@ -545,8 +546,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
             }
-        }  
-        
+        }
+
+        public int GetCountFromResponse(string httpResponse)
+        {
+            int count = 0;
+
+            //Create the XmlDocument.
+            XmlDocument doc = new XmlDocument();
+            doc.LoadXml(httpResponse);
+
+            XmlNodeList elemList = doc.GetElementsByTagName("m:count");
+            if (elemList.Count > 0)
+            {
+                XmlNode node = elemList[0];
+                count = int.Parse(node.InnerText);
+            }
+
+            return count;
+        }
+
         #endregion
     }
 }

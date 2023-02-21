@@ -14,9 +14,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
 
         public abstract PSRepositoryInfo repository { get; set; }
-        public readonly HttpClient s_client = new HttpClient();
-
-        public readonly string select = "$select=Id,Version,NormalizedVersion,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
+        public abstract HttpClient s_client { get; set; }
 
         #endregion
 
@@ -25,6 +23,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public ServerApiCall(PSRepositoryInfo repository)
         {
             this.repository = repository;
+            s_client = new HttpClient();
         }
 
         #endregion
