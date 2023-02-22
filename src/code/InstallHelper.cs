@@ -177,6 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 ServerApiCall currentServer = ServerFactory.GetServer(repo);
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(repo);
+                bool installDepsForRepo = skipDependencyCheck;
 
                 // If no more packages to install, then return
                 if (_pkgNamesToInstall.Count == 0) { 
@@ -186,8 +187,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
+
                 if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
+                    if ((repo.ApiVersion == PSRepositoryInfo.APIVersion.v3) && (!installDepsForRepo))
+                    {
+                        _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
+                        installDepsForRepo = true;
+                    }
+
                     return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, credential, scope);
                 }
                 else
@@ -225,7 +233,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         tag: null,
                         repository: new string[] { repoName },
                         credential: credential,
-                        includeDependencies: !skipDependencyCheck).ToList();
+                        includeDependencies: !installDepsForRepo).ToList();
 
                     if (pkgsFromRepoToInstall.Count == 0)
                     {
