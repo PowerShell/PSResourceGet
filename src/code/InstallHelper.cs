@@ -422,38 +422,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingResponseConversionFail", ErrorCategory.NotSpecified, this));
                                 continue;
                             }
-
                             PSResourceInfo pkgToInstall = currentResult.returnedObject;
-                            packagesToInstall.Add(pkgToInstall);
-
-                            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
                             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
+                            packagesToInstall.Add(pkgToInstall);
+                        }
+
+                        // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
+                        if (!_reinstall)
+                        {
+                            packagesToInstall = FilterByInstalledPkgs(packagesToInstall);
+                        }
+
+                        foreach (PSResourceInfo pkg in packagesToInstall)
+                        {
                             // download the module
+                            pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+
                             HttpContent responseContent = null;
-                            responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out string errorRecord);
+                            responseContent = currentServer.InstallVersion(pkg.Name, pkgVersion, out string errorRecord);
                             if (!String.IsNullOrEmpty(errorRecord))
                             {
                                 _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, this));
                                 continue;
                             }
 
-                            // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
-                            if (!_reinstall)
-                            {
-                                packagesToInstall = FilterByInstalledPkgs(packagesToInstall);
-                            }
-
-                            // TODO REFACTOR:
-                            // 1) loop through name/version scenarios and add the psresourceinfo objects to the main list
-                            // 2) call FilterBYInstalledPkgs
-                            // 3) loop through the filtered list and call try move install content on each pkg (last param 'pkgToInstall' below)
-                            // 4) then return 'pkgsSuccessfullyInstalled'
-                            bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkgToInstall);
+                            bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkg.Name, pkgVersion, scope, pkg);
 
                             if (installedSuccessfully)
                             {
-                                pkgsSuccessfullyInstalled.Add(pkgToInstall);
+                                pkgsSuccessfullyInstalled.Add(pkg);
                             }
                         }
                     }
@@ -482,24 +480,37 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         PSResourceInfo pkgToInstall = currentResult.returnedObject;
-                        //parentPkgs.Add(foundPkg);
-
                         pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+
+                        packagesToInstall.Add(pkgToInstall);
+                    }
+
+
+                    // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
+                    if (!_reinstall)
+                    {
+                        packagesToInstall = FilterByInstalledPkgs(packagesToInstall);
+                    }
+
+
+                    foreach (PSResourceInfo pkg in packagesToInstall)
+                    {
+                        pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string normalizedPkgVersion);
 
                         // download the module
                         HttpContent responseContent = null;
-                        responseContent = currentServer.InstallVersion(pkgName, nugetVersionString, out string errorRecord);
+                        responseContent = currentServer.InstallVersion(pkg.Name, normalizedPkgVersion, out string errorRecord);
                         if (!String.IsNullOrEmpty(errorRecord))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, this));
                             continue;
                         }
 
-                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, nugetVersionString, scope, pkgToInstall);
+                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkg.Name, normalizedPkgVersion, scope, pkg);
 
                         if (installedSuccessfully)
                         {
-                            pkgsSuccessfullyInstalled.Add(pkgToInstall);
+                            pkgsSuccessfullyInstalled.Add(pkg);
                         }
                     }
                 }
@@ -526,10 +537,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     PSResourceInfo pkgToInstall = currentResult.returnedObject;
-                    //parentPkgs.Add(foundPkg);
-
                     pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
                     pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+
+                    // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
+                    if (!_reinstall)
+                    {
+                        packagesToInstall = FilterByInstalledPkgs(new List<PSResourceInfo> { pkgToInstall });
+                    }
 
                     // pkgToInstall.Dependencies -> Dependency[] (string, VersionRange)
                     // helper method that takes Dependency[], checks with GetHelper which are already installed, construct dependency tree
