@@ -188,7 +188,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
-                    return HttpInstallPackage(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, credential, scope);
+                    return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, credential, scope);
                 }
                 else
                 {
@@ -326,6 +326,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     // Remove from tracking list of packages to install.
+                    pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string normalizedVersion);
+                    _cmdletPassedIn.WriteWarning(
+                        string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
+                        pkg.Name,
+                        normalizedVersion));
+
+                    // Remove from tracking list of packages to install.
                     _cmdletPassedIn.WriteWarning(
                         string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
                         pkg.Name,
@@ -338,7 +345,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return filteredPackages;
         }
 
-        private List<PSResourceInfo> HttpInstallPackage(
+        private List<PSResourceInfo> HttpInstall(
             string[] pkgNamesToInstall,
             PSRepositoryInfo repository,
             ServerApiCall currentServer,
@@ -347,40 +354,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ScopeType scope)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
-            List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
-            var tempInstallPath = Path.Combine(_tmpPath, Guid.NewGuid().ToString());
 
-            try
-            {
-                var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
-                dir.Attributes &= ~FileAttributes.ReadOnly;
-            }
-            catch (Exception e)
-            {
-                _cmdletPassedIn.WriteError(new ErrorRecord(
-                    new ArgumentException("Temporary folder for installation could not be created or set due to: " + e.Message),
-                    "TempFolderCreationError",
-                    ErrorCategory.InvalidOperation,
-                    this));
-                
-                return pkgsSuccessfullyInstalled;
-            }
-
-            _cmdletPassedIn.WriteVerbose(string.Format("Created following temp install path: '{0}'", tempInstallPath));
-
-            NuGetVersion nugetVersion;
-            VersionRange versionRange;
+            NuGetVersion nugetVersion = null;
+            VersionRange versionRange= null;
+            VersionType currentType;
 
             if (!String.IsNullOrEmpty(_versionString))
             {
                 if (_versionString.Contains("*"))
                 {
-                    // TODO: discuss if we allow Version containing *
                     _cmdletPassedIn.WriteError(new ErrorRecord(
                         new ArgumentException("Argument for -Version parameter cannot contain wildcards."),
                         "VersionCannotContainWildcard",
@@ -404,181 +386,187 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        // VersionRange not null
-                        // FindVersionGlobbing, pick latest, InstallVersion
-                        foreach (string pkgName in pkgNamesToInstall)
-                        {
-                            string[] responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out string errRecord);
-                            if (!String.IsNullOrEmpty(errRecord))
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindVersionGlobbingServerFail", ErrorCategory.NotSpecified, this));
-                                continue;
-                            }
-
-                            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
-
-                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingResponseConversionFail", ErrorCategory.NotSpecified, this));
-                                continue;
-                            }
-                            PSResourceInfo pkgToInstall = currentResult.returnedObject;
-                            pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
-
-                            packagesToInstall.Add(pkgToInstall);
-                        }
-
-                        // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
-                        if (!_reinstall)
-                        {
-                            packagesToInstall = FilterByInstalledPkgs(packagesToInstall);
-                        }
-
-                        foreach (PSResourceInfo pkg in packagesToInstall)
-                        {
-                            // download the module
-                            pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
-
-                            HttpContent responseContent = null;
-                            responseContent = currentServer.InstallVersion(pkg.Name, pkgVersion, out string errorRecord);
-                            if (!String.IsNullOrEmpty(errorRecord))
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, this));
-                                continue;
-                            }
-
-                            bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkg.Name, pkgVersion, scope, pkg);
-
-                            if (installedSuccessfully)
-                            {
-                                pkgsSuccessfullyInstalled.Add(pkg);
-                            }
-                        }
+                        currentType = VersionType.VersionRange;
                     }
                 }
                 else
                 {
-                    // NuGetVersion not null.
-                    foreach (string pkgName in pkgNamesToInstall)
-                    {
-                        string nugetVersionString = nugetVersion.ToNormalizedString(); // 3.0.17-beta
-
-                        string response = currentServer.FindVersion(pkgName, nugetVersionString, ResourceType.None, out string errRecord);
-                        string[] responses = new string[] { response };
-                        if (!String.IsNullOrEmpty(errRecord))
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindVersionServerFail", ErrorCategory.NotSpecified, this));
-                            continue;
-                        }
-
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
-
-                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionResponseConversionFail", ErrorCategory.NotSpecified, this));
-                            continue;
-                        }
-
-                        PSResourceInfo pkgToInstall = currentResult.returnedObject;
-                        pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
-
-                        packagesToInstall.Add(pkgToInstall);
-                    }
-
-
-                    // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
-                    if (!_reinstall)
-                    {
-                        packagesToInstall = FilterByInstalledPkgs(packagesToInstall);
-                    }
-
-
-                    foreach (PSResourceInfo pkg in packagesToInstall)
-                    {
-                        pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string normalizedPkgVersion);
-
-                        // download the module
-                        HttpContent responseContent = null;
-                        responseContent = currentServer.InstallVersion(pkg.Name, normalizedPkgVersion, out string errorRecord);
-                        if (!String.IsNullOrEmpty(errorRecord))
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "InstallVersionFailed", ErrorCategory.NotSpecified, this));
-                            continue;
-                        }
-
-                        bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkg.Name, normalizedPkgVersion, scope, pkg);
-
-                        if (installedSuccessfully)
-                        {
-                            pkgsSuccessfullyInstalled.Add(pkg);
-                        }
-                    }
+                    currentType = VersionType.SpecificVersion;
                 }
             }
             else
             {
-                // InstallName
-                foreach (string pkgName in pkgNamesToInstall)
+                currentType = VersionType.NoVersion;
+            }
+
+
+            pkgsSuccessfullyInstalled = HttpInstallPackage(
+                currentType,
+                nugetVersion,
+                versionRange,
+                pkgNamesToInstall,
+                repository,
+                currentServer,
+                currentResponseUtil,
+                credential, // TODO: discuss how to handle credential for V2 repositories
+                scope);
+
+
+            return pkgsSuccessfullyInstalled;
+
+            // determine which type of version
+            // determine which find enum value
+            // call HttpInstallPkg(enum, versionRange, nugetVersion);
+        }
+
+
+
+        private List<PSResourceInfo> HttpInstallPackage(
+            VersionType searchVersionType,
+            NuGetVersion specificVersion,
+            VersionRange versionRange,
+            string[] pkgNamesToInstall,
+            PSRepositoryInfo repository,
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSCredential credential, // TODO: discuss how to handle credential for V2 repositories
+            ScopeType scope)
+        {
+            List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
+            List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
+            string errorRecord = String.Empty;
+
+            foreach (string pkgName in pkgNamesToInstall)
+            {
+                string[] responses = Utils.EmptyStrArray;
+
+                switch (searchVersionType)
                 {
-                    string response = currentServer.FindName(pkgName, _prerelease, ResourceType.None, out string errRecord);
-                    string[] responses = new string[] { response };
-                    if (!String.IsNullOrEmpty(errRecord))
-                    {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindNameServerFail", ErrorCategory.NotSpecified, this));
-                        continue;
-                    }
+                    case VersionType.VersionRange:
+                        responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out errorRecord);
+                        if (!String.IsNullOrEmpty(errorRecord))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "FindVersionGlobbingServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
 
-                    PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+                        break;
 
-                    if (!String.IsNullOrEmpty(currentResult.errorMsg))
-                    {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameResponseConversionFail", ErrorCategory.NotSpecified, this));
-                        continue;
-                    }
+                    case VersionType.SpecificVersion:
+                        string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
-                    PSResourceInfo pkgToInstall = currentResult.returnedObject;
-                    pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
-                    pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+                        string findVersionResponse = currentServer.FindVersion(pkgName, nugetVersionString, ResourceType.None, out errorRecord);
+                        responses = new string[] { findVersionResponse };
+                        if (!String.IsNullOrEmpty(errorRecord))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "FindVersionServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
 
-                    // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
-                    if (!_reinstall)
-                    {
-                        packagesToInstall = FilterByInstalledPkgs(new List<PSResourceInfo> { pkgToInstall });
-                    }
+                        break;
 
-                    // pkgToInstall.Dependencies -> Dependency[] (string, VersionRange)
-                    // helper method that takes Dependency[], checks with GetHelper which are already installed, construct dependency tree
-                    // install those only which are needed
+                    default:
+                        // VersionType.NoVersion
+                        string findNameResponse = currentServer.FindName(pkgName, _prerelease, ResourceType.None, out errorRecord);
+                        responses = new string[] { findNameResponse };
+                        if (!String.IsNullOrEmpty(errorRecord))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "FindNameServerFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
 
-                    // download the module
-                    string errorRecord = string.Empty;
-                    string errType = string.Empty;
-                    HttpContent responseContent;
-                    if (_prerelease)
-                    {
-                        responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out errorRecord);
-                        errType = "InstallVersionFailed";
-                    }
-                    else {
-                        responseContent = currentServer.InstallName(pkgName, _prerelease, out errorRecord);
-                        errType = "InstallNameFailed";
-                    }
+                        break;
+                }
 
-                    if (!String.IsNullOrEmpty(errorRecord))
-                    {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), errType, ErrorCategory.NotSpecified, this));
-                        continue;
-                    }
+                PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
 
-                    bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkgToInstall);
+                if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindConvertToResponseFailed", ErrorCategory.NotSpecified, this));
+                    continue;
+                }
 
-                    if (installedSuccessfully)
-                    {
-                        pkgsSuccessfullyInstalled.Add(pkgToInstall);
-                    }
+                PSResourceInfo pkgToInstall = currentResult.returnedObject;
+                pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+
+                packagesToInstall.Add(pkgToInstall);
+            }   
+
+            // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
+            if (!_reinstall)
+            {
+                packagesToInstall = FilterByInstalledPkgs(packagesToInstall);
+            }
+
+            string tempInstallPath = CreateInstallationTempPath();
+
+            foreach (PSResourceInfo pkg in packagesToInstall)
+            {
+                // download the module
+                pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+                string pkgName = pkg.Name;
+
+                HttpContent responseContent = null;
+                string errType = String.Empty;
+
+                if (searchVersionType == VersionType.NoVersion && !_prerelease)
+                {
+                    responseContent = currentServer.InstallName(pkgName, _prerelease, out errorRecord);
+                    errType = "InstallNameFailed";
+                }
+                else
+                {
+                    responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out errorRecord);
+                    errType = "InstallVersionFailed";
+                }
+
+                if (!String.IsNullOrEmpty(errorRecord))
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), errType, ErrorCategory.NotSpecified, this));
+                    continue;
+                }
+
+                bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkg);
+
+                if (installedSuccessfully)
+                {
+                    pkgsSuccessfullyInstalled.Add(pkg);
                 }
             }
 
+            DeleteInstallationTempPath(tempInstallPath);
+
+            return pkgsSuccessfullyInstalled;
+        }
+
+        private string CreateInstallationTempPath()
+        {
+            var tempInstallPath = Path.Combine(_tmpPath, Guid.NewGuid().ToString());
+
+            try
+            {
+                var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
+                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                                                                        // with a mask (bitwise complement of desired attributes combination).
+                                                                        // TODO: check the attributes and if it's read only then set it
+                                                                        // attribute may be inherited from the parent
+                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                dir.Attributes &= ~FileAttributes.ReadOnly;
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("Temporary folder for installation could not be created or set due to: " + e.Message),
+                    "TempFolderCreationError",
+                    ErrorCategory.InvalidOperation,
+                    this));
+            }
+
+            return tempInstallPath;
+        }
+
+        private void DeleteInstallationTempPath(string tempInstallPath)
+        {
             if (Directory.Exists(tempInstallPath))
             {
                 // Delete the temp directory and all its contents
@@ -592,11 +580,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose(String.Format("Successfully deleted '{0}'", tempInstallPath));
                 }
             }
-
-            return pkgsSuccessfullyInstalled;
         }
 
-        private bool TryMoveInstallContent(HttpContent responseContent, string tempInstallPath, string pkgName, string normalizedPkgVersion, ScopeType scope, PSResourceInfo pkgToInstall)
+        private bool TryMoveInstallContent(HttpContent responseContent,  string tempInstallPath, string pkgName, string normalizedPkgVersion, ScopeType scope, PSResourceInfo pkgToInstall)
         {
             // takes response content for HTTPInstallPackage and moves files into neccessary install path and cleans up.
             try

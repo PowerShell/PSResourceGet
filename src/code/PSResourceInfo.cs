@@ -27,11 +27,18 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     public enum VersionType
     {
-        Unknown,
-        MinimumVersion,
-        RequiredVersion,
-        MaximumVersion
+        NoVersion,
+        SpecificVersion,
+        VersionRange
     }
+
+    // public enum VersionType
+    // {
+    //     Unknown,
+    //     MinimumVersion,
+    //     RequiredVersion,
+    //     MaximumVersion
+    // }
 
     public enum ScopeType
     {
@@ -43,21 +50,21 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #region VersionInfo
 
-    public sealed class VersionInfo
-    {
-        public VersionInfo(
-            VersionType versionType,
-            Version versionNum)
-        {
-            VersionType = versionType;
-            VersionNum = versionNum;
-        }
+    // public sealed class VersionInfo
+    // {
+    //     public VersionInfo(
+    //         VersionType versionType,
+    //         Version versionNum)
+    //     {
+    //         VersionType = versionType;
+    //         VersionNum = versionNum;
+    //     }
 
-        public VersionType VersionType { get; }
-        public Version VersionNum { get; }
+    //     public VersionType VersionType { get; }
+    //     public Version VersionNum { get; }
 
-        public override string ToString() => $"{VersionType}: {VersionNum}";
-    }
+    //     public override string ToString() => $"{VersionType}: {VersionNum}";
+    // }
 
     #endregion
 

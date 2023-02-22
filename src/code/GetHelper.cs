@@ -48,7 +48,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (var pkg in pkgs)
             {
                 // Filter on specific version.
-                var nugetVersion = new NuGetVersion(pkg.Version);
+                pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string normalizedVersion);
+
+                if (!NuGetVersion.TryParse(
+                        value: normalizedVersion,
+                        version: out NuGetVersion nugetVersion))
+                {
+                    _cmdletPassedIn.WriteVerbose(String.Format("Package's normalized version '{0}' cannot be parsed into NuGetVersion.", normalizedVersion));
+                    yield break;
+                }
+
                 var pkgVersionRange = new VersionRange(
                     minVersion: nugetVersion,
                     includeMinVersion: true,
