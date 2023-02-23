@@ -37,12 +37,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Constructor
 
-        public V2ServerAPICalls (PSRepositoryInfo repository, NetworkCredential networkCred) : base (repository)
+        public V2ServerAPICalls (PSRepositoryInfo repository, NetworkCredential networkCredential) : base (repository, networkCredential)
         {
             this.repository = repository;
             HttpClientHandler handler = new HttpClientHandler()
             {
-                Credentials = networkCred
+                Credentials = networkCredential
             };
 
             s_client = new HttpClient(handler);
