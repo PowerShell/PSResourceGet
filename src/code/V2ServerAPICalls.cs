@@ -9,6 +9,7 @@ using NuGet.Versioning;
 using System.Threading.Tasks;
 using Microsoft.PowerShell.Commands;
 using System.Xml;
+using System.Net;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -36,14 +37,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Constructor
 
-        public V2ServerAPICalls (PSRepositoryInfo repository) : base (repository)
+        public V2ServerAPICalls (PSRepositoryInfo repository, NetworkCredential networkCred) : base (repository)
         {
             this.repository = repository;
-            s_client = new HttpClient();
+            HttpClientHandler handler = new HttpClientHandler()
+            {
+                Credentials = networkCred
+            };
+
+            s_client = new HttpClient(handler);
         }
 
         #endregion
-        
+
         #region Overriden Methods
         // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
 

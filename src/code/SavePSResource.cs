@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-
+using System.Net;
 using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -179,7 +179,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            _installHelper = new InstallHelper(cmdletPassedIn: this);
+            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
+            _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
@@ -281,10 +283,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 reinstall: true, 
                 force: false, 
                 trustRepository: TrustRepository,
-                credential: Credential,
-                noClobber: false,
-                asNupkg: AsNupkg,
-                includeXml: IncludeXml,
+                noClobber: false, 
+                asNupkg: AsNupkg, 
+                includeXml: IncludeXml, 
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
