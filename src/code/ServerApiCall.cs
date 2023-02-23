@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using NuGet.Versioning;
+using System.Net;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -20,10 +21,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Constructor
 
-        public ServerApiCall(PSRepositoryInfo repository)
+        public ServerApiCall(PSRepositoryInfo repository, NetworkCredential networkCredential)
         {
             this.repository = repository;
-            s_client = new HttpClient();
+            HttpClientHandler handler = new HttpClientHandler()
+            {
+                Credentials = networkCredential
+            };
+
+            s_client = new HttpClient(handler);
         }
 
         #endregion
