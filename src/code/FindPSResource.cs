@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
+using System.Net;
 using System.Threading;
 
 using Dbg = System.Diagnostics.Debug;
@@ -116,9 +117,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void BeginProcessing()
         {
             _cancellationTokenSource = new CancellationTokenSource();
+
+            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token,
-                cmdletPassedIn: this);
+                cmdletPassedIn: this,
+                networkCredential: networkCred);
 
             // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
@@ -209,7 +214,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 prerelease: Prerelease,
                 tag: Tag,
                 repository: Repository,
-                credential: Credential,
                 includeDependencies: IncludeDependencies))
             {
                 WriteObject(pkg);

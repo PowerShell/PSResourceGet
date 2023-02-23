@@ -19,10 +19,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
         public override PSRepositoryInfo repository { get; set; }
         public override HttpClient s_client { get; set; }
-        private static readonly HttpClientHandler handler = new HttpClientHandler()
-		{
-			AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-		};
 
         private static readonly string resourcesName = "resources";
         private static readonly string packageBaseAddressName = "PackageBaseAddress/3.0.0";
@@ -37,14 +33,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Constructor
 
-        public V3ServerAPICalls (PSRepositoryInfo repository) : base (repository)
+        public V3ServerAPICalls (PSRepositoryInfo repository, NetworkCredential networkCred) : base (repository)
         {
             this.repository = repository;
+
+            HttpClientHandler handler = new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                Credentials = networkCred
+            };
+
             s_client = new HttpClient(handler);
+
         }
 
         #endregion
-        
+
         #region Overriden Methods
         // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
 

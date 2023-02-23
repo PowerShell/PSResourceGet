@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
+using System.Net;
 using System.Threading;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -153,13 +154,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
-
             _cancellationTokenSource = new CancellationTokenSource();
+            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token, 
-                cmdletPassedIn: this);
+                cmdletPassedIn: this,
+                networkCredential: networkCred);
 
-             _installHelper = new InstallHelper(cmdletPassedIn: this);
+             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
@@ -205,7 +208,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 reinstall: true,
                 force: Force,
                 trustRepository: TrustRepository,
-                credential: Credential,
                 noClobber: false,
                 asNupkg: false,
                 includeXml: true,
@@ -312,7 +314,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 prerelease: Prerelease,
                 tag: null,
                 repository: Repository,
-                credential: Credential,
                 includeDependencies: !SkipDependencyCheck))
             {
                 if (!repositoryPackages.ContainsKey(foundResource.Name))
