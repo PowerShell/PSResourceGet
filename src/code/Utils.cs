@@ -20,6 +20,7 @@ using NuGet.Protocol.Plugins;
 using System.Text;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text.Json;
+using System.Runtime.ExceptionServices;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -1200,68 +1201,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #endregion
 
-        #region HttpRequest
-
-        public static async Task<string> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
-        {
-            try
-            {
-                HttpResponseMessage response = await s_client.SendAsync(message);
-                response.EnsureSuccessStatusCode();
-
-                var responseStr = await response.Content.ReadAsStringAsync();
-                
-                return responseStr;
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
-            }
-        }
-
-        public static async Task<string> SendV2RequestAsync(HttpRequestMessage message, HttpClient s_client)
-        {
-            try
-            {
-                HttpResponseMessage response = await s_client.SendAsync(message);
-                response.EnsureSuccessStatusCode();
-                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
-            }
-        }
-
-        // public static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
-        // {
-        //     try
-        //     {
-        //         HttpResponseMessage response = await s_client.SendAsync(message);
-        //         response.EnsureSuccessStatusCode();
-        //         return response.Content;
-        //     }
-        //     catch (HttpRequestException e)
-        //     {
-        //         throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
-        //     }
-        // }
-
-        public static async Task<HttpContent> SendV2RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
-        {
-            try
-            {
-                HttpResponseMessage response = await s_client.SendAsync(message);
-                response.EnsureSuccessStatusCode();
-                return response.Content;
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
-            }
-        }        
-
-        #endregion
     }
 
     #endregion
