@@ -33,7 +33,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private ResourceType _type;
         private string _version;
         private SwitchParameter _prerelease = false;
-        private PSCredential _credential;
         private string[] _tag;
         private SwitchParameter _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
@@ -43,6 +42,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly string _poshTestGalleryUri = "https://www.poshtestgallery.com/api/v2";
         private bool _isADOFeedRepository;
         private bool _repositoryNameContainsWildcard;
+        private NetworkCredential _networkCredential;
 
         // NuGet's SearchAsync() API takes a top parameter of 6000, but testing shows for PSGallery
         // usually a max of around 5990 is returned while more are left to retrieve in a second SearchAsync() call
@@ -56,10 +56,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private FindHelper() { }
 
-        public FindHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn)
+        public FindHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential)
         {
             _cancellationToken = cancellationToken;
             _cmdletPassedIn = cmdletPassedIn;
+            _networkCredential = networkCredential;
         }
 
         #endregion
@@ -73,14 +74,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             SwitchParameter prerelease,
             string[] tag,
             string[] repository,
-            PSCredential credential,
             SwitchParameter includeDependencies)
         {
             _type = type;
             _version = version;
             _prerelease = prerelease;
             _tag = tag;
-            _credential = credential;
             _includeDependencies = includeDependencies;
 
             if (name.Length == 0)
@@ -141,11 +140,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository);
+
+                // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+                if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                {
+                    PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                        currentRepository.Name,
+                        currentRepository.CredentialInfo,
+                        _cmdletPassedIn);
+
+                    var username = repoCredential.UserName;
+                    var password = repoCredential.Password;
+
+                    _networkCredential = new NetworkCredential(username, password);
+
+                    _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
+                }
+
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-             
+
+
                 foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository))
                 {
                     yield return currentPkg;
@@ -162,7 +179,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             _prerelease = prerelease;
             _tag = tag;
-            _credential = credential;
 
             List<string> cmdsLeftToFind = new List<string>(tag);
 
@@ -232,7 +248,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && cmdsLeftToFind.Any(); i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository);
+
+                // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+                if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                {
+                    PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                        currentRepository.Name,
+                        currentRepository.CredentialInfo,
+                        _cmdletPassedIn);
+
+                    var username = repoCredential.UserName;
+                    var password = repoCredential.Password;
+
+                    _networkCredential = new NetworkCredential(username, password);
+
+                    _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
+                }
+
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
@@ -271,7 +304,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _type = type;
             _prerelease = prerelease;
             _tag = tag;
-            _credential = credential;
 
             _tagsLeftToFind = new List<string>(tag);
 
@@ -340,7 +372,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _tagsLeftToFind.Any(); i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository);
+
+                // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+                if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                {
+                    PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                        currentRepository.Name,
+                        currentRepository.CredentialInfo,
+                        _cmdletPassedIn);
+
+                    var username = repoCredential.UserName;
+                    var password = repoCredential.Password;
+
+                    _networkCredential = new NetworkCredential(username, password);
+
+                    _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
+                }
+
+
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
@@ -729,10 +779,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PackageSource source = new PackageSource(repositoryInfo.Uri.ToString());
 
             // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-            if (_credential != null)
+            if (_networkCredential != null)
             {
-                string password = new NetworkCredential(string.Empty, _credential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), _credential.UserName, password, true, null);
+                string password = new NetworkCredential(string.Empty, _networkCredential.Password).Password;
+                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), _networkCredential.UserName, password, true, null);
                 _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryInfo.Name);
             }
             else if (repositoryInfo.CredentialInfo != null)

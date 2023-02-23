@@ -12,6 +12,7 @@ using System.Management.Automation;
 using Microsoft.PowerShell.Commands;
 
 using Dbg = System.Diagnostics.Debug;
+using System.Net;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -259,7 +260,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
 
-            _installHelper = new InstallHelper(cmdletPassedIn: this);
+            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
+            _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
@@ -545,7 +548,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 force: false,
                 trustRepository: TrustRepository,
                 noClobber: NoClobber,
-                credential: pkgCredential,
                 asNupkg: false,
                 includeXml: true,
                 skipDependencyCheck: SkipDependencyCheck,

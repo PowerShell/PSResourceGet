@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -127,7 +128,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string pathToModuleManifestToPublish = string.Empty;
         private string pathToModuleDirToPublish = string.Empty;
         private ResourceType resourceType = ResourceType.None;
-
+        private NetworkCredential _networkCredential;
         #endregion
 
         #region Method overrides
@@ -135,6 +136,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void BeginProcessing()
         {
             _cancellationToken = new CancellationToken();
+
+            _networkCredential = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
@@ -774,11 +777,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 
                 // Search for and return the dependency if it's in the repository.
-                FindHelper findHelper = new FindHelper(_cancellationToken, this);
+                FindHelper findHelper = new FindHelper(_cancellationToken, this, _networkCredential);
                 bool depPrerelease = depVersion.Contains("-");
 
                 var repository = new[] { repositoryName };
-                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, depVersion, depPrerelease, null, repository, Credential, false);
+                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, depVersion, depPrerelease, null, repository, false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                     var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);
