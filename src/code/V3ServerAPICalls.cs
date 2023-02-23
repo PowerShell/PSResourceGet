@@ -33,14 +33,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Constructor
 
-        public V3ServerAPICalls (PSRepositoryInfo repository, NetworkCredential networkCred) : base (repository)
+        public V3ServerAPICalls (PSRepositoryInfo repository, NetworkCredential networkCredential) : base (repository, networkCredential)
         {
             this.repository = repository;
 
             HttpClientHandler handler = new HttpClientHandler()
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                Credentials = networkCred
+                Credentials = networkCredential
             };
 
             s_client = new HttpClient(handler);
