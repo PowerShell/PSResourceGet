@@ -48,7 +48,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private bool _reinstall;
         private bool _force;
         private bool _trustRepository;
-        private PSCredential _credential;
         private bool _asNupkg;
         private bool _includeXml;
         private bool _noClobber;
@@ -57,16 +56,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
+        private NetworkCredential _networkCredential;
 
         #endregion
 
         #region Public methods
 
-        public InstallHelper(PSCmdlet cmdletPassedIn)
+        public InstallHelper(PSCmdlet cmdletPassedIn, NetworkCredential networkCredential)
         {
             CancellationTokenSource source = new CancellationTokenSource();
             _cancellationToken = source.Token;
             _cmdletPassedIn = cmdletPassedIn;
+            _networkCredential = networkCredential;
         }
 
         public IEnumerable<PSResourceInfo> InstallPackages(
@@ -81,7 +82,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool force,
             bool trustRepository,
             bool noClobber,
-            PSCredential credential,
             bool asNupkg,
             bool includeXml,
             bool skipDependencyCheck,
@@ -119,7 +119,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _force = force;
             _trustRepository = trustRepository || force;
             _noClobber = noClobber;
-            _credential = credential;
             _asNupkg = asNupkg;
             _includeXml = includeXml;
             _savePkg = savePkg;
@@ -146,7 +145,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<PSResourceInfo> installedPkgs = ProcessRepositories(
                 repository: repository,
                 trustRepository: _trustRepository,
-                credential: _credential,
                 skipDependencyCheck: skipDependencyCheck,
                 scope: scope ?? ScopeType.CurrentUser);
 
@@ -161,7 +159,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSResourceInfo> ProcessRepositories(
             string[] repository,
             bool trustRepository,
-            PSCredential credential,
             bool skipDependencyCheck,
             ScopeType scope)
         {
@@ -169,13 +166,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var yesToAll = false;
             var noToAll = false;
 
-            var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn);
+            var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             bool sourceTrusted = true;
 
             foreach (var repo in listOfRepositories)
             {
-                ServerApiCall currentServer = ServerFactory.GetServer(repo);
+                // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+                if (_networkCredential == null && repo.CredentialInfo != null)
+                {
+                    PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                        repo.Name,
+                        repo.CredentialInfo,
+                        _cmdletPassedIn);
+
+                    var username = repoCredential.UserName;
+                    var password = repoCredential.Password;
+
+                    _networkCredential = new NetworkCredential(username, password);
+
+                    _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repo.Name);
+                }
+
+                ServerApiCall currentServer = ServerFactory.GetServer(repo, _networkCredential);
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(repo);
                 bool installDepsForRepo = skipDependencyCheck;
 
@@ -183,7 +196,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (_pkgNamesToInstall.Count == 0) { 
                     return allPkgsInstalled; 
                 }
-
+                
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
@@ -196,7 +209,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         installDepsForRepo = true;
                     }
 
-                    return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, credential, scope);
+                    return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope);
                 }
                 else
                 {
@@ -232,7 +245,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         prerelease: _prerelease,
                         tag: null,
                         repository: new string[] { repoName },
-                        credential: credential,
                         includeDependencies: !installDepsForRepo).ToList();
 
                     if (pkgsFromRepoToInstall.Count == 0)
@@ -268,7 +280,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         repoName,
                         repo.Uri.AbsoluteUri,
                         repo.CredentialInfo,
-                        credential,
                         isLocalRepo,
                         scope: scope);
 
@@ -358,7 +369,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PSRepositoryInfo repository,
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
-            PSCredential credential, // TODO: discuss how to handle credential for V2 repositories
             ScopeType scope)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
@@ -416,7 +426,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 repository,
                 currentServer,
                 currentResponseUtil,
-                credential, // TODO: discuss how to handle credential for V2 repositories
                 scope);
 
 
@@ -437,7 +446,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PSRepositoryInfo repository,
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
-            PSCredential credential, // TODO: discuss how to handle credential for V2 repositories
             ScopeType scope)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
@@ -760,7 +768,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string repoName,
             string repoUri,
             PSCredentialInfo repoCredentialInfo,
-            PSCredential credential,
             bool isLocalRepo,
             ScopeType scope)
         {
@@ -857,12 +864,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         PackageSource source = new PackageSource(repoUri);
 
                         // Explicitly passed in Credential takes precedence over repository CredentialInfo
-                        if (credential != null)
-                        {
-                            string password = new NetworkCredential(string.Empty, credential.Password).Password;
-                            source.Credentials = PackageSourceCredential.FromUserInput(repoUri, credential.UserName, password, true, null);
-                        }
-                        else if (repoCredentialInfo != null)
+                        if (repoCredentialInfo != null)
                         {
                             PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
                                 repoName,
