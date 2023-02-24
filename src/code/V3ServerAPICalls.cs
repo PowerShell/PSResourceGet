@@ -13,7 +13,6 @@ using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
 using System.ComponentModel;
-using ExceptionHandlingDemo;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -62,8 +61,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override string[] FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             string errMsg = $"Find all is not supported for the repository {repository.Uri.ToString()}";
-            edi = new OperationNotSupportedException(errMsg)
-            
+            OperationNotSupportedException e = new OperationNotSupportedException(errMsg);
+
+            edi = ExceptionDispatchInfo.Capture(e);
+
             return Utils.EmptyStrArray;
         }
 
@@ -92,12 +93,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out edi);
 
             List<string> matchingResponses = new List<string>();
+            string id = string.Empty;
+            string latestVersion = string.Empty;
             foreach (var pkgId in tagPkgs)
-
+            { 
                 try
                 {
                     pkgId.TryGetProperty(idName, out JsonElement idItem);
                     pkgId.TryGetProperty(versionName, out JsonElement versionItem);
+
+                    id = idItem.ToString();
+                    latestVersion = versionItem.ToString();
+                }
+                catch (ObjectDisposedException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
                 }
                 catch (InvalidOperationException e)
                 {
@@ -107,13 +117,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     edi = ExceptionDispatchInfo.Capture(e);
                 }
-                catch (ObjectDisposedException e)
-                {
-                    edi = ExceptionDispatchInfo.Capture(e);
-                }
-
-                string id = idItem.ToString();
-                string latestVersion = versionItem.ToString();
 
                 // determine if id matches our wildcard criteria
                 if (isNuGetRepo)
@@ -124,6 +127,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     try {
                         pkgId.TryGetProperty("tags", out JsonElement tagsItem);
+
+                        foreach (var tagItem in tagsItem.EnumerateArray())
+                        {
+                            if (tag.Equals(tagItem.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                matchingResponses.Add(FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi));
+                                break;
+                            }
+                        }
+                    }
+                    catch (ObjectDisposedException e)
+                    {
+                        edi = ExceptionDispatchInfo.Capture(e);
                     }
                     catch (InvalidOperationException e)
                     {
@@ -132,19 +148,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     catch (ArgumentNullException e)
                     {
                         edi = ExceptionDispatchInfo.Capture(e);
-                    }
-                    catch (ObjectDisposedException e)
-                    {
-                        edi = ExceptionDispatchInfo.Capture(e);
-                    }
-                
-                    foreach (var tagItem in tagsItem.EnumerateArray())
-                    {
-                        if (tag.Equals(tagItem.ToString(), StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            matchingResponses.Add(FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi));
-                            break;
-                        }
                     }
                 }
             }
@@ -155,7 +158,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override string[] FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
             string errMsg = $"Find by CommandName or DSCResource is not supported for {repository.Name} as it uses the V3 server protocol";
-            edi = new OperationNotSupportedException(errMsg);
+            OperationNotSupportedException e = new OperationNotSupportedException(errMsg);
+            edi = edi = ExceptionDispatchInfo.Capture(e);
 
             return Utils.EmptyStrArray;
         }
@@ -263,12 +267,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
 
             List<string> matchingResponses = new List<string>();
-            foreach (var pkgId in matchingPkgIds) {
-
+            foreach (var pkgId in matchingPkgIds)
+            {
+                string id = string.Empty;
+                string latestVersion = string.Empty;
                 try
                 {
                     pkgId.TryGetProperty(idName, out JsonElement idItem);
                     pkgId.TryGetProperty(versionName, out JsonElement versionItem);
+
+                    id = idItem.ToString();
+                    latestVersion = versionItem.ToString();
+                }
+                catch (ObjectDisposedException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                    break;
                 }
                 catch (InvalidOperationException e)
                 {
@@ -280,14 +294,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     edi = ExceptionDispatchInfo.Capture(e);
                     break;
                 }
-                catch (ObjectDisposedException e)
-                {
-                    edi = ExceptionDispatchInfo.Capture(e);
-                    break;
-                }
-
-                string id = idItem.ToString();
-                string latestVersion = versionItem.ToString();
 
                 // determine if id matches our wildcard criteria
                 if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.Contains(querySearchTerm)) ||
@@ -521,17 +527,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
                 }
+                catch (ObjectDisposedException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                    break;
+                }
                 catch (InvalidOperationException e)
                 {
                     edi = ExceptionDispatchInfo.Capture(e);
                     break;
                 }
                 catch (ArgumentNullException e)
-                {
-                    edi = ExceptionDispatchInfo.Capture(e);
-                    break;
-                }
-                catch (ObjectDisposedException e)
                 {
                     edi = ExceptionDispatchInfo.Capture(e);
                     break;
@@ -555,25 +561,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var requestPkgMapping = $"{registrationsBaseUrl}{packageName.ToLower()}/{version}.json";
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out edi);
 
+            string catalogEntryUrl = string.Empty;
             try
             {
                 JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
                 JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
+
+                rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement);
+                catalogEntryUrl = catalogEntryUrlElement.ToString();
             }
             catch (JsonException e)
-            { 
-                edi = ExceptionDispatchInfo.Capture(e);
-            }
-            catch (ArgumentException e)
-            { 
-                edi = ExceptionDispatchInfo.Capture(e);
-            }
-
-            try
-            {
-                rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement);
-            }
-            catch (InvalidOperationException e)
             {
                 edi = ExceptionDispatchInfo.Capture(e);
             }
@@ -581,12 +578,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 edi = ExceptionDispatchInfo.Capture(e);
             }
+            catch (ArgumentException e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
             catch (ObjectDisposedException e)
             {
                 edi = ExceptionDispatchInfo.Capture(e);
             }
-
-            string catalogEntryUrl = catalogEntryUrlElement.ToString();
+            catch (InvalidOperationException e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
 
             if (string.IsNullOrEmpty(catalogEntryUrl))
             {
@@ -608,10 +611,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private JsonElement[] GetJsonElementArr(string request, string propertyName, out ExceptionDispatchInfo edi)
         {
-            try { 
+            JsonElement[] pkgsArr = new JsonElement[0];
+            try
+            { 
                 JsonDocument pkgsDom = JsonDocument.Parse(HttpRequestCall(request, out edi));
+
+                pkgsDom.RootElement.TryGetProperty(propertyName, out JsonElement pkgs);
+
+                pkgsArr = pkgs.EnumerateArray().ToArray();
             }
             catch (JsonException e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+            catch (ArgumentNullException e)
             {
                 edi = ExceptionDispatchInfo.Capture(e);
             }
@@ -619,24 +632,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 edi = ExceptionDispatchInfo.Capture(e);
             }
-            
-            JsonElement[] pkgsArr = new JsonElement[0]; 
-
-            try
-            {
-                pkgsDom.RootElement.TryGetProperty(propertyName, out JsonElement pkgs);
-
-                pkgsArr = pkgs.EnumerateArray().ToArray();
-            }
             catch (ObjectDisposedException e)
             {
                 edi = ExceptionDispatchInfo.Capture(e);
             }
             catch (InvalidOperationException e)
-            {
-                edi = ExceptionDispatchInfo.Capture(e);
-            }
-            catch (ArgumentNullException e)
             {
                 edi = ExceptionDispatchInfo.Capture(e);
             }
