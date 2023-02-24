@@ -12,6 +12,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
+using System.ComponentModel;
+using ExceptionHandlingDemo;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -59,9 +61,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override string[] FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            edi = null;
-            string errRecord = $"Find all is not supported for the repository {repository.Uri.ToString()}";
-
+            string errMsg = $"Find all is not supported for the repository {repository.Uri.ToString()}";
+            edi = new OperationNotSupportedException(errMsg)
+            
             return Utils.EmptyStrArray;
         }
 
@@ -91,9 +93,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             List<string> matchingResponses = new List<string>();
             foreach (var pkgId in tagPkgs)
-            {
-                pkgId.TryGetProperty(idName, out JsonElement idItem);
-                pkgId.TryGetProperty(versionName, out JsonElement versionItem);
+
+                try
+                {
+                    pkgId.TryGetProperty(idName, out JsonElement idItem);
+                    pkgId.TryGetProperty(versionName, out JsonElement versionItem);
+                }
+                catch (InvalidOperationException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                }
+                catch (ArgumentNullException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                }
+                catch (ObjectDisposedException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                }
 
                 string id = idItem.ToString();
                 string latestVersion = versionItem.ToString();
@@ -105,7 +122,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    pkgId.TryGetProperty("tags", out JsonElement tagsItem);
+                    try {
+                        pkgId.TryGetProperty("tags", out JsonElement tagsItem);
+                    }
+                    catch (InvalidOperationException e)
+                    {
+                        edi = ExceptionDispatchInfo.Capture(e);
+                    }
+                    catch (ArgumentNullException e)
+                    {
+                        edi = ExceptionDispatchInfo.Capture(e);
+                    }
+                    catch (ObjectDisposedException e)
+                    {
+                        edi = ExceptionDispatchInfo.Capture(e);
+                    }
+                
                     foreach (var tagItem in tagsItem.EnumerateArray())
                     {
                         if (tag.Equals(tagItem.ToString(), StringComparison.InvariantCultureIgnoreCase))
@@ -122,8 +154,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public override string[] FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
-            edi = null;
-            string errRecord = $"Find by CommandName or DSCResource is not supported for {repository.Name} as it uses the V3 server protocol";
+            string errMsg = $"Find by CommandName or DSCResource is not supported for {repository.Name} as it uses the V3 server protocol";
+            edi = new OperationNotSupportedException(errMsg);
+
             return Utils.EmptyStrArray;
         }
 
@@ -145,10 +178,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
-            bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");
+            bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");   // TODO:  check that you can cast
             JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, isNuGetRepo, out edi);
 
-            List<string> responses = new List<string>();
+            string response = string.Empty;
             foreach (JsonElement version in pkgVersionsArr)
             {
                 // parse as NuGetVersion
@@ -162,12 +195,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                      */
                     if (!nugetVersion.IsPrerelease || includePrerelease)
                     {
-                        return FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
+                        response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
+
+                        break;
                     }
                 }
             }
 
-            return null;
+            return response;
         }
 
         /// <summary>
@@ -230,8 +265,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> matchingResponses = new List<string>();
             foreach (var pkgId in matchingPkgIds) {
 
-                pkgId.TryGetProperty(idName, out JsonElement idItem);
-                pkgId.TryGetProperty(versionName, out JsonElement versionItem);
+                try
+                {
+                    pkgId.TryGetProperty(idName, out JsonElement idItem);
+                    pkgId.TryGetProperty(versionName, out JsonElement versionItem);
+                }
+                catch (InvalidOperationException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                    break;
+                }
+                catch (ArgumentNullException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                    break;
+                }
+                catch (ObjectDisposedException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                    break;
+                }
 
                 string id = idItem.ToString();
                 string latestVersion = versionItem.ToString();
@@ -452,18 +505,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (JsonElement resource in resources)
             {
-                if (resource.TryGetProperty("@type", out JsonElement typeElement) && resourceTypeName.Contains(typeElement.ToString()))
+                try
                 {
-                    if (resource.TryGetProperty("@id", out JsonElement idElement))
+                    if (resource.TryGetProperty("@type", out JsonElement typeElement) && resourceTypeName.Contains(typeElement.ToString()))
                     {
-                        // add name of the resource and its url
-                        resourceHash.Add(typeElement.ToString(), idElement.ToString());
+                        if (resource.TryGetProperty("@id", out JsonElement idElement))
+                        {
+                            // add name of the resource and its url
+                            resourceHash.Add(typeElement.ToString(), idElement.ToString());
+                        }
+                        else
+                        {
+                            // error out here
+                            string errMsg = $"@id element not found in service index '{repository.Uri}' for {resourceTypeName}.";
+                        }
                     }
-                    else
-                    {
-                        // error out here
-                        string errMsg = $"@id element not found in service index '{repository.Uri}' for {resourceTypeName}.";
-                    }
+                }
+                catch (InvalidOperationException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                    break;
+                }
+                catch (ArgumentNullException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                    break;
+                }
+                catch (ObjectDisposedException e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(e);
+                    break;
                 }
 
                 if (resourceHash.Count == resourceTypeName.Length)
@@ -477,13 +548,44 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private string FindVersionHelper(string registrationsBaseUrl, string packageName, string version, out ExceptionDispatchInfo edi)
         {
+            // TODO: Check if registrationsBaseUrl is null or empty  
+            // TODO: should check if url is empty before creating query 
+
             // https://api.nuget.org/v3/registration5-gz-semver2/newtonsoft.json/13.0.2.json
             var requestPkgMapping = $"{registrationsBaseUrl}{packageName.ToLower()}/{version}.json";
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out edi);
 
-            JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
-            JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
-            rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement);
+            try
+            {
+                JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
+                JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
+            }
+            catch (JsonException e)
+            { 
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+            catch (ArgumentException e)
+            { 
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+
+            try
+            {
+                rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement);
+            }
+            catch (InvalidOperationException e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+            catch (ArgumentNullException e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+            catch (ObjectDisposedException e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+
             string catalogEntryUrl = catalogEntryUrlElement.ToString();
 
             if (string.IsNullOrEmpty(catalogEntryUrl))
@@ -497,6 +599,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private JsonElement[] GetPackageVersions(string packageBaseAddressUrl, string packageName, bool isNuGetRepo, out ExceptionDispatchInfo edi)
         {
+            // TODO: should check if url is empty before creating query 
             edi = null;
             JsonElement[] pkgVersionsElement = GetJsonElementArr($"{packageBaseAddressUrl}{packageName}/index.json", versionsName, out edi);
 
@@ -505,7 +608,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private JsonElement[] GetJsonElementArr(string request, string propertyName, out ExceptionDispatchInfo edi)
         {
-            JsonDocument pkgsDom = JsonDocument.Parse(HttpRequestCall(request, out edi));
+            try { 
+                JsonDocument pkgsDom = JsonDocument.Parse(HttpRequestCall(request, out edi));
+            }
+            catch (JsonException e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+            catch (ArgumentException e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+            
             JsonElement[] pkgsArr = new JsonElement[0]; 
 
             try
