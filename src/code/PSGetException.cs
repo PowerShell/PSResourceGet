@@ -13,4 +13,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
     }
+
+    public class V3ResourceNotFoundException : Exception
+    {
+        public V3ResourceNotFoundException(string message)
+            : base (message)
+        {
+        }
+    }
+
+    public class JsonParsingException : Exception
+    {
+        public JsonParsingException(string message)
+            : base (message)
+        {
+        }
+    }
 }
