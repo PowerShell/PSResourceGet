@@ -20,6 +20,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -454,7 +455,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 switch (searchVersionType)
                 {
                     case VersionType.VersionRange:
-                        responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out errorRecord);
+                        responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out edi);
                         if (!String.IsNullOrEmpty(errorRecord))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "FindVersionGlobbingServerFail", ErrorCategory.NotSpecified, this));
@@ -466,7 +467,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     case VersionType.SpecificVersion:
                         string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
-                        string findVersionResponse = currentServer.FindVersion(pkgName, nugetVersionString, ResourceType.None, out errorRecord);
+                        string findVersionResponse = currentServer.FindVersion(pkgName, nugetVersionString, ResourceType.None, out edi);
                         responses = new string[] { findVersionResponse };
                         if (!String.IsNullOrEmpty(errorRecord))
                         {
@@ -478,7 +479,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     default:
                         // VersionType.NoVersion
-                        string findNameResponse = currentServer.FindName(pkgName, _prerelease, ResourceType.None, out errorRecord);
+                        string findNameResponse = currentServer.FindName(pkgName, _prerelease, ResourceType.None, out ExceptionDispatchInfo edi);
                         responses = new string[] { findNameResponse };
                         if (!String.IsNullOrEmpty(errorRecord))
                         {
@@ -522,12 +523,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (searchVersionType == VersionType.NoVersion && !_prerelease)
                 {
-                    responseContent = currentServer.InstallName(pkgName, _prerelease, out errorRecord);
+                    responseContent = currentServer.InstallName(pkgName, _prerelease, out edi);
                     errType = "InstallNameFailed";
                 }
                 else
                 {
-                    responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out errorRecord);
+                    responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out edi);
                     errType = "InstallVersionFailed";
                 }
 
