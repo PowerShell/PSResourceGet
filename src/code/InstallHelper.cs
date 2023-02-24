@@ -451,7 +451,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
             List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
-            string errorRecord = String.Empty;
 
             foreach (string pkgName in pkgNamesToInstall)
             {
@@ -460,10 +459,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 switch (searchVersionType)
                 {
                     case VersionType.VersionRange:
-                        responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out edi);
-                        if (!String.IsNullOrEmpty(errorRecord))
+                        responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo findVersionGlobbingEdi);
+
+                        if (findVersionGlobbingEdi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "FindVersionGlobbingServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(findVersionGlobbingEdi.SourceException, "HttpInstallPackageFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
@@ -472,11 +472,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     case VersionType.SpecificVersion:
                         string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
-                        string findVersionResponse = currentServer.FindVersion(pkgName, nugetVersionString, ResourceType.None, out edi);
+                        string findVersionResponse = currentServer.FindVersion(pkgName, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
                         responses = new string[] { findVersionResponse };
-                        if (!String.IsNullOrEmpty(errorRecord))
+                        if (findVersionEdi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "FindVersionServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(findVersionEdi.SourceException, "HttpInstallPackageFindVersionFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
@@ -484,11 +484,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     default:
                         // VersionType.NoVersion
-                        string findNameResponse = currentServer.FindName(pkgName, _prerelease, ResourceType.None, out ExceptionDispatchInfo edi);
+                        string findNameResponse = currentServer.FindName(pkgName, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
                         responses = new string[] { findNameResponse };
-                        if (!String.IsNullOrEmpty(errorRecord))
+                        if (findNameEdi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), "FindNameServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(findNameEdi.SourceException, "HttpInstallPackageFindNameFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
@@ -499,7 +499,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(currentResult.errorMsg))
                 {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindConvertToResponseFailed", ErrorCategory.NotSpecified, this));
+                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "HttpInstallPackageFindConvertToResponseFailed", ErrorCategory.NotSpecified, this));
                     continue;
                 }
 
@@ -528,19 +528,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (searchVersionType == VersionType.NoVersion && !_prerelease)
                 {
-                    responseContent = currentServer.InstallName(pkgName, _prerelease, out edi);
-                    errType = "InstallNameFailed";
+                    responseContent = currentServer.InstallName(pkgName, _prerelease, out ExceptionDispatchInfo installNameEdi);
+                    if (installNameEdi != null)
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(installNameEdi.SourceException, "HttpInstallInstallNameFail", ErrorCategory.InvalidOperation, this));
+                        continue;
+                    }
                 }
                 else
                 {
-                    responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out edi);
-                    errType = "InstallVersionFailed";
-                }
-
-                if (!String.IsNullOrEmpty(errorRecord))
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errorRecord), errType, ErrorCategory.NotSpecified, this));
-                    continue;
+                    responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out ExceptionDispatchInfo installVersionEdi);
+                    if (installVersionEdi != null)
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(installVersionEdi.SourceException, "HttpInstallInstallVersionFail", ErrorCategory.InvalidOperation, this));
+                        continue;
+                    }
                 }
 
                 bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkg);

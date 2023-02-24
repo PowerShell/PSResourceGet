@@ -274,9 +274,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (string currentCmdOrDSC in tag)
                 {
                     string[] responses = currentServer.FindCommandOrDscResource(currentCmdOrDSC, _prerelease, isSearchingForCommands, out ExceptionDispatchInfo edi);
-                    if (!String.IsNullOrEmpty(errRecord))
+                    if (edi != null)
                     {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindCmdOrDSCServerFail", ErrorCategory.NotSpecified, this));
+                        _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindCommandOrDSCResourceFail", ErrorCategory.InvalidOperation, this));
                         continue;
                     }
 
@@ -411,9 +411,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     string[] responses = currentServer.FindTag(currentTag, _prerelease, type, out ExceptionDispatchInfo edi);
 
-                    if (!String.IsNullOrEmpty(errRecord))
+                    if (edi != null)
                     {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindTagServerFail", ErrorCategory.NotSpecified, this));
+                        _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindTagFail", ErrorCategory.InvalidOperation, this));
                         continue;
                     }
 
@@ -495,9 +495,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         string[] responses = currentServer.FindAll(_prerelease, _type, out ExceptionDispatchInfo edi);
-                        if (!String.IsNullOrEmpty(errRecord))
+                        if (edi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindAllServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindAllFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
@@ -520,9 +520,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (string.IsNullOrEmpty(_version))
                         {
                             string[] responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out ExceptionDispatchInfo edi);
-                            if (!String.IsNullOrEmpty(errRecord))
+                            if (edi != null)
                             {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindNameGlobbingServerFail", ErrorCategory.NotSpecified, this));
+                                _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameGlobbingFail", ErrorCategory.InvalidOperation, this));
                                 continue;
                             }
 
@@ -547,9 +547,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         string response = currentServer.FindVersion(pkgName, nugetVersion.ToNormalizedString(), _type, out ExceptionDispatchInfo edi);
                         string[] responses = new string[]{ response };
-                        if (!String.IsNullOrEmpty(errRecord))
+                        if (edi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindVersionServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
@@ -575,9 +575,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // If no version is specified, just retrieve the latest version
                         string response = currentServer.FindName(pkgName, _prerelease, _type, out ExceptionDispatchInfo edi);
                         string[] responses = new string[]{ response };
-                        if (!String.IsNullOrEmpty(errRecord))
+                        if (edi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindNameServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
@@ -624,9 +624,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         string[] responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, _type, getOnlyLatest: false, out ExceptionDispatchInfo edi);
-                        if (!String.IsNullOrEmpty(errRecord))
+                        if (edi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindVersionGlobbingServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
@@ -692,9 +692,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         string response = currentServer.FindName(dep.Name, _prerelease, _type, out ExceptionDispatchInfo edi);
                         string[] responses = new string[]{ response };
-                        if (!String.IsNullOrEmpty(errRecord))
+                        if (edi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindNameForDepServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindNameFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
@@ -714,9 +714,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         string[] responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo edi);
-                        if (!String.IsNullOrEmpty(errRecord))
+                        if (edi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errRecord), "FindVersionGlobbingForDepServerFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
