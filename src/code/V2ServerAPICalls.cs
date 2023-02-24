@@ -448,7 +448,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (names.Length == 0)
             {
-                string errRecord = "We don't support -Name *";
+                // string errRecord = "We don't support -Name *";
                 return string.Empty;
             }
             if (names.Length == 1)
@@ -479,7 +479,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else 
             {
-                string errRecord = "We only support wildcards for scenarios similar to the following examples: PowerShell*, *ShellGet, Power*Get, *Shell*.";
+                // string errRecord = "We only support wildcards for scenarios similar to the following examples: PowerShell*, *ShellGet, Power*Get, *Shell*.";
                 return string.Empty;
             }
             
