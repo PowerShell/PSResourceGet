@@ -9,10 +9,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using Microsoft.PowerShell.Commands;
-
-using Dbg = System.Diagnostics.Debug;
 using System.Net;
+using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {

@@ -12,7 +12,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
-using System.ComponentModel;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -100,8 +99,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             List<string> matchingResponses = new List<string>();
-            string id = string.Empty;
-            string latestVersion = string.Empty;
+            string id;
+            string latestVersion;
             foreach (var pkgId in tagPkgs)
             { 
                 try
