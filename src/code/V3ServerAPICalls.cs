@@ -592,6 +592,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             Hashtable resourceHash = new Hashtable();
             JsonElement[] resources = GetJsonElementArr($"{repository.Uri}", resourcesName, out edi);
+            if (edi != null)
+            {
+                return resourceHash;
+            }
 
             foreach (JsonElement resource in resources)
             {
@@ -654,7 +658,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
                 JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
 
-                if (!rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement) || String.IsNullOrEmpty(catalogEntryUrl))
+                if (!rootPkgMappingDom.TryGetProperty("catalogEntry", out JsonElement catalogEntryUrlElement))
                 {
                     string errMsg = $"FindVersionHelper(): CatalogEntry element could not be found in response or was empty.";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
