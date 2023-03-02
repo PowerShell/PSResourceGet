@@ -289,7 +289,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         cmdsLeftToFind.Remove(currentCmdOrDSC);
-                        yield return currentResult.returnedCmdObject;                    
+                        PSCommandResourceInfo currentPkg = new PSCommandResourceInfo(new string[] { currentCmdOrDSC }, currentResult.returnedObject);
+                        yield return currentPkg;                    
                     }
                 }
             }

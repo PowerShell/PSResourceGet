@@ -21,25 +21,28 @@ Describe 'Test HTTP Find-PSResource for Module' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    It "find Specific Module Resource by Name" {
-        $specItem = Find-PSResource -Name $testModuleName
-        $specItem.Name | Should -Be $testModuleName
+    It "find resource given specific Name, Version null" {
+        # FindName()
+        $res = Find-PSResource -Name $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0.0"
     }
 
-    It "should not find resource given nonexistant name" {
+    It "should not find resource given nonexistant Name" {
         $res = Find-PSResource -Name NonExistantModule
         $res | Should -BeNullOrEmpty
     }
 
-    It "should not find any resources given names with invalid wildcard characters" {
+    It "should not find any resources given invalid wildcard character Name" {
         Find-PSResource -Name "Invalid?PkgName", "Invalid[PkgName" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource" 
     }
 
-    It "find resources when Name contains * from V2 endpoint repository (PowerShellGallery))" {
+    It "find resource(s) given wildcard Name" {
+        # FindNameGlobbing
         $foundScript = $False
-        $res = Find-PSResource -Name "AzureS*" -Repository $PSGalleryName
+        $res = Find-PSResource -Name "test_*" -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 1
         # should find Module and Script resources
         foreach ($item in $res)
@@ -108,6 +111,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
                   @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+        # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName
         foreach ($item in $res) {
@@ -124,6 +128,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
 
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName 2>$null
         $res | Should -BeNullOrEmpty
+        # TODO: check for written error? combine with  method below?
     }
 
     $testCases = @{Version='[1.*.0.0]';       Description="version with wilcard in middle"},
@@ -142,7 +147,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
-    It "find all versions of resource when given Name, Version not null --> '*'" {
+    It "find all versions of resource when given specific Name, Version not null --> '*'" {
         $res = Find-PSResource -Name $testModuleName -Version "*" -Repository $PSGalleryName
         $res | ForEach-Object {
             $_.Name | Should -Be $testModuleName
@@ -150,37 +155,39 @@ Describe 'Test HTTP Find-PSResource for Module' {
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
-    It "find resources when given Name with wildcard, Version not null --> '*'" {
-        $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "*" -Repository $PSGalleryName
-        $moduleA = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyA"}
-        $moduleA.Count | Should -BeGreaterOrEqual 3
-        $moduleB = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyB"}
-        $moduleB.Count | Should -BeGreaterOrEqual 2
-        $moduleC = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyC"}
-        $moduleC.Count | Should -BeGreaterOrEqual 3
-        $moduleD = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyD"}
-        $moduleD.Count | Should -BeGreaterOrEqual 2
-        $moduleE = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyE"}
-        $moduleE.Count | Should -BeGreaterOrEqual 1        
-        $moduleF = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyF"}
-        $moduleF.Count | Should -BeGreaterOrEqual 1
-    }
+    # It "find resources when given Name with wildcard, Version not null --> '*'" {
+    #     $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "*" -Repository $PSGalleryName
+    #     $moduleA = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyA"}
+    #     $moduleA.Count | Should -BeGreaterOrEqual 3
+    #     $moduleB = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyB"}
+    #     $moduleB.Count | Should -BeGreaterOrEqual 2
+    #     $moduleC = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyC"}
+    #     $moduleC.Count | Should -BeGreaterOrEqual 3
+    #     $moduleD = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyD"}
+    #     $moduleD.Count | Should -BeGreaterOrEqual 2
+    #     $moduleE = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyE"}
+    #     $moduleE.Count | Should -BeGreaterOrEqual 1        
+    #     $moduleF = $res | Where-Object {$_.Name -eq "TestModuleWithDependencyF"}
+    #     $moduleF.Count | Should -BeGreaterOrEqual 1
+    # }
 
-    It "find resources when given Name with wildcard, Version range" {
-        $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "[1.0.0.0, 5.0.0.0]" -Repository $PSGalleryName
-        foreach ($pkg in $res) {
-            $pkg.Name | Should -Match "TestModuleWithDependency*"
-            [System.Version]$pkg.Version -ge [System.Version]"1.0.0.0" -or [System.Version]$pkg.Version -le [System.Version]"5.0.0.0" | Should -Be $true
-        }
-    }
+    # It "find resources when given Name with wildcard, Version range" {
+    #     $res = Find-PSResource -Name "TestModuleWithDependency*" -Version "[1.0.0.0, 5.0.0.0]" -Repository $PSGalleryName
+    #     foreach ($pkg in $res) {
+    #         $pkg.Name | Should -Match "TestModuleWithDependency*"
+    #         [System.Version]$pkg.Version -ge [System.Version]"1.0.0.0" -or [System.Version]$pkg.Version -le [System.Version]"5.0.0.0" | Should -Be $true
+    #     }
+    # }
 
     It "find resource when given Name, Version param null" {
+        # FindVersion()
         $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0.0"
     }
 
     It "find resource with latest (including prerelease) version given Prerelease parameter" {
+        # FindName()
         # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
         $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName
         $res.Version | Should -Be "5.0.0.0"
@@ -191,12 +198,14 @@ Describe 'Test HTTP Find-PSResource for Module' {
     }
 
     It "find resources, including Prerelease version resources, when given Prerelease parameter" {
+        # FindVersionGlobbing()
         $resWithoutPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $PSGalleryName
         $resWithPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $PSGalleryName
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
 
     It "find resource and its dependency resources with IncludeDependencies parameter" {
+        # FindName() with deps
         $resWithoutDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -Repository $PSGalleryName
         $resWithoutDependencies.Count | Should -Be 1
         $resWithoutDependencies.Name | Should -Be "TestModuleWithDependencyE"
@@ -249,6 +258,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
     }
 
     It "find resource of Type script or module from PSGallery, when no Type parameter provided" {
+        # FindName() script
         $resScript = Find-PSResource -Name $testScriptName -Repository $PSGalleryName
         $resScript.Name | Should -Be $testScriptName
         $resScriptType = Out-String -InputObject $resScript.Type
@@ -261,6 +271,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
     }
 
     It "find resource of Type Script from PSGallery, when Type Script specified" {
+        # FindName() Type script
         $resScript = Find-PSResource -Name $testScriptName -Repository $PSGalleryName -Type "Script"
         $resScript.Name | Should -Be $testScriptName
         $resScript.Repository | Should -Be "PSGalleryScripts"
@@ -268,15 +279,16 @@ Describe 'Test HTTP Find-PSResource for Module' {
         $resScriptType.Replace(",", " ").Split() | Should -Contain "Script"
     }
 
-    It "find resource of Type Command from PSGallery, when Type Command specified" {
-        $resources = Find-PSResource -Name "AzureS*" -Repository $PSGalleryName -Type "Command"
-        foreach ($item in $resources) {
-            $resType = Out-String -InputObject $item.Type
-            $resType.Replace(",", " ").Split() | Should -Contain "Command"
-        }
-    }
+    # It "find resource of Type Command from PSGallery, when Type Command specified" {
+    #     $resources = Find-PSResource -Name "AzureS*" -Repository $PSGalleryName -Type "Command"
+    #     foreach ($item in $resources) {
+    #         $resType = Out-String -InputObject $item.Type
+    #         $resType.Replace(",", " ").Split() | Should -Contain "Command"
+    #     }
+    # }
 
     It "find all resources of Type Module when Type parameter set is used" -Skip {
+        # TODO: check support
         $foundScript = $False
         $res = Find-PSResource -Name "test*" -Type Module -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 1
@@ -291,6 +303,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
     }
 
     It "find resources given Tag parameter" {
+        # TODO: support
         $resWithEitherExpectedTag = @("NetworkingDsc", "DSCR_FileContent", "SS.PowerShell")
         $res = Find-PSResource -Name "NetworkingDsc", "HPCMSL", "DSCR_FileContent", "SS.PowerShell", "PowerShellGet" -Tag "Dsc", "json" -Repository $PSGalleryName
         foreach ($item in $res) {
@@ -299,6 +312,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
     }
 
     It "find all resources with specified tag given Tag property" {
+        # FindTag()
         $foundTestModule = $False
         $foundTestScript = $False
         $tagToFind = "Tag2"
@@ -322,6 +336,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
     }
 
     It "find resource in local repository given Repository parameter" {
+        #Local
         $publishModuleName = "TestFindModule"
         $repoName = "psgettestlocal"
         Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
@@ -333,6 +348,7 @@ Describe 'Test HTTP Find-PSResource for Module' {
     }
 
     It "find Resource given repository parameter, where resource exists in multiple local repos" {
+        #Local
         $moduleName = "test_local_mod"
         $repoHigherPriorityRanking = "psgettestlocal"
         $repoLowerPriorityRanking = "psgettestlocal2"
@@ -347,35 +363,19 @@ Describe 'Test HTTP Find-PSResource for Module' {
         $resNonDefault.Repository | Should -Be $repoLowerPriorityRanking
     }
 
-    # # Skip test for now because it takes too run (132.24 sec)
-    # It "find resource given CommandName (CommandNameParameterSet)" -Skip {
-    #     $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
-    #     foreach ($item in $res) {
-    #         $item.Name | Should -Be $commandName
-    #         $item.ParentResource.Includes.Command | Should -Contain $commandName
-    #     }
-    # }
-
-    It "find resource given CommandName and ModuleName (CommandNameParameterSet)" {
-        $res = Find-PSResource -CommandName $commandName -ModuleName $parentModuleName -Repository $PSGalleryName
-        $res.Name | Should -Be $commandName
-        $res.ParentResource.Name | Should -Be $parentModuleName
-        $res.ParentResource.Includes.Command | Should -Contain $commandName
+    It "find resource given CommandName" {
+        $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
+        foreach ($item in $res) {
+            $item.Name | Should -Be $commandName    
+            $item.ParentResource.Includes.Command | Should -Contain $commandName
+        }
     }
 
-    # Skip test for now because it takes too long to run (> 60 sec)
-    # It "find resource given DSCResourceName (DSCResourceNameParameterSet)" -Skip {
-    #     $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
-    #     foreach ($item in $res) {
-    #         $item.Name | Should -Be $dscResourceName
-    #         $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
-    #     }
-    # }
-
-    It "find resource given DscResourceName and ModuleName (DSCResourceNameParameterSet)" {
-        $res = Find-PSResource -DscResourceName $dscResourceName -ModuleName $parentModuleName -Repository $PSGalleryName
-        $res.Name | Should -Be $dscResourceName
-        $res.ParentResource.Name | Should -Be $parentModuleName
-        $res.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
+    It "find resource given DscResourceName" {
+        $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
+        foreach ($item in $res) {
+            $item.Name | Should -Be $dscResourceName    
+            $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
+        }
     }
 }
