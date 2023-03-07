@@ -485,11 +485,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         string[] responses = Utils.EmptyStrArray;
                         if (_tag.Length == 0)
                         {
-                            currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out edi);
+                            responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out edi);
                         }
                         else
                         {
-                            currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                            responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out edi);
                         }
 
                         if (edi != null)

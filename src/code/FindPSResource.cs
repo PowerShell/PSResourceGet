@@ -210,7 +210,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }         
 
-
             // determine/parse out Version param
             VersionType versionType = VersionType.VersionRange;
             NuGetVersion nugetVersion = null;

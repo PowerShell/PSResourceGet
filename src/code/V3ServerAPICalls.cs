@@ -937,7 +937,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] pkgTagElements = tagsElement.EnumerateArray().ToArray();
             foreach (JsonElement tagItem in pkgTagElements)
             {
-                tagsFound.Add(tagItem.ToString());
+                tagsFound.Add(tagItem.ToString().ToLower());
             }
 
             return tagsFound.ToArray();
@@ -949,7 +949,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (string tag in requiredTags)
             {
-                if (!pkgTags.Contains(tag))
+                if (!pkgTags.Contains(tag.ToLower()))
                 {
                     isTagMatch = false;
                     break;

@@ -167,6 +167,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            /**
             VersionRange versionRange;
 
             // handle case where Version == null
@@ -184,7 +185,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            var namesToUpdate = ProcessPackageNames(Name, versionRange);
+            */
+
+            // determine/parse out Version param
+            VersionType versionType = VersionType.VersionRange;
+            NuGetVersion nugetVersion = null;
+            VersionRange versionRange = null;
+
+            if (Version != null)
+            {
+                if (!NuGetVersion.TryParse(Version, out nugetVersion))
+                {
+                    if (Version.Trim().Equals("*"))
+                    {
+                        versionRange = VersionRange.All;
+                        versionType = VersionType.VersionRange;
+                    }
+                    else if (!VersionRange.TryParse(Version, out versionRange))
+                    {
+                        WriteError(new ErrorRecord(
+                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                            "IncorrectVersionFormat",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        return;
+                    }
+                }
+                else
+                {
+                    versionType = VersionType.SpecificVersion;
+                }
+            }
+            else
+            {
+                versionType = VersionType.NoVersion;
+            }
+
+            var namesToUpdate = ProcessPackageNames(Name, versionRange, nugetVersion, versionType);
 
             if (namesToUpdate.Length == 0)
             {
@@ -253,7 +290,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </Summary>
         private string[] ProcessPackageNames(
             string[] namesToProcess,
-            VersionRange versionRange)
+            VersionRange versionRange,
+            NuGetVersion nuGetVersion,
+            VersionType versionType)
         {
             namesToProcess = Utils.ProcessNameWildcards(
                 pkgNames: namesToProcess,
@@ -310,6 +349,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (var foundResource in _findHelper.FindByResourceName(
                 name: installedPackages.Keys.ToArray(),
                 type: ResourceType.None,
+                versionRange: versionRange,
+                nugetVersion: nuGetVersion,
+                versionType: versionType,
                 version: Version,
                 prerelease: Prerelease,
                 tag: null,
