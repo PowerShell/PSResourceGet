@@ -33,6 +33,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<string> _tagsLeftToFind;
         private ResourceType _type;
         private string _version;
+        private VersionRange _versionRange;
+        private NuGetVersion _nugetVersion;
+        private VersionType _versionType;
         private SwitchParameter _prerelease = false;
         private string[] _tag;
         private SwitchParameter _includeDependencies = false;
@@ -71,6 +74,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public IEnumerable<PSResourceInfo> FindByResourceName(
             string[] name,
             ResourceType type,
+            VersionRange versionRange,
+            NuGetVersion nugetVersion,
+            VersionType versionType,
             string version,
             SwitchParameter prerelease,
             string[] tag,
@@ -80,8 +86,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _type = type;
             _version = version;
             _prerelease = prerelease;
-            _tag = tag;
+            _tag = tag ?? Utils.EmptyStrArray;
             _includeDependencies = includeDependencies;
+            _versionRange = versionRange;
+            _nugetVersion = nugetVersion;
+            _versionType = versionType;
 
             if (name.Length == 0)
             {
@@ -437,10 +446,193 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository)
         {
-            VersionRange versionRange = null;
-            NuGetVersion nugetVersion = null;
-            List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>(); 
+            ExceptionDispatchInfo edi = null;
+            // VersionRange versionRange = null;
+            // NuGetVersion nugetVersion = null;
+            List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
 
+            foreach (string pkgName in _pkgsLeftToFind.ToArray())
+            {
+                if (_versionType == VersionType.NoVersion)
+                {
+                    // Name == "*" allowed but find-psresource would not allow both
+                    // Name contains "*" -> findNameGlobbing()
+                    // specific name: FindName()
+                    if (pkgName.Trim().Equals("*"))
+                    {
+                        string[] responses = currentServer.FindAll(_prerelease, _type, out edi);
+                        if (edi != null)
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindAllFail", ErrorCategory.InvalidOperation, this));
+                            continue;
+                        }
+
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                        {
+                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindAllResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                continue;
+                            }
+
+                            PSResourceInfo foundPkg = currentResult.returnedObject;
+                            parentPkgs.Add(foundPkg);
+                            yield return foundPkg;  
+                        }
+                    }
+                    else if(pkgName.Contains("*"))
+                    {
+                        string[] responses = Utils.EmptyStrArray;
+                        if (_tag.Length == 0)
+                        {
+                            currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out edi);
+                        }
+                        else
+                        {
+                            currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                        }
+
+                        if (edi != null)
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            continue;
+                        }
+
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                        {
+                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameGlobbingResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                continue;
+                            }
+
+                            PSResourceInfo foundPkg = currentResult.returnedObject;
+                            parentPkgs.Add(foundPkg);
+                            yield return foundPkg;                    
+                        }
+                    }
+                    else
+                    {
+                        string response = String.Empty;
+                        if (_tag.Length == 0)
+                        {
+                            response = currentServer.FindName(pkgName, _prerelease, _type, out edi);
+                        }
+                        else
+                        {
+                            response = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                        }
+
+                        string[] responses = new string[]{ response };
+                        if (edi != null)
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameFail", ErrorCategory.InvalidOperation, this));
+                            continue;
+                        }
+
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+                        
+                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        PSResourceInfo foundPkg = currentResult.returnedObject;
+                        parentPkgs.Add(foundPkg);
+                        yield return foundPkg;
+                    }
+                }
+                else if (_versionType == VersionType.SpecificVersion)
+                {
+                    // loop names
+                        // name == "*"  not allowed
+                        // name contains "*" -> Not allowedI think?
+                        // name specific: FindVersion()
+
+                    if (pkgName.Trim().Equals("*"))
+                    {
+                        var exMessage = "Name cannot equal wildcard when using specific version.";
+                        var ex = new ArgumentException(exMessage);
+                        var WildcardError = new ErrorRecord(ex, "InvalidWildCardUsage", ErrorCategory.InvalidOperation, null);
+                        _cmdletPassedIn.WriteError(WildcardError);
+                    }
+                    else if (pkgName.Contains("*"))
+                    {
+                        // not allowed??
+                    }
+                    else
+                    {
+                        string response = String.Empty;
+                        if (_tag.Length == 0)
+                        {
+                            response = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out edi);
+                        }
+                        else
+                        {
+                            response = currentServer.FindVersionWithTag(pkgName, _nugetVersion.ToNormalizedString(), _tag, _type, out edi);
+                        }
+
+                        string[] responses = new string[]{ response };
+                        if (edi != null)
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionFail", ErrorCategory.InvalidOperation, this));
+                            continue;
+                        }
+
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+                        
+                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            continue;
+                        }
+
+                        PSResourceInfo foundPkg = currentResult.returnedObject;
+                        parentPkgs.Add(foundPkg);
+                        yield return foundPkg;
+                    }
+                }
+                else
+                {
+                    // versionRange
+                    // loop through names
+                        // name == "*"  not allowed
+                        // name contains "*" -> not allowed
+                        // specific name: -> FindVersionGlobbing
+                    if (pkgName.Trim().Equals("*") || pkgName.Contains("*"))
+                    {
+                        var exMessage = "Name cannot contain wildcard when using version range";
+                        var ex = new ArgumentException(exMessage);
+                        var WildcardError = new ErrorRecord(ex, "InvalidWildCardUsage", ErrorCategory.InvalidOperation, null);
+                        _cmdletPassedIn.WriteError(WildcardError);
+                    }
+                    else
+                    {
+                        string[] responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out edi);
+                        if (edi != null)
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            continue;
+                        }
+
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                        {
+                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                continue;
+                            }
+
+                            PSResourceInfo foundPkg = currentResult.returnedObject;
+                            parentPkgs.Add(foundPkg);
+                            yield return foundPkg;                    
+                        }
+                    }
+                }
+            }
+
+            /**
             if (_version != null)
             {
                 if (!NuGetVersion.TryParse(_version, out nugetVersion))
@@ -475,7 +667,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Note: For a single version, we have 1 or more name, with or without globbing
             // TODO: do we mean 2nd condition to be !?
             // scenario: specific version (case 1) or no version (case 2, for which we get latest version)
-            if (nugetVersion != null || string.IsNullOrEmpty(_version))
+
+            if (_versionType == VersionType.SpecificVersion || _versionType == VersionType.NoVersion)
             {
                 foreach (string pkgName in _pkgsLeftToFind.ToArray())
                 {
@@ -494,7 +687,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        string[] responses = currentServer.FindAll(_prerelease, _type, out ExceptionDispatchInfo edi);
+                        string[] responses = currentServer.FindAll(_prerelease, _type, out edi);
                         if (edi != null)
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindAllFail", ErrorCategory.InvalidOperation, this));
@@ -519,7 +712,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // call 'FindNameGlobbing' or 'FindNameGlobbingAndVersion'
                         if (string.IsNullOrEmpty(_version))
                         {
-                            string[] responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out ExceptionDispatchInfo edi);
+                            string[] responses = Utils.EmptyStrArray;
+                            if (_tag.Length == 0)
+                            {
+                                currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out edi);
+                            }
+                            else
+                            {
+                                currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                            }
+
                             if (edi != null)
                             {
                                 _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameGlobbingFail", ErrorCategory.InvalidOperation, this));
@@ -545,7 +747,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // TODO: User should not use -Prerelease parameter with a specific version.  Write out some kind of messaging (warning, error, verbose) to inform user of this
                         // if they attempt this combination
 
-                        string response = currentServer.FindVersion(pkgName, nugetVersion.ToNormalizedString(), _type, out ExceptionDispatchInfo edi);
+                        string response = String.Empty;
+                        if (_tag.Length == 0)
+                        {
+                            response = currentServer.FindVersion(pkgName, nugetVersion.ToNormalizedString(), _type, out edi);
+                        }
+                        else
+                        {
+                            response = currentServer.FindVersionWithTag(pkgName, nugetVersion.ToNormalizedString(), _tag, _type, out edi);
+                        }
+
                         string[] responses = new string[]{ response };
                         if (edi != null)
                         {
@@ -573,7 +784,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else {
                         // If no version is specified, just retrieve the latest version
-                        string response = currentServer.FindName(pkgName, _prerelease, _type, out ExceptionDispatchInfo edi);
+                        string response = String.Empty;
+                        if (_tag.Length == 0)
+                        {
+                            response = currentServer.FindName(pkgName, _prerelease, _type, out edi);
+                        }
+                        else
+                        {
+                            response = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                        }
+
                         string[] responses = new string[]{ response };
                         if (edi != null)
                         {
@@ -623,7 +843,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        string[] responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, _type, getOnlyLatest: false, out ExceptionDispatchInfo edi);
+                        string[] responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, _type, getOnlyLatest: false, out edi);
                         if (edi != null)
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
@@ -645,6 +865,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
             }
+
+            */
 
             // After retrieving all packages
             if (_includeDependencies)

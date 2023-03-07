@@ -251,6 +251,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out edi);  
         }
 
+        public override string FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            // Make sure to include quotations around the package name
+            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
+
+            // This should return the latest stable version or the latest prerelease version (respectively)
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+            string typeFilterPart = type == ResourceType.None ? $" and Id eq '{packageName}'" :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+
+            string tagFilterPart = String.Empty;
+            foreach (string tag in tags)
+            {
+                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+            }
+
+            var requestUrlV2 = $"{repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{typeFilterPart}{tagFilterPart}&{select}";
+
+            return HttpRequestCall(requestUrlV2, out edi);  
+        }
+
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and returns latest version.
         /// Name: supports wildcards
@@ -293,6 +313,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return responses.ToArray();
+        }
+
+        public override string[] FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            return Utils.EmptyStrArray;
         }
 
         /// <summary>
@@ -358,6 +384,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             return HttpRequestCall(requestUrlV2, out edi);  
         }
+
+        public override string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            return String.Empty;
+        }
+
 
         /**  INSTALL APIS **/
 
