@@ -168,28 +168,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private void ProcessResourceNameParameterSet()
         {
-            if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)) && MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
-            {
-                // case where Name specified: false, Tag specified: true (i.e just search by Tags)
-                ProcessTagParameterSet();
-                return;
-            }
-
-            // TODO: review this condition.
+            // only cases where Name is allowed to not be specified is if Type or Tag parameters are
             if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {
-                // only cases where Name is allowed to not be specified is if Type or Tag parameters are
-                if (!MyInvocation.BoundParameters.ContainsKey(nameof(Type)) && !MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
+                if (MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
+                {
+                    // case where Name specified: false, Tag specified: true (i.e just search by Tags)
+                    ProcessTagParameterSet(); // TODO: rename
+                    return;
+                }
+                else if (MyInvocation.BoundParameters.ContainsKey(nameof(Type)))
+                {
+                    Name = new string[] {"*"};
+                }
+                else
                 {
                     ThrowTerminatingError(
                         new ErrorRecord(
-                            new PSInvalidOperationException("Name parameter must be provided."),
+                            new PSInvalidOperationException("Name parameter must be provided, unless Tag or Type parameters are used."),
                             "NameParameterNotProvided",
                             ErrorCategory.InvalidOperation,
                             this));
                 }
-
-                Name = new string[] {"*"};
             }
 
             Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);

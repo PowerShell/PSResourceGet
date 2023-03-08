@@ -282,7 +282,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             if (edi == null)
                             {
                                 string errMsg = $"FindNameWithTag(): Tags required were not found in package {packageName} {version.ToString()}.";
-                                edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                                edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException(errMsg));
                             }
 
                             return String.Empty;
@@ -373,19 +373,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return Utils.EmptyStrArray; 
                     }
 
-                    if(!pkgId.TryGetProperty(tagsName, out JsonElement tagsItem))
-                    {
-                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return Utils.EmptyStrArray;
-                    }
-
                     id = idItem.ToString();
                     latestVersion = versionItem.ToString();
                 }
                 catch (Exception e)
                 {
-                    string errMsg = $"FindTag(): Name or Version element could not be parsed from response due to exception {e.Message}.";
+                    string errMsg = $"FindNameGlobbing(): Name or Version element could not be parsed from response due to exception {e.Message}.";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                     break;
                 }
@@ -475,7 +468,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!pkgId.TryGetProperty(tagsName, out JsonElement tagsItem))
                     {
-                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
+                        string errMsg = $"FindNameGlobbing(): Tags element could not be found in response.";
                         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                         return Utils.EmptyStrArray;
                     }
@@ -487,7 +480,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    string errMsg = $"FindTag(): Name or Version element could not be parsed from response due to exception {e.Message}.";
+                    string errMsg = $"FindNameGlobbingWithTag(): Name or Version or Tags element could not be parsed from response due to exception {e.Message}.";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                     break;
                 }
@@ -507,7 +500,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (edi != null)
                     {
-                        return Utils.EmptyStrArray;
+                        continue;
                     }
 
                     matchingResponses.Add(response);
@@ -643,7 +636,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (edi == null)
                 {
                     string errMsg = $"FindVersionWithTag(): Tags required were not found in package {packageName} {version.ToString()}.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException(errMsg));
                 }
 
                 return String.Empty;
