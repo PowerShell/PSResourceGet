@@ -156,7 +156,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private methods
 
-        // This method calls iterates through repositories (by priority order) to search for the pkgs to install
+        /// <summary>
+        /// This method calls iterates through repositories (by priority order) to search for the packages to install.
+        /// </summary>
         private List<PSResourceInfo> ProcessRepositories(
             string[] repository,
             bool trustRepository,
@@ -204,13 +206,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
+                    if (repo.Trusted == false && !trustRepository && !_force)
+                    {
+                        _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
+
+                        if (!(yesToAll || noToAll))
+                        {
+                            // Prompt for installation of package from untrusted repository
+                            var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
+                            sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
+                        }
+                    }
+
+                    if (!sourceTrusted && !yesToAll)
+                    {
+                        continue;
+                    }
+
                     if ((repo.ApiVersion == PSRepositoryInfo.APIVersion.v3) && (!installDepsForRepo))
                     {
                         _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                         installDepsForRepo = true;
                     }
 
-                    return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope);
+                    return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
                 }
                 else
                 {
@@ -307,7 +326,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return allPkgsInstalled;
         }
 
-        // Check if any of the pkg versions are already installed, if they are we'll remove them from the list of packages to install
+        /// <summary>
+        /// Checks if any of the package versions are already installed and if they are removes them from the list of packages to install.
+        /// </summary>
         private List<PSResourceInfo> FilterByInstalledPkgs(List<PSResourceInfo> packages)
         {
             // Package install paths.
@@ -359,15 +380,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return filteredPackages;
         }
 
+        /// <summary>
+        /// Iterates through package names passed in and installs each package and their dependencies.
+        /// </summary>
         private List<PSResourceInfo> HttpInstall(
             string[] pkgNamesToInstall,
             PSRepositoryInfo repository,
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
-            ScopeType scope)
+            ScopeType scope, 
+            bool skipDependencyCheck,
+            FindHelper findHelper)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
-
             NuGetVersion nugetVersion = null;
             VersionRange versionRange= null;
             VersionType currentType;
@@ -412,146 +437,224 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 currentType = VersionType.NoVersion;
             }
 
+            // Install parent package to the temp directory,
+            // Get the dependencies from the installed package,
+            // Install all dependencies to temp directory.  
+            // If a single dependency fails to install, roll back by deleting the temp directory. 
+            foreach (var parentPackage in pkgNamesToInstall)
+            {
+                string tempInstallPath = CreateInstallationTempPath();
 
-            pkgsSuccessfullyInstalled = HttpInstallPackage(
-                currentType,
-                nugetVersion,
-                versionRange,
-                pkgNamesToInstall,
-                repository,
-                currentServer,
-                currentResponseUtil,
-                scope);
+                try
+                {
+                    // Hashtable has the key as the package name 
+                    // and value as a Hashtable of specific package info: 
+                    //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. } 
+                    // Install parent package to the temp directory.
+                    Hashtable packagesHash = HttpInstallPackage(
+                                                        searchVersionType: currentType,
+                                                        specificVersion: nugetVersion,
+                                                        versionRange: versionRange,
+                                                        pkgNameToInstall: parentPackage,
+                                                        repository: repository,
+                                                        currentServer: currentServer,
+                                                        currentResponseUtil: currentResponseUtil,
+                                                        tempInstallPath: tempInstallPath,
+                                                        packagesHash: new Hashtable(StringComparer.InvariantCultureIgnoreCase),
+                                                        edi: out ExceptionDispatchInfo edi);
 
+                    // At this point parent package is installed to temp path.
+                    if (edi != null)
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "InstallPackageFailure", ErrorCategory.InvalidOperation, this));
+                    }
+
+                    if (packagesHash.Count == 0) {
+                        continue;
+                    }
+
+                    Hashtable parentPkgInfo = packagesHash[parentPackage] as Hashtable;
+                    PSResourceInfo parentPkgObj = parentPkgInfo["psResourceInfoPkg"] as PSResourceInfo;
+
+                    if (!skipDependencyCheck)
+                    {
+                        if (currentServer.repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                        {
+                            _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
+                        }
+
+                        // Get the dependencies from the installed package.
+                        if (parentPkgObj.Dependencies.Length > 0)
+                        {
+                            foreach (PSResourceInfo depPkg in findHelper.HttpFindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository))
+                            {
+                                packagesHash = HttpInstallPackage(
+                                            searchVersionType: currentType,
+                                            specificVersion: nugetVersion,
+                                            versionRange: versionRange,
+                                            pkgNameToInstall: depPkg.Name,
+                                            repository: repository,
+                                            currentServer: currentServer,
+                                            currentResponseUtil: currentResponseUtil,
+                                            tempInstallPath: tempInstallPath,
+                                            packagesHash: packagesHash,
+                                            edi: out ExceptionDispatchInfo installPackageEdi);
+
+                                if (installPackageEdi != null)
+                                {
+                                    _cmdletPassedIn.WriteError(new ErrorRecord(installPackageEdi.SourceException, "InstallDependencyPackageFailure", ErrorCategory.InvalidOperation, this));
+                                }
+                            }
+                        }
+                    }
+
+                    // Parent package and dependencies are now installed to temp directory. 
+                    if (!TryMoveInstallContent(tempInstallPath, scope, packagesHash))
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(new InvalidOperationException(), "InstallPackageTryMoveContentFailure", ErrorCategory.InvalidOperation, this));
+                    }
+                    else
+                    {
+                        foreach (string pkg in packagesHash.Keys)
+                        {
+                            Hashtable pkgInfo = packagesHash[pkg] as Hashtable;
+                            pkgsSuccessfullyInstalled.Add(pkgInfo["psResourceInfoPkg"] as PSResourceInfo);
+                        }
+                    }
+                }
+                finally
+                {
+                    DeleteInstallationTempPath(tempInstallPath);
+                }
+            }
 
             return pkgsSuccessfullyInstalled;
-
-            // determine which type of version
-            // determine which find enum value
-            // call HttpInstallPkg(enum, versionRange, nugetVersion);
         }
 
-
-
-        private List<PSResourceInfo> HttpInstallPackage(
+        /// <summary>
+        /// Installs a single package to a temporary path.
+        /// </summary>
+        private Hashtable HttpInstallPackage(
             VersionType searchVersionType,
             NuGetVersion specificVersion,
             VersionRange versionRange,
-            string[] pkgNamesToInstall,
+            string pkgNameToInstall,
             PSRepositoryInfo repository,
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
-            ScopeType scope)
+            string tempInstallPath,
+            Hashtable packagesHash,
+            out ExceptionDispatchInfo edi)
         {
-            List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
             List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
+            string[] responses = Utils.EmptyStrArray;
+            edi = null;
 
-            foreach (string pkgName in pkgNamesToInstall)
+            switch (searchVersionType)
             {
-                string[] responses = Utils.EmptyStrArray;
+                case VersionType.VersionRange:
+                    responses = currentServer.FindVersionGlobbing(pkgNameToInstall, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo findVersionGlobbingEdi);
 
-                switch (searchVersionType)
-                {
-                    case VersionType.VersionRange:
-                        responses = currentServer.FindVersionGlobbing(pkgName, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo findVersionGlobbingEdi);
+                    if (findVersionGlobbingEdi != null)
+                    {
+                        edi = findVersionGlobbingEdi;
+                        return packagesHash;
+                    }
 
-                        if (findVersionGlobbingEdi != null)
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(findVersionGlobbingEdi.SourceException, "HttpInstallPackageFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
-                            continue;
-                        }
+                   break;
 
-                        break;
+                case VersionType.SpecificVersion:
+                    string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
-                    case VersionType.SpecificVersion:
-                        string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
+                    string findVersionResponse = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
+                    responses = new string[] { findVersionResponse };
+                    if (findVersionEdi != null)
+                    {
+                        edi = findVersionEdi;
+                        return packagesHash;
+                    }
 
-                        string findVersionResponse = currentServer.FindVersion(pkgName, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
-                        responses = new string[] { findVersionResponse };
-                        if (findVersionEdi != null)
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(findVersionEdi.SourceException, "HttpInstallPackageFindVersionFail", ErrorCategory.InvalidOperation, this));
-                            continue;
-                        }
+                    break;
 
-                        break;
+                default:
+                    // VersionType.NoVersion
+                    string findNameResponse = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
+                    responses = new string[] { findNameResponse };
+                    if (findNameEdi != null)
+                    {
+                        edi = findNameEdi;
+                        return packagesHash;
+                    }
 
-                    default:
-                        // VersionType.NoVersion
-                        string findNameResponse = currentServer.FindName(pkgName, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
-                        responses = new string[] { findNameResponse };
-                        if (findNameEdi != null)
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(findNameEdi.SourceException, "HttpInstallPackageFindNameFail", ErrorCategory.InvalidOperation, this));
-                            continue;
-                        }
+                    break;
+            }
 
-                        break;
-                }
+            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
 
-                PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+            {
+                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(currentResult.errorMsg));
+                return packagesHash;
+            }
 
-                if (!String.IsNullOrEmpty(currentResult.errorMsg))
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "HttpInstallPackageFindConvertToResponseFailed", ErrorCategory.NotSpecified, this));
-                    continue;
-                }
+            PSResourceInfo pkgToInstall = currentResult.returnedObject;
+            pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
 
-                PSResourceInfo pkgToInstall = currentResult.returnedObject;
-                pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
-
-                packagesToInstall.Add(pkgToInstall);
-            }   
-
-            // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
+            // TODO:  refactor this a bit for performance 
+            packagesToInstall.Add(pkgToInstall);
+          
+            // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
+                // TODO:  is there a way to cache what we just searched through?
                 packagesToInstall = FilterByInstalledPkgs(packagesToInstall);
             }
 
-            string tempInstallPath = CreateInstallationTempPath();
-
-            foreach (PSResourceInfo pkg in packagesToInstall)
+            if (packagesToInstall.Count == 0)
             {
-                // download the module
-                pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
-                string pkgName = pkg.Name;
+                return packagesHash;
+            }
 
-                HttpContent responseContent = null;
-                string errType = String.Empty;
+            // Download the package.
+            var pkg = packagesToInstall.First();
+            pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+            string pkgName = pkg.Name;
 
-                if (searchVersionType == VersionType.NoVersion && !_prerelease)
+            HttpContent responseContent = null;
+            string errType = String.Empty;
+
+            if (searchVersionType == VersionType.NoVersion && !_prerelease)
+            {
+                responseContent = currentServer.InstallName(pkgName, _prerelease, out ExceptionDispatchInfo installNameEdi);
+                if (installNameEdi != null)
                 {
-                    responseContent = currentServer.InstallName(pkgName, _prerelease, out ExceptionDispatchInfo installNameEdi);
-                    if (installNameEdi != null)
-                    {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(installNameEdi.SourceException, "HttpInstallInstallNameFail", ErrorCategory.InvalidOperation, this));
-                        continue;
-                    }
+                    edi = installNameEdi;
+                    return packagesHash;
                 }
-                else
+            }
+            else
+            {
+                responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out ExceptionDispatchInfo installVersionEdi);
+                if (installVersionEdi != null)
                 {
-                    responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out ExceptionDispatchInfo installVersionEdi);
-                    if (installVersionEdi != null)
-                    {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(installVersionEdi.SourceException, "HttpInstallInstallVersionFail", ErrorCategory.InvalidOperation, this));
-                        continue;
-                    }
-                }
-
-                bool installedSuccessfully = TryMoveInstallContent(responseContent, tempInstallPath, pkgName, pkgVersion, scope, pkg);
-
-                if (installedSuccessfully)
-                {
-                    pkgsSuccessfullyInstalled.Add(pkg);
+                    edi = installVersionEdi;
+                    return packagesHash;
                 }
             }
 
-            DeleteInstallationTempPath(tempInstallPath);
+            bool installedToTempPathSuccessfully = TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkg, packagesHash, out Hashtable updatedPackagesHash);
+            if (!installedToTempPathSuccessfully)
+            {
+                edi = ExceptionDispatchInfo.Capture(new System.Exception(currentResult.errorMsg));
+                return packagesHash;
+            }
 
-            return pkgsSuccessfullyInstalled;
+            return updatedPackagesHash;
         }
 
+        /// <summary>
+        /// Creates a temporary path used for installation before moving package to its final location.
+        /// </summary>
         private string CreateInstallationTempPath()
         {
             var tempInstallPath = Path.Combine(_tmpPath, Guid.NewGuid().ToString());
@@ -578,6 +681,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return tempInstallPath;
         }
 
+        /// <summary>
+        /// Deletes the temporary path used for intermediary installation.
+        /// </summary>
         private void DeleteInstallationTempPath(string tempInstallPath)
         {
             if (Directory.Exists(tempInstallPath))
@@ -595,9 +701,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private bool TryMoveInstallContent(HttpContent responseContent,  string tempInstallPath, string pkgName, string normalizedPkgVersion, ScopeType scope, PSResourceInfo pkgToInstall)
+        /// <summary>
+        /// Attempts to install response content into a temporary path on the machine.
+        /// </summary>
+        private bool TryInstallToTempPath(
+            HttpContent responseContent, 
+            string tempInstallPath, 
+            string pkgName, 
+            string normalizedPkgVersion, 
+            PSResourceInfo pkgToInstall, 
+            Hashtable packagesHash, 
+            out Hashtable updatedPackagesHash)
         {
-            // takes response content for HTTPInstallPackage and moves files into neccessary install path and cleans up.
+            updatedPackagesHash = packagesHash;
+            // Take response content for HTTPInstallPackage and move files into temp install path.
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
@@ -618,13 +735,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var moduleManifest = Path.Combine(tempDirNameVersion, pkgName + PSDataFileExt);
                 var scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
 
-                // bool isModule = pkgToInstall.Type == ResourceType.Module || pkgToInstall.Type == ResourceType.None;
                 bool isModule = File.Exists(moduleManifest);
                 bool isScript = File.Exists(scriptPath);
 
-                // pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string newVersion);
-
-                // TODO: add Save pkg code
+                if (!isModule && !isScript) {
+                    scriptPath = "";
+                }
 
                 // TODO: add pkg validation when we figure out consistent/defined way to do so
                 if (_authenticodeCheck && !AuthenticodeSignature.CheckAuthenticodeSignature(
@@ -639,8 +755,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string installPath = string.Empty;
                 if (isModule)
                 {
-                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
-
                     if (!File.Exists(moduleManifest))
                     {
                         var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgName, moduleManifest);
@@ -682,8 +796,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else if (isScript)
                 {
-                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
-
                     // is script
                     if (!PSScriptFileInfo.TryTestPSScriptFile(
                         scriptFileInfoPath: scriptPath,
@@ -699,12 +811,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return false;
                     }
                 }
-                else {
-                    // not a PowerShell package (eg a resource from the NuGet Gallery)
-                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
-
+                else
+                {
+                    // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
                     _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
-
                     isModule = true;
                 }
 
@@ -715,29 +825,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule);
                 }
 
-                MoveFilesIntoInstallPath(
-                    pkgToInstall,
-                    isModule,
-                    isLocalRepo: false, // false for HTTP repo
-                    tempDirNameVersion,
-                    tempInstallPath,
-                    installPath,
-                    newVersion: pkgVersion, // would not have prerelease label in this string
-                    moduleManifestVersion: pkgVersion,
-                    scriptPath);
-
-                _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkgName, installPath));
-
-                if (!_savePkg && !isModule)
+                if (!updatedPackagesHash.ContainsKey(pkgName))
                 {
-                    string installPathwithBackSlash = installPath + "\\";
-                    string envPATHVarValue = Environment.GetEnvironmentVariable("PATH",
-                        scope == ScopeType.CurrentUser ? EnvironmentVariableTarget.User : EnvironmentVariableTarget.Machine);
-
-                    if (!envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
+                    // Add pkg info to hashtable. 
+                    updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
-                        _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
-                    }
+                        { "isModule", isModule },
+                        { "isScript", isScript },
+                        { "psResourceInfoPkg", pkgToInstall },
+                        { "tempDirNameVersionPath", tempDirNameVersion },
+                        { "pkgVersion", pkgVersion },
+                        { "scriptPath", scriptPath  }
+                    });
                 }
 
                 return true;
@@ -747,7 +846,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
-                            message: $"Unable to successfully install package '{pkgName}': '{e.Message}'",
+                            message: $"Unable to successfully install package '{pkgName}': '{e.Message}' to temporary installation path.",
                             innerException: e),
                         "InstallPackageFailed",
                         ErrorCategory.InvalidOperation,
@@ -755,6 +854,84 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                 return false;
             }
+        }
+
+        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, Hashtable packagesHash)
+        {
+            foreach (string pkgName in packagesHash.Keys)
+            {
+                Hashtable pkgInfo = packagesHash[pkgName] as Hashtable;
+                bool isModule = (pkgInfo["isModule"] as bool?) ?? false;
+                bool isScript = (pkgInfo["isScript"] as bool?) ?? false;
+                PSResourceInfo pkgToInstall = pkgInfo["psResourceInfoPkg"] as PSResourceInfo;
+                string tempDirNameVersion = pkgInfo["tempDirNameVersionPath"] as string;
+                string pkgVersion = pkgInfo["pkgVersion"] as string;
+                string scriptPath = pkgInfo["scriptPath"] as string;
+
+                // Moves package files/directories into the final install path location.
+                try
+                {
+                    string installPath = string.Empty;
+                    if (isModule)
+                    {
+                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
+                    }
+                    else if (isScript)
+                    {
+                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
+                    }
+                    else
+                    {
+                        // Not a PowerShell package (eg a resource from the NuGet Gallery).
+                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
+                        _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
+
+                        isModule = true;
+                    }
+
+                    installPath = _savePkg ? _pathsToInstallPkg.First() : installPath;
+
+                    MoveFilesIntoInstallPath(
+                        pkgToInstall,
+                        isModule,
+                        isLocalRepo: false, // false for HTTP repo
+                        tempDirNameVersion,
+                        tempInstallPath,
+                        installPath,
+                        newVersion: pkgVersion, // would not have prerelease label in this string
+                        moduleManifestVersion: pkgVersion,
+                        scriptPath);
+
+                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkgName, installPath));
+
+                    if (!_savePkg && isScript)
+                    {
+                        string installPathwithBackSlash = installPath + "\\";
+                        string envPATHVarValue = Environment.GetEnvironmentVariable("PATH",
+                            scope == ScopeType.CurrentUser ? EnvironmentVariableTarget.User : EnvironmentVariableTarget.Machine);
+
+                        if (!envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
+                        {
+                            _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteError(
+                        new ErrorRecord(
+                            new PSInvalidOperationException(
+                                message: $"Unable to successfully install package '{pkgName}': '{e.Message}'",
+                                innerException: e),
+                            "InstallPackageFailed",
+                            ErrorCategory.InvalidOperation,
+                            _cmdletPassedIn));
+                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
