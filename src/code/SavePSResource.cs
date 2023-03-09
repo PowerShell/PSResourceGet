@@ -286,7 +286,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 savePkg: true,
                 pathsToInstallPkg: new List<string> { _path },
                 scope: null,
-                tmpPath: _tmpPath);
+                tmpPath: _tmpPath,
+                pkgsInstalled: new HashSet<string>(StringComparer.InvariantCultureIgnoreCase));
 
             if (PassThru)
             {
