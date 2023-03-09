@@ -13,6 +13,7 @@ using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
+using Microsoft.PowerShell.PowerShellGet.Cmdlets;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -733,6 +734,45 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "powershell");
                 programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
             }
+        }
+
+        /// <summary>
+        /// Checks if any of the package versions are already installed and if they are removes them from the list of packages to install.
+        /// </summary>
+        internal static HashSet<string> GetInstalledPackages(List<string> pathsToSearch, PSCmdlet cmdletPassedIn)
+        {
+            // Package install paths.
+            // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable).
+            // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations.
+            // e.g.:
+            // ./InstallPackagePath1/PackageA
+            // ./InstallPackagePath1/PackageB
+            // ./InstallPackagePath2/PackageC
+            // ./InstallPackagePath3/PackageD
+
+            // Get currently installed packages.
+            var getHelper = new GetHelper(cmdletPassedIn);
+            var pkgsInstalledOnMachine = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
+
+            foreach (PSResourceInfo installedPkg in getHelper.GetPackagesFromPath(
+                name: new string[] { "*" },
+                versionRange: VersionRange.All,
+                pathsToSearch: pathsToSearch,
+                selectPrereleaseOnly: false))
+            {
+                string pkgNameVersion = CreateHashSetKey(installedPkg.Name, installedPkg.Version.ToString());
+                if (!pkgsInstalledOnMachine.Contains(pkgNameVersion))
+                {
+                    pkgsInstalledOnMachine.Add(pkgNameVersion);
+                }
+            }
+
+            return pkgsInstalledOnMachine;
+        }
+
+        internal static string CreateHashSetKey(string packageName, string packageVersion)
+        {
+            return $"{packageName}{packageVersion}";
         }
 
         #endregion

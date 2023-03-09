@@ -687,7 +687,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return matchedTags.Count > 0;
         }
 
-        private IEnumerable<PSResourceInfo> HttpFindDependencyPackages(
+        internal IEnumerable<PSResourceInfo> HttpFindDependencyPackages(
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
             PSResourceInfo currentPkg,
