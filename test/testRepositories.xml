@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
-  <Repository Name="PSGallery"       Uri="https://www.powershellgallery.com/api/v2" Priority="50" Trusted="false" />
-  <Repository Name="NuGetGallery"    Uri="https://api.nuget.org/v3/index.json"      Priority="50" Trusted="true"  />
+  <Repository Name="PSGallery"       Uri="https://www.powershellgallery.com/api/v2" Priority="50" Trusted="false" ApiVersion="v2" />
+  <Repository Name="NuGetGallery"    Uri="https://api.nuget.org/v3/index.json"      Priority="50" Trusted="true" ApiVersion="v3" />
 </configuration>
