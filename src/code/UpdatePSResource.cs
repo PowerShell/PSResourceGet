@@ -167,26 +167,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            /**
-            VersionRange versionRange;
-
-            // handle case where Version == null
-            if (Version == null) { 
-                versionRange = VersionRange.All;
-            }
-            else if (!Utils.TryParseVersionOrVersionRange(Version, out versionRange))
-            {
-                // Only returns false if the range was incorrectly formatted and couldn't be parsed.
-                WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("Cannot parse Version parameter provided into VersionRange"),
-                    "ErrorParsingVersionParamIntoVersionRange",
-                    ErrorCategory.InvalidArgument,
-                    this));
-                return;
-            }
-
-            */
-
             // determine/parse out Version param
             VersionType versionType = VersionType.VersionRange;
             NuGetVersion nugetVersion = null;

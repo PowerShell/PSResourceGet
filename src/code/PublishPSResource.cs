@@ -795,17 +795,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     versionType = VersionType.NoVersion;
                 }
-
-                // if (!Utils.TryParseVersionOrVersionRange(depVersion, out versionRange))
-                // {
-                //     // This should never be true because Test-ModuleManifest will throw an error if dependency versions are incorrectly formatted
-                //     // This is being left as a safeguard for parsing a version from a string to a version range.
-                //     ThrowTerminatingError(new ErrorRecord(
-                //         new ArgumentException(string.Format("Error parsing dependency version {0}, from the module {1}", depVersion, depName)),
-                //         "IncorrectVersionFormat",
-                //         ErrorCategory.InvalidArgument,
-                //         this));
-                // }
                 
                 // Search for and return the dependency if it's in the repository.
                 FindHelper findHelper = new FindHelper(_cancellationToken, this, _networkCredential);

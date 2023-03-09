@@ -430,7 +430,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindTagResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            string errMsg = $"Tags: {String.Join(", ", _tag)} could not be found due to: {currentResult.errorMsg}";
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindTagResponseConversionFail", ErrorCategory.NotSpecified, this));
                             continue;
                         }
 
@@ -443,11 +444,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Private HTTP methods
-
-        // if (!_repositoryNameContainsWildcard)
-        // {
-        //     _pkgsLeftToFind.Remove(pkgName);
-        // }
 
         private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository)
         {
@@ -473,7 +469,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindAllResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                string errMsg = $"Package with search criteria: Name {pkgName} could not be found due to: {currentResult.errorMsg}.";
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindAllResponseConversionFail", ErrorCategory.NotSpecified, this));
                                 continue;
                             }
 
@@ -486,6 +483,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az*"
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
+                        string tagMsg = String.Empty;
                         string[] responses = Utils.EmptyStrArray;
                         if (_tag.Length == 0)
                         {
@@ -494,6 +492,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         else
                         {
                             responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                            string tagsAsString = String.Join(", ", _tag);
+                            tagMsg = $" and Tags {tagsAsString}";
                         }
 
                         if (edi != null)
@@ -506,7 +506,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameGlobbingResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                string errMsg = $"Package with search criteria: Name {pkgName}{tagMsg} could not be found due to: {currentResult.errorMsg} originating at method: FindNameGlobbingResponseConversionFail().";
+                                _cmdletPassedIn.WriteWarning(errMsg);
                                 continue;
                             }
 
@@ -519,6 +520,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az"
                         // Example: Find-PSResource -Name "Az" -Tag "Storage"
+                        string tagMsg = String.Empty;
                         string response = String.Empty;
                         if (_tag.Length == 0)
                         {
@@ -527,6 +529,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         else
                         {
                             response = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                            string tagsAsString = String.Join(", ", _tag);
+                            tagMsg = $" and Tags {tagsAsString}";
                         }
 
                         string[] responses = new string[]{ response };
@@ -540,7 +544,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            string errMsg = $"Package with search criteria: Name {pkgName}{tagMsg} could not be found due to: {currentResult.errorMsg}.";
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindNameResponseConversionFail", ErrorCategory.NotSpecified, this));
                             continue;
                         }
 
@@ -565,6 +570,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0"
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0" -Tag "Windows"
                         string response = String.Empty;
+                        string tagMsg = String.Empty;
                         if (_tag.Length == 0)
                         {
                             response = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out edi);
@@ -572,6 +578,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         else
                         {
                             response = currentServer.FindVersionWithTag(pkgName, _nugetVersion.ToNormalizedString(), _tag, _type, out edi);
+                            string tagsAsString = String.Join(", ", _tag);
+                            tagMsg = $" and Tags {tagsAsString}";
                         }
 
                         string[] responses = new string[]{ response };
@@ -585,7 +593,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            string errMsg = $"Package with search criteria: Name {pkgName}, Version {_version} {tagMsg} could not be found due to: {currentResult.errorMsg}.";
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindVersionResponseConversionFail", ErrorCategory.NotSpecified, this));
                             continue;
                         }
 
@@ -633,7 +642,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                string errMsg = $"Package with search criteria: Name {pkgName} and Version {_version} could not be found due to: {currentResult.errorMsg} originating at method FindVersionGlobbingResponseConversionFail().";
+                                _cmdletPassedIn.WriteWarning(errMsg);
                                 continue;
                             }
 
