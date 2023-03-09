@@ -28,6 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static readonly string dataName = "data";
         private static readonly string idName = "id";
         private static readonly string versionName = "version";
+        private static readonly string tagsName = "tags";
         private static readonly string versionsName = "versions";
 
         #endregion
@@ -236,6 +237,65 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return response;
         }
 
+        public override string FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
+            if (edi != null)
+            {
+                return String.Empty;
+            }
+
+            string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
+            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
+
+            bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");
+            JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, isNuGetRepo, out edi);
+            if (edi != null)
+            {
+                return String.Empty;
+            }
+
+            string response = string.Empty;
+            foreach (JsonElement version in pkgVersionsArr)
+            {
+                // parse as NuGetVersion
+                if (NuGetVersion.TryParse(version.ToString(), out NuGetVersion nugetVersion))
+                {
+                    /* 
+                     * pkgVersion == !prerelease   &&   includePrerelease == true   -->   keep pkg   
+                     * pkgVersion == !prerelease   &&   includePrerelease == false  -->   keep pkg 
+                     * pkgVersion == prerelease    &&   includePrerelease == true   -->   keep pkg   
+                     * pkgVersion == prerelease    &&   includePrerelease == false  -->   throw away pkg 
+                     */
+                    if (!nugetVersion.IsPrerelease || includePrerelease)
+                    {
+                        response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
+                        if (edi != null)
+                        {
+                            return String.Empty;
+                        }
+
+                        bool isTagMatch = DetermineTagsPresent(response: response, tags: tags, out edi);
+
+                        if (!isTagMatch)
+                        {
+                            if (edi == null)
+                            {
+                                string errMsg = $"FindNameWithTag(): Tags required were not found in package {packageName} {version.ToString()}.";
+                                edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException(errMsg));
+                            }
+
+                            return String.Empty;
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            return response;
+        }
+
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and returns latest version.
         /// Name: supports wildcards
@@ -303,6 +363,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 string id = string.Empty;
                 string latestVersion = string.Empty;
+
                 try
                 {
                     if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || ! pkgId.TryGetProperty(versionName, out JsonElement versionItem))
@@ -317,7 +378,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    string errMsg = $"FindTag(): Name or Version element could not be parsed from response due to exception {e.Message}.";
+                    string errMsg = $"FindNameGlobbing(): Name or Version element could not be parsed from response due to exception {e.Message}.";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                     break;
                 }
@@ -328,9 +389,118 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     (packageName.StartsWith("*") && id.EndsWith(querySearchTerm)))
                 {
                     string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
+
                     if (edi != null)
                     {
                         return Utils.EmptyStrArray;
+                    }
+
+                    matchingResponses.Add(response);
+                }
+            }
+
+            return matchingResponses.ToArray();
+        }
+
+        public override string[] FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+            string querySearchTerm;
+
+            if (names.Length == 0)
+            {
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
+                return Utils.EmptyStrArray;
+            }
+            if (names.Length == 1)
+            {
+                // packageName: *get*       -> q: get
+                // packageName: PowerShell* -> q: PowerShell
+                // packageName: *ShellGet   -> q: ShellGet
+                querySearchTerm = names[0];
+            }
+            else
+            {
+                // *pow*get*
+                // pow*get -> only support this (V2)
+                // pow*get*
+                // *pow*get
+
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
+                return Utils.EmptyStrArray;
+            }
+
+            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
+            // https://azuresearch-usnc.nuget.org/query?q=Newtonsoft&prerelease=false&semVerLevel=1.0.0 (NuGet) (supports * at end of searchterm q but equivalent to q = text w/o *)
+            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
+            if (edi != null)
+            {
+                return Utils.EmptyStrArray;
+            }
+
+            string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
+            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
+
+            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+
+            // 2) call query with search term, get unique names, see which ones truly match
+            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
+            if (edi != null)
+            {
+                return Utils.EmptyStrArray;
+            }
+
+            List<string> matchingResponses = new List<string>();
+            foreach (var pkgId in matchingPkgIds)
+            {
+                string id = string.Empty;
+                string latestVersion = string.Empty;
+                string[] pkgTags = Utils.EmptyStrArray;
+
+                try
+                {
+                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
+                    {
+                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
+                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                        return Utils.EmptyStrArray;
+                    }
+
+                    if (!pkgId.TryGetProperty(tagsName, out JsonElement tagsItem))
+                    {
+                        string errMsg = $"FindNameGlobbing(): Tags element could not be found in response.";
+                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                        return Utils.EmptyStrArray;
+                    }
+
+                    id = idItem.ToString();
+                    latestVersion = versionItem.ToString();
+
+                    pkgTags = GetTagsFromJsonElement(tagsElement: tagsItem);
+                }
+                catch (Exception e)
+                {
+                    string errMsg = $"FindNameGlobbingWithTag(): Name or Version or Tags element could not be parsed from response due to exception {e.Message}.";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    break;
+                }
+
+                // determine if id matches our wildcard criteria
+                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.Contains(querySearchTerm)) ||
+                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm)) ||
+                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm)))
+                {
+                    bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags, requiredTags: tags);
+                    if (!isTagMatch)
+                    {
+                        continue;
+                    }
+
+                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
+
+                    if (edi != null)
+                    {
+                        continue;
                     }
 
                     matchingResponses.Add(response);
@@ -437,6 +607,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string response = FindVersionHelper(registrationsBaseUrl, packageName, version, out edi);
             if (edi != null)
             {
+                return String.Empty;
+            }
+
+            return response;
+        }
+        
+        public override string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            Hashtable resourceUrls = FindResourceType(new string[] { registrationsBaseUrlName }, out edi);
+            if (edi != null)
+            {
+                return String.Empty;
+            }
+
+            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
+
+            string response = FindVersionHelper(registrationsBaseUrl, packageName, version, out edi);
+            if (edi != null)
+            {
+                return String.Empty;
+            }
+
+            bool isTagMatch = DetermineTagsPresent(response: response, tags: tags, out edi);
+
+            if (!isTagMatch)
+            {
+                if (edi == null)
+                {
+                    string errMsg = $"FindVersionWithTag(): Tags required were not found in package {packageName} {version.ToString()}.";
+                    edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException(errMsg));
+                }
+
                 return String.Empty;
             }
 
@@ -557,6 +759,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 edi = ExceptionDispatchInfo.Capture(e);
             }
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
 
             return response;
         }
@@ -603,16 +809,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     if (resource.TryGetProperty("@type", out JsonElement typeElement) && resourceTypeName.Contains(typeElement.ToString()))
                     {
-                        if (resource.TryGetProperty("@id", out JsonElement idElement))
+                        // check if key already present in hastable, as there can be resources with same type but primary/secondary instances
+                        if (!resourceHash.ContainsKey(typeElement.ToString()))
                         {
-                            // add name of the resource and its url
-                            resourceHash.Add(typeElement.ToString(), idElement.ToString());
-                        }
-                        else
-                        {
-                            string errMsg = $"@type element was found but @id element not found in service index '{repository.Uri}' for {resourceTypeName}.";
-                            edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException(errMsg));
-                            return resourceHash;
+                            if (resource.TryGetProperty("@id", out JsonElement idElement))
+                            {
+                                // add name of the resource and its url
+                                resourceHash.Add(typeElement.ToString(), idElement.ToString());
+                            }
+                            else
+                            {
+                                string errMsg = $"@type element was found but @id element not found in service index '{repository.Uri}' for {resourceTypeName}.";
+                                edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException(errMsg));
+                                return resourceHash;
+                            }
                         }
                     }
                 }
@@ -681,6 +891,65 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return response;
+        }
+
+        private bool DetermineTagsPresent(string response, string[] tags, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            string[] pkgTags = Utils.EmptyStrArray;
+
+            try
+            {
+                JsonDocument pkgMappingDom = JsonDocument.Parse(response);
+                JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
+
+                if (!rootPkgMappingDom.TryGetProperty(tagsName, out JsonElement tagsElement))
+                {
+                    string errMsg = $"FindNameWithTag(): Tags element could not be found in response or was empty.";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    return false;
+                }
+
+                pkgTags = GetTagsFromJsonElement(tagsElement: tagsElement);
+            }
+            catch (Exception e)
+            {
+                string errMsg = $"DetermineTagsPresent(): Exception parsing JSON for respository {repository.Uri} with error: {e.Message}";
+                edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                return false;
+            }
+
+            bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags, requiredTags: tags);
+
+            return isTagMatch;
+        }
+
+        private string[] GetTagsFromJsonElement(JsonElement tagsElement)
+        {
+            List<string> tagsFound = new List<string>();
+            JsonElement[] pkgTagElements = tagsElement.EnumerateArray().ToArray();
+            foreach (JsonElement tagItem in pkgTagElements)
+            {
+                tagsFound.Add(tagItem.ToString().ToLower());
+            }
+
+            return tagsFound.ToArray();
+        }
+
+        private bool DeterminePkgTagsSatisfyRequiredTags(string[] pkgTags, string[] requiredTags)
+        {
+            bool isTagMatch = true;
+
+            foreach (string tag in requiredTags)
+            {
+                if (!pkgTags.Contains(tag.ToLower()))
+                {
+                    isTagMatch = false;
+                    break;
+                }
+            }
+            
+            return isTagMatch;
         }
 
         private JsonElement[] GetPackageVersions(string packageBaseAddressUrl, string packageName, bool isNuGetRepo, out ExceptionDispatchInfo edi)
