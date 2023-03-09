@@ -39,6 +39,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (string response in responses)
             {
                 var elemList = ConvertResponseToXML(response);
+                if (elemList.Length == 0)
+                {
+                    // this indicates we got a non-empty, XML response (as noticed for V2 server) but it's not a response that's meaningful (contains 'properties')
+                    string errorMsg = $"Response didn't contain properties element";
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
+                }
+
                 foreach (var element in elemList)
                 {
                     if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))

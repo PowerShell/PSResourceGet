@@ -29,4 +29,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
         }
     }
+
+    public class SpecifiedTagsNotFoundException : Exception
+    {
+        public SpecifiedTagsNotFoundException(string message)
+            : base (message)
+        {
+        }
+    }
 }
