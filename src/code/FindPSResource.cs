@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string NameParameterSet = "NameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
-        private const string TagParameterSet = "TagParameterSet";
         private CancellationTokenSource _cancellationTokenSource;
         private FindHelper _findHelper;
 
@@ -50,10 +50,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Specifies one or more resource types to find.
-        /// Resource types supported are: Module, Script, Command, DscResource
+        /// Resource types supported are: Module, Script
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        [Parameter(ParameterSetName = TagParameterSet)]
         public ResourceType Type { get; set; }
 
         /// <summary>
@@ -86,7 +85,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Filters search results for resources that include one or more of the specified tags.
         /// </summary>
-        [Parameter(ParameterSetName = TagParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNull]
         public string[] Tag { get; set; }
 
@@ -157,10 +156,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ProcessCommandOrDscParameterSet(isSearchingForCommands: false);
                     break;
 
-                case TagParameterSet:
-                    ProcessTagParameterSet();
-                    break;
-
                 default:
                     Dbg.Assert(false, "Invalid parameter set");
                     break;
@@ -173,20 +168,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private void ProcessResourceNameParameterSet()
         {
+            // only cases where Name is allowed to not be specified is if Type or Tag parameters are
             if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {
-                // only cases where Name is allowed to not be specified is if Type or Tag parameters are
-                if (!MyInvocation.BoundParameters.ContainsKey(nameof(Type)) && !MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
+                if (MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
+                {
+                    // case where Name specified: false, Tag specified: true (i.e just search by Tags)
+                    ProcessTagParameterSet(); // TODO: rename
+                    return;
+                }
+                else if (MyInvocation.BoundParameters.ContainsKey(nameof(Type)))
+                {
+                    Name = new string[] {"*"};
+                }
+                else
                 {
                     ThrowTerminatingError(
                         new ErrorRecord(
-                            new PSInvalidOperationException("Name parameter must be provided."),
+                            new PSInvalidOperationException("Name parameter must be provided, unless Tag or Type parameters are used."),
                             "NameParameterNotProvided",
                             ErrorCategory.InvalidOperation,
                             this));
                 }
-
-                Name = new string[] {"*"};
             }
 
             Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
@@ -205,11 +208,48 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (Name.Length == 0)
             {
                 return;
-            }            
+            }         
+
+            // determine/parse out Version param
+            VersionType versionType = VersionType.VersionRange;
+            NuGetVersion nugetVersion = null;
+            VersionRange versionRange = null;
+
+            if (Version != null)
+            {
+                if (!NuGetVersion.TryParse(Version, out nugetVersion))
+                {
+                    if (Version.Trim().Equals("*"))
+                    {
+                        versionRange = VersionRange.All;
+                        versionType = VersionType.VersionRange;
+                    }
+                    else if (!VersionRange.TryParse(Version, out versionRange))
+                    {
+                        WriteError(new ErrorRecord(
+                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                            "IncorrectVersionFormat",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                        return;
+                    }
+                }
+                else
+                {
+                    versionType = VersionType.SpecificVersion;
+                }
+            }
+            else
+            {
+                versionType = VersionType.NoVersion;
+            }
 
             foreach (PSResourceInfo pkg in _findHelper.FindByResourceName(
                 name: Name,
                 type: Type,
+                versionRange: versionRange,
+                nugetVersion: nugetVersion,
+                versionType: versionType,
                 version: Version,
                 prerelease: Prerelease,
                 tag: Tag,

@@ -64,6 +64,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public abstract string FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
 
+        public abstract string FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
+
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and returns latest version.
         /// Name: supports wildcards
@@ -73,6 +75,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
         public abstract string[] FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
+
+        public abstract string[] FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
         /// <summary>
         /// Find method which allows for searching for single name with version range.
         /// Name: no wildcard support
@@ -92,6 +96,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
         public abstract string FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi);
+
+        public abstract string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi);
 
         /**  INSTALL APIS **/
 

@@ -42,6 +42,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private readonly PSCmdlet _cmdletPassedIn;
         private List<string> _pathsToInstallPkg;
         private VersionRange _versionRange;
+        private NuGetVersion _nugetVersion;
+        private VersionType _versionType;
         private string _versionString;
         private bool _prerelease;
         private bool _acceptLicense;
@@ -125,6 +127,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _savePkg = savePkg;
             _pathsToInstallPkg = pathsToInstallPkg;
             _tmpPath = tmpPath ?? Path.GetTempPath();
+
+            bool parsedAsNuGetVersion = NuGetVersion.TryParse(_versionString, out _nugetVersion);
+            if (parsedAsNuGetVersion)
+            {
+                _versionType = VersionType.SpecificVersion;
+            }
+            else if (!parsedAsNuGetVersion && _versionRange == null)
+            {
+                _versionType = VersionType.NoVersion;
+            }
+            else
+            {
+                // versionRange != null
+                _versionType = VersionType.VersionRange;
+            }
 
             // Create list of installation paths to search.
             _pathsToSearch = new List<string>();
@@ -242,6 +259,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     List<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
                         name: _pkgNamesToInstall.ToArray(),
                         type: ResourceType.None,
+                        versionRange: _versionRange,
+                        nugetVersion: _nugetVersion,
+                        versionType: _versionType,
                         version: _versionRange?.OriginalString,
                         prerelease: _prerelease,
                         tag: null,

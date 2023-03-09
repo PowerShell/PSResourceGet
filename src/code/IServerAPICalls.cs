@@ -34,8 +34,9 @@ public interface IServerAPICalls
     /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
     /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
     /// </summary>
-    /// // TODO:  change repository from string to PSRepositoryInfo
     string FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
+
+    string FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
 
     /// <summary>
     /// Find method which allows for searching for single name with version range.
@@ -47,6 +48,8 @@ public interface IServerAPICalls
     /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
     /// </summary>
     string[] FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
+
+    string[] FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
 
     /// <summary>
     /// Find method which allows for searching for single name with specific version.
@@ -65,6 +68,8 @@ public interface IServerAPICalls
     /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
     /// </summary>
     string FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi);
+
+    string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi);
     
 
     /// <summary>
