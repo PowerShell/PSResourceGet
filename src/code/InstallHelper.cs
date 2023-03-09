@@ -58,6 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
         private NetworkCredential _networkCredential;
+        private HashSet<string> _packagesOnMachine;
 
         #endregion
 
@@ -90,7 +91,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool savePkg,
             List<string> pathsToInstallPkg,
             ScopeType? scope,
-            string tmpPath)
+            string tmpPath,
+            HashSet<string> pkgsInstalled)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
                 "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXml '{10}'; SavePackage '{11}'; TemporaryPath '{12}'",
@@ -129,6 +131,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Create list of installation paths to search.
             _pathsToSearch = new List<string>();
             _pkgNamesToInstall = names.ToList();
+            _packagesOnMachine = pkgsInstalled;
 
             // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable)
             // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations
@@ -509,16 +512,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     // Parent package and dependencies are now installed to temp directory. 
+                    // Try to move all package directories from temp directory to final destination.
                     if (!TryMoveInstallContent(tempInstallPath, scope, packagesHash))
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(new InvalidOperationException(), "InstallPackageTryMoveContentFailure", ErrorCategory.InvalidOperation, this));
                     }
                     else
                     {
-                        foreach (string pkg in packagesHash.Keys)
+                        foreach (string pkgName in packagesHash.Keys)
                         {
-                            Hashtable pkgInfo = packagesHash[pkg] as Hashtable;
+                            Hashtable pkgInfo = packagesHash[pkgName] as Hashtable;
                             pkgsSuccessfullyInstalled.Add(pkgInfo["psResourceInfoPkg"] as PSResourceInfo);
+
+                            // Add each pkg to _packagesOnMachine (ie pkgs fully installed on the machine).
+                            _packagesOnMachine.Add(Utils.CreateHashSetKey(pkgName, pkgInfo["pkgVersion"].ToString()));
                         }
                     }
                 }
@@ -599,15 +606,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             PSResourceInfo pkgToInstall = currentResult.returnedObject;
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
-
-            // TODO:  refactor this a bit for performance 
-            packagesToInstall.Add(pkgToInstall);
           
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
-                // TODO:  is there a way to cache what we just searched through?
-                packagesToInstall = FilterByInstalledPkgs(packagesToInstall);
+                // TODO: is there a way to cache what we just searched through?
+                string currPkgNameVersion = Utils.CreateHashSetKey(pkgToInstall.Name, pkgToInstall.Version.ToString());
+                if (_packagesOnMachine.Contains(currPkgNameVersion))
+                {
+                    return packagesHash;
+                }
             }
 
             if (packagesToInstall.Count == 0)
@@ -672,7 +680,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             catch (Exception e)
             {
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException("Temporary folder for installation could not be created or set due to: " + e.Message),
+                    new ArgumentException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
                     "TempFolderCreationError",
                     ErrorCategory.InvalidOperation,
                     this));
