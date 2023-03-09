@@ -765,15 +765,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
 
                 VersionRange versionRange = null;
-                if (!Utils.TryParseVersionOrVersionRange(depVersion, out versionRange))
+                VersionType versionType = VersionType.VersionRange;
+                NuGetVersion nugetVersion = null;
+
+                if (depVersion != null)
                 {
-                    // This should never be true because Test-ModuleManifest will throw an error if dependency versions are incorrectly formatted
-                    // This is being left as a safeguard for parsing a version from a string to a version range.
-                    ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException(string.Format("Error parsing dependency version {0}, from the module {1}", depVersion, depName)),
-                        "IncorrectVersionFormat",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                    if (!NuGetVersion.TryParse(depVersion, out nugetVersion))
+                    {
+                        if (depVersion.Trim().Equals("*"))
+                        {
+                            versionRange = VersionRange.All;
+                            versionType = VersionType.VersionRange;
+                        }
+                        else if (!VersionRange.TryParse(depVersion, out versionRange))
+                        {
+                            ThrowTerminatingError(new ErrorRecord(
+                                new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                                "IncorrectVersionFormat",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                        }
+                    }
+                    else
+                    {
+                        versionType = VersionType.SpecificVersion;
+                    }
+                }
+                else
+                {
+                    versionType = VersionType.NoVersion;
                 }
                 
                 // Search for and return the dependency if it's in the repository.
@@ -781,7 +801,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 bool depPrerelease = depVersion.Contains("-");
 
                 var repository = new[] { repositoryName };
-                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, depVersion, depPrerelease, null, repository, false);
+                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, depPrerelease, null, repository, false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                     var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);

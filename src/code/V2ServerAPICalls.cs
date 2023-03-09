@@ -251,6 +251,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out edi);  
         }
 
+        public override string FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            // Make sure to include quotations around the package name
+            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
+
+            // This should return the latest stable version or the latest prerelease version (respectively)
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+            string typeFilterPart = type == ResourceType.None ? $" and Id eq '{packageName}'" :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+
+            string tagFilterPart = String.Empty;
+            foreach (string tag in tags)
+            {
+                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+            }
+
+            var requestUrlV2 = $"{repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{typeFilterPart}{tagFilterPart}&{select}";
+
+            return HttpRequestCall(requestUrlV2, out edi);  
+        }
+
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and returns latest version.
         /// Name: supports wildcards
@@ -269,6 +289,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 return responses.ToArray();
             }
+
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls 
@@ -284,6 +305,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // skip 100
                 skip += 100;
                 var tmpResponse = FindNameGlobbing(packageName, repository, includePrerelease, skip, out edi);
+                if (edi != null)
+                {
+                    return responses.ToArray();
+                }
+                responses.Add(tmpResponse);
+                count--;
+            }
+
+            return responses.ToArray();
+        }
+
+        public override string[] FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            List<string> responses = new List<string>();
+            int skip = 0;
+
+            var initialResponse = FindNameGlobbingWithTag(packageName, tags, repository, includePrerelease, skip, out edi);
+            if (edi != null)
+            {
+                return responses.ToArray();
+            }
+
+            responses.Add(initialResponse);
+
+            // check count (regex)  425 ==> count/100  ~~>  4 calls 
+            int initalCount = GetCountFromResponse(initialResponse, out edi);  // count = 4
+            if (edi != null)
+            {
+                return responses.ToArray();
+            }
+            int count = initalCount / 100;
+            // if more than 100 count, loop and add response to list
+            while (count > 0)
+            {
+                // skip 100
+                skip += 100;
+                var tmpResponse = FindNameGlobbingWithTag(packageName, tags, repository, includePrerelease, skip, out edi);
                 if (edi != null)
                 {
                     return responses.ToArray();
@@ -358,6 +416,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             
             return HttpRequestCall(requestUrlV2, out edi);  
         }
+
+        public override string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+
+            string tagFilterPart = String.Empty;
+            foreach (string tag in tags)
+            {
+                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+            }
+
+            var requestUrlV2 = $"{repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{typeFilterPart}{tagFilterPart}&{select}";
+            
+            return HttpRequestCall(requestUrlV2, out edi);
+        }
+
 
         /**  INSTALL APIS **/
 
@@ -503,7 +577,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         private string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
         {
-            edi= null;
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
             
@@ -515,7 +588,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (names.Length == 0)
             {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"));
                 return string.Empty;
             }
             if (names.Length == 1)
@@ -551,6 +624,65 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             
             var requestUrlV2 = $"{repository.Uri}/Search()?$filter={nameFilter} and {prerelease}&{select}{extraParam}";
+            
+            return HttpRequestCall(requestUrlV2, out edi);  
+        }
+
+        private string FindNameGlobbingWithTag(string packageName, string[] tags, PSRepositoryInfo repository, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
+        {
+            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
+            // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
+            
+            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100";
+            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
+            string nameFilter;
+
+            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+
+            if (names.Length == 0)
+            {
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"));
+                return string.Empty;
+            }
+            if (names.Length == 1)
+            {
+                if (packageName.StartsWith("*") && packageName.EndsWith("*"))
+                {
+                    // *get*
+                    nameFilter = $"substringof('{names[0]}', Id)";
+                }
+                else if (packageName.EndsWith("*"))
+                {
+                    // PowerShell*
+                    nameFilter = $"startswith(Id, '{names[0]}')";
+                }
+                else
+                {
+                    // *ShellGet
+                    nameFilter = $"endswith(Id, '{names[0]}')";
+                }
+            }
+            else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
+            {
+                // *pow*get*
+                // pow*get -> only support this
+                // pow*get*
+                // *pow*get
+                nameFilter = $"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')";
+            }
+            else 
+            {
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
+                return string.Empty;
+            }
+
+            string tagFilterPart = String.Empty;
+            foreach (string tag in tags)
+            {
+                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+            }
+            
+            var requestUrlV2 = $"{repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart} and {prerelease}&{select}{extraParam}";
             
             return HttpRequestCall(requestUrlV2, out edi);  
         }
