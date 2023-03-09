@@ -258,9 +258,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
-            
+            List<string> pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
             // Only need to find packages installed if -Reinstall is not passed in
-            _packagesOnMachine = Reinstall ? new HashSet<string>(StringComparer.CurrentCultureIgnoreCase) : Utils.GetInstalledPackages(_pathsToInstallPkg, this);
+            _packagesOnMachine = Reinstall ? new HashSet<string>(StringComparer.CurrentCultureIgnoreCase) : Utils.GetInstalledPackages(pathsToSearch, this);
 
             var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 

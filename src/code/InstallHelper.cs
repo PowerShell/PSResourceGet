@@ -574,7 +574,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable packagesHash,
             out ExceptionDispatchInfo edi)
         {
-            List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
+            //List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
             string[] responses = Utils.EmptyStrArray;
             edi = null;
 
@@ -631,7 +631,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
-                // TODO: is there a way to cache what we just searched through?
                 string currPkgNameVersion = Utils.CreateHashSetKey(pkgToInstall.Name, pkgToInstall.Version.ToString());
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
@@ -639,15 +638,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            if (packagesToInstall.Count == 0)
-            {
-                return packagesHash;
-            }
-
             // Download the package.
-            var pkg = packagesToInstall.First();
-            pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
-            string pkgName = pkg.Name;
+            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+            string pkgName = pkgToInstall.Name;
 
             HttpContent responseContent = null;
             string errType = String.Empty;
@@ -671,7 +664,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            bool installedToTempPathSuccessfully = TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkg, packagesHash, out Hashtable updatedPackagesHash);
+            bool installedToTempPathSuccessfully = TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out Hashtable updatedPackagesHash);
             if (!installedToTempPathSuccessfully)
             {
                 edi = ExceptionDispatchInfo.Capture(new System.Exception(currentResult.errorMsg));
