@@ -242,6 +242,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string _requiredResourceFile;
         private string _requiredResourceJson;
         private Hashtable _requiredResourceHash;
+        private HashSet<string> _packagesOnMachine;
         VersionRange _versionRange;
         InstallHelper _installHelper;
         ResourceFileType _resourceFileType;
@@ -257,6 +258,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
+            
+            // Only need to find packages installed if -Reinstall is not passed in
+            _packagesOnMachine = Reinstall ? new HashSet<string>(StringComparer.CurrentCultureIgnoreCase) : Utils.GetInstalledPackages(_pathsToInstallPkg, this);
 
             var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
@@ -553,7 +557,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg,
                 scope: Scope,
-                tmpPath: _tmpPath);
+                tmpPath: _tmpPath,
+                pkgsInstalled: _packagesOnMachine);
 
             if (PassThru)
             {
