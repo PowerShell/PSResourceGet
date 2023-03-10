@@ -387,22 +387,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                if (!NuGetVersion.TryParse(repositoryPackage.Version.ToString(), out NuGetVersion repositoryPackageNuGetVersion))
-                {
-                    WriteWarning($"Cannot parse nuget version in repository package '{repositoryPackage.Name}'. Cannot update package.");
-                    continue;
-                }
-
-                // We compare NuGetVersions instead of System.Version as repositoryPackage.Version (3.0.17.0) and installedPackage.Version (3.0.17.-1)
-                // should refer to the same version but with System.Version end up having discrepancies which yields incorrect results.
-                if ((versionRange == VersionRange.All && repositoryPackageNuGetVersion > installedVersion) ||
-                    !versionRange.Satisfies(installedVersion))
+                if (((versionRange == null || versionRange == VersionRange.All) && repositoryPackage.Version > installedPackage.Version) ||
+                    (versionRange != null && !versionRange.Satisfies(installedVersion)))
                 {
                     namesToUpdate.Add(repositoryPackage.Name);
                 }
                 else
                 {
-                    WriteVerbose($"Installed package {repositoryPackage.Name} {repositoryPackageNuGetVersion} is already up to date.");
+                    WriteVerbose($"Installed package {repositoryPackage.Name} {repositoryPackage.Version} is already up to date.");
                 }
             }
 
