@@ -19,20 +19,21 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $NuGetGalleryName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
     }
 
     It "should not find resource given nonexistant Name" {
         $res = Find-PSResource -Name NonExistantModule -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameResponseConversionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
     It "find resource(s) given wildcard Name" {
         # FindNameGlobbing
-        $res = Find-PSResource -Name "test_*" -Repository $NuGetGalleryName
+        $wildcardName = "test_module*"
+        $res = Find-PSResource -Name $wildcardName -Repository $NuGetGalleryName
         $res.Count | Should -BeGreaterThan 1
         foreach ($item in $res)
         {
@@ -40,16 +41,16 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         }
     }
 
-    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match"},
-                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0.0");                                  Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0.0");                                  Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0.0", "3.0.0.0");                       Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0");                       Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match"},
+                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
+                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0");                                  Reason="validate version, exact range exclusive"},
+                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0", "5.0.0");                       Reason="validate version, minimum version exclusive"},
+                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, minimum version inclusive"},
+                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0");                                  Reason="validate version, maximum version exclusive"},
+                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0");                       Reason="validate version, maximum version inclusive"},
+                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0", "3.0.0");                       Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0", "5.0.0");                       Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
         # FindVersionGlobbing()
@@ -75,7 +76,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         # FindName()
         # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
         $res = Find-PSResource -Name $testModuleName -Repository $NuGetGalleryName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
 
         $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $NuGetGalleryName
         $resPrerelease.Version | Should -Be "5.2.5"
@@ -164,7 +165,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameResponseConversionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
     It "find resource that satisfies given Name and Tag property (multiple tags)" {
@@ -182,7 +183,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameResponseConversionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
     It "find all resources that satisfy Name pattern and have specified Tag (single tag)" {
@@ -231,7 +232,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         $requiredTag = "test"
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $NuGetGalleryName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTag
     }
 
@@ -241,7 +242,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionResponseConversionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
     It "find resource that satisfies given Name, Version and Tag property (multiple tags)" {
@@ -249,7 +250,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         $requiredTags = @("test", "Tag2")
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $NuGetGalleryName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
 
@@ -261,7 +262,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionResponseConversionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
     # It "find all resources with specified tag given Tag property" {
