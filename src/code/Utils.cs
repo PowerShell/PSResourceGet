@@ -1411,6 +1411,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
+            /*
             // First check if the files are catalog signed.
             string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
             if (File.Exists(catalogFilePath))
@@ -1460,6 +1461,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 return true;
             }
+            */
 
             // Otherwise check for signatures on individual files.
             Collection<PSObject> authenticodeSignatures;
