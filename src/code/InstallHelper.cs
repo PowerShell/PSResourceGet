@@ -620,7 +620,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!String.IsNullOrEmpty(currentResult.errorMsg))
             {
-                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(currentResult.errorMsg));
+                //edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(currentResult.errorMsg));
                 return packagesHash;
             }
 
@@ -776,6 +776,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string installPath = string.Empty;
                 if (isModule)
                 {
+                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
+
                     if (!File.Exists(moduleManifest))
                     {
                         var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgName, moduleManifest);
@@ -817,6 +819,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else if (isScript)
                 {
+                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
+
                     // is script
                     if (!PSScriptFileInfo.TryTestPSScriptFile(
                         scriptFileInfoPath: scriptPath,
@@ -835,9 +839,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
+                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
+
                     _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
                     isModule = true;
                 }
+                installPath = _savePkg ? _pathsToInstallPkg.First() : installPath;
 
                 DeleteExtraneousFiles(pkgName, tempDirNameVersion);
 
@@ -856,7 +863,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         { "psResourceInfoPkg", pkgToInstall },
                         { "tempDirNameVersionPath", tempDirNameVersion },
                         { "pkgVersion", pkgVersion },
-                        { "scriptPath", scriptPath  }
+                        { "scriptPath", scriptPath  },
+                        { "installPath", installPath }
                     });
                 }
 
@@ -888,30 +896,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string tempDirNameVersion = pkgInfo["tempDirNameVersionPath"] as string;
                 string pkgVersion = pkgInfo["pkgVersion"] as string;
                 string scriptPath = pkgInfo["scriptPath"] as string;
+                string installPath = pkgInfo["installPath"] as string;
 
                 // Moves package files/directories into the final install path location.
                 try
                 {
-                    string installPath = string.Empty;
-                    if (isModule)
-                    {
-                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
-                    }
-                    else if (isScript)
-                    {
-                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
-                    }
-                    else
-                    {
-                        // Not a PowerShell package (eg a resource from the NuGet Gallery).
-                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
-                        _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
-
-                        isModule = true;
-                    }
-
-                    installPath = _savePkg ? _pathsToInstallPkg.First() : installPath;
-
                     MoveFilesIntoInstallPath(
                         pkgToInstall,
                         isModule,
@@ -1438,7 +1427,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 : Path.Combine(dirNameVersion, (pkg.Name + "_InstalledScriptInfo.xml"));
 
             pkg.InstalledDate = DateTime.Now;
-            // pkg.InstalledLocation = installPath;
+            pkg.InstalledLocation = installPath;
 
             // Write all metadata into metadataXMLPath
             if (!pkg.TryWrite(metadataXMLPath, out string error))
