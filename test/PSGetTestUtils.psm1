@@ -398,6 +398,30 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
+function Get-ModuleResourcePublishedToLocalRepoTestDrive
+{
+    Param(
+        [string]
+        $moduleName,
+
+        [string]
+        $repoName,
+
+        [string]
+        $packageVersion
+    )
+    Get-TestDriveSetUp
+
+    $publishModuleName = $moduleName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
+
+    $version = $packageVersion
+    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+
+    Publish-PSResource -Path $publishModuleBase -Repository $repoName
+}
+
 function Register-LocalRepos {
     $repoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
     $null = New-Item $repoUriAddress -ItemType Directory -Force
