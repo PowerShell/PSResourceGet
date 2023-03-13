@@ -18,7 +18,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Unknown,
             v2,
             v3,
-            v4
+            local
         }
 
         #endregion
