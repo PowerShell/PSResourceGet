@@ -32,6 +32,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
         (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
     }
 
+### TODO:  Fix this test
     It "Save multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
         Save-PSResource -Name $pkgNames -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
@@ -74,7 +75,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
-        $pkgDirVersion.Name | Should -Be "3.0.0.0"
+        $pkgDirVersion.Name | Should -Be "3.0.0"
     }
 
     It "Should save resource given name and exact range exclusive (1.0.0, 5.0.0)" {
@@ -82,7 +83,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
-        $pkgDirVersion.Name | Should -Be "3.0.0.0"
+        $pkgDirVersion.Name | Should -Be "3.0.0"
     }
 
     It "Should not save resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
@@ -99,6 +100,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
         $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
+### TODO: FIX this text
     It "Should not save resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]"{
         $Version = "[1-0-0-0]"
         
@@ -129,20 +131,18 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
     }
 
-## TODO:  broken and needs to be fixed
-#    It "Save module as a nupkg" {
-#        Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $NuGetGalleryName -Path $SaveDir -AsNupkg -TrustRepository
-#        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_module.1.0.0.nupkg"
-#        Write-Host(Get-ChildItem -Path $SaveDir -Recurse)
-#        $pkgDir | Should -Not -BeNullOrEmpty
-#    }
+    It "Save module as a nupkg" {
+        Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $NuGetGalleryName -Path $SaveDir -AsNupkg -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_module.1.0.0.nupkg"
+        $pkgDir | Should -Not -BeNullOrEmpty
+    }
 
     It "Save module and include XML metadata file" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $NuGetGalleryName -Path $SaveDir -IncludeXml -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
-        $pkgDirVersion.Name | Should -Be "1.0.0.0"
+        $pkgDirVersion.Name | Should -Be "1.0.0"
         $xmlFile = Get-ChildItem -Path $pkgDirVersion.FullName | Where-Object Name -eq "PSGetModuleInfo.xml"
         $xmlFile | Should -Not -BeNullOrEmpty
     }
@@ -150,7 +150,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
     It "Save module using -PassThru" {
         $res = Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $NuGetGalleryName -Path $SaveDir -PassThru -TrustRepository
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "1.0.0.0"
+        $res.Version | Should -Be "1.0.0"
     }
 
     # Save module that is not authenticode signed

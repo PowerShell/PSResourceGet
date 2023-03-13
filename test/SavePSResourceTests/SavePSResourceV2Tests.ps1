@@ -157,13 +157,12 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' {
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
     }
 
-## TODO:  broken and needs to be fixed
-#    It "Save module as a nupkg" {
-#        Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -AsNupkg -TrustRepository
-#        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_module.1.0.0.nupkg"
-#        Write-Host(Get-ChildItem -Path $SaveDir -Recurse)
-#        $pkgDir | Should -Not -BeNullOrEmpty
-#    }
+    It "Save module as a nupkg" {
+        Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -AsNupkg -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_module.1.0.0.nupkg"
+        Write-Host(Get-ChildItem -Path $SaveDir -Recurse)
+        $pkgDir | Should -Not -BeNullOrEmpty
+    }
 
     It "Save module and include XML metadata file" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -IncludeXml -TrustRepository
