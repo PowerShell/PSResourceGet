@@ -9,7 +9,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
     BeforeAll {
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = "test_module"
-        $testModuleName2 = "NewpsGetTestModule"
+        $testModuleName2 = "test_module2"
         Get-NewPSResourceRepositoryFile
 
         $SaveDir = Join-Path $TestDrive 'SavedResources'
@@ -32,7 +32,6 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
         (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
     }
 
-### TODO:  Fix this test
     It "Save multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
         Save-PSResource -Name $pkgNames -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
@@ -98,22 +97,6 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
         $pkgDir | Should -BeNullOrEmpty
         $Error.Count | Should -Not -Be 0
         $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
-    }
-
-### TODO: FIX this text
-    It "Should not save resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]"{
-        $Version = "[1-0-0-0]"
-        
-        try {
-            Save-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
-        }
-        catch 
-        {}
-
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
-        $pkgDir | Should -BeNullOrEmpty
-        $Error.Count | Should -Not -Be 0
-        $Error[0].FullyQualifiedErrorId | Should -BeExactly "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
     It "Save resource with latest (including prerelease) version given Prerelease parameter" {

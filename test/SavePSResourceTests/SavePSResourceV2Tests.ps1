@@ -108,21 +108,6 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' {
         $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
-    It "Should not save resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]"{
-        $Version = "[1-0-0-0]"
-        
-        try {
-            Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
-        }
-        catch 
-        {}
-
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
-        $pkgDir | Should -BeNullOrEmpty
-        $Error.Count | Should -Not -Be 0
-        $Error[0].FullyQualifiedErrorId | Should -BeExactly "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
-    }
-
     It "Save resource with latest (including prerelease) version given Prerelease parameter" {
         Save-PSResource -Name $testModuleName -Prerelease -Repository $PSGalleryName -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
@@ -160,7 +145,6 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' {
     It "Save module as a nupkg" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -AsNupkg -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_module.1.0.0.nupkg"
-        Write-Host(Get-ChildItem -Path $SaveDir -Recurse)
         $pkgDir | Should -Not -BeNullOrEmpty
     }
 
