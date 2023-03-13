@@ -20,6 +20,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -664,7 +665,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            bool installedToTempPathSuccessfully = TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out Hashtable updatedPackagesHash);
+            Hashtable updatedPackagesHash;
+            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash) : 
+                TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash);
+            
             if (!installedToTempPathSuccessfully)
             {
                 edi = ExceptionDispatchInfo.Capture(new System.Exception(currentResult.errorMsg));
@@ -879,6 +883,67 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             message: $"Unable to successfully install package '{pkgName}': '{e.Message}' to temporary installation path.",
                             innerException: e),
                         "InstallPackageFailed",
+                        ErrorCategory.InvalidOperation,
+                        _cmdletPassedIn));
+                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Attempts to install response content into a temporary path on the machine.
+        /// </summary>
+        private bool TrySaveNupkgToTempPath(
+            HttpContent responseContent,
+            string tempInstallPath,
+            string pkgName,
+            string normalizedPkgVersion,
+            PSResourceInfo pkgToInstall,
+            Hashtable packagesHash,
+            out Hashtable updatedPackagesHash)
+        {
+            updatedPackagesHash = packagesHash;
+            // Take response content for HTTPInstallPackage and move .nupkg into temp install path.
+            try
+            {
+                var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
+                using var content = responseContent.ReadAsStreamAsync().Result;
+                using var fs = File.Create(pathToFile);
+                content.Seek(0, System.IO.SeekOrigin.Begin);
+                content.CopyTo(fs);
+                fs.Close();
+
+                string installPath = _pathsToInstallPkg.First();
+                if (_includeXml)
+                {
+                    CreateMetadataXMLFile(tempInstallPath, installPath, pkgToInstall, isModule: true);
+                }
+
+                if (!updatedPackagesHash.ContainsKey(pkgName))
+                {
+                    // Add pkg info to hashtable. 
+                    updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    {
+                        { "isModule", "" },
+                        { "isScript", "" },
+                        { "psResourceInfoPkg", pkgToInstall },
+                        { "tempDirNameVersionPath", tempInstallPath },
+                        { "pkgVersion", "" },
+                        { "scriptPath", ""  },
+                        { "installPath", installPath }
+                    });
+                }
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.WriteError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Unable to successfully save .nupkg '{pkgName}': '{e.Message}' to temporary installation path.",
+                            innerException: e),
+                        "SaveNupkgFailed",
                         ErrorCategory.InvalidOperation,
                         _cmdletPassedIn));
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
@@ -1600,6 +1665,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+            }
+            else if (_asNupkg)
+            {
+                foreach (string file in Directory.GetFiles(tempInstallPath))
+                {
+                    string fileName = Path.GetFileName(file);
+                    string newFileName = string.Equals(Path.GetExtension(file), ".zip", StringComparison.OrdinalIgnoreCase) ?
+                        $"{Path.GetFileNameWithoutExtension(file)}.nupkg" : fileName;
+
+                    Utils.MoveFiles(Path.Combine(tempInstallPath, fileName), Path.Combine(installPath, newFileName));
                 }
             }
             else
