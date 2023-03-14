@@ -130,17 +130,17 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
             elseif ($pkg.Name -eq "TestModuleWithDependencyC")
             {
                 $foundDepC = $true
-                $foundDepCCorrectVersion = [System.Version]$pkg.Version -le [System.Version]"1.0.0.0"
+                $foundDepCCorrectVersion = [System.Version]$pkg.Version -le [System.Version]"1.0"
             }
             elseif ($pkg.Name -eq "TestModuleWithDependencyB")
             {
                 $foundDepB = $true
-                $foundDepBCorrectVersion = [System.Version]$pkg.Version -ge [System.Version]"3.0.0.0"
+                $foundDepBCorrectVersion = [System.Version]$pkg.Version -ge [System.Version]"3.0"
             }
             elseif ($pkg.Name -eq "TestModuleWithDependencyD")
             {
                 $foundDepD = $true
-                $foundDepDCorrectVersion = [System.Version]$pkg.Version -le [System.Version]"1.0.0.0"
+                $foundDepDCorrectVersion = [System.Version]$pkg.Version -le [System.Version]"1.0"
             }
         }
 
