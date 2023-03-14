@@ -1280,17 +1280,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     pkgType &= ~ResourceType.Module;
                 }
 
-                // if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
-                // {
-                //     pkgType |= ResourceType.Command;
-                //     commandNames.Add(tag.Split('_')[1]);
-                // }
+                if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    commandNames.Add(tag.Split('_')[1]);
+                }
 
-                // if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
-                // {
-                //     pkgType |= ResourceType.DscResource;
-                //     dscResourceNames.Add(tag.Split('_')[1]);
-                // }
+                if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    dscResourceNames.Add(tag.Split('_')[1]);
+                }
             }
 
             return pkgType;

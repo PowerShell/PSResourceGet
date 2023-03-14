@@ -66,7 +66,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (type == ResourceType.Script || type == ResourceType.None)
             {
                 int scriptSkip = 0;
-                string initialScriptResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: false, scriptSkip, out edi);
+                string initialScriptResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: false, scriptSkip, out edi);
                 if (edi != null)
                 {
                     return responses.ToArray();
@@ -82,7 +82,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 while (count > 0)
                 {
                     scriptSkip += 6000;
-                    var tmpResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: false, scriptSkip, out edi);
+                    var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: false, scriptSkip, out edi);
                     if (edi != null)
                     {
                         return responses.ToArray();
@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (type != ResourceType.Script)
             {
                 int moduleSkip = 0;
-                string initialModuleResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
+                string initialModuleResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: true, moduleSkip, out edi);
                 if (edi != null)
                 {
                     return responses.ToArray();
@@ -111,7 +111,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 while (count > 0)
                 {
                     moduleSkip += 6000;
-                    var tmpResponse = FindAllFromTypeEndPoint(repository, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
+                    var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: true, moduleSkip, out edi);
                     if (edi != null)
                     {
                         return responses.ToArray();
@@ -138,7 +138,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (_type == ResourceType.Script || _type == ResourceType.None)
             {
                 int scriptSkip = 0;
-                string initialScriptResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: false, scriptSkip, out edi);
+                string initialScriptResponse = FindTagFromEndpoint(tag, includePrerelease, isSearchingModule: false, scriptSkip, out edi);
                 if (edi != null)
                 {
                     return responses.ToArray();
@@ -155,7 +155,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // skip 100
                     scriptSkip += 100;
-                    var tmpResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: false,  scriptSkip, out edi);
+                    var tmpResponse = FindTagFromEndpoint(tag, includePrerelease, isSearchingModule: false,  scriptSkip, out edi);
                     if (edi != null)
                     {
                         return responses.ToArray();
@@ -167,7 +167,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (_type != ResourceType.Script)
             {
                 int moduleSkip = 0;
-                string initialModuleResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
+                string initialModuleResponse = FindTagFromEndpoint(tag, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
                 if (edi != null)
                 {
                     return responses.ToArray();
@@ -183,7 +183,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 while (count > 0)
                 {
                     moduleSkip += 100;
-                    var tmpResponse = FindTagFromEndpoint(tag, repository, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
+                    var tmpResponse = FindTagFromEndpoint(tag, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
                     if (edi != null)
                     {
                         return responses.ToArray();
@@ -201,7 +201,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
-            string initialResponse = FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, skip, out edi);
+            string initialResponse = FindCommandOrDscResource(tag, includePrerelease, isSearchingForCommands, skip, out edi);
             if (edi != null)
             {
                 return responses.ToArray();
@@ -217,7 +217,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             while (count > 0)
             {
                 skip += 100;
-                var tmpResponse = FindCommandOrDscResource(tag, repository, includePrerelease, isSearchingForCommands, skip, out edi);
+                var tmpResponse = FindCommandOrDscResource(tag, includePrerelease, isSearchingForCommands, skip, out edi);
                 if (edi != null)
                 {
                     return responses.ToArray();
@@ -284,7 +284,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindNameGlobbing(packageName, repository, includePrerelease, skip, out edi);
+            var initialResponse = FindNameGlobbing(packageName, type, includePrerelease, skip, out edi);
             if (edi != null)
             {
                 return responses.ToArray();
@@ -304,7 +304,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // skip 100
                 skip += 100;
-                var tmpResponse = FindNameGlobbing(packageName, repository, includePrerelease, skip, out edi);
+                var tmpResponse = FindNameGlobbing(packageName, type, includePrerelease, skip, out edi);
                 if (edi != null)
                 {
                     return responses.ToArray();
@@ -321,7 +321,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindNameGlobbingWithTag(packageName, tags, repository, includePrerelease, skip, out edi);
+            var initialResponse = FindNameGlobbingWithTag(packageName, tags, type, includePrerelease, skip, out edi);
             if (edi != null)
             {
                 return responses.ToArray();
@@ -341,7 +341,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // skip 100
                 skip += 100;
-                var tmpResponse = FindNameGlobbingWithTag(packageName, tags, repository, includePrerelease, skip, out edi);
+                var tmpResponse = FindNameGlobbingWithTag(packageName, tags, type, includePrerelease, skip, out edi);
                 if (edi != null)
                 {
                     return responses.ToArray();
@@ -367,7 +367,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, getOnlyLatest, out edi);
+            var initialResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out edi);
             if (edi != null)
             {
                 return responses.ToArray();
@@ -387,7 +387,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // skip 100
                     skip += 100;
-                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, repository, includePrerelease, type, skip, getOnlyLatest, out edi);
+                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out edi);
                     if (edi != null)
                     {
                         return responses.ToArray();
@@ -527,7 +527,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindAll(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
         /// </summary>
-        private string FindAllFromTypeEndPoint(PSRepositoryInfo repository, bool includePrerelease, bool isSearchingModule, int skip, out ExceptionDispatchInfo edi)
+        private string FindAllFromTypeEndPoint(bool includePrerelease, bool isSearchingModule, int skip, out ExceptionDispatchInfo edi)
         {
             string typeEndpoint = isSearchingModule ? String.Empty : "/items/psscript";
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
@@ -541,7 +541,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindTag(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
         /// </summary>
-        private string FindTagFromEndpoint(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingModule, int skip, out ExceptionDispatchInfo edi)
+        private string FindTagFromEndpoint(string tag, bool includePrerelease, bool isSearchingModule, int skip, out ExceptionDispatchInfo edi)
         {
             // scenarios with type + tags:
             // type: None -> search both endpoints
@@ -561,7 +561,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindCommandOrDSCResource(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
         /// </summary>
-        private string FindCommandOrDscResource(string tag, PSRepositoryInfo repository, bool includePrerelease, bool isSearchingForCommands, int skip, out ExceptionDispatchInfo edi)
+        private string FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, int skip, out ExceptionDispatchInfo edi)
         {
             // can only find from Modules endpoint
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
@@ -575,7 +575,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindNameGlobbing()
         /// </summary>
-        private string FindNameGlobbing(string packageName, PSRepositoryInfo repository, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
+        private string FindNameGlobbing(string packageName, ResourceType type, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
         {
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
@@ -622,13 +622,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
                 return string.Empty;
             }
+
+            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
             
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter={nameFilter} and {prerelease}&{select}{extraParam}";
+            var requestUrlV2 = $"{repository.Uri}/Search()?$filter={nameFilter}{typeFilterPart} and {prerelease}&{select}{extraParam}";
             
             return HttpRequestCall(requestUrlV2, out edi);  
         }
 
-        private string FindNameGlobbingWithTag(string packageName, string[] tags, PSRepositoryInfo repository, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
+        private string FindNameGlobbingWithTag(string packageName, string[] tags, ResourceType type, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
         {
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
@@ -682,7 +684,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tagFilterPart += $" and substringof('{tag}', Tags) eq true";
             }
             
-            var requestUrlV2 = $"{repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart} and {prerelease}&{select}{extraParam}";
+            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+            var requestUrlV2 = $"{repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart}{typeFilterPart} and {prerelease}&{select}{extraParam}";
             
             return HttpRequestCall(requestUrlV2, out edi);  
         }
@@ -690,7 +693,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindVersionGlobbing()
         /// </summary>
-        private string FindVersionGlobbing(string packageName, VersionRange versionRange, PSRepositoryInfo repository, bool includePrerelease, ResourceType type, int skip, bool getOnlyLatest, out ExceptionDispatchInfo edi)
+        private string FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, int skip, bool getOnlyLatest, out ExceptionDispatchInfo edi)
         {
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
