@@ -20,6 +20,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -506,10 +507,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                         }
 
+                        HashSet<string> myHash = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                         // Get the dependencies from the installed package.
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
-                            foreach (PSResourceInfo depPkg in findHelper.HttpFindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository))
+                            foreach (PSResourceInfo depPkg in findHelper.HttpFindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, myHash))
                             {
                                 packagesHash = HttpInstallPackage(
                                             searchVersionType: currentType,
@@ -573,7 +575,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable packagesHash,
             out ExceptionDispatchInfo edi)
         {
-            List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
+            //List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
             string[] responses = Utils.EmptyStrArray;
             edi = null;
 
@@ -620,7 +622,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!String.IsNullOrEmpty(currentResult.errorMsg))
             {
-                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(currentResult.errorMsg));
+                //edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(currentResult.errorMsg));
                 return packagesHash;
             }
 
@@ -630,7 +632,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
-                // TODO: is there a way to cache what we just searched through?
                 string currPkgNameVersion = Utils.CreateHashSetKey(pkgToInstall.Name, pkgToInstall.Version.ToString());
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
@@ -638,15 +639,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            if (packagesToInstall.Count == 0)
-            {
-                return packagesHash;
-            }
-
             // Download the package.
-            var pkg = packagesToInstall.First();
-            pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
-            string pkgName = pkg.Name;
+            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+            string pkgName = pkgToInstall.Name;
 
             HttpContent responseContent = null;
             string errType = String.Empty;
@@ -670,7 +665,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            bool installedToTempPathSuccessfully = TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkg, packagesHash, out Hashtable updatedPackagesHash);
+            Hashtable updatedPackagesHash;
+            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash) : 
+                TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash);
+            
             if (!installedToTempPathSuccessfully)
             {
                 edi = ExceptionDispatchInfo.Capture(new System.Exception(currentResult.errorMsg));
@@ -783,6 +781,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string installPath = string.Empty;
                 if (isModule)
                 {
+                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
+
                     if (!File.Exists(moduleManifest))
                     {
                         var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgName, moduleManifest);
@@ -824,6 +824,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else if (isScript)
                 {
+                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
+
                     // is script
                     if (!PSScriptFileInfo.TryTestPSScriptFile(
                         scriptFileInfoPath: scriptPath,
@@ -842,9 +844,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
+                    installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
+
                     _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
                     isModule = true;
                 }
+                installPath = _savePkg ? _pathsToInstallPkg.First() : installPath;
 
                 DeleteExtraneousFiles(pkgName, tempDirNameVersion);
 
@@ -863,7 +868,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         { "psResourceInfoPkg", pkgToInstall },
                         { "tempDirNameVersionPath", tempDirNameVersion },
                         { "pkgVersion", pkgVersion },
-                        { "scriptPath", scriptPath  }
+                        { "scriptPath", scriptPath  },
+                        { "installPath", installPath }
                     });
                 }
 
@@ -884,6 +890,67 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
+        /// <summary>
+        /// Attempts to install response content into a temporary path on the machine.
+        /// </summary>
+        private bool TrySaveNupkgToTempPath(
+            HttpContent responseContent,
+            string tempInstallPath,
+            string pkgName,
+            string normalizedPkgVersion,
+            PSResourceInfo pkgToInstall,
+            Hashtable packagesHash,
+            out Hashtable updatedPackagesHash)
+        {
+            updatedPackagesHash = packagesHash;
+            // Take response content for HTTPInstallPackage and move .nupkg into temp install path.
+            try
+            {
+                var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
+                using var content = responseContent.ReadAsStreamAsync().Result;
+                using var fs = File.Create(pathToFile);
+                content.Seek(0, System.IO.SeekOrigin.Begin);
+                content.CopyTo(fs);
+                fs.Close();
+
+                string installPath = _pathsToInstallPkg.First();
+                if (_includeXml)
+                {
+                    CreateMetadataXMLFile(tempInstallPath, installPath, pkgToInstall, isModule: true);
+                }
+
+                if (!updatedPackagesHash.ContainsKey(pkgName))
+                {
+                    // Add pkg info to hashtable. 
+                    updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    {
+                        { "isModule", "" },
+                        { "isScript", "" },
+                        { "psResourceInfoPkg", pkgToInstall },
+                        { "tempDirNameVersionPath", tempInstallPath },
+                        { "pkgVersion", "" },
+                        { "scriptPath", ""  },
+                        { "installPath", installPath }
+                    });
+                }
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.WriteError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Unable to successfully save .nupkg '{pkgName}': '{e.Message}' to temporary installation path.",
+                            innerException: e),
+                        "SaveNupkgFailed",
+                        ErrorCategory.InvalidOperation,
+                        _cmdletPassedIn));
+                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                return false;
+            }
+        }
+
         private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, Hashtable packagesHash)
         {
             foreach (string pkgName in packagesHash.Keys)
@@ -895,30 +962,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string tempDirNameVersion = pkgInfo["tempDirNameVersionPath"] as string;
                 string pkgVersion = pkgInfo["pkgVersion"] as string;
                 string scriptPath = pkgInfo["scriptPath"] as string;
+                string installPath = pkgInfo["installPath"] as string;
 
                 // Moves package files/directories into the final install path location.
                 try
                 {
-                    string installPath = string.Empty;
-                    if (isModule)
-                    {
-                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
-                    }
-                    else if (isScript)
-                    {
-                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
-                    }
-                    else
-                    {
-                        // Not a PowerShell package (eg a resource from the NuGet Gallery).
-                        installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
-                        _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
-
-                        isModule = true;
-                    }
-
-                    installPath = _savePkg ? _pathsToInstallPkg.First() : installPath;
-
                     MoveFilesIntoInstallPath(
                         pkgToInstall,
                         isModule,
@@ -1445,7 +1493,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 : Path.Combine(dirNameVersion, (pkg.Name + "_InstalledScriptInfo.xml"));
 
             pkg.InstalledDate = DateTime.Now;
-            // pkg.InstalledLocation = installPath;
+            pkg.InstalledLocation = installPath;
 
             // Write all metadata into metadataXMLPath
             if (!pkg.TryWrite(metadataXMLPath, out string error))
@@ -1628,6 +1676,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+            }
+            else if (_asNupkg)
+            {
+                foreach (string file in Directory.GetFiles(tempInstallPath))
+                {
+                    string fileName = Path.GetFileName(file);
+                    string newFileName = string.Equals(Path.GetExtension(file), ".zip", StringComparison.OrdinalIgnoreCase) ?
+                        $"{Path.GetFileNameWithoutExtension(file)}.nupkg" : fileName;
+
+                    Utils.MoveFiles(Path.Combine(tempInstallPath, fileName), Path.Combine(installPath, newFileName));
                 }
             }
             else

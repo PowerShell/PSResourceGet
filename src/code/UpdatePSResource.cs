@@ -379,8 +379,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                if ((versionRange == VersionRange.All && repositoryPackage.Version > installedPackage.Version) ||
-                    !versionRange.Satisfies(installedVersion))
+                if (((versionRange == null || versionRange == VersionRange.All) && repositoryPackage.Version > installedPackage.Version) ||
+                    (versionRange != null && !versionRange.Satisfies(installedVersion)))
                 {
                     namesToUpdate.Add(repositoryPackage.Name);
                 }

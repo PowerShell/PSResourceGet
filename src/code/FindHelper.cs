@@ -41,10 +41,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private SwitchParameter _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
-        private readonly string _psGalleryUri = "https://www.powershellgallery.com/api/v2";
         private readonly string _poshTestGalleryRepoName = "PoshTestGallery";
-        private readonly string _poshTestGalleryUri = "https://www.poshtestgallery.com/api/v2";
-        private bool _isADOFeedRepository;
         private bool _repositoryNameContainsWildcard;
         private NetworkCredential _networkCredential;
 
@@ -149,33 +146,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
-                PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-
-                // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-                if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.local)
                 {
-                    PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                        currentRepository.Name,
-                        currentRepository.CredentialInfo,
-                        _cmdletPassedIn);
-
-                    var username = repoCredential.UserName;
-                    var password = repoCredential.Password;
-
-                    _networkCredential = new NetworkCredential(username, password);
-
-                    _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
+                    foreach (PSResourceInfo currentPkg in SearchFromLocalRepository(repositoriesToSearch[i]))
+                    {
+                        yield return currentPkg;
+                    }
                 }
-
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
-                ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
-
-                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-
-
-                foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository))
+                else
                 {
-                    yield return currentPkg;
+                    PSRepositoryInfo currentRepository = repositoriesToSearch[i];
+
+                    // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+                    if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                    {
+                        PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                            currentRepository.Name,
+                            currentRepository.CredentialInfo,
+                            _cmdletPassedIn);
+
+                        var username = repoCredential.UserName;
+                        var password = repoCredential.Password;
+
+                        _networkCredential = new NetworkCredential(username, password);
+
+                        _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
+                    }
+
+                    ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                    ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
+
+                    _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+
+
+                    foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository))
+                    {
+                        yield return currentPkg;
+                    }
                 }
             }
         }
@@ -188,7 +195,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PSCredential credential)
         {
             _prerelease = prerelease;
-            _tag = tag;
 
             List<string> cmdsLeftToFind = new List<string>(tag);
 
@@ -258,48 +264,70 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && cmdsLeftToFind.Any(); i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-
-                // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-                if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.local)
                 {
-                    PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                        currentRepository.Name,
-                        currentRepository.CredentialInfo,
-                        _cmdletPassedIn);
+                    _pkgsLeftToFind = new List<string>() { "*" };
 
-                    var username = repoCredential.UserName;
-                    var password = repoCredential.Password;
-
-                    _networkCredential = new NetworkCredential(username, password);
-
-                    _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
-                }
-
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
-                ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
-
-                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-
-                foreach (string currentCmdOrDSC in tag)
-                {
-                    string[] responses = currentServer.FindCommandOrDscResource(currentCmdOrDSC, _prerelease, isSearchingForCommands, out ExceptionDispatchInfo edi);
-                    if (edi != null)
+                    var potentialMatches = SearchFromLocalRepository(repositoriesToSearch[i]);
+                    foreach (string cmdOrDsc in tag)
                     {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindCommandOrDSCResourceFail", ErrorCategory.InvalidOperation, this));
-                        continue;
+                        foreach (var package in potentialMatches)
+                        {
+                            // this check ensures DSC names provided as a Command name won't get returned mistakenly
+                            // -CommandName "command1", "dsc1" <- (will not return or add DSC name)
+                            if ((isSearchingForCommands && package.Includes.Command.Contains(cmdOrDsc, StringComparer.OrdinalIgnoreCase)) ||
+                                (!isSearchingForCommands && package.Includes.DscResource.Contains(cmdOrDsc, StringComparer.OrdinalIgnoreCase)))
+                            {
+                                yield return new PSCommandResourceInfo(new string[] { cmdOrDsc }, package);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+                    if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                    {
+                        PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                            currentRepository.Name,
+                            currentRepository.CredentialInfo,
+                            _cmdletPassedIn);
+
+                        var username = repoCredential.UserName;
+                        var password = repoCredential.Password;
+
+                        _networkCredential = new NetworkCredential(username, password);
+
+                        _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
                     }
 
-                    foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                    ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                    ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
+
+                    _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+
+                    foreach (string currentCmdOrDSC in tag)
                     {
-                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        string[] responses = currentServer.FindCommandOrDscResource(currentCmdOrDSC, _prerelease, isSearchingForCommands, out ExceptionDispatchInfo edi);
+                        if (edi != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindCmdOrDSCResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindCommandOrDSCResourceFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
-                        cmdsLeftToFind.Remove(currentCmdOrDSC);
-                        PSCommandResourceInfo currentPkg = new PSCommandResourceInfo(new string[] { currentCmdOrDSC }, currentResult.returnedObject);
-                        yield return currentPkg;                    
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                        {
+                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            {
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindCmdOrDSCResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                continue;
+                            }
+
+                            cmdsLeftToFind.Remove(currentCmdOrDSC);
+                            PSCommandResourceInfo currentPkg = new PSCommandResourceInfo(new string[] { currentCmdOrDSC }, currentResult.returnedObject);
+                            yield return currentResult.returnedCmdObject;
+                        }
                     }
                 }
             }
@@ -384,61 +412,74 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
 
-                // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-                if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.local)
                 {
-                    PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                        currentRepository.Name,
-                        currentRepository.CredentialInfo,
-                        _cmdletPassedIn);
+                    _pkgsLeftToFind = new List<string>() { "*" };
+                    _tag = tag;
 
-                    var username = repoCredential.UserName;
-                    var password = repoCredential.Password;
-
-                    _networkCredential = new NetworkCredential(username, password);
-
-                    _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
-                }
-
-
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
-                ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
-
-                if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
-                {
-                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException("-Type parameter is only supported with the PowerShellGallery."),
-                        "ErrorUsingTypeParameter",
-                        ErrorCategory.InvalidOperation,
-                        this));
-                }
-                
-                foreach (string currentTag in _tag)
-                {
-                    // currentServer.FindTag() -> return string[] responses
-                    // loop thru responses
-                    // convert each response to PSResourceResult
-
-                    string[] responses = currentServer.FindTag(currentTag, _prerelease, type, out ExceptionDispatchInfo edi);
-
-                    if (edi != null)
+                    foreach (var package in SearchFromLocalRepository(repositoriesToSearch[i]))
                     {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindTagFail", ErrorCategory.InvalidOperation, this));
-                        continue;
+                        yield return package;
+                    }
+                }
+                else
+                {
+                    // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+                    if (_networkCredential == null && currentRepository.CredentialInfo != null)
+                    {
+                        PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                            currentRepository.Name,
+                            currentRepository.CredentialInfo,
+                            _cmdletPassedIn);
+
+                        var username = repoCredential.UserName;
+                        var password = repoCredential.Password;
+
+                        _networkCredential = new NetworkCredential(username, password);
+
+                        _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + currentRepository.Name);
                     }
 
-                    foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+
+                    ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                    ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
+
+                    if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
                     {
-                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException("-Type parameter is only supported with the PowerShellGallery."),
+                            "ErrorUsingTypeParameter",
+                            ErrorCategory.InvalidOperation,
+                            this));
+                    }
+
+                    foreach (string currentTag in _tag)
+                    {
+                        // currentServer.FindTag() -> return string[] responses
+                        // loop thru responses
+                        // convert each response to PSResourceResult
+
+                        string[] responses = currentServer.FindTag(currentTag, _prerelease, type, out ExceptionDispatchInfo edi);
+
+                        if (edi != null)
                         {
-                            string errMsg = $"Tags: {String.Join(", ", _tag)} could not be found due to: {currentResult.errorMsg}";
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindTagResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindTagFail", ErrorCategory.InvalidOperation, this));
                             continue;
                         }
 
-                        yield return currentResult.returnedObject;                    
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses: responses))
+                        {
+                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            {
+                                string errMsg = $"Tags: {String.Join(", ", _tag)} could not be found due to: {currentResult.errorMsg}";
+                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindTagResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                continue;
+                            }
+
+                            yield return currentResult.returnedObject;
+                        }
                     }
-                }                
+                }
             }
         }
 
@@ -450,6 +491,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             ExceptionDispatchInfo edi = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
+            HashSet<string> pkgsFound = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (string pkgName in _pkgsLeftToFind.ToArray())
             {
@@ -477,6 +519,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
+                            pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;  
                         }
                     }
@@ -514,6 +557,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
+                            pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;                    
                         }
                     }
@@ -552,6 +596,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
+                        pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
                 }
@@ -601,6 +646,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
+                        pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
                 }
@@ -650,6 +696,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
+                            pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;                    
                         }
                     }
@@ -668,7 +715,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
                     // Actually find and return the dependency packages
-                    foreach (PSResourceInfo pkgDep in HttpFindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
+                    foreach (PSResourceInfo pkgDep in HttpFindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository, pkgsFound))
                     {
                         yield return pkgDep;
                     }
@@ -688,20 +735,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return matchedTags.Count > 0;
         }
 
+
+
+
         internal IEnumerable<PSResourceInfo> HttpFindDependencyPackages(
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
             PSResourceInfo currentPkg,
-            PSRepositoryInfo repository)
+            PSRepositoryInfo repository,
+            HashSet<string> foundPkgs)
         {
-            if (currentPkg != null)
+
+            // PkgA
+                // PkgB 
+                    // PkgC
+                    // PkgD <-
+                        // PkgE
+
+            if (currentPkg.Dependencies.Length > 0)
             {
                 foreach (var dep in currentPkg.Dependencies)
-                { 
+                {
+                    PSResourceInfo depPkg = null;
+
                     if (dep.VersionRange == VersionRange.All)
                     {
                         string response = currentServer.FindName(dep.Name, _prerelease, _type, out ExceptionDispatchInfo edi);
-                        string[] responses = new string[]{ response };
+                        string[] responses = new string[] { response };
                         if (edi != null)
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindNameFail", ErrorCategory.InvalidOperation, this));
@@ -709,17 +769,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
-                        
+
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameForDepResponseConversionFail", ErrorCategory.NotSpecified, this));
                             continue;
                         }
 
-                        PSResourceInfo depPkg = currentResult.returnedObject;
-                        yield return depPkg;
+                        depPkg = currentResult.returnedObject;
+                        string pkgHashKey = Utils.CreateHashSetKey(depPkg.Name, depPkg.Version.ToString());
 
-                        HttpFindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository);
+                        if (!foundPkgs.Contains(pkgHashKey))
+                        {
+                            foreach (PSResourceInfo depRes in HttpFindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository, foundPkgs))
+                            {
+                                yield return depRes;
+                            }
+                        }
                     }
                     else
                     {
@@ -738,21 +804,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 continue;
                             }
 
-                            PSResourceInfo depPkg = currentResult.returnedObject;
-                            yield return depPkg;
+                            depPkg = currentResult.returnedObject;
+                        }
 
-                            HttpFindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository);         
+                        string pkgHashKey = Utils.CreateHashSetKey(depPkg.Name, depPkg.Version.ToString());
+
+                        if (!foundPkgs.Contains(pkgHashKey))
+                        {
+                            foreach (PSResourceInfo depRes in HttpFindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository, foundPkgs))
+                            {
+                                yield return depRes;
+                            }
                         }
                     }
                 }
             }
+
+            string currentPkgHashKey = Utils.CreateHashSetKey(currentPkg.Name, currentPkg.Version.ToString());
+
+            if (!foundPkgs.Contains(currentPkgHashKey))
+            {
+                yield return currentPkg;
+            }
         }
+
 
         #endregion
 
         #region private NuGet APIs for Local Repo
 
-        private IEnumerable<PSResourceInfo> SearchFromRepository(PSRepositoryInfo repositoryInfo)
+        private IEnumerable<PSResourceInfo> SearchFromLocalRepository(PSRepositoryInfo repositoryInfo)
         {
             PackageSearchResource resourceSearch;
             PackageMetadataResource resourceMetadata;
@@ -778,69 +859,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield return pkg;
                 }
                 yield break;
-            }
-
-            // Check if ADOFeed- for which searching for Name with wildcard has a different logic flow.
-            if (repositoryInfo.Uri.ToString().Contains("pkgs."))
-            {
-                _isADOFeedRepository = true;
-            }
-
-            // HTTP, HTTPS, FTP Uri schemes (only other Uri schemes allowed by RepositorySettings.Read() API).
-            PackageSource source = new PackageSource(repositoryInfo.Uri.ToString());
-
-            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-            if (_networkCredential != null)
-            {
-                string password = new NetworkCredential(string.Empty, _networkCredential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), _networkCredential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully set for repository: " + repositoryInfo.Name);
-            }
-            else if (repositoryInfo.CredentialInfo != null)
-            {
-                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                    repositoryInfo.Name,
-                    repositoryInfo.CredentialInfo,
-                    _cmdletPassedIn);
-
-                string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
-                source.Credentials = PackageSourceCredential.FromUserInput(repositoryInfo.Uri.ToString(), repoCredential.UserName, password, true, null);
-                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repositoryInfo.Name);
-            }
-
-            // GetCoreV3() API is able to handle V2 and V3 repository endpoints.
-            var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
-            SourceRepository repository = new SourceRepository(source, provider);
-            resourceSearch = null;
-            resourceMetadata = null;
-
-            try
-            {
-                resourceSearch = repository.GetResourceAsync<PackageSearchResource>().GetAwaiter().GetResult();
-                resourceMetadata = repository.GetResourceAsync<PackageMetadataResource>().GetAwaiter().GetResult();
-            }
-            catch (Exception e)
-            {
-                Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Error retrieving resource from repository: " + e.Message);
-            }
-
-            if (resourceSearch == null || resourceMetadata == null)
-            {
-                yield break;
-            }
-
-            filter = new SearchFilter(_prerelease);
-            context = new SourceCacheContext();
-
-            foreach (PSResourceInfo pkg in SearchAcrossNamesInRepository(
-                repositoryName: String.Equals(repositoryInfo.Uri.AbsoluteUri, _psGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _psGalleryRepoName :
-                                (String.Equals(repositoryInfo.Uri.AbsoluteUri, _poshTestGalleryUri, StringComparison.InvariantCultureIgnoreCase) ? _poshTestGalleryRepoName : repositoryInfo.Name),
-                pkgSearchResource: resourceSearch,
-                pkgMetadataResource: resourceMetadata,
-                searchFilter: filter,
-                sourceContext: context))
-            {
-                yield return pkg;
             }
         }
 
@@ -953,23 +971,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                if (_isADOFeedRepository)
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new ArgumentException(String.Format("Searching through ADOFeed with wildcard in Name is not supported, so {0} repository will be skipped.", repositoryName)),
-                        "CannotSearchADOFeedWithWildcardName",
-                        ErrorCategory.InvalidArgument,
-                        this));
-                    yield break;
-                }
-
                 // Case: searching for name containing wildcard i.e "Carbon.*".
                 List<IPackageSearchMetadata> wildcardPkgs;
                 try
                 {
+                    string wildcardPkgName = pkgName.Equals("*") ? string.Empty : pkgName;
                     // SearchAsync() API returns the latest version only for all packages that match the wild-card name
                     wildcardPkgs = pkgSearchResource.SearchAsync(
-                        searchTerm: pkgName,
+                        searchTerm: wildcardPkgName,
                         filters: searchFilter,
                         skip: 0,
                         take: SearchAsyncMaxTake,
@@ -981,7 +990,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Get the rest of the packages.
                         wildcardPkgs.AddRange(
                             pkgSearchResource.SearchAsync(
-                            searchTerm: pkgName,
+                            searchTerm: wildcardPkgName,
                             filters: searchFilter,
                             skip: SearchAsyncMaxTake,
                             take: GalleryMax,
@@ -1114,20 +1123,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield break;
                 }
 
-                // if (_type != ResourceType.None)
-                // {
-                //     if (_type == ResourceType.Command && !currentPkg.Type.HasFlag(ResourceType.Command))
-                //     {
-                //         continue;
-                //     }
-                //     if (_type == ResourceType.DscResource && !currentPkg.Type.HasFlag(ResourceType.DscResource))
-                //     {
-                //         continue;
-                //     }
-                // }
-
                 // Only going to go in here for the main package, resolve Type and Tag requirements if any, and then find dependencies
-                if (_tag == null || (_tag != null && IsTagMatch(currentPkg)))
+                if (_tag == null || _tag.Length == 0 || (_tag != null && _tag.Length > 0 && IsTagMatch(currentPkg)))
                 {
                     yield return currentPkg;
 
