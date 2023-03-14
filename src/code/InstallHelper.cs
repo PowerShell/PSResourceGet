@@ -1091,65 +1091,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         // Create the package extraction context
                         PackageExtractionContext packageExtractionContext = new PackageExtractionContext(
-                                packageSaveMode: PackageSaveMode.Nupkg,
-                                xmlDocFileSaveMode: PackageExtractionBehavior.XmlDocFileSaveMode,
-                                clientPolicyContext: null,
-                                logger: NullLogger.Instance);
+                            packageSaveMode: PackageSaveMode.Nupkg,
+                            xmlDocFileSaveMode: PackageExtractionBehavior.XmlDocFileSaveMode,
+                            clientPolicyContext: null,
+                            logger: NullLogger.Instance);
 
-                        // Extracting from .nupkg and placing files into tempInstallPath
-                        result.PackageReader.CopyFiles(
-                            destination: tempInstallPath,
-                            packageFiles: result.PackageReader.GetFiles(),
-                            extractFile: new PackageFileExtractor(
-                                result.PackageReader.GetFiles(),
-                                packageExtractionContext.XmlDocFileSaveMode).ExtractPackageFile,
-                            logger: NullLogger.Instance,
-                            token: _cancellationToken);
+                        if (_asNupkg)
+                        {
+                            _cmdletPassedIn.WriteWarning("This feature is not yet implemented.");
+                        }
+                        else
+                        {
+                            // Extracting from .nupkg and placing files into tempInstallPath
+                            result.PackageReader.CopyFiles(
+                                destination: tempInstallPath,
+                                packageFiles: result.PackageReader.GetFiles(),
+                                extractFile: new PackageFileExtractor(
+                                    result.PackageReader.GetFiles(),
+                                    packageExtractionContext.XmlDocFileSaveMode).ExtractPackageFile,
+                                logger: NullLogger.Instance,
+                                token: _cancellationToken);
+                        }
                         result.Dispose();
                     }
-                    else
-                    {
-                        /* Download from a non-local repository */
-                        // Set up NuGet API resource for download
-                        PackageSource source = new PackageSource(repoUri);
-
-                        // Explicitly passed in Credential takes precedence over repository CredentialInfo
-                        if (repoCredentialInfo != null)
-                        {
-                            PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                                repoName,
-                                repoCredentialInfo,
-                                _cmdletPassedIn);
-
-                            string password = new NetworkCredential(string.Empty, repoCredential.Password).Password;
-                            source.Credentials = PackageSourceCredential.FromUserInput(repoUri, repoCredential.UserName, password, true, null);
-                        }
-
-                        var provider = FactoryExtensionsV3.GetCoreV3(NuGet.Protocol.Core.Types.Repository.Provider);
-                        SourceRepository repository = new SourceRepository(source, provider);
-
-                        /* Download from a non-local repository -- ie server */
-                        var downloadResource = repository.GetResourceAsync<DownloadResource>().GetAwaiter().GetResult();
-                        DownloadResourceResult result = null;
-                        try
-                        {
-                            result = downloadResource.GetDownloadResourceResultAsync(
-                                identity: pkgIdentity,
-                                downloadContext: new PackageDownloadContext(cacheContext),
-                                globalPackagesFolder: tempInstallPath,
-                                logger: NullLogger.Instance,
-                                token: _cancellationToken).GetAwaiter().GetResult();
-                        }
-                        catch (Exception e)
-                        {
-                            _cmdletPassedIn.WriteVerbose(string.Format("Error attempting download: '{0}'", e.Message));
-                        }
-                        finally
-                        {
-                            // Need to close the .nupkg
-                            if (result != null) result.Dispose();
-                        }
-                    }
+                  
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
 
