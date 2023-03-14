@@ -384,9 +384,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // determine if id matches our wildcard criteria
-                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.Contains(querySearchTerm)) ||
-                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm)) ||
-                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm)))
+                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
+                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
                 {
                     string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
 
@@ -486,9 +486,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 // determine if id matches our wildcard criteria
-                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.Contains(querySearchTerm)) ||
-                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm)) ||
-                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm)))
+                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
+                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
                 {
                     bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags, requiredTags: tags);
                     if (!isTagMatch)
