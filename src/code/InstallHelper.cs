@@ -513,6 +513,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             foreach (PSResourceInfo depPkg in findHelper.HttpFindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, myHash))
                             {
+                                if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
                                 packagesHash = HttpInstallPackage(
                                             searchVersionType: currentType,
                                             specificVersion: nugetVersion,
