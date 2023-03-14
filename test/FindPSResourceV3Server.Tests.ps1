@@ -91,56 +91,10 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' {
     }
 
     It "find resource and its dependency resources with IncludeDependencies parameter" {
-        # FindName() with deps
-        $resWithoutDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -Repository $NuGetGalleryName
-        $resWithoutDependencies.Count | Should -Be 1
-        $resWithoutDependencies.Name | Should -Be "TestModuleWithDependencyE"
-
-        # TestModuleWithDependencyE has the following dependencies:
-        # TestModuleWithDependencyC <= 1.0.0.0
-        #    TestModuleWithDependencyB >= 1.0.0.0
-        #    TestModuleWithDependencyD <= 1.0.0.0
-
-        $resWithDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -IncludeDependencies -Repository $NuGetGalleryName
-        $resWithDependencies.Count | Should -BeGreaterThan $resWithoutDependencies.Count
-
-        $foundParentPkgE = $false
-        $foundDepB = $false
-        $foundDepBCorrectVersion = $false
-        $foundDepC = $false
-        $foundDepCCorrectVersion = $false
-        $foundDepD = $false
-        $foundDepDCorrectVersion = $false
-        foreach ($pkg in $resWithDependencies)
-        {
-            if ($pkg.Name -eq "TestModuleWithDependencyE")
-            {
-                $foundParentPkgE = $true
-            }
-            elseif ($pkg.Name -eq "TestModuleWithDependencyC")
-            {
-                $foundDepC = $true
-                $foundDepCCorrectVersion = [System.Version]$pkg.Version -le [System.Version]"1.0.0.0"
-            }
-            elseif ($pkg.Name -eq "TestModuleWithDependencyB")
-            {
-                $foundDepB = $true
-                $foundDepBCorrectVersion = [System.Version]$pkg.Version -ge [System.Version]"3.0.0.0"
-            }
-            elseif ($pkg.Name -eq "TestModuleWithDependencyD")
-            {
-                $foundDepD = $true
-                $foundDepDCorrectVersion = [System.Version]$pkg.Version -le [System.Version]"1.0.0.0"
-            }
-        }
-
-        $foundParentPkgE | Should -Be $true
-        $foundDepC | Should -Be $true
-        $foundDepCCorrectVersion | Should -Be $true
-        $foundDepB | Should -Be $true
-        $foundDepBCorrectVersion | Should -Be $true
-        $foundDepD | Should -Be $true
-        $foundDepDCorrectVersion | Should -Be $true
+        # find with dependencies is not yet supported for V3, so this should only install parent package
+        $pkg = Find-PSResource -Name "TestModuleWithDependencyE" -IncludeDependencies -Repository $NuGetGalleryName
+        $pkg.Count | Should -Be 1
+        $pkg.Name | Should -Be "TestModuleWithDependencyE"
     }
 
     # It "find resources only with Tag parameter" {
