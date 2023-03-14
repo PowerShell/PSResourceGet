@@ -408,7 +408,10 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
         $repoName,
 
         [string]
-        $packageVersion
+        $packageVersion,
+
+        [string[]]
+        $tags
     )
     Get-TestDriveSetUp
 
@@ -417,7 +420,15 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
     $version = $packageVersion
-    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+    if (!$tags -or ($tags.Count -eq 0))
+    {
+        New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+    }
+    else {
+        # tags is not null or is empty
+        New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -Tags $tags
+    }
+    
 
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
