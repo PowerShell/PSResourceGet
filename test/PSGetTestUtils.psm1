@@ -410,6 +410,9 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
         [string]
         $packageVersion,
 
+        [string]
+        $prereleaseLabel,
+
         [string[]]
         $tags
     )
@@ -422,13 +425,26 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $version = $packageVersion
     if (!$tags -or ($tags.Count -eq 0))
     {
-        New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+        if (!$prereleaseLabel)
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+        }
+        else
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Prerelease $prereleaseLabel -Description "$publishModuleName module"
+        }
     }
     else {
         # tags is not null or is empty
-        New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -Tags $tags
+        if (!$prereleaseLabel)
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -Tags $tags
+        }
+        else
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Prerelease $prereleaseLabel -Description "$publishModuleName module" -Tags $tags
+        }
     }
-    
 
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
