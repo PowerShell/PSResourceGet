@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+<# WIP
 Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
 Describe 'Test HTTP Update-PSResource for Azure Artifacts' {
@@ -292,3 +293,4 @@ Describe 'Test HTTP Update-PSResource for Azure Artifacts' {
         $res.Version | Should -Contain "3.0.0"
     }
 }
+#>

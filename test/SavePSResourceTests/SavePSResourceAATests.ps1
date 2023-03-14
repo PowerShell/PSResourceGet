@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+<# WIP
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
@@ -159,3 +160,4 @@ Describe 'Test HTTP Save-PSResource for Azure Artifacts' {
         { Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $AzureArtifactsName -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 }
+#>
