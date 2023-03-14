@@ -814,6 +814,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 return PSRepositoryInfo.APIVersion.v3;
             }
+            else if (repoUri.Scheme == Uri.UriSchemeFile)
+            {
+                return PSRepositoryInfo.APIVersion.local;
+            }
             else
             {
                 return PSRepositoryInfo.APIVersion.Unknown;
