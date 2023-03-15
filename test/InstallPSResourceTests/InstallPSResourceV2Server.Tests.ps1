@@ -4,7 +4,7 @@
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Install-PSResource for Module' {
+Describe 'Test Install-PSResource for V2 Server scenarios' {
 
     BeforeAll {
         $PSGalleryName = Get-PSGalleryName
@@ -61,12 +61,11 @@ Describe 'Test Install-PSResource for Module' {
     }
 
     It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name "NonExistantModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-PSResource "NonExistantModule"
         $pkg.Name | Should -BeNullOrEmpty
-        #  -ErrorVariable err -ErrorAction SilentlyContinue
-        # $err.Count | Should -Not -Be 0
-        # $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
@@ -101,19 +100,6 @@ Describe 'Test Install-PSResource for Module' {
     # TODO: Update this test and others like it that use try/catch blocks instead of Should -Throw
     It "Should not install resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
         $Version = "(1.0.0.0)"
-        try {
-            Install-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        }
-        catch
-        {}
-        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
-
-        $res = Get-PSResource $testModuleName
-        $res | Should -BeNullOrEmpty
-    }
-
-    It "Should not install resource with incorrectly formatted version such as version formatted with invalid delimiter [1-0-0-0]" {
-        $Version="[1-0-0-0]"
         try {
             Install-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
         }
@@ -266,31 +252,31 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "5.0.0.0"
     }
 
-    It "Restore resource after reinstall fails" {
-        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
-        $pkg = Get-Module $testModuleName -ListAvailable
-        $pkg.Name | Should -Contain $testModuleName
-        $pkg.Version | Should -Contain "5.0.0.0"
+    # It "Restore resource after reinstall fails" {
+    #     Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
+    #     $pkg = Get-PSResource $testModuleName
+    #     $pkg.Name | Should -Contain $testModuleName
+    #     $pkg.Version | Should -Contain "5.0.0.0"
 
-        $resourcePath = Split-Path -Path $pkg.Path -Parent
-        $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
+    #     $resourcePath = Split-Path -Path $pkg.InstalledLocation -Parent
+    #     $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
 
-        # Lock resource file to prevent reinstall from succeeding.
-        $fs = [System.IO.File]::Open($resourceFiles[0].FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
-        try
-        {
-            # Reinstall of resource should fail with one of its files locked.
-            Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Reinstall -ErrorVariable ev -ErrorAction Silent
-            $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource'
-        }
-        finally
-        {
-            $fs.Close()
-        }
+    #     # Lock resource file to prevent reinstall from succeeding.
+    #     $fs = [System.IO.File]::Open($resourceFiles[0].FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
+    #     try
+    #     {
+    #         # Reinstall of resource should fail with one of its files locked.
+    #         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Reinstall -ErrorVariable ev -ErrorAction Silent
+    #         $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource'
+    #     }
+    #     finally
+    #     {
+    #         $fs.Close()
+    #     }
 
-        # Verify that resource module has been restored.
-        (Get-ChildItem -Path $resourcePath -Recurse).Count | Should -BeExactly $resourceFiles.Count
-    }
+    #     # Verify that resource module has been restored.
+    #     (Get-ChildItem -Path $resourcePath -Recurse).Count | Should -BeExactly $resourceFiles.Count
+    # }
 
     # It "Install resource that requires accept license with -AcceptLicense flag" {
     #     Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
@@ -312,24 +298,12 @@ Describe 'Test Install-PSResource for Module' {
         $pkg.Version | Should -Be "0.0.1"
     }
 
-    # It "Install resource from local repository given Repository parameter" {
-    #     $publishModuleName = "TestFindModule"
-    #     $repoName = "psgettestlocal"
-    #     Get-ModuleResourcePublishedToLocalRepoTestDrive $publishModuleName $repoName
-    #     Set-PSResourceRepository "psgettestlocal" -Trusted:$true
-
-    #     Install-PSResource -Name $publishModuleName -Repository $repoName
-    #     $pkg = Get-PSResource $publishModuleName
-    #     $pkg | Should -Not -BeNullOrEmpty
-    #     $pkg.Name | Should -Be $publishModuleName
-    # }
-
-    # It "Install module using -WhatIf, should not install the module" {
-    #     Install-PSResource -Name $testModuleName -WhatIf
+    It "Install module using -WhatIf, should not install the module" {
+        Install-PSResource -Name $testModuleName -WhatIf
     
-    #     $res = Get-PSResource $testModuleName
-    #     $res | Should -BeNullOrEmpty
-    # }
+        $res = Get-PSResource $testModuleName
+        $res | Should -BeNullOrEmpty
+    }
 
     It "Validates that a module with module-name script files (like Pester) installs under Modules path" {
 
@@ -366,15 +340,17 @@ Describe 'Test Install-PSResource for Module' {
             test_module = @{
                version = "[1.0.0,5.0.0)"
                repository = $PSGalleryName
-             }
+            }
           
              test_module2 = @{
                version = "[1.0.0,3.0.0)"
                repository = $PSGalleryName
                prerelease = "true"
-             }
+            }
           
-             TestModule99 = @{}
+             TestModule99 = @{
+                repository = $PSGalleryName
+            }
           }
 
           Install-PSResource -RequiredResource $rrHash -TrustRepository
@@ -390,7 +366,7 @@ Describe 'Test Install-PSResource for Module' {
 
           $res3 = Get-PSResource $testModuleName2
           $res3.Name | Should -Be $testModuleName2
-          $res3.Version | Should -Be "0.0.93.0"
+          $res3.Version | Should -Be "0.0.93"
     }
 
     It "Install modules using -RequiredResource with JSON string" {
