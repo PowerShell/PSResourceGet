@@ -417,49 +417,52 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FindHelper findHelper)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
-            NuGetVersion nugetVersion = null;
-            VersionRange versionRange= null;
-            VersionType currentType;
+            // NuGetVersion nugetVersion = null;
+            // VersionRange versionRange= null;
+            // VersionType currentType;
 
-            if (!String.IsNullOrEmpty(_versionString))
-            {
-                if (_versionString.Contains("*"))
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new ArgumentException("Argument for -Version parameter cannot contain wildcards."),
-                        "VersionCannotContainWildcard",
-                        ErrorCategory.InvalidArgument,
-                        this));
+            // if (!String.IsNullOrEmpty(_versionString))
+            // {
+            //     if (_versionString.Equals("*"))
+            //     {
+            //         currentType = VersionType.NoVersion;
+            //     }
+            //     else if (_versionString.Contains("*"))
+            //     {
+            //         _cmdletPassedIn.WriteError(new ErrorRecord(
+            //             new ArgumentException("Argument for -Version parameter cannot contain wildcards."),
+            //             "VersionCannotContainWildcard",
+            //             ErrorCategory.InvalidArgument,
+            //             this));
                     
-                    return pkgsSuccessfullyInstalled;
-                }
-
-                if (!NuGetVersion.TryParse(_versionString, out nugetVersion))
-                {
-                    if (!VersionRange.TryParse(_versionString, out versionRange))
-                    {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(
-                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
-                            "IncorrectVersionFormat",
-                            ErrorCategory.InvalidArgument,
-                            this));
+            //         return pkgsSuccessfullyInstalled;
+            //     }
+            //     else if (!NuGetVersion.TryParse(_versionString, out nugetVersion))
+            //     {
+            //         if (!VersionRange.TryParse(_versionString, out versionRange))
+            //         {
+            //             _cmdletPassedIn.WriteError(new ErrorRecord(
+            //                 new ArgumentException("Argument for -Version parameter is not in the proper format"),
+            //                 "IncorrectVersionFormat",
+            //                 ErrorCategory.InvalidArgument,
+            //                 this));
                         
-                        return pkgsSuccessfullyInstalled;
-                    }
-                    else
-                    {
-                        currentType = VersionType.VersionRange;
-                    }
-                }
-                else
-                {
-                    currentType = VersionType.SpecificVersion;
-                }
-            }
-            else
-            {
-                currentType = VersionType.NoVersion;
-            }
+            //             return pkgsSuccessfullyInstalled;
+            //         }
+            //         else
+            //         {
+            //             currentType = VersionType.VersionRange;
+            //         }
+            //     }
+            //     else
+            //     {
+            //         currentType = VersionType.SpecificVersion;
+            //     }
+            // }
+            // else
+            // {
+            //     currentType = VersionType.NoVersion;
+            // }
 
             // Install parent package to the temp directory,
             // Get the dependencies from the installed package,
@@ -476,9 +479,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. } 
                     // Install parent package to the temp directory.
                     Hashtable packagesHash = HttpInstallPackage(
-                                                        searchVersionType: currentType,
-                                                        specificVersion: nugetVersion,
-                                                        versionRange: versionRange,
+                                                        searchVersionType: _versionType,
+                                                        specificVersion: _nugetVersion,
+                                                        versionRange: _versionRange,
                                                         pkgNameToInstall: parentPackage,
                                                         repository: repository,
                                                         currentServer: currentServer,
@@ -517,10 +520,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 {
                                     continue;
                                 }
+
+                                NuGetVersion depVersion = null;
+                                if (depPkg.AdditionalMetadata.ContainsKey("NormalizedVersion"))
+                                {
+                                    if (!NuGetVersion.TryParse(depPkg.AdditionalMetadata["NormalizedVersion"] as string, out depVersion))
+                                    {
+                                        NuGetVersion.TryParse(depPkg.Version.ToString(), out depVersion); // TODO: Anam write error here if false
+                                    }
+                                }
+
                                 packagesHash = HttpInstallPackage(
-                                            searchVersionType: currentType,
-                                            specificVersion: nugetVersion,
-                                            versionRange: versionRange,
+                                            searchVersionType: VersionType.SpecificVersion,
+                                            specificVersion: depVersion,
+                                            versionRange: null,
                                             pkgNameToInstall: depPkg.Name,
                                             repository: repository,
                                             currentServer: currentServer,
@@ -632,19 +645,23 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             PSResourceInfo pkgToInstall = currentResult.returnedObject;
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
           
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
                 string currPkgNameVersion = Utils.CreateHashSetKey(pkgToInstall.Name, pkgToInstall.Version.ToString());
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
-                {
+                {                    
+                    _cmdletPassedIn.WriteWarning(
+                        string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
+                        pkgToInstall.Name,
+                        pkgVersion));
                     return packagesHash;
                 }
             }
 
             // Download the package.
-            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
             string pkgName = pkgToInstall.Name;
 
             HttpContent responseContent = null;
