@@ -136,8 +136,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _versionType = VersionType.SpecificVersion;
             }
-            else if (!parsedAsNuGetVersion && _versionRange == null)
+            else if (!parsedAsNuGetVersion && _versionRange == null || _versionRange == VersionRange.All)
             {
+                // if VersionRange == VersionRange.All then we wish to get latest package only (effectively disregard version)
                 _versionType = VersionType.NoVersion;
             }
             else
@@ -600,8 +601,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case VersionType.VersionRange:
                     responses = currentServer.FindVersionGlobbing(pkgNameToInstall, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo findVersionGlobbingEdi);
-
-                    if (findVersionGlobbingEdi != null)
+                    // Server level globbing API will not populate edi for empty response, so must check for empty response and early out
+                    if (findVersionGlobbingEdi != null || responses.Length == 0)
                     {
                         edi = findVersionGlobbingEdi;
                         return packagesHash;
@@ -639,7 +640,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!String.IsNullOrEmpty(currentResult.errorMsg))
             {
-                //edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(currentResult.errorMsg));
+                // V2Server API calls will return non-empty response when package is not found but fail at conversion time
+                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Package for installation could not be found due to: {currentResult.errorMsg}"));
                 return packagesHash;
             }
 
@@ -718,6 +720,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
+                // catch more specific exception first
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
                     "TempFolderCreationError",

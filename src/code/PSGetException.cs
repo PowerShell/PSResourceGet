@@ -37,4 +37,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
         }
     }
+
+    public class InvalidOrEmptyResponse : Exception
+    {
+        public InvalidOrEmptyResponse(string message)
+            : base (message)
+        {   
+        }
+    }
 }
