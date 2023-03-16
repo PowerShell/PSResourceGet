@@ -1159,7 +1159,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         if (_asNupkg)
                         {
-                            _cmdletPassedIn.WriteWarning("This feature is not yet implemented.");
+                            _cmdletPassedIn.WriteWarning("Saving resource from local/file based repository with -AsNupkg is not yet implemented feature.");
+                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                            continue;
                         }
                         else
                         {
