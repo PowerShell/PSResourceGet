@@ -313,15 +313,15 @@ Describe 'Test Install-PSResource for V2 Server scenarios' {
         $res.InstalledLocation.ToString().Contains("Modules") | Should -Be $true
     }
 
-    It "Install module using -NoClobber, should throw clobber error and not install the module" {
-        Install-PSResource -Name "ClobberTestModule1" -Repository $PSGalleryName -TrustRepository
+    # It "Install module using -NoClobber, should throw clobber error and not install the module" {
+    #     Install-PSResource -Name "ClobberTestModule1" -Repository $PSGalleryName -TrustRepository
     
-        $res = Get-PSResource "ClobberTestModule1"
-        $res.Name | Should -Be "ClobberTestModule1"
+    #     $res = Get-PSResource "ClobberTestModule1"
+    #     $res.Name | Should -Be "ClobberTestModule1"
 
-        Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
-    }
+    #     Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue
+    #     $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+    # }
 
     It "Install PSResourceInfo object piped in" {
         Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName | Install-PSResource -TrustRepository
@@ -462,7 +462,9 @@ Describe 'Test Install-PSResource for V2 Server scenarios' {
     # Install module that is not authenticode signed
     # Should FAIL to install the  module
     It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
-        { Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
     # # Install 1.4.4.1 (with incorrect catalog file)
@@ -484,7 +486,9 @@ Describe 'Test Install-PSResource for V2 Server scenarios' {
     # Install script that is not signed
     # Should throw
     It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
-        { Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 }
 

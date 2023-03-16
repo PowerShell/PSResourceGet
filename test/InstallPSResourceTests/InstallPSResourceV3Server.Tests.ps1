@@ -21,7 +21,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' {
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule", "PackageManagement" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
