@@ -136,8 +136,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _versionType = VersionType.SpecificVersion;
             }
-            else if (!parsedAsNuGetVersion && _versionRange == null)
+            else if (!parsedAsNuGetVersion && _versionRange == null || _versionRange == VersionRange.All)
             {
+                // if VersionRange == VersionRange.All then we wish to get latest package only (effectively disregard version)
                 _versionType = VersionType.NoVersion;
             }
             else
@@ -418,49 +419,52 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FindHelper findHelper)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
-            NuGetVersion nugetVersion = null;
-            VersionRange versionRange= null;
-            VersionType currentType;
+            // NuGetVersion nugetVersion = null;
+            // VersionRange versionRange= null;
+            // VersionType currentType;
 
-            if (!String.IsNullOrEmpty(_versionString))
-            {
-                if (_versionString.Contains("*"))
-                {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new ArgumentException("Argument for -Version parameter cannot contain wildcards."),
-                        "VersionCannotContainWildcard",
-                        ErrorCategory.InvalidArgument,
-                        this));
+            // if (!String.IsNullOrEmpty(_versionString))
+            // {
+            //     if (_versionString.Equals("*"))
+            //     {
+            //         currentType = VersionType.NoVersion;
+            //     }
+            //     else if (_versionString.Contains("*"))
+            //     {
+            //         _cmdletPassedIn.WriteError(new ErrorRecord(
+            //             new ArgumentException("Argument for -Version parameter cannot contain wildcards."),
+            //             "VersionCannotContainWildcard",
+            //             ErrorCategory.InvalidArgument,
+            //             this));
                     
-                    return pkgsSuccessfullyInstalled;
-                }
-
-                if (!NuGetVersion.TryParse(_versionString, out nugetVersion))
-                {
-                    if (!VersionRange.TryParse(_versionString, out versionRange))
-                    {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(
-                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
-                            "IncorrectVersionFormat",
-                            ErrorCategory.InvalidArgument,
-                            this));
+            //         return pkgsSuccessfullyInstalled;
+            //     }
+            //     else if (!NuGetVersion.TryParse(_versionString, out nugetVersion))
+            //     {
+            //         if (!VersionRange.TryParse(_versionString, out versionRange))
+            //         {
+            //             _cmdletPassedIn.WriteError(new ErrorRecord(
+            //                 new ArgumentException("Argument for -Version parameter is not in the proper format"),
+            //                 "IncorrectVersionFormat",
+            //                 ErrorCategory.InvalidArgument,
+            //                 this));
                         
-                        return pkgsSuccessfullyInstalled;
-                    }
-                    else
-                    {
-                        currentType = VersionType.VersionRange;
-                    }
-                }
-                else
-                {
-                    currentType = VersionType.SpecificVersion;
-                }
-            }
-            else
-            {
-                currentType = VersionType.NoVersion;
-            }
+            //             return pkgsSuccessfullyInstalled;
+            //         }
+            //         else
+            //         {
+            //             currentType = VersionType.VersionRange;
+            //         }
+            //     }
+            //     else
+            //     {
+            //         currentType = VersionType.SpecificVersion;
+            //     }
+            // }
+            // else
+            // {
+            //     currentType = VersionType.NoVersion;
+            // }
 
             // Install parent package to the temp directory,
             // Get the dependencies from the installed package,
@@ -477,9 +481,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. } 
                     // Install parent package to the temp directory.
                     Hashtable packagesHash = HttpInstallPackage(
-                                                        searchVersionType: currentType,
-                                                        specificVersion: nugetVersion,
-                                                        versionRange: versionRange,
+                                                        searchVersionType: _versionType,
+                                                        specificVersion: _nugetVersion,
+                                                        versionRange: _versionRange,
                                                         pkgNameToInstall: parentPackage,
                                                         repository: repository,
                                                         currentServer: currentServer,
@@ -492,6 +496,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (edi != null)
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "InstallPackageFailure", ErrorCategory.InvalidOperation, this));
+                        continue;
                     }
 
                     if (packagesHash.Count == 0) {
@@ -518,10 +523,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 {
                                     continue;
                                 }
+
+                                NuGetVersion depVersion = null;
+                                if (depPkg.AdditionalMetadata.ContainsKey("NormalizedVersion"))
+                                {
+                                    if (!NuGetVersion.TryParse(depPkg.AdditionalMetadata["NormalizedVersion"] as string, out depVersion))
+                                    {
+                                        NuGetVersion.TryParse(depPkg.Version.ToString(), out depVersion); // TODO: Anam write error here if false
+                                    }
+                                }
+
                                 packagesHash = HttpInstallPackage(
-                                            searchVersionType: currentType,
-                                            specificVersion: nugetVersion,
-                                            versionRange: versionRange,
+                                            searchVersionType: VersionType.SpecificVersion,
+                                            specificVersion: depVersion,
+                                            versionRange: null,
                                             pkgNameToInstall: depPkg.Name,
                                             repository: repository,
                                             currentServer: currentServer,
@@ -533,6 +548,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 if (installPackageEdi != null)
                                 {
                                     _cmdletPassedIn.WriteError(new ErrorRecord(installPackageEdi.SourceException, "InstallDependencyPackageFailure", ErrorCategory.InvalidOperation, this));
+                                    continue;
                                 }
                             }
                         }
@@ -588,8 +604,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case VersionType.VersionRange:
                     responses = currentServer.FindVersionGlobbing(pkgNameToInstall, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo findVersionGlobbingEdi);
-
-                    if (findVersionGlobbingEdi != null)
+                    // Server level globbing API will not populate edi for empty response, so must check for empty response and early out
+                    if (findVersionGlobbingEdi != null || responses.Length == 0)
                     {
                         edi = findVersionGlobbingEdi;
                         return packagesHash;
@@ -627,25 +643,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             if (!String.IsNullOrEmpty(currentResult.errorMsg))
             {
-                //edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(currentResult.errorMsg));
+                // V2Server API calls will return non-empty response when package is not found but fail at conversion time
+                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Package for installation could not be found due to: {currentResult.errorMsg}"));
                 return packagesHash;
             }
 
             PSResourceInfo pkgToInstall = currentResult.returnedObject;
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
           
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
                 string currPkgNameVersion = Utils.CreateHashSetKey(pkgToInstall.Name, pkgToInstall.Version.ToString());
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
-                {
+                {                    
+                    _cmdletPassedIn.WriteWarning(
+                        string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
+                        pkgToInstall.Name,
+                        pkgVersion));
                     return packagesHash;
                 }
             }
 
             // Download the package.
-            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
             string pkgName = pkgToInstall.Name;
 
             HttpContent responseContent = null;
@@ -671,12 +692,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             Hashtable updatedPackagesHash;
-            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash) : 
-                TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash);
-            
+            ErrorRecord error = null;
+            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error) : 
+                TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error);
+
             if (!installedToTempPathSuccessfully)
             {
-                edi = ExceptionDispatchInfo.Capture(new System.Exception(currentResult.errorMsg));
+                edi = ExceptionDispatchInfo.Capture(error.Exception);
                 return packagesHash;
             }
 
@@ -702,6 +724,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
+                // catch more specific exception first
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
                     "TempFolderCreationError",
@@ -742,8 +765,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string normalizedPkgVersion, 
             PSResourceInfo pkgToInstall, 
             Hashtable packagesHash, 
-            out Hashtable updatedPackagesHash)
+            out Hashtable updatedPackagesHash,
+            out ErrorRecord error)
         {
+            error = null;
             updatedPackagesHash = packagesHash;
             // Take response content for HTTPInstallPackage and move files into temp install path.
             try
@@ -778,9 +803,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkgName,
                     tempDirNameVersion,
                     _cmdletPassedIn,
-                    out ErrorRecord errorRecord))
+                    out error))
                 {
-                    _cmdletPassedIn.ThrowTerminatingError(errorRecord);
+                    return false;
+                   // _cmdletPassedIn.ThrowTerminatingError(errorRecord);
                 }
 
                 string installPath = string.Empty;
@@ -793,8 +819,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgName, moduleManifest);
 
                         var ex = new ArgumentException(message);
-                        var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
-                        _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
+                        error = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
 
                         return false;
@@ -805,25 +830,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         manifestInfo: out Hashtable parsedMetadataHashtable,
                         error: out Exception manifestReadError))
                     {
-                        _cmdletPassedIn.WriteError(
-                            new ErrorRecord(
-                                exception: manifestReadError,
-                                errorId: "ManifestFileReadParseError",
-                                errorCategory: ErrorCategory.ReadError,
-                                this));
+                        error = new ErrorRecord(
+                            exception: manifestReadError,
+                            errorId: "ManifestFileReadParseError",
+                            errorCategory: ErrorCategory.ReadError,
+                            this);
 
                         return false;
                     }
 
                     // Accept License verification
-                    if (!_savePkg && !CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion))
+                    if (!_savePkg && !CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion, out error))
                     {
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
                         return false;
                     }
 
                     // If NoClobber is specified, ensure command clobbering does not happen
-                    if (_noClobber && !DetectClobber(pkgName, parsedMetadataHashtable))
+                    if (_noClobber && DetectClobber(pkgName, parsedMetadataHashtable, out error))
                     {
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                         return false;
                     }
                 }
@@ -835,13 +861,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!PSScriptFileInfo.TryTestPSScriptFile(
                         scriptFileInfoPath: scriptPath,
                         parsedScript: out PSScriptFileInfo scriptToInstall,
-                        out ErrorRecord[] errors,
+                        out ErrorRecord[] parseScriptFileErrors,
                         out string[] _))
                     {
-                        foreach (ErrorRecord error in errors)
+                        foreach (ErrorRecord parseError in parseScriptFileErrors)
                         {
-                            _cmdletPassedIn.WriteError(error);
+                            _cmdletPassedIn.WriteError(parseError);
                         }
+                        
+                        var ex = new InvalidOperationException($"PSScriptFile could not be parsed");
+                        error = new ErrorRecord(ex, "psScriptParseError", ErrorCategory.ReadError, null);
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
 
                         return false;
                     }
@@ -860,7 +890,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (_includeXml)
                 {
-                    CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule);
+                    if (!CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule, out error))
+                    {
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
+                        return false;
+                    }
                 }
 
                 if (!updatedPackagesHash.ContainsKey(pkgName))
@@ -882,14 +916,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
-                _cmdletPassedIn.WriteError(
-                    new ErrorRecord(
-                        new PSInvalidOperationException(
-                            message: $"Unable to successfully install package '{pkgName}': '{e.Message}' to temporary installation path.",
-                            innerException: e),
-                        "InstallPackageFailed",
-                        ErrorCategory.InvalidOperation,
-                        _cmdletPassedIn));
+                error = new ErrorRecord(
+                    new PSInvalidOperationException(
+                        message: $"Unable to successfully install package '{pkgName}': '{e.Message}' to temporary installation path.",
+                        innerException: e),
+                    "InstallPackageFailed",
+                    ErrorCategory.InvalidOperation,
+                    _cmdletPassedIn);
+
+                // _cmdletPassedIn.WriteError(
+                //     new ErrorRecord(
+                //         new PSInvalidOperationException(
+                //             message: $"Unable to successfully install package '{pkgName}': '{e.Message}' to temporary installation path.",
+                //             innerException: e),
+                //         "InstallPackageFailed",
+                //         ErrorCategory.InvalidOperation,
+                //         _cmdletPassedIn));
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                 return false;
             }
@@ -905,9 +947,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string normalizedPkgVersion,
             PSResourceInfo pkgToInstall,
             Hashtable packagesHash,
-            out Hashtable updatedPackagesHash)
+            out Hashtable updatedPackagesHash,
+            out ErrorRecord error)
         {
+            error = null;
             updatedPackagesHash = packagesHash;
+
             // Take response content for HTTPInstallPackage and move .nupkg into temp install path.
             try
             {
@@ -921,7 +966,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string installPath = _pathsToInstallPkg.First();
                 if (_includeXml)
                 {
-                    CreateMetadataXMLFile(tempInstallPath, installPath, pkgToInstall, isModule: true);
+                    if (!CreateMetadataXMLFile(tempInstallPath, installPath, pkgToInstall, isModule: true, out error))
+                    {
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                        return false;
+                    }
                 }
 
                 if (!updatedPackagesHash.ContainsKey(pkgName))
@@ -943,14 +992,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
-                _cmdletPassedIn.WriteError(
-                    new ErrorRecord(
-                        new PSInvalidOperationException(
-                            message: $"Unable to successfully save .nupkg '{pkgName}': '{e.Message}' to temporary installation path.",
-                            innerException: e),
+                error = new ErrorRecord(
+                            new PSInvalidOperationException(
+                                message: $"Unable to successfully save .nupkg '{pkgName}': '{e.Message}' to temporary installation path.",
+                                innerException: e),
                         "SaveNupkgFailed",
                         ErrorCategory.InvalidOperation,
-                        _cmdletPassedIn));
+                        _cmdletPassedIn);
+
+                // _cmdletPassedIn.WriteError(
+                //     new ErrorRecord(
+                //         new PSInvalidOperationException(
+                //             message: $"Unable to successfully save .nupkg '{pkgName}': '{e.Message}' to temporary installation path.",
+                //             innerException: e),
+                //         "SaveNupkgFailed",
+                //         ErrorCategory.InvalidOperation,
+                //         _cmdletPassedIn));
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                 return false;
             }
@@ -1101,7 +1158,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         if (_asNupkg)
                         {
-                            _cmdletPassedIn.WriteWarning("This feature is not yet implemented.");
+                            _cmdletPassedIn.WriteWarning("Saving resource from local/file based repository with -AsNupkg is not yet implemented feature.");
+                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                            continue;
                         }
                         else
                         {
@@ -1212,14 +1271,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         pkg.RepositorySourceLocation = repoUri;
 
                         // Accept License verification
-                        if (!_savePkg && !CallAcceptLicense(pkg, moduleManifest, tempInstallPath, newVersion))
+                        if (!_savePkg && !CallAcceptLicense(pkg, moduleManifest, tempInstallPath, newVersion, out ErrorRecord licenseError))
                         {
+                            _cmdletPassedIn.WriteError(licenseError);
+                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                             continue;
                         }
 
                         // If NoClobber is specified, ensure command clobbering does not happen
-                        if (_noClobber && DetectClobber(pkg.Name, parsedMetadataHashtable))
+                        if (_noClobber && DetectClobber(pkg.Name, parsedMetadataHashtable, out ErrorRecord clobberError))
                         {
+                            _cmdletPassedIn.WriteError(clobberError);
+                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                             continue;
                         }
                     }
@@ -1238,6 +1301,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 _cmdletPassedIn.WriteError(error);
                             }
 
+                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                             continue;
                         }
 
@@ -1255,7 +1319,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (_includeXml)
                     {
-                        CreateMetadataXMLFile(tempDirNameVersion, installPath, pkg, isModule);
+                        if (!CreateMetadataXMLFile(tempDirNameVersion, installPath, pkg, isModule, out ErrorRecord createMetadataError))
+                        {
+                            _cmdletPassedIn.WriteError(createMetadataError);
+                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                            continue;
+                        }
+                        
                     }
 
                     MoveFilesIntoInstallPath(
@@ -1318,8 +1388,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return pkgsSuccessfullyInstalled;
         }
 
-        private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion)
+        private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion, out ErrorRecord error)
         {
+            error = null;
             var requireLicenseAcceptance = false;
             var success = true;
 
@@ -1356,10 +1427,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             var exMessage = String.Format("{0} package could not be installed with error: License.txt not found. License.txt must be provided when user license acceptance is required.", p.Name);
                             var ex = new ArgumentException(exMessage);
                             var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
+                            error = acceptLicenseError;
 
-                            _cmdletPassedIn.WriteError(acceptLicenseError);
-                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                            // _cmdletPassedIn.WriteError(acceptLicenseError);
+                            // _pkgNamesToInstall.RemoveAll(x => x.Equals(p.Name, StringComparison.InvariantCultureIgnoreCase));
                             success = false;
+                            return success;
+                            // TODO: Anam should there be a return here?
                         }
 
                         // Otherwise read LicenseFile
@@ -1384,9 +1458,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         var message = String.Format("{0} package could not be installed with error: License Acceptance is required for module '{0}'. Please specify '-AcceptLicense' to perform this operation.", p.Name);
                         var ex = new ArgumentException(message);
                         var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
+                        error = acceptLicenseError;
 
-                        _cmdletPassedIn.WriteError(acceptLicenseError);
-                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                        // _cmdletPassedIn.WriteError(acceptLicenseError);
+                        // _pkgNamesToInstall.RemoveAll(x => x.Equals(p.Name, StringComparison.InvariantCultureIgnoreCase));
                         success = false;
                     }
                 }
@@ -1395,8 +1470,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return success;
         }
 
-        private bool DetectClobber(string pkgName, Hashtable parsedMetadataHashtable)
+        private bool DetectClobber(string pkgName, Hashtable parsedMetadataHashtable, out ErrorRecord error)
         {
+            error = null;
             // Get installed modules, then get all possible paths
             bool foundClobber = false;
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
@@ -1458,7 +1534,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ErrorCategory.ResourceExists,
                         this));
 
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                    duplicateCmdlets.AddRange(duplicateCmds);
+
+                    var errMessage = string.Format(
+                        "{1} package could not be installed with error: The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
+                        String.Join(", ", duplicateCmdlets), pkgName);
+
+                    var ex = new ArgumentException(errMessage);
+                    var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
+                    error = noClobberError;
+                    // _cmdletPassedIn.WriteError(noClobberError);
+                    // _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                    foundClobber = true;
 
                     return foundClobber;
                 }
@@ -1467,8 +1554,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return foundClobber;
         }
 
-        private void CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule)
+        private bool CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule, out ErrorRecord error)
         {
+            error = null;
+            bool success = true;
             // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"
             // Modules will have the metadata file: "PSGetModuleInfo.xml"
             var metadataXMLPath = isModule ? Path.Combine(dirNameVersion, "PSGetModuleInfo.xml")
@@ -1478,15 +1567,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             pkg.InstalledLocation = installPath;
 
             // Write all metadata into metadataXMLPath
-            if (!pkg.TryWrite(metadataXMLPath, out string error))
+            if (!pkg.TryWrite(metadataXMLPath, out string writeError))
             {
-                var message = string.Format("{0} package could not be installed with error: Error parsing metadata into XML: '{1}'", pkg.Name, error);
+                var message = string.Format("{0} package could not be installed with error: Error parsing metadata into XML: '{1}'", pkg.Name, writeError);
                 var ex = new ArgumentException(message);
-                var ErrorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
-
-                _cmdletPassedIn.WriteError(ErrorParsingMetadata);
-                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                var errorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
+                error = errorParsingMetadata;
+                // _cmdletPassedIn.WriteError(ErrorParsingMetadata);
+                // _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
             }
+            
+            return success;
         }
 
         private void DeleteExtraneousFiles(string packageName, string dirNameVersion)

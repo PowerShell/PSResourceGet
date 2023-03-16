@@ -19,10 +19,8 @@ $script:IsCoreCLR = $PSVersionTable.ContainsKey('PSEdition') -and $PSVersionTabl
 $script:PSGalleryName = 'PSGallery'
 $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 
-$script:PoshTestGalleryName = 'PoshTestGallery'
-$script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
-
 $script:NuGetGalleryName = 'NuGetGallery'
+$script:NuGetGalleryLocation = 'https://api.nuget.org/v3/index.json'
 
 if($script:IsInbox)
 {
@@ -141,6 +139,12 @@ function Get-NuGetGalleryName
 {
     return $script:NuGetGalleryName
 }
+
+function Get-NuGetGalleryLocation
+{
+    return $script:NuGetGalleryLocation
+}
+
 function Get-PSGalleryName
 {
     return $script:PSGalleryName
@@ -149,15 +153,6 @@ function Get-PSGalleryName
 function Get-PSGalleryLocation {
     return $script:PSGalleryLocation
 }
-
-function Get-PoshTestGalleryName {
-    return $script:PoshTestGalleryName
-}
-
-function Get-PoshTestGalleryLocation {
-    return $script:PostTestGalleryLocation
-}
-
 function Get-NewTestDirs {
     Param(
         [string[]]
@@ -408,7 +403,13 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
         $repoName,
 
         [string]
-        $packageVersion
+        $packageVersion,
+
+        [string]
+        $prereleaseLabel,
+
+        [string[]]
+        $tags
     )
     Get-TestDriveSetUp
 
@@ -417,7 +418,28 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
     $version = $packageVersion
-    New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+    if (!$tags -or ($tags.Count -eq 0))
+    {
+        if (!$prereleaseLabel)
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+        }
+        else
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Prerelease $prereleaseLabel -Description "$publishModuleName module"
+        }
+    }
+    else {
+        # tags is not null or is empty
+        if (!$prereleaseLabel)
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -Tags $tags
+        }
+        else
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Prerelease $prereleaseLabel -Description "$publishModuleName module" -Tags $tags
+        }
+    }
 
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }

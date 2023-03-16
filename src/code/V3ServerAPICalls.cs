@@ -234,6 +234,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
+            if (String.IsNullOrEmpty(response))
+            {
+                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindName() with {packageName} returned empty response."));
+            }
+
             return response;
         }
 
@@ -291,6 +296,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         break;
                     }
                 }
+            }
+
+            if (String.IsNullOrEmpty(response))
+            {
+                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindNameWithTag() with {packageName} and tags {String.Join(",", tags)} returned empty response."));
             }
 
             return response;
@@ -610,6 +620,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return String.Empty;
             }
 
+            if (String.IsNullOrEmpty(response))
+            {
+                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindVersion() with {packageName} and version {version} returned empty response."));
+            }
+
             return response;
         }
         
@@ -640,6 +655,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 return String.Empty;
+            }
+
+            if (String.IsNullOrEmpty(response))
+            {
+                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindVersion() with {packageName}, tags {String.Join(", ", tags)} and version {version} returned empty response."));
             }
 
             return response;

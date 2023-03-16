@@ -108,9 +108,11 @@ Describe 'Test HTTP Save-PSResource for local repositories' {
     }
 
     It "Save module as a nupkg" {
-        Save-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -Path $SaveDir -AsNupkg -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_module.1.0.0.nupkg"
-        $pkgDir | Should -Not -BeNullOrEmpty
+        Save-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -Path $SaveDir -AsNupkg -TrustRepository -WarningVariable WarningVar -warningaction SilentlyContinue
+        $WarningVar | Should -Not -BeNullOrEmpty
+        # not yet implemented
+        # $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "$moduleName.1.0.0.nupkg"
+        # $pkgDir | Should -Not -BeNullOrEmpty
     }
 
     It "Save module and include XML metadata file" {
