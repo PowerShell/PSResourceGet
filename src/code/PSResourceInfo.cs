@@ -565,11 +565,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-        // TODO:  in progress
-        // write a serializer
+        /// <summary>
+        /// Converts XML entry to PSResourceInfo instance
+        /// used for V2 Server API call find response conversion to PSResourceInfo object
+        /// </summary>
         public static bool TryConvertFromXml(
             XmlNode entry,
-            //bool includePrerelease,
             out PSResourceInfo psGetInfo,
             string repositoryName,
             out string errorMsg)
@@ -689,7 +690,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
 
-        // v3 json parsing into psresourceinfo object
+        /// <summary>
+        /// Converts JsonDocument entry to PSResourceInfo instance
+        /// used for V3 Server API call find response conversion to PSResourceInfo object
+        /// </summary>
         public static bool TryConvertFromJson(
           JsonDocument pkgJson,
           out PSResourceInfo psGetInfo,
@@ -758,7 +762,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 // Dependencies 
-                // TODO, a little complicated 
+                // TODO 3.0.0-beta21, a little complicated 
 
                 // IsPrerelease
                 if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))

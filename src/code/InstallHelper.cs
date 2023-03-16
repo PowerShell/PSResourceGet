@@ -4,7 +4,6 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using MoreLinq.Extensions;
 using NuGet.Common;
-using NuGet.Configuration;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.Packaging.PackageExtraction;
@@ -20,7 +19,6 @@ using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -65,7 +63,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         public InstallHelper(PSCmdlet cmdletPassedIn, NetworkCredential networkCredential)
         {
@@ -75,6 +73,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _networkCredential = networkCredential;
         }
 
+        /// <summary>
+        /// This method calls is the starting point for install processes and is called by Install, Update and Save cmdlets.
+        /// </summary>
         public IEnumerable<PSResourceInfo> InstallPackages(
             string[] names,
             VersionRange versionRange,
@@ -114,7 +115,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 savePkg.ToString(),
                 tmpPath ?? string.Empty));
 
-
             _versionRange = versionRange;
             _versionString = versionString ?? String.Empty;
             _prerelease = prerelease;
@@ -138,12 +138,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else if (!parsedAsNuGetVersion && _versionRange == null || _versionRange == VersionRange.All)
             {
-                // if VersionRange == VersionRange.All then we wish to get latest package only (effectively disregard version)
+                // if VersionRange == VersionRange.All then we wish to get latest package only (maps to VersionType.NoVersion)
                 _versionType = VersionType.NoVersion;
             }
             else
             {
-                // versionRange != null
+                // versionRange is specified
                 _versionType = VersionType.VersionRange;
             }
 
@@ -180,6 +180,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// This method calls iterates through repositories (by priority order) to search for the packages to install.
+        /// It calls HTTP or NuGet API based install helper methods, according to repository type.
         /// </summary>
         private List<PSResourceInfo> ProcessRepositories(
             string[] repository,
@@ -311,7 +312,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
                     if (!_reinstall)
                     {
-                        // TODO: Update FilterByInstalledPkgs to use Http calls instead of nuget apis
                         pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
                     }
 
@@ -407,7 +407,126 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Iterates through package names passed in and installs each package and their dependencies.
+        /// Deletes temp directory and is called at end of install process.
+        /// </summary>
+        private bool TryDeleteDirectory(
+            string tempInstallPath,
+            out ErrorRecord errorMsg)
+        {
+            errorMsg = null;
+
+            try
+            {
+                Utils.DeleteDirectory(tempInstallPath);
+            }
+            catch (Exception e)
+            {
+                var TempDirCouldNotBeDeletedError = new ErrorRecord(e, "errorDeletingTempInstallPath", ErrorCategory.InvalidResult, null);
+                errorMsg = TempDirCouldNotBeDeletedError;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Moves file from the temp install path to desination path for install.
+        /// </summary>
+        private void MoveFilesIntoInstallPath(
+            PSResourceInfo pkgInfo,
+            bool isModule,
+            bool isLocalRepo,
+            string dirNameVersion,
+            string tempInstallPath,
+            string installPath,
+            string newVersion,
+            string moduleManifestVersion,
+            string scriptPath)
+        {
+            // Creating the proper installation path depending on whether pkg is a module or script
+            var newPathParent = isModule ? Path.Combine(installPath, pkgInfo.Name) : installPath;
+            var finalModuleVersionDir = isModule ? Path.Combine(installPath, pkgInfo.Name, moduleManifestVersion) : installPath;
+
+            // If script, just move the files over, if module, move the version directory over
+            var tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
+                : Path.Combine(tempInstallPath, pkgInfo.Name.ToLower(), newVersion);
+
+            _cmdletPassedIn.WriteVerbose(string.Format("Installation source path is: '{0}'", tempModuleVersionDir));
+            _cmdletPassedIn.WriteVerbose(string.Format("Installation destination path is: '{0}'", finalModuleVersionDir));
+
+            if (isModule)
+            {
+                // If new path does not exist
+                if (!Directory.Exists(newPathParent))
+                {
+                    _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
+                    Directory.CreateDirectory(newPathParent);
+                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteVerbose(string.Format("Temporary module version directory is: '{0}'", tempModuleVersionDir));
+
+                    if (Directory.Exists(finalModuleVersionDir))
+                    {
+                        // Delete the directory path before replacing it with the new module.
+                        // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
+                        // installed module is not corrupted.
+                        _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete with restore on failure.'{0}'", finalModuleVersionDir));
+                        Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
+                    }
+
+                    _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
+                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+            }
+            else if (_asNupkg)
+            {
+                foreach (string file in Directory.GetFiles(tempInstallPath))
+                {
+                    string fileName = Path.GetFileName(file);
+                    string newFileName = string.Equals(Path.GetExtension(file), ".zip", StringComparison.OrdinalIgnoreCase) ?
+                        $"{Path.GetFileNameWithoutExtension(file)}.nupkg" : fileName;
+
+                    Utils.MoveFiles(Path.Combine(tempInstallPath, fileName), Path.Combine(installPath, newFileName));
+                }
+            }
+            else
+            {
+                if (!_savePkg)
+                {
+                    // Need to delete old xml files because there can only be 1 per script
+                    var scriptXML = pkgInfo.Name + "_InstalledScriptInfo.xml";
+                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML))));
+                    if (File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML)))
+                    {
+                        _cmdletPassedIn.WriteVerbose(string.Format("Deleting script metadata XML"));
+                        File.Delete(Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
+                    }
+
+                    _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
+                    Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
+
+                    // Need to delete old script file, if that exists
+                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
+                    if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)))
+                    {
+                        _cmdletPassedIn.WriteVerbose(string.Format("Deleting script file"));
+                        File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
+                    }
+                }
+
+                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
+                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
+            }
+        }
+
+        #endregion
+
+        #region Private HTTP Methods
+
+        /// <summary>
+        /// Iterates through package names passed in and calls method to install each package and their dependencies.
         /// </summary>
         private List<PSResourceInfo> HttpInstall(
             string[] pkgNamesToInstall,
@@ -419,52 +538,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FindHelper findHelper)
         {
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
-            // NuGetVersion nugetVersion = null;
-            // VersionRange versionRange= null;
-            // VersionType currentType;
-
-            // if (!String.IsNullOrEmpty(_versionString))
-            // {
-            //     if (_versionString.Equals("*"))
-            //     {
-            //         currentType = VersionType.NoVersion;
-            //     }
-            //     else if (_versionString.Contains("*"))
-            //     {
-            //         _cmdletPassedIn.WriteError(new ErrorRecord(
-            //             new ArgumentException("Argument for -Version parameter cannot contain wildcards."),
-            //             "VersionCannotContainWildcard",
-            //             ErrorCategory.InvalidArgument,
-            //             this));
-                    
-            //         return pkgsSuccessfullyInstalled;
-            //     }
-            //     else if (!NuGetVersion.TryParse(_versionString, out nugetVersion))
-            //     {
-            //         if (!VersionRange.TryParse(_versionString, out versionRange))
-            //         {
-            //             _cmdletPassedIn.WriteError(new ErrorRecord(
-            //                 new ArgumentException("Argument for -Version parameter is not in the proper format"),
-            //                 "IncorrectVersionFormat",
-            //                 ErrorCategory.InvalidArgument,
-            //                 this));
-                        
-            //             return pkgsSuccessfullyInstalled;
-            //         }
-            //         else
-            //         {
-            //             currentType = VersionType.VersionRange;
-            //         }
-            //     }
-            //     else
-            //     {
-            //         currentType = VersionType.SpecificVersion;
-            //     }
-            // }
-            // else
-            // {
-            //     currentType = VersionType.NoVersion;
-            // }
 
             // Install parent package to the temp directory,
             // Get the dependencies from the installed package,
@@ -529,7 +602,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 {
                                     if (!NuGetVersion.TryParse(depPkg.AdditionalMetadata["NormalizedVersion"] as string, out depVersion))
                                     {
-                                        NuGetVersion.TryParse(depPkg.Version.ToString(), out depVersion); // TODO: Anam write error here if false
+                                        NuGetVersion.TryParse(depPkg.Version.ToString(), out depVersion);
                                     }
                                 }
 
@@ -582,7 +655,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Installs a single package to a temporary path.
+        /// Installs a single package to the temporary path.
         /// </summary>
         private Hashtable HttpInstallPackage(
             VersionType searchVersionType,
@@ -668,9 +741,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Download the package.
             string pkgName = pkgToInstall.Name;
-
-            HttpContent responseContent = null;
-            string errType = String.Empty;
+            HttpContent responseContent;
 
             if (searchVersionType == VersionType.NoVersion && !_prerelease)
             {
@@ -692,7 +763,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             Hashtable updatedPackagesHash;
-            ErrorRecord error = null;
+            ErrorRecord error;
             bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error) : 
                 TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error);
 
@@ -756,7 +827,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Attempts to install response content into a temporary path on the machine.
+        /// Attempts to take installed HTTP response content and move it into a temporary install path on the machine.
         /// </summary>
         private bool TryInstallToTempPath(
             HttpContent responseContent, 
@@ -770,7 +841,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             error = null;
             updatedPackagesHash = packagesHash;
-            // Take response content for HTTPInstallPackage and move files into temp install path.
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
@@ -806,7 +876,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     out error))
                 {
                     return false;
-                   // _cmdletPassedIn.ThrowTerminatingError(errorRecord);
                 }
 
                 string installPath = string.Empty;
@@ -817,7 +886,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     if (!File.Exists(moduleManifest))
                     {
                         var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgName, moduleManifest);
-
                         var ex = new ArgumentException(message);
                         error = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
@@ -884,6 +952,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
                     isModule = true;
                 }
+
                 installPath = _savePkg ? _pathsToInstallPkg.First() : installPath;
 
                 DeleteExtraneousFiles(pkgName, tempDirNameVersion);
@@ -924,21 +993,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     ErrorCategory.InvalidOperation,
                     _cmdletPassedIn);
 
-                // _cmdletPassedIn.WriteError(
-                //     new ErrorRecord(
-                //         new PSInvalidOperationException(
-                //             message: $"Unable to successfully install package '{pkgName}': '{e.Message}' to temporary installation path.",
-                //             innerException: e),
-                //         "InstallPackageFailed",
-                //         ErrorCategory.InvalidOperation,
-                //         _cmdletPassedIn));
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                 return false;
             }
         }
 
         /// <summary>
-        /// Attempts to install response content into a temporary path on the machine.
+        /// Attempts to take Http response content and move the .nupkg into a temporary install path on the machine.
         /// </summary>
         private bool TrySaveNupkgToTempPath(
             HttpContent responseContent,
@@ -953,7 +1014,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             error = null;
             updatedPackagesHash = packagesHash;
 
-            // Take response content for HTTPInstallPackage and move .nupkg into temp install path.
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
@@ -1000,19 +1060,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ErrorCategory.InvalidOperation,
                         _cmdletPassedIn);
 
-                // _cmdletPassedIn.WriteError(
-                //     new ErrorRecord(
-                //         new PSInvalidOperationException(
-                //             message: $"Unable to successfully save .nupkg '{pkgName}': '{e.Message}' to temporary installation path.",
-                //             innerException: e),
-                //         "SaveNupkgFailed",
-                //         ErrorCategory.InvalidOperation,
-                //         _cmdletPassedIn));
                 _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                 return false;
             }
         }
 
+        /// <summary>
+        /// Moves package files/directories from the temp install path into the final install path location.
+        /// </summary>
         private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, Hashtable packagesHash)
         {
             foreach (string pkgName in packagesHash.Keys)
@@ -1026,7 +1081,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string scriptPath = pkgInfo["scriptPath"] as string;
                 string installPath = pkgInfo["installPath"] as string;
 
-                // Moves package files/directories into the final install path location.
                 try
                 {
                     MoveFilesIntoInstallPath(
@@ -1073,7 +1127,212 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Install provided list of packages, which include Dependent packages if requested.
+        /// If the package requires license to be accepted, checks if the user has accepted it.
+        /// </summary>
+        private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion, out ErrorRecord error)
+        {
+            error = null;
+            var requireLicenseAcceptance = false;
+            var success = true;
+
+            if (File.Exists(moduleManifest))
+            {
+                using (StreamReader sr = new StreamReader(moduleManifest))
+                {
+                    var text = sr.ReadToEnd();
+
+                    var pattern = "RequireLicenseAcceptance\\s*=\\s*\\$true";
+                    var patternToSkip1 = "#\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
+                    var patternToSkip2 = "\\*\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
+
+                    Regex rgx = new Regex(pattern);
+                    Regex rgxComment1 = new Regex(patternToSkip1);
+                    Regex rgxComment2 = new Regex(patternToSkip2);
+                    if (rgx.IsMatch(text) && !rgxComment1.IsMatch(text) && !rgxComment2.IsMatch(text))
+                    {
+                        requireLicenseAcceptance = true;
+                    }
+                }
+
+                // Licesnse agreement processing
+                if (requireLicenseAcceptance)
+                {
+                    // If module requires license acceptance and -AcceptLicense is not passed in, display prompt
+                    if (!_acceptLicense)
+                    {
+                        var PkgTempInstallPath = Path.Combine(tempInstallPath, p.Name, newVersion);
+                        var LicenseFilePath = Path.Combine(PkgTempInstallPath, "License.txt");
+
+                        if (!File.Exists(LicenseFilePath))
+                        {
+                            var exMessage = String.Format("{0} package could not be installed with error: License.txt not found. License.txt must be provided when user license acceptance is required.", p.Name);
+                            var ex = new ArgumentException(exMessage);
+                            var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
+                            error = acceptLicenseError;
+                            success = false;
+                            return success;
+                        }
+
+                        // Otherwise read LicenseFile
+                        string licenseText = System.IO.File.ReadAllText(LicenseFilePath);
+                        var acceptanceLicenseQuery = $"Do you accept the license terms for module '{p.Name}'.";
+                        var message = licenseText + "`r`n" + acceptanceLicenseQuery;
+
+                        var title = "License Acceptance";
+                        var yesToAll = false;
+                        var noToAll = false;
+                        var shouldContinueResult = _cmdletPassedIn.ShouldContinue(message, title, true, ref yesToAll, ref noToAll);
+
+                        if (shouldContinueResult || yesToAll)
+                        {
+                            _acceptLicense = true;
+                        }
+                    }
+
+                    // Check if user agreed to license terms, if they didn't then throw error, otherwise continue to install
+                    if (!_acceptLicense)
+                    {
+                        var message = String.Format("{0} package could not be installed with error: License Acceptance is required for module '{0}'. Please specify '-AcceptLicense' to perform this operation.", p.Name);
+                        var ex = new ArgumentException(message);
+                        var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
+                        error = acceptLicenseError;
+                        success = false;
+                    }
+                }
+            }
+
+            return success;
+        }
+
+        /// <summary>
+        /// If the option for no clobber is specified, ensures that commands or cmdlets are not being clobbered.
+        /// </summary>
+        private bool DetectClobber(string pkgName, Hashtable parsedMetadataHashtable, out ErrorRecord error)
+        {
+            error = null;
+            bool foundClobber = false;
+            
+            // Get installed modules, then get all possible paths
+            // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, would never select prerelease only.
+            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
+            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
+                name: new string[] { "*" },
+                versionRange: VersionRange.All,
+                pathsToSearch: _pathsToSearch,
+                selectPrereleaseOnly: false);
+
+            List<string> listOfCmdlets = new List<string>();
+            foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
+            {
+                listOfCmdlets.Add(cmdletName as string);
+            }
+
+            foreach (var pkg in pkgsAlreadyInstalled)
+            {
+                List<string> duplicateCmdlets = new List<string>();
+                List<string> duplicateCmds = new List<string>();
+                // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed
+                if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
+                {
+                    duplicateCmdlets = listOfCmdlets.Where(cmdlet => pkg.Includes.Cmdlet.Contains(cmdlet)).ToList();
+                }
+
+                if (pkg.Includes.Command != null && pkg.Includes.Command.Any())
+                {
+                    duplicateCmds = listOfCmdlets.Where(commands => pkg.Includes.Command.Contains(commands, StringComparer.InvariantCultureIgnoreCase)).ToList();
+                }
+
+                if (duplicateCmdlets.Any() || duplicateCmds.Any())
+                {
+                    duplicateCmdlets.AddRange(duplicateCmds);
+
+                    var errMessage = string.Format(
+                        "{1} package could not be installed with error: The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
+                        String.Join(", ", duplicateCmdlets), pkgName);
+
+                    var ex = new ArgumentException(errMessage);
+                    var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
+                    error = noClobberError;
+                    foundClobber = true;
+
+                    return foundClobber;
+                }
+            }
+
+            return foundClobber;
+        }
+
+        /// <summary>
+        /// Creates metadata XML file for either module or script package.
+        /// </summary>
+        private bool CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule, out ErrorRecord error)
+        {
+            error = null;
+            bool success = true;
+            // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"
+            // Modules will have the metadata file: "PSGetModuleInfo.xml"
+            var metadataXMLPath = isModule ? Path.Combine(dirNameVersion, "PSGetModuleInfo.xml")
+                : Path.Combine(dirNameVersion, (pkg.Name + "_InstalledScriptInfo.xml"));
+
+            pkg.InstalledDate = DateTime.Now;
+            pkg.InstalledLocation = installPath;
+
+            // Write all metadata into metadataXMLPath
+            if (!pkg.TryWrite(metadataXMLPath, out string writeError))
+            {
+                var message = string.Format("{0} package could not be installed with error: Error parsing metadata into XML: '{1}'", pkg.Name, writeError);
+                var ex = new ArgumentException(message);
+                var errorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
+                error = errorParsingMetadata;
+                success = false;
+            }
+            
+            return success;
+        }
+
+        /// <summary>
+        /// Clean up and delete extraneous files found from the package during install.
+        /// </summary>
+        private void DeleteExtraneousFiles(string packageName, string dirNameVersion)
+        {
+            // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
+            // since we download as .zip for HTTP calls, we shouldn't have .nupkg* files
+            // var nupkgSHAToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.sha512");
+            // var nupkgToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg");
+            // var nupkgMetadataToDelete =  Path.Combine(dirNameVersion, ".nupkg.metadata");
+            var nuspecToDelete = Path.Combine(dirNameVersion, packageName + ".nuspec");
+            var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
+            var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
+            var packageDirToDelete = Path.Combine(dirNameVersion, "package");
+
+            if (File.Exists(nuspecToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));
+                File.Delete(nuspecToDelete);
+            }
+            if (File.Exists(contentTypesToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", contentTypesToDelete));
+                File.Delete(contentTypesToDelete);
+            }
+            if (Directory.Exists(relsDirToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", relsDirToDelete));
+                Utils.DeleteDirectory(relsDirToDelete);
+            }
+            if (Directory.Exists(packageDirToDelete))
+            {
+                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
+                Utils.DeleteDirectory(packageDirToDelete);
+            }
+        }
+
+        #endregion
+
+        #region Private NuGet API Methods
+
+        /// <summary>
+        /// Install provided list of packages, which include Dependent packages if requested (used for Local repositories)
         /// </summary>
         private List<PSResourceInfo> InstallPackage(
             List<PSResourceInfo> pkgsToInstall,
@@ -1325,7 +1584,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                             continue;
                         }
-                        
                     }
 
                     MoveFilesIntoInstallPath(
@@ -1388,251 +1646,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return pkgsSuccessfullyInstalled;
         }
 
-        private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion, out ErrorRecord error)
-        {
-            error = null;
-            var requireLicenseAcceptance = false;
-            var success = true;
-
-            if (File.Exists(moduleManifest))
-            {
-                using (StreamReader sr = new StreamReader(moduleManifest))
-                {
-                    var text = sr.ReadToEnd();
-
-                    var pattern = "RequireLicenseAcceptance\\s*=\\s*\\$true";
-                    var patternToSkip1 = "#\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
-                    var patternToSkip2 = "\\*\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
-
-                    Regex rgx = new Regex(pattern);
-                    Regex rgxComment1 = new Regex(patternToSkip1);
-                    Regex rgxComment2 = new Regex(patternToSkip2);
-                    if (rgx.IsMatch(text) && !rgxComment1.IsMatch(text) && !rgxComment2.IsMatch(text))
-                    {
-                        requireLicenseAcceptance = true;
-                    }
-                }
-
-                // Licesnse agreement processing
-                if (requireLicenseAcceptance)
-                {
-                    // If module requires license acceptance and -AcceptLicense is not passed in, display prompt
-                    if (!_acceptLicense)
-                    {
-                        var PkgTempInstallPath = Path.Combine(tempInstallPath, p.Name, newVersion);
-                        var LicenseFilePath = Path.Combine(PkgTempInstallPath, "License.txt");
-
-                        if (!File.Exists(LicenseFilePath))
-                        {
-                            var exMessage = String.Format("{0} package could not be installed with error: License.txt not found. License.txt must be provided when user license acceptance is required.", p.Name);
-                            var ex = new ArgumentException(exMessage);
-                            var acceptLicenseError = new ErrorRecord(ex, "LicenseTxtNotFound", ErrorCategory.ObjectNotFound, null);
-                            error = acceptLicenseError;
-
-                            // _cmdletPassedIn.WriteError(acceptLicenseError);
-                            // _pkgNamesToInstall.RemoveAll(x => x.Equals(p.Name, StringComparison.InvariantCultureIgnoreCase));
-                            success = false;
-                            return success;
-                            // TODO: Anam should there be a return here?
-                        }
-
-                        // Otherwise read LicenseFile
-                        string licenseText = System.IO.File.ReadAllText(LicenseFilePath);
-                        var acceptanceLicenseQuery = $"Do you accept the license terms for module '{p.Name}'.";
-                        var message = licenseText + "`r`n" + acceptanceLicenseQuery;
-
-                        var title = "License Acceptance";
-                        var yesToAll = false;
-                        var noToAll = false;
-                        var shouldContinueResult = _cmdletPassedIn.ShouldContinue(message, title, true, ref yesToAll, ref noToAll);
-
-                        if (shouldContinueResult || yesToAll)
-                        {
-                            _acceptLicense = true;
-                        }
-                    }
-
-                    // Check if user agreed to license terms, if they didn't then throw error, otherwise continue to install
-                    if (!_acceptLicense)
-                    {
-                        var message = String.Format("{0} package could not be installed with error: License Acceptance is required for module '{0}'. Please specify '-AcceptLicense' to perform this operation.", p.Name);
-                        var ex = new ArgumentException(message);
-                        var acceptLicenseError = new ErrorRecord(ex, "ForceAcceptLicense", ErrorCategory.InvalidArgument, null);
-                        error = acceptLicenseError;
-
-                        // _cmdletPassedIn.WriteError(acceptLicenseError);
-                        // _pkgNamesToInstall.RemoveAll(x => x.Equals(p.Name, StringComparison.InvariantCultureIgnoreCase));
-                        success = false;
-                    }
-                }
-            }
-
-            return success;
-        }
-
-        private bool DetectClobber(string pkgName, Hashtable parsedMetadataHashtable, out ErrorRecord error)
-        {
-            error = null;
-            // Get installed modules, then get all possible paths
-            bool foundClobber = false;
-            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
-            // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, never select prerelease only.
-            IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
-                name: new string[] { "*" },
-                versionRange: VersionRange.All,
-                pathsToSearch: _pathsToSearch,
-                selectPrereleaseOnly: false);
-            // User parsed metadata hash.
-            HashSet<string> cmdletsToInstall = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
-            {
-                cmdletsToInstall.Add(cmdletName as string);
-            }
-
-            // Exit early if there's no cmdlets in the package to be installed.
-            if (cmdletsToInstall.Count == 0) 
-            {
-                return foundClobber;
-            }
-
-            foreach (var pkg in pkgsAlreadyInstalled)
-            {
-                // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed.
-                if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
-                {
-                    foreach (string cmdlet in pkg.Includes.Cmdlet)
-                    {
-                        if (cmdletsToInstall.Contains(cmdlet))
-                        {
-                            foundClobber = true;
-
-                            break;
-                        }
-                    }
-                }
-
-                if (pkg.Includes.Command != null && pkg.Includes.Command.Any())
-                {
-                    foreach (string command in pkg.Includes.Command)
-                    {
-                        if (cmdletsToInstall.Contains(command))
-                        {
-                            foundClobber = true;
-
-                            break;
-                        }
-                    }
-                }
-
-                if (foundClobber) { 
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(
-                            string.Format("{0} package could not be installed with error: One or more of the package's commands are already available on this system. " +
-                                        "This module '{0}' may override the existing commands. If you still want to install this module '{0}', remove the -NoClobber parameter.",
-                                        pkgName)),
-                        "CommandAlreadyExists",
-                        ErrorCategory.ResourceExists,
-                        this));
-
-                    duplicateCmdlets.AddRange(duplicateCmds);
-
-                    var errMessage = string.Format(
-                        "{1} package could not be installed with error: The following commands are already available on this system: '{0}'. This module '{1}' may override the existing commands. If you still want to install this module '{1}', remove the -NoClobber parameter.",
-                        String.Join(", ", duplicateCmdlets), pkgName);
-
-                    var ex = new ArgumentException(errMessage);
-                    var noClobberError = new ErrorRecord(ex, "CommandAlreadyExists", ErrorCategory.ResourceExists, null);
-                    error = noClobberError;
-                    // _cmdletPassedIn.WriteError(noClobberError);
-                    // _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
-                    foundClobber = true;
-
-                    return foundClobber;
-                }
-            }
-
-            return foundClobber;
-        }
-
-        private bool CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule, out ErrorRecord error)
-        {
-            error = null;
-            bool success = true;
-            // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"
-            // Modules will have the metadata file: "PSGetModuleInfo.xml"
-            var metadataXMLPath = isModule ? Path.Combine(dirNameVersion, "PSGetModuleInfo.xml")
-                : Path.Combine(dirNameVersion, (pkg.Name + "_InstalledScriptInfo.xml"));
-
-            pkg.InstalledDate = DateTime.Now;
-            pkg.InstalledLocation = installPath;
-
-            // Write all metadata into metadataXMLPath
-            if (!pkg.TryWrite(metadataXMLPath, out string writeError))
-            {
-                var message = string.Format("{0} package could not be installed with error: Error parsing metadata into XML: '{1}'", pkg.Name, writeError);
-                var ex = new ArgumentException(message);
-                var errorParsingMetadata = new ErrorRecord(ex, "ErrorParsingMetadata", ErrorCategory.ParserError, null);
-                error = errorParsingMetadata;
-                // _cmdletPassedIn.WriteError(ErrorParsingMetadata);
-                // _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-            }
-            
-            return success;
-        }
-
-        private void DeleteExtraneousFiles(string packageName, string dirNameVersion)
-        {
-            // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
-            //TODO: this seems to be packageId.packageVersion
-            // var pkgIdString = $"{packageName}.{packageVersion}"; 
-
-            // since we download as .zip for HTTP calls, we shouldn't have .nupkg* files
-            // var nupkgSHAToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.sha512");
-            // var nupkgToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg");
-            // var nupkgMetadataToDelete =  Path.Combine(dirNameVersion, ".nupkg.metadata");
-            var nuspecToDelete = Path.Combine(dirNameVersion, packageName + ".nuspec");
-            var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
-            var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
-            var packageDirToDelete = Path.Combine(dirNameVersion, "package");
-
-            // Unforunately have to check if each file exists because it may or may not be there
-            // if (File.Exists(nupkgSHAToDelete))
-            // {
-            //     _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgSHAToDelete));
-            //     File.Delete(nupkgSHAToDelete);
-            // }
-            // if (File.Exists(nupkgToDelete))
-            // {
-            //     _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgToDelete));
-            //     File.Delete(nupkgToDelete);
-            // }
-            // if (File.Exists(nupkgMetadataToDelete))
-            // {
-            //     _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgMetadataToDelete));
-            //     File.Delete(nupkgMetadataToDelete);
-            // }
-            if (File.Exists(nuspecToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));
-                File.Delete(nuspecToDelete);
-            }
-            if (File.Exists(contentTypesToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", contentTypesToDelete));
-                File.Delete(contentTypesToDelete);
-            }
-            if (Directory.Exists(relsDirToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", relsDirToDelete));
-                Utils.DeleteDirectory(relsDirToDelete);
-            }
-            if (Directory.Exists(packageDirToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
-                Utils.DeleteDirectory(packageDirToDelete);
-            }
-        }
-
+        /// <summary>
+        /// Clean up and delete extraneous files found from the package during install (used for Local repositories).
+        /// </summary>
         private void DeleteExtraneousFiles(PackageIdentity pkgIdentity, string dirNameVersion)
         {
             // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
@@ -1680,115 +1696,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
                 Utils.DeleteDirectory(packageDirToDelete);
-            }
-        }
-
-        private bool TryDeleteDirectory(
-            string tempInstallPath,
-            out ErrorRecord errorMsg)
-        {
-            errorMsg = null;
-
-            try
-            {
-                Utils.DeleteDirectory(tempInstallPath);
-            }
-            catch (Exception e)
-            {
-                var TempDirCouldNotBeDeletedError = new ErrorRecord(e, "errorDeletingTempInstallPath", ErrorCategory.InvalidResult, null);
-                errorMsg = TempDirCouldNotBeDeletedError;
-                return false;
-            }
-
-            return true;
-        }
-
-        private void MoveFilesIntoInstallPath(
-            PSResourceInfo pkgInfo,
-            bool isModule,
-            bool isLocalRepo,
-            string dirNameVersion,
-            string tempInstallPath,
-            string installPath,
-            string newVersion,
-            string moduleManifestVersion,
-            string scriptPath)
-        {
-            // Creating the proper installation path depending on whether pkg is a module or script
-            var newPathParent = isModule ? Path.Combine(installPath, pkgInfo.Name) : installPath;
-            var finalModuleVersionDir = isModule ? Path.Combine(installPath, pkgInfo.Name, moduleManifestVersion) : installPath;
-
-            // If script, just move the files over, if module, move the version directory over
-            var tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
-                : Path.Combine(tempInstallPath, pkgInfo.Name.ToLower(), newVersion);
-
-            _cmdletPassedIn.WriteVerbose(string.Format("Installation source path is: '{0}'", tempModuleVersionDir));
-            _cmdletPassedIn.WriteVerbose(string.Format("Installation destination path is: '{0}'", finalModuleVersionDir));
-
-            if (isModule)
-            {
-                // If new path does not exist
-                if (!Directory.Exists(newPathParent))
-                {
-                    _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
-                    Directory.CreateDirectory(newPathParent);
-                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteVerbose(string.Format("Temporary module version directory is: '{0}'", tempModuleVersionDir));
-
-                    if (Directory.Exists(finalModuleVersionDir))
-                    {
-                        // Delete the directory path before replacing it with the new module.
-                        // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
-                        // installed module is not corrupted.
-                        _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete with restore on failure.'{0}'", finalModuleVersionDir));
-                        Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
-                    }
-
-                    _cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
-                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
-                }
-            }
-            else if (_asNupkg)
-            {
-                foreach (string file in Directory.GetFiles(tempInstallPath))
-                {
-                    string fileName = Path.GetFileName(file);
-                    string newFileName = string.Equals(Path.GetExtension(file), ".zip", StringComparison.OrdinalIgnoreCase) ?
-                        $"{Path.GetFileNameWithoutExtension(file)}.nupkg" : fileName;
-
-                    Utils.MoveFiles(Path.Combine(tempInstallPath, fileName), Path.Combine(installPath, newFileName));
-                }
-            }
-            else
-            {
-                if (!_savePkg)
-                {
-                    // Need to delete old xml files because there can only be 1 per script
-                    var scriptXML = pkgInfo.Name + "_InstalledScriptInfo.xml";
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML))));
-                    if (File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML)))
-                    {
-                        _cmdletPassedIn.WriteVerbose(string.Format("Deleting script metadata XML"));
-                        File.Delete(Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
-                    }
-
-                    _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
-                    Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
-
-                    // Need to delete old script file, if that exists
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
-                    if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)))
-                    {
-                        _cmdletPassedIn.WriteVerbose(string.Format("Deleting script file"));
-                        File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
-                    }
-                }
-
-                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
-                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
             }
         }
 
