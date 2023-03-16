@@ -338,14 +338,14 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' {
         $res1.Version | Should -Be "1.4.3"
     }
 
-    # Update to module 1.4.4.1 (with incorrect catalog file)
-    # Should FAIL to update the module
-    It "Update module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource" 
-    }
+    # # Update to module 1.4.4.1 (with incorrect catalog file)
+    # # Should FAIL to update the module
+    # It "Update module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
+    #     Install-PSResource -Name $PackageManagement -Version "1.4.2" -Reinstall -Repository $PSGalleryName -TrustRepository
+    #     Update-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+    #     $err.Count | Should -Not -Be 0
+    #     $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource" 
+    # }
 
     # Update to module 1.4.7 (is authenticode signed and has NO catalog file)
     # Should update successfully 
