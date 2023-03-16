@@ -95,6 +95,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             _pkgsLeftToFind = new List<string>(name);
+            _tagsLeftToFind = tag == null ? new List<string>() : new List<string>(tag);
 
             // Error out if repository array of names to be searched contains wildcards.
             if (repository != null)
@@ -975,7 +976,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 List<IPackageSearchMetadata> wildcardPkgs;
                 try
                 {
-                    string wildcardPkgName = pkgName.Equals("*") ? string.Empty : pkgName;
+                    string wildcardPkgName = string.Empty;
                     // SearchAsync() API returns the latest version only for all packages that match the wild-card name
                     wildcardPkgs = pkgSearchResource.SearchAsync(
                         searchTerm: wildcardPkgName,
