@@ -239,7 +239,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
-            // parse as Version range
             return VersionRange.TryParse(version, out versionRange);
         }
 
