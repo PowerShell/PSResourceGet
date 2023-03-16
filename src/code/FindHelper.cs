@@ -66,7 +66,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         public IEnumerable<PSResourceInfo> FindByResourceName(
             string[] name,
@@ -192,8 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             bool isSearchingForCommands,
             SwitchParameter prerelease,
             string[] tag,
-            string[] repository,
-            PSCredential credential)
+            string[] repository)
         {
             _prerelease = prerelease;
 
@@ -338,8 +337,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             ResourceType type,
             SwitchParameter prerelease,
             string[] tag,
-            string[] repository,
-            PSCredential credential)
+            string[] repository)
         {
             _type = type;
             _prerelease = prerelease;
@@ -456,10 +454,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     foreach (string currentTag in _tag)
                     {
-                        // currentServer.FindTag() -> return string[] responses
-                        // loop thru responses
-                        // convert each response to PSResourceResult
-
                         string[] responses = currentServer.FindTag(currentTag, _prerelease, type, out ExceptionDispatchInfo edi);
 
                         if (edi != null)
@@ -486,19 +480,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Private HTTP methods
+        #region Private HTTP Client Search Methods
 
         private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository)
         {
             ExceptionDispatchInfo edi = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
-            HashSet<string> pkgsFound = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> pkgsFound = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (string pkgName in _pkgsLeftToFind.ToArray())
             {
                 if (_versionType == VersionType.NoVersion)
                 {
-
                     if (pkgName.Trim().Equals("*"))
                     {
                         // Example: Find-PSResource -Name "*"
@@ -654,7 +647,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 else
                 {
                     // version type is Version Range
-
                     if (pkgName.Contains("*"))
                     {
                         var exMessage = "Name cannot contain or equal wildcard when using version range";
@@ -665,7 +657,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         // Example: Find-PSResource -Name "Az" -Version "[1.0.0.0, 3.0.0.0]"
-
                         string[] responses = Utils.EmptyStrArray;
                         if (_tag.Length == 0)
                         {
@@ -704,7 +695,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            // After retrieving all packages
+            // After retrieving all packages find their dependencies
             if (_includeDependencies)
             {
                 if (currentServer.repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
@@ -715,7 +706,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
-                    // Actually find and return the dependency packages
                     foreach (PSResourceInfo pkgDep in HttpFindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository, pkgsFound))
                     {
                         yield return pkgDep;
@@ -736,9 +726,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return matchedTags.Count > 0;
         }
 
+        #endregion
 
-
-
+        #region Internal HTTP Client Search Methods
         internal IEnumerable<PSResourceInfo> HttpFindDependencyPackages(
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
@@ -746,13 +736,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PSRepositoryInfo repository,
             HashSet<string> foundPkgs)
         {
-
-            // PkgA
-                // PkgB 
-                    // PkgC
-                    // PkgD <-
-                        // PkgE
-
             if (currentPkg.Dependencies.Length > 0)
             {
                 foreach (var dep in currentPkg.Dependencies)
@@ -832,7 +815,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region private NuGet APIs for Local Repo
+        #region Private NuGet APIs for Local Repo
 
         private IEnumerable<PSResourceInfo> SearchFromLocalRepository(PSRepositoryInfo repositoryInfo)
         {
@@ -892,7 +875,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
         }
-
 
         private IEnumerable<PSResourceInfo> FindFromPackageSourceSearchAPI(
             string repositoryName,
@@ -1143,21 +1125,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private List<PSResourceInfo> FindDependencyPackages(
             PSResourceInfo currentPkg,
             PackageMetadataResource packageMetadataResource,
-            SourceCacheContext sourceCacheContext
-        )
+            SourceCacheContext sourceCacheContext)
         {
             List<PSResourceInfo> thoseToAdd = new List<PSResourceInfo>();
             FindDependencyPackagesHelper(currentPkg, thoseToAdd, packageMetadataResource, sourceCacheContext);
             return thoseToAdd;
         }
 
-        // TODO: create HTTP version of FindDependencyPackagesHelper
         private void FindDependencyPackagesHelper(
             PSResourceInfo currentPkg,
             List<PSResourceInfo> thoseToAdd,
             PackageMetadataResource packageMetadataResource,
-            SourceCacheContext sourceCacheContext
-        )
+            SourceCacheContext sourceCacheContext)
         {
             foreach (var dep in currentPkg.Dependencies)
             {

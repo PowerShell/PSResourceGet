@@ -249,7 +249,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Method overrides
+        #region Method Overrides
 
         protected override void BeginProcessing()
         {
@@ -437,7 +437,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Private Methods
 
         private void RequiredResourceHelper(Hashtable reqResourceHash)
         {
