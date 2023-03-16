@@ -111,7 +111,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Method overrides
+        #region Method Overrides
 
         protected override void BeginProcessing()
         {
@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Private methods
+        #region Private Methods
 
         private void ProcessResourceNameParameterSet()
         {
@@ -173,8 +173,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 if (MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
                 {
-                    // case where Name specified: false, Tag specified: true (i.e just search by Tags)
-                    ProcessTagParameterSet(); // TODO: rename
+                    ProcessTags();
                     return;
                 }
                 else if (MyInvocation.BoundParameters.ContainsKey(nameof(Type)))
@@ -289,18 +288,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 isSearchingForCommands: isSearchingForCommands,
                 prerelease: Prerelease,
                 tag: commandOrDSCNamesToSearch,
-                repository: Repository,
-                credential: Credential))
+                repository: Repository))
             {
                 WriteObject(cmdPkg);
             }
-
-            // if a single package contains multiple commands we are interested in, return a unique entry for each:
-            // Command1 , PackageA
-            // Command2 , PackageA
         }
 
-        private void ProcessTagParameterSet()
+        private void ProcessTags()
         {
             var tagsToSearch = Utils.ProcessNameWildcards(
                 pkgNames: Tag,
@@ -328,8 +322,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 type: Type,
                 prerelease: Prerelease,
                 tag: tagsToSearch,
-                repository: Repository,
-                credential: Credential))
+                repository: Repository))
             {
                 WriteObject(tagPkg);
             }
