@@ -229,6 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
+                    sourceTrusted = repo.Trusted || trustRepository;
                     if (repo.Trusted == false && !trustRepository && !_force)
                     {
                         _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
