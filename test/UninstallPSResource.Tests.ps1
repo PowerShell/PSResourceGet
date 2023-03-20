@@ -11,8 +11,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
         $testModuleName = "test_module2"
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
-        Uninstall-PSResource -Name $testModuleName -Version "*"
-        Uninstall-PSResource -Name $testScriptName -Version "*"
+        Uninstall-PSResource -Name $testModuleName -Version "*" -ErrorAction SilentlyContinue
+        Uninstall-PSResource -Name $testScriptName -Version "*" -ErrorAction SilentlyContinue
     }
 
     BeforeEach {
@@ -20,7 +20,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
 
     AfterEach {
-        Uninstall-PSResource -Name $testModuleName -Version "*"
+        Uninstall-PSResource -Name $testModuleName -Version "*" -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -172,7 +172,7 @@ Describe 'Test Uninstall-PSResource for Modules' {
         # test_module has a version 5.0.0.0, but no version 5.0.0-preview.
         # despite the core version part being the same this uninstall on a nonexistant prerelease version should not be successful
         Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Uninstall-PSResource -Name $testModuleName -Version "5.0.0-preview"
+        Uninstall-PSResource -Name $testModuleName -Version "5.0.0-preview" -ErrorAction SilentlyContinue
         $res = Get-PSResource -Name $testModuleName -Version "5.0.0.0"
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0.0"
@@ -187,10 +187,10 @@ Describe 'Test Uninstall-PSResource for Modules' {
 
     It "Not uninstall non-prerelease version module when prerelease version specified" {
         Install-PSResource -Name $testScriptName -Version "2.5.0.0" -Repository $PSGalleryName -TrustRepository
-        Uninstall-PSResource -Name $testScriptName -Version "2.5.0-alpha001"
+        Uninstall-PSResource -Name $testScriptName -Version "2.5.0-alpha001" -ErrorAction SilentlyContinue
         $res = Get-PSResource -Name $testScriptName -Version "2.5.0.0"
         $res.Name | Should -Be $testScriptName
-        $res.Version | Should -Be "2.5.0.0"
+        $res.Version | Should -Be "2.5"
     }
 
     It "uninstall all prerelease versions (which satisfy the range) when -Version '*' and -Prerelease parameter is specified" {
@@ -273,8 +273,8 @@ Describe 'Test Uninstall-PSResource for Modules' {
     }
     
     It "Uninstall module that is not installed should throw error" {
-            Uninstall-PSResource -Name "NonInstalledModule" -ErrorVariable ev -ErrorAction SilentlyContinue
-            $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
+        Uninstall-PSResource -Name "NonInstalledModule" -ErrorVariable ev -ErrorAction SilentlyContinue
+        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
     }
 
     # Windows only

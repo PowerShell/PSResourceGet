@@ -9,267 +9,197 @@ Describe 'Test Install-PSResource for local repositories' {
 
     BeforeAll {
         $localRepo = "psgettestlocal"
-        $moduleName = "test_local_mod"
-        $moduleName2 = "test_local_mod2"
+        $testModuleName = "test_local_mod"
+        $testModuleName2 = "test_local_mod2"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $localRepo "1.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $localRepo "3.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $localRepo "5.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName2 $localRepo "1.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName2 $localRepo "5.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "1.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "3.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "5.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName2 $localRepo "1.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName2 $localRepo "5.0.0"
+
+        $tags = @()
+        $prereleaseLabel = "alpha001"
+        $params = @{
+            moduleName = $testModuleName
+            repoName = $localRepo
+            packageVersion = "5.2.5"
+            prereleaseLabel = $prereleaseLabel
+            tags = $tags
+        }
+        Get-ModuleResourcePublishedToLocalRepoTestDrive @params
     }
 
     AfterEach {
-        Uninstall-PSResource $moduleName, $moduleName2 -Version "*"
+        Uninstall-PSResource $testModuleName, $testModuleName2, "RequiredModule*" -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
 
-    It "Update resource installed given Name parameter" {
-        Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -TrustRepository
-        
-        Update-PSResource -Name $moduleName -Repository $localRepo -TrustRepository
-        $res = Get-PSResource -Name $moduleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0")
-            {
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -Be $true
-    }
-
-    It "Update resources installed given Name (with wildcard) parameter" {
-        Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -TrustRepository
-        Install-PSResource -Name $moduleName2 -Version "1.0.0" -Repository $localRepo -TrustRepository
-
-        Update-PSResource -Name "test_local*" -Repository $localRepo -TrustRepository
-        $res = Get-PSResource -Name "test_local*" -Version "5.0.0"
-
-        $inputHashtable = @{test_module = "1.0.0"; test_module2 = "1.0.0"}
-        $isTest_ModuleUpdated = $false
-        $isTest_Module2Updated = $false
-        foreach ($item in $res)
-        {
-            if ([System.Version]$item.Version -gt [System.Version]$inputHashtable[$item.Name])
-            {
-                if ($item.Name -like $moduleName)
-                {
-                    $isTest_ModuleUpdated = $true
-                }
-                elseif ($item.Name -like $moduleName2)
-                {
-                    $isTest_Module2Updated = $true
-                }
-            }
-        }
-
-        $isTest_ModuleUpdated | Should -BeTrue
-        $isTest_Module2Updated | Should -BeTrue
-    }
-
-    It "Update resource installed given Name and Version (specific) parameters" {
-        Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -TrustRepository
-
-        Update-PSResource -Name $moduleName -Version "5.0.0" -Repository $localRepo -TrustRepository
-        $res = Get-PSResource -Name $moduleName
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -eq [System.Version]"5.0.0.0")
-            {
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -BeTrue
-    }
-
-    # Windows only 
-    It "update resource under CurrentUser scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
-        # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too
-        Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -Scope AllUsers
-        Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -Scope CurrentUser
-
-        Update-PSResource -Name $moduleName -Version "3.0.0.0" -Repository $localRepo -TrustRepository -Scope CurrentUser
-
-        $res = Get-PSResource -Name $moduleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
-                $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -Be $true
-    }
- 
-    # Windows only
-    It "update resource under AllUsers scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
-        Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -TrustRepository -Scope AllUsers
-
-        Update-PSResource -Name $moduleName -Repository $localRepo -TrustRepository -Scope AllUsers
-
-        $res = Get-Module -Name $moduleName -ListAvailable
-        $res | Should -Not -BeNullOrEmpty
-        $res.Version | Should -Contain "5.0.0"
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
-                $pkg.ModuleBase.Contains("Program") | Should -Be $true
-                $isPkgUpdated = $true
-            }
-        }
-        $isPkgUpdated | Should -Be $true
-
-    }
-
-    # Windows only
-    It "Update resource under no specified scope" -skip:(!$IsWindows) {
-        Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository
-        Update-PSResource -Name $moduleName -Version "5.0.0.0" -Repository $localRepo -TrustRepository
-
-        $res = Get-PSResource -Name $moduleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
-                $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -Be $true
-    }
-
-    # Unix only
-    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
-    It "Update resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
-        # this line is commented out because AllUsers scope requires sudo and that isn't supported in CI yet
-        # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -Scope CurrentUser
-
-        Update-PSResource -Name $moduleName -Repository $localRepo -TrustRepository -Scope CurrentUser
-
-        $res = Get-PSResource -Name $moduleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
-                $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -Be $true
-    }
-
-    # Unix only
-    # Expected path should be similar to: '/usr/local/share/powershell/Modules'
-    # this test is skipped because it requires sudo to run and has yet to be resolved in CI
-    It "Update resource under AllUsers scope - Unix only" -Skip:($true) {
-        Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -Scope AllUsers
-
-        Update-PSResource -Name $moduleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
-
-        $res = Get-PSResource -Name $moduleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
-                $pkg.InstalledLocation.Contains("usr") | Should -Be $true
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -Be $true
-    }
-
-    # Unix only
-    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
-    It "Update resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
-        # this is commented out because it requires sudo to run with AllUsers scope and this hasn't been resolved in CI yet
-        # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -Scope CurrentUser
-
-        Update-PSResource -Name $moduleName -Repository $localRepo -TrustRepository
-
-        $res = Get-PSResource -Name $moduleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
-                $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -Be $true
-    }
-
-    # It "update resource that requires accept license with -AcceptLicense flag" {
-    #     Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
-    #     Update-PSResource -Name "TestModuleWithLicense" -Repository $TestGalleryName -AcceptLicense
-    #     $res = Get-PSResource "TestModuleWithLicense"
-
-    #     $isPkgUpdated = $false
-    #     foreach ($pkg in $res)
-    #     {
-    #         if ([System.Version]$pkg.Version -gt [System.Version]"0.0.1.0")
-    #         {
-    #             $isPkgUpdated = $true
-    #         }
-    #     }
-
-    #     $isPkgUpdated | Should -Be $true
-    # }
-
-    It "Update module using -WhatIf, should not update the module" {
-        Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository
-        Update-PSResource -Name $moduleName -WhatIf -Repository $localRepo -TrustRepository
-
-        $res = Get-PSResource -Name $moduleName
-
-        $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
-                $isPkgUpdated = $true
-            }
-        }
-
-        $isPkgUpdated | Should -Be $false
-    }
-
-    It "Update resource installed given -Name and -PassThru parameters" {
-        Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository
-
-        $res = Update-PSResource -Name $moduleName -Version "5.0.0.0" -Repository $localRepo -TrustRepository -PassThru
-        $res.Name | Should -Contain $moduleName
+    It "Install resource given Name parameter" {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
+        $res = Get-PSResource -Name $testModuleName
+        $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0.0"
+    }
+
+    It "Install resource given Name and Version (specific) parameters" {
+        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $localRepo -TrustRepository
+        $res = Get-PSResource -Name $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "3.0.0.0"
+    }
+
+    It "Install multiple resources by name" {
+        $pkgNames = @($testModuleName, $testModuleName2)
+        Install-PSResource -Name $pkgNames -Repository $localRepo -TrustRepository  
+        $pkg = Get-PSResource $pkgNames
+        $pkg.Name | Should -Be $pkgNames
+    }
+
+    It "Should not install resource given nonexistant name" {
+        Install-PSResource -Name "NonExistantModule" -Repository $localRepo -TrustRepository
+        $res = Get-PSResource "NonExistantModule"
+        $res.Name | Should -BeNullOrEmpty
+    }
+
+    It "Should install resource given name and exact version with bracket syntax" {
+        Install-PSResource -Name $testModuleName -Version "[1.0.0.0]" -Repository $localRepo -TrustRepository  
+        $res = Get-PSResource $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "1.0.0.0"
+    }
+
+    It "Should install resource given name and exact range inclusive [1.0.0.0, 5.0.0.0]" {
+        Install-PSResource -Name $testModuleName -Version "[1.0.0.0, 5.0.0.0]" -Repository $localRepo -TrustRepository
+        $res = Get-PSResource $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0.0"
+    }
+
+    It "Should install resource given name and exact range exclusive (1.0.0.0, 5.0.0.0)" {
+        Install-PSResource -Name $testModuleName -Version "(1.0.0.0, 5.0.0.0)" -Repository $localRepo -TrustRepository  
+        $res = Get-PSResource $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "3.0.0.0"
+    }
+
+    It "Should not install resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
+        $Version = "(1.0.0.0)"
+        try {
+            Install-PSResource -Name $testModuleName -Version $Version -Repository $localRepo -TrustRepository -ErrorAction SilentlyContinue
+        }
+        catch
+        {}
+        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+
+        $res = Get-PSResource $testModuleName
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Install resource when given Name, Version '*', should install the latest version" {
+        Install-PSResource -Name $testModuleName -Version "*" -Repository $localRepo -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "5.0.0.0"
+    }
+
+    It "Install resource with latest (including prerelease) version given Prerelease parameter" {
+        Install-PSResource -Name $testModuleName -Prerelease -Repository $localRepo -TrustRepository 
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "5.2.5"
+        $pkg.Prerelease | Should -Be "alpha001"
+    }
+
+    It "Install resource via InputObject by piping from Find-PSresource" {
+        Find-PSResource -Name $testModuleName -Repository $localRepo | Install-PSResource -TrustRepository 
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName 
+        $pkg.Version | Should -Be "5.0.0.0"
+    }
+
+    It "Install resource under location specified in PSModulePath" {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName 
+        ($env:PSModulePath).Contains($pkg.InstalledLocation)
+    }
+
+    # Windows only
+    It "Install resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository -Scope CurrentUser
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true
+    }
+
+    # Windows only
+    It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository -Scope AllUsers -Verbose
+        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Path.ToString().Contains("Program Files")
+    }
+
+    # Windows only
+    It "Install resource under no specified scope - Windows only" -Skip:(!(Get-IsWindows)) {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository 
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true
+    }
+
+    # Unix only
+    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
+    It "Install resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository -Scope CurrentUser
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
+    }
+
+    # Unix only
+    # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
+    It "Install resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
+    }
+
+    It "Should not install resource that is already installed" {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository -WarningVariable WarningVar -warningaction SilentlyContinue
+        $WarningVar | Should -Not -BeNullOrEmpty
+    }
+
+    It "Reinstall resource that is already installed with -Reinstall parameter" {
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "5.0.0.0"
+        Install-PSResource -Name $testModuleName -Repository $localRepo -Reinstall -TrustRepository
+        $pkg = Get-PSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "5.0.0.0"
+    }
+
+    It "Install module using -WhatIf, should not install the module" {
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -WhatIf
+        $res = Get-PSResource -Name $testModuleName
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Install resource given -Name and -PassThru parameters" {
+        $res = Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -PassThru
+        $res.Name | Should -Contain $testModuleName
+        $res.Version | Should -Be "1.0.0.0"
     }
 }

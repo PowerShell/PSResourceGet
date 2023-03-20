@@ -19,7 +19,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' {
     }
 
     AfterEach {
-       Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithLicense", "test_module2", "test_script" -Version "*"
+       Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithLicense", "test_module2", "test_script" -Version "*" -ErrorAction SilentlyContinue
     }
 
     AfterAll {
