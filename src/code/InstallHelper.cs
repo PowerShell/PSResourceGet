@@ -198,6 +198,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (var repo in listOfRepositories)
             {
+                sourceTrusted = repo.Trusted || trustRepository;
+
                 // Explicitly passed in Credential takes precedence over repository CredentialInfo.
                 if (_networkCredential == null && repo.CredentialInfo != null)
                 {
@@ -229,7 +231,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                 {
-                    sourceTrusted = repo.Trusted || trustRepository;
                     if (repo.Trusted == false && !trustRepository && !_force)
                     {
                         _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
@@ -306,9 +307,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // PackageA (version 1.0)
                     // PackageB (version 2.0)
                     // PackageC (version 1.0)
-                    // pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
-                    //     m => new { m.Name }).Select(
-                    //         group => group.First()).ToList();
+                    pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
+                         m => new { m.Name }).Select(
+                             group => group.First()).ToList();
 
                     // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
                     if (!_reinstall)
