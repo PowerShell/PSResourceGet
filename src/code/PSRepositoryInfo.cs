@@ -15,7 +15,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public enum APIVersion
         {
-            Unknown,
+            unknown,
             v2,
             v3,
             local

@@ -760,7 +760,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 VersionType versionType = VersionType.VersionRange;
                 NuGetVersion nugetVersion = null;
 
-                if (depVersion != null)
+                if (!String.IsNullOrEmpty(depVersion))
                 {
                     if (!NuGetVersion.TryParse(depVersion, out nugetVersion))
                     {

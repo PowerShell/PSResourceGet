@@ -820,7 +820,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
             else
             {
-                return PSRepositoryInfo.APIVersion.Unknown;
+                return PSRepositoryInfo.APIVersion.unknown;
             }
         }
 
