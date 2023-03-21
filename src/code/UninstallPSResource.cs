@@ -192,6 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
                 {
                     WriteVerbose("ShouldProcess is set to false.");
+                    successfullyUninstalled = true;
                     continue;
                 }
 
