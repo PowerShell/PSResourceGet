@@ -180,7 +180,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Version methods
 
-        public static bool GetVersionType(
+        public static bool TryGetVersionType(
             string version,
             out NuGetVersion nugetVersion,
             out VersionRange versionRange,
@@ -199,8 +199,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             if (version.Trim().Equals("*"))
             {
+                // this method is called for find and install version parameter.
+                // for find, version = "*" means VersionRange.All
+                // for install, version = "*", means find latest version. This is handled in Install
                 versionRange = VersionRange.All;
                 versionType = VersionType.VersionRange;
+                return true;
             }
 
             bool isNugetVersion = NuGetVersion.TryParse(version, out nugetVersion);
@@ -216,8 +220,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 versionType = VersionType.SpecificVersion;
             }
-
-            if (isVersionRange)
+            else if (isVersionRange)
             {
                 versionType = VersionType.VersionRange;
             }

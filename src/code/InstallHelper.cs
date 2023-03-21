@@ -79,6 +79,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public IEnumerable<PSResourceInfo> InstallPackages(
             string[] names,
             VersionRange versionRange,
+            NuGetVersion nugetVersion,
+            VersionType versionType,
             string versionString,
             bool prerelease,
             string[] repository,
@@ -116,6 +118,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tmpPath ?? string.Empty));
 
             _versionRange = versionRange;
+            _nugetVersion = nugetVersion;
+            _versionType = versionType;
             _versionString = versionString ?? String.Empty;
             _prerelease = prerelease;
             _acceptLicense = acceptLicense || force;
@@ -131,20 +135,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             _pathsToInstallPkg = pathsToInstallPkg;
             _tmpPath = tmpPath ?? Path.GetTempPath();
 
-            bool parsedAsNuGetVersion = NuGetVersion.TryParse(_versionString, out _nugetVersion);
-            if (parsedAsNuGetVersion)
+            if (_versionRange == VersionRange.All)
             {
-                _versionType = VersionType.SpecificVersion;
-            }
-            else if (!parsedAsNuGetVersion && _versionRange == null || _versionRange == VersionRange.All)
-            {
-                // if VersionRange == VersionRange.All then we wish to get latest package only (maps to VersionType.NoVersion)
                 _versionType = VersionType.NoVersion;
-            }
-            else
-            {
-                // versionRange is specified
-                _versionType = VersionType.VersionRange;
             }
 
             // Create list of installation paths to search.

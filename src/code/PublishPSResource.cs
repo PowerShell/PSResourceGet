@@ -756,7 +756,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string depVersion = dependencies[dependency] as string;
                 depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
 
-                if (!Utils.GetVersionType(
+                if (!Utils.TryGetVersionType(
                     version: depVersion,
                     nugetVersion: out NuGetVersion nugetVersion,
                     versionRange: out VersionRange versionRange,

@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             // determine/parse out Version param
-            if (!Utils.GetVersionType(
+            if (!Utils.TryGetVersionType(
                 version: Version,
                 nugetVersion: out NuGetVersion nugetVersion,
                 versionRange: out VersionRange versionRange,
@@ -200,6 +200,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var installedPkgs = _installHelper.InstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,
+                nugetVersion: nugetVersion,
+                versionType: versionType,
                 versionString: Version,
                 prerelease: Prerelease,
                 repository: Repository,

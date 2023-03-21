@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         private const string AsNupkgParameterSet = "AsNupkgParameterSet";
         private const string IncludeXmlParameterSet = "IncludeXmlParameterSet";
-        VersionRange _versionRange;
+        // VersionRange _versionRange;
         InstallHelper _installHelper;
 
         #endregion
@@ -190,38 +190,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case AsNupkgParameterSet:
                 case IncludeXmlParameterSet:
-                    // validate that if a -Version param is passed in that it can be parsed into a NuGet version range.
-                    // an exact version will be formatted into a version range.
-                    if (Version == null)
-                    {
-                        _versionRange = VersionRange.All;
-                    }
-                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-                    {
-                        var exMessage = "Argument for -Version parameter is not in the proper format.";
-                        var ex = new ArgumentException(exMessage);
-                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                        ThrowTerminatingError(IncorrectVersionFormat);
-                    }
-
                     ProcessSaveHelper(
                         pkgNames: Name,
+                        pkgVersion: Version,
                         pkgPrerelease: Prerelease,
                         pkgRepository: Repository);
                     break;
 
                 case InputObjectParameterSet:
                     string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.Prerelease);
-                    if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
-                    {
-                        var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", normalizedVersionString, InputObject.Name);
-                        var ex = new ArgumentException(exMessage);
-                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                        ThrowTerminatingError(IncorrectVersionFormat);
-                    }
-
                     ProcessSaveHelper(
                         pkgNames: new string[] { InputObject.Name },
+                        pkgVersion: normalizedVersionString,
                         pkgPrerelease: InputObject.IsPrerelease,
                         pkgRepository: new string[] { InputObject.Repository });
 
@@ -237,7 +217,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private methods
 
-        private void ProcessSaveHelper(string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
+        private void ProcessSaveHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository)
         {
             var namesToSave = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
@@ -266,6 +246,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
+            // parse Version
+            if (!Utils.TryGetVersionType(
+                version: pkgVersion,
+                nugetVersion: out NuGetVersion nugetVersion,
+                versionRange: out VersionRange versionRange,
+                versionType: out VersionType versionType,
+                out string versionParseError))
+            {
+                var ex = new ArgumentException(versionParseError);
+                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(IncorrectVersionFormat);
+            }
+
             if (!ShouldProcess(string.Format("Resources to save: '{0}'", namesToSave)))
             {
                 WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", namesToSave));
@@ -274,8 +267,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var installedPkgs = _installHelper.InstallPackages(
                 names: namesToSave, 
-                versionRange: _versionRange, 
-                versionString: Version,
+                versionRange: versionRange,
+                nugetVersion: nugetVersion,
+                versionType: versionType,
+                versionString: pkgVersion,
                 prerelease: pkgPrerelease, 
                 repository: pkgRepository, 
                 acceptLicense: true, 
