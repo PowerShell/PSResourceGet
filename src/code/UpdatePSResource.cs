@@ -169,37 +169,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void ProcessRecord()
         {
             // determine/parse out Version param
-            VersionType versionType = VersionType.VersionRange;
-            NuGetVersion nugetVersion = null;
-            VersionRange versionRange = null;
-
-            if (Version != null)
+            if (!Utils.GetVersionType(
+                version: Version,
+                nugetVersion: out NuGetVersion nugetVersion,
+                versionRange: out VersionRange versionRange,
+                versionType: out VersionType versionType,
+                error: out string error))
             {
-                if (!NuGetVersion.TryParse(Version, out nugetVersion))
-                {
-                    if (Version.Trim().Equals("*"))
-                    {
-                        versionRange = VersionRange.All;
-                        versionType = VersionType.VersionRange;
-                    }
-                    else if (!VersionRange.TryParse(Version, out versionRange))
-                    {
-                        WriteError(new ErrorRecord(
-                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
-                            "IncorrectVersionFormat",
-                            ErrorCategory.InvalidArgument,
-                            this));
-                        return;
-                    }
-                }
-                else
-                {
-                    versionType = VersionType.SpecificVersion;
-                }
-            }
-            else
-            {
-                versionType = VersionType.NoVersion;
+                WriteError(new ErrorRecord(
+                    new ArgumentException(error),
+                    "IncorrectVersionFormat",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                return;
             }
 
             var namesToUpdate = ProcessPackageNames(Name, versionRange, nugetVersion, versionType);

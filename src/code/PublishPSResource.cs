@@ -756,36 +756,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string depVersion = dependencies[dependency] as string;
                 depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
 
-                VersionRange versionRange = null;
-                VersionType versionType = VersionType.VersionRange;
-                NuGetVersion nugetVersion = null;
-
-                if (!String.IsNullOrEmpty(depVersion))
+                if (!Utils.GetVersionType(
+                    version: depVersion,
+                    nugetVersion: out NuGetVersion nugetVersion,
+                    versionRange: out VersionRange versionRange,
+                    versionType: out VersionType versionType,
+                    error: out string error))
                 {
-                    if (!NuGetVersion.TryParse(depVersion, out nugetVersion))
-                    {
-                        if (depVersion.Trim().Equals("*"))
-                        {
-                            versionRange = VersionRange.All;
-                            versionType = VersionType.VersionRange;
-                        }
-                        else if (!VersionRange.TryParse(depVersion, out versionRange))
-                        {
-                            ThrowTerminatingError(new ErrorRecord(
-                                new ArgumentException("Argument for -Version parameter is not in the proper format"),
-                                "IncorrectVersionFormat",
-                                ErrorCategory.InvalidArgument,
-                                this));
-                        }
-                    }
-                    else
-                    {
-                        versionType = VersionType.SpecificVersion;
-                    }
-                }
-                else
-                {
-                    versionType = VersionType.NoVersion;
+                    ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException(error),
+                        "IncorrectVersionFormat",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
                 
                 // Search for and return the dependency if it's in the repository.

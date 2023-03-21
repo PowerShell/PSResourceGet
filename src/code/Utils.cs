@@ -180,6 +180,51 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         #region Version methods
 
+        public static bool GetVersionType(
+            string version,
+            out NuGetVersion nugetVersion,
+            out VersionRange versionRange,
+            out VersionType versionType,
+            out string error)
+        {
+            error = String.Empty;
+            nugetVersion = null;
+            versionRange = null;
+            versionType = VersionType.NoVersion;
+
+            if (version == null || String.IsNullOrEmpty(version))
+            {
+                return true;
+            }
+
+            if (version.Trim().Equals("*"))
+            {
+                versionRange = VersionRange.All;
+                versionType = VersionType.VersionRange;
+            }
+
+            bool isNugetVersion = NuGetVersion.TryParse(version, out nugetVersion);
+            bool isVersionRange = VersionRange.TryParse(version, out versionRange);
+
+            if (!isNugetVersion && !isVersionRange)
+            {
+                error = "Argument for -Version parameter is not in the proper format";
+                return false;
+            }
+
+            if (isNugetVersion)
+            {
+                versionType = VersionType.SpecificVersion;
+            }
+
+            if (isVersionRange)
+            {
+                versionType = VersionType.VersionRange;
+            }
+
+            return true;
+        }
+
         public static string GetNormalizedVersionString(
             string versionString,
             string prerelease)
