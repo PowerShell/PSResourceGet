@@ -61,7 +61,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override string[] FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             string errMsg = $"Find all is not supported for the repository {repository.Uri}";
-            edi = ExceptionDispatchInfo.Capture(new OperationNotSupportedException(errMsg));
+            edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
             return Utils.EmptyStrArray;
         }
@@ -174,7 +174,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override string[] FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
             string errMsg = $"Find by CommandName or DSCResource is not supported for {repository.Name} as it uses the V3 server protocol";
-            edi = ExceptionDispatchInfo.Capture(new OperationNotSupportedException(errMsg));
+            edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
             return Utils.EmptyStrArray;
         }

@@ -5,15 +5,6 @@ using System;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
-    public class OperationNotSupportedException : Exception
-    {
-        public OperationNotSupportedException(string message)
-            : base(message)
-        {
-        }
-
-    }
-
     public class V3ResourceNotFoundException : Exception
     {
         public V3ResourceNotFoundException(string message)
