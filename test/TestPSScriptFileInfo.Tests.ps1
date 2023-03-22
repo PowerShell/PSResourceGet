@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test Test-PSScriptFileInfo" {
+Describe "Test Test-PSScriptFileInfo" -tags 'CI' {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDirPaths = @($tmpDir1Path)

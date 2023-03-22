@@ -4,7 +4,7 @@
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Get-PSResource for Module' {
+Describe 'Test Get-PSResource for Module' -tags 'CI' {
 
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName

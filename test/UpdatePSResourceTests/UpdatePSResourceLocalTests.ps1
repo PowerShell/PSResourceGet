@@ -4,7 +4,7 @@
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Update-PSResource for local repositories' {
+Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
 
     BeforeAll {

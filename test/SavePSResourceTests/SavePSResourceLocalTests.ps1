@@ -4,7 +4,7 @@
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
-Describe 'Test HTTP Save-PSResource for local repositories' {
+Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
 
     BeforeAll {
         $localRepo = "psgettestlocal"

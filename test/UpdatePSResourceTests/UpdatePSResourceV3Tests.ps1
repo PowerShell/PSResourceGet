@@ -3,7 +3,7 @@
 
 Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
-Describe 'Test HTTP Update-PSResource for V3 Server Protocol' {
+Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
     BeforeAll{
         $NuGetGalleryName = Get-NuGetGalleryName

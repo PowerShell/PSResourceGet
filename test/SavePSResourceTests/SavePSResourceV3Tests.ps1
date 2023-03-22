@@ -4,7 +4,7 @@
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
-Describe 'Test HTTP Save-PSResource for V3 Server Protocol' {
+Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     BeforeAll {
         $NuGetGalleryName = Get-NuGetGalleryName

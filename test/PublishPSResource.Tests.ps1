@@ -39,7 +39,7 @@ function CreateTestModule
 '@ | Out-File -Path $moduleSrc
 }
 
-Describe "Test Publish-PSResource" {
+Describe "Test Publish-PSResource" -tags 'CI' {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
 

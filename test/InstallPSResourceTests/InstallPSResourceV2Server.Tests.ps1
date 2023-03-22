@@ -4,7 +4,7 @@
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Install-PSResource for V2 Server scenarios' {
+Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     BeforeAll {
         $PSGalleryName = Get-PSGalleryName
