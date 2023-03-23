@@ -29,7 +29,10 @@ param (
 
 Write-Verbose -Verbose -Message "(Pre) PSGet versions available:"
 $psGetVersionsAvailablePre = Get-Module "PowerShellGet" -ListAvailable
-Write-Verbose -Verbose $psGetVersionsAvailablePre
+foreach($p in $psGetVersionsAvailablePre)
+{
+    Write-Verbose -Verbose $p
+}
 
 Write-Verbose -Verbose -Message "(Pre) PSGet version imported:"
 $psGetVersionImportedPre = Get-InstalledModule "PowerShellGet"
@@ -39,7 +42,10 @@ Import-Module -Name "$PSScriptRoot/buildtools.psd1" -Force
 
 Write-Verbose -Verbose -Message "(Post) PSGet versions available:"
 $psGetVersionsAvailablePost = Get-Module "PowerShellGet" -ListAvailable
-Write-Verbose -Verbose $psGetVersionsAvailablePost
+foreach($pk in $psGetVersionsAvailablePost)
+{
+    Write-Verbose -Verbose $pk
+}
 
 Write-Verbose -Verbose -Message "(Post) PSGet version imported:"
 $psGetVersionImportedPost = Get-InstalledModule "PowerShellGet"
