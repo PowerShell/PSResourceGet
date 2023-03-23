@@ -27,7 +27,23 @@ param (
     [string] $BuildFramework = "netstandard2.0"
 )
 
+Write-Verbose -Verbose -Message "(Pre) PSGet versions available:"
+$psGetVersionsAvailablePre = Get-Module "PowerShellGet" -ListAvailable
+Write-Verbose -Verbose $psGetVersionsAvailablePre
+
+Write-Verbose -Verbose -Message "(Pre) PSGet version imported:"
+$psGetVersionImportedPre = Get-InstalledModule "PowerShellGet"
+Write-Verbose -Verbose $psGetVersionImportedPre
+
 Import-Module -Name "$PSScriptRoot/buildtools.psd1" -Force
+
+Write-Verbose -Verbose -Message "(Post) PSGet versions available:"
+$psGetVersionsAvailablePost = Get-Module "PowerShellGet" -ListAvailable
+Write-Verbose -Verbose $psGetVersionsAvailablePost
+
+Write-Verbose -Verbose -Message "(Post) PSGet version imported:"
+$psGetVersionImportedPost = Get-InstalledModule "PowerShellGet"
+Write-Verbose -Verbose $psGetVersionImportedPost
 
 $config = Get-BuildConfiguration -ConfigPath $PSScriptRoot
 
