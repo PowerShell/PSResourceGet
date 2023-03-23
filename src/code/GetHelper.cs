@@ -47,11 +47,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             foreach (var pkg in pkgs)
             {
-                // Filter on specific version.
-                pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string normalizedVersion);
-
+                // Parse Normalized version if present, if not use Version property of the package
                 NuGetVersion nugetVersion = null;
-                if (!NuGetVersion.TryParse(
+                if (!pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string normalizedVersion) ||
+                    !NuGetVersion.TryParse(
                         value: normalizedVersion,
                         version: out nugetVersion))
                 {
