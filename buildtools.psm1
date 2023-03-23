@@ -132,6 +132,23 @@ function Invoke-ModuleTests {
        [string[]] $Type = "Functional"
     )
 
+    Write-Verbose -Verbose -Message "(Pre tests) PSGet versions available:"
+    $psGetVersionsAvailable = Get-Module "PowerShellGet" -ListAvailable
+    foreach($pk in $psGetVersionsAvailable)
+    {
+        Write-Verbose -Verbose -Message  "$($pk.Name) $($pk.Version)"
+    }
+    
+    Write-Verbose -Verbose -Message "(Pre tests) PSGet version imported:"
+    $psGetVersionImported = Get-InstalledModule "PowerShellGet" -ErrorAction SilentlyContinue
+    if (!$psGetVersionImported)
+    {
+        Write-Verbose -Verbose "no match found"
+    }
+    else {
+        Write-Verbose -Verbose $psGetVersionImported
+    }
+
     Write-Verbose -Verbose -Message "Starting module Pester tests..."
 
     # Run module Pester tests.

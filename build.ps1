@@ -54,8 +54,14 @@ foreach($pk in $psGetVersionsAvailablePost)
 }
 
 Write-Verbose -Verbose -Message "(Post) PSGet version imported:"
-$psGetVersionImportedPost = Get-InstalledModule "PowerShellGet"
-Write-Verbose -Verbose $psGetVersionImportedPost
+$psGetVersionImportedPost = Get-InstalledModule "PowerShellGet" -ErrorAction SilentlyContinue
+if (!$psGetVersionImportedPost)
+{
+    Write-Verbose -Verbose "no match found"
+}
+else {
+    Write-Verbose -Verbose $psGetVersionImportedPost
+}
 
 $config = Get-BuildConfiguration -ConfigPath $PSScriptRoot
 
