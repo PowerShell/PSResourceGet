@@ -31,7 +31,7 @@ Write-Verbose -Verbose -Message "(Pre) PSGet versions available:"
 $psGetVersionsAvailablePre = Get-Module "PowerShellGet" -ListAvailable
 foreach($p in $psGetVersionsAvailablePre)
 {
-    Write-Verbose -Verbose $p.Name $p.Version
+    Write-Verbose -Verbose -Message "$p.Name $p.Version"
 }
 
 Write-Verbose -Verbose -Message "(Pre) PSGet version imported:"
@@ -44,14 +44,13 @@ else {
     Write-Verbose -Verbose $psGetVersionImportedPre
 }
 
-
 Import-Module -Name "$PSScriptRoot/buildtools.psd1" -Force
 
 Write-Verbose -Verbose -Message "(Post) PSGet versions available:"
 $psGetVersionsAvailablePost = Get-Module "PowerShellGet" -ListAvailable
 foreach($pk in $psGetVersionsAvailablePost)
 {
-    Write-Verbose -Verbose $pk.Name $pk.Version
+    Write-Verbose -Verbose -Message "$pk.Name $pk.Version"
 }
 
 Write-Verbose -Verbose -Message "(Post) PSGet version imported:"
