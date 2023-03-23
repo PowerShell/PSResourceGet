@@ -3,6 +3,7 @@
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
+using System.IO;
 using System.Net.Http;
 using System.Runtime.ExceptionServices;
 
@@ -79,7 +80,7 @@ public interface IServerAPICalls
     /// Implementation Note: if prerelease: call IFindPSResource.FindName()
     ///                      if not prerelease: https://www.powershellgallery.com/api/v2/package/Id (Returns latest stable)
     /// </summary>
-    HttpContent InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi);
+    Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi);
 
     /// <summary>
     /// Installs package with specific name and version.
@@ -89,7 +90,7 @@ public interface IServerAPICalls
     ///           Install "PowerShellGet" -Version "3.0.0-beta16"
     /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
     /// </summary>    
-    HttpContent InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi);
+    Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi);
 
     #endregion
 }

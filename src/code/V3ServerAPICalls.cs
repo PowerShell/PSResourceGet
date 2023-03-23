@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Linq;
 using System.Net;
@@ -676,7 +677,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
         ///                             then find the exact version to install, then call into install version
         /// </summary>
-        public override HttpContent InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
+        public override Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
         {
             Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, out edi);
             if (edi != null)
@@ -706,13 +707,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                      */
                     if (!nugetVersion.IsPrerelease || includePrerelease)
                     {
-                        var response = InstallVersion(packageName, version.ToString(), out edi);
+                        var responseStream = InstallVersion(packageName, version.ToString(), out edi);
                         if (edi != null)
                         {
                             return null;
                         }
 
-                        return response;
+                        return responseStream;
                     }
                 }
             }
@@ -730,7 +731,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///  https://api.nuget.org/v3-flatcontainer/newtonsoft.json/9.0.1/newtonsoft.json.9.0.1.nupkg
         /// API Call: 
         /// </summary>    
-        public override HttpContent InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
+        public override Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
         {
             Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, out edi);
             if (edi != null)
@@ -749,7 +750,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return null;
             }
 
-            return content;
+            return content.ReadAsStreamAsync().Result;
         }
 
         #endregion

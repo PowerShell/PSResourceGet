@@ -4,6 +4,7 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using NuGet.Versioning;
 using System.Threading.Tasks;
@@ -442,11 +443,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
         ///                        if prerelease, call into InstallVersion instead. 
         /// </summary>
-        public override HttpContent InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
+        public override Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
         {
             var requestUrlV2 = $"{repository.Uri}/package/{packageName}";
 
-            return HttpRequestCallForContent(requestUrlV2, out edi);  
+            var response = HttpRequestCallForContent(requestUrlV2, out edi);
+            var responseStream = response.ReadAsStreamAsync().Result;
+            return responseStream;
         }
 
         /// <summary>
@@ -457,11 +460,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
-        public override HttpContent InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
+        public override Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
         {
             var requestUrlV2 = $"{repository.Uri}/package/{packageName}/{version}";
 
-            return HttpRequestCallForContent(requestUrlV2, out edi); 
+            var response = HttpRequestCallForContent(requestUrlV2, out edi);
+            var responseStream = response.ReadAsStreamAsync().Result;
+            return responseStream;
         }
 
 

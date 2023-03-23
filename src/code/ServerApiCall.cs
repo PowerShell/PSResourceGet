@@ -4,6 +4,7 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using NuGet.Versioning;
 using System.Net;
@@ -109,7 +110,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
         ///                             then find the exact version to install, then call into install version
         /// </summary>
-        public abstract HttpContent InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi);
+        public abstract Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi);
 
 
         /// <summary>
@@ -120,7 +121,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
-        public abstract HttpContent InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi);
+        public abstract Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi);
 
         #endregion
     

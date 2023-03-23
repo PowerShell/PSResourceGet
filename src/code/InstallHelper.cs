@@ -736,11 +736,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Download the package.
             string pkgName = pkgToInstall.Name;
-            HttpContent responseContent;
+            Stream responseStream;
 
             if (searchVersionType == VersionType.NoVersion && !_prerelease)
             {
-                responseContent = currentServer.InstallName(pkgName, _prerelease, out ExceptionDispatchInfo installNameEdi);
+                responseStream = currentServer.InstallName(pkgName, _prerelease, out ExceptionDispatchInfo installNameEdi);
                 if (installNameEdi != null)
                 {
                     edi = installNameEdi;
@@ -749,7 +749,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             else
             {
-                responseContent = currentServer.InstallVersion(pkgName, pkgVersion, out ExceptionDispatchInfo installVersionEdi);
+                responseStream = currentServer.InstallVersion(pkgName, pkgVersion, out ExceptionDispatchInfo installVersionEdi);
                 if (installVersionEdi != null)
                 {
                     edi = installVersionEdi;
@@ -759,8 +759,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             Hashtable updatedPackagesHash;
             ErrorRecord error;
-            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error) : 
-                TryInstallToTempPath(responseContent, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error);
+            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error) : 
+                TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error);
 
             if (!installedToTempPathSuccessfully)
             {
@@ -825,7 +825,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Attempts to take installed HTTP response content and move it into a temporary install path on the machine.
         /// </summary>
         private bool TryInstallToTempPath(
-            HttpContent responseContent, 
+            Stream responseStream, 
             string tempInstallPath, 
             string pkgName, 
             string normalizedPkgVersion, 
@@ -839,10 +839,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
-                using var content = responseContent.ReadAsStreamAsync().Result;
                 using var fs = File.Create(pathToFile);
-                content.Seek(0, System.IO.SeekOrigin.Begin);
-                content.CopyTo(fs);
+                responseStream.Seek(0, System.IO.SeekOrigin.Begin);
+                responseStream.CopyTo(fs);
                 fs.Close();
 
                 // Expand the zip file
@@ -997,7 +996,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Attempts to take Http response content and move the .nupkg into a temporary install path on the machine.
         /// </summary>
         private bool TrySaveNupkgToTempPath(
-            HttpContent responseContent,
+            Stream responseStream,
             string tempInstallPath,
             string pkgName,
             string normalizedPkgVersion,
@@ -1012,10 +1011,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
-                using var content = responseContent.ReadAsStreamAsync().Result;
                 using var fs = File.Create(pathToFile);
-                content.Seek(0, System.IO.SeekOrigin.Begin);
-                content.CopyTo(fs);
+                responseStream.Seek(0, System.IO.SeekOrigin.Begin);
+                responseStream.CopyTo(fs);
                 fs.Close();
 
                 string installPath = _pathsToInstallPkg.First();
