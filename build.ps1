@@ -41,7 +41,7 @@ if (!$psGetVersionImportedPre)
     Write-Verbose -Verbose "no match found"
 }
 else {
-    Write-Verbose -Verbose $psGetVersionImportedPre
+    Write-Verbose -Verbose -Message "$($psGetVersionImportedPre.Name) $($psGetVersionImportedPre.Version)"
 }
 
 Import-Module -Name "$PSScriptRoot/buildtools.psd1" -Force
@@ -60,7 +60,7 @@ if (!$psGetVersionImportedPost)
     Write-Verbose -Verbose "no match found"
 }
 else {
-    Write-Verbose -Verbose $psGetVersionImportedPost
+    Write-Verbose -Verbose -Message "$($psGetVersionImportedPost.Name) $($psGetVersionImportedPost.Version)"
 }
 
 $config = Get-BuildConfiguration -ConfigPath $PSScriptRoot

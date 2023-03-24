@@ -146,7 +146,7 @@ function Invoke-ModuleTests {
         Write-Verbose -Verbose "no match found"
     }
     else {
-        Write-Verbose -Verbose $psGetVersionImported
+        Write-Verbose -Verbose -Message "$($psGetVersionImported.Name) $($psGetVersionImported.Version)"
     }
 
     Write-Verbose -Verbose -Message "Starting module Pester tests..."
