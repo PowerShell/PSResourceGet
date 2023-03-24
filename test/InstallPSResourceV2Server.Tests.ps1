@@ -402,7 +402,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install modules using -RequiredResourceFile with PSD1 file" {
-        $rrFilePSD1 = Join-Path -Path "$((Get-Item $psscriptroot).parent)" -ChildPath $RequiredResourcePSD1FileName
+        $rrFilePSD1 = Join-Path -Path $psscriptroot -ChildPath $RequiredResourcePSD1FileName
 
         Install-PSResource -RequiredResourceFile $rrFilePSD1 -TrustRepository
 
@@ -421,7 +421,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install modules using -RequiredResourceFile with JSON file" {
-        $rrFileJSON = Join-Path -Path "$((Get-Item $psscriptroot).parent)" -ChildPath $RequiredResourceJSONFileName
+        $rrFileJSON = Join-Path -Path $psscriptroot -ChildPath $RequiredResourceJSONFileName
 
         Install-PSResource -RequiredResourceFile $rrFileJSON -TrustRepository
 
