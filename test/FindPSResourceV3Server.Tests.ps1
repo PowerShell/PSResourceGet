@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Global -Force
+Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
 

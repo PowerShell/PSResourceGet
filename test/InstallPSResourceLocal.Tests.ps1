@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 $ProgressPreference = "SilentlyContinue"
-Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Global -Force
+Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
 Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
