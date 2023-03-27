@@ -25,7 +25,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         private const string AsNupkgParameterSet = "AsNupkgParameterSet";
         private const string IncludeXmlParameterSet = "IncludeXmlParameterSet";
-        // VersionRange _versionRange;
         InstallHelper _installHelper;
 
         #endregion

@@ -51,8 +51,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
-        // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
+        #region Overriden Methods 
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -197,6 +196,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return responses.ToArray();
         }
 
+        /// <summary>
+        /// Find method which allows for searching for all packages that have specified Command or DSCResource name.
+        /// </summary>
         public override string[] FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
@@ -252,6 +254,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out edi);  
         }
 
+        /// <summary>
+        /// Find method which allows for searching for single name and tag and returns latest version.
+        /// Name: no wildcard support
+        /// Examples: Search "PowerShellGet" -Tag "Provider"
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// </summary>
         public override string FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             // Make sure to include quotations around the package name
@@ -317,6 +325,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return responses.ToArray();
         }
 
+        /// <summary>
+        /// Find method which allows for searching for single name with wildcards and tag and returns latest version.
+        /// Name: supports wildcards
+        /// Examples: Search "PowerShell*" -Tag "Provider"
+        /// Implementation Note: filter additionally and verify ONLY package name was a match.
+        /// </summary>
         public override string[] FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
@@ -418,6 +432,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out edi);  
         }
 
+        /// <summary>
+        /// Find method which allows for searching for single name with specific version and tag.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// Examples: Search "PowerShellGet" "2.2.5" -Tag "Provider"
+        /// </summary>
         public override string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
         {
             string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
@@ -469,7 +489,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return responseStream;
         }
 
-
+        /// <summary>
+        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for find APIs.
+        /// </summary>
         private string HttpRequestCall(string requestUrlV2, out ExceptionDispatchInfo edi)
         {
             edi = null;
@@ -497,6 +519,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return response;
         }
 
+        /// <summary>
+        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for install APIs.
+        /// </summary>
         private HttpContent HttpRequestCallForContent(string requestUrlV2, out ExceptionDispatchInfo edi) 
         {
             edi = null;
@@ -523,7 +548,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             return content;
         }
-
 
         #endregion
 
@@ -635,6 +659,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out edi);  
         }
 
+        /// <summary>
+        /// Helper method for string[] FindNameGlobbingWithTag()
+        /// </summary>
         private string FindNameGlobbingWithTag(string packageName, string[] tags, ResourceType type, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
         {
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
@@ -781,6 +808,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out edi);  
         }
 
+        /// <summary>
+        /// Helper method that makes gets 'count' property from http response string.
+        /// The count property is used to determine the number of total results found (for pagination).
+        /// </summary>
         public int GetCountFromResponse(string httpResponse, out ExceptionDispatchInfo edi)
         {
             edi = null;
@@ -812,6 +843,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return count;
         }
 
+        /// <summary>
+        /// Helper method called by HttpRequestCall() that makes the HTTP request for string response.
+        /// </summary>
         public static async Task<string> SendV2RequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
             string errMsg = "Error occured while trying to retrieve response: ";
@@ -835,6 +869,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
+        /// <summary>
+        /// Helper method called by HttpRequestCallForContent() that makes the HTTP request for HTTP Content response.
+        /// </summary>
         public static async Task<HttpContent> SendV2RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
             string errMsg = "Error occured while trying to retrieve response for content: ";

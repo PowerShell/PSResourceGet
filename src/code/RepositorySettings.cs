@@ -806,15 +806,15 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         private static PSRepositoryInfo.APIVersion GetRepoAPIVersion(Uri repoUri) {
 
-            if (repoUri.AbsoluteUri.EndsWith("api/v2"))
+            if (repoUri.AbsoluteUri.EndsWith("api/v2", StringComparison.OrdinalIgnoreCase))
             {
                 return PSRepositoryInfo.APIVersion.v2;
             }
-            else if (repoUri.AbsoluteUri.EndsWith("v3/index.json"))
+            else if (repoUri.AbsoluteUri.EndsWith("v3/index.json", StringComparison.OrdinalIgnoreCase))
             {
                 return PSRepositoryInfo.APIVersion.v3;
             }
-            else if (repoUri.Scheme == Uri.UriSchemeFile)
+            else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase))
             {
                 return PSRepositoryInfo.APIVersion.local;
             }

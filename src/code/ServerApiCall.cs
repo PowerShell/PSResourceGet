@@ -47,36 +47,40 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
         /// Examples: Search -Tag "JSON" -Repository PSGallery
-        /// API call: 
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
         public abstract string[] FindTag(string tag, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi);
 
+        /// <summary>
+        /// Find method which allows for searching for all packages that have specified Command or DSCResource name.
+        /// </summary>
         public abstract string[] FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi);
 
         /// <summary>
-        /// Find method which allows for searching for single name and returns latest version.
+        /// Find method which allows for searching for package by single name and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet"
-        /// API call: 
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
         public abstract string FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
 
+        /// <summary>
+        /// Find method which allows for searching for package by single name and tag and returns latest version.
+        /// Name: no wildcard support
+        /// Examples: Search "PowerShellGet" -Tag "provider"
+        /// </summary>
         public abstract string FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
 
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and returns latest version.
         /// Name: supports wildcards
         /// Examples: Search "PowerShell*"
-        /// API call: 
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
-        /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
         public abstract string[] FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
 
+        /// <summary>
+        /// Find method which allows for searching for single name with wildcards and tag and returns latest version.
+        /// Name: supports wildcards
+        /// Examples: Search "PowerShell*"
+        /// </summary>
         public abstract string[] FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi);
         /// <summary>
         /// Find method which allows for searching for single name with version range.
@@ -84,8 +88,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Version: supports wildcards
         /// Examples: Search "PowerShellGet" "[3.0.0.0, 5.0.0.0]"
         ///           Search "PowerShellGet" "3.*"
-        /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
-        /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
         public abstract string[] FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi);
 
@@ -94,10 +96,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Name: no wildcard support
         /// Version: no wildcard support
         /// Examples: Search "PowerShellGet" "2.2.5"
-        /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
         public abstract string FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi);
 
+        /// <summary>
+        /// Find method which allows for searching for single name with specific version.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// Examples: Search "PowerShellGet" "2.2.5" -Tag "Provider"
+        /// </summary>
         public abstract string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi);
 
         /**  INSTALL APIS **/
@@ -119,7 +126,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Version: no wildcard support.
         /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
         public abstract Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi);
 

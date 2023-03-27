@@ -243,7 +243,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string _requiredResourceJson;
         private Hashtable _requiredResourceHash;
         private HashSet<string> _packagesOnMachine;
-        // VersionRange _versionRange;
         InstallHelper _installHelper;
         ResourceFileType _resourceFileType;
 
