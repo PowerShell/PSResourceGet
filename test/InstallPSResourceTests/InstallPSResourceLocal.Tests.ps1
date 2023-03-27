@@ -6,6 +6,9 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
 Import-Module $modPath -Force -Verbose
 
+$psmodulePaths = $env:PSModulePath -split ';'
+Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
+
 Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
 
@@ -16,11 +19,11 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "1.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "3.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "5.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName2 $localRepo "1.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName2 $localRepo "5.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags @()
+        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
+        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName2 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
 
         $tags = @()
         $prereleaseLabel = "alpha001"

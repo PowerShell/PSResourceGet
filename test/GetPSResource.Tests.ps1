@@ -20,8 +20,8 @@ Describe 'Test Get-PSResource for Module' -tags 'CI' {
     }
 
     AfterAll {
-        Uninstall-PSResource -Name $testModuleName -Version "*"
-        Uninstall-PSResource -Name $testScriptName -Version "*"
+        Uninstall-PSResource -Name $testModuleName -Version "*" -ErrorAction SilentlyContinue
+        Uninstall-PSResource -Name $testScriptName -Version "*" -ErrorAction SilentlyContinue
         Get-RevertPSResourceRepositoryFile
     }
 

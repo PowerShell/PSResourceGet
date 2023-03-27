@@ -6,6 +6,9 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
 Import-Module $modPath -Force -Verbose
 
+$psmodulePaths = $env:PSModulePath -split ';'
+Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
+
 Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     BeforeAll {

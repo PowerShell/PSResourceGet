@@ -6,6 +6,9 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
 Import-Module $modPath -Force -Verbose
 
+$psmodulePaths = $env:PSModulePath -split ';'
+Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
+
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     BeforeAll {
@@ -129,7 +132,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install a module with a dependency" {
-        Uninstall-PSResource -Name "TestModuleWithDependency*" -Version "*" -SkipDependencyCheck
+        Uninstall-PSResource -Name "TestModuleWithDependency*" -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
         Install-PSResource -Name "TestModuleWithDependencyC" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository 
 
         $pkg = Get-PSResource "TestModuleWithDependencyC"
