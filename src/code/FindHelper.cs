@@ -36,9 +36,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private VersionRange _versionRange;
         private NuGetVersion _nugetVersion;
         private VersionType _versionType;
-        private SwitchParameter _prerelease = false;
+        private bool _prerelease = false;
         private string[] _tag;
-        private SwitchParameter _includeDependencies = false;
+        private bool _includeDependencies = false;
         private readonly string _psGalleryRepoName = "PSGallery";
         private readonly string _psGalleryScriptsRepoName = "PSGalleryScripts";
         private readonly string _poshTestGalleryRepoName = "PoshTestGallery";
@@ -75,10 +75,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             NuGetVersion nugetVersion,
             VersionType versionType,
             string version,
-            SwitchParameter prerelease,
+            bool prerelease,
             string[] tag,
             string[] repository,
-            SwitchParameter includeDependencies)
+            bool includeDependencies)
         {
             _type = type;
             _version = version;
@@ -116,7 +116,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
-                if (repository != null && repositoriesToSearch.Count == 0)
+                if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
@@ -190,7 +190,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSCommandResourceInfo> FindCommandOrDscResource(
             bool isSearchingForCommands,
-            SwitchParameter prerelease,
+            bool prerelease,
             string[] tag,
             string[] repository)
         {
@@ -232,7 +232,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
-                if (repository != null && repositoriesToSearch.Count == 0)
+                if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
@@ -335,7 +335,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public IEnumerable<PSResourceInfo> FindTag(
             ResourceType type,
-            SwitchParameter prerelease,
+            bool prerelease,
             string[] tag,
             string[] repository)
         {
@@ -378,7 +378,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try
             {
                 repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
-                if (repository != null && repositoriesToSearch.Count == 0)
+                if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),

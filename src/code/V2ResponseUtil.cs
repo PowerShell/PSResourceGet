@@ -71,7 +71,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
             
             XmlNode[] nodes = new XmlNode[elemList.Count]; 
-            for (int i=0; i<elemList.Count; i++) 
+            for (int i = 0; i < elemList.Count; i++) 
             {
                 nodes[i] = elemList[i]; 
             }

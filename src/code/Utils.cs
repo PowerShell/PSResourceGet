@@ -192,7 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             versionRange = null;
             versionType = VersionType.NoVersion;
 
-            if (version == null || String.IsNullOrEmpty(version))
+            if (String.IsNullOrEmpty(version))
             {
                 return true;
             }
@@ -1454,58 +1454,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 return true;
             }
-
-            /*
-            // First check if the files are catalog signed.
-            string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
-            if (File.Exists(catalogFilePath))
-            {
-                // Run catalog validation.
-                Collection<PSObject> TestFileCatalogResult;
-                string moduleBasePath = tempDirNameVersion;
-                try
-                {
-                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files.
-                    TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
-                        script: @"param (
-                                      [string] $moduleBasePath, 
-                                      [string] $catalogFilePath
-                                 ) 
-                                $catalogValidation = Test-FileCatalog -Path $moduleBasePath -CatalogFilePath $CatalogFilePath `
-                                                 -FilesToSkip '*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
-                                                 -Detailed -ErrorAction SilentlyContinue
-        
-                                if ($catalogValidation.Status.ToString() -eq 'valid' -and $catalogValidation.Signature.Status -eq 'valid') {
-                                    return $true
-                                }
-                                else {
-                                    return $false
-                                }
-                        ",
-                        useNewScope: true,
-                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                        input: null,
-                        args: new object[] { moduleBasePath, catalogFilePath });
-                }
-                catch (Exception e)
-                {
-                    errorRecord = new ErrorRecord(new ArgumentException(e.Message), "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
-                    return false;
-                }
-
-                bool catalogValidation = TestFileCatalogResult.Count > 0 ? (bool)TestFileCatalogResult[0].BaseObject : false;
-                if (!catalogValidation)
-                {
-                    var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
-                    var ex = new ArgumentException(exMessage);
-
-                    errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
-                    return false;
-                }
-
-                return true;
-            }
-            */
 
             // Otherwise check for signatures on individual files.
             Collection<PSObject> authenticodeSignatures;
