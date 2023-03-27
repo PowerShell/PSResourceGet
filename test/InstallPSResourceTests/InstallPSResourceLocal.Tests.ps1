@@ -2,7 +2,9 @@
 # Licensed under the MIT License.
 
 $ProgressPreference = "SilentlyContinue"
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
+Import-Module $modPath -Force -Verbose
 
 Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 

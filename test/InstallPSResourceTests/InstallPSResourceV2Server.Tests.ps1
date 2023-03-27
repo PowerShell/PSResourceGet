@@ -2,7 +2,9 @@
 # Licensed under the MIT License.
 
 $ProgressPreference = "SilentlyContinue"
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
+Import-Module $modPath -Force -Verbose
 
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
@@ -402,7 +404,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install modules using -RequiredResourceFile with PSD1 file" {
-        $rrFilePSD1 = Join-Path -Path $psscriptroot -ChildPath $RequiredResourcePSD1FileName
+        $rrFilePSD1 = "$psscriptroot/../$RequiredResourcePSD1FileName"
 
         Install-PSResource -RequiredResourceFile $rrFilePSD1 -TrustRepository
 
@@ -421,7 +423,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install modules using -RequiredResourceFile with JSON file" {
-        $rrFileJSON = Join-Path -Path $psscriptroot -ChildPath $RequiredResourceJSONFileName
+        $rrFileJSON = "$psscriptroot/../$RequiredResourceJSONFileName"
 
         Install-PSResource -RequiredResourceFile $rrFileJSON -TrustRepository
 
