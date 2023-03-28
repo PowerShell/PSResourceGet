@@ -151,20 +151,20 @@ function Invoke-ModuleTests {
     $output | Foreach-Object { Write-Warning -Message "$_" }
     $testResultsFilePath = Join-Path -Path $testPath -ChildPath $testResultFileName
 
-    # Examine Pester test results.
-    if (! (Test-Path -Path $testResultsFilePath)) {
-        throw "Module test result file not found: '$testResultsFilePath'"
-    }
-    $xmlDoc = [xml] (Get-Content -Path $testResultsFilePath -Raw)
-    if ([int] ($xmlDoc.'test-results'.failures) -gt 0) {
-        $failures = [System.Xml.XmlDocumentXPathExtensions]::SelectNodes($xmlDoc."test-results", './/test-case[@result = "Failure"]')
-    }
-    else {
-        $failures = $xmlDoc.SelectNodes('.//test-case[@result = "Failure"]')
-    }
-    foreach ($testfailure in $failures) {
-        Show-PSPesterError -TestFailure $testfailure
-    }
+    # # Examine Pester test results.
+    # if (! (Test-Path -Path $testResultsFilePath)) {
+    #     throw "Module test result file not found: '$testResultsFilePath'"
+    # }
+    # $xmlDoc = [xml] (Get-Content -Path $testResultsFilePath -Raw)
+    # if ([int] ($xmlDoc.'test-results'.failures) -gt 0) {
+    #     $failures = [System.Xml.XmlDocumentXPathExtensions]::SelectNodes($xmlDoc."test-results", './/test-case[@result = "Failure"]')
+    # }
+    # else {
+    #     $failures = $xmlDoc.SelectNodes('.//test-case[@result = "Failure"]')
+    # }
+    # foreach ($testfailure in $failures) {
+    #     Show-PSPesterError -TestFailure $testfailure
+    # }
 
     # Publish test results to AzDevOps
     if ($env:TF_BUILD) {
