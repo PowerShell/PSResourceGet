@@ -393,6 +393,79 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
+function Create-TagsStringEntry
+{
+    Param(
+        [string[]]
+        $tags
+    )
+
+    if (!$tags)
+    {
+        return ""
+    }
+
+    $tagsString = "Tags = @(" + ($tags | Join-String -Separator ",") + ")"
+    return $tagsString
+}
+
+function New-TestModule
+{
+    Param(
+        [string]
+        $path = "$TestDrive",
+
+        [string]
+        $moduleName = "TestModule",
+
+        [string]
+        $repoName,
+
+        [string]
+        $packageVersion,
+
+        [string]
+        $prereleaseLabel,
+
+        [string[]]
+        $tags
+    )
+
+    $modulePath = Join-Path -Path $Path -ChildPath $ModuleName
+    $moduleMan = Join-Path $modulePath -ChildPath ($ModuleName + '.psd1')
+
+    if ( Test-Path -Path $modulePath) {
+        Remove-Item -Path $modulePath -Recurse -Force
+    }
+
+    $null = New-Item -Path $modulePath -ItemType Directory -Force
+    $tagsEntry = Create-TagsStringEntry -tags $tags
+    $prereleaseEntry = ""
+    if ($prereleaseLabel)
+    {
+        $prereleaseEntry = "Prerelease = '{0}'" -f $prereleaseLabel
+    }
+
+    @'
+    @{{
+        ModuleVersion     = '{0}'
+        Author            = 'None'
+        Description       = 'None'
+        GUID              = '0c2829fc-b165-4d72-9038-ae3a71a755c1'
+        FunctionsToExport = @()
+        RequiredModules   = @()
+        PrivateData = @{{
+            PSData = @{{
+                {1}
+                {2}
+            }}
+        }}
+    }}
+'@ -f $packageVersion, $prereleaseEntry, $tagsEntry | Out-File -Path $moduleMan
+
+    Publish-PSResource -Path $modulePath -Repository $repoName
+}
+
 function Get-ModuleResourcePublishedToLocalRepoTestDrive
 {
     Param(

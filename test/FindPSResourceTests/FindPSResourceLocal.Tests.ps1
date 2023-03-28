@@ -22,21 +22,16 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
-        $tags = @("Test", "Tag2", $cmdName, $dscName)
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags @()
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel $prereleaseLabel -tags $tags
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel $prereleaseLabel -tags $tags
-
+        $tagsEscaped = @("'Test'", "'Tag2'", "'$cmdName'", "'$dscName'")
         $prereleaseLabel = "alpha001"
-        $params = @{
-            moduleName = $testModuleName
-            repoName = $localRepo
-            packageVersion = "5.2.5"
-            prereleaseLabel = $prereleaseLabel
-            tags = $tags
-        }
-        Get-ModuleResourcePublishedToLocalRepoTestDrive @params
+
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tagsEscaped
+
+        New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
+        New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tagsEscaped
     }
 
     AfterAll {
@@ -138,12 +133,13 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindNameGlobbingWithTag()
         $requiredTag = "test"
         $nameWithWildcard = "test_local_mod*"
+
         $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $localRepo
         $res.Count | Should -BeGreaterThan 1
         foreach ($pkg in $res)
         {
             $pkg.Name | Should -BeLike $nameWithWildcard
-            $pkg.Tags | Should -Contain $requiredTag
+            $pkg.Tags | Should -Contain "$requiredTag"
         }
     }
 
@@ -158,6 +154,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindNameGlobbingWithTag()
         $requiredTags = @("test", "Tag2")
         $nameWithWildcard = "test_local_mod*"
+
         $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTags -Repository $localRepo
         $res.Count | Should -BeGreaterThan 1
         foreach ($pkg in $res)
