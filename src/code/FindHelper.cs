@@ -465,7 +465,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
-                            pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
+                            pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;  
                         }
                     }
@@ -503,7 +503,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
-                            pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
+                            pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;                    
                         }
                     }
@@ -542,7 +542,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
-                        pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
+                        pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
                 }
@@ -592,7 +592,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
-                        pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
+                        pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
                 }
@@ -640,7 +640,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
-                            pkgsFound.Add(Utils.CreateHashSetKey(foundPkg.Name, foundPkg.Version.ToString()));
+                            pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;                    
                         }
                     }
@@ -729,7 +729,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         depPkg = currentResult.returnedObject;
-                        string pkgHashKey = Utils.CreateHashSetKey(depPkg.Name, depPkg.Version.ToString());
+                        string pkgHashKey = String.Format("{0}{1}", depPkg.Name, depPkg.Version.ToString());
 
                         if (!foundPkgs.Contains(pkgHashKey))
                         {
@@ -759,7 +759,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             depPkg = currentResult.returnedObject;
                         }
 
-                        string pkgHashKey = Utils.CreateHashSetKey(depPkg.Name, depPkg.Version.ToString());
+                        string pkgHashKey = String.Format("{0}{1}", depPkg.Name, depPkg.Version.ToString());
 
                         if (!foundPkgs.Contains(pkgHashKey))
                         {
@@ -772,7 +772,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            string currentPkgHashKey = Utils.CreateHashSetKey(currentPkg.Name, currentPkg.Version.ToString());
+            string currentPkgHashKey = String.Format("{0}{1}", currentPkg.Name, currentPkg.Version.ToString());
 
             if (!foundPkgs.Contains(currentPkgHashKey))
             {

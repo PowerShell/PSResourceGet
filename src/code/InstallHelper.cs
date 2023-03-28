@@ -636,7 +636,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkgsSuccessfullyInstalled.Add(pkgInfo["psResourceInfoPkg"] as PSResourceInfo);
 
                             // Add each pkg to _packagesOnMachine (ie pkgs fully installed on the machine).
-                            _packagesOnMachine.Add(Utils.CreateHashSetKey(pkgName, pkgInfo["pkgVersion"].ToString()));
+                            _packagesOnMachine.Add(String.Format("{0}{1}", pkgName, pkgInfo["pkgVersion"].ToString()));
                         }
                     }
                 }
@@ -723,7 +723,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
-                string currPkgNameVersion = Utils.CreateHashSetKey(pkgToInstall.Name, pkgToInstall.Version.ToString());
+                string currPkgNameVersion = String.Format("{0}{1}", pkgToInstall.Name, pkgToInstall.Version.ToString());
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {                    
                     _cmdletPassedIn.WriteWarning(

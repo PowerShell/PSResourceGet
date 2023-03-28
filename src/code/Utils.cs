@@ -807,7 +807,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 pathsToSearch: pathsToSearch,
                 selectPrereleaseOnly: false))
             {
-                string pkgNameVersion = CreateHashSetKey(installedPkg.Name, installedPkg.Version.ToString());
+                string pkgNameVersion = String.Format("{0}{1}", installedPkg.Name, installedPkg.Version.ToString());
                 if (!pkgsInstalledOnMachine.Contains(pkgNameVersion))
                 {
                     pkgsInstalledOnMachine.Add(pkgNameVersion);
@@ -815,11 +815,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
 
             return pkgsInstalledOnMachine;
-        }
-
-        internal static string CreateHashSetKey(string packageName, string packageVersion)
-        {
-            return $"{packageName}{packageVersion}";
         }
 
         #endregion
