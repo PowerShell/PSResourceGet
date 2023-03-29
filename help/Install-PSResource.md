@@ -8,6 +8,7 @@ schema: 2.0.0
 # Install-PSResource
 
 ## SYNOPSIS
+
 Installs resources from a registered repository.
 
 ## SYNTAX
@@ -227,6 +228,7 @@ Accept wildcard characters: False
 ```
 
 ### -TemporaryPath
+
 Specifies the path to temporarily install the resource before actual installation.
 If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.
 
@@ -473,6 +475,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
+
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS

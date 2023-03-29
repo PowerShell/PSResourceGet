@@ -8,6 +8,7 @@ schema: 2.0.0
 # Find-PSResource
 
 ## SYNOPSIS
+
 Searches for packages from a repository (local or remote), based on a name or other package
 properties.
 
@@ -403,6 +404,7 @@ Accept wildcard characters: True
 ```
 
 ### CommonParameters
+
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
