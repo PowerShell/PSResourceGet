@@ -151,6 +151,9 @@ function Invoke-ModuleTests {
     $output | Foreach-Object { Write-Warning -Message "$_" }
     $testResultsFilePath = Join-Path -Path $testPath -ChildPath $testResultFileName
 
+    # Note: This is commented out temporarily as code for reporting test results via result.pester.xml is not working
+    # and class it references to do so can't be found. This will be fixed later.
+
     # # Examine Pester test results.
     # if (! (Test-Path -Path $testResultsFilePath)) {
     #     throw "Module test result file not found: '$testResultsFilePath'"
