@@ -16,9 +16,8 @@ properties.
 ### ResourceNameParameterSet (Default)
 
 ```
-Find-PSResource [-Name] <String[]> [-Type <ResourceType>] [-Version <String>] [-Prerelease]
- [-Tag <String[]>] [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies]
- [<CommonParameters>]
+Find-PSResource [[-Name] <String[]>] [-Type <ResourceType>] [-Version <String>] [-Prerelease] [-Tag <String[]>]
+ [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies] [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
