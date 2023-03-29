@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test Get-PSResourceRepository" -tags 'CI' {
+Describe "Test Get-PSResourceRepository" -Tags 'CI' {
     BeforeEach {
         $TestRepoName1 = "testRepository"
         $TestRepoName2 = "testRepository2"
