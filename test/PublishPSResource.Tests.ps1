@@ -30,16 +30,16 @@ function CreateTestModule
         FunctionsToExport = @('Test1')
         RequiredModules   = @('NonExistentModule')
     }}
-'@ -f $ModuleName | Out-File -Path $moduleMan
+'@ -f $ModuleName | Out-File -FilePath $moduleMan
 
     @'
     function Test1 {
         Write-Output 'Hello from Test1'
     }
-'@ | Out-File -Path $moduleSrc
+'@ | Out-File -FilePath $moduleSrc
 }
 
-Describe "Test Publish-PSResource" {
+Describe "Test Publish-PSResource" -Tags 'CI' {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
 

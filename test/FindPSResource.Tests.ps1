@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Find-PSResource for Module' {
+Describe 'Test Find-PSResource for Module' -Tags 'CI' {
 
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName
