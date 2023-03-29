@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-
+using System.Net;
 using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -25,7 +25,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         private const string AsNupkgParameterSet = "AsNupkgParameterSet";
         private const string IncludeXmlParameterSet = "IncludeXmlParameterSet";
-        VersionRange _versionRange;
         InstallHelper _installHelper;
 
         #endregion
@@ -179,7 +178,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            _installHelper = new InstallHelper(cmdletPassedIn: this);
+            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
+            _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
@@ -188,38 +189,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case AsNupkgParameterSet:
                 case IncludeXmlParameterSet:
-                    // validate that if a -Version param is passed in that it can be parsed into a NuGet version range.
-                    // an exact version will be formatted into a version range.
-                    if (Version == null)
-                    {
-                        _versionRange = VersionRange.All;
-                    }
-                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-                    {
-                        var exMessage = "Argument for -Version parameter is not in the proper format.";
-                        var ex = new ArgumentException(exMessage);
-                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                        ThrowTerminatingError(IncorrectVersionFormat);
-                    }
-
                     ProcessSaveHelper(
                         pkgNames: Name,
+                        pkgVersion: Version,
                         pkgPrerelease: Prerelease,
                         pkgRepository: Repository);
                     break;
 
                 case InputObjectParameterSet:
                     string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.Prerelease);
-                    if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
-                    {
-                        var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", normalizedVersionString, InputObject.Name);
-                        var ex = new ArgumentException(exMessage);
-                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                        ThrowTerminatingError(IncorrectVersionFormat);
-                    }
-
                     ProcessSaveHelper(
                         pkgNames: new string[] { InputObject.Name },
+                        pkgVersion: normalizedVersionString,
                         pkgPrerelease: InputObject.IsPrerelease,
                         pkgRepository: new string[] { InputObject.Repository });
 
@@ -235,9 +216,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private methods
 
-        private void ProcessSaveHelper(string[] pkgNames, bool pkgPrerelease, string[] pkgRepository)
+        private void ProcessSaveHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository)
         {
-            var namesToSave = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
+            var namesToSave = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(
@@ -264,6 +245,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
+            // parse Version
+            if (!Utils.TryGetVersionType(
+                version: pkgVersion,
+                nugetVersion: out NuGetVersion nugetVersion,
+                versionRange: out VersionRange versionRange,
+                versionType: out VersionType versionType,
+                out string versionParseError))
+            {
+                var ex = new ArgumentException(versionParseError);
+                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(IncorrectVersionFormat);
+            }
+
             if (!ShouldProcess(string.Format("Resources to save: '{0}'", namesToSave)))
             {
                 WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", namesToSave));
@@ -271,25 +265,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             var installedPkgs = _installHelper.InstallPackages(
-                names: namesToSave,
-                versionRange: _versionRange,
-                prerelease: pkgPrerelease,
-                repository: pkgRepository,
-                acceptLicense: true,
-                quiet: Quiet,
-                reinstall: true,
-                force: false,
+                names: namesToSave, 
+                versionRange: versionRange,
+                nugetVersion: nugetVersion,
+                versionType: versionType,
+                versionString: pkgVersion,
+                prerelease: pkgPrerelease, 
+                repository: pkgRepository, 
+                acceptLicense: true, 
+                quiet: Quiet, 
+                reinstall: true, 
+                force: false, 
                 trustRepository: TrustRepository,
-                credential: Credential,
-                noClobber: false,
-                asNupkg: AsNupkg,
-                includeXml: IncludeXml,
+                noClobber: false, 
+                asNupkg: AsNupkg, 
+                includeXml: IncludeXml, 
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,
                 pathsToInstallPkg: new List<string> { _path },
                 scope: null,
-                tmpPath: _tmpPath);
+                tmpPath: _tmpPath,
+                pkgsInstalled: new HashSet<string>(StringComparer.InvariantCultureIgnoreCase));
 
             if (PassThru)
             {

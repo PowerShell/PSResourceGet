@@ -19,10 +19,8 @@ $script:IsCoreCLR = $PSVersionTable.ContainsKey('PSEdition') -and $PSVersionTabl
 $script:PSGalleryName = 'PSGallery'
 $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 
-$script:PoshTestGalleryName = 'PoshTestGallery'
-$script:PostTestGalleryLocation = 'https://www.poshtestgallery.com/api/v2'
-
 $script:NuGetGalleryName = 'NuGetGallery'
+$script:NuGetGalleryLocation = 'https://api.nuget.org/v3/index.json'
 
 if($script:IsInbox)
 {
@@ -141,6 +139,12 @@ function Get-NuGetGalleryName
 {
     return $script:NuGetGalleryName
 }
+
+function Get-NuGetGalleryLocation
+{
+    return $script:NuGetGalleryLocation
+}
+
 function Get-PSGalleryName
 {
     return $script:PSGalleryName
@@ -149,15 +153,6 @@ function Get-PSGalleryName
 function Get-PSGalleryLocation {
     return $script:PSGalleryLocation
 }
-
-function Get-PoshTestGalleryName {
-    return $script:PoshTestGalleryName
-}
-
-function Get-PoshTestGalleryLocation {
-    return $script:PostTestGalleryLocation
-}
-
 function Get-NewTestDirs {
     Param(
         [string[]]
@@ -254,6 +249,18 @@ function Register-LocalRepos {
     }
     Register-PSResourceRepository @localRepoParams2
     Write-Verbose("registered psgettestlocal, psgettestlocal2")
+}
+
+function Register-PSGallery {
+    $PSGalleryRepoParams = @{
+        Name = $script:PSGalleryName
+        Uri = $script:PSGalleryLocation
+        Priority = 1
+        Trusted = $false
+    }
+    Register-PSResourceRepository @PSGalleryRepoParams
+
+    Write-Verbose("registered PSGallery")
 }
 
 function Unregister-LocalRepos {
@@ -382,6 +389,130 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
 
     $version = "1.0"
     New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+
+    Publish-PSResource -Path $publishModuleBase -Repository $repoName
+}
+
+function Create-TagsStringEntry
+{
+    Param(
+        [string[]]
+        $tags
+    )
+
+    if (!$tags)
+    {
+        return ""
+    }
+
+    $tagsString = "Tags = @(" + ($tags -join ",") + ")"
+    return $tagsString
+}
+
+function New-TestModule
+{
+    Param(
+        [string]
+        $path = "$TestDrive",
+
+        [string]
+        $moduleName = "TestModule",
+
+        [string]
+        $repoName,
+
+        [string]
+        $packageVersion,
+
+        [string]
+        $prereleaseLabel,
+
+        [string[]]
+        $tags
+    )
+
+    $modulePath = Join-Path -Path $path -ChildPath $ModuleName
+    $moduleMan = Join-Path $modulePath -ChildPath ($ModuleName + '.psd1')
+
+    if ( Test-Path -Path $modulePath) {
+        Remove-Item -Path $modulePath -Recurse -Force
+    }
+
+    $null = New-Item -Path $modulePath -ItemType Directory -Force
+    $tagsEntry = Create-TagsStringEntry -tags $tags
+    $prereleaseEntry = ""
+    if ($prereleaseLabel)
+    {
+        $prereleaseEntry = "Prerelease = '{0}'" -f $prereleaseLabel
+    }
+
+    @'
+    @{{
+        ModuleVersion     = '{0}'
+        Author            = 'None'
+        Description       = 'None'
+        GUID              = '0c2829fc-b165-4d72-9038-ae3a71a755c1'
+        FunctionsToExport = @()
+        RequiredModules   = @()
+        PrivateData = @{{
+            PSData = @{{
+                {1}
+                {2}
+            }}
+        }}
+    }}
+'@ -f $packageVersion, $prereleaseEntry, $tagsEntry | Out-File -FilePath $moduleMan
+
+    Publish-PSResource -Path $modulePath -Repository $repoName
+}
+
+function Get-ModuleResourcePublishedToLocalRepoTestDrive
+{
+    Param(
+        [string]
+        $moduleName,
+
+        [string]
+        $repoName,
+
+        [string]
+        $packageVersion,
+
+        [string]
+        $prereleaseLabel,
+
+        [string[]]
+        $tags
+    )
+    Get-TestDriveSetUp
+
+    $publishModuleName = $moduleName
+    $publishModuleBase = Join-Path $script:testIndividualResourceFolder $publishModuleName
+    $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
+
+    $version = $packageVersion
+    if (!$tags -or ($tags.Count -eq 0))
+    {
+        if (!$prereleaseLabel)
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
+        }
+        else
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Prerelease $prereleaseLabel -Description "$publishModuleName module"
+        }
+    }
+    else {
+        # tags is not null or is empty
+        if (!$prereleaseLabel)
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -Tags $tags
+        }
+        else
+        {
+            New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Prerelease $prereleaseLabel -Description "$publishModuleName module" -Tags $tags
+        }
+    }
 
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }

@@ -10,19 +10,19 @@ This version of PowerShellGet is currently under development and is not feature 
 As a result, we are currently only accepting PRs for tests.
 If you would like to open a PR please open an issue first so that necessary discussion can take place.
 Please open an issue for any feature requests, bug reports, or questions for PowerShellGet version 3.0 (currently available as a preview release).
-Please note, the repository for previous versions of PowerShellGet has a new location at [PowerShell/PowerShellGetv2](https://github.com/PowerShell/PowerShellGetv2).  
+Please note, the repository for previous versions of PowerShellGet has a new location at [PowerShell/PowerShellGetv2](https://github.com/PowerShell/PowerShellGetv2).
 
 Introduction
 ============
 
-PowerShellGet is a PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, Scripts, and DSC Resources.  
+PowerShellGet is a PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, Scripts, and DSC Resources.
 
 Documentation
 =============
 
 Documentation for PowerShellGet 3.0 has not yet been published, please
 [Click here](https://docs.microsoft.com/powershell/module/PowerShellGet/?view=powershell-7)
-to reference the documentation for previous versions of PowerShellGet.  
+to reference the documentation for previous versions of PowerShellGet.
 
 Requirements
 ============
@@ -66,6 +66,9 @@ if ((Get-Module -Name PSPackageProject -ListAvailable).Count -eq 0) {
 ```powershell
 # Build for the netstandard2.0 framework
 PS C:\Repos\PowerShellGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework netstandard2.0
+
+# Build for the netstandard2.0 framework
+PS C:\Repos\PowerShellGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
 ```
 
 * Publish the module to a local repository
@@ -90,7 +93,7 @@ C:\> Import-Module C:\Repos\PowerShellGet\out\PowerShellGet
 C:\> Import-Module C:\Repos\PowerShellGet\out\PowerShellGet\PowerShellGet.psd1
 ```
 
-**Note**  
+**Note**
 PowerShellGet consists of .NET binaries and so can be imported into a PowerShell session only once.
 Since the PSPackageProject module, used to build the module, has a dependency on earlier versions of PowerShellGet, the newly built module cannot be imported into that session.
 The new module can only be imported into a new session that has no prior imported PowerShellGet module. You will recieve warning messages in the console if you encounter this issue.

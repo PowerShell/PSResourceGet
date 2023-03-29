@@ -57,8 +57,8 @@ stages:
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
         #
-        # Build for netstandard2.0 framework
-        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'netstandard2.0'
+        # Build for net472 framework
+        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
       displayName: Build and publish artifact
 
     - pwsh: |
@@ -92,7 +92,7 @@ stages:
         if (! (Test-Path -Path $thirdPartySignSrcPath)) {
           $null = New-Item -Path $thirdPartySignSrcPath -ItemType Directory -Verbose
         }
-        
+
         # NetStandard directory
         $netStandardPath = Join-Path -Path $thirdPartySignSrcPath -ChildPath "netstandard2.0"
         if (! (Test-Path -Path $netStandardPath)) {
@@ -128,7 +128,7 @@ stages:
         $config = Get-BuildConfiguration
 
         $thirdPartySignSrcPath = "$($config.BuildOutputPath)\ThirdParty"
-        Get-ChildItem -Path $thirdPartySignSrcPath -Recurse 
+        Get-ChildItem -Path $thirdPartySignSrcPath -Recurse
       displayName: Capture third party files for signing
       condition: succeededOrFailed()
 
@@ -149,7 +149,7 @@ stages:
         $config = Get-BuildConfiguration
 
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
-        Get-ChildItem -Path $signOutPath -Recurse 
+        Get-ChildItem -Path $signOutPath -Recurse
       displayName: Capture third party signed files output
       condition: succeededOrFailed()
 
@@ -199,7 +199,7 @@ stages:
         $config = Get-BuildConfiguration
 
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
-        Get-ChildItem -Path $signOutPath -Recurse 
+        Get-ChildItem -Path $signOutPath -Recurse
       displayName: Capture other third party files copied
       condition: succeededOrFailed()
 
@@ -225,7 +225,7 @@ stages:
           $null = New-Item -Path $netStandardPath -ItemType Directory -Verbose
         }
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0\PowerShellGet.dll") -Dest $netStandardPath -Force -Verbose
-        
+
         $signOutPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'CreatedFilesOut'
         if (! (Test-Path -Path $signOutPath)) {
           $null = New-Item -Path $signOutPath -ItemType Directory
@@ -245,7 +245,7 @@ stages:
 
     - pwsh: |
         $createdSignSrcPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'CreatedFiles'
-        Get-ChildItem -Path $createdSignSrcPath -Recurse 
+        Get-ChildItem -Path $createdSignSrcPath -Recurse
       displayName: Capture created files to sign source
       condition: succeededOrFailed()
 
@@ -287,7 +287,7 @@ stages:
         $config = Get-BuildConfiguration
 
         $signOutPath = "$($config.SignedOutputPath)\$($config.ModuleName)"
-        Get-ChildItem -Path $signOutPath -Recurse 
+        Get-ChildItem -Path $signOutPath -Recurse
       displayName: Capture all signed files output
       condition: succeededOrFailed()
 
@@ -321,7 +321,7 @@ stages:
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
-        
+
         $config = Get-BuildConfiguration
         $artifactName = "$($config.ModuleName)"
         if ($env:SkipSigning -eq 'True')
@@ -392,7 +392,7 @@ stages:
       jobName: TestPkgWin
       displayName: PowerShell Core on Windows
       imageName: windows-latest
-  
+
   - template: test.yml
     parameters:
       jobName: TestPkgWinPS

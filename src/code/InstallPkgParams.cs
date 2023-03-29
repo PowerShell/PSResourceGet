@@ -4,7 +4,6 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
-using System.Collections;
 using System.Management.Automation;
 
 public class InstallPkgParams
@@ -101,5 +100,6 @@ public class InstallPkgParams
                 break;
         }
     }
+
     #endregion
 }

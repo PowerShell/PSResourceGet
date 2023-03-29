@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Win32.SafeHandles;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -9,14 +8,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
-using System.Security;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.PowerShell.Commands;
+using Microsoft.PowerShell.PowerShellGet.Cmdlets;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
@@ -127,6 +124,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         public static string[] ProcessNameWildcards(
             string[] pkgNames,
+            bool removeWildcardEntries,
             out string[] errorMsgs,
             out bool isContainWildcard)
         {
@@ -145,6 +143,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 if (WildcardPattern.ContainsWildcardCharacters(name))
                 {
+                    if (removeWildcardEntries)
+                    {
+                        // Tag   // CommandName  // DSCResourceName 
+                        errorMsgsList.Add($"{name} will be discarded from the provided entries.");
+                        continue;
+                    }
+
                     if (String.Equals(name, "*", StringComparison.InvariantCultureIgnoreCase))
                     {
                         isContainWildcard = true;
@@ -174,6 +179,54 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Version methods
+
+        public static bool TryGetVersionType(
+            string version,
+            out NuGetVersion nugetVersion,
+            out VersionRange versionRange,
+            out VersionType versionType,
+            out string error)
+        {
+            error = String.Empty;
+            nugetVersion = null;
+            versionRange = null;
+            versionType = VersionType.NoVersion;
+
+            if (String.IsNullOrEmpty(version))
+            {
+                return true;
+            }
+
+            if (version.Trim().Equals("*"))
+            {
+                // this method is called for find and install version parameter.
+                // for find, version = "*" means VersionRange.All
+                // for install, version = "*", means find latest version. This is handled in Install
+                versionRange = VersionRange.All;
+                versionType = VersionType.VersionRange;
+                return true;
+            }
+
+            bool isNugetVersion = NuGetVersion.TryParse(version, out nugetVersion);
+            bool isVersionRange = VersionRange.TryParse(version, out versionRange);
+
+            if (!isNugetVersion && !isVersionRange)
+            {
+                error = "Argument for -Version parameter is not in the proper format";
+                return false;
+            }
+
+            if (isNugetVersion)
+            {
+                versionType = VersionType.SpecificVersion;
+            }
+            else if (isVersionRange)
+            {
+                versionType = VersionType.VersionRange;
+            }
+
+            return true;
+        }
 
         public static string GetNormalizedVersionString(
             string versionString,
@@ -234,7 +287,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
-            // parse as Version range
             return VersionRange.TryParse(version, out versionRange);
         }
 
@@ -267,11 +319,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
 
-            string version = psGetInfo.Version.ToString();
-            string prerelease = psGetInfo.Prerelease;
+            psGetInfo.AdditionalMetadata.TryGetValue("NormalizedVersion", out string normalizedVersion);
 
             if (!NuGetVersion.TryParse(
-                    value: String.IsNullOrEmpty(prerelease) ? version : GetNormalizedVersionString(version, prerelease),
+                    value: normalizedVersion,
                     version: out pkgNuGetVersion))
             {
                 cmdletPassedIn.WriteVerbose(String.Format("Leaf directory in path '{0}' cannot be parsed into a version.", installedPkgPath));
@@ -732,6 +783,40 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        /// <summary>
+        /// Checks if any of the package versions are already installed and if they are removes them from the list of packages to install.
+        /// </summary>
+        internal static HashSet<string> GetInstalledPackages(List<string> pathsToSearch, PSCmdlet cmdletPassedIn)
+        {
+            // Package install paths.
+            // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable).
+            // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations.
+            // e.g.:
+            // ./InstallPackagePath1/PackageA
+            // ./InstallPackagePath1/PackageB
+            // ./InstallPackagePath2/PackageC
+            // ./InstallPackagePath3/PackageD
+
+            // Get currently installed packages.
+            var getHelper = new GetHelper(cmdletPassedIn);
+            var pkgsInstalledOnMachine = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
+
+            foreach (PSResourceInfo installedPkg in getHelper.GetPackagesFromPath(
+                name: new string[] { "*" },
+                versionRange: VersionRange.All,
+                pathsToSearch: pathsToSearch,
+                selectPrereleaseOnly: false))
+            {
+                string pkgNameVersion = String.Format("{0}{1}", installedPkg.Name, installedPkg.Version.ToString());
+                if (!pkgsInstalledOnMachine.Contains(pkgNameVersion))
+                {
+                    pkgsInstalledOnMachine.Add(pkgNameVersion);
+                }
+            }
+
+            return pkgsInstalledOnMachine;
+        }
+
         #endregion
 
         #region PSDataFile parsing
@@ -1186,6 +1271,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         }
 
         #endregion
+
     }
 
     #endregion
@@ -1361,56 +1447,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return true;
-            }
-
-            // First check if the files are catalog signed.
-            string catalogFilePath = Path.Combine(tempDirNameVersion, pkgName + ".cat");
-            if (File.Exists(catalogFilePath))
-            {
-                // Run catalog validation.
-                Collection<PSObject> TestFileCatalogResult;
-                string moduleBasePath = tempDirNameVersion;
-                try
-                {
-                    // By default "Test-FileCatalog will look through all files in the provided directory, -FilesToSkip allows us to ignore specific files.
-                    TestFileCatalogResult = cmdletPassedIn.InvokeCommand.InvokeScript(
-                        script: @"param (
-                                      [string] $moduleBasePath, 
-                                      [string] $catalogFilePath
-                                 ) 
-                                $catalogValidation = Test-FileCatalog -Path $moduleBasePath -CatalogFilePath $CatalogFilePath `
-                                                 -FilesToSkip '*.nupkg','*.nuspec', '*.nupkg.metadata', '*.nupkg.sha512' `
-                                                 -Detailed -ErrorAction SilentlyContinue
-        
-                                if ($catalogValidation.Status.ToString() -eq 'valid' -and $catalogValidation.Signature.Status -eq 'valid') {
-                                    return $true
-                                }
-                                else {
-                                    return $false
-                                }
-                        ",
-                        useNewScope: true,
-                        writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                        input: null,
-                        args: new object[] { moduleBasePath, catalogFilePath });
-                }
-                catch (Exception e)
-                {
-                    errorRecord = new ErrorRecord(new ArgumentException(e.Message), "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
-                    return false;
-                }
-
-                bool catalogValidation = TestFileCatalogResult.Count > 0 ? (bool)TestFileCatalogResult[0].BaseObject : false;
-                if (!catalogValidation)
-                {
-                    var exMessage = String.Format("The catalog file '{0}' is invalid.", pkgName + ".cat");
-                    var ex = new ArgumentException(exMessage);
-
-                    errorRecord = new ErrorRecord(ex, "TestFileCatalogError", ErrorCategory.InvalidResult, cmdletPassedIn);
-                    return false;
-                }
-
                 return true;
             }
 

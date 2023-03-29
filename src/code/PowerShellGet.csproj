@@ -8,8 +8,8 @@
     <AssemblyVersion>3.0.19.0</AssemblyVersion>
     <FileVersion>3.0.19</FileVersion>
     <InformationalVersion>3.0.19</InformationalVersion>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <LangVersion>8.0</LangVersion>
+    <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
+    <LangVersion>9.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +25,8 @@
     <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.6.0-preview3.19128.7" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Text.Json" Version="6.0.0" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>

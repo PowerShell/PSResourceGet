@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using Newtonsoft.Json;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -10,8 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using Microsoft.PowerShell.Commands;
-
+using System.Net;
 using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -244,13 +242,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string _requiredResourceFile;
         private string _requiredResourceJson;
         private Hashtable _requiredResourceHash;
-        VersionRange _versionRange;
+        private HashSet<string> _packagesOnMachine;
         InstallHelper _installHelper;
         ResourceFileType _resourceFileType;
 
         #endregion
 
-        #region Method overrides
+        #region Method Overrides
 
         protected override void BeginProcessing()
         {
@@ -259,8 +257,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
+            List<string> pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
+            // Only need to find packages installed if -Reinstall is not passed in
+            _packagesOnMachine = Reinstall ? new HashSet<string>(StringComparer.CurrentCultureIgnoreCase) : Utils.GetInstalledPackages(pathsToSearch, this);
 
-            _installHelper = new InstallHelper(cmdletPassedIn: this);
+            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
+            _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
@@ -268,23 +271,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    // If no Version specified, install latest version for the package.
-                    // Otherwise validate Version can be parsed out successfully.
-                    if (Version == null)
-                    {
-                        _versionRange = VersionRange.All;
-                    }
-                    else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
-                    {
-                        var exMessage = "Argument for -Version parameter is not in the proper format.";
-                        var ex = new ArgumentException(exMessage);
-                        var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                        ThrowTerminatingError(IncorrectVersionFormat);
-                    }
-
                     ProcessInstallHelper(
                         pkgNames: Name,
-                        pkgVersion: _versionRange,
+                        pkgVersion: Version,
                         pkgPrerelease: Prerelease,
                         pkgRepository: Repository,
                         pkgCredential: Credential,
@@ -293,17 +282,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     
                 case InputObjectParameterSet:
                     string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.Prerelease);
-                    if (!Utils.TryParseVersionOrVersionRange(normalizedVersionString, out _versionRange))
-                    {
-                        var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", normalizedVersionString, InputObject.Name);
-                        var ex = new ArgumentException(exMessage);
-                        var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
-                        WriteError(ErrorParsingVersion);
-                    }
-
                     ProcessInstallHelper(
                         pkgNames: new string[] { InputObject.Name },
-                        pkgVersion: _versionRange,
+                        pkgVersion: normalizedVersionString,
                         pkgPrerelease: InputObject.IsPrerelease,
                         pkgRepository: new string[]{ InputObject.Repository },
                         pkgCredential: Credential,
@@ -433,7 +414,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Private Methods
 
         private void RequiredResourceHelper(Hashtable reqResourceHash)
         {
@@ -474,20 +455,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope);
                 }
 
-                VersionRange pkgVersion;
-                // If no Version specified, install latest version for the package.
-                // Otherwise validate Version can be parsed out successfully.
-                if (pkgInstallInfo["version"] == null || string.IsNullOrWhiteSpace(pkgInstallInfo["version"].ToString()))
-                {
-                    pkgVersion = VersionRange.All;
-                }
-                else if (!Utils.TryParseVersionOrVersionRange(pkgInstallInfo["version"].ToString(), out pkgVersion))
-                {
-                    var exMessage = "Argument for Version parameter is not in the proper format.";
-                    var ex = new ArgumentException(exMessage);
-                    var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(IncorrectVersionFormat);
-                }
+                string pkgVersion = pkgInstallInfo["version"] == null ? String.Empty : pkgInstallInfo["version"].ToString();
 
                 ProcessInstallHelper(
                     pkgNames: new string[] { pkgName },
@@ -499,9 +467,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        private void ProcessInstallHelper(string[] pkgNames, VersionRange pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
+        private void ProcessInstallHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
         {
-            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, out string[] errorMsgs, out bool nameContainsWildcard);
+            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(
@@ -528,6 +496,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
+            // parse version
+            if (!Utils.TryGetVersionType(
+                version: pkgVersion,
+                nugetVersion: out NuGetVersion nugetVersion,
+                versionRange: out VersionRange versionRange,
+                versionType: out VersionType versionType,
+                out string versionParseError))
+            {
+                var ex = new ArgumentException(versionParseError);
+                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                ThrowTerminatingError(IncorrectVersionFormat);
+            }
+
             if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", inputNameToInstall))))
             {
                 WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", inputNameToInstall)));
@@ -536,7 +517,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var installedPkgs = _installHelper.InstallPackages(
                 names: pkgNames,
-                versionRange: pkgVersion,
+                versionRange: versionRange,
+                nugetVersion: nugetVersion,
+                versionType: versionType,
+                versionString: Version,
                 prerelease: pkgPrerelease,
                 repository: pkgRepository,
                 acceptLicense: AcceptLicense,
@@ -545,7 +529,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 force: false,
                 trustRepository: TrustRepository,
                 noClobber: NoClobber,
-                credential: pkgCredential,
                 asNupkg: false,
                 includeXml: true,
                 skipDependencyCheck: SkipDependencyCheck,
@@ -553,7 +536,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg,
                 scope: Scope,
-                tmpPath: _tmpPath);
+                tmpPath: _tmpPath,
+                pkgsInstalled: _packagesOnMachine);
 
             if (PassThru)
             {

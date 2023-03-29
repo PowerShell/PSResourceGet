@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
+using System.Text.Json;
+using System.Xml;
 
 using Dbg = System.Diagnostics.Debug;
 
@@ -16,23 +18,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {
     #region Enums
 
-    [Flags]
     public enum ResourceType
     {
-        None = 0x0,
-        Module = 0x1,
-        Script = 0x2,
-        Command = 0x4,
-        DscResource = 0x8
+        None,
+        Module,
+        Script
     }
 
     public enum VersionType
     {
-        Unknown,
-        MinimumVersion,
-        RequiredVersion,
-        MaximumVersion
+        NoVersion,
+        SpecificVersion,
+        VersionRange
     }
+
+    // public enum VersionType
+    // {
+    //     Unknown,
+    //     MinimumVersion,
+    //     RequiredVersion,
+    //     MaximumVersion
+    // }
 
     public enum ScopeType
     {
@@ -44,21 +50,21 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     #region VersionInfo
 
-    public sealed class VersionInfo
-    {
-        public VersionInfo(
-            VersionType versionType,
-            Version versionNum)
-        {
-            VersionType = versionType;
-            VersionNum = versionNum;
-        }
+    // public sealed class VersionInfo
+    // {
+    //     public VersionInfo(
+    //         VersionType versionType,
+    //         Version versionNum)
+    //     {
+    //         VersionType = versionType;
+    //         VersionNum = versionNum;
+    //     }
 
-        public VersionType VersionType { get; }
-        public Version VersionNum { get; }
+    //     public VersionType VersionType { get; }
+    //     public Version VersionNum { get; }
 
-        public override string ToString() => $"{VersionType}: {VersionNum}";
-    }
+    //     public override string ToString() => $"{VersionType}: {VersionNum}";
+    // }
 
     #endregion
 
@@ -181,9 +187,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
         /// <summary>
         /// Constructor
-        ///
+        /// An object describes a package dependency
         /// </summary>
-        /// <param name="includes">Hashtable of PSGet includes</param>
         public Dependency(string dependencyName, VersionRange dependencyVersionRange)
         {
             Name = dependencyName;
@@ -202,7 +207,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         // included by the PSResourceInfo property
         #region Properties
 
-        public string Name { get; }
+        public string[] Names { get; }
 
         public PSResourceInfo ParentResource { get; }
 
@@ -213,11 +218,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="name">Name of the command or DSC resource</param>
+        /// <param name="names">Name of the command or DSC resource</param>
         /// <param name="parentResource">the parent module resource the command or dsc resource belongs to</param>
-        public PSCommandResourceInfo(string name, PSResourceInfo parentResource)
+        public PSCommandResourceInfo(string[] names, PSResourceInfo parentResource)
         {
-           Name = name;
+           Names = names;
            ParentResource = parentResource;
         }
 
@@ -233,27 +238,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Properties
 
         public Dictionary<string, string> AdditionalMetadata { get; }
-        public string Author { get; }
-        public string CompanyName { get; internal set; }
-        public string Copyright { get; internal set; }
-        public Dependency[] Dependencies { get; }
-        public string Description { get; }
-        public Uri IconUri { get; }
+        public string Author { get; set; }
+        public string CompanyName { get; set; }
+        public string Copyright { get; set; }
+        public Dependency[] Dependencies { get; set; }
+        public string Description { get; set; }
+        public Uri IconUri { get; set; }
         public ResourceIncludes Includes { get; }
-        public DateTime? InstalledDate { get; internal set; }
-        public string InstalledLocation { get; internal set; }
-        public bool IsPrerelease { get; }
-        public Uri LicenseUri { get; }
-        public string Name { get; }
+        public DateTime? InstalledDate { get; set; }
+        public string InstalledLocation { get; set; }
+        public bool IsPrerelease { get; set; }
+        public Uri LicenseUri { get; set; }
+        public string Name { get; set; }
         public string PackageManagementProvider { get; }
         public string PowerShellGetFormatVersion { get; }
         public string Prerelease { get; }
-        public Uri ProjectUri { get; }
-        public DateTime? PublishedDate { get; }
-        public string ReleaseNotes { get; internal set; }
-        public string Repository { get; }
-        public string RepositorySourceLocation { get; internal set; }
-        public string[] Tags { get; }
+        public Uri ProjectUri { get; set; }
+        public DateTime? PublishedDate { get; set; }
+        public string ReleaseNotes { get; set; }
+        public string Repository { get; set; }
+        public string RepositorySourceLocation { get; set; }
+        public string[] Tags { get; set; }
         public ResourceType Type { get; }
         public DateTime? UpdatedDate { get; }
         public Version Version { get; }
@@ -535,7 +540,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     licenseUri: ParseMetadataLicenseUri(metadataToParse),
                     name: ParseMetadataName(metadataToParse),
                     packageManagementProvider: null,
-                    powershellGetFormatVersion: null,
+                    powershellGetFormatVersion: null,   
                     prerelease: ParsePrerelease(metadataToParse),
                     projectUri: ParseMetadataProjectUri(metadataToParse),
                     publishedDate: ParseMetadataPublishedDate(metadataToParse),
@@ -555,6 +560,290 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
                     @"TryReadPSGetInfo: Cannot parse PSResourceInfo from IPackageSearchMetadata with error: {0}",
+                    ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Converts XML entry to PSResourceInfo instance
+        /// used for V2 Server API call find response conversion to PSResourceInfo object
+        /// </summary>
+        public static bool TryConvertFromXml(
+            XmlNode entry,
+            out PSResourceInfo psGetInfo,
+            string repositoryName,
+            out string errorMsg)
+        {
+            psGetInfo = null;
+            errorMsg = String.Empty;
+
+            if (entry == null)
+            {
+                errorMsg = "TryConvertXmlToPSResourceInfo: Invalid XmlNodeList object. Object cannot be null.";
+                return false;
+            }
+            
+            try
+            {
+                Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+                var childNodes = entry.ChildNodes;
+                foreach (XmlElement child in childNodes)
+                {
+                    var key = child.LocalName;
+                    var value = child.InnerText;
+
+                    if (key.Equals("Version"))
+                    {
+                        metadata[key] = ParseHttpVersion(value, out string prereleaseLabel);
+                        metadata["Prerelease"] = prereleaseLabel;
+                    }
+                    else if (key.EndsWith("Url"))
+                    {
+                        metadata[key] = ParseHttpUrl(value) as Uri;
+                    }
+                    else if (key.Equals("Tags"))
+                    {
+                        metadata[key] = value.Split(new char[]{' '});
+                    }
+                    else if (key.Equals("Published"))
+                    {
+                        metadata[key] = ParseHttpDateTime(value);
+                    }
+                    else if (key.Equals("Dependencies")) 
+                    {
+                        metadata[key] = ParseHttpDependencies(value);
+                    }
+                    else if (key.Equals("IsPrerelease")) 
+                    {
+                        bool.TryParse(value, out bool isPrerelease);
+
+                        metadata[key] = isPrerelease;
+                    }
+                    else if (key.Equals("NormalizedVersion"))
+                    {
+                        if (!NuGetVersion.TryParse(value, out NuGetVersion parsedNormalizedVersion))
+                        {
+                            errorMsg = string.Format(
+                                CultureInfo.InvariantCulture,
+                                @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+
+                            parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                        }
+
+                        metadata[key] = parsedNormalizedVersion;
+                    }
+                    else 
+                    {
+                        metadata[key] = value;
+                    }
+                }
+
+                var typeInfo = ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+
+                var additionalMetadataHashtable = new Dictionary<string, string>();
+                additionalMetadataHashtable.Add("NormalizedVersion", metadata["NormalizedVersion"].ToString());
+
+                var includes = new ResourceIncludes(resourceHashtable);
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: metadata["Authors"] as String,
+                    companyName: metadata["CompanyName"] as String,
+                    copyright: metadata["Copyright"] as String,
+                    dependencies: metadata["Dependencies"] as Dependency[],
+                    description: metadata["Description"] as String,
+                    iconUri: metadata["IconUrl"] as Uri,
+                    includes: includes,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: (bool) metadata["IsPrerelease"],
+                    licenseUri: metadata["LicenseUrl"] as Uri,
+                    name: metadata["Id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,   
+                    prerelease: metadata["Prerelease"] as String,
+                    projectUri: metadata["ProjectUrl"] as Uri,
+                    publishedDate: metadata["Published"] as DateTime?,
+                    releaseNotes: metadata["ReleaseNotes"] as String,
+                    repository: repositoryName,
+                    repositorySourceLocation: null,
+                    tags: metadata["Tags"] as string[],
+                    type: typeInfo,
+                    updatedDate: null,
+                    version: metadata["Version"] as Version);
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromXml: Cannot parse PSResourceInfo from XmlNode with error: {0}",
+                    ex.Message);
+                return false;
+            }
+        }
+
+
+        /// <summary>
+        /// Converts JsonDocument entry to PSResourceInfo instance
+        /// used for V3 Server API call find response conversion to PSResourceInfo object
+        /// </summary>
+        public static bool TryConvertFromJson(
+          JsonDocument pkgJson,
+          out PSResourceInfo psGetInfo,
+          string repositoryName,
+          out string errorMsg)
+        {
+            psGetInfo = null;
+            errorMsg = String.Empty;
+
+            if (pkgJson == null)
+            {
+                errorMsg = "TryConvertJsonToPSResourceInfo: Invalid json object. Object cannot be null.";
+                return false;
+            }
+
+            try
+            {
+                Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+                JsonElement rootDom = pkgJson.RootElement;
+
+                // Version
+                if (rootDom.TryGetProperty("version", out JsonElement versionElement))
+                {
+                    string versionValue = versionElement.ToString();
+                    metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
+                    metadata["Prerelease"] = prereleaseLabel;
+
+                    if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
+                    {
+                        errorMsg = string.Format(
+                            CultureInfo.InvariantCulture,
+                            @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+
+                        parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                    }
+                    metadata["NormalizedVersion"] = parsedNormalizedVersion;
+                }
+
+                // License Url
+                if (rootDom.TryGetProperty("licenseUrl", out JsonElement licenseUrlElement))
+                {
+                    metadata["LicenseUrl"] = ParseHttpUrl(licenseUrlElement.ToString()) as Uri;
+                }
+
+                // Project Url
+                if (rootDom.TryGetProperty("projectUrl", out JsonElement projectUrlElement))
+                {
+                    metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
+                }
+
+                // Tags
+                if (rootDom.TryGetProperty("tags", out JsonElement tagsElement))
+                {
+                    List<string> tags = new List<string>();
+                    foreach (var tag in tagsElement.EnumerateArray())
+                    {
+                        tags.Add(tag.ToString());
+                    }
+                    metadata["Tags"] = tags.ToArray();
+                }
+
+                // PublishedDate
+                if (rootDom.TryGetProperty("published", out JsonElement publishedElement))
+                {
+                    metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
+                }
+
+                // Dependencies 
+                // TODO 3.0.0-beta21, a little complicated 
+
+                // IsPrerelease
+                if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
+                {
+                    metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
+                }
+
+                // Author
+                if (rootDom.TryGetProperty("authors", out JsonElement authorsElement))
+                {
+                    metadata["Authors"] = authorsElement.ToString();
+
+                    // CompanyName
+                    // CompanyName is not provided in v3 pkg metadata response, so we've just set it to the author,
+                    // which is often the company
+                    metadata["CompanyName"] = authorsElement.ToString();
+                }
+
+                // Copyright
+                if (rootDom.TryGetProperty("copyright", out JsonElement copyrightElement))
+                {
+                    metadata["Copyright"] = copyrightElement.ToString();
+                }
+
+                // Description
+                if (rootDom.TryGetProperty("description", out JsonElement descriptiontElement))
+                {
+                    metadata["Description"] = descriptiontElement.ToString();
+                }
+
+                // Id
+                if (rootDom.TryGetProperty("id", out JsonElement idElement))
+                {
+                    metadata["Id"] = idElement.ToString();
+                }
+                
+                // ReleaseNotes
+                if (rootDom.TryGetProperty("releaseNotes", out JsonElement releaseNotesElement)) {
+                    metadata["ReleaseNotes"] = releaseNotesElement.ToString();
+                }
+
+                var additionalMetadataHashtable = new Dictionary<string, string>
+                {
+                    { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
+                };
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: metadata["Authors"] as String,
+                    companyName: metadata["CompanyName"] as String,
+                    copyright: metadata["Copyright"] as String,
+                    dependencies: metadata["Dependencies"] as Dependency[],
+                    description: metadata["Description"] as String,
+                    iconUri: null,
+                    includes: null,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: (bool)metadata["IsPrerelease"],
+                    licenseUri: metadata["LicenseUrl"] as Uri,
+                    name: metadata["Id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,
+                    prerelease: metadata["Prerelease"] as String,
+                    projectUri: metadata["ProjectUrl"] as Uri,
+                    publishedDate: metadata["PublishedDate"] as DateTime?,
+                    releaseNotes: metadata["ReleaseNotes"] as String,
+                    repository: repositoryName,
+                    repositorySourceLocation: null,
+                    tags: metadata["Tags"] as string[],
+                    type: ResourceType.None,
+                    updatedDate: null,
+                    version: metadata["Version"] as Version);
+                    
+                return true;
+                
+            }
+            catch (Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromJson: Cannot parse PSResourceInfo from json object with error: {0}",
                     ex.Message);
                 return false;
             }
@@ -723,6 +1012,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return Utils.GetNormalizedVersionString(version, prerelease);
         }
 
+        #endregion
+
         #region Parse Metadata private static methods
 
         private static string ParseMetadataAuthor(IPackageSearchMetadata pkg)
@@ -853,13 +1144,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                 if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    currentPkgType |= ResourceType.Command;
                     commandNames.Add(tag.Split('_')[1]);
                 }
 
                 if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    currentPkgType |= ResourceType.DscResource;
                     dscResourceNames.Add(tag.Split('_')[1]);
                 }
             }
@@ -877,7 +1166,137 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return null;
         }
 
-        #endregion
+        private static Version ParseHttpVersion(string versionString, out string prereleaseLabel)
+        {
+            prereleaseLabel = String.Empty;
+
+            if (!String.IsNullOrEmpty(versionString))
+            {
+                string pkgVersion = versionString;
+                if (versionString.Contains("-"))
+                {
+                    // versionString: "1.2.0-alpha1"
+                    string[] versionStringParsed = versionString.Split('-');
+                    if (versionStringParsed.Length == 1)
+                    {
+                        // versionString: "1.2.0-" (unlikely, at least should not be from our PSResourceInfo.TryWrite())
+                        pkgVersion = versionStringParsed[0];
+                    }
+                    else
+                    {
+                        // versionStringParsed.Length > 1 (because string contained '-' so couldn't be 0)
+                        // versionString: "1.2.0-alpha1"
+                        pkgVersion = versionStringParsed[0];
+                        prereleaseLabel = versionStringParsed[1];
+                    }
+                }
+
+                // at this point, version is normalized (i.e either "1.2.0" (if part of prerelease) or "1.2.0.0" otherwise)
+                // parse the pkgVersion parsed out above into a System.Version object
+                if (!Version.TryParse(pkgVersion, out Version parsedVersion))
+                {
+                    prereleaseLabel = String.Empty;
+                    return null;
+                }
+                else
+                {
+                    return parsedVersion;
+                }
+            }
+
+            // version could not be parsed as string, it was written to XML file as a System.Version object
+            // V3 code briefly did so, I believe so we provide support for it
+            return new System.Version();
+        }
+
+        public static Uri ParseHttpUrl(string uriString)
+        {
+            Uri parsedUri;
+            Uri.TryCreate(uriString, UriKind.Absolute, out parsedUri);
+            
+            return parsedUri;
+        }
+
+        public static DateTime? ParseHttpDateTime(string publishedString)
+        {
+            DateTime.TryParse(publishedString, out DateTime parsedDateTime);
+            return parsedDateTime;
+        }
+
+        public static Dependency[] ParseHttpDependencies(string dependencyString)
+        {
+            /*
+            Az.Profile:[0.1.0, ):|Az.Aks:[0.1.0, ):|Az.AnalysisServices:[0.1.0, ):
+            Post 1st Split: 
+            ["Az.Profile:[0.1.0, ):", "Az.Aks:[0.1.0, ):", "Az.AnalysisServices:[0.1.0, ):"]
+            */
+            string[] dependencies = dependencyString.Split(new char[]{'|'}, StringSplitOptions.RemoveEmptyEntries);
+
+            List<Dependency> dependencyList = new List<Dependency>();
+            foreach (string dependency in dependencies)
+            {
+                /*
+                The Element: "Az.Profile:[0.1.0, ):"
+                Post 2nd Split: ["Az.Profile", "[0.1.0, )"]
+                */
+                string[] dependencyParts = dependency.Split(new char[]{':'}, StringSplitOptions.RemoveEmptyEntries);
+
+                VersionRange dependencyVersion;
+                if (dependencyParts.Length == 1)
+                {
+                    dependencyVersion = VersionRange.All;
+                }
+                else 
+                {
+                    if (!Utils.TryParseVersionOrVersionRange(dependencyParts[1], out dependencyVersion))
+                    {
+                        dependencyVersion = VersionRange.All;
+                    }
+                }
+
+                dependencyList.Add(new Dependency(dependencyParts[0], dependencyVersion));
+            }
+            
+            return dependencyList.ToArray();
+        }
+
+        private static ResourceType ParseHttpMetadataType(
+            string[] tags,
+            out ArrayList commandNames,
+            out ArrayList dscResourceNames)
+        {
+            // possible type combinations:
+            // M, C
+            // M, D
+            // M
+            // S
+
+            commandNames = new ArrayList();
+            dscResourceNames = new ArrayList();
+
+            ResourceType pkgType = ResourceType.Module;
+            foreach (string tag in tags)
+            {
+                if(String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    // clear default Module tag, because a Script resource cannot be a Module resource also
+                    pkgType = ResourceType.Script;
+                    pkgType &= ~ResourceType.Module;
+                }
+
+                if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    commandNames.Add(tag.Split('_')[1]);
+                }
+
+                if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    dscResourceNames.Add(tag.Split('_')[1]);
+                }
+            }
+
+            return pkgType;
+        }
 
         #endregion
 

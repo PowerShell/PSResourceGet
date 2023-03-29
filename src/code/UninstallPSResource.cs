@@ -101,7 +101,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ThrowTerminatingError(IncorrectVersionFormat);
                     }
 
-                    Name = Utils.ProcessNameWildcards(Name, out string[] errorMsgs, out bool _);
+                    Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool _);
                     
                     foreach (string error in errorMsgs)
                     {
@@ -192,6 +192,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
                 {
                     WriteVerbose("ShouldProcess is set to false.");
+                    successfullyUninstalled = true;
                     continue;
                 }
 

@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
+using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -132,7 +133,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string pathToModuleManifestToPublish = string.Empty;
         private string pathToModuleDirToPublish = string.Empty;
         private ResourceType resourceType = ResourceType.None;
-
+        private NetworkCredential _networkCredential;
         #endregion
 
         #region Method overrides
@@ -140,6 +141,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         protected override void BeginProcessing()
         {
             _cancellationToken = new CancellationToken();
+
+            _networkCredential = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
@@ -753,24 +756,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 string depVersion = dependencies[dependency] as string;
                 depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
 
-                VersionRange versionRange = null;
-                if (!Utils.TryParseVersionOrVersionRange(depVersion, out versionRange))
+                if (!Utils.TryGetVersionType(
+                    version: depVersion,
+                    nugetVersion: out NuGetVersion nugetVersion,
+                    versionRange: out VersionRange versionRange,
+                    versionType: out VersionType versionType,
+                    error: out string error))
                 {
-                    // This should never be true because Test-ModuleManifest will throw an error if dependency versions are incorrectly formatted
-                    // This is being left as a safeguard for parsing a version from a string to a version range.
                     ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException(string.Format("Error parsing dependency version {0}, from the module {1}", depVersion, depName)),
+                        new ArgumentException(error),
                         "IncorrectVersionFormat",
                         ErrorCategory.InvalidArgument,
                         this));
                 }
                 
                 // Search for and return the dependency if it's in the repository.
-                FindHelper findHelper = new FindHelper(_cancellationToken, this);
+                FindHelper findHelper = new FindHelper(_cancellationToken, this, _networkCredential);
                 bool depPrerelease = depVersion.Contains("-");
 
                 var repository = new[] { repositoryName };
-                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, depVersion, depPrerelease, null, repository, Credential, false);
+                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, depPrerelease, null, repository, false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                     var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);

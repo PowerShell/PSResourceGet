@@ -5,9 +5,9 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Net;
 using System.Threading;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -155,35 +155,36 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
-
             _cancellationTokenSource = new CancellationTokenSource();
+            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token, 
-                cmdletPassedIn: this);
+                cmdletPassedIn: this,
+                networkCredential: networkCred);
 
-             _installHelper = new InstallHelper(cmdletPassedIn: this);
+             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
         {
-            VersionRange versionRange;
-
-            // handle case where Version == null
-            if (Version == null) { 
-                versionRange = VersionRange.All;
-            }
-            else if (!Utils.TryParseVersionOrVersionRange(Version, out versionRange))
+            // determine/parse out Version param
+            if (!Utils.TryGetVersionType(
+                version: Version,
+                nugetVersion: out NuGetVersion nugetVersion,
+                versionRange: out VersionRange versionRange,
+                versionType: out VersionType versionType,
+                error: out string error))
             {
-                // Only returns false if the range was incorrectly formatted and couldn't be parsed.
                 WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("Cannot parse Version parameter provided into VersionRange"),
-                    "ErrorParsingVersionParamIntoVersionRange",
+                    new ArgumentException(error),
+                    "IncorrectVersionFormat",
                     ErrorCategory.InvalidArgument,
                     this));
                 return;
             }
 
-            var namesToUpdate = ProcessPackageNames(Name, versionRange);
+            var namesToUpdate = ProcessPackageNames(Name, versionRange, nugetVersion, versionType);
 
             if (namesToUpdate.Length == 0)
             {
@@ -199,6 +200,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var installedPkgs = _installHelper.InstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,
+                nugetVersion: nugetVersion,
+                versionType: versionType,
+                versionString: Version,
                 prerelease: Prerelease,
                 repository: Repository,
                 acceptLicense: AcceptLicense,
@@ -206,7 +210,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 reinstall: true,
                 force: Force,
                 trustRepository: TrustRepository,
-                credential: Credential,
                 noClobber: false,
                 asNupkg: false,
                 includeXml: true,
@@ -215,7 +218,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg,
                 scope: Scope,
-                tmpPath: _tmpPath);
+                tmpPath: _tmpPath,
+                pkgsInstalled: new HashSet<string>(StringComparer.InvariantCultureIgnoreCase));
 
             if (PassThru)
             {
@@ -252,10 +256,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </Summary>
         private string[] ProcessPackageNames(
             string[] namesToProcess,
-            VersionRange versionRange)
+            VersionRange versionRange,
+            NuGetVersion nuGetVersion,
+            VersionType versionType)
         {
             namesToProcess = Utils.ProcessNameWildcards(
                 pkgNames: namesToProcess,
+                removeWildcardEntries:false, 
                 errorMsgs: out string[] errorMsgs,
                 isContainWildcard: out bool _);
             
@@ -315,11 +322,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (var foundResource in _findHelper.FindByResourceName(
                 name: installedPackages.Keys.ToArray(),
                 type: ResourceType.None,
+                versionRange: versionRange,
+                nugetVersion: nuGetVersion,
+                versionType: versionType,
                 version: Version,
                 prerelease: Prerelease,
                 tag: null,
                 repository: Repository,
-                credential: Credential,
                 includeDependencies: !SkipDependencyCheck))
             {
                 if (!repositoryPackages.ContainsKey(foundResource.Name))
@@ -362,22 +371,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                if (!NuGetVersion.TryParse(repositoryPackage.Version.ToString(), out NuGetVersion repositoryPackageNuGetVersion))
-                {
-                    WriteWarning($"Cannot parse nuget version in repository package '{repositoryPackage.Name}'. Cannot update package.");
-                    continue;
-                }
-
-                // We compare NuGetVersions instead of System.Version as repositoryPackage.Version (3.0.17.0) and installedPackage.Version (3.0.17.-1)
-                // should refer to the same version but with System.Version end up having discrepancies which yields incorrect results.
-                if ((versionRange == VersionRange.All && repositoryPackageNuGetVersion > installedVersion) ||
-                    !versionRange.Satisfies(installedVersion))
+                if (((versionRange == null || versionRange == VersionRange.All) && repositoryPackage.Version > installedPackage.Version) ||
+                    (versionRange != null && !versionRange.Satisfies(installedVersion)))
                 {
                     namesToUpdate.Add(repositoryPackage.Name);
                 }
                 else
                 {
-                    WriteVerbose($"Installed package {repositoryPackage.Name} {repositoryPackageNuGetVersion} is already up to date.");
+                    WriteVerbose($"Installed package {repositoryPackage.Name} {repositoryPackage.Version} is already up to date.");
                 }
             }
 
