@@ -16,9 +16,8 @@ properties.
 ### ResourceNameParameterSet (Default)
 
 ```
-Find-PSResource [-Name] <String[]> [-Type <ResourceType>] [-Version <String>] [-Prerelease]
- [-Tag <String[]>] [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies]
- [<CommonParameters>]
+Find-PSResource [-Name] <String[]> [-Type <ResourceType>] [-Version <String>] [-Prerelease] [-Tag <String[]>]
+ [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies] [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
@@ -404,11 +403,7 @@ Accept wildcard characters: True
 ```
 
 ### CommonParameters
-
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

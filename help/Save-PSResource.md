@@ -132,22 +132,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IncludeXml
-
-Includes the PowerShellGet metadata XML used to verify that PowerShellGet has installed a module.
-
-```yaml
-Type: System.Management.Automation.SwitchParameter
-Parameter Sets: IncludeXmlParameterSet
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -InputObject
 
 Used for pipeline input.
@@ -212,6 +196,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -TemporaryPath
+
+Specifies the path to temporarily install the resource before saving. If no temporary path is
+provided, the resource is temporarily installed in the current user's temporary folder.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Prerelease
 
 When specified, includes prerelease versions in search results returned.
@@ -262,23 +263,6 @@ Aliases:
 Required: False
 Position: Named
 Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TemporaryPath
-
-Specifies the path to temporarily install the resource before saving. If no temporary path is
-provided, the resource is temporarily installed in the current user's temporary folder.
-
-```yaml
-Type: System.String
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -357,12 +341,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### CommonParameters
+### -IncludeXml
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+Includes the PowerShellGet metadata XML used to verify that PowerShellGet has installed a module.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+Parameter Sets: IncludeXmlParameterSet
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### CommonParameters
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
