@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 @{
-    RootModule        = './netstandard2.0/PowerShellGet.dll'
+    RootModule        = './net472/PowerShellGet.dll'
     ModuleVersion     = '3.0.19'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'

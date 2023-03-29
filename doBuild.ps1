@@ -92,6 +92,14 @@ function DoBuild
                 'NuGet.Versioning'
                 'Newtonsoft.Json'
                 'System.Text.Json'
+                'System.Buffers'
+                'System.Memory'
+                'System.Numerics.Vectors'
+                'System.Runtime.CompilerServices.Unsafe'
+                'System.Text.Encodings.Web'
+                'System.Threading.Tasks.Extensions'
+                'Microsoft.Bcl.AsyncInterfaces'
+                'System.ValueTuple'
             )
 
             $buildSuccess = $true
