@@ -231,7 +231,7 @@ Specifies the path to temporarily install the resource before actual installatio
 If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.
 
 ```yaml
-Type: String
+Type: System.String
 Parameter Sets: (All)
 Aliases:
 
