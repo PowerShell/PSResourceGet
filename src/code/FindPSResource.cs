@@ -284,7 +284,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  return;
             }
             
-            foreach (PSCommandResourceInfo cmdPkg in _findHelper.FindCommandOrDscResource(
+            foreach (PSCommandResourceInfo cmdPkg in _findHelper.FindByCommandOrDscResource(
                 isSearchingForCommands: isSearchingForCommands,
                 prerelease: Prerelease,
                 tag: commandOrDSCNamesToSearch,
@@ -318,7 +318,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                  return;
             }
             
-            foreach (PSResourceInfo tagPkg in _findHelper.FindTag(
+            foreach (PSResourceInfo tagPkg in _findHelper.FindByTag(
                 type: Type,
                 prerelease: Prerelease,
                 tag: tagsToSearch,

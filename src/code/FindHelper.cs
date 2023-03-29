@@ -171,7 +171,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        public IEnumerable<PSCommandResourceInfo> FindCommandOrDscResource(
+        public IEnumerable<PSCommandResourceInfo> FindByCommandOrDscResource(
             bool isSearchingForCommands,
             bool prerelease,
             string[] tag,
@@ -301,7 +301,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        public IEnumerable<PSResourceInfo> FindTag(
+        public IEnumerable<PSResourceInfo> FindByTag(
             ResourceType type,
             bool prerelease,
             string[] tag,
