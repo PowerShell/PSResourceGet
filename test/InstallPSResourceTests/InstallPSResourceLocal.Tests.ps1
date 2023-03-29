@@ -19,22 +19,16 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags @()
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName2 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
-        Get-ModuleResourcePublishedToLocalRepoTestDrive -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
-
-        $tags = @()
         $prereleaseLabel = "alpha001"
-        $params = @{
-            moduleName = $testModuleName
-            repoName = $localRepo
-            packageVersion = "5.2.5"
-            prereleaseLabel = $prereleaseLabel
-            tags = $tags
-        }
-        Get-ModuleResourcePublishedToLocalRepoTestDrive @params
+        $tags = @()
+
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags $tags
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags $tags
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tags
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tags
+
+        New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags $tags
+        New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tags
     }
 
     AfterEach {

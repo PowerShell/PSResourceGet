@@ -17,21 +17,16 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
-        $tags = @("Test", "Tag2", $cmdName, $dscName)
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "1.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "3.0.0"
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName $localRepo "5.0.0" $prereleaseLabel $tags
-        Get-ModuleResourcePublishedToLocalRepoTestDrive $testModuleName2 $localRepo "5.0.0" $prereleaseLabel $tags
-
+        $tags = @("'Test'", "'Tag2'", "'$cmdName'", "'$dscName'")
         $prereleaseLabel = "alpha001"
-        $params = @{
-            moduleName = $testModuleName
-            repoName = $localRepo
-            packageVersion = "5.2.5"
-            prereleaseLabel = $prereleaseLabel
-            tags = $tags
-        }
-        Get-ModuleResourcePublishedToLocalRepoTestDrive @params
+
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tags
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tags
+
+        New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tags
+        New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tags
     }
 
     AfterAll {

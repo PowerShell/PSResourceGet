@@ -405,7 +405,7 @@ function Create-TagsStringEntry
         return ""
     }
 
-    $tagsString = "Tags = @(" + ($tags | Join-String -Separator ",") + ")"
+    $tagsString = "Tags = @(" + ($tags -join ",") + ")"
     return $tagsString
 }
 
@@ -431,7 +431,7 @@ function New-TestModule
         $tags
     )
 
-    $modulePath = Join-Path -Path $Path -ChildPath $ModuleName
+    $modulePath = Join-Path -Path $path -ChildPath $ModuleName
     $moduleMan = Join-Path $modulePath -ChildPath ($ModuleName + '.psd1')
 
     if ( Test-Path -Path $modulePath) {
@@ -461,7 +461,7 @@ function New-TestModule
             }}
         }}
     }}
-'@ -f $packageVersion, $prereleaseEntry, $tagsEntry | Out-File -Path $moduleMan
+'@ -f $packageVersion, $prereleaseEntry, $tagsEntry | Out-File -FilePath $moduleMan
 
     Publish-PSResource -Path $modulePath -Repository $repoName
 }
