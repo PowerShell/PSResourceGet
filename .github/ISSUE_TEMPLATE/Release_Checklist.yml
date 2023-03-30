@@ -13,10 +13,8 @@ body:
     options:
     - label: If necessary, update help docs using PlatyPS module (in a separate PR).
       required: true
-    - label: Use release tool to update CHANGELOG.md and PowerShellGet.psd1.
-             <br />
-             Run 'Import-Module PowerShellGet\tool\releaseTools.psm1'
-             <br />
+    - label: Use release tool to update CHANGELOG.md and PowerShellGet.psd1.  
+             Run 'Import-Module PowerShellGet\tool\releaseTools.psm1'.  
              Run 'Update-Changelog' and 'Update-PSDFile'.
       required: true
     - label: Manually update PowerShellGet version in the PowerShellGet.csproj.
@@ -29,10 +27,8 @@ body:
       required: true
     - label: Run [mirror pipeline](https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=30&_a=summary).
       required: true
-    - label:  Kick off a test [release pipeline](https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13) by clicking 'Run Pipeline' and ensuring that 'Publish' is set to 'False'.
-              <br />
-              Hit 'Run' to start the pipeline.
-              <br />
+    - label:  Kick off a test [release pipeline](https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13) by clicking 'Run Pipeline' and ensuring that 'Publish' is set to 'False'.  
+              Hit 'Run' to start the pipeline.  
               ⚠️ Note that this will NOT publish to the PowerShell Gallery, but will create a package in artifact drop that you can manually download and test before publishing to the PowerShell Gallery.
       required: true
     - label: Test module created through the release pipeline.
@@ -43,10 +39,8 @@ body:
     options:
     - label: Kick off full release pipeline.
       required: true
-    - label: Kick off a [release pipeline](https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13) by clicking 'Run Pipeline' and ensuring that 'Publish' is set to 'True'.
-             <br />
-             Hit 'Run' to start the pipeline.
-             <br />
+    - label: Kick off a [release pipeline](https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13) by clicking 'Run Pipeline' and ensuring that 'Publish' is set to 'True'.  
+             Hit 'Run' to start the pipeline.  
              ⚠️ Note that this will publish to the PowerShell Gallery.
       required: true
     - label: After the release pipeline has completed test by installing from the PowerShell Gallery.
