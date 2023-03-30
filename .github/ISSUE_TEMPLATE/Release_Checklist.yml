@@ -14,7 +14,7 @@ body:
     - label: If necessary, update help docs using PlatyPS module (in a separate PR).
       required: true
     - label: Use release tool to update CHANGELOG.md and PowerShellGet.psd1. 
-             Run 'Import-Module PowerShellGet\tool\releaseTools.psm1', and then run any commands needed, 
+             Run 'Import-Module PowerShellGet\tool\releaseTools.psm1' and then run any commands needed, 
              eg 'Update-Changelog', 'Update-PSDFile'.
       required: true
     - label: Manually update PowerShellGet version in the PowerShellGet.csproj.
@@ -23,9 +23,9 @@ body:
   attributes:
     label: Kick off Test Release
     options:
-    - label: Make sure the latest [AutoBuild pipeline] (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build) is green.
+    - label: Make sure the latest [AutoBuild pipeline](https://dev.azure.com/powershell-rel/PowerShellGetV3/_build) is green.
       required: true
-    - label: Run [mirror pipeline] (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=30&_a=summary).
+    - label: Run [mirror pipeline](https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=30&_a=summary).
       required: true
     - label:  Kick off a test [release pipeline] (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13) by clicking 'Run Pipeline' and ensuring that 'Publish' is set to 'False'.  
               Hit 'Run' to start the pipeline. 
@@ -39,7 +39,7 @@ body:
     options:
     - label: Kick off full release pipeline.
       required: true
-    - label: Kick off a [release pipeline]  (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13) by clicking 'Run Pipeline' and ensuring that 'Publish' is set to 'True'. 
+    - label: Kick off a [release pipeline](https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13) by clicking 'Run Pipeline' and ensuring that 'Publish' is set to 'True'. 
              Hit 'Run' to start the pipeline.
              This pipeline will publish to the PowerShell Gallery.
       required: true
