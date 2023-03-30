@@ -52,6 +52,9 @@
 ### Bug Fixes
 - Updates to dependency installation (#1010) (#996) (#907)
 - Update to retrieving all packages installed on machine (#999)
+- PSResourceInfo version correctly displays 2 or 3 digit version numbers (#697)
+- Using `Find-PSresource` with `-CommandName` or `-DSCResourceName` parameters returns an object with a properly expanded ParentResource member (#754)
+- `Find-PSResource` no longer returns duplicate results (#755)
 
 ## 3.0.19-beta19 
 
