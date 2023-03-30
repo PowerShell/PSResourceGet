@@ -297,7 +297,7 @@ stages:
           BuildDropPath: $(signOutPath)
           Build_Repository_Uri: 'https://github.com/powershell/powershellget'
           PackageName: 'PowerShellGet'
-          PackageVersion: '3.0.19'
+          PackageVersion: '3.0.20'
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'

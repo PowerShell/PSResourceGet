@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 3.0.20-beta20
+
+- Move off of NuGet client APIs and use direct REST API calls  (#1023)
+
+### Bug Fixes
+- Updates to dependency installation (#1010) (#996) (#907)
+- Update to retrieving all packages installed on machine (#999)
+
 ## 3.0.19-beta19
 
 ### New Features
