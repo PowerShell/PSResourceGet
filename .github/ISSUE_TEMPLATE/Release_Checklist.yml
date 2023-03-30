@@ -7,7 +7,7 @@ body:
     value: >
       This template is for maintainers to create an issues to track the release process.
       Please **only** use this template if you are a maintainer. 
-- type: type: textarea
+- type: textarea
   attributes:
     label: Checklist
     value: |
