@@ -47,7 +47,7 @@
             ReleaseNotes = @'
 ## 3.0.20-beta20
 
-- Move off of NuGet client APIs and use direct REST API calls (#1023)
+- Move off of NuGet client APIs and use direct REST API calls for remote repositories (#1023)
             
 ### Bug Fixes
 - Updates to dependency installation (#1010) (#996) (#907)
