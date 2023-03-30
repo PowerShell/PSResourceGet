@@ -734,6 +734,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
+            if (packagesHash.ContainsKey(pkgToInstall.Name)) 
+            {
+                return packagesHash;
+            }
+            
             // Download the package.
             string pkgName = pkgToInstall.Name;
             Stream responseStream;
