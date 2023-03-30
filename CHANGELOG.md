@@ -11,6 +11,7 @@
 - PSResourceInfo version correctly displays 2 or 3 digit version numbers (#697)
 - Using `Find-PSresource` with `-CommandName` or `-DSCResourceName` parameters returns an object with a properly expanded ParentResource member (#754)
 - `Find-PSResource` no longer returns duplicate results (#755)
+- `Find-PSResource` lists repository 'PSGalleryScripts' which does not exist for `Get-PSResourceRepository` (#1028)
 
 ## 3.0.19-beta19
 
