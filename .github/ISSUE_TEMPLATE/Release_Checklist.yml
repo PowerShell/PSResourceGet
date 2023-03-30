@@ -7,24 +7,41 @@ body:
     value: >
       This template is for maintainers to create an issues to track the release process.
       Please **only** use this template if you are a maintainer. 
-- type: textarea
+- type: checkboxes
   attributes:
-    label: Checklist
-    value: |
-      - [ ] If necessary, update help docs using PlatyPS module (in a separate PR).
-      - [ ] Use release tool to update CHANGELOG.md and PowerShellGet.psd1.
+    label: Before Releasing
+    options:
+    - label: If necessary, update help docs using PlatyPS module (in a separate PR).
+      required: true
+    - label: Use release tool to update CHANGELOG.md and PowerShellGet.psd1.
           - Import-Module PowerShellGet\tool\releaseTools.psm1.
           - Run any commands needed, eg "Update-Changelog" and "Update-PSDFile".
-      - [ ] Manually update PowerShellGet version in the PowerShellGet.csproj.
-      - [ ] Make sure the latest AutoBuild pipeline run is green (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build).
-      - [ ] Kick off test release.
-          - [ ] Run mirror pipeline (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=30&_a=summary).
-          - [ ] Kick off a test release pipeline by clicking "Run Pipeline" and ensuring that "Publish" is set to "False" (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13).
-              - [ ] Hit "Run" to start the pipeline.
-                  Note that this pipeline will NOT publish to the PowerShell Gallery, but will create a package in artifact drop that you can manually download and test before publishing to the PowerShell Gallery.
-      - [ ] Test module created through the release pipeline.
-      - [ ] Kick off full release pipeline.
-          - [ ] Kick off a release pipeline by clicking "Run Pipeline" and ensuring that "Publish" is set to "True" (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13).
-              - [ ] Hit "Run" to start the pipeline.
-              This pipeline will publish to the PowerShell Gallery.
-      - [ ] After the release pipeline has completed test by installing from the PowerShell Gallery.
+      required: true
+    - label: Manually update PowerShellGet version in the PowerShellGet.csproj.
+      required: true
+- type: checkboxes
+  attributes:
+    label: Kick off Test Release
+    options:
+    - label: Make sure the latest AutoBuild pipeline run is green (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build).
+      required: true
+    - label: Run mirror pipeline (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=30&_a=summary).
+      required: true
+    - label:  Kick off a test release pipeline by clicking "Run Pipeline" and ensuring that "Publish" is set to "False" (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13).
+          - Hit "Run" to start the pipeline.
+          - Note that this pipeline will NOT publish to the PowerShell Gallery, but will create a package in artifact drop that you can manually download and test before publishing to the PowerShell Gallery.
+      required: true
+    - label: Test module created through the release pipeline.
+      required: true
+- type: checkboxes
+  attributes:
+    label: Release
+    options:
+    - label: Kick off full release pipeline.
+      required: true
+    - label: Kick off a release pipeline by clicking "Run Pipeline" and ensuring that "Publish" is set to "True" (https://dev.azure.com/powershell-rel/PowerShellGetV3/_build?definitionId=13).
+          - Hit "Run" to start the pipeline.
+          - This pipeline will publish to the PowerShell Gallery.
+      required: true
+    - label: After the release pipeline has completed test by installing from the PowerShell Gallery.
+      required: true
