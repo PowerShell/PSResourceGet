@@ -8,6 +8,7 @@ schema: 2.0.0
 # Publish-PSResource
 
 ## SYNOPSIS
+
 Publishes a specified module from the local computer to PSResource repository.
 
 ## SYNTAX
@@ -114,6 +115,7 @@ Accept wildcard characters: False
 ```
 
 ### -Proxy
+
 The URL to a proxy server used to access repositories outside of your network.
 
 ```yaml
@@ -129,6 +131,7 @@ Accept wildcard characters: False
 ```
 
 ### -ProxyCredential
+
 The credentials required to use the proxy server.
 
 ```yaml
@@ -224,6 +227,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
+
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS

@@ -8,6 +8,7 @@ schema: 2.0.0
 # Update-PSScriptFileInfo
 
 ## SYNOPSIS
+
 This cmdlet updates the comment-based metadata in an existing script `.ps1` file.
 
 ## SYNTAX
@@ -391,6 +392,7 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
+
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
