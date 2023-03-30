@@ -3,7 +3,7 @@
 
 @{
     RootModule        = './net472/PowerShellGet.dll'
-    ModuleVersion     = '3.0.19'
+    ModuleVersion     = '3.0.20'
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
     Author            = 'Microsoft Corporation'
     CompanyName       = 'Microsoft Corporation'
@@ -35,7 +35,7 @@
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData = @{
         PSData = @{
-            Prerelease = 'beta19'
+            Prerelease = 'beta20'
             Tags = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -45,7 +45,19 @@
             ProjectUri = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
-## 3.0.18-beta19
+## 3.0.20-beta20
+
+- Move off of NuGet client APIs and use direct REST API calls for remote repositories (#1023)
+            
+### Bug Fixes
+- Updates to dependency installation (#1010) (#996) (#907)
+- Update to retrieving all packages installed on machine (#999)
+- PSResourceInfo version correctly displays 2 or 3 digit version numbers (#697)
+- Using `Find-PSresource` with `-CommandName` or `-DSCResourceName` parameters returns an object with a properly expanded ParentResource member (#754)
+- `Find-PSResource` no longer returns duplicate results (#755)
+- `Find-PSResource` lists repository 'PSGalleryScripts' which does not exist for `Get-PSResourceRepository` (#1028)
+
+## 3.0.19-beta19 
 
 ### New Features
 - Add `-SkipModuleManifestValidate` parameter to `Publish-PSResource` (#904)
