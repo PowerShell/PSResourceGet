@@ -104,17 +104,17 @@ stages:
           $null = New-Item -Path $thirdPartySignSrcPath -ItemType Directory -Verbose
         }
 
-        # NetStandard directory
-        $netStandardPath = Join-Path -Path $thirdPartySignSrcPath -ChildPath "netstandard2.0"
-        if (! (Test-Path -Path $netStandardPath)) {
-          $null = New-Item -Path $netStandardPath -ItemType Directory -Verbose
+        # Net472 directory
+        $net472Path = Join-Path -Path $thirdPartySignSrcPath -ChildPath "net472"
+        if (! (Test-Path -Path $net472Path)) {
+          $null = New-Item -Path $net472Path -ItemType Directory -Verbose
         }
-        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0") -Filter '*.dll' | Foreach-Object {
+        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "net472") -Filter '*.dll' | Foreach-Object {
           if ($_.Name -ne 'PowerShellGet.dll') {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
             if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
               # Copy for third party signing
-              Copy-Item -Path $_.FullName -Dest $netStandardPath -Force -Verbose
+              Copy-Item -Path $_.FullName -Dest $net472Path -Force -Verbose
             }
           }
         }
@@ -162,17 +162,17 @@ stages:
         # Copy LICENSE
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "LICENSE") -Dest $signOutPath
 
-        # NetStandard directory
-        $netStandardSignedOutPath = Join-Path -Path $signOutPath -ChildPath "netstandard2.0"
-        if (! (Test-Path -Path $netStandardSignedOutPath)) {
-          $null = New-Item -Path $netStandardSignedOutPath -ItemType Directory -Verbose
+        # Net472 directory
+        $net472SignedOutPath = Join-Path -Path $signOutPath -ChildPath "net472"
+        if (! (Test-Path -Path $net472SignedOutPath)) {
+          $null = New-Item -Path $net472SignedOutPath -ItemType Directory -Verbose
         }
-        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0") -Filter '*.dll' | Foreach-Object {
+        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "net472") -Filter '*.dll' | Foreach-Object {
           if ($_.Name -ne 'PowerShellGet.dll') {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
             if ($sig.Status -eq 'Valid' -and ($sig.SignerCertificate.Subject -like '*Microsoft*' -and $sig.SignerCertificate.Issuer -like '*Microsoft Code Signing PCA*')) {
               # Copy already signed files directly to output
-              Copy-Item -Path $_.FullName -Dest $netStandardSignedOutPath -Force -Verbose
+              Copy-Item -Path $_.FullName -Dest $net472SignedOutPath -Force -Verbose
             }
           }
         }
@@ -195,11 +195,11 @@ stages:
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PowerShellGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSGet.Format.ps1xml") -Dest $createdSignSrcPath -Force -Verbose
 
-        $netStandardPath = Join-Path -Path $createdSignSrcPath -ChildPath "netstandard2.0"
-        if (! (Test-Path -Path $netStandardPath)) {
-          $null = New-Item -Path $netStandardPath -ItemType Directory -Verbose
+        $net472Path = Join-Path -Path $createdSignSrcPath -ChildPath "net472"
+        if (! (Test-Path -Path $net472Path)) {
+          $null = New-Item -Path $net472Path -ItemType Directory -Verbose
         }
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "netstandard2.0\PowerShellGet.dll") -Dest $netStandardPath -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "net472\PowerShellGet.dll") -Dest $net472Path -Force -Verbose
 
         # Set signing src path variable
         $vstsCommandString = "vso[task.setvariable variable=signSrcPath]${createdSignSrcPath}"
@@ -300,7 +300,7 @@ stages:
     - template: assembly-module-compliance.yml@ComplianceRepo
       parameters:
         # binskim
-        AnalyzeTarget: '$(Pipeline.Workspace)/PowerShellGet/netstandard2.0/PowerShellGet.dll'
+        AnalyzeTarget: '$(Pipeline.Workspace)/PowerShellGet/net472/PowerShellGet.dll'
         AnalyzeSymPath: 'SRV*'
         # component-governance
         sourceScanPath: '$(Build.SourcesDirectory)'

@@ -64,11 +64,11 @@ if ((Get-Module -Name PSPackageProject -ListAvailable).Count -eq 0) {
 * Build the project
 
 ```powershell
-# Build for the netstandard2.0 framework
-PS C:\Repos\PowerShellGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework netstandard2.0
+# Build for the net472 framework
+PS C:\Repos\PowerShellGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
 
 # Build for the netstandard2.0 framework
-PS C:\Repos\PowerShellGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
+PS C:\Repos\PowerShellGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework netstandard2.0
 ```
 
 * Publish the module to a local repository
