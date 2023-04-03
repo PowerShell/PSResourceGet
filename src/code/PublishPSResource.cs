@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using MoreLinq;
-using MoreLinq.Extensions;
 using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
@@ -158,14 +156,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(
                     new ErrorRecord(
                         new ArgumentException(
-                            "The path to the resource to publish does not exist, point to an existing path or file of the module or script to publish."), 
-                            "SourcePathDoesNotExist", 
-                            ErrorCategory.InvalidArgument, 
+                            "The path to the resource to publish does not exist, point to an existing path or file of the module or script to publish."),
+                            "SourcePathDoesNotExist",
+                            ErrorCategory.InvalidArgument,
                             this));
             }
 
             // Condition 1: path is to the root directory of the module to be published
-            // Condition 2: path is to the .psd1 or .ps1 of the module/script to be published  
+            // Condition 2: path is to the .psd1 or .ps1 of the module/script to be published
             if (string.IsNullOrEmpty(resolvedPath))
             {
                 // unsupported file path
@@ -296,7 +294,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Create a temp folder to push the nupkg to and delete it later
             string outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-            try 
+            try
             {
                 Directory.CreateDirectory(outputDir);
             }
@@ -308,7 +306,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 return;
             }
-          
+
             try
             {
                 // Create a nuspec
@@ -398,7 +396,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             var fileName = fileNamePath.Substring(rootModuleDir.Length).Trim(_PathSeparators);
                             var newFilePath = System.IO.Path.Combine(outputDir, fileName);
-                            
+
                             // The user may have a .nuspec defined in the module directory
                             // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
                             // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
@@ -449,7 +447,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
-                
+
                 // This call does not throw any exceptions, but it will write unsuccessful responses to the console
                 if (!PushNupkg(outputNupkgDir, repository.Name, repositoryUri, out ErrorRecord pushNupkgError))
                 {
@@ -495,7 +493,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             errorId: "ManifestFileReadParseForNuspecError",
                             errorCategory: ErrorCategory.ReadError,
                             this));
-                    
+
                     return string.Empty;
                 }
             }
@@ -752,7 +750,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // Need to make individual calls since we're look for exact version numbers or ranges.
                 var depName = new[] { (string)dependency };
-                // test version 
+                // test version
                 string depVersion = dependencies[dependency] as string;
                 depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
 
@@ -769,7 +767,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         ErrorCategory.InvalidArgument,
                         this));
                 }
-                
+
                 // Search for and return the dependency if it's in the repository.
                 FindHelper findHelper = new FindHelper(_cancellationToken, this, _networkCredential);
                 bool depPrerelease = depVersion.Contains("-");
@@ -791,7 +789,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile, out ErrorRecord error)
         {
-            // Pack the module or script into a nupkg given a nuspec.   
+            // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
             try
             {
@@ -808,7 +806,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     MSBuildProjectFactory.ProjectCreator,
                     builder);
                 bool success = runner.RunPackageBuild();
-                
+
                 if (success)
                 {
                     WriteVerbose("Successfully packed the resource into a .nupkg");
