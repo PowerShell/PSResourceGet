@@ -80,7 +80,6 @@ function DoBuild
             # Place build results
             $assemblyNames = @(
                 'PowerShellGet'
-                'MoreLinq'
                 'NuGet.Commands'
                 'NuGet.Common'
                 'NuGet.Configuration'
