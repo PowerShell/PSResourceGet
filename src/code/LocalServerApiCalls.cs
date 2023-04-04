@@ -63,6 +63,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             edi = null;
             List<string> responses = new List<string>();
 
+            // loop thru, for each unqiue packagename, return latest name
+
             return responses.ToArray();
         }
 
@@ -77,6 +79,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             edi = null;
             List<string> responses = new List<string>();
 
+            // call into FindAll() which returns string responses for all 
+            // look at tags field for each string response
+
             return responses.ToArray();
         }
 
@@ -87,6 +92,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             List<string> responses = new List<string>();
             edi = null;
+
+            // call into FindAll() which returns string responses for all 
+            // look at tags field for each string response
 
             return responses.ToArray();
         }
@@ -103,7 +111,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override string FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             edi = null;
-            return String.Empty; 
+            return String.Empty;
+
+            // repository -> we know the search path
+                // C:/MyLocalRepo/pkgA.1.0.0.0.nupkg
+                // C:/MyLocalRepo/pkgB.1.0.0.0.nupkg
+
+            // loop thru paths, and do wildcard matching with packagename (packageA1.0.0.0 matches "packageA")
+            // get all packages that match, extract version from path (split on '.')
+            // compare versions to find latest
+            // handle prerelease:
+
+            // extract the files. get the psd1/ps1, create a response string by filestream.ReadAsString
+            // ensure script content is sanitized
+            // for NuGet repo packages (that don't have psd1 or ps1 -> read nuspec)
+            // read that file and put into string
+
+            // ModuleManifest <PSParsing>
+            // rest of file string
+        
         }
 
         /// <summary>
@@ -130,6 +156,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             List<string> responses = new List<string>();
             edi = null;
+
+            
+            // repository -> we know the search path
+                // C:/MyLocalRepo/pkgA.1.0.0.0.nupkg
+                // C:/MyLocalRepo/pkgB.1.0.0.0.nupkg
+
+            // wildcard name possibilities: power*, *get, power*get
+
+            // loop thru packages paths and extrapolate names for each
+
+            // do wildcard search on names and see which match
+            // if it matches, look at version and prerelease and return accordingly (first should be latest, check prerleease tho)
+
+            // extract the files. get the psd1/ps1, create a response string by filestream.ReadAsString
+            // ensure script content is sanitized
+            // for NuGet repo packages (that don't have psd1 or ps1 -> read nuspec)
+            // read that file and put into string
+
+            // ModuleManifest <PSParsing>
+            // rest of file string
 
             return responses.ToArray();
         }
@@ -162,6 +208,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             edi = null;
 
+
+            // repository -> we know the search path
+                // C:/MyLocalRepo/pkgA.1.0.0.0.nupkg
+                // C:/MyLocalRepo/pkgB.1.0.0.0.nupkg
+
+            // iterate thru paths
+            // extrapolate name, version
+            // if name matches keep 
+            // check if version falls within range -> keep
+
+            // extract the files. get the psd1/ps1, create a response string by filestream.ReadAsString
+            // ensure script content is sanitized
+            // for NuGet repo packages (that don't have psd1 or ps1 -> read nuspec)
+            // read that file and put into string
+
+            // ModuleManifest <PSParsing>
+            // rest of file string
+
             return responses.ToArray();
         }
 
@@ -176,6 +240,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             edi = null;
             return String.Empty;
+
+            // repository -> we know the search path
+                // C:/MyLocalRepo/pkgA.1.0.0.0.nupkg
+                // C:/MyLocalRepo/pkgB.1.0.0.0.nupkg
+
+            // our findings on how PSGallery are creating nupkgnames:
+            // if last digit is 0 (i.e 2.2.0.0) -> 2.2.0 (trim 4th digit if 0, always have 3 digits)
+            // if last digit is non-0 (i.e 1.1.1.1) -> 1.1.1.1 (keep all 4 digits)
+            // if version published to gallery shows 2 digits (3.3) we add 3rd digit of 0 (3.3.0)
+
+            // for NuGetGallery: always 3 if last digit is 0, otherwise 4 digits, no 2 digits
+
+            // string nameWeExpect = packageName + "." + packageVersion.ToNormalizedString() + ".nupkg"
+            // test that path with nupkg name
+
+            // extract the files. get the psd1/ps1, create a response string by filestream.ReadAsString
+            // ensure script content is sanitized
+            // for NuGet repo packages (that don't have psd1 or ps1 -> read nuspec)
+            // read that file and put into string
+
+            // ModuleManifest <PSParsing>
+            // rest of file string
         }
 
         /// <summary>
@@ -217,6 +303,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
         {
             edi = null;
+
+            // find packagename that matches our criteria -> gives us the nupkg
+            // if we must return Stream:
+            // 1) take nupkg -> zip file
+            // read contents of zip into stream
+            // return stream
+            // in InstallHelper read out stream to get zip file
+            // (redundant packing)
+
+            // have separate interfaces for local versus remote repos
+
+            // return path where zip file is present
+            // for local this would be okay
+            // for remote, we'd read stream contents into temp path, and need that passed in (seems messy)
+
+
             return null;
         }
 

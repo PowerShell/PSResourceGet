@@ -119,7 +119,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public abstract Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi);
 
-
         /// <summary>
         /// Installs package with specific name and version.
         /// Name: no wildcard support.
