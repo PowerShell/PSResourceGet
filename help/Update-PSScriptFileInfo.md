@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 02/01/2023
+ms.custom: v3-beta20
+ms.date: 04/03/2023
 schema: 2.0.0
 ---
 
@@ -14,12 +15,12 @@ This cmdlet updates the comment-based metadata in an existing script `.ps1` file
 ## SYNTAX
 
 ```
-Update-PSScriptFileInfo [-Author <String>] [-CompanyName <String>] [-Copyright <String>]
- [-Description <String>] [-ExternalModuleDependencies <String[]>]
- [-ExternalScriptDependencies <String[]>] [-Guid <Guid>] [-IconUri <String>] [-LicenseUri <String>]
- [-Path] <String> [-PrivateData <String>] [-ProjectUri <String>] [-ReleaseNotes <String>]
- [-RemoveSignature] [-RequiredModules <Hashtable[]>] [-RequiredScripts <String[]>]
- [-Tags <String[]>] [-Version <String>] [<CommonParameters>]
+Update-PSScriptFileInfo [-Path] <string> [-Author <string>] [-CompanyName <string>]
+ [-Copyright <string>] [-Description <string>] [-ExternalModuleDependencies <string[]>]
+ [-ExternalScriptDependencies <string[]>] [-Guid <guid>] [-IconUri <string>]
+ [-LicenseUri <string>] [-PrivateData <string>] [-ProjectUri <string>] [-ReleaseNotes <string>]
+ [-RemoveSignature] [-RequiredModules <hashtable[]>] [-RequiredScripts <string[]>]
+ [-Tags <string[]>] [-Version <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -393,7 +394,10 @@ Accept wildcard characters: False
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

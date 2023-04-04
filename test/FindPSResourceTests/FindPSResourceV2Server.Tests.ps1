@@ -354,4 +354,11 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }
+    <## NOTE:  THIS TEST SHOULD BE RUN MANUALLY BEFORE EACH RELEASE ##
+    It "find resource given CommandName" {
+        $res = Find-PSResource -Name "MicrosoftPowerBIMgmt" -Repository $PSGalleryName -Type Module
+
+        $res.Name | Should -Be "MicrosoftPowerBIMgmt"
+    }
+    #>
 }

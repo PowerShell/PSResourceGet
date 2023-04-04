@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 02/01/2023
+ms.custom: v3-beta20
+ms.date: 04/03/2023
 schema: 2.0.0
 ---
 
@@ -14,7 +15,7 @@ Returns modules and scripts installed on the machine via **PowerShellGet**.
 ## SYNTAX
 
 ```
-Get-PSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-Scope <ScopeType>]
+Get-PSResource [[-Name] <string[]>] [-Version <string>] [-Path <string>] [-Scope <ScopeType>]
  [<CommonParameters>]
 ```
 
@@ -55,7 +56,7 @@ Get-PSResource Az -Path .
 This example returns a specific version of the Az module if it's installed on the system.
 
 ```powershell
-Get-PSResource Az -Version 1.0.0
+Get-PSResource Az -Version 9.4.0
 ```
 
 ### Example 5
@@ -72,13 +73,13 @@ This example returns a specific preview version of the **PowerShellGet** module 
 on the system.
 
 ```powershell
-Get-PSResource PowerShellGet -Version 3.0.14-beta14
+Get-PSResource PowerShellGet -Version 3.0.19-beta19
 ```
 
 ```Output
 Name          Version Prerelease Repository Description
 ----          ------- ---------- ---------- -----------
-PowerShellGet 3.0.14  beta14     PSGallery  PowerShell module with commands for discovering, installing, updating and …
+PowerShellGet 3.0.19  beta19     PSGallery  PowerShell module with commands for discovering, installing, updating and p…
 ```
 
 ### Example 6
@@ -88,7 +89,7 @@ system. This example shows that you must provide the full version, including the
 label to identify the installed module by **Version**.
 
 ```powershell
-Get-PSResource PowerShellGet -Version 3.0.14
+Get-PSResource PowerShellGet -Version 3.0.19
 ```
 
 There is no output from this command.
@@ -105,6 +106,7 @@ Get-PSResource PSReadLine
 ```Output
 Name       Version Prerelease Repository Description
 ----       ------- ---------- ---------- -----------
+PSReadLine 2.3.0   beta0      PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.6              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.5              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.2              PSGallery  Great command line editing in the PowerShell console host
@@ -118,6 +120,7 @@ Get-PSResource PSReadLine -Version '[2.2.0, 2.3.0]'
 ```Output
 Name       Version Prerelease Repository Description
 ----       ------- ---------- ---------- -----------
+PSReadLine 2.3.0   beta0      PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.6              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.5              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.2              PSGallery  Great command line editing in the PowerShell console host
@@ -205,11 +208,18 @@ Accept wildcard characters: True
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
+### System.String[]
+
 ## OUTPUTS
+
+### Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
 
 ## NOTES
 

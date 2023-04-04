@@ -4,7 +4,8 @@ Help Version: 3.0.16
 Locale: en-US
 Module Guid: 1d73a601-4a6c-43c5-ba3f-619b18bbb404
 Module Name: PowerShellGet
-ms.date: 02/01/2023
+ms.custom: v3-beta20
+ms.date: 04/03/2023
 ---
 
 # PowerShellGet Module

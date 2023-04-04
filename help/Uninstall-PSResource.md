@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 02/01/2023
+ms.custom: v3-beta20
+ms.date: 04/03/2023
 schema: 2.0.0
 ---
 
@@ -16,14 +17,14 @@ Uninstalls a resource that was installed using **PowerShellGet**.
 ### NameParameterSet (Default)
 
 ```
-Uninstall-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-SkipDependencyCheck]
+Uninstall-PSResource [-Name] <string[]> [-Version <string>] [-Prerelease] [-SkipDependencyCheck]
  [-Scope <ScopeType>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
 
 ```
-Uninstall-PSResource [-Prerelease] -InputObject <PSResourceInfo> [-SkipDependencyCheck]
+Uninstall-PSResource [-InputObject] <PSResourceInfo> [-Prerelease] [-SkipDependencyCheck]
  [-Scope <ScopeType>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -108,7 +109,7 @@ Parameter Sets: InputObjectParameterSet
 Aliases:
 
 Required: True
-Position: Named
+Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
@@ -203,7 +204,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Confirm
@@ -240,7 +241,10 @@ Accept wildcard characters: False
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 02/01/2023
+ms.custom: v3-beta20
+ms.date: 04/03/2023
 schema: 2.0.0
 ---
 
@@ -16,8 +17,8 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 ### IncludeXmlParameterSet (Default)
 
 ```
-Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Credential <PSCredential>] [-IncludeXml] -Path <String> [-TemporaryPath <String>]
+Save-PSResource [-Name] <string[]> -Path <string> [-Version <string>] [-Prerelease]
+ [-Repository <string[]>] [-Credential <pscredential>] [-IncludeXml] [-TemporaryPath <string>]
  [-TrustRepository] [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
@@ -25,16 +26,17 @@ Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repositor
 ### AsNupkgParameterSet
 
 ```
-Save-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Credential <PSCredential>] [-AsNupkg] -Path <String> [-TemporaryPath <String>] [-TrustRepository]
- [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-PSResource [-Name] <string[]> -Path <string> [-Version <string>] [-Prerelease]
+ [-Repository <string[]>] [-Credential <pscredential>] [-AsNupkg] [-TemporaryPath <string>]
+ [-TrustRepository] [-PassThru] [-SkipDependencyCheck] [-AuthenticodeCheck] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
 
 ```
-Save-PSResource [-Credential <PSCredential>] -Path <String> [-TemporaryPath <String>]
- [-TrustRepository] [-PassThru] -InputObject <PSResourceInfo> [-SkipDependencyCheck]
+Save-PSResource [-InputObject] <PSResourceInfo> -Path <string> [-Credential <pscredential>]
+ [-TemporaryPath <string>] [-TrustRepository] [-PassThru] [-SkipDependencyCheck]
  [-AuthenticodeCheck] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -155,7 +157,7 @@ The name of one or more resources to install.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: IncludeXmlParameterSet, AsNupkgParameterSet
+Parameter Sets: AsNupkgParameterSet, IncludeXmlParameterSet
 Aliases:
 
 Required: True
@@ -220,7 +222,7 @@ When specified, includes prerelease versions in search results returned.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: IncludeXmlParameterSet, AsNupkgParameterSet
+Parameter Sets: AsNupkgParameterSet, IncludeXmlParameterSet
 Aliases:
 
 Required: False
@@ -241,7 +243,7 @@ Lower **Priority** values have a higher precedence.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: IncludeXmlParameterSet, AsNupkgParameterSet
+Parameter Sets: AsNupkgParameterSet, IncludeXmlParameterSet
 Aliases:
 
 Required: False
@@ -300,14 +302,14 @@ minimum inclusive range, use `[1.0.0.0, ]` as the version range.
 
 ```yaml
 Type: System.String
-Parameter Sets: IncludeXmlParameterSet, AsNupkgParameterSet
+Parameter Sets: AsNupkgParameterSet, IncludeXmlParameterSet
 Aliases:
 
 Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Confirm
@@ -360,7 +362,10 @@ Accept wildcard characters: False
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

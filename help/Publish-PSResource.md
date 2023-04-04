@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 02/01/2023
+ms.custom: v3-beta20
+ms.date: 04/03/2023
 schema: 2.0.0
 ---
 
@@ -14,9 +15,10 @@ Publishes a specified module from the local computer to PSResource repository.
 ## SYNTAX
 
 ```
-Publish-PSResource [-ApiKey <String>] [-Repository <String>] [-Path] <String> [-DestinationPath <String>]
- [-Credential <PSCredential>] [-SkipDependenciesCheck] [-SkipModuleManifestValidate] [-Proxy <Uri>]
- [-ProxyCredential <PSCredential>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Publish-PSResource -Path <string> [-ApiKey <string>] [-Repository <string>]
+ [-DestinationPath <string>] [-Credential <pscredential>] [-SkipDependenciesCheck]
+ [-SkipModuleManifestValidate] [-Proxy <uri>] [-ProxyCredential <pscredential>] [-WhatIf]
+ [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -107,8 +109,40 @@ Type: System.String
 Parameter Sets: (All)
 Aliases:
 
-Required: True
-Position: 0
+Required: True (All) False (None)
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Proxy
+
+The URL to a proxy server used to access repositories outside of your network.
+
+```yaml
+Type: System.Uri
+Parameter Sets: (All)
+Aliases:
+
+Required: True (None) False (All)
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ProxyCredential
+
+The credentials required to use the proxy server.
+
+```yaml
+Type: System.Management.Automation.PSCredential
+Parameter Sets: (All)
+Aliases:
+
+Required: True (None) False (All)
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -228,7 +262,10 @@ Accept wildcard characters: False
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

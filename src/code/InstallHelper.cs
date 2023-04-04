@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using MoreLinq.Extensions;
 using NuGet.Common;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
@@ -214,10 +213,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 bool installDepsForRepo = skipDependencyCheck;
 
                 // If no more packages to install, then return
-                if (_pkgNamesToInstall.Count == 0) { 
-                    return allPkgsInstalled; 
+                if (_pkgNamesToInstall.Count == 0) {
+                    return allPkgsInstalled;
                 }
-                
+
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
@@ -528,7 +527,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PSRepositoryInfo repository,
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
-            ScopeType scope, 
+            ScopeType scope,
             bool skipDependencyCheck,
             FindHelper findHelper)
         {
@@ -536,17 +535,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // Install parent package to the temp directory,
             // Get the dependencies from the installed package,
-            // Install all dependencies to temp directory.  
-            // If a single dependency fails to install, roll back by deleting the temp directory. 
+            // Install all dependencies to temp directory.
+            // If a single dependency fails to install, roll back by deleting the temp directory.
             foreach (var parentPackage in pkgNamesToInstall)
             {
                 string tempInstallPath = CreateInstallationTempPath();
 
                 try
                 {
-                    // Hashtable has the key as the package name 
-                    // and value as a Hashtable of specific package info: 
-                    //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. } 
+                    // Hashtable has the key as the package name
+                    // and value as a Hashtable of specific package info:
+                    //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. }
                     // Install parent package to the temp directory.
                     Hashtable packagesHash = HttpInstallPackage(
                                                         searchVersionType: _versionType,
@@ -622,7 +621,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                     }
 
-                    // Parent package and dependencies are now installed to temp directory. 
+                    // Parent package and dependencies are now installed to temp directory.
                     // Try to move all package directories from temp directory to final destination.
                     if (!TryMoveInstallContent(tempInstallPath, scope, packagesHash))
                     {
@@ -719,19 +718,24 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             PSResourceInfo pkgToInstall = currentResult.returnedObject;
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
-          
+
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
                 string currPkgNameVersion = String.Format("{0}{1}", pkgToInstall.Name, pkgToInstall.Version.ToString());
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
-                {                    
+                {
                     _cmdletPassedIn.WriteWarning(
                         string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
                         pkgToInstall.Name,
                         pkgVersion));
                     return packagesHash;
                 }
+            }
+
+            if (packagesHash.ContainsKey(pkgToInstall.Name))
+            {
+                return packagesHash;
             }
 
             // Download the package.
@@ -759,7 +763,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             Hashtable updatedPackagesHash;
             ErrorRecord error;
-            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error) : 
+            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error) :
                 TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error);
 
             if (!installedToTempPathSuccessfully)
@@ -825,12 +829,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Attempts to take installed HTTP response content and move it into a temporary install path on the machine.
         /// </summary>
         private bool TryInstallToTempPath(
-            Stream responseStream, 
-            string tempInstallPath, 
-            string pkgName, 
-            string normalizedPkgVersion, 
-            PSResourceInfo pkgToInstall, 
-            Hashtable packagesHash, 
+            Stream responseStream,
+            string tempInstallPath,
+            string pkgName,
+            string normalizedPkgVersion,
+            PSResourceInfo pkgToInstall,
+            Hashtable packagesHash,
             out Hashtable updatedPackagesHash,
             out ErrorRecord error)
         {
@@ -930,7 +934,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             _cmdletPassedIn.WriteError(parseError);
                         }
-                        
+
                         var ex = new InvalidOperationException($"PSScriptFile could not be parsed");
                         error = new ErrorRecord(ex, "psScriptParseError", ErrorCategory.ReadError, null);
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
@@ -962,7 +966,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!updatedPackagesHash.ContainsKey(pkgName))
                 {
-                    // Add pkg info to hashtable. 
+                    // Add pkg info to hashtable.
                     updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", isModule },
@@ -1028,7 +1032,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!updatedPackagesHash.ContainsKey(pkgName))
                 {
-                    // Add pkg info to hashtable. 
+                    // Add pkg info to hashtable.
                     updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", "" },
@@ -1204,7 +1208,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             error = null;
             bool foundClobber = false;
-            
+
             // Get installed modules, then get all possible paths
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, would never select prerelease only.
             GetHelper getHelper = new GetHelper(_cmdletPassedIn);
@@ -1279,7 +1283,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 error = errorParsingMetadata;
                 success = false;
             }
-            
+
             return success;
         }
 
@@ -1428,7 +1432,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
                         result.Dispose();
                     }
-                  
+
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
 

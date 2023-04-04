@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using MoreLinq.Extensions;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol;
@@ -141,7 +140,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     "ErrorLoadingRepositoryStoreFile",
                     ErrorCategory.InvalidArgument,
                     this));
-                
+
                 yield break;
             }
 
@@ -240,14 +239,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     "ErrorLoadingRepositoryStoreFile",
                     ErrorCategory.InvalidArgument,
                     this));
-                
+
                 yield break;
             }
 
             for (int i = 0; i < repositoriesToSearch.Count && cmdsLeftToFind.Any(); i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                
+
                 if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.local)
                 {
                     _pkgsLeftToFind = new List<string>() { "*" };
@@ -371,7 +370,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     "ErrorLoadingRepositoryStoreFile",
                     ErrorCategory.InvalidArgument,
                     this));
-                
+
                 yield break;
             }
 
@@ -466,7 +465,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
                             pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
-                            yield return foundPkg;  
+                            yield return foundPkg;
                         }
                     }
                     else if(pkgName.Contains("*"))
@@ -504,7 +503,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
                             pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
-                            yield return foundPkg;                    
+                            yield return foundPkg;
                         }
                     }
                     else
@@ -532,7 +531,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
-                        
+
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
                             string errMsg = $"Package with search criteria: Name {pkgName}{tagMsg} could not be found due to: {currentResult.errorMsg}.";
@@ -582,7 +581,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
-                        
+
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
                             string errMsg = $"Package with search criteria: Name {pkgName}, Version {_version} {tagMsg} could not be found due to: {currentResult.errorMsg}.";
@@ -641,7 +640,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
                             pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
-                            yield return foundPkg;                    
+                            yield return foundPkg;
                         }
                     }
                 }
