@@ -248,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
-            string typeFilterPart = type == ResourceType.None ? $" and Id eq '{packageName}'" :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+            string typeFilterPart = type == ResourceType.Script ? $" and substringof('PS{type.ToString()}', Tags) eq true " : string.Empty;
             var requestUrlV2 = $"{repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{typeFilterPart}&{select}";
 
             return HttpRequestCall(requestUrlV2, out edi);  
@@ -267,7 +267,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
-            string typeFilterPart = type == ResourceType.None ? $" and Id eq '{packageName}'" :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+            string typeFilterPart = type == ResourceType.Script ? $" and substringof('PS{type.ToString()}', Tags) eq true " : string.Empty;
 
             string tagFilterPart = String.Empty;
             foreach (string tag in tags)
@@ -424,9 +424,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override string FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi) 
         {
-            // https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true 
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true 
             // Quotations around package name and version do not matter, same metadata gets returned.
-            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+            string typeFilterPart = type == ResourceType.Script ? $" and substringof('PS{type.ToString()}', Tags) eq true " : string.Empty;
             var requestUrlV2 = $"{repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{typeFilterPart}&{select}";
             
             return HttpRequestCall(requestUrlV2, out edi);  
@@ -440,8 +440,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
-
+            string typeFilterPart = type == ResourceType.Script ? $" and substringof('PS{type.ToString()}', Tags) eq true " : string.Empty;
             string tagFilterPart = String.Empty;
             foreach (string tag in tags)
             {
@@ -652,8 +651,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return string.Empty;
             }
 
-            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
-            
+            string typeFilterPart = type == ResourceType.Script ? $" and substringof('PS{type.ToString()}', Tags) eq true " : string.Empty;
             var requestUrlV2 = $"{repository.Uri}/Search()?$filter={nameFilter}{typeFilterPart} and {prerelease}&{select}{extraParam}";
             
             return HttpRequestCall(requestUrlV2, out edi);  
@@ -716,7 +714,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tagFilterPart += $" and substringof('{tag}', Tags) eq true";
             }
             
-            string typeFilterPart = type == ResourceType.None ? String.Empty :  $" and substringof('PS{type.ToString()}', Tags) eq true";
+            string typeFilterPart = type == ResourceType.Script ? $" and substringof('PS{type.ToString()}', Tags) eq true " : string.Empty;
             var requestUrlV2 = $"{repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart}{typeFilterPart} and {prerelease}&{select}{extraParam}";
             
             return HttpRequestCall(requestUrlV2, out edi);  
@@ -784,10 +782,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             string filterQuery = "&$filter=";
             filterQuery += includePrerelease ? string.Empty : "IsPrerelease eq false";
-            //filterQuery +=  type == ResourceType.None ? String.Empty : $" and substringof('PS{type.ToString()}', Tags) eq true";
 
             string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : " and " ;
-            filterQuery += type == ResourceType.None ? String.Empty : $"{joiningOperator}substringof('PS{type.ToString()}', Tags) eq true";
+            filterQuery += type == ResourceType.Script ? $"{joiningOperator}substringof('PS{type.ToString()}', Tags) eq true" : String.Empty;
 
             if (!String.IsNullOrEmpty(versionFilterParts))
             {

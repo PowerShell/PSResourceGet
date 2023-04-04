@@ -42,7 +42,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (elemList.Length == 0)
                 {
                     // this indicates we got a non-empty, XML response (as noticed for V2 server) but it's not a response that's meaningful (contains 'properties')
-                    string errorMsg = $"Response didn't contain properties element";
+                    string errorMsg = $"Package does not exist on the server.";
                     yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
 
