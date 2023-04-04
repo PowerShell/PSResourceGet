@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 02/01/2023
+ms.custom: v3-beta20
+ms.date: 04/03/2023
 schema: 2.0.0
 ---
 
@@ -16,8 +17,8 @@ Installs resources from a registered repository.
 ### NameParameterSet (Default)
 
 ```
-Install-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
- [-Credential <PSCredential>] [-Scope <ScopeType>] [-TemporaryPath <String>] [-TrustRepository]
+Install-PSResource [-Name] <string[]> [-Version <string>] [-Prerelease] [-Repository <string[]>]
+ [-Credential <pscredential>] [-Scope <ScopeType>] [-TemporaryPath <string>] [-TrustRepository]
  [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck]
  [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -25,27 +26,27 @@ Install-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Reposi
 ### InputObjectParameterSet
 
 ```
-Install-PSResource [-Credential <PSCredential>] [-Scope <ScopeType>] [-TemporaryPath <String>]
- [-TrustRepository] [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck]
- [-AuthenticodeCheck] [-PassThru] -InputObject <PSResourceInfo> [-WhatIf] [-Confirm]
- [<CommonParameters>]
+Install-PSResource [-InputObject] <PSResourceInfo> [-Credential <pscredential>]
+ [-Scope <ScopeType>] [-TemporaryPath <string>] [-TrustRepository] [-Reinstall] [-Quiet]
+ [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-WhatIf]
+ [-Confirm] [<CommonParameters>]
 ```
 
 ### RequiredResourceFileParameterSet
 
 ```
-Install-PSResource [-Credential <PSCredential>] [-Scope <ScopeType>] [-TemporaryPath <String>]
+Install-PSResource [-Credential <pscredential>] [-Scope <ScopeType>] [-TemporaryPath <string>]
  [-TrustRepository] [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck]
- [-AuthenticodeCheck] [-PassThru] [[-RequiredResourceFile] <String>] [-WhatIf] [-Confirm]
+ [-AuthenticodeCheck] [-PassThru] [-RequiredResourceFile <string>] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
 
 ### RequiredResourceParameterSet
 
 ```
-Install-PSResource [-Credential <PSCredential>] [-Scope <ScopeType>] [-TemporaryPath <String>]
+Install-PSResource [-Credential <pscredential>] [-Scope <ScopeType>] [-TemporaryPath <string>]
  [-TrustRepository] [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck]
- [-AuthenticodeCheck] [-PassThru] [[-RequiredResource] <Object>] [-WhatIf] [-Confirm]
+ [-AuthenticodeCheck] [-PassThru] [-RequiredResource <Object>] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
 
@@ -229,8 +230,8 @@ Accept wildcard characters: False
 
 ### -TemporaryPath
 
-Specifies the path to temporarily install the resource before actual installation.
-If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.
+Specifies the path to temporarily install the resource before actual installation. If no temporary
+path is provided, the resource is temporarily installed in the current user's temporary folder.
 
 ```yaml
 Type: System.String
@@ -345,7 +346,7 @@ Parameter Sets: RequiredResourceFileParameterSet
 Aliases:
 
 Required: False
-Position: 0
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -400,6 +401,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -TemporaryPath
+
+Specifies the path to temporarily install the resource before actual installation. If no temporary
+path is provided, the resource is temporarily installed in the current user's temporary folder.
+
+```yaml
+Type: System.String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -TrustRepository
 
 Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository
@@ -439,7 +457,7 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -Confirm
@@ -476,7 +494,10 @@ Accept wildcard characters: False
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
