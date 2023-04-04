@@ -1,7 +1,8 @@
 ---
 external help file: PowerShellGet.dll-Help.xml
 Module Name: PowerShellGet
-ms.date: 02/01/2023
+ms.custom: v3-beta20
+ms.date: 04/03/2023
 schema: 2.0.0
 ---
 
@@ -16,7 +17,7 @@ Registers a repository for PowerShell resources.
 ### NameParameterSet (Default)
 
 ```
-Register-PSResourceRepository [-Name] <String> [-Uri] <String> [-Trusted] [-Priority <Int32>]
+Register-PSResourceRepository [-Name] <string> [-Uri] <string> [-Trusted] [-Priority <int>]
  [-CredentialInfo <PSCredentialInfo>] [-PassThru] [-Force] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
@@ -24,14 +25,14 @@ Register-PSResourceRepository [-Name] <String> [-Uri] <String> [-Trusted] [-Prio
 ### PSGalleryParameterSet
 
 ```
-Register-PSResourceRepository [-PSGallery] [-Trusted] [-Priority <Int32>] [-PassThru] [-Force]
+Register-PSResourceRepository -PSGallery [-Trusted] [-Priority <int>] [-PassThru] [-Force]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RepositoriesParameterSet
 
 ```
-Register-PSResourceRepository -Repository <Hashtable[]> [-PassThru] [-Force] [-WhatIf] [-Confirm]
+Register-PSResourceRepository -Repository <hashtable[]> [-PassThru] [-Force] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
 
@@ -46,7 +47,7 @@ The cmdlet registers a NuGet repository containing PowerShell resources.
 This example registers the repository with the **Name** of `PoshTestGallery`.
 
 ```powershell
-Register-PSResourceRepository -Name PoshTestGallery -Uri 'https://www.powershellgallery.com/api/v2'
+Register-PSResourceRepository -Name PoshTestGallery -Uri 'https://www.poshtestgallery.com/api/v2'
 Get-PSResourceRepository -Name PoshTestGallery
 ```
 
@@ -81,28 +82,41 @@ and provide an array of hashtables. Each hashtable can only have keys associated
 the **NameParameterSet** or the **PSGalleryParameterSet**.
 
 ```powershell
-$arrayOfHashtables = @{Name = 'Local'; Uri = 'D:/PSRepoLocal/'; Trusted = $true;
-                       Priority = 20 },
-                     @{Name = 'PSGv3'; Uri = 'https://www.powershellgallery.com/api/v3';
-                       Trusted = $true; Priority = 50 },
-                     @{PSGallery = $true;  Trusted = $true; Priority = 10 }
+$arrayOfHashtables = @{
+        Name = 'Local'
+        Uri = 'D:/PSRepoLocal/'
+        Trusted = $true
+        Priority = 20
+    },
+    @{
+        Name = 'PSGv3'
+        Uri = 'https://www.powershellgallery.com/api/v3'
+        Trusted = $true
+        Priority = 50
+    },
+    @{
+        PSGallery = $true
+        Trusted = $true
+        Priority = 10
+    }
 Register-PSResourceRepository -Repository $arrayOfHashtables
 Get-PSResourceRepository
 ```
 
 ```Output
-Name             Uri                                          Trusted   Priority
-----             ---                                          -------   --------
-PSGallery        https://www.powershellgallery.com/api/v2       False         50
-psgettestlocal   file:///c:/code/testdir                        False         50
+Name      Uri                                      Trusted Priority
+----      ---                                      ------- --------
+PSGallery https://www.powershellgallery.com/api/v2 True    10
+Local     file:///D:/PSRepoLocal/                  True    20
+PSGv3     https://www.powershellgallery.com/api/v3 True    50
 ```
 
 ### Example 4
 
 This example registers a repository with credential information to be retrieved from a registered
-**Microsoft.PowerShell.SecretManagement** vault. You must have the
-**Microsoft.PowerShell.SecretManagement** module installed and have a registered vault containing
-the stored secret. The format of the secret must match the requirements of the repository.
+**SecretManagement** vault. You must have the **Microsoft.PowerShell.SecretManagement** module
+installed and have a registered vault containing the stored secret. The format of the secret must
+match the requirements of the repository.
 
 ```powershell
 $parameters = @{
@@ -319,7 +333,10 @@ Accept wildcard characters: False
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
