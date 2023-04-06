@@ -124,22 +124,22 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $wv.Count | Should -Be 1
     }
 
-    ### TODO kind of broken, come back to this
     It "Install-Module with nonexistent module" {
         Install-Module NonExistentModule -Repository PSGallery -ErrorVariable ev -ErrorAction SilentlyContinue
 
         $ev.Count | Should -Be 1
     }
 
+    ### broken
     It "Install-Module with PipelineInput" {
-        Find-Module $testModuleName2 | Install-Module
+        Find-Module $testModuleName2 -Repository PSGallery | Install-Module -Repository PSGallery
         $res = Get-PSResource $testModuleName2
         $res.Count -eq 1 | Should -Be $true   
     }
 
     ### BROKEN
     It "Install-Module multiple modules with PipelineInput" {
-        Find-Module $testModuleName2, "newTestModule" | Install-Module
+        Find-Module $testModuleName2, "newTestModule" -Repository PSGallery | Install-Module -Repository PSGallery
         $res = Get-PSResource $testModuleName2 , "newTestModule"
         $res.Count -eq 2 | Should -Be $true   
     }

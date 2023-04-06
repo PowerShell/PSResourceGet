@@ -44,7 +44,9 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     It "Update-Module with -Force" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Repository PSGallery
         Update-Module $testModuleName2 -Force
-        $wv.Count | Should -Be 1
+
+        $res = Get-PSResourcde $testModuleName2
+        $res.version | Should -Contain "0.0.91" 
     }
 
     It "Update-Module with -RequiredVersion" {

@@ -75,7 +75,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     It "Save-Module with Find-Module output" {
         $ModuleName = "testmodule99"
 
-        Find-Module -Name $ModuleName -Repository PSGallery | Save-Module -Path $SaveDir
+        Find-Module -Name $ModuleName -Repository PSGallery | Save-Module -Path $SaveDir -Repository PSGallery
 
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
         $pkgDirs.Count | Should -Be 1
