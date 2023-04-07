@@ -1,7 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
 
 Describe "Test Test-PSScriptFileInfo" -Tags 'CI' {
     BeforeAll {

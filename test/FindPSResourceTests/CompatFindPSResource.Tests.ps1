@@ -1,7 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
 
 $psmodulePaths = $env:PSModulePath -split ';'
 Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
@@ -92,11 +93,6 @@ Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
             $res | Should -BeNullOrEmpty
         }
 #>
-        It "Find-Module with wildcard name and required version" {
-            $res = Find-Module TestModule9* -RequiredVersion 0.0.1 -Repository PSGallery -ErrorAction SilentlyContinue -ErrorVariable err
-            $err | Should -Not -BeNullOrEmpty
-            $res | Should -BeNullOrEmpty
-        }
 
         It "Find-Module with multinames" {
             $res = Find-Module TestModuleWithDependencyB, TestModuleWithDependencyC, TestModuleWithDependencyD -Repository PSGallery

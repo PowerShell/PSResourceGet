@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
-Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
 Import-Module $modPath -Force -Verbose
 
 $psmodulePaths = $env:PSModulePath -split ';'

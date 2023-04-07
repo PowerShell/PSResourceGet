@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 $ProgressPreference = "SilentlyContinue"
-Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
 
 Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
 
