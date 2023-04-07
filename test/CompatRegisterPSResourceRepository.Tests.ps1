@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test CompatPowerShellGet: Register-PSRepository" -Tags 'CI' {
+Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -Tags 'CI' {
     BeforeEach {
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryUri = Get-PSGalleryLocation

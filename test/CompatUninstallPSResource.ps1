@@ -4,7 +4,7 @@
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
+Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
 
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName

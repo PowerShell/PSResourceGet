@@ -8,12 +8,13 @@ Import-Module $modPath -Force -Verbose
 $psmodulePaths = $env:PSModulePath -split ';'
 Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 
-Describe 'Test compatpsget Find-PSResource for V2 Server Protocol' -tags 'CI' {
+Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
 
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module"
         $testScriptName = "test_script"
+        $testModuleName2 = "testmodule99"
         $commandName = "Get-TargetResource"
         $dscResourceName = "SystemLocale"
         $parentModuleName = "SystemLocaleDsc"
@@ -146,5 +147,87 @@ Describe 'Test compatpsget Find-PSResource for V2 Server Protocol' -tags 'CI' {
             $res = Find-Module -Name $ModuleName -IncludeDependencies
             $res.Count -ge 2 | Should -Be $true
         }
+
+    It "find module given specific Name, Version null" {
+        $res = Find-Module -Name $testModuleName2 -Repository $PSGalleryName
+        $res.Name | Should -Be $testModuleName2
+        $res.Version | Should -Be "0.0.93"
+    }
+
+    It "should not find module given nonexistant Name" {
+        $res = Find-Module -Name NonExistantModule -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameResponseConversionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "find script(s) given wildcard Name" {
+        $foundScript = $False
+        $res = Find-Script -Name "test_scri*" -Repository $PSGalleryName
+        $res.Count | Should -Be 1
+        foreach ($item in $res)
+        {
+            if ($item.Type -eq "Script")
+            {
+                $foundScript = $true
+            }
+        }
+
+        $foundScript | Should -BeTrue
+    }
+
+    It "find all versions of module when given specific Name, Version not null --> '*'" {
+        $res = Find-Module -Name $testModuleName2 -AllVersions -Repository $PSGalleryName
+        $res | ForEach-Object {
+            $_.Name | Should -Be $testModuleName2
+        }
+
+        $res.Count | Should -BeGreaterThan 1
+    }
+
+    It "find module with latest (including prerelease) version given Prerelease parameter" {
+        # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
+        $res = Find-Module -Name $testModuleName2 -Repository $PSGalleryName
+        $res.Version | Should -Be "0.0.93"
+
+        $resPrerelease = Find-Module -Name $testModuleName2 -AllowPrerelease -Repository $PSGalleryName
+        $resPrerelease.Version | Should -Be "1.0.0"
+        $resPrerelease.Prerelease | Should -Be "beta2"
+    }
+
+    It "find script from PSGallery" {
+        $resScript = Find-Script -Name $testScriptName -Repository $PSGalleryName
+        $resScript.Name | Should -Be $testScriptName
+        $resScriptType = Out-String -InputObject $resScript.Type
+        $resScriptType.Replace(",", " ").Split() | Should -Contain "Script"
+    }
+    
+    It "find module from PSGallery" {
+        $resModule = Find-Module -Name $testModuleName -Repository $PSGalleryName
+        $resModule.Name | Should -Be $testModuleName
+        $resModuleType = Out-String -InputObject $resModule.Type
+        $resModuleType.Replace(",", " ").Split() | Should -Contain "Module"
+    }
+
+<#
+    ### BROKEN
+    It "find resource given CommandName" {
+        $res = Find-Command $commandName -Repository $PSGalleryName
+        foreach ($item in $res) {
+            $item.Names | Should -Be $commandName    
+            $item.ParentResource.Includes.Command | Should -Contain $commandName
+        }
+    }
+
+    ### BROKEN
+    It "find resource given DscResourceName" {
+        $res = Find-DscResource $dscResourceName -Repository $PSGalleryName
+        foreach ($item in $res) {
+            $item.Names | Should -Be $dscResourceName    
+            $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
+        }
+    }
+#>
 }
     

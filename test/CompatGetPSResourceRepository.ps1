@@ -3,7 +3,7 @@
 
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe "Test CompatPowerShellGet: Get-PSRepository" -Tags 'CI' {
+Describe "Test CompatPowerShellGet: Get-PSResourceRepository" -Tags 'CI' {
     BeforeEach {
         $TestRepoName1 = "testRepository"
         $TestRepoName2 = "testRepository2"
