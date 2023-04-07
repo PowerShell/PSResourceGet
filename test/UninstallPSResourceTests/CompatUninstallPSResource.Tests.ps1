@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 $ProgressPreference = "SilentlyContinue"
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
 Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
 

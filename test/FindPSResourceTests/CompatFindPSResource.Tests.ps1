@@ -1,9 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
-Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
-Import-Module $modPath -Force -Verbose
+Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
 $psmodulePaths = $env:PSModulePath -split ';'
 Write-Verbose -Verbose "Current module search paths: $psmodulePaths"

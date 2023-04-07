@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
 
 Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -Tags 'CI' {
     BeforeEach {
