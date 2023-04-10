@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+<#
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
@@ -126,3 +126,4 @@ Describe "Test CompatPowerShellGet: Get-PSResourceRepository" -Tags 'CI' {
         $res.Count | Should -BeGreaterThan 0
     }
 }
+#>

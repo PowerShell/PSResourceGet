@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+<#
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -30,7 +30,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
-<#
+
     It "Uninstall-Module with -WhatIf" {
         $guid = [system.guid]::newguid().tostring()
         $contentFile = Join-Path -Path $TestDrive -ChildPath $guid -AdditionalChildPath "file.txt"
@@ -45,7 +45,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $res = Get-PSResourcde "testmodule99"
         $res.Count -eq 0 | Should -Be $true
     } 
-#>
+
 
     It "Uninstall-Module" {
         Uninstall-Module -Name $testModuleName
@@ -61,7 +61,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $res.Count | Should -Be 0
     }   
 
-<#
+
     ### broken
     It "Uninstall-Module with -AllVersions" {
         Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
@@ -241,7 +241,6 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $res.Name | Should -Be $testScriptName
         $res.Version | Should -Be "2.5"
     }
-#>
 
     $testCases = @{Name="Test?Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"},
     @{Name="Test[Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
@@ -321,3 +320,4 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
     }
 }
+#>

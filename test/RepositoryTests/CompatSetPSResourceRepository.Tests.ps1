@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+<#
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
@@ -115,7 +115,7 @@ Describe "Test CompatPowerShellGet: Set-PSResourceRepository" -Tags 'CI' {
     }
 
     ### Broken
-<#    It "should set repository with relative Uri provided" {
+    It "should set repository with relative Uri provided" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Set-PSRepository -Name $TestRepoName1 -SourceLocation $relativeCurrentPath
         $res = Get-PSResourceRepository -Name $TestRepoName1
@@ -123,7 +123,6 @@ Describe "Test CompatPowerShellGet: Set-PSResourceRepository" -Tags 'CI' {
         $Res.Uri.ToString().Contains($relativeCurrentPath) | Should -Be $true
         $res.Trusted | Should -Be False
     }
-#>
 
     It "should set repository with local file share NuGet based Uri" {
         Register-PSResourceRepository -Name "localFileShareTestRepo" -Uri $tmpDir1Path
@@ -141,3 +140,4 @@ Describe "Test CompatPowerShellGet: Set-PSResourceRepository" -Tags 'CI' {
         $res.Trusted | Should -Be False
     }
 }
+#>

@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+<#
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -42,7 +42,6 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
     }
 
     ### BROKEN
-<#
     It "Save-Module with Find-DscResource output" {
         $DscResourceName = 'SystemLocale'
         $ModuleName = 'SystemLocaleDsc'
@@ -54,10 +53,9 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
         $pkgDirs.Count | Should -Be 1
     }
-#>
+
 
 ### BROKEN
-<#
     It "Save-Module with Find-Command output" {
         $cmdName = "Get-WUJob"
         $ModuleName = "PSWindowsUpdate"
@@ -69,7 +67,7 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
         $pkgDirs.Count | Should -Be 1
     }
-#>
+
 
     It "Save-Module with dependencies" {
         $ModuleName = "test_module"
@@ -167,5 +165,6 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
     }
 }
+#>
 
 

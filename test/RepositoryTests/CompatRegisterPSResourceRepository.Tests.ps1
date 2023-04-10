@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+<#
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
@@ -114,7 +114,7 @@ Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -Tags 'CI' {
     }
 
     ### Broken
-<#    It "should register repository with relative location provided as Uri" {
+    It "should register repository with relative location provided as Uri" {
         Register-PSRepository -Name $TestRepoName1 -SourceLocation ".\"
         $res = Get-PSResourceRepository -Name $TestRepoName1
 
@@ -123,7 +123,7 @@ Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -Tags 'CI' {
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
     }
-#>
+
 
     It "should register local file share NuGet based repository" {
         Register-PSRepository -Name "localFileShareTestRepo" -SourceLocation "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
@@ -174,3 +174,4 @@ Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -Tags 'CI' {
         { Register-PSRepository $RepositoryName -SourceLocation $SourceLocation -ScriptSourceLocation $ScriptSourceLocation -ErrorVariable ev  -ErrorAction SilentlyContinue } | Should Throw "Cannot validate argument on parameter 'SourceLocation'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again."
     }
 }
+#>

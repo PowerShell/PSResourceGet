@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+<#
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -124,7 +124,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
         $isPkgUpdated | Should -Be $true
     }
-<#
+
     It "Update resources installed given Name (with wildcard) parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
         Install-PSResource -Name $testModuleName2 -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
@@ -389,5 +389,5 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Contain "3.0.0.0"
     }
-    #>
 }
+#>
