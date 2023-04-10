@@ -1,5 +1,6 @@
 {
   "ModuleName": "PowerShellGet",
+  "CompatModuleName": "CompatPowerShellGet",
   "FormatFileName": "PSGet.Format",
   "Culture": "en-US",
   "BuildOutputPath": "out",

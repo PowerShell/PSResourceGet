@@ -21,6 +21,10 @@ function DoBuild
     Write-Verbose -Verbose "Copy-Item ${SrcPath}/${ModuleName}.psd1 to $BuildOutPath"
     Copy-Item -Path "${SrcPath}/${ModuleName}.psd1" -Dest "$BuildOutPath" -Force
 
+    # Copy CompatPowerShellGet.psm1 module file
+    Write-Verbose -Verbose "Copy-Item ${SrcPath}/${CompatModuleName}.psm1 to $BuildOutPath"
+    Copy-Item -Path "${SrcPath}/${CompatModuleName}.psm1" -Dest "$BuildOutPath" -Force
+
     #Copy module format ps1xml file
     Write-Verbose -Verbose -Message "Copy-Item ${SrcPath}/${FormatFileName}.ps1xml to $BuildOutPath"
     Copy-Item -Path "${SrcPath}/${FormatFileName}.ps1xml" -Dest "$BuildOutPath" -Force

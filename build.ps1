@@ -31,7 +31,9 @@ Import-Module -Name "$PSScriptRoot/buildtools.psd1" -Force
 
 $config = Get-BuildConfiguration -ConfigPath $PSScriptRoot
 
+# $config info is defined in package.config.json in root
 $script:ModuleName = $config.ModuleName
+$script:CompatModuleName = $config.CompatModuleName
 $script:FormatFileName = $config.FormatFileName
 $script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
