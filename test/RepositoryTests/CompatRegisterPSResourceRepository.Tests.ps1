@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
@@ -174,4 +174,3 @@ Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -Tags 'CI' {
         { Register-PSRepository $RepositoryName -SourceLocation $SourceLocation -ScriptSourceLocation $ScriptSourceLocation -ErrorVariable ev  -ErrorAction SilentlyContinue } | Should Throw "Cannot validate argument on parameter 'SourceLocation'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again."
     }
 }
-#>

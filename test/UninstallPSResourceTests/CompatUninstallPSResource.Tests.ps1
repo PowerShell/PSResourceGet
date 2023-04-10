@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -320,4 +320,3 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
     }
 }
-#>

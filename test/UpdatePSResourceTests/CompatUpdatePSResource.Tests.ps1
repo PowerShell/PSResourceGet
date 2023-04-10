@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -390,4 +390,3 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         $res.Version | Should -Contain "3.0.0.0"
     }
 }
-#>

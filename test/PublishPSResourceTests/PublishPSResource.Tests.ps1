@@ -457,7 +457,7 @@ Describe "Test Publish-PSResource" -Tags 'CI' {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks"
         $scriptVersion = "1.0.0"
         $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
-        Make-Item
+
         Publish-PSResource -Path $scriptPath
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
