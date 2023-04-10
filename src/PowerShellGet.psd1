@@ -13,6 +13,7 @@
     DotNetFrameworkVersion = '2.0'
     CLRVersion = '4.0.0'
     FormatsToProcess  = 'PSGet.Format.ps1xml'
+    NestedModules = './CompatPowerShellGet.psm1'
     CmdletsToExport = @(
         'Find-PSResource',
         'Get-PSResource',
@@ -29,8 +30,29 @@
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
         'Update-ModuleManifest',
-        'Update-PSResource')
-
+        'Update-PSResource',
+        'Find-Command', 
+        'Find-DscResource', 
+        'Find-Module',
+        'Find-RoleCapability',
+        'Find-Script',
+        'Get-InstalledModule',
+        'Get-InstalledScript',
+        'Get-PSRepository',
+        'Install-Module',
+        'Install-Script',
+        'Publish-Module',
+        'Publish-Script',
+        'Register-PSRepository',
+        'Save-Module',
+        'Save-Script',
+        'Set-PSRepository',
+        'Uninstall-Module',
+        'Uninstall-Script',
+        'Unregister-PSRepository',
+        'Update-Module',
+        'Update-Script'
+        )
     VariablesToExport = 'PSGetPath'
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData = @{
