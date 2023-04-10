@@ -4,6 +4,19 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
+$psmodulePaths = $env:PSModulePath -split ';'
+Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
+
+$tempModuleDir = Get-ChildItem "D:\a\_temp\TempModules" -Recurse
+Write-Verbose -Verbose "Get-ChildItem on tempModules path: $tempModuleDir"
+
+$gmo = Get-Module powershellget 
+Write-Verbose -Verbose "Get-InstalledModule on PowerShellGet: $gmo"
+
+$getcmd = (Get-Command Find-Module).Module.ModuleBase
+Write-Verbose -Verbose "Get-Command on Find-Module: $getcmd"
+
+
 Describe "Test CompatPowerShellGet: Unregister-PSResourceRepository" -Tags 'CI' {
     BeforeEach {
         $PSGalleryName = Get-PSGalleryName
