@@ -4,6 +4,8 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
+$testDir = (get-item $psscriptroot).parent.FullName
+
 $psmodulePaths = $env:PSModulePath -split ';'
 Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 
@@ -98,7 +100,7 @@ Describe "Test CompatPowerShellGet: Publish-PSResource" -Tags 'CI' {
         }
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
-        $script:testFilesFolderPath = Join-Path $psscriptroot -ChildPath "testFiles"
+        $script:testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
 
         # Path to specifically to that invalid test modules folder
         $script:testModulesFolderPath = Join-Path $testFilesFolderPath -ChildPath "testModules"

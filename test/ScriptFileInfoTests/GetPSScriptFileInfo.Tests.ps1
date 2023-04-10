@@ -4,6 +4,8 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
+$testDir = (get-item $psscriptroot).parent.FullName
+
 Describe "Test Get-PSScriptFileInfo" -Tags 'CI' {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
@@ -11,7 +13,7 @@ Describe "Test Get-PSScriptFileInfo" -Tags 'CI' {
         Get-NewTestDirs($tmpDirPaths)
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
-        $script:testFilesFolderPath = Join-Path $PSScriptRoot -ChildPath "testFiles"
+        $script:testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
