@@ -17,6 +17,20 @@ $getcmd = (Get-Command Find-Module).Module.ModuleBase
 Write-Verbose -Verbose "Get-Command on Find-Module: $getcmd"
 
 
+if ((get-module PowerShellget).version -lt [System.Version]"3.0.20") {
+    Import-Module PowerShellGet -MinimumVersion "3.0.20"
+}
+
+$tempModuleDir = Get-ChildItem "D:\a\_temp\TempModules" -Recurse
+Write-Verbose -Verbose "Get-ChildItem on tempModules path: $tempModuleDir"
+
+$gmo = Get-Module powershellget 
+Write-Verbose -Verbose "Get-InstalledModule on PowerShellGet: $gmo"
+
+$getcmd = (Get-Command Find-Module).Module.ModuleBase
+Write-Verbose -Verbose "Get-Command on Find-Module: $getcmd"
+
+
 Describe "Test CompatPowerShellGet: Unregister-PSResourceRepository" -Tags 'CI' {
     BeforeEach {
         $PSGalleryName = Get-PSGalleryName
