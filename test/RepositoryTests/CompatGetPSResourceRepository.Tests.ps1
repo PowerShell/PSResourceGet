@@ -4,6 +4,8 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
+$buildModule = "$psscriptroot/../out/powershellget"
+Import-Module $buildModule -Force -Verbose
 $out = Get-ChildItem "D:\a\1\s\out" -Recurse
 Write-Verbose -Verbose "D:\a\1\s\out Out path: $out"
 
