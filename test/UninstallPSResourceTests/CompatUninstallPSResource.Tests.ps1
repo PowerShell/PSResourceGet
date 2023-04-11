@@ -1,9 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
+# Explicitly import build module because in CI PowerShell can autoload PSGetv2
+# This ensures the build module is always being tested
+$buildModule = Join-Path -Path $((get-item $psscriptroot).parent.parent) -ChildPath "out" -AdditionalChildPath "PowerShellGet"
+Import-Module $buildModule -Force -Verbose
 
 Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
 
@@ -63,75 +67,75 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
 
 
     ### broken
-    It "Uninstall-Module with -AllVersions" {
-        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
-        Uninstall-Module -Name $testModuleName -AllVersions
+#    It "Uninstall-Module with -AllVersions" {
+#        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
+#        Uninstall-Module -Name $testModuleName -AllVersions
 
-        $res = Get-PSResource $testModuleName
-        $res.Count | Should -Be 0
-    }
-
-    ### broken
-    It "Uninstall-Module with -MinimumVersion" {
-        $minVersion = "0.0.2"
-        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
-        Uninstall-Module -Name $testModuleName -MinimumVersion $minVersion
-
-        $res = Get-PSResource $testModuleName
-        $res.Version -lt $minVersion | Should -Be $true
-    }
+#        $res = Get-PSResource $testModuleName
+#        $res.Count | Should -Be 0
+#    }
 
     ### broken
-    It "Uninstall-Module with -MaximumVersion" {
-        $maxVersion = "0.0.2"
-        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
-        Uninstall-Module -Name $testModuleName -MaximumVersion $maxVersion
+#    It "Uninstall-Module with -MinimumVersion" {
+#        $minVersion = "0.0.2"
+#        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
+#        Uninstall-Module -Name $testModuleName -MinimumVersion $minVersion
 
-        $res = Get-PSResource $testModuleName
-        $res.Version | Should -Not -Contain "0.0.1"
-    }
-
-    ### broken
-    It "Uninstall-Script with -AllVersions" {
-        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
-        Uninstall-Module -Name $testModuleName -AllVersions
-
-        $res = Get-PSResource $testModuleName
-        $res.Count | Should -Be 0
-    }
+#        $res = Get-PSResource $testModuleName
+#        $res.Version -lt $minVersion | Should -Be $true
+#    }
 
     ### broken
-    It "Uninstall-Module with -MinimumVersion" {
-        $minVersion = "0.0.2"
-        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
-        Uninstall-Module -Name $testModuleName -MinimumVersion $minVersion
+#    It "Uninstall-Module with -MaximumVersion" {
+#        $maxVersion = "0.0.2"
+#        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
+#        Uninstall-Module -Name $testModuleName -MaximumVersion $maxVersion
 
-        $res = Get-PSResource $testModuleName
-        $res.Version -lt $minVersion | Should -Be $true
-    }
+#        $res = Get-PSResource $testModuleName
+#        $res.Version | Should -Not -Contain "0.0.1"
+#    }
 
     ### broken
-    It "Uninstall-Module with -MaximumVersion" {
-        $maxVersion = "0.0.2"
-        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
-        Uninstall-Module -Name $testModuleName -MaximumVersion $maxVersion
+#    It "Uninstall-Script with -AllVersions" {
+#        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
+#        Uninstall-Module -Name $testModuleName -AllVersions
 
-        $res = Get-PSResource $testModuleName
-        $res.Version | Should -Not -Contain "0.0.1"
-    }
+#        $res = Get-PSResource $testModuleName
+#        $res.Count | Should -Be 0
+#    }
+
+    ### broken
+#    It "Uninstall-Module with -MinimumVersion" {
+#        $minVersion = "0.0.2"
+#        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
+#        Uninstall-Module -Name $testModuleName -MinimumVersion $minVersion
+
+#        $res = Get-PSResource $testModuleName
+#        $res.Version -lt $minVersion | Should -Be $true
+#    }
+
+    ### broken
+#    It "Uninstall-Module with -MaximumVersion" {
+#        $maxVersion = "0.0.2"
+#        Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1"
+#        Uninstall-Module -Name $testModuleName -MaximumVersion $maxVersion
+
+#        $res = Get-PSResource $testModuleName
+#        $res.Version | Should -Not -Contain "0.0.1"
+#    }
 
         ### Broken -- version param
-    It "Uninstall a module when given name and specifying all versions" {
-        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1" -TrustRepository
-        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.2" -TrustRepository
-        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.3" -TrustRepository
+#    It "Uninstall a module when given name and specifying all versions" {
+#        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.1" -TrustRepository
+#        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.2" -TrustRepository
+#        $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "0.0.3" -TrustRepository
 
-        Uninstall-Module -Name $testModuleName -AllVersions
-        $pkgs = Get-PSResource $testModuleName
-        $pkgs.Version | Should -Not -Contain "0.0.1"
-        $pkgs.Version | Should -Not -Contain "0.0.2"
-        $pkgs.Version | Should -Not -Contain "0.0.3"
-    }
+#        Uninstall-Module -Name $testModuleName -AllVersions
+#        $pkgs = Get-PSResource $testModuleName
+#        $pkgs.Version | Should -Not -Contain "0.0.1"
+#        $pkgs.Version | Should -Not -Contain "0.0.2"
+#        $pkgs.Version | Should -Not -Contain "0.0.3"
+#    }
 
     It "Uninstall a module when given name and using the default version (ie all versions, not explicitly specified)" {
         $null = Install-PSResource $testModuleName -Repository $PSGalleryName -Version "1.0.0" -TrustRepository -WarningAction SilentlyContinue
@@ -320,4 +324,3 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
     }
 }
-#>

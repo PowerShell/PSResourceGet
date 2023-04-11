@@ -3,18 +3,10 @@
 
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
-
-$psmodulePaths = $env:PSModulePath -split ';'
-Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
-
-$tempModuleDir = Get-ChildItem "D:\a\_temp\TempModules" -Recurse
-Write-Verbose -Verbose "Get-ChildItem on tempModules path: $tempModuleDir"
-
-$gmo = Get-Module powershellget 
-Write-Verbose -Verbose "Get-InstalledModule on PowerShellGet: $gmo"
-
-$getcmd = (Get-Command Find-Module).Module.ModuleBase
-Write-Verbose -Verbose "Get-Command on Find-Module: $getcmd"
+# Explicitly import build module because in CI PowerShell can autoload PSGetv2
+# This ensures the build module is always being tested
+$buildModule = Join-Path -Path $((get-item $psscriptroot).parent.parent) -ChildPath "out" -AdditionalChildPath "PowerShellGet"
+Import-Module $buildModule -Force -Verbose
 
 Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
 

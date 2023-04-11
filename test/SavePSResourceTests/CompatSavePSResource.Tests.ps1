@@ -1,21 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
-
-$psmodulePaths = $env:PSModulePath -split ';'
-Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
-
-$tempModuleDir = Get-ChildItem "D:\a\_temp\TempModules" -Recurse
-Write-Verbose -Verbose "Get-ChildItem on tempModules path: $tempModuleDir"
-
-$gmo = Get-Module powershellget 
-Write-Verbose -Verbose "Get-InstalledModule on PowerShellGet: $gmo"
-
-$getcmd = (Get-Command Find-Module).Module.ModuleBase
-Write-Verbose -Verbose "Get-Command on Find-Module: $getcmd"
+# Explicitly import build module because in CI PowerShell can autoload PSGetv2
+# This ensures the build module is always being tested
+$buildModule = Join-Path -Path $((get-item $psscriptroot).parent.parent) -ChildPath "out" -AdditionalChildPath "PowerShellGet"
+Import-Module $buildModule -Force -Verbose
 
 Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
 
@@ -42,31 +34,31 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
     }
 
     ### BROKEN
-    It "Save-Module with Find-DscResource output" {
-        $DscResourceName = 'SystemLocale'
-        $ModuleName = 'SystemLocaleDsc'
-        $res1 = Find-DscResource -Name $DscResourceName
-        $res1 | Should -Not -BeNullOrEmpty
+#    It "Save-Module with Find-DscResource output" {
+#        $DscResourceName = 'SystemLocale'
+#        $ModuleName = 'SystemLocaleDsc'
+#        $res1 = Find-DscResource -Name $DscResourceName
+#        $res1 | Should -Not -BeNullOrEmpty
 
-        Find-DscResource -Name $DscResourceName | Save-Module -Path $SaveDir
+#        Find-DscResource -Name $DscResourceName | Save-Module -Path $SaveDir
 
-        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
-        $pkgDirs.Count | Should -Be 1
-    }
+#        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
+#        $pkgDirs.Count | Should -Be 1
+#    }
 
 
 ### BROKEN
-    It "Save-Module with Find-Command output" {
-        $cmdName = "Get-WUJob"
-        $ModuleName = "PSWindowsUpdate"
-        $res1 = Find-Command -Name $cmdName
-        $res1 | Should -Not -BeNullOrEmpty
+#    It "Save-Module with Find-Command output" {
+#        $cmdName = "Get-WUJob"
+#        $ModuleName = "PSWindowsUpdate"
+#        $res1 = Find-Command -Name $cmdName
+#        $res1 | Should -Not -BeNullOrEmpty
 
-        Find-DscResource -Name $cmdName | Save-Module -Path $SaveDir
+#        Find-DscResource -Name $cmdName | Save-Module -Path $SaveDir
 
-        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
-        $pkgDirs.Count | Should -Be 1
-    }
+#        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
+#        $pkgDirs.Count | Should -Be 1
+#    }
 
 
     It "Save-Module with dependencies" {
@@ -165,4 +157,3 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
     }
 }
-#>
