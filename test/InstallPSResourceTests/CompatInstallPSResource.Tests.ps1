@@ -433,7 +433,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     # Unix only manual test
     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
     It "Install module under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-Module -Name "TestModule99" -Repository $TestGalleryName -Scope AllUsers
+        Install-Module -Name "TestModule99" -Repository $PSGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule99" -ListAvailable
         $pkg.Name | Should -Be "TestModule99" 
         $pkg.Path.Contains("/usr/") | Should -Be $true
