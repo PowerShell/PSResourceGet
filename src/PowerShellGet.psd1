@@ -30,7 +30,9 @@
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
         'Update-ModuleManifest',
-        'Update-PSResource',
+        'Update-PSResource'
+    )
+    FunctionsToExport = @(
         'Find-Command', 
         'Find-DscResource', 
         'Find-Module',
@@ -52,7 +54,7 @@
         'Unregister-PSRepository',
         'Update-Module',
         'Update-Script'
-        )
+    )
     VariablesToExport = 'PSGetPath'
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
     PrivateData = @{
