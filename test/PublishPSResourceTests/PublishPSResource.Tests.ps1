@@ -69,7 +69,7 @@ Describe "Test Publish-PSResource" -Tags 'CI' {
         }
 
         #Create dependency module
-        $script:DependencyModuleName = "TestDependencyModule"
+        $script:DependencyModuleName = "PackageManagement"
         $script:DependencyModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:DependencyModuleName
         if(!(Test-Path $script:DependencyModuleBase))
         {
@@ -203,7 +203,7 @@ Describe "Test Publish-PSResource" -Tags 'CI' {
 
         # Create module to test
         $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'TestDependencyModule'; ModuleVersion = '2.0.0' })
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '2.0.0' })
 
         Publish-PSResource -Path $script:PublishModuleBase
 
@@ -214,7 +214,7 @@ Describe "Test Publish-PSResource" -Tags 'CI' {
     It "Publish a module with a dependency that is not published, should throw" {
         $version = "1.0.0"
         $dependencyVersion = "2.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'TestDependencyModule'; ModuleVersion = '1.4.4' })
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '1.4.4' })
 
         {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "DependencyNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
@@ -383,7 +383,6 @@ Describe "Test Publish-PSResource" -Tags 'CI' {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Write-Verbose ("path is: $script:PublishModuleBase")
         Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -ErrorAction SilentlyContinue
 
         $Error[0].FullyQualifiedErrorId | Should -be "APIKeyError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
@@ -555,4 +554,3 @@ Describe "Test Publish-PSResource" -Tags 'CI' {
         {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 }
-
