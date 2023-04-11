@@ -428,6 +428,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module -Name "TestModule99" -Repository $PSGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule99" -ListAvailable
         $pkg.Name | Should -Be "TestModule99" 
+        Write-Verbose -Message "Unix Package Path is: $pkg.Path"
         $pkg.Path.Contains("/usr/") | Should -Be $true
     }
 
