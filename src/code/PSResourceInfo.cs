@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -871,6 +872,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     out string releaseNotes,
                     out string[] tags);
 
+                // Object[] requiredModulesEntry = pkgMetadata.ContainsKey("RequiredModules") ? pkgMetadata["RequiredModules"] as Object[] : new Object[]{};
+                // var requiredModules = GetDependencies(new ArrayList(requiredModulesEntry));
+
                 var typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable();
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
@@ -890,7 +894,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     author: pkgMetadata["Author"] as String,
                     companyName: pkgMetadata["CompanyName"] as String,
                     copyright: pkgMetadata["Copyright"] as String,
-                    dependencies: new Dependency[]{}, // TODO
+                    dependencies: null,
                     description: pkgMetadata["Description"] as String,
                     iconUri: iconUri,
                     includes: includes,
@@ -936,42 +940,48 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             try
             {
-                var typeInfo = ParseHttpMetadataType(pkgMetadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
+                string[] tagsEntry = pkgMetadata["Tags"] as string[];
+                var typeInfo = ParseHttpMetadataType(tagsEntry, out ArrayList commandNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable();
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
 
                 var additionalMetadataHashtable = new Dictionary<string, string>();
-                additionalMetadataHashtable.Add("NormalizedVersion", pkgMetadata["NormalizedVersion"].ToString());
+                NuGetVersion nugetVersion = pkgMetadata["Version"] as NuGetVersion;
+                bool isPrerelease = nugetVersion.IsPrerelease;
+                Version version = nugetVersion.Version;
+                string prereleaseLabel = isPrerelease ? nugetVersion.ToNormalizedString().Split(new char[]{'-'})[1] : String.Empty;
+
+                additionalMetadataHashtable.Add("NormalizedVersion", nugetVersion.ToNormalizedString());
 
                 var includes = new ResourceIncludes(resourceHashtable);
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
-                    author: pkgMetadata["Authors"] as String,
+                    author: pkgMetadata["Author"] as String,
                     companyName: pkgMetadata["CompanyName"] as String,
                     copyright: pkgMetadata["Copyright"] as String,
-                    dependencies: pkgMetadata["Dependencies"] as Dependency[],
+                    dependencies: new Dependency[]{}, // TODO: we get ["RequiredModules"]: {Microsoft.PowerShell.Commands.ModuleSpecification[5]}
                     description: pkgMetadata["Description"] as String,
-                    iconUri: pkgMetadata["IconUrl"] as Uri,
+                    iconUri: pkgMetadata["IconUri"] as Uri,
                     includes: includes,
                     installedDate: null,
                     installedLocation: null,
-                    isPrelease: (bool) pkgMetadata["IsPrerelease"],
-                    licenseUri: pkgMetadata["LicenseUrl"] as Uri,
+                    isPrelease: isPrerelease,
+                    licenseUri: pkgMetadata["LicenseUri"] as Uri,
                     name: pkgMetadata["Id"] as String,
                     packageManagementProvider: null,
                     powershellGetFormatVersion: null,   
-                    prerelease: pkgMetadata["Prerelease"] as String,
-                    projectUri: pkgMetadata["ProjectUrl"] as Uri,
-                    publishedDate: pkgMetadata["Published"] as DateTime?,
+                    prerelease: prereleaseLabel,
+                    projectUri: pkgMetadata["ProjectUri"] as Uri,
+                    publishedDate: null,
                     releaseNotes: pkgMetadata["ReleaseNotes"] as String,
                     repository: repository.Name,
-                    repositorySourceLocation: null,
-                    tags: pkgMetadata["Tags"] as string[],
-                    type: typeInfo,
+                    repositorySourceLocation: repository.Uri.ToString(),
+                    tags: tagsEntry,
+                    type: ResourceType.Script,
                     updatedDate: null,
-                    version: pkgMetadata["Version"] as Version);
+                    version: version);
 
                 return true;
             }
@@ -979,7 +989,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
-                    @"TryConvertFromHashtableForPsd1: Could not find expected information from module manifest file hashtable with error: {0}",
+                    @"TryConvertFromHashtableForPs1: Could not find expected information from module manifest file hashtable with error: {0}",
                     ex.Message);
 
                 return false;
@@ -997,42 +1007,54 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             try
             {
-                var typeInfo = ParseHttpMetadataType(pkgMetadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
+                string tagsEntry = pkgMetadata["tags"] as string;
+                string[] tags = tagsEntry.Split(new char[] { ' ' });
+                var typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable();
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
 
                 var additionalMetadataHashtable = new Dictionary<string, string>();
-                additionalMetadataHashtable.Add("NormalizedVersion", pkgMetadata["NormalizedVersion"].ToString());
+                string versionEntry = pkgMetadata["version"] as string;
+                NuGetVersion.TryParse(versionEntry, out NuGetVersion nugetVersion);
+                bool isPrerelease = nugetVersion.IsPrerelease;
+                Version version = nugetVersion.Version;
+                string prereleaseLabel = isPrerelease ? nugetVersion.ToNormalizedString().Split(new char[] { '-' })[1] : String.Empty;
+
+                additionalMetadataHashtable.Add("NormalizedVersion", nugetVersion.ToNormalizedString());
+
+                Uri.TryCreate((string)pkgMetadata["licenseUrl"], UriKind.Absolute, out Uri licenseUri);
+                Uri.TryCreate((string)pkgMetadata["projectUrl"], UriKind.Absolute, out Uri projectUri);
+                Uri.TryCreate((string)pkgMetadata["iconUrl"], UriKind.Absolute, out Uri iconUri);
 
                 var includes = new ResourceIncludes(resourceHashtable);
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
-                    author: pkgMetadata["Authors"] as String,
-                    companyName: pkgMetadata["CompanyName"] as String,
-                    copyright: pkgMetadata["Copyright"] as String,
-                    dependencies: pkgMetadata["Dependencies"] as Dependency[],
-                    description: pkgMetadata["Description"] as String,
-                    iconUri: pkgMetadata["IconUrl"] as Uri,
+                    author: pkgMetadata["authors"] as String,
+                    companyName: String.Empty,
+                    copyright: pkgMetadata["copyright"] as String,
+                    dependencies: new Dependency[] { }, //pkgMetadata["Dependencies"] as Dependency[]
+                    description: pkgMetadata["description"] as String,
+                    iconUri: iconUri,
                     includes: includes,
                     installedDate: null,
                     installedLocation: null,
-                    isPrelease: (bool) pkgMetadata["IsPrerelease"],
-                    licenseUri: pkgMetadata["LicenseUrl"] as Uri,
-                    name: pkgMetadata["Id"] as String,
+                    isPrelease: isPrerelease,
+                    licenseUri: licenseUri,
+                    name: pkgMetadata["id"] as String,
                     packageManagementProvider: null,
                     powershellGetFormatVersion: null,   
-                    prerelease: pkgMetadata["Prerelease"] as String,
-                    projectUri: pkgMetadata["ProjectUrl"] as Uri,
-                    publishedDate: pkgMetadata["Published"] as DateTime?,
-                    releaseNotes: pkgMetadata["ReleaseNotes"] as String,
+                    prerelease: prereleaseLabel,
+                    projectUri: projectUri,
+                    publishedDate: null,
+                    releaseNotes: String.Empty,
                     repository: repository.Name,
-                    repositorySourceLocation: null,
-                    tags: pkgMetadata["Tags"] as string[],
-                    type: typeInfo,
+                    repositorySourceLocation: repository.Uri.ToString(),
+                    tags: tags,
+                    type: ResourceType.Module,
                     updatedDate: null,
-                    version: pkgMetadata["Version"] as Version);
+                    version: version);
 
                 return true;
             }

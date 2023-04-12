@@ -38,6 +38,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 if (!response.ContainsKey(fileTypeKey))
                 {
                     continue;
+                    // TODO: or terminate?
                 }
 
                 Utils.MetadataFileType fileType = (Utils.MetadataFileType) response[fileTypeKey];
@@ -54,7 +55,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             out string psd1ErrorMsg,
                             repository: repository))
                         {
-                            // write error
+                            // TODO: write error
                         }
 
                         pkgInfo = new PSResourceResult(returnedObject: pkgWithPsd1,
@@ -72,7 +73,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             repository: repository
                         ))
                         {
-                            // write error
+                            // TODO: write error
                         }
 
                         pkgInfo = new PSResourceResult(returnedObject: pkgWithPs1,
@@ -82,7 +83,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         break;
 
                     case Utils.MetadataFileType.Nuspec:
-                        if (!PSResourceInfo.TryConvertFromHashtableForPs1(
+                        if (!PSResourceInfo.TryConvertFromHashtableForNuspec(
                             pkgMetadata: response,
                             psGetInfo: out PSResourceInfo pkgWithNuspec,
                             out string nuspecErrorMsg,
@@ -100,11 +101,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // TODO: is this needed? likely remove
                         break;
                 }
-
-                // Hashtable should have key value pair called "findFile"
-                // determine which type of file we got metadata from
-                // call helper method to populate PSResourceInfo (cause keys from those files and into hashtable may have differed)
-                // populate PSResourceResult and yield return
 
                 yield return pkgInfo;
             }

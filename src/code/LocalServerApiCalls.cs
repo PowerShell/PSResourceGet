@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -303,6 +304,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     pkgMetadata = parsedScript.ToHashtable();
+                    pkgMetadata.Add("Id", packageName);
                     pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ScriptFile);
 
                 }
@@ -424,16 +426,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                var childNodes = nuspecXmlDocument.ChildNodes;
-                foreach (XmlElement child in childNodes)
+                XmlNodeList elemList = nuspecXmlDocument.GetElementsByTagName("metadata");
+                for(int i = 0; i < elemList.Count; i++)
                 {
-                    var key = child.LocalName;
-                    var value = child.InnerText;
+                    XmlNode metadataInnerXml = elemList[i];
 
-                    if (!nuspecHashtable.ContainsKey(key))
+                    for(int j= 0; j<metadataInnerXml.ChildNodes.Count; j++)
                     {
-                        nuspecHashtable.Add(key, value);
-                    }
+                        string key = metadataInnerXml.ChildNodes[j].LocalName;
+                        string value = metadataInnerXml.ChildNodes[j].InnerText;
+
+                        if (!nuspecHashtable.ContainsKey(key))
+                        {
+                            nuspecHashtable.Add(key, value);
+                        }
+                    }  
+
                 }
             }
             catch (Exception e)
@@ -457,66 +465,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return doc;
-        }
-
-        /// <summary>
-        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for find APIs.
-        /// </summary>
-        private string HttpRequestCall(string requestUrlV2, out ExceptionDispatchInfo edi)
-        {
-            edi = null;
-            string response = string.Empty;
-
-            // try
-            // {
-            //     HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
-                
-            //     response = SendV2RequestAsync(request, s_client).GetAwaiter().GetResult();
-            // }
-            // catch (HttpRequestException e)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(e);
-            // }
-            // catch (ArgumentNullException e)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(e);
-            // }
-            // catch (InvalidOperationException e)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(e);
-            // }
-
-            return response;
-        }
-
-        /// <summary>
-        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for install APIs.
-        /// </summary>
-        private HttpContent HttpRequestCallForContent(string requestUrlV2, out ExceptionDispatchInfo edi) 
-        {
-            edi = null;
-            HttpContent content = null;
-
-            // try
-            // {
-            //     HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
-                
-            //     content = SendV2RequestForContentAsync(request, s_client).GetAwaiter().GetResult();
-            // }
-            // catch (HttpRequestException e)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(e);
-            // }
-            // catch (ArgumentNullException e)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(e);
-            // }
-            // catch (InvalidOperationException e)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(e);
-            // }
-
-            return content;
         }
 
         #endregion
