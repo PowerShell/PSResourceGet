@@ -9,6 +9,7 @@ Import-Module $modPath -Force -Verbose
 $buildModule = Join-Path -Path $((get-item $psscriptroot).parent.parent) -ChildPath "out" -AdditionalChildPath "PowerShellGet"
 Import-Module $buildModule -Force -Verbose
 
+
 Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 
     BeforeAll {
