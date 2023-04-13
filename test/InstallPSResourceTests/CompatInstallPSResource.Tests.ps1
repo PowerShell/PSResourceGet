@@ -57,14 +57,13 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res.Count -eq 0 | Should -Be $true
     }
 
-    ### Broken
-#    It "Install-Module with version params" {
-#        Install-Module $testModuleName2 -MinimumVersion 0.0.1 -MaximumVersion 0.0.9 -Repository PSGallery
+    It "Install-Module with version params" {
+        Install-Module $testModuleName2 -MinimumVersion 0.0.1 -MaximumVersion 0.0.9 -Repository PSGallery
         
-#        $res = Get-PSResource -Name $testModuleName2
-#        $res.Name | Should be $testModuleName2
-#        $res.Version | Should be "0.0.9"
-#    }
+        $res = Get-PSResource -Name $testModuleName2
+        $res.Name | Should be $testModuleName2
+        $res.Version | Should be "0.0.9"
+    }
 
     It "Install-Module multiple names" {
         Install-Module "TestModuleWithDependencyB", "testmodule99" -Repository PSGallery
@@ -85,13 +84,18 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 
         $res = Get-PSResource "TestModuleWithDependencyB", "TestModuleWithDependencyD"
         $res.Count -eq 2 | Should -Be $true
+        foreach ($pkg in $res)
+        {
+            $pkg.Version -ge [System.Version] "1.0" | Should -Be $true
+        }
     }
 
     It "Install-Module with MinimumVersion" {
         Install-Module $testModuleName2 -MinimumVersion 0.0.3 -Repository PSGallery
         
         $res = Get-PSResource $testModuleName2
-        $res.Count -eq 1 | Should -Be $true    
+        $res.Count -eq 1 | Should -Be $true  
+        $res.Version -ge [System.Version]"0.0.3" | Should -Be $true
     }
 
     It "Install-Module with RequiredVersion" {
@@ -99,6 +103,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 
         $res = Get-PSResource $testModuleName2
         $res.Count -eq 1 | Should -Be $true 
+        $res.Version -eq [System.Version]"0.0.3" | Should -Be $true
     }
 
     It "Install-Module should fail if RequiredVersion is already installed" {
@@ -106,12 +111,12 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 
         Install-Module $testModuleName2 -RequiredVersion 0.0.93 -WarningVariable wv -Repository PSGallery
         $wv[1] | Should -Be "Resource 'testmodule99' with version '0.0.93' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter"
-       }
+    }
 
     It "Install-Module should fail if MinimumVersion is already installed" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.93 -Repository PSGallery
 
-        Install-Module $testModuleName2 -MinimumVersion 2.0 -WarningVariable wv -Repository PSGallery
+        Install-Module $testModuleName2 -MinimumVersion 0.0.2 -WarningVariable wv -Repository PSGallery
         $wv[1] | Should -Be "Resource 'testmodule99' with version '0.0.93' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter"
     }
 
@@ -132,26 +137,31 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 
         $ev.Count | Should -Be 1
     }
-<#
-    ### broken
+
     It "Install-Module with PipelineInput" {
-        Find-Module $testModuleName2 -Repository PSGallery | Install-Module -Repository PSGallery
+        Find-Module $testModuleName2 -Repository PSGallery | Install-Module
         $res = Get-PSResource $testModuleName2
         $res.Count -eq 1 | Should -Be $true   
     }
 
-    ### BROKEN
+    ### broken
+#    It "Install-Module with PipelineInput" {
+#        Find-Module $testModuleName2 -Repository PSGallery | Install-Module -Repository PSGallery
+#        $res = Get-PSResource $testModuleName2
+#        $res.Count -eq 1 | Should -Be $true   
+#    }
+
     It "Install-Module multiple modules with PipelineInput" {
-        Find-Module $testModuleName2, "newTestModule" -Repository PSGallery | Install-Module -Repository PSGallery
+        Find-Module $testModuleName2, "newTestModule" -Repository PSGallery | Install-Module
         $res = Get-PSResource $testModuleName2 , "newTestModule"
         $res.Count -eq 2 | Should -Be $true   
     }
-#>
-    ### BROKEN
+
+    #broken
 #    It "Install-Module multiple module using InputObjectParam" {
-#        $items = Find-Module $testModuleName2 , "newTestModule"
+#        $items = Find-Module $testModuleName2, "newTestModule" -Repository PSGallery
 #        Install-Module -InputObject $items
-#        $res = Get-PSResource $testModuleName2 , "newTestModule"
+#        $res = Get-PSResource $testModuleName2, "newTestModule"
 #        $res.Count -eq 2 | Should -Be $true   
 #    }
 
@@ -162,7 +172,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $mod.ModuleBase.StartsWith($script:MyDocumentsModulesPath, [System.StringComparison]::OrdinalIgnoreCase)
     }
 
-    ### broken
+
 #    It "Install-Module using Find-DscResource output" {
 #        $moduleName = "SystemLocaleDsc"
 #        Find-DscResource -Name "SystemLocale" -Repository PSGallery | Install-Module
@@ -170,7 +180,6 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 #        $res.Name | Should -Be $moduleName
 #    }
 
-    ### broken
 #    It "Install-Module using Find-Command Output" {
 #        $cmd = "Get-WUJob"
 #        $module = "PSWindowsUpdate"
@@ -180,7 +189,6 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 #        $res.Name | Should -Be $module
 #    }
 
-    ### Broken
 #    It "Install-Module with Dependencies" {
 #        $parentModule = "TestModuleWithDependencyC"
 #        $childModule1 = "TestModuleWithDependencyB"
