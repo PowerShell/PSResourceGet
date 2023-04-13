@@ -1390,7 +1390,6 @@ begin
     # Parameter Deletions (unsupported in v3)
     if ( $PSBoundParameters['Name'] )              { $null = $PSBoundParameters.Remove('Name') }
     if ( $PSBoundParameters['RequiredVersion'] )   { $null = $PSBoundParameters.Remove('RequiredVersion') }
-    if ( $PSBoundParameters['Repository'] )        { $null = $PSBoundParameters.Remove('Repository') }
     if ( $PSBoundParameters['FormatVersion'] )     { $null = $PSBoundParameters.Remove('FormatVersion') }
     if ( $PSBoundParameters['Force'] )             { $null = $PSBoundParameters.Remove('Force') }
     if ( $PSBoundParameters['AllowPrerelease'] )   { $null = $PSBoundParameters.Remove('AllowPrerelease') }
