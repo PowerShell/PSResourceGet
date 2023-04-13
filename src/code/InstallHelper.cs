@@ -99,8 +99,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string tmpPath,
             HashSet<string> pkgsInstalled)
         {
-            _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; Version: '{1}'; Prerelease: '{2}'; Repository: '{3}'; " +
-                "AcceptLicense: '{4}'; Quiet: '{5}'; Reinstall: '{6}'; TrustRepository: '{7}'; NoClobber: '{8}'; AsNupkg: '{9}'; IncludeXml '{10}'; SavePackage '{11}'; TemporaryPath '{12}'",
+            _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; Version: '{2}'; Prerelease: '{3}'; Repository: '{4}'; " +
+                "AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7}'; TrustRepository: '{8}'; NoClobber: '{9}'; AsNupkg: '{10}'; IncludeXml '{11}'; SavePackage '{12}'; TemporaryPath '{13}'",
                 string.Join(",", names),
                 versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
                 versionString != null ? versionString : String.Empty,

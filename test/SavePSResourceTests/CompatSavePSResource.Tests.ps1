@@ -33,33 +33,29 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    ### BROKEN
-#    It "Save-Module with Find-DscResource output" {
-#        $DscResourceName = 'SystemLocale'
-#        $ModuleName = 'SystemLocaleDsc'
-#        $res1 = Find-DscResource -Name $DscResourceName
-#        $res1 | Should -Not -BeNullOrEmpty
+    It "Save-Module with Find-DscResource output" {
+        $DscResourceName = 'SystemLocale'
+        $ModuleName = 'SystemLocaleDsc'
+        $res1 = Find-DscResource -Name $DscResourceName
+        $res1 | Should -Not -BeNullOrEmpty
 
-#        Find-DscResource -Name $DscResourceName | Save-Module -Path $SaveDir
+        Find-DscResource -Name $DscResourceName | Save-Module -Path $SaveDir
 
-#        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
-#        $pkgDirs.Count | Should -Be 1
-#    }
+        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
+        $pkgDirs.Count | Should -Be 1
+    }
 
+    It "Save-Module with Find-Command output" {
+        $cmdName = "Get-WUJob"
+        $ModuleName = "PSWindowsUpdate"
+        $res1 = Find-Command -Name $cmdName
+        $res1 | Should -Not -BeNullOrEmpty
 
-### BROKEN
-#    It "Save-Module with Find-Command output" {
-#        $cmdName = "Get-WUJob"
-#        $ModuleName = "PSWindowsUpdate"
-#        $res1 = Find-Command -Name $cmdName
-#        $res1 | Should -Not -BeNullOrEmpty
+        Find-Command -Name $cmdName | Save-Module -Path $SaveDir
 
-#        Find-DscResource -Name $cmdName | Save-Module -Path $SaveDir
-
-#        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
-#        $pkgDirs.Count | Should -Be 1
-#    }
-
+        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
+        $pkgDirs.Count | Should -Be 1
+    }
 
     It "Save-Module with dependencies" {
         $ModuleName = "test_module"

@@ -157,13 +157,13 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res.Count -eq 2 | Should -Be $true   
     }
 
-    #broken
-#    It "Install-Module multiple module using InputObjectParam" {
-#        $items = Find-Module $testModuleName2, "newTestModule" -Repository PSGallery
-#        Install-Module -InputObject $items
-#        $res = Get-PSResource $testModuleName2, "newTestModule"
-#        $res.Count -eq 2 | Should -Be $true   
-#    }
+    ### not supported
+    It "Install-Module multiple module using InputObjectParam" {
+        $items = Find-Module $testModuleName2, "newTestModule" -Repository PSGallery
+        Install-Module -InputObject $items
+        $res = Get-PSResource $testModuleName2, "newTestModule"
+        $res.Count -eq 2 | Should -Be $true   
+    }
 
     It "InstallToCurrentUserScope" {
         Install-Module $testModuleName2 -Scope CurrentUser -Repository PSGallery
@@ -322,17 +322,15 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $WarningVar | Should -Not -BeNullOrEmpty
     }
 
-<#
     It "Install resource that requires accept license with -AcceptLicense flag" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $PSGalleryName -AcceptLicense
         $pkg = Get-PSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
         $pkg.Version | Should -Be "0.0.3.0"
     }
-#>
 
     It "Install resource with cmdlet names from a module already installed (should clobber)" {
-        Install-Module -Name "CLobberTestModule1" -Repository $PSGalleryName
+        Install-Module -Name "ClobberTestModule1" -Repository $PSGalleryName
         $pkg = Get-PSResource "ClobberTestModule1"
         $pkg.Name | Should -Be "ClobberTestModule1" 
         $pkg.Version | Should -Be "0.0.1"
