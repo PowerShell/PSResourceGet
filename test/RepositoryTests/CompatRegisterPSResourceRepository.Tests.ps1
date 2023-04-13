@@ -80,7 +80,7 @@ Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -Tags 'CI' {
     }
 
     It "not register repository when Name is provided but -SourceLocation is not" {
-        {Register-PSRepository -Name $TestRepoName1 -SourceLocation "" -ErrorAction Stop} | Should -Throw -ErrorId "Cannot convert '' to System.Uri"
+        {Register-PSRepository -Name $TestRepoName1 -SourceLocation "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Register-PSRepository"
     }
 
     It "not register repository when Name is empty but -SourceLocation is provided" {
@@ -105,17 +105,15 @@ Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -Tags 'CI' {
         {Register-PSRepository -PSGallery -SourceLocation $PSGalleryUri -ErrorAction Stop} | Should -Throw -ErrorId "NamedParameterNotFound,Register-PSRepository"
     }
 
-    ### Broken
-    #It "should register repository with relative location provided as Uri" {
-    #    Register-PSRepository -Name $TestRepoName1 -SourceLocation ".\"
-    #    $res = Get-PSResourceRepository -Name $TestRepoName1
+    It "should register repository with relative location provided as Uri" {
+        Register-PSRepository -Name $TestRepoName1 -SourceLocation ".\"
+        $res = Get-PSResourceRepository -Name $TestRepoName1
 
-    #    $res.Name | Should -Be $TestRepoName1
-    #    $Res.Uri.LocalPath | Should -Contain $relativeCurrentPath
-    #    $res.Trusted | Should -Be False
-    #    $res.Priority | Should -Be 50
-    #}
-
+        $res.Name | Should -Be $TestRepoName1
+        $Res.Uri.LocalPath | Should -Contain $relativeCurrentPath
+        $res.Trusted | Should -Be False
+        $res.Priority | Should -Be 50
+    }
 
     It "should register local file share NuGet based repository" {
         Register-PSRepository -Name "localFileShareTestRepo" -SourceLocation "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
