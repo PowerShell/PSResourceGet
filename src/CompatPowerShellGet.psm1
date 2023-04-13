@@ -109,58 +109,38 @@ function Compare-Version
 }
 
 
-# Convert-VersionsToNugetVersion -RequiredVersion $RequiredVersion  -MinimumVersion $MinimumVersion -MaximumVersion $MaximumVersion
+# Convert-VersionParamaters -RequiredVersion $RequiredVersion  -MinimumVersion $MinimumVersion -MaximumVersion $MaximumVersion
 # this tries to figure out whether we have an improper use of version parameters
 # such as RequiredVersion with MinimumVersion or MaximumVersion
-function Convert-VersionsToNugetVersion
+function Convert-VersionParamaters
 {
     param ( $RequiredVersion, $MinimumVersion, $MaximumVersion )
+
     # validate that required is not used with minimum or maximum version
     if ( $RequiredVersion -and ($MinimumVersion -or $MaximumVersion) ) {
         throw "RequiredVersion may not be used with MinimumVersion or MaximumVersion"
     }
-    elseif ( ! $RequiredVersion -and ! $MinimuVersion -and ! $MaximumVersion ) {
+    elseif ( ! $RequiredVersion -and ! $MinimumVersion -and ! $MaximumVersion ) {
         return $null
     }
-    if ( $RequiredVersion -eq '*' ) { return $RequiredVersion }
-
-    # validate that we can actually convert the received version to an allowed either a system.version or semanticversion
-    foreach ( $version in "RequiredVersion","MinimumVersion", "MaximumVersion" ) {
-        if ( $PSBoundParameters[$version] ) {
-            $v = $PSBoundParameters[$version] -as [System.Version]
-            $sv = $PSBoundParameters[$version] -match $semVerRegex
-            if ( ! ($v -or $sv) ) {
-                $val = $PSBoundParameters[$version]
-                throw "'$version' ($val) cannot be converted to System.Version or System.Management.Automation.SemanticVersion"
-            }
-        }
-    }
-
-    # we've made sure that we've validated the string we got is correct, so just pass it back
-    # we've also made sure that we didn't mix min/max with required
-    if ( $RequiredVersion ) {
-        return "$RequiredVersion"
-    }
+    elseif ( $RequiredVersion -and ! $MinimumVersion -and ! $MaximumVersion ) { 
+        return "$RequiredVersion" }
 
     # now return the appropriate string
     if ( $MinimumVersion -and ! $MaximumVersion ) {
-        if ( Get-VersionType $MinimumVersion ) {
-            return "$MinimumVersion"
-        }
+        return "[$MinimumVersion,)"
     }
     elseif ( ! $MinimumVersion -and $MaximumVersion ) {
         # no minimum version
-        if ( Get-VersionType $MaximumVersion ) {
-            return "(,${MaximumVersion}]"
-        }
+        return "(,${MaximumVersion}]"
     }
     else {
         $result = Compare-Version $MinimumVersion $MaximumVersion
         if ( $result -ge 0 ) {
             throw "'$MaximumVersion' must be greater than '$MinimumVersion'"
         }
-        return "[${MinimumVersion},${MaximumVersion}]"
 
+        return "[${MinimumVersion},${MaximumVersion}]"
     }
 }
 
@@ -260,26 +240,24 @@ begin
 
     # PARAMETER MAP
     # add new specifier 
-    $PSBoundParameters['Type'] = 'command'
+    if ( $PSBoundParameters['Name'] )               { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['CommandName'] = $Name }
     # Parameter translations
     $verArgs = @{}
-    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $verArgs['RequiredVersion'] = '*' }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
+    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
     if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
-    if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tags'] = $Tag }
-    if ( $PSBoundParameters['DscResource'] )         { $null = $PSBoundParameters.Remove('DscResource'); $PSBoundParameters['Type'] = "DscResource" }
-    if ( $PSBoundParameters['RoleCapability'] )      { $null = $PSBoundParameters.Remove('RoleCapability') ; $PSBoundParameters['Type'] = "RoleCapability"}
-    if ( $PSBoundParameters['Command'] )             { $null = $PSBoundParameters.Remove('Command') ; $PSBoundParameters['Type'] = "command" }
+    if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tag'] = $Tag }
     # Parameter Deletions (unsupported in v3)
     if ( $PSBoundParameters['Includes'] )            { $null = $PSBoundParameters.Remove('Includes') }
     if ( $PSBoundParameters['Proxy'] )               { $null = $PSBoundParameters.Remove('Proxy') }
     if ( $PSBoundParameters['ProxyCredential'] )     { $null = $PSBoundParameters.Remove('ProxyCredential') }
+
     # END PARAMETER MAP
 
         $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Find-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
@@ -383,21 +361,21 @@ begin
 
         # PARAMETER MAP
         # add new specifier 
-        $PSBoundParameters['Type'] = 'DscResource'
+        if ( $PSBoundParameters['Name'] )               { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['DscResourceName'] = $Name }
         # Parameter translations
         $verArgs = @{}
-        if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+        if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
         if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
         if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-        if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $verArgs['RequiredVersion'] = '*' }
-        $ver = Convert-VersionsToNugetVersion @verArgs
+        $ver = Convert-VersionParamaters @verArgs
         if ( $ver ) {
             $PSBoundParameters['Version'] = $ver
         }
+        if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
 
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
-        if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tags'] = $Tag }
+        if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tag'] = $Tag }
         if ( $PSBoundParameters['Filter'] )              { $null = $PSBoundParameters.Remove('Filter') }
         if ( $PSBoundParameters['Proxy'] )               { $null = $PSBoundParameters.Remove('Proxy') }
         if ( $PSBoundParameters['ProxyCredential'] )     { $null = $PSBoundParameters.Remove('ProxyCredential') }
@@ -530,25 +508,25 @@ begin
     $PSBoundParameters['Type'] = 'module'
     # Parameter translations
     $verArgs = @{}
-    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $verArgs['RequiredVersion'] = '*' }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
-    if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tags'] = $Tag }
+    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
+    if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tag'] = $Tag }
     if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
-    if ( $PSBoundParameters['DscResource'] )         { $null = $PSBoundParameters.Remove('DscResource'); $PSBoundParameters['Type'] = "DscResource" }
-    if ( $PSBoundParameters['RoleCapability'] )      { $null = $PSBoundParameters.Remove('RoleCapability'); $PSBoundParameters['Type'] = "RoleCapability" }
-    if ( $PSBoundParameters['Command'] )             { $null = $PSBoundParameters.Remove('Command'); $PSBoundParameters['Type'] = "command" }
+    if ( $PSBoundParameters['DscResource'] )         { $null = $PSBoundParameters.Remove('DscResource'); }
+    if ( $PSBoundParameters['RoleCapability'] )      { $null = $PSBoundParameters.Remove('RoleCapability'); }
+    if ( $PSBoundParameters['Command'] )             { $null = $PSBoundParameters.Remove('Command'); }
     # Parameter Deletions (unsupported in v3)
     if ( $PSBoundParameters['Includes'] )            { $null = $PSBoundParameters.Remove('Includes') }
     if ( $PSBoundParameters['Proxy'] )               { $null = $PSBoundParameters.Remove('Proxy') }
     if ( $PSBoundParameters['ProxyCredential'] )     { $null = $PSBoundParameters.Remove('ProxyCredential') }
     # END PARAMETER MAP
-
+    write-host  "$PSBoundParameters['Version']"
         $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Find-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
         $scriptCmd = {& $wrappedCmd @PSBoundParameters }
 
@@ -651,15 +629,15 @@ begin
     $PSBoundParameters['Type'] = 'RoleCapability'
     # Parameter translations
     $verArgs = @{}
-    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $verArgs['RequiredVersion'] = '*' }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
-    if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tags'] = $Tag }
+    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
+    if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tag'] = $Tag }
     if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
     # Parameter Deletions (unsupported in v3)
     if ( $PSBoundParameters['Filter'] )     { $null = $PSBoundParameters.Remove('Filter') }
@@ -786,15 +764,15 @@ begin
     $PSBoundParameters['Type'] = 'script'
     # Parameter translations
     $verArgs = @{}
-    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $verArgs['RequiredVersion'] = '*' }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
-    if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tags'] = $Tag }
+    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
+    if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag'); $PSBoundParameters['Tag'] = $Tag }
     if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
 
     # Parameter Deletions (unsupported in v3)
@@ -881,12 +859,17 @@ begin
         }
 
     # PARAMETER MAP
-    # Parameter Deletions (unsupported in v3)
-    if ( $PSBoundParameters['MinimumVersion'] )  { $null = $PSBoundParameters.Remove('MinimumVersion') }
-    if ( $PSBoundParameters['RequiredVersion'] ) { $null = $PSBoundParameters.Remove('RequiredVersion') }
-    if ( $PSBoundParameters['MaximumVersion'] )  { $null = $PSBoundParameters.Remove('MaximumVersion') }
-    if ( $PSBoundParameters['AllVersions'] )     { $null = $PSBoundParameters.Remove('AllVersions') }
-    if ( $PSBoundParameters['AllowPrerelease'] ) { $null = $PSBoundParameters.Remove('AllowPrerelease') }
+    $verArgs = @{}
+    if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
+    if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
+    if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
+    $ver = Convert-VersionParamaters @verArgs
+    if ( $ver ) {
+        $PSBoundParameters['Version'] = $ver
+    }
+    if ( $PSBoundParameters['AllVersions'] )        { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
+    if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
+    if ( $PSBoundParameters['Name'] )               { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['Name'] = $Name }
     # END PARAMETER MAP
 
         $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Get-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
@@ -1146,10 +1129,10 @@ begin
     # add new specifier 
     # handle version changes
     $verArgs = @{}
-    if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+    if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
@@ -1287,10 +1270,10 @@ begin
     # add new specifier 
     # handle version changes
     $verArgs = @{}
-    if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+    if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
@@ -1772,7 +1755,7 @@ begin
     if ( $PSBoundParameters['MinimumVersion'] )   { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )   { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )  { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
@@ -1918,7 +1901,7 @@ begin
     if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
@@ -2142,14 +2125,14 @@ begin
     # PARAMETER MAP
     # add new specifier 
     # Parameter translations
-    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $verArgs['RequiredVersion'] = '*' }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
+    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
     # Parameter Deletions (unsupported in v3)
     if ( $PSBoundParameters['InputObject'] )         { $null = $PSBoundParameters.Remove('InputObject') }
     if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease') }
@@ -2239,14 +2222,14 @@ begin
 
     # PARAMETER MAP
     # Parameter translations
-    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinumumVersion }
+    if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $verArgs['RequiredVersion'] = '*' }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
+    if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
     # Parameter Deletions (unsupported in v3)
     if ( $PSBoundParameters['InputObject'] )         { $null = $PSBoundParameters.Remove('InputObject') }
     if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease') }
@@ -2413,7 +2396,7 @@ begin
     $verArgs = @{}
     if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
@@ -2526,7 +2509,7 @@ begin
     $verArgs = @{}
     if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-    $ver = Convert-VersionsToNugetVersion @verArgs
+    $ver = Convert-VersionParamaters @verArgs
     if ( $ver ) {
         $PSBoundParameters['Version'] = $ver
     }
