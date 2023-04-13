@@ -144,25 +144,6 @@ function Convert-VersionParamaters
     }
 }
 
-# we attempt to convert the location to a uri
-# that way the user can do Register-PSRepository /tmp
-function Convert-ToUri ( [string]$location ) {
-    $locationAsUri = $location -as [System.Uri]
-    if ( $locationAsUri.Scheme ) {
-        return $locationAsUri
-    }
-    # now determine if the path exists and is a directory
-    # if it exists, return it as a file uri
-    if ( Test-Path -PathType Container -LiteralPath $location ) {
-        $locationAsUri = "file://${location}" -as [System.Uri]
-        if( $locationAsUri.Scheme ) {
-            return $locationAsUri
-        }
-    }
-    throw "Cannot convert '$location' to System.Uri"
-}
-
-
 ####
 ####
 # Proxy functions
@@ -1546,7 +1527,7 @@ param(
 
     [Parameter(ParameterSetName='NameParameterSet', Mandatory=$true, Position=1)]
     [ValidateNotNullOrEmpty()]
-    [uri]
+    [string]
     ${SourceLocation},
 
     [Parameter(ParameterSetName='NameParameterSet')]
@@ -1610,7 +1591,8 @@ begin
             $PSBoundParameters['Trusted'] = $true
         }
     }
-    if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Uri'] = Convert-ToUri -location $SourceLocation }
+    if ( $PSBoundParameters['Name'] )                      { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['Name'] = $Name }
+    if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Uri'] = $SourceLocation }
     if ( $PSBoundParameters['Default'] )                   { $null = $PSBoundParameters.Remove('Default'); $PSBoundParameters['PSGallery'] = $Default }
     
     # Parameter Deletions (unsupported in v3)
@@ -1963,7 +1945,7 @@ param(
 
     [Parameter(Position=1)]
     [ValidateNotNullOrEmpty()]
-    [uri]
+    [string]
     ${SourceLocation},
 
     [ValidateNotNullOrEmpty()]
@@ -2023,7 +2005,7 @@ begin
             $PSBoundParameters['Trusted'] = $false
         }
     }
-    if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Uri'] = Convert-ToUri -location $SourceLocation }
+    if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Uri'] = $SourceLocation }
     if ( $PSBoundParameters['Default'] )                   { $null = $PSBoundParameters.Remove('Default'); $PSBoundParameters['PSGallery'] = $Default }
     
     # Parameter Deletions (unsupported in v3)
@@ -2124,6 +2106,7 @@ begin
     # PARAMETER MAP
     # add new specifier 
     # Parameter translations
+    $verArgs = @{}
     if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
@@ -2132,6 +2115,8 @@ begin
         $PSBoundParameters['Version'] = $ver
     }
     if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
+    if ( $PSBoundParameters['Name'] )                { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['Name'] = $Name }
+
     # Parameter Deletions (unsupported in v3)
     if ( $PSBoundParameters['InputObject'] )         { $null = $PSBoundParameters.Remove('InputObject') }
     if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease') }
@@ -2221,6 +2206,7 @@ begin
 
     # PARAMETER MAP
     # Parameter translations
+    $verArgs = @{}
     if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
     if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
     if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
@@ -2390,7 +2376,6 @@ begin
         }
 
     # PARAMETER MAP
-    $PSBoundParameters['Type'] = 'module'
     # handle version changes
     $verArgs = @{}
     if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
@@ -2406,7 +2391,6 @@ begin
     # Parameter Deletions (unsupported in v3)
     if ( $PSBoundParameters['Proxy'] )              { $null = $PSBoundParameters.Remove('Proxy') }
     if ( $PSBoundParameters['ProxyCredential'] )    { $null = $PSBoundParameters.Remove('ProxyCredential') }
-    if ( $PSBoundParameters['PassThru'] )           { $null = $PSBoundParameters.Remove('PassThru') }
     if ( $PSBoundParameters['Force'] )              { $null = $PSBoundParameters.Remove('Force') }
 
     # END PARAMETER MAP
