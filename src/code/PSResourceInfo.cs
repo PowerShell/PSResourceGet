@@ -12,6 +12,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Text.Json;
 using System.Xml;
+using Microsoft.PowerShell.Commands;
 
 using Dbg = System.Diagnostics.Debug;
 
@@ -872,8 +873,27 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     out string releaseNotes,
                     out string[] tags);
 
-                // Object[] requiredModulesEntry = pkgMetadata.ContainsKey("RequiredModules") ? pkgMetadata["RequiredModules"] as Object[] : new Object[]{};
-                // var requiredModules = GetDependencies(new ArrayList(requiredModulesEntry));
+                var requiredModules = pkgMetadata["RequiredModules"] as Object[];
+                List<Hashtable> requiredModulesHashList = new List<Hashtable>();
+                foreach (Object obj in requiredModules)
+                {
+                    if (obj != null)
+                    {
+                        if (obj is Hashtable hash)
+                        {
+                            requiredModulesHashList.Add(hash);
+                        }
+                        else if (obj is string modName)
+                        {
+                            Hashtable moduleNameHash = new Hashtable(StringComparer.OrdinalIgnoreCase);
+                            moduleNameHash.Add("ModuleName", modName);
+                            requiredModulesHashList.Add(moduleNameHash);
+                        }
+                    } 
+                }
+
+                Hashtable[] requiredModulesHashArray = requiredModulesHashList.ToArray();
+                Dependency[] deps = GetDependenciesForPsd1(requiredModulesHashArray);
 
                 var typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable();
@@ -894,7 +914,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     author: pkgMetadata["Author"] as String,
                     companyName: pkgMetadata["CompanyName"] as String,
                     copyright: pkgMetadata["Copyright"] as String,
-                    dependencies: null,
+                    dependencies: deps,
                     description: pkgMetadata["Description"] as String,
                     iconUri: iconUri,
                     includes: includes,
@@ -945,23 +965,24 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 var resourceHashtable = new Hashtable();
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
                 resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var includes = new ResourceIncludes(resourceHashtable);
 
-                var additionalMetadataHashtable = new Dictionary<string, string>();
                 NuGetVersion nugetVersion = pkgMetadata["Version"] as NuGetVersion;
                 bool isPrerelease = nugetVersion.IsPrerelease;
                 Version version = nugetVersion.Version;
                 string prereleaseLabel = isPrerelease ? nugetVersion.ToNormalizedString().Split(new char[]{'-'})[1] : String.Empty;
 
+                var additionalMetadataHashtable = new Dictionary<string, string>();
                 additionalMetadataHashtable.Add("NormalizedVersion", nugetVersion.ToNormalizedString());
 
-                var includes = new ResourceIncludes(resourceHashtable);
+                ModuleSpecification[] requiredModules = pkgMetadata["RequiredModules"] as ModuleSpecification[];
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
                     author: pkgMetadata["Author"] as String,
                     companyName: pkgMetadata["CompanyName"] as String,
                     copyright: pkgMetadata["Copyright"] as String,
-                    dependencies: new Dependency[]{}, // TODO: we get ["RequiredModules"]: {Microsoft.PowerShell.Commands.ModuleSpecification[5]}
+                    dependencies: GetDependenciesForPs1(requiredModules),
                     description: pkgMetadata["Description"] as String,
                     iconUri: pkgMetadata["IconUri"] as Uri,
                     includes: includes,
@@ -1068,7 +1089,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
         }
-
 
         #endregion
 
@@ -1663,6 +1683,91 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        private static Dependency[] GetDependenciesForPs1(ModuleSpecification[] requiredModules)
+        {
+            List<Dependency> deps = new List<Dependency>();
+            foreach(ModuleSpecification depModule in requiredModules)
+            {
+                string depName = depModule.Name;
+                VersionRange depVersionRange = VersionRange.All;
+
+                if (depModule.RequiredVersion != null)
+                {
+                    Utils.TryParseVersionOrVersionRange(depModule.RequiredVersion.ToString(), out depVersionRange);
+                }
+                else if (depModule.MaximumVersion != null)
+                {
+                    NuGetVersion.TryParse(depModule.MaximumVersion.ToString(), out NuGetVersion maxVersion);
+                    depVersionRange = new VersionRange(
+                        minVersion: null,
+                        includeMinVersion: true,
+                        maxVersion: maxVersion,
+                        includeMaxVersion: true);
+                }
+
+                deps.Add(new Dependency(depName, depVersionRange));
+            }
+
+            return deps.ToArray();
+        }
+
+        private static Dependency[] GetDependenciesForPsd1(Hashtable[] requiredModules)
+        {
+            List<Dependency> deps = new List<Dependency>();
+            foreach(Hashtable depModule in requiredModules)
+            {
+
+                VersionRange depVersionRange = VersionRange.All;
+                if (!depModule.ContainsKey("ModuleName"))
+                {
+                    continue;
+                }
+
+                String depName = (string) depModule["ModuleName"];
+                if (depModule.ContainsKey("RequiredVersion"))
+                {
+                    // = 2.5.0
+                    Utils.TryParseVersionOrVersionRange((string) depModule["RequiredVersion"], out depVersionRange);
+                }
+                else if (depModule.ContainsKey("ModuleVersion") || depModule.ContainsKey("MaximumVersion"))
+                {
+                    if (depModule.ContainsKey("ModuleVersion") && depModule.ContainsKey("MaximumVersion"))
+                    {
+                        NuGetVersion.TryParse((string) depModule["ModuleVersion"], out NuGetVersion minVersion);
+                        NuGetVersion.TryParse((string) depModule["MaximumVersion"], out NuGetVersion maxVersion);
+                        depVersionRange = new VersionRange(
+                            minVersion: minVersion,
+                            includeMinVersion: true,
+                            maxVersion: maxVersion,
+                            includeMaxVersion: true);
+                    }
+                    else if (depModule.ContainsKey("ModuleVersion"))
+                    {
+                        NuGetVersion.TryParse((string) depModule["ModuleVersion"], out NuGetVersion minVersion);
+                        depVersionRange = new VersionRange(
+                            minVersion: minVersion,
+                            includeMinVersion: true,
+                            maxVersion: null,
+                            includeMaxVersion: true);
+                    }
+                    else
+                    {
+                        // depModule has "MaximumVersion" key
+                        NuGetVersion.TryParse((string) depModule["ModuleVersion"], out NuGetVersion maxVersion);
+                        depVersionRange = new VersionRange(
+                            minVersion: null,
+                            includeMinVersion: true,
+                            maxVersion: maxVersion,
+                            includeMaxVersion: true);
+                    }
+
+                }
+
+                deps.Add(new Dependency(depName, depVersionRange));
+            }
+
+            return deps.ToArray();
+        }
 
         #endregion
     }
