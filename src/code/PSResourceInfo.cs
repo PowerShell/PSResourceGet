@@ -1688,12 +1688,32 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<Dependency> deps = new List<Dependency>();
             foreach(ModuleSpecification depModule in requiredModules)
             {
+                // ModuleSpecification has Version, RequiredVersion, MaximumVersion
                 string depName = depModule.Name;
                 VersionRange depVersionRange = VersionRange.All;
 
                 if (depModule.RequiredVersion != null)
                 {
                     Utils.TryParseVersionOrVersionRange(depModule.RequiredVersion.ToString(), out depVersionRange);
+                }
+                else if (depModule.MaximumVersion != null && depModule.Version != null)
+                {
+                    NuGetVersion.TryParse(depModule.Version.ToString(), out NuGetVersion minVersion);
+                    NuGetVersion.TryParse(depModule.MaximumVersion.ToString(), out NuGetVersion maxVersion);
+                    depVersionRange = new VersionRange(
+                        minVersion: minVersion,
+                        includeMinVersion: true,
+                        maxVersion: maxVersion,
+                        includeMaxVersion: true);
+                }
+                else if (depModule.Version != null)
+                {
+                    NuGetVersion.TryParse(depModule.Version.ToString(), out NuGetVersion minVersion);
+                    depVersionRange = new VersionRange(
+                        minVersion: minVersion,
+                        includeMinVersion: true,
+                        maxVersion: null,
+                        includeMaxVersion: true);
                 }
                 else if (depModule.MaximumVersion != null)
                 {
@@ -1753,7 +1773,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     else
                     {
                         // depModule has "MaximumVersion" key
-                        NuGetVersion.TryParse((string) depModule["ModuleVersion"], out NuGetVersion maxVersion);
+                        NuGetVersion.TryParse((string) depModule["MaximumVersion"], out NuGetVersion maxVersion);
                         depVersionRange = new VersionRange(
                             minVersion: null,
                             includeMinVersion: true,
