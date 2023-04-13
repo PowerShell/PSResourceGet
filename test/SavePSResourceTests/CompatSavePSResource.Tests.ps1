@@ -146,11 +146,10 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         (Get-ChildItem $pkgDirs[0].FullName).Count | Should -Be 1
     }
 
-    ### broken 
-#    It "Save PSResourceInfo object piped in for prerelease version object" {
-#        Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Save-Module -Path $SaveDir
-#        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
-#        $pkgDir | Should -Not -BeNullOrEmpty
-#        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
-#    }
+    It "Save PSResourceInfo object piped in for prerelease version object" -Pending {
+        Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Save-Module -Path $SaveDir
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
+    }
 }
