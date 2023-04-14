@@ -851,7 +851,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
-
         public static bool TryConvertFromHashtableForPsd1(
             Hashtable pkgMetadata,
             out PSResourceInfo psGetInfo,
@@ -1055,7 +1054,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     author: pkgMetadata["authors"] as String,
                     companyName: String.Empty,
                     copyright: pkgMetadata["copyright"] as String,
-                    dependencies: new Dependency[] { }, //pkgMetadata["Dependencies"] as Dependency[]
+                    dependencies: new Dependency[] { },
                     description: pkgMetadata["description"] as String,
                     iconUri: iconUri,
                     includes: includes,

@@ -61,8 +61,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         pkgInfo = new PSResourceResult(returnedObject: pkgWithPsd1,
                             errorMsg: psd1ErrorMsg,
                             isTerminatingError: false);
-                        
-                        yield return pkgInfo;
+
                         break;
 
                     case Utils.MetadataFileType.ScriptFile:
