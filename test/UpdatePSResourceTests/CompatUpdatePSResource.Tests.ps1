@@ -73,7 +73,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
     It "Update-Module with lower -RequiredVersion should not update" {
         Install-Module $testModuleName2 -Repository PSGallery
-        Update-Module $testModuleName2 -RequiredVersion 0.0.3 -verbose -ErrorAction SilentlyContinue
+        Update-Module $testModuleName2 -RequiredVersion 0.0.3 -ErrorAction SilentlyContinue
         $res = Get-PSResource $testModuleName2
         $res.Count -eq 1 | Should -Be $true
         $res.version | Should -Be "0.0.93"
@@ -102,7 +102,6 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         $res.Version -eq [System.Version]"0.0.2" | Should -Be $true
     }
 
-    ### Broken -- issue with install
     It "Update-Module with Dependencies" {
         $parentModule = "TestModuleWithDependencyC"
         $childModule1 = "TestModuleWithDependencyB"
