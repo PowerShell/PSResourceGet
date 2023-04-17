@@ -74,14 +74,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// 
         /// Azure Artifacts does not support querying on tags, so if support this scenario we need to search on the term and then filter
         /// </summary>
-        public override FindResults FindTag(string tag, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
+        public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
+            string firstTag = tags[0]; // TODO: better err handle
 
             Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
             }
 
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
@@ -89,14 +90,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             bool isNuGetRepo = searchQueryServiceUrl.Contains("nuget.org");
 
-            string query = isNuGetRepo ? $"{searchQueryServiceUrl}?q=tags:{tag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0" :
-                          $"{searchQueryServiceUrl}?q={tag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+            string query = isNuGetRepo ? $"{searchQueryServiceUrl}?q=tags:{firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0" :
+                          $"{searchQueryServiceUrl}?q={firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
 
             // 2) call query with tags. (for Azure artifacts) get unique names, see which ones truly match
             JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
             }
 
             List<string> matchingResponses = new List<string>();
@@ -144,19 +145,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
                         }
 
-                        foreach (var tagItem in tagsItem.EnumerateArray())
+                        string[] pkgTags = GetTagsFromJsonElement(tagsItem);
+                        bool isTagMatch = true;
+                        foreach (string rqTag in tags)
                         {
-                            if (tag.Equals(tagItem.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                            if (!pkgTags.Contains(rqTag, StringComparer.OrdinalIgnoreCase))
                             {
-                                string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-                                if (edi != null)
-                                {
-                                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
-                                }
-
-                                matchingResponses.Add(response);
+                                isTagMatch = false;
                                 break;
                             }
+                        }
+
+                        if (isTagMatch)
+                        {
+                            string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
+                            if (edi != null)
+                            {
+                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                            }
+
+                            matchingResponses.Add(response);
                         }
                     }
                     catch (Exception e)
@@ -168,7 +176,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: null, responseType: v3FindResponseType);
+            FindResults tagsFoundResult = new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: null, responseType: v3FindResponseType);
+            return tagsFoundResult;
         }
 
         /// <summary>

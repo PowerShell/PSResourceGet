@@ -397,28 +397,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 }
 
-                foreach (string currentTag in _tag)
-                {
-                    FindResults responses = currentServer.FindTag(currentTag, _prerelease, type, out ExceptionDispatchInfo edi);
+                //foreach (string currentTag in _tag)
+                //{
+                FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ExceptionDispatchInfo edi);
 
-                    if (edi != null)
+                if (edi != null)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindTagFail", ErrorCategory.InvalidOperation, this));
+                    continue;
+                }
+
+                foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
+                {
+                    if (!String.IsNullOrEmpty(currentResult.errorMsg))
                     {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindTagFail", ErrorCategory.InvalidOperation, this));
+                        string errMsg = $"Tags: {String.Join(", ", _tag)} could not be found due to: {currentResult.errorMsg}";
+                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindTagResponseConversionFail", ErrorCategory.NotSpecified, this));
                         continue;
                     }
 
-                    foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
-                    {
-                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
-                        {
-                            string errMsg = $"Tags: {String.Join(", ", _tag)} could not be found due to: {currentResult.errorMsg}";
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindTagResponseConversionFail", ErrorCategory.NotSpecified, this));
-                            continue;
-                        }
-
-                        yield return currentResult.returnedObject;
-                    }
+                    yield return currentResult.returnedObject;
                 }
+                //}
             }
         }
 

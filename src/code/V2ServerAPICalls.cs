@@ -131,7 +131,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: 
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
-        public override FindResults FindTag(string tag, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
+        public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
         {
             edi = null;
             List<string> responses = new List<string>();
@@ -139,7 +139,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (_type == ResourceType.Script || _type == ResourceType.None)
             {
                 int scriptSkip = 0;
-                string initialScriptResponse = FindTagFromEndpoint(tag, includePrerelease, isSearchingModule: false, scriptSkip, out edi);
+                string initialScriptResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false, scriptSkip, out edi);
                 if (edi != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v2FindResponseType);
@@ -156,7 +156,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     // skip 100
                     scriptSkip += 100;
-                    var tmpResponse = FindTagFromEndpoint(tag, includePrerelease, isSearchingModule: false,  scriptSkip, out edi);
+                    var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false,  scriptSkip, out edi);
                     if (edi != null)
                     {
                         return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v2FindResponseType);
@@ -168,7 +168,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (_type != ResourceType.Script)
             {
                 int moduleSkip = 0;
-                string initialModuleResponse = FindTagFromEndpoint(tag, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
+                string initialModuleResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
                 if (edi != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v2FindResponseType);
@@ -184,7 +184,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 while (count > 0)
                 {
                     moduleSkip += 100;
-                    var tmpResponse = FindTagFromEndpoint(tag, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
+                    var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: true, moduleSkip, out edi);
                     if (edi != null)
                     {
                         return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v2FindResponseType);
@@ -581,7 +581,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindTag(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
         /// </summary>
-        private string FindTagFromEndpoint(string tag, bool includePrerelease, bool isSearchingModule, int skip, out ExceptionDispatchInfo edi)
+        private string FindTagFromEndpoint(string[] tags, bool includePrerelease, bool isSearchingModule, int skip, out ExceptionDispatchInfo edi)
         {
             // scenarios with type + tags:
             // type: None -> search both endpoints
@@ -592,10 +592,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string typeEndpoint = isSearchingModule ? String.Empty : "/items/psscript";
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
+            string typeFilterPart = isSearchingModule ?  $" and substringof('PSModule', Tags) eq true" : $" and substringof('PSScript', Tags) eq true";
             
-            var scriptsRequestUrlV2 = $"{repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}&searchTerm='tag:{tag}'{paginationParam}&{select}";
+            string tagFilterPart = String.Empty;
+            foreach (string tag in tags)
+            {
+                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+            }
 
-            return HttpRequestCall(requestUrlV2: scriptsRequestUrlV2, out edi);  
+            var requestUrlV2 = $"{repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}{typeFilterPart}{tagFilterPart}&{select}{paginationParam}";
+
+            return HttpRequestCall(requestUrlV2: requestUrlV2, out edi);  
         }
 
         /// <summary>

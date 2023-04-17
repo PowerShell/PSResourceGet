@@ -19,7 +19,7 @@ public interface IServerAPICalls
     /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
     /// Examples: Search -Tag "JSON" -Repository PSGallery
     /// </summary>
-    FindResults FindTag(string tag, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi);
+    FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi);
   
     /// <summary>
     /// Find method which allows for searching for single name and returns latest version.
