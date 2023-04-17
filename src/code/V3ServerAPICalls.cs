@@ -1016,7 +1016,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (string tag in requiredTags)
             {
-                if (!pkgTags.Contains(tag.ToLower()))
+                if (!pkgTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
                 {
                     isTagMatch = false;
                     break;
