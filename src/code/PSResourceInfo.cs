@@ -872,23 +872,26 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     out string releaseNotes,
                     out string[] tags);
 
-                var requiredModules = pkgMetadata["RequiredModules"] as Object[];
                 List<Hashtable> requiredModulesHashList = new List<Hashtable>();
-                foreach (Object obj in requiredModules)
+                if (pkgMetadata.ContainsKey("RequiredModules"))
                 {
-                    if (obj != null)
+                    var requiredModules = pkgMetadata["RequiredModules"] as Object[];
+                    foreach (Object obj in requiredModules)
                     {
-                        if (obj is Hashtable hash)
+                        if (obj != null)
                         {
-                            requiredModulesHashList.Add(hash);
-                        }
-                        else if (obj is string modName)
-                        {
-                            Hashtable moduleNameHash = new Hashtable(StringComparer.OrdinalIgnoreCase);
-                            moduleNameHash.Add("ModuleName", modName);
-                            requiredModulesHashList.Add(moduleNameHash);
-                        }
-                    } 
+                            if (obj is Hashtable hash)
+                            {
+                                requiredModulesHashList.Add(hash);
+                            }
+                            else if (obj is string modName)
+                            {
+                                Hashtable moduleNameHash = new Hashtable(StringComparer.OrdinalIgnoreCase);
+                                moduleNameHash.Add("ModuleName", modName);
+                                requiredModulesHashList.Add(moduleNameHash);
+                            }
+                        } 
+                    }
                 }
 
                 Hashtable[] requiredModulesHashArray = requiredModulesHashList.ToArray();

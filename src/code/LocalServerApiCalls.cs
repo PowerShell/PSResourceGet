@@ -65,13 +65,148 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: 
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
-        public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi) {
+        public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        {
+            FindResults findResponse = new FindResults();
+            List<Hashtable> pkgsFound = new List<Hashtable>();
             edi = null;
-            List<string> responses = new List<string>();
 
-            // loop thru, for each unqiue packagename, return latest name
+            Regex rx = new Regex(@"\.\d+\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
+            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            {
+                string packageFullName = Path.GetFileName(path);
+                MatchCollection matches = rx.Matches(packageFullName);
+                Match match = matches[0];
+
+                GroupCollection groups = match.Groups;
+                Capture group = groups[0];
+
+                string pkgName = packageFullName.Substring(0, group.Index);
+                string version = packageFullName.Substring(group.Index + 1, packageFullName.LastIndexOf('.') - group.Index - 1);
+
+                NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
+
+                if (!nugetVersion.IsPrerelease || includePrerelease)
+                {
+                    if (!pkgVersionsFound.ContainsKey(pkgName))
+                    {
+                        Hashtable pkgInfo = new Hashtable(StringComparer.OrdinalIgnoreCase);
+                        pkgInfo.Add("version", nugetVersion);
+                        pkgInfo.Add("path", path);
+                        pkgVersionsFound.Add(pkgName, pkgInfo);
+                    }
+                    else
+                    {
+                        Hashtable pkgInfo = pkgVersionsFound[pkgName] as Hashtable;
+                        NuGetVersion existingVersion = pkgInfo["version"] as NuGetVersion;
+                        if (nugetVersion > existingVersion)
+                        {
+                            pkgInfo["version"] = nugetVersion;
+                            pkgInfo["path"] = path;
+                            pkgVersionsFound[pkgName] = pkgInfo;
+                        }
+                    }
+                
+                }
+            }
+
+            List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
+            foreach(string pkgFound in pkgNamesList)
+            {
+                Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
+                NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
+                string pkgPath = pkgInfo["path"] as string;
+
+
+                // create temp dir- unique for reach pkg
+                var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                try
+                {
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
+                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                                                                        // with a mask (bitwise complement of desired attributes combination).
+                                                                        // TODO: check the attributes and if it's read only then set it
+                                                                        // attribute may be inherited from the parent
+                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                    dir.Attributes &= ~FileAttributes.ReadOnly;
+
+                    // copy .nupkg
+                    string destNupkgPath = Path.Combine(tempDiscoveryPath, Path.GetFileName(pkgPath));
+                    File.Copy(pkgPath, destNupkgPath);
+
+                    // change extension to .zip
+                    string zipFilePath = Path.ChangeExtension(destNupkgPath, ".zip");
+                    File.Move(destNupkgPath, zipFilePath);
+
+                    // extract from .zip
+                    System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
+
+                    string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{pkgFound}.psd1");
+                    string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{pkgFound}.ps1");
+                    string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{pkgFound}.nuspec");
+
+                    Hashtable pkgMetadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+                    if (File.Exists(psd1FilePath))
+                    {
+                        if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(readManifestError);
+                            return findResponse;
+                        }
+
+                        pkgMetadata.Add("Id", pkgFound);
+                        pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ModuleManifest);
+                    }
+                    else if (File.Exists(ps1FilePath))
+                    {
+                        if (!PSScriptFileInfo.TryTestPSScriptFile(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new InvalidDataException($"PSScriptFile could not be read properly")); // TODO: how to handle multiple? maybe just write a error of our own
+                            return findResponse;
+                        }
+
+                        pkgMetadata = parsedScript.ToHashtable();
+                        pkgMetadata.Add("Id", pkgFound);
+                        pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ScriptFile);
+
+                    }
+                    else if (File.Exists(nuspecFilePath))
+                    {
+                        pkgMetadata = GetHashtableForNuspec(nuspecFilePath, out edi);
+                        if (edi != null)
+                        {
+                            return findResponse;
+                        }
+
+                        pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.Nuspec);
+                    }
+                    else
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                        return findResponse;
+                    }
+
+                    pkgsFound.Add(pkgMetadata);
+                }
+                catch (Exception e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"));
+                }
+                finally
+                {
+                    if (Directory.Exists(tempDiscoveryPath))
+                    {
+                        Utils.DeleteDirectory(tempDiscoveryPath);
+                    }
+                }
+            }
+
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: localServerFindResponseType);
+
+            return findResponse;
         }
 
         /// <summary>
@@ -251,8 +386,134 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
+            FindResults findResponse = new FindResults();
             edi = null;
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
+            Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            {
+                string packageFullName = Path.GetFileName(path);
+
+                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                {
+                    string[] packageWithoutName = packageFullName.Split(new string[]{ $"{packageName}." }, StringSplitOptions.RemoveEmptyEntries);
+                    string packageVersionAndExtension = packageWithoutName[0];
+                    int extensionDot = packageVersionAndExtension.LastIndexOf('.');
+                    string version = packageVersionAndExtension.Substring(0, extensionDot);
+                    NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
+
+                    // version: 3.0.0-alpha, Prerelease: true
+                    // version: 3.5.0        Prerelease: true
+                    if (!nugetVersion.IsPrerelease || includePrerelease)
+                    {
+                        if (!pkgVersionsFound.ContainsKey(nugetVersion))
+                        {
+                            pkgVersionsFound.Add(nugetVersion, path);
+                        }
+                    }
+                }
+            }
+
+            List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
+            NuGetVersion latestVersion = pkgVersionsList.First(); // TODO: do similar to name globbing, can't assume it's first or last
+
+            string packagePath = (string) pkgVersionsFound[latestVersion];
+
+            if (!File.Exists(packagePath))
+            {
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {latestVersion.ToString()} does not exist in this repository"));
+                return findResponse;
+            }
+
+            // create temp dir
+            var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
+                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                                                                        // with a mask (bitwise complement of desired attributes combination).
+                                                                        // TODO: check the attributes and if it's read only then set it
+                                                                        // attribute may be inherited from the parent
+                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                dir.Attributes &= ~FileAttributes.ReadOnly;
+
+                // copy .nupkg
+                string destNupkgPath = Path.Combine(tempDiscoveryPath, Path.GetFileName(packagePath));
+                File.Copy(packagePath, destNupkgPath);
+
+                // change extension to .zip
+                string zipFilePath = Path.ChangeExtension(destNupkgPath, ".zip");
+                File.Move(destNupkgPath, zipFilePath);
+
+                // extract from .zip
+                System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
+
+                string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
+                string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
+                string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
+
+                Hashtable pkgMetadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+                if (File.Exists(psd1FilePath))
+                {
+                    if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(readManifestError);
+                        return findResponse;
+                    }
+
+                    // parse out PSData > add directly as keys to the hashtable
+
+                    pkgMetadata.Add("Id", packageName);
+                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ModuleManifest);
+                }
+                else if (File.Exists(ps1FilePath))
+                {
+                    if (!PSScriptFileInfo.TryTestPSScriptFile(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($"PSScriptFile could not be read properly")); // TODO: how to handle multiple? maybe just write a error of our own
+                        return findResponse;
+                    }
+
+                    pkgMetadata = parsedScript.ToHashtable();
+                    pkgMetadata.Add("Id", packageName);
+                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ScriptFile);
+
+                }
+                else if (File.Exists(nuspecFilePath))
+                {
+                    pkgMetadata = GetHashtableForNuspec(nuspecFilePath, out edi);
+                    if (edi != null)
+                    {
+                        return findResponse;
+                    }
+
+                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.Nuspec);
+                }
+                else
+                {
+                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                    return findResponse;
+                }
+
+                bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgMetadata["Tags"] as string[], requiredTags: tags);
+                findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: localServerFindResponseType);
+            }
+            catch (Exception e)
+            {
+               edi = ExceptionDispatchInfo.Capture(new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"));
+            }
+            finally
+            {
+                if (Directory.Exists(tempDiscoveryPath))
+                {
+                    Utils.DeleteDirectory(tempDiscoveryPath);
+                }
+            }
+
+            return findResponse;
         }
 
         /// <summary>
@@ -265,7 +526,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-
             FindResults findResponse = new FindResults();
             List<Hashtable> pkgsFound = new List<Hashtable>();
             edi = null;
@@ -285,14 +545,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 GroupCollection groups = match.Groups;
                 Capture group = groups[0];
 
-                Console.WriteLine($"pkgFullName: {packageFullName}, group 0: {group} and index: {group.Index}");
                 string pkgFoundName = packageFullName.Substring(0, group.Index);
 
                 if (pkgNamePattern.IsMatch(pkgFoundName))
                 {
                     string version = packageFullName.Substring(group.Index + 1, packageFullName.LastIndexOf('.') - group.Index - 1);
-                    Console.WriteLine($"pkgFoundName: {pkgFoundName}");
-                    Console.WriteLine($"version: {version}");
 
                     NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
 
@@ -304,7 +561,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkgInfo.Add("version", nugetVersion);
                             pkgInfo.Add("path", path);
                             pkgVersionsFound.Add(pkgFoundName, pkgInfo);
-                            Console.WriteLine($"IF: pkgName: {pkgFoundName}, pkgVersion: {nugetVersion.ToString()}, path: {path}");
                         }
                         else
                         {
@@ -312,7 +568,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             NuGetVersion existingVersion = pkgInfo["version"] as NuGetVersion;
                             if (nugetVersion > existingVersion)
                             {
-                                Console.WriteLine($"ELSE: nugetVersion {nugetVersion.ToString()} >= existingVersion {existingVersion.ToString()}, new path: {path}");
                                 pkgInfo["version"] = nugetVersion;
                                 pkgInfo["path"] = path;
                                 pkgVersionsFound[pkgFoundName] = pkgInfo;
@@ -322,12 +577,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            Console.WriteLine("found the chosen package and starting to move files");
             List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
-            Console.WriteLine(pkgNamesList.Count);
             foreach(string pkgFound in pkgNamesList)
             {
-                Console.WriteLine($"pkgName to return: {pkgFound}");
                 Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
                 NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
                 string pkgPath = pkgInfo["path"] as string;
@@ -402,7 +654,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return findResponse;
                     }
 
-                    Console.WriteLine("adding pkg metadata");
                     pkgsFound.Add(pkgMetadata);
                 }
                 catch (Exception e)
@@ -448,28 +699,128 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
         {
-            List<string> responses = new List<string>();
+            FindResults findResponse = new FindResults();
             edi = null;
 
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
+            Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
-            // repository -> we know the search path
-                // C:/MyLocalRepo/pkgA.1.0.0.0.nupkg
-                // C:/MyLocalRepo/pkgB.1.0.0.0.nupkg
+            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            {
+                string packageFullName = Path.GetFileName(path);
 
-            // iterate thru paths
-            // extrapolate name, version
-            // if name matches keep 
-            // check if version falls within range -> keep
+                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                {
+                    string[] packageWithoutName = packageFullName.Split(new string[]{ $"{packageName}." }, StringSplitOptions.RemoveEmptyEntries);
+                    string packageVersionAndExtension = packageWithoutName[0];
+                    int extensionDot = packageVersionAndExtension.LastIndexOf('.');
+                    string version = packageVersionAndExtension.Substring(0, extensionDot);
+                    NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
 
-            // extract the files. get the psd1/ps1, create a response string by filestream.ReadAsString
-            // ensure script content is sanitized
-            // for NuGet repo packages (that don't have psd1 or ps1 -> read nuspec)
-            // read that file and put into string
+                    if ((!nugetVersion.IsPrerelease || includePrerelease) && (versionRange.Satisfies(nugetVersion)))
+                    {
+                        if (!pkgVersionsFound.ContainsKey(nugetVersion))
+                        {
+                            pkgVersionsFound.Add(nugetVersion, path);
+                        }
+                    }
+                }
+            }
 
-            // ModuleManifest <PSParsing>
-            // rest of file string
+            List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
+            List<Hashtable> foundPkgs = new List<Hashtable>();
+            foreach(NuGetVersion satisfyingVersion in pkgVersionsList)
+            {
+                string packagePath = (string) pkgVersionsFound[satisfyingVersion];
+                
+                // create temp dir
+                var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
+                try
+                {
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
+                                                                            // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                                                                            // with a mask (bitwise complement of desired attributes combination).
+                                                                            // TODO: check the attributes and if it's read only then set it
+                                                                            // attribute may be inherited from the parent
+                                                                            // TODO:  are there Linux accommodations we need to consider here?
+                    dir.Attributes &= ~FileAttributes.ReadOnly;
+
+                    // copy .nupkg
+                    string destNupkgPath = Path.Combine(tempDiscoveryPath, Path.GetFileName(packagePath));
+                    File.Copy(packagePath, destNupkgPath);
+
+                    // change extension to .zip
+                    string zipFilePath = Path.ChangeExtension(destNupkgPath, ".zip");
+                    File.Move(destNupkgPath, zipFilePath);
+
+                    // extract from .zip
+                    System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
+
+                    string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
+                    string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
+                    string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
+
+                    Hashtable pkgMetadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+                    if (File.Exists(psd1FilePath))
+                    {
+                        if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(readManifestError);
+                            return findResponse;
+                        }
+
+                        pkgMetadata.Add("Id", packageName);
+                        pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ModuleManifest);
+                    }
+                    else if (File.Exists(ps1FilePath))
+                    {
+                        if (!PSScriptFileInfo.TryTestPSScriptFile(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new InvalidDataException($"PSScriptFile could not be read properly")); // TODO: how to handle multiple? maybe just write a error of our own
+                            return findResponse;
+                        }
+
+                        pkgMetadata = parsedScript.ToHashtable();
+                        pkgMetadata.Add("Id", packageName);
+                        pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ScriptFile);
+
+                    }
+                    else if (File.Exists(nuspecFilePath))
+                    {
+                        pkgMetadata = GetHashtableForNuspec(nuspecFilePath, out edi);
+                        if (edi != null)
+                        {
+                            return findResponse;
+                        }
+
+                        pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.Nuspec);
+                    }
+                    else
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                        return findResponse;
+                    }
+
+                    foundPkgs.Add(pkgMetadata);
+                }
+                catch (Exception e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"));
+                }
+                finally
+                {
+                    if (Directory.Exists(tempDiscoveryPath))
+                    {
+                        Utils.DeleteDirectory(tempDiscoveryPath);
+                    }
+                }
+            }
+
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: foundPkgs.ToArray(), responseType: localServerFindResponseType);
+
+            return findResponse;
         }
 
         /// <summary>
@@ -481,7 +832,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi) 
         {
-            FindResults findResponse = null; // TODO: null or empty constructor?
+            FindResults findResponse = new FindResults();
             edi = null;
 
             string packageFullName = $"{packageName}.{version}.nupkg";
@@ -653,6 +1004,50 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return fs;
         }
 
+        #endregion
+
+        #region LocalRepo Specific Methods
+
+        /// <summary>
+        /// Method that loads file content into XMLDocument. Used when reading .nuspec file.
+        /// </summary>
+        private XmlDocument LoadXmlDocument(string filePath, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            XmlDocument doc = new XmlDocument();
+            doc.PreserveWhitespace = true;
+            try { doc.Load(filePath); }
+            catch (Exception e)
+            {
+                // TODO: catch more specific ones
+                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(e.Message));
+            }
+
+            return doc;
+        }
+
+        /// <summary>
+        /// Helper method that compares the tags requests to be present to the tags present in the package.
+        /// </summary>
+        private bool DeterminePkgTagsSatisfyRequiredTags(string[] pkgTags, string[] requiredTags)
+        {
+            bool isTagMatch = true;
+
+            foreach (string tag in requiredTags)
+            {
+                if (!pkgTags.Contains(tag.ToLower()))
+                {
+                    isTagMatch = false;
+                    break;
+                }
+            }
+            
+            return isTagMatch;
+        }
+
+        /// <summary>
+        /// Method that reads .nuspec file and parses out metadata information into Hashtable.
+        /// </summary>
         private Hashtable GetHashtableForNuspec(string filePath, out ExceptionDispatchInfo edi)
         {
             Hashtable nuspecHashtable = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
@@ -689,21 +1084,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return nuspecHashtable;        
-        }
-
-        private XmlDocument LoadXmlDocument(string filePath, out ExceptionDispatchInfo edi)
-        {
-            edi = null;
-            XmlDocument doc = new XmlDocument();
-            doc.PreserveWhitespace = true;
-            try { doc.Load(filePath); }
-            catch (Exception e)
-            {
-                // TODO: catch more specific ones
-                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(e.Message));
-            }
-
-            return doc;
         }
 
         #endregion
