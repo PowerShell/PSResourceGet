@@ -342,7 +342,8 @@ begin
 
         # PARAMETER MAP
         # add new specifier 
-        if ( $PSBoundParameters['Name'] )               { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['DscResourceName'] = $Name }
+        if ( $PSBoundParameters['Name'] )                { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['DscResourceName'] = $Name }
+        if ( $PSBoundParameters['Repository'] )          { $null = $PSBoundParameters.Remove('Repository'); $PSBoundParameters['Repository'] = $Repository }
         # Parameter translations
         $verArgs = @{}
         if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
@@ -1052,7 +1053,7 @@ param(
     [string]
     ${RequiredVersion},
 
-    [Parameter(ParameterSetName='NameParameterSet')]
+    [Parameter(ParameterSetName='NameParameterSet', ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNullOrEmpty()]
     [string[]]
     ${Repository},

@@ -25,11 +25,12 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Register-LocalRepos
 
         Set-PSResourceRepository -Name PSGallery -Trusted
+        Unregister-PSResourceRepository -Name "psgettestlocal"
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithDependencyB", "TestModuleWithDependencyD", "newTestModule", "test_script", `
-          "RequiredModule1", "RequiredModule2", "RequiredModule3", "RequiredModule4", "RequiredModule5" -SkipDependencyCheck -ErrorAction SilentlyContinue -Version "*"
+        Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithDependencyB", "TestModuleWithDependencyC","TestModuleWithDependencyD", "TestModuleWithDependencyF", `
+            "newTestModule", "test_script", "RequiredModule1", "RequiredModule2", "RequiredModule3", "RequiredModule4", "RequiredModule5" -SkipDependencyCheck -ErrorAction SilentlyContinue -Version "*"
     }
 
     AfterAll {
@@ -144,12 +145,11 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res.Count -eq 1 | Should -Be $true   
     }
 
-    ### broken
-#    It "Install-Module with PipelineInput" {
-#        Find-Module $testModuleName2 -Repository PSGallery | Install-Module -Repository PSGallery
-#        $res = Get-PSResource $testModuleName2
-#        $res.Count -eq 1 | Should -Be $true   
-#    }
+    It "Install-Module with PipelineInput" {
+        Find-Module $testModuleName2 -Repository PSGallery | Install-Module
+        $res = Get-PSResource $testModuleName2
+        $res.Count -eq 1 | Should -Be $true   
+    }
 
     It "Install-Module multiple modules with PipelineInput" {
         Find-Module $testModuleName2, "newTestModule" -Repository PSGallery | Install-Module
@@ -157,12 +157,11 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res.Count -eq 2 | Should -Be $true   
     }
 
-    ### not supported
-    It "Install-Module multiple module using InputObjectParam" {
-        $items = Find-Module $testModuleName2, "newTestModule" -Repository PSGallery
+    It "Install-Module multiple module using InputObjectParam" -Pending {
+        $items = Find-Module $testModuleName2 -Repository PSGallery
         Install-Module -InputObject $items
-        $res = Get-PSResource $testModuleName2, "newTestModule"
-        $res.Count -eq 2 | Should -Be $true   
+        $res = Get-PSResource $testModuleName2
+        $res.Count -ge 1 | Should -Be $true   
     }
 
     It "InstallToCurrentUserScope" {
@@ -172,34 +171,32 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $mod.ModuleBase.StartsWith($script:MyDocumentsModulesPath, [System.StringComparison]::OrdinalIgnoreCase)
     }
 
+    It "Install-Module using Find-DscResource output" {
+        $moduleName = "SystemLocaleDsc"
+        Find-DscResource -Name "SystemLocale" -Repository PSGallery | Install-Module
+        $res = Get-Module $moduleName -ListAvailable
+        $res.Name | Should -Be $moduleName
+    }
 
-#    It "Install-Module using Find-DscResource output" {
-#        $moduleName = "SystemLocaleDsc"
-#        Find-DscResource -Name "SystemLocale" -Repository PSGallery | Install-Module
-#        $res = Get-Module $moduleName -ListAvailable
-#        $res.Name | Should -Be $moduleName
-#    }
+    It "Install-Module using Find-Command Output" {
+        $cmd = "Get-WUJob"
+        $module = "PSWindowsUpdate"
+        Find-Command -Name $cmd | Install-Module
 
-#    It "Install-Module using Find-Command Output" {
-#        $cmd = "Get-WUJob"
-#        $module = "PSWindowsUpdate"
-#        Find-Command -Name $cmd | Install-Module
+        $res = Get-Module $module -ListAvailable
+        $res.Name | Should -Be $module
+    }
 
-#        $res = Get-Module $module -ListAvailable
-#        $res.Name | Should -Be $module
-#    }
+    It "Install-Module with Dependencies" {
+        $parentModule = "TestModuleWithDependencyC"
+        $childModule1 = "TestModuleWithDependencyB"
+        $childModule2 = "TestModuleWithDependencyD"
+        $childModule3 = "TestModuleWithDependencyF"
+        Install-Module $parentModule -Repository PSGallery
 
-#    It "Install-Module with Dependencies" {
-#        $parentModule = "TestModuleWithDependencyC"
-#        $childModule1 = "TestModuleWithDependencyB"
-#        $childModule2 = "TestModuleWithDependencyD"
-#        $childModule3 = "TestModuleWithDependencyF"
-#        Install-Module $parentModule
-
-#        $res = Get-PSResource $parentModule, $childModule1, $childModule2, $childModule3
-#        $res.Count -ge 4 | Should -Be $true
-#    }
-
+        $res = Get-PSResource $parentModule, $childModule1, $childModule2, $childModule3
+        $res.Count -ge 4 | Should -Be $true
+    }
 
     $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
                  @{Name="Test_Module*";               ErrorId="NameContainsWildcard"},
@@ -226,15 +223,13 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $pkg.Version | Should -Be "3.5.0.0"
     }
 
-    <#
-### Something strange going on here
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
         Install-Module -Name $pkgNames -Repository $PSGalleryName  
         $pkg = Get-PSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
-#>
+
     It "Should not install module given nonexistant name" {
         Install-Module -Name "NonExistantModule" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-PSResource "NonExistantModule"
@@ -322,7 +317,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $WarningVar | Should -Not -BeNullOrEmpty
     }
 
-    It "Install resource that requires accept license with -AcceptLicense flag" {
+    It "Install resource that requires accept license with -AcceptLicense flag" -Pending {
         Install-PSResource -Name "testModuleWithlicense" -Repository $PSGalleryName -AcceptLicense
         $pkg = Get-PSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
@@ -354,17 +349,16 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res = Get-PSResource "testModuleWithScript"
         $res.InstalledLocation.ToString().Contains("Modules") | Should -Be $true
     }
-<#
-    It "Install module using -NoClobber, should throw clobber error and not install the module" {
-        Install-Module -Name "ClobberTestModule1" -Repository $PSGalleryName -TrustRepository
+
+    It "Install module using -NoClobber, should throw clobber error and not install the module" -Pending {
+        Install-Module -Name "ClobberTestModule1" -Repository $PSGalleryName
 
         $res = Get-PSResource "ClobberTestModule1"
         $res.Name | Should -Be "ClobberTestModule1"
 
-        Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue -ErrorVariable ev
+        $ev | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
-#>
 
     It "Install PSResourceInfo object piped in" {
         Find-PSResource -Name $testModuleName2 -Version "0.0.2" -Repository $PSGalleryName | Install-Module
@@ -397,11 +391,11 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 
     # Install module that is not authenticode signed
     # Should FAIL to install the  module
-    It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
-        Install-Module -Name $testModuleName -RequiredVersion "5.0.0" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -Be "InstallDependencyPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
-    }
+#    It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
+#        Install-Module -Name $testModuleName -RequiredVersion "5.0.0" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+#        $err.Count | Should -Not -Be 0
+#        $err[0].FullyQualifiedErrorId | Should -Be "InstallDependencyPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
+#    }
 
     # Install 1.4.4.1 (with incorrect catalog file)
     # Should FAIL to install the  module

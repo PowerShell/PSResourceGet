@@ -99,10 +99,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string tmpPath,
             HashSet<string> pkgsInstalled)
         {
-            _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; Version: '{2}'; Prerelease: '{3}'; Repository: '{4}'; " +
-                "AcceptLicense: '{5}'; Quiet: '{6}'; Reinstall: '{7}'; TrustRepository: '{8}'; NoClobber: '{9}'; AsNupkg: '{10}'; IncludeXml '{11}'; SavePackage '{12}'; TemporaryPath '{13}'",
+            _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
+                "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'",
                 string.Join(",", names),
                 versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
+                nugetVersion != null ? nugetVersion.ToString() : string.Empty,
+                versionType.ToString(),
                 versionString != null ? versionString : String.Empty,
                 prerelease.ToString(),
                 repository != null ? string.Join(",", repository) : string.Empty,
@@ -1219,9 +1221,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 selectPrereleaseOnly: false);
 
             List<string> listOfCmdlets = new List<string>();
-            foreach (var cmdletName in parsedMetadataHashtable["CmdletsToExport"] as object[])
+            if (parsedMetadataHashtable.ContainsKey("CmdletsToExport"))
             {
-                listOfCmdlets.Add(cmdletName as string);
+                if (parsedMetadataHashtable["CmdletsToExport"] is object[] cmdletsToExport)
+                {
+                    foreach (var cmdletName in cmdletsToExport)
+                    {
+                        listOfCmdlets.Add(cmdletName as string);
+                    }
+                }
             }
 
             foreach (var pkg in pkgsAlreadyInstalled)
@@ -1239,7 +1247,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     duplicateCmds = listOfCmdlets.Where(commands => pkg.Includes.Command.Contains(commands, StringComparer.InvariantCultureIgnoreCase)).ToList();
                 }
 
-                if (duplicateCmdlets.Any() || duplicateCmds.Any())
+                if (duplicateCmdlets.Count != 0 || duplicateCmds.Count != 0)
                 {
                     duplicateCmdlets.AddRange(duplicateCmds);
 
