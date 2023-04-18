@@ -6,7 +6,8 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 # Explicitly import build module because in CI PowerShell can autoload PSGetv2
 # This ensures the build module is always being tested
-$buildModule = Join-Path -Path $((get-item $psscriptroot).parent.parent) -ChildPath "out" -AdditionalChildPath "PowerShellGet"
+$outPath = Join-Path -Path $((get-item $psscriptroot).parent.parent) -ChildPath "out" 
+$buildModule = Join-Path -Path $outPath -ChildPath "PowerShellGet"
 Import-Module $buildModule -Force -Verbose
 
 Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
