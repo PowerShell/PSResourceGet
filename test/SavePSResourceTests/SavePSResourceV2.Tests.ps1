@@ -136,8 +136,11 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Save PSResourceInfo object piped in for prerelease version object" {
         $test = Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName 
-        Write-Host "Test V2: $test"
-        $test | Save-PSResource -Path $SaveDir -TrustRepository
+        Write-Host "Test Output V3: $($test.Name)"
+        Write-Host "Test Output V3: $($test.Version.ToString())"
+        Write-Host "Test Output V3: $($test.Prerelease)"
+
+        $test | Save-PSResource -Path $SaveDir -TrustRepository -Verbose
         $saveOutput = Get-ChildItem -Path $SaveDir
         Write-Host "Save Output V2: $saveOutput"
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
