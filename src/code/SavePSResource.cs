@@ -191,7 +191,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 case AsNupkgParameterSet:
                 case IncludeXmlParameterSet:
-                    WriteVerbose($"IncludeXmlParameterSet:  IsPrerelease is: {Prerelease}");
                     ProcessSaveHelper(
                         pkgNames: Name,
                         pkgVersion: Version,
@@ -201,10 +200,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 case InputObjectParameterSet:
                     string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.Prerelease);
-                    WriteVerbose($"InputObjectParameterSet:  IsPrerelease is: {Prerelease}");
-                    if (InputObject != null) {
-                        WriteVerbose($"InputObjectParameterSet:  InputObject.IsPrerelease is: {InputObject.IsPrerelease}");
-                    }
                     ProcessSaveHelper(
                         pkgNames: new string[] { InputObject.Name },
                         pkgVersion: normalizedVersionString,
