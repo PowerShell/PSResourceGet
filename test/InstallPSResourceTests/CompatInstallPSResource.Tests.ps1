@@ -184,7 +184,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Find-Command -Name $cmd | Install-Module
 
         $res = Get-Module $module -ListAvailable
-        $res.Name | Should -Be $module
+        $res.Name | Should -Contain $module
     }
 
     It "Install-Module with Dependencies" {

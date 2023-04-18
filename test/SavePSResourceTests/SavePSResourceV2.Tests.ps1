@@ -135,7 +135,11 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     It "Save PSResourceInfo object piped in for prerelease version object" {
-        Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Save-PSResource -Path $SaveDir -TrustRepository
+        $test = Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName 
+        Write-Host "Test V2: $test"
+        $test | Save-PSResource -Path $SaveDir -TrustRepository
+        $saveOutput = Get-ChildItem -Path $SaveDir
+        Write-Host "Save Output V2: $saveOutput"
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
