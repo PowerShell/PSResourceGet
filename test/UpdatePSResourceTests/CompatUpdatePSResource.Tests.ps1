@@ -9,7 +9,7 @@ Import-Module $modPath -Force -Verbose
 $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
 
-Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
+Describe 'Test CompatPowerShellGet: Update-PSResource' {
 
     BeforeAll {
         $PSGalleryName = Get-PSGalleryName
