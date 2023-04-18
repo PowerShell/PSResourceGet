@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Linq;
 using System.Xml.Linq;
 // Copyright (c) Microsoft Corporation. All rights reserved.
@@ -384,15 +385,156 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Find method which allows for searching for all packages that have specified Command or DSCResource name.
         /// </summary>
-        public override FindResults FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
+        public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
-            List<string> responses = new List<string>();
+            FindResults findResponse = new FindResults();
+            List<Hashtable> pkgsFound = new List<Hashtable>();
             edi = null;
+
+            Regex rx = new Regex(@"\.\d+\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            {
+                string packageFullName = Path.GetFileName(path);
+                MatchCollection matches = rx.Matches(packageFullName);
+                Match match = matches[0];
+
+                GroupCollection groups = match.Groups;
+                Capture group = groups[0];
+
+                string pkgName = packageFullName.Substring(0, group.Index);
+                string version = packageFullName.Substring(group.Index + 1, packageFullName.LastIndexOf('.') - group.Index - 1);
+
+                NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
+
+                if (!nugetVersion.IsPrerelease || includePrerelease)
+                {
+                    if (!pkgVersionsFound.ContainsKey(pkgName))
+                    {
+                        Hashtable pkgInfo = new Hashtable(StringComparer.OrdinalIgnoreCase);
+                        pkgInfo.Add("version", nugetVersion);
+                        pkgInfo.Add("path", path);
+                        pkgVersionsFound.Add(pkgName, pkgInfo);
+                    }
+                    else
+                    {
+                        Hashtable pkgInfo = pkgVersionsFound[pkgName] as Hashtable;
+                        NuGetVersion existingVersion = pkgInfo["version"] as NuGetVersion;
+                        if (nugetVersion > existingVersion)
+                        {
+                            pkgInfo["version"] = nugetVersion;
+                            pkgInfo["path"] = path;
+                            pkgVersionsFound[pkgName] = pkgInfo;
+                        }
+                    }
+                
+                }
+            }
+
+            List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
+            foreach(string pkgFound in pkgNamesList)
+            {
+                Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
+                NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
+                string pkgPath = pkgInfo["path"] as string;
+
+
+                // create temp dir- unique for reach pkg
+                var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                try
+                {
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
+                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                                                                        // with a mask (bitwise complement of desired attributes combination).
+                                                                        // TODO: check the attributes and if it's read only then set it
+                                                                        // attribute may be inherited from the parent
+                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                    dir.Attributes &= ~FileAttributes.ReadOnly;
+
+                    // copy .nupkg
+                    string destNupkgPath = Path.Combine(tempDiscoveryPath, Path.GetFileName(pkgPath));
+                    File.Copy(pkgPath, destNupkgPath);
+
+                    // change extension to .zip
+                    string zipFilePath = Path.ChangeExtension(destNupkgPath, ".zip");
+                    File.Move(destNupkgPath, zipFilePath);
+
+                    // extract from .zip
+                    System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
+
+                    string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{pkgFound}.psd1");
+                    string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{pkgFound}.ps1");
+                    string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{pkgFound}.nuspec");
+
+                    Hashtable pkgMetadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+                    List<string> pkgTags = new List<string>();
+                    if (File.Exists(psd1FilePath))
+                    {
+                        if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(readManifestError);
+                            return findResponse;
+                        }
+
+                        GetPrivateDataFromHashtable(pkgMetadata, out string prereleaseLabel, out Uri licenseUri, out Uri projectUri, out Uri iconUri, out string releaseNotes, out string[] pkgHashTags);
+                        pkgMetadata.Add("Tags", pkgHashTags);
+                        pkgMetadata.Add("Prerelease", prereleaseLabel);
+                        pkgMetadata.Add("LicenseUri", licenseUri);
+                        pkgMetadata.Add("ProjectUri", projectUri);
+                        pkgMetadata.Add("IconUri", iconUri);
+                        pkgMetadata.Add("ReleaseNotes", releaseNotes);
+                        pkgMetadata.Add("Id", pkgFound);
+                        pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ModuleManifest);
+                        pkgTags.AddRange(pkgHashTags);
+                    }
+                    else if (File.Exists(ps1FilePath))
+                    {
+                        if (!PSScriptFileInfo.TryTestPSScriptFile(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new InvalidDataException($"PSScriptFile could not be read properly")); // TODO: how to handle multiple? maybe just write a error of our own
+                            return findResponse;
+                        }
+
+                        pkgMetadata = parsedScript.ToHashtable();
+                        pkgMetadata.Add("Id", pkgFound);
+                        pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ScriptFile);
+                        pkgTags.AddRange(pkgMetadata["Tags"] as string[]);
+
+                    }
+                    else
+                    {
+                        continue;
+                    }
+
+                    string[] cmdsOrDSCs = GetCmdsOrDSCTags(tags: tags, isSearchingForCommands: isSearchingForCommands);
+                    bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags.ToArray(), requiredTags: cmdsOrDSCs);
+                    if (isTagMatch)
+                    {
+                        pkgsFound.Add(pkgMetadata);
+                    }
+                }
+                catch (Exception e)
+                {
+                    edi = ExceptionDispatchInfo.Capture(new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"));
+                }
+                finally
+                {
+                    if (Directory.Exists(tempDiscoveryPath))
+                    {
+                        Utils.DeleteDirectory(tempDiscoveryPath);
+                    }
+                }
+            }
+
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: localServerFindResponseType);
+
+            return findResponse;
 
             // call into FindAll() which returns string responses for all 
             // look at tags field for each string response
-
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
+            // just look at psd1 or ps1, not nuspec (not supported error)
+            // DSCResourcesToExport, CommandsToExport
         }
 
         /// <summary>
@@ -409,7 +551,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FindResults findResponse = new FindResults();
             edi = null;
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
-            Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
+            //Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
+            NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
+            String latestVersionPath = String.Empty;
 
             foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
             {
@@ -427,24 +571,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // version: 3.5.0        Prerelease: true
                     if (!nugetVersion.IsPrerelease || includePrerelease)
                     {
-                        if (!pkgVersionsFound.ContainsKey(nugetVersion))
+                        if (nugetVersion > latestVersion)
                         {
-                            pkgVersionsFound.Add(nugetVersion, path);
+                            latestVersion = nugetVersion;
+                            latestVersionPath = path;
                         }
                     }
                 }
             }
 
-            List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
-            NuGetVersion latestVersion = pkgVersionsList.First(); // TODO: do similar to name globbing, can't assume it's first or last
-
-            string packagePath = (string) pkgVersionsFound[latestVersion];
-
-            if (!File.Exists(packagePath))
+            if (String.IsNullOrEmpty(latestVersionPath))
             {
-                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {latestVersion.ToString()} does not exist in this repository"));
+                // means no package was found with this name
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in this repository."));
                 return findResponse;
             }
+
+            // List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
+            // NuGetVersion latestVersion = pkgVersionsList.First(); // TODO: do similar to name globbing, can't assume it's first or last
+
+            // string packagePath = (string) pkgVersionsFound[latestVersion];
+
+            // if (!File.Exists(packagePath))
+            // {
+            //     edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {latestVersion.ToString()} does not exist in this repository"));
+            //     return findResponse;
+            // }
 
             // create temp dir
             var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -460,8 +612,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // copy .nupkg
-                string destNupkgPath = Path.Combine(tempDiscoveryPath, Path.GetFileName(packagePath));
-                File.Copy(packagePath, destNupkgPath);
+                string destNupkgPath = Path.Combine(tempDiscoveryPath, Path.GetFileName(latestVersionPath));
+                File.Copy(latestVersionPath, destNupkgPath);
 
                 // change extension to .zip
                 string zipFilePath = Path.ChangeExtension(destNupkgPath, ".zip");
@@ -551,7 +703,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FindResults findResponse = new FindResults();
             edi = null;
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
-            Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
+            //Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
+            NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
+            String latestVersionPath = String.Empty;
 
             foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
             {
@@ -569,24 +723,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // version: 3.5.0        Prerelease: true
                     if (!nugetVersion.IsPrerelease || includePrerelease)
                     {
-                        if (!pkgVersionsFound.ContainsKey(nugetVersion))
+                        if (nugetVersion > latestVersion)
                         {
-                            pkgVersionsFound.Add(nugetVersion, path);
+                            latestVersion = nugetVersion;
+                            latestVersionPath = path;
                         }
                     }
                 }
             }
 
-            List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
-            NuGetVersion latestVersion = pkgVersionsList.First(); // TODO: do similar to name globbing, can't assume it's first or last
-
-            string packagePath = (string) pkgVersionsFound[latestVersion];
-
-            if (!File.Exists(packagePath))
+            if (String.IsNullOrEmpty(latestVersionPath))
             {
-                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {latestVersion.ToString()} does not exist in this repository"));
+                // means no package was found with this name
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in this repository."));
                 return findResponse;
             }
+
+            // List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
+            // NuGetVersion latestVersion = pkgVersionsList.First(); // TODO: do similar to name globbing, can't assume it's first or last
+
+            // string packagePath = (string) pkgVersionsFound[latestVersion];
+
+            // if (!File.Exists(packagePath))
+            // {
+            //     edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {latestVersion.ToString()} does not exist in this repository"));
+            //     return findResponse;
+            // }
 
             // create temp dir
             var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -602,8 +764,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // copy .nupkg
-                string destNupkgPath = Path.Combine(tempDiscoveryPath, Path.GetFileName(packagePath));
-                File.Copy(packagePath, destNupkgPath);
+                string destNupkgPath = Path.Combine(tempDiscoveryPath, Path.GetFileName(latestVersionPath));
+                File.Copy(latestVersionPath, destNupkgPath);
 
                 // change extension to .zip
                 string zipFilePath = Path.ChangeExtension(destNupkgPath, ".zip");
@@ -1428,8 +1590,50 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
         {
+            FileStream fs = null;
             edi = null;
-            return null;
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
+            NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
+            String latestVersionPath = String.Empty;
+
+            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            {
+                string packageFullName = Path.GetFileName(path);
+
+                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                {
+                    string[] packageWithoutName = packageFullName.Split(new string[]{ $"{packageName}." }, StringSplitOptions.RemoveEmptyEntries);
+                    string packageVersionAndExtension = packageWithoutName[0];
+                    int extensionDot = packageVersionAndExtension.LastIndexOf('.');
+                    string version = packageVersionAndExtension.Substring(0, extensionDot);
+                    NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
+
+                    if (!nugetVersion.IsPrerelease || includePrerelease)
+                    {
+                        if (nugetVersion > latestVersion)
+                        {
+                            latestVersion = nugetVersion;
+                            latestVersionPath = path;
+                        }
+                    }
+                }
+            }
+
+            if (String.IsNullOrEmpty(latestVersionPath))
+            {
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceEmpty($"Package for name {packageName} was not present in repository"));
+            }
+            else
+            {
+                fs = new FileStream(latestVersionPath, FileMode.Open, FileAccess.Read);
+
+                if (fs == null)
+                {
+                    edi = ExceptionDispatchInfo.Capture(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"));
+                }
+            }
+
+            return fs;
         }
 
         /// <summary>
@@ -1445,21 +1649,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             edi = null;
             FileStream fs = null;
 
-            // find packagename that matches our criteria -> gives us the nupkg
-            // if we must return Stream:
-            // 1) take nupkg -> zip file
-            // read contents of zip into stream
-            // return stream
-            // in InstallHelper read out stream to get zip file
-            // (redundant packing)
-
-            // have separate interfaces for local versus remote repos
-
-            // return path where zip file is present
-            // for local this would be okay
-            // for remote, we'd read stream contents into temp path, and need that passed in (seems messy)
-
-            string packageFullName = $"{packageName.ToLower()}.{version}.nupkg"; // TODO: test with 3 and 4 digit versions
+            // if 4 digits and last is 0, create 3 digit equiv string
+            // 4 digit version (where last is 0) is always passed in.
+            NuGetVersion.TryParse(version, out NuGetVersion pkgVersion);
+            if (pkgVersion.Revision == 0)
+            {
+                version = pkgVersion.ToNormalizedString();
+            }
+            
+            string packageFullName = $"{packageName.ToLower()}.{version}.nupkg";
             string packagePath = Path.Combine(repository.Uri.AbsolutePath, packageFullName);
             if (!File.Exists(packagePath))
             {
@@ -1636,6 +1834,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                 }
             }
+        }
+
+        private string[] GetCmdsOrDSCTags(string[] tags, bool isSearchingForCommands)
+        {
+            string tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
+            for (int i=0; i<tags.Length;i++)
+            {
+                tags[i] = $"{tagPrefix}{tags[i]}";
+            }
+
+            return tags;
         }
 
         #endregion

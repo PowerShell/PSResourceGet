@@ -270,28 +270,28 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                foreach (string currentCmdOrDSC in tag)
+                //foreach (string currentCmdOrDSC in tag)
+                //{
+                FindResults responses = currentServer.FindCommandOrDscResource(tag, _prerelease, isSearchingForCommands, out ExceptionDispatchInfo edi);
+                if (edi != null)
                 {
-                    FindResults responses = currentServer.FindCommandOrDscResource(currentCmdOrDSC, _prerelease, isSearchingForCommands, out ExceptionDispatchInfo edi);
-                    if (edi != null)
+                    _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindCommandOrDSCResourceFail", ErrorCategory.InvalidOperation, this));
+                    continue;
+                }
+
+                foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
+                {
+                    if (!String.IsNullOrEmpty(currentResult.errorMsg))
                     {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindCommandOrDSCResourceFail", ErrorCategory.InvalidOperation, this));
+                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindCmdOrDSCResponseConversionFail", ErrorCategory.NotSpecified, this));
                         continue;
                     }
 
-                    foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
-                    {
-                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindCmdOrDSCResponseConversionFail", ErrorCategory.NotSpecified, this));
-                            continue;
-                        }
-
-                        cmdsLeftToFind.Remove(currentCmdOrDSC);
-                        PSCommandResourceInfo currentCmdPkg = new PSCommandResourceInfo(new string[] { currentCmdOrDSC }, currentResult.returnedObject);
-                        yield return currentCmdPkg;
-                    }
+                    // cmdsLeftToFind.Remove(currentCmdOrDSC);
+                    PSCommandResourceInfo currentCmdPkg = new PSCommandResourceInfo(tag, currentResult.returnedObject);
+                    yield return currentCmdPkg;
                 }
+                //}
             }
         }
 
@@ -706,6 +706,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (edi != null)
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindNameFail", ErrorCategory.InvalidOperation, this));
+                            // continue;
+                            yield return null;
                             continue;
                         }
 
@@ -714,6 +716,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameForDepResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            // continue;
+                            yield return null;
                             continue;
                         }
 
@@ -734,6 +738,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (edi != null)
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            // continue;
+                            yield return null;
+                            continue;
+                        }
+
+                        if (responses.IsFindResultsEmpty())
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(new InvalidOrEmptyResponse($"Dependency package with Name {dep.Name} and VersionRange {dep.VersionRange} could not be found in this repository."), "HttpFindDepPackagesFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            // continue;
+                            yield return null;
                             continue;
                         }
 
@@ -742,7 +756,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
                                 _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingForDepResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                yield return null;
                                 continue;
+                                //continue;
                             }
 
                             depPkg = currentResult.returnedObject;

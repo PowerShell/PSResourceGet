@@ -584,8 +584,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Get the dependencies from the installed package.
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
+                            bool depFindFailed = false;
                             foreach (PSResourceInfo depPkg in findHelper.HttpFindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, myHash))
                             {
+                                if (depPkg == null)
+                                {
+                                    depFindFailed = true;
+                                    continue;
+                                }
+                                
                                 if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
                                 {
                                     continue;
@@ -617,6 +624,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     _cmdletPassedIn.WriteError(new ErrorRecord(installPackageEdi.SourceException, "InstallDependencyPackageFailure", ErrorCategory.InvalidOperation, this));
                                     continue;
                                 }
+                            }
+
+                            if (depFindFailed)
+                            {
+                                continue;
                             }
                         }
                     }

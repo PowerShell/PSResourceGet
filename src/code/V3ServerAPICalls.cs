@@ -184,7 +184,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// This functionality is not supported for V3 protocol server.
         /// Find method which allows for searching for packages with specified Command or DSCResource name.
         /// </summary>
-        public override FindResults FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
+        public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
             string errMsg = $"Find by CommandName or DSCResource is not supported for {repository.Name} as it uses the V3 server protocol";
             edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));

@@ -200,12 +200,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Find method which allows for searching for all packages that have specified Command or DSCResource name.
         /// </summary>
-        public override FindResults FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
+        public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
             int skip = 0;
 
-            string initialResponse = FindCommandOrDscResource(tag, includePrerelease, isSearchingForCommands, skip, out edi);
+            string initialResponse = FindCommandOrDscResource(tags, includePrerelease, isSearchingForCommands, skip, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v2FindResponseType);
@@ -221,7 +221,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             while (count > 0)
             {
                 skip += 100;
-                var tmpResponse = FindCommandOrDscResource(tag, includePrerelease, isSearchingForCommands, skip, out edi);
+                var tmpResponse = FindCommandOrDscResource(tags, includePrerelease, isSearchingForCommands, skip, out edi);
                 if (edi != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v2FindResponseType);
@@ -464,7 +464,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: null, responseType: v2FindResponseType);
         }
 
-
         /**  INSTALL APIS **/
 
         /// <summary>
@@ -608,13 +607,21 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindCommandOrDSCResource(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
         /// </summary>
-        private string FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, int skip, out ExceptionDispatchInfo edi)
+        private string FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, int skip, out ExceptionDispatchInfo edi)
         {
             // can only find from Modules endpoint
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
-            var tagFilter = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
-            var requestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}&searchTerm='tag:{tagFilter}{tag}'{prereleaseFilter}{paginationParam}&{select}";
+
+            var tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
+            string tagFilterPart = String.Empty;
+            foreach (string tag in tags)
+            {
+                tagFilterPart += $" and substringof('{tagPrefix}{tag}', Tags) eq true";
+            }
+            
+            //var requestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}&searchTerm='tag:{tagFilter}{tag}'{prereleaseFilter}{paginationParam}&{select}";
+            var requestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}{tagFilterPart}&{select}{paginationParam}";
 
             return HttpRequestCall(requestUrlV2, out edi);
         }
