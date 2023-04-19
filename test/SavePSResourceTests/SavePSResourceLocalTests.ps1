@@ -70,13 +70,13 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $pkgDirVersion.Name | Should -Be "1.0.0"
     }
 
-#    It "Should save resource given name and exact range inclusive [1.0.0, 3.0.0]" {
-#        Save-PSResource -Name $moduleName -Version "[1.0.0, 3.0.0]" -Repository $localRepo -Path $SaveDir -TrustRepository
-#        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
-#        $pkgDir | Should -Not -BeNullOrEmpty
-#        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
-#        $pkgDirVersion.Name | Should -Be "3.0.0"
-#    }
+   It "Should save resource given name and exact range inclusive [1.0.0, 3.0.0]" {
+       Save-PSResource -Name $moduleName -Version "[1.0.0, 3.0.0]" -Repository $localRepo -Path $SaveDir -TrustRepository
+       $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
+       $pkgDir | Should -Not -BeNullOrEmpty
+       $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+       $pkgDirVersion.Name | Should -Be "3.0.0"
+   }
 
     It "Should save resource given name and exact range exclusive (1.0.0, 5.0.0)" {
         Save-PSResource -Name $moduleName -Version "(1.0.0, 5.0.0)" -Repository $localRepo -Path $SaveDir -TrustRepository
@@ -132,7 +132,9 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     # Save module that is not authenticode signed
     # Should FAIL to save the module
     It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
-        { Save-PSResource -Name $moduleName -Version "5.0.0" -AuthenticodeCheck -Repository $localRepo -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "GetAuthenticodeSignatureError,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $res = Save-PSResource -Name $moduleName -Version "5.0.0" -AuthenticodeCheck -Repository $localRepo -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue -ErrorVariable err -PassThru
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -BeNullOrEmpty
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
-    #>
 }
