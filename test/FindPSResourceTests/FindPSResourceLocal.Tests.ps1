@@ -42,30 +42,33 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $localRepo
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
     }
 
     It "should not find resource given nonexistant Name" {
-        $res = Find-PSResource -Name NonExistantModule -Repository $localRepo
+        $res = Find-PSResource -Name NonExistantModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
-    # It "find resource(s) given wildcard Name" {
-    #     # FindNameGlobbing
-    #     $res = Find-PSResource -Name "test_local_*" -Repository $localRepo
-    #     $res.Count | Should -BeGreaterThan 1
-    # }
+    It "find resource(s) given wildcard Name" {
+        # FindNameGlobbing
+        $res = Find-PSResource -Name "test_local_*" -Repository $localRepo
+        $res.Count | Should -BeGreaterThan 1
+    }
 
-    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match"},
-                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0.0");                                  Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0.0");                                  Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0.0", "3.0.0.0");                       Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0");                       Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match"},
+                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
+                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0");                              Reason="validate version, exact range exclusive"},
+                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, minimum version exclusive"},
+                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, minimum version inclusive"},
+                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0");                              Reason="validate version, maximum version exclusive"},
+                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, maximum version inclusive"},
+                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
         # FindVersionGlobbing()
@@ -91,10 +94,10 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindName()
         # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
         $res = Find-PSResource -Name $testModuleName -Repository $localRepo
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
 
         $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $localRepo
-        $resPrerelease.Version | Should -Be "5.2.5.0"
+        $resPrerelease.Version | Should -Be "5.2.5"
         $resPrerelease.Prerelease | Should -Be "alpha001"
     }
 
@@ -116,7 +119,10 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     It "should not find resource if Name and Tag are not both satisfied (single tag)" {
         # FindNameWithTag
         $requiredTag = "Windows" # tag "windows" is not present for test_module package
-        $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $localRepo
+        $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
@@ -170,14 +176,17 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $requiredTag = "test"
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $localRepo
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTag
     }
 
     It "should not find resource if Name, Version and Tag property are not all satisfied (single tag)" {
         # FindVersionWithTag()
         $requiredTag = "windows" # tag "windows" is not present for test_module package
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $localRepo
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
@@ -186,16 +195,15 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $requiredTags = @("test", "Tag2")
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $localRepo
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
-
     }
 
     It "find resource given CommandName" {
         $res = Find-PSResource -CommandName $commandName -Repository $localRepo
         foreach ($item in $res) {
-            $item.Names | Should -Be $commandName    
+            $item.Names | Should -Be $commandName
             $item.ParentResource.Includes.Command | Should -Contain $commandName
         }
     }

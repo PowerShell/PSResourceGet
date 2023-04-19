@@ -550,7 +550,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             FindResults findResponse = new FindResults();
             edi = null;
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             //Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
@@ -561,14 +561,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    string[] packageWithoutName = packageFullName.Split(new string[]{ $"{packageName}." }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
                     string packageVersionAndExtension = packageWithoutName[0];
                     int extensionDot = packageVersionAndExtension.LastIndexOf('.');
                     string version = packageVersionAndExtension.Substring(0, extensionDot);
                     NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
 
-                    // version: 3.0.0-alpha, Prerelease: true
-                    // version: 3.5.0        Prerelease: true
                     if (!nugetVersion.IsPrerelease || includePrerelease)
                     {
                         if (nugetVersion > latestVersion)
@@ -586,17 +584,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in this repository."));
                 return findResponse;
             }
-
-            // List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
-            // NuGetVersion latestVersion = pkgVersionsList.First(); // TODO: do similar to name globbing, can't assume it's first or last
-
-            // string packagePath = (string) pkgVersionsFound[latestVersion];
-
-            // if (!File.Exists(packagePath))
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {latestVersion.ToString()} does not exist in this repository"));
-            //     return findResponse;
-            // }
 
             // create temp dir
             var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -702,8 +689,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             FindResults findResponse = new FindResults();
             edi = null;
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
-            //Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
 
@@ -713,14 +699,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    string[] packageWithoutName = packageFullName.Split(new string[]{ $"{packageName}." }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
                     string packageVersionAndExtension = packageWithoutName[0];
                     int extensionDot = packageVersionAndExtension.LastIndexOf('.');
                     string version = packageVersionAndExtension.Substring(0, extensionDot);
                     NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
 
-                    // version: 3.0.0-alpha, Prerelease: true
-                    // version: 3.5.0        Prerelease: true
                     if (!nugetVersion.IsPrerelease || includePrerelease)
                     {
                         if (nugetVersion > latestVersion)
@@ -738,17 +722,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in this repository."));
                 return findResponse;
             }
-
-            // List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
-            // NuGetVersion latestVersion = pkgVersionsList.First(); // TODO: do similar to name globbing, can't assume it's first or last
-
-            // string packagePath = (string) pkgVersionsFound[latestVersion];
-
-            // if (!File.Exists(packagePath))
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {latestVersion.ToString()} does not exist in this repository"));
-            //     return findResponse;
-            // }
 
             // create temp dir
             var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -1208,7 +1181,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FindResults findResponse = new FindResults();
             edi = null;
 
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
             foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
@@ -1217,7 +1190,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    string[] packageWithoutName = packageFullName.Split(new string[]{ $"{packageName}." }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
                     string packageVersionAndExtension = packageWithoutName[0];
                     int extensionDot = packageVersionAndExtension.LastIndexOf('.');
                     string version = packageVersionAndExtension.Substring(0, extensionDot);
@@ -1234,9 +1207,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
+            pkgVersionsList.Sort();
             List<Hashtable> foundPkgs = new List<Hashtable>();
-            foreach(NuGetVersion satisfyingVersion in pkgVersionsList)
+            for (int i = pkgVersionsList.Count - 1; i >=0; i--)
             {
+                // Versions are present in pkgVersionsList in asc order, wherease we need it in desc so we traverse it in reverse.
+                NuGetVersion satisfyingVersion = pkgVersionsList[i];
+
                 string packagePath = (string) pkgVersionsFound[satisfyingVersion];
                 
                 // create temp dir
@@ -1592,7 +1569,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             FileStream fs = null;
             edi = null;
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}*", WildcardOptions.IgnoreCase);
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
 
@@ -1602,7 +1579,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    string[] packageWithoutName = packageFullName.Split(new string[]{ $"{packageName}." }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
                     string packageVersionAndExtension = packageWithoutName[0];
                     int extensionDot = packageVersionAndExtension.LastIndexOf('.');
                     string version = packageVersionAndExtension.Substring(0, extensionDot);
@@ -1839,12 +1816,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string[] GetCmdsOrDSCTags(string[] tags, bool isSearchingForCommands)
         {
             string tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
+            List<string> cmdDSCTags = new List<string>();
             for (int i=0; i<tags.Length;i++)
             {
-                tags[i] = $"{tagPrefix}{tags[i]}";
+                cmdDSCTags.Add($"{tagPrefix}{tags[i]}");
             }
 
-            return tags;
+            return cmdDSCTags.ToArray();
         }
 
         #endregion

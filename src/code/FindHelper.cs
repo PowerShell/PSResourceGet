@@ -240,29 +240,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
 
-            for (int i = 0; i < repositoriesToSearch.Count && cmdsLeftToFind.Any(); i++)
+            for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                
-                // if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.local)
-                // {
-                //     _pkgsLeftToFind = new List<string>() { "*" };
-
-                //     var potentialMatches = SearchFromLocalRepository(repositoriesToSearch[i]);
-                //     foreach (string cmdOrDsc in tag)
-                //     {
-                //         foreach (var package in potentialMatches)
-                //         {
-                //             // this check ensures DSC names provided as a Command name won't get returned mistakenly
-                //             // -CommandName "command1", "dsc1" <- (will not return or add DSC name)
-                //             if ((isSearchingForCommands && package.Includes.Command.Contains(cmdOrDsc, StringComparer.OrdinalIgnoreCase)) ||
-                //                 (!isSearchingForCommands && package.Includes.DscResource.Contains(cmdOrDsc, StringComparer.OrdinalIgnoreCase)))
-                //             {
-                //                 yield return new PSCommandResourceInfo(new string[] { cmdOrDsc }, package);
-                //             }
-                //         }
-                //     }
-                // }
                 
                 SetNetworkCredential(currentRepository);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
@@ -270,8 +250,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                //foreach (string currentCmdOrDSC in tag)
-                //{
                 FindResults responses = currentServer.FindCommandOrDscResource(tag, _prerelease, isSearchingForCommands, out ExceptionDispatchInfo edi);
                 if (edi != null)
                 {
@@ -287,11 +265,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         continue;
                     }
 
-                    // cmdsLeftToFind.Remove(currentCmdOrDSC);
                     PSCommandResourceInfo currentCmdPkg = new PSCommandResourceInfo(tag, currentResult.returnedObject);
                     yield return currentCmdPkg;
                 }
-                //}
             }
         }
 
