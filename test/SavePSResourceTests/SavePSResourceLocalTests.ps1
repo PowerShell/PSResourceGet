@@ -108,11 +108,9 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Save module as a nupkg" {
-        Save-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -Path $SaveDir -AsNupkg -TrustRepository -WarningVariable WarningVar -warningaction SilentlyContinue
-        $WarningVar | Should -Not -BeNullOrEmpty
-        # not yet implemented
-        # $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "$moduleName.1.0.0.nupkg"
-        # $pkgDir | Should -Not -BeNullOrEmpty
+        Save-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -Path $SaveDir -AsNupkg -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "$moduleName.1.0.0.nupkg"
+        $pkgDir | Should -Not -BeNullOrEmpty
     }
 
     It "Save module and include XML metadata file" {
@@ -128,7 +126,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     It "Save module using -PassThru" {
         $res = Save-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -Path $SaveDir -PassThru -TrustRepository
         $res.Name | Should -Be $moduleName
-        $res.Version | Should -Be "1.0.0.0"
+        $res.Version | Should -Be "1.0.0"
     }
 
     # Save module that is not authenticode signed
