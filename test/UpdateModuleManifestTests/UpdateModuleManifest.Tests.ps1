@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test Update-ModuleManifest'  {
+Describe 'Test Update-ModuleManifest' -tags 'CI' {
 
     BeforeEach {
         # Create temp module manifest to be updated

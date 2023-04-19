@@ -8,7 +8,7 @@ Import-Module $modPath -Force -Verbose
 $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
 
-Describe "Test CompatPowerShellGet: Get-PSResourceRepository" -Tags 'CI' {
+Describe "Test CompatPowerShellGet: Get-PSResourceRepository" {
     BeforeEach {
         $TestRepoName1 = "testRepository"
         $TestRepoName2 = "testRepository2"
