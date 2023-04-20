@@ -849,6 +849,205 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+
+        public static bool TryConvertFromHashtableForPsd1(
+            Hashtable pkgMetadata,
+            out PSResourceInfo psGetInfo,
+            out string errorMsg,
+            PSRepositoryInfo repository)
+        {
+            errorMsg = String.Empty;
+            psGetInfo = null;
+
+            try
+            {
+                // parse PSData out of PrivateData
+                GetPrivateDataFromHashtable(
+                    pkgMetadata,
+                    out string prereleaseLabel,
+                    out Uri licenseUri,
+                    out Uri projectUri,
+                    out Uri iconUri,
+                    out string releaseNotes,
+                    out string[] tags);
+
+                var typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+
+                bool isPrerelease = !String.IsNullOrEmpty(prereleaseLabel);
+
+                string version = pkgMetadata["ModuleVersion"] as string;
+                string normalizedVersion = ConcatenateVersionWithPrerelease(version, prereleaseLabel);
+                var additionalMetadataHashtable = new Dictionary<string, string>();
+                additionalMetadataHashtable.Add("NormalizedVersion", normalizedVersion);
+
+                var includes = new ResourceIncludes(resourceHashtable);
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: pkgMetadata["Author"] as String,
+                    companyName: pkgMetadata["CompanyName"] as String,
+                    copyright: pkgMetadata["Copyright"] as String,
+                    dependencies: new Dependency[]{}, // TODO
+                    description: pkgMetadata["Description"] as String,
+                    iconUri: iconUri,
+                    includes: includes,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: isPrerelease,
+                    licenseUri: licenseUri,
+                    name: pkgMetadata["Id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,   
+                    prerelease: prereleaseLabel,
+                    projectUri: projectUri,
+                    publishedDate: null, // TODO: verify
+                    releaseNotes: releaseNotes,
+                    repository: repository.Name,
+                    repositorySourceLocation: repository.Uri.ToString(),
+                    tags: tags,
+                    type: ResourceType.Module,
+                    updatedDate: null,
+                    version: Version.Parse(version));
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromHashtableForPsd1: Could not find expected information from module manifest file hashtable with error: {0}",
+                    ex.Message);
+
+                return false;
+            }
+        }
+
+        public static bool TryConvertFromHashtableForPs1(
+            Hashtable pkgMetadata,
+            out PSResourceInfo psGetInfo,
+            out string errorMsg,
+            PSRepositoryInfo repository)
+        {
+            errorMsg = String.Empty;
+            psGetInfo = null;
+
+            try
+            {
+                var typeInfo = ParseHttpMetadataType(pkgMetadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+
+                var additionalMetadataHashtable = new Dictionary<string, string>();
+                additionalMetadataHashtable.Add("NormalizedVersion", pkgMetadata["NormalizedVersion"].ToString());
+
+                var includes = new ResourceIncludes(resourceHashtable);
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: pkgMetadata["Authors"] as String,
+                    companyName: pkgMetadata["CompanyName"] as String,
+                    copyright: pkgMetadata["Copyright"] as String,
+                    dependencies: pkgMetadata["Dependencies"] as Dependency[],
+                    description: pkgMetadata["Description"] as String,
+                    iconUri: pkgMetadata["IconUrl"] as Uri,
+                    includes: includes,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: (bool) pkgMetadata["IsPrerelease"],
+                    licenseUri: pkgMetadata["LicenseUrl"] as Uri,
+                    name: pkgMetadata["Id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,   
+                    prerelease: pkgMetadata["Prerelease"] as String,
+                    projectUri: pkgMetadata["ProjectUrl"] as Uri,
+                    publishedDate: pkgMetadata["Published"] as DateTime?,
+                    releaseNotes: pkgMetadata["ReleaseNotes"] as String,
+                    repository: repository.Name,
+                    repositorySourceLocation: null,
+                    tags: pkgMetadata["Tags"] as string[],
+                    type: typeInfo,
+                    updatedDate: null,
+                    version: pkgMetadata["Version"] as Version);
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromHashtableForPsd1: Could not find expected information from module manifest file hashtable with error: {0}",
+                    ex.Message);
+
+                return false;
+            }
+        }
+
+        public static bool TryConvertFromHashtableForNuspec(
+            Hashtable pkgMetadata,
+            out PSResourceInfo psGetInfo,
+            out string errorMsg,
+            PSRepositoryInfo repository)
+        {
+            errorMsg = String.Empty;
+            psGetInfo = null;
+
+            try
+            {
+                var typeInfo = ParseHttpMetadataType(pkgMetadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+
+                var additionalMetadataHashtable = new Dictionary<string, string>();
+                additionalMetadataHashtable.Add("NormalizedVersion", pkgMetadata["NormalizedVersion"].ToString());
+
+                var includes = new ResourceIncludes(resourceHashtable);
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: pkgMetadata["Authors"] as String,
+                    companyName: pkgMetadata["CompanyName"] as String,
+                    copyright: pkgMetadata["Copyright"] as String,
+                    dependencies: pkgMetadata["Dependencies"] as Dependency[],
+                    description: pkgMetadata["Description"] as String,
+                    iconUri: pkgMetadata["IconUrl"] as Uri,
+                    includes: includes,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: (bool) pkgMetadata["IsPrerelease"],
+                    licenseUri: pkgMetadata["LicenseUrl"] as Uri,
+                    name: pkgMetadata["Id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,   
+                    prerelease: pkgMetadata["Prerelease"] as String,
+                    projectUri: pkgMetadata["ProjectUrl"] as Uri,
+                    publishedDate: pkgMetadata["Published"] as DateTime?,
+                    releaseNotes: pkgMetadata["ReleaseNotes"] as String,
+                    repository: repository.Name,
+                    repositorySourceLocation: null,
+                    tags: pkgMetadata["Tags"] as string[],
+                    type: typeInfo,
+                    updatedDate: null,
+                    version: pkgMetadata["Version"] as Version);
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromHashtableForPsd1: Could not find expected information from module manifest file hashtable with error: {0}",
+                    ex.Message);
+
+                return false;
+            }
+        }
+
+
         #endregion
 
         #region Private static methods
@@ -1362,6 +1561,86 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
             return psObject;
         }
+
+        private static void GetPrivateDataFromHashtable(Hashtable pkgMetadata,
+            out string prereleaseLabel,
+            out Uri licenseUri,
+            out Uri projectUri,
+            out Uri iconUri,
+            out string releaseNotes,
+            out string[] tags)
+        {
+            prereleaseLabel = String.Empty;
+            licenseUri = null;
+            projectUri = null;
+            iconUri = null;
+            releaseNotes = String.Empty;
+            tags = Utils.EmptyStrArray;
+
+            // Look for Prerelease tag and then process any Tags in PrivateData > PSData
+            if (pkgMetadata.ContainsKey("PrivateData"))
+            {
+                if (pkgMetadata["PrivateData"] is Hashtable privateData &&
+                    privateData.ContainsKey("PSData"))
+                {
+                    if (privateData["PSData"] is Hashtable psData)
+                    {
+                        if (psData.ContainsKey("prerelease"))
+                        {
+                            prereleaseLabel = psData["prerelease"] as string;
+                        }
+
+                        if (psData.ContainsKey("LicenseUri") && psData["LicenseUri"] is string licenseUriString)
+                        {
+                            if (!Uri.TryCreate(licenseUriString, UriKind.Absolute, out licenseUri))
+                            {
+                                // todo error handle?
+                            }
+                        }
+
+                        if (psData.ContainsKey("ProjectUri") && psData["ProjectUri"] is string projectUriString)
+                        {
+                            if (!Uri.TryCreate(projectUriString, UriKind.Absolute, out projectUri))
+                            {
+                                // TODO error handle?
+                            }
+                        }
+
+                        if (psData.ContainsKey("IconUri") && psData["IconUri"] is string iconUriString)
+                        {
+                            if (!Uri.TryCreate(iconUriString, UriKind.Absolute, out iconUri))
+                            {
+                                // TODO error handle?
+                            }
+                        }
+
+                        if (psData.ContainsKey("releasenotes"))
+                        {
+                            if (psData["ReleaseNotes"] is string releaseNotesStr)
+                            {
+                                releaseNotes = releaseNotesStr;
+                            }
+                            else if (psData["releasenotes"] is string[] releaseNotesArr)
+                            {
+                                releaseNotes = string.Join("\n", releaseNotesArr);
+                            }
+                        }
+
+                        if (psData.ContainsKey("Tags") && psData["Tags"] is Array manifestTags)
+                        {
+                            var tagArr = new List<string>();
+                            foreach (string tag in manifestTags)
+                            {
+                                tagArr.Add(tag);
+                            }
+
+                            tags = tagArr.ToArray();
+                        }
+                    }
+                }
+            }
+        }
+
 
         #endregion
     }

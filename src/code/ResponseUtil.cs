@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Methods
 
-        public abstract IEnumerable<PSResourceResult> ConvertToPSResourceResult(string[] responses);
+        public abstract IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults);
 
         #endregion
     

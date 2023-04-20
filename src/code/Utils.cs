@@ -21,6 +21,17 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     internal static class Utils
     {
+        #region Enums
+
+        public enum MetadataFileType
+        {
+            ModuleManifest,
+            ScriptFile,
+            Nuspec,
+            None
+        }
+
+        # endregion
         #region String fields
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();

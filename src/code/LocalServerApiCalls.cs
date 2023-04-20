@@ -3,6 +3,7 @@
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -10,6 +11,7 @@ using NuGet.Versioning;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Net;
+using System.Management.Automation;
 using System.Runtime.ExceptionServices;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
@@ -32,7 +34,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public override PSRepositoryInfo repository { get; set; }
         public override HttpClient s_client { get; set; }
-        private static readonly string select = "$select=Id,Version,NormalizedVersion,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
+        public FindResponseType localServerFindResponseType = FindResponseType.responseHashtable;
+        public readonly string fileTypeKey = "filetype";
 
         #endregion
 
@@ -59,13 +62,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: 
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
-        public override string[] FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi) {
+        public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi) {
             edi = null;
             List<string> responses = new List<string>();
 
             // loop thru, for each unqiue packagename, return latest name
 
-            return responses.ToArray();
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
         }
 
         /// <summary>
@@ -74,7 +77,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API call: 
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
-        public override string[] FindTag(string tag, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
+        public override FindResults FindTag(string tag, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
         {
             edi = null;
             List<string> responses = new List<string>();
@@ -82,13 +85,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // call into FindAll() which returns string responses for all 
             // look at tags field for each string response
 
-            return responses.ToArray();
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
         }
 
         /// <summary>
         /// Find method which allows for searching for all packages that have specified Command or DSCResource name.
         /// </summary>
-        public override string[] FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
+        public override FindResults FindCommandOrDscResource(string tag, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
             edi = null;
@@ -96,7 +99,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // call into FindAll() which returns string responses for all 
             // look at tags field for each string response
 
-            return responses.ToArray();
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
         }
 
         /// <summary>
@@ -108,10 +111,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public override string FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             edi = null;
-            return String.Empty;
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
 
             // repository -> we know the search path
                 // C:/MyLocalRepo/pkgA.1.0.0.0.nupkg
@@ -138,10 +141,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet" -Tag "Provider"
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public override string FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             edi = null;
-            return String.Empty;
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
         }
 
         /// <summary>
@@ -152,7 +155,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public override string[] FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
             edi = null;
@@ -177,7 +180,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ModuleManifest <PSParsing>
             // rest of file string
 
-            return responses.ToArray();
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
         }
 
         /// <summary>
@@ -186,12 +189,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShell*" -Tag "Provider"
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public override string[] FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
             edi = null;
 
-            return responses.ToArray();
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
         }
 
         /// <summary>
@@ -203,7 +206,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public override string[] FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
+        public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
             edi = null;
@@ -226,7 +229,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // ModuleManifest <PSParsing>
             // rest of file string
 
-            return responses.ToArray();
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
         }
 
         /// <summary>
@@ -236,32 +239,104 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public override string FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi) 
+        public override FindResults FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi) 
         {
+            FindResults findResponse = null; // TODO: null or empty constructor?
             edi = null;
-            return String.Empty;
 
-            // repository -> we know the search path
-                // C:/MyLocalRepo/pkgA.1.0.0.0.nupkg
-                // C:/MyLocalRepo/pkgB.1.0.0.0.nupkg
+            string packageFullName = $"{packageName}.{version}.nupkg";
+            string packagePath = Path.Combine(repository.Uri.AbsolutePath, packageFullName);
 
-            // our findings on how PSGallery are creating nupkgnames:
-            // if last digit is 0 (i.e 2.2.0.0) -> 2.2.0 (trim 4th digit if 0, always have 3 digits)
-            // if last digit is non-0 (i.e 1.1.1.1) -> 1.1.1.1 (keep all 4 digits)
-            // if version published to gallery shows 2 digits (3.3) we add 3rd digit of 0 (3.3.0)
+            if (!File.Exists(packagePath))
+            {
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {version} does not exist in this repository"));
+                return findResponse;
+            }
 
-            // for NuGetGallery: always 3 if last digit is 0, otherwise 4 digits, no 2 digits
+            // create temp dir
+            var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
-            // string nameWeExpect = packageName + "." + packageVersion.ToNormalizedString() + ".nupkg"
-            // test that path with nupkg name
+            try
+            {
+                var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
+                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                                                                        // with a mask (bitwise complement of desired attributes combination).
+                                                                        // TODO: check the attributes and if it's read only then set it
+                                                                        // attribute may be inherited from the parent
+                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                dir.Attributes &= ~FileAttributes.ReadOnly;
 
-            // extract the files. get the psd1/ps1, create a response string by filestream.ReadAsString
-            // ensure script content is sanitized
-            // for NuGet repo packages (that don't have psd1 or ps1 -> read nuspec)
-            // read that file and put into string
+                // copy .nupkg
+                string destNupkgPath = Path.Combine(tempDiscoveryPath, packageFullName);
+                File.Copy(packagePath, destNupkgPath);
 
-            // ModuleManifest <PSParsing>
-            // rest of file string
+                // change extension to .zip
+                string zipFilePath = Path.ChangeExtension(destNupkgPath, ".zip");
+                File.Move(destNupkgPath, zipFilePath);
+
+                // extract from .zip
+                System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
+
+                string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
+                string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
+                string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
+
+                Hashtable pkgMetadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+                if (File.Exists(psd1FilePath))
+                {
+                    if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(readManifestError);
+                        return findResponse;
+                    }
+
+                    pkgMetadata.Add("Id", packageName);
+                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ModuleManifest);
+                }
+                else if (File.Exists(ps1FilePath))
+                {
+                    if (!PSScriptFileInfo.TryTestPSScriptFile(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($"PSScriptFile could not be read properly")); // TODO: how to handle multiple? maybe just write a error of our own
+                        return findResponse;
+                    }
+
+                    pkgMetadata = parsedScript.ToHashtable();
+                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ScriptFile);
+
+                }
+                else if (File.Exists(nuspecFilePath))
+                {
+                    pkgMetadata = GetHashtableForNuspec(nuspecFilePath, out edi);
+                    if (edi != null)
+                    {
+                        return findResponse;
+                    }
+
+                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.Nuspec);
+                }
+                else
+                {
+                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                    return findResponse;
+                }
+
+                findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: localServerFindResponseType);
+            }
+            catch (Exception e)
+            {
+               edi = ExceptionDispatchInfo.Capture(new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"));
+            }
+            finally
+            {
+                if (Directory.Exists(tempDiscoveryPath))
+                {
+                    Utils.DeleteDirectory(tempDiscoveryPath);
+                }
+            }
+
+            return findResponse;
         }
 
         /// <summary>
@@ -270,10 +345,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Version: no wildcard support
         /// Examples: Search "PowerShellGet" "2.2.5" -Tag "Provider"
         /// </summary>
-        public override string FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
         {
             edi = null;
-            return String.Empty;
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{}, responseType: localServerFindResponseType);
         }
 
 
@@ -303,6 +378,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
         {
             edi = null;
+            FileStream fs = null;
 
             // find packagename that matches our criteria -> gives us the nupkg
             // if we must return Stream:
@@ -318,8 +394,69 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // for local this would be okay
             // for remote, we'd read stream contents into temp path, and need that passed in (seems messy)
 
+            string packageFullName = $"{packageName.ToLower()}.{version}.nupkg"; // TODO: test with 3 and 4 digit versions
+            string packagePath = Path.Combine(repository.Uri.AbsolutePath, packageFullName);
+            if (!File.Exists(packagePath))
+            {
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {version} does not exist in this repository"));
+                return fs;
+            }
 
-            return null;
+            fs = new FileStream(packagePath, FileMode.Open, FileAccess.Read);
+
+            if (fs == null)
+            {
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"));
+            }
+
+            return fs;
+        }
+
+        private Hashtable GetHashtableForNuspec(string filePath, out ExceptionDispatchInfo edi)
+        {
+            Hashtable nuspecHashtable = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+            XmlDocument nuspecXmlDocument = LoadXmlDocument(filePath, out edi);
+            if (edi != null)
+            {
+                return nuspecHashtable;
+            }
+
+            try
+            {
+                var childNodes = nuspecXmlDocument.ChildNodes;
+                foreach (XmlElement child in childNodes)
+                {
+                    var key = child.LocalName;
+                    var value = child.InnerText;
+
+                    if (!nuspecHashtable.ContainsKey(key))
+                    {
+                        nuspecHashtable.Add(key, value);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(e.Message));
+            }
+
+            return nuspecHashtable;        
+        }
+
+        private XmlDocument LoadXmlDocument(string filePath, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            XmlDocument doc = new XmlDocument();
+            doc.PreserveWhitespace = true;
+            try { doc.Load(filePath); }
+            catch (Exception e)
+            {
+                // TODO: catch more specific ones
+                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(e.Message));
+            }
+
+            return doc;
         }
 
         /// <summary>
