@@ -35,14 +35,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             foreach (Hashtable response in responses)
             {
-                if (!response.ContainsKey(fileTypeKey))
+                if (!response.ContainsKey(fileTypeKey) || fileTypeKey.Equals(Utils.MetadataFileType.None))
                 {
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: "Package response did not contain metadata file type key so will be skipped.", isTerminatingError: false);
                     continue;
-                    // TODO: or terminate?
                 }
 
                 Utils.MetadataFileType fileType = (Utils.MetadataFileType) response[fileTypeKey];
-
                 response.Remove(fileTypeKey);
                 PSResourceResult pkgInfo = null;
 
@@ -55,13 +54,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             out string psd1ErrorMsg,
                             repository: repository))
                         {
-                            // TODO: write error
+                            yield return new PSResourceResult(returnedObject: null, errorMsg: psd1ErrorMsg, isTerminatingError: false);
                         }
 
-                        pkgInfo = new PSResourceResult(returnedObject: pkgWithPsd1,
-                            errorMsg: psd1ErrorMsg,
-                            isTerminatingError: false);
-
+                        pkgInfo = new PSResourceResult(returnedObject: pkgWithPsd1, errorMsg: psd1ErrorMsg, isTerminatingError: false);
                         break;
 
                     case Utils.MetadataFileType.ScriptFile:
@@ -72,13 +68,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             repository: repository
                         ))
                         {
-                            // TODO: write error
+                            yield return new PSResourceResult(returnedObject: null, errorMsg: ps1ErrorMsg, isTerminatingError: false);
                         }
 
-                        pkgInfo = new PSResourceResult(returnedObject: pkgWithPs1,
-                            errorMsg: ps1ErrorMsg,
-                            isTerminatingError: false);
-
+                        pkgInfo = new PSResourceResult(returnedObject: pkgWithPs1, errorMsg: ps1ErrorMsg, isTerminatingError: false);
                         break;
 
                     case Utils.MetadataFileType.Nuspec:
@@ -88,16 +81,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             out string nuspecErrorMsg,
                             repository: repository))
                         {
-                            // write error
+                            yield return new PSResourceResult(returnedObject: null, errorMsg: nuspecErrorMsg, isTerminatingError: false);
                         }
 
-                        pkgInfo = new PSResourceResult(returnedObject: pkgWithNuspec,
-                            errorMsg: nuspecErrorMsg,
-                            isTerminatingError: false);
-                        break;
-
-                    case Utils.MetadataFileType.None:
-                        // TODO: is this needed? likely remove
+                        pkgInfo = new PSResourceResult(returnedObject: pkgWithNuspec, errorMsg: nuspecErrorMsg, isTerminatingError: false);
                         break;
                 }
 
@@ -106,10 +93,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             yield break;
         }
-
-        #endregion
-
-        #region Local Repository Specific Methods
 
         #endregion
     }

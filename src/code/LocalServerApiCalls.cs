@@ -125,12 +125,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
-                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);
                     dir.Attributes &= ~FileAttributes.ReadOnly;
 
                     // copy .nupkg
@@ -282,12 +277,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
-                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);
                     dir.Attributes &= ~FileAttributes.ReadOnly;
 
                     // copy .nupkg
@@ -354,7 +344,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"));
                         return findResponse;
                     }
 
@@ -444,12 +434,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
-                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);
                     dir.Attributes &= ~FileAttributes.ReadOnly;
 
                     // copy .nupkg
@@ -590,12 +575,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                var dir = Directory.CreateDirectory(tempDiscoveryPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // copy .nupkg
@@ -728,12 +708,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                var dir = Directory.CreateDirectory(tempDiscoveryPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // copy .nupkg
@@ -802,7 +777,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"));
                     return findResponse;
                 }
 
@@ -904,12 +879,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
-                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);
                     dir.Attributes &= ~FileAttributes.ReadOnly;
 
                     // copy .nupkg
@@ -972,7 +942,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"));
                         return findResponse;
                     }
 
@@ -1067,12 +1037,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 try
                 {
-                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);
                     dir.Attributes &= ~FileAttributes.ReadOnly;
 
                     // copy .nupkg
@@ -1139,7 +1104,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"));
                         return findResponse;
                     }
 
@@ -1221,12 +1186,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 try
                 {
-                    var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                            // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                            // with a mask (bitwise complement of desired attributes combination).
-                                                                            // TODO: check the attributes and if it's read only then set it
-                                                                            // attribute may be inherited from the parent
-                                                                            // TODO:  are there Linux accommodations we need to consider here?
+                    var dir = Directory.CreateDirectory(tempDiscoveryPath);
                     dir.Attributes &= ~FileAttributes.ReadOnly;
 
                     // copy .nupkg
@@ -1289,7 +1249,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
                     else
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"));
                         return findResponse;
                     }
 
@@ -1339,12 +1299,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                var dir = Directory.CreateDirectory(tempDiscoveryPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // copy .nupkg
@@ -1407,7 +1362,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"));
                     return findResponse;
                 }
 
@@ -1453,12 +1408,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(tempDiscoveryPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                var dir = Directory.CreateDirectory(tempDiscoveryPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // copy .nupkg
@@ -1526,7 +1476,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else
                 {
-                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found")); // TODO: how to handle multiple? maybe just write a error of our own
+                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"));
                     return findResponse;
                 }
 
