@@ -4,7 +4,7 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
+Describe 'Test HTTP Update-PSResource for V3 Server Protocol' {
 
     BeforeAll{
         $NuGetGalleryName = Get-NuGetGalleryName

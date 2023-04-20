@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
+Describe 'Test HTTP Update-PSResource for V2 Server Protocol' {
 
     BeforeAll {
         $PSGalleryName = Get-PSGalleryName

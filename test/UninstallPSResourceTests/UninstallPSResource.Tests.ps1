@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
+Describe 'Test Uninstall-PSResource for Modules' {
 
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName

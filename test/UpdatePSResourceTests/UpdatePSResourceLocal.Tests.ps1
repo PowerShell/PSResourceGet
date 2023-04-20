@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
+Describe 'Test Update-PSResource for local repositories' {
 
 
     BeforeAll {
