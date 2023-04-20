@@ -9,7 +9,7 @@ Import-Module $modPath -Force -Verbose
 $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
 
-Describe 'Test CompatPowerShellGet: Uninstall-PSResource' {
+Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "testmodule99"
