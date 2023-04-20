@@ -172,8 +172,8 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     }
 
     It "Install-Module using Find-DscResource output" {
-        $moduleName = "SystemLocaleDsc"
-        Find-DscResource -Name "SystemLocale" -Repository PSGallery | Install-Module
+        $moduleName = 'SystemLocaleDsc'
+        Find-DscResource -Name 'SystemLocale' -Repository PSGallery | Install-Module
         $res = Get-Module $moduleName -ListAvailable
         $res.Name | Should -Be $moduleName
     }
