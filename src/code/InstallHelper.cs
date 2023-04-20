@@ -221,7 +221,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
 
-                if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3 || repo.ApiVersion == PSRepositoryInfo.APIVersion.local)
                 {
                     if (repo.Trusted == false && !trustRepository && !_force)
                     {
@@ -584,8 +584,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Get the dependencies from the installed package.
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
+                            bool depFindFailed = false;
                             foreach (PSResourceInfo depPkg in findHelper.HttpFindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, myHash))
                             {
+                                if (depPkg == null)
+                                {
+                                    depFindFailed = true;
+                                    continue;
+                                }
+                                
                                 if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
                                 {
                                     continue;
@@ -617,6 +624,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     _cmdletPassedIn.WriteError(new ErrorRecord(installPackageEdi.SourceException, "InstallDependencyPackageFailure", ErrorCategory.InvalidOperation, this));
                                     continue;
                                 }
+                            }
+
+                            if (depFindFailed)
+                            {
+                                continue;
                             }
                         }
                     }
@@ -664,7 +676,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             out ExceptionDispatchInfo edi)
         {
             //List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
-            string[] responses = Utils.EmptyStrArray;
+            FindResults responses = new FindResults();
             edi = null;
 
             switch (searchVersionType)
@@ -672,7 +684,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case VersionType.VersionRange:
                     responses = currentServer.FindVersionGlobbing(pkgNameToInstall, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo findVersionGlobbingEdi);
                     // Server level globbing API will not populate edi for empty response, so must check for empty response and early out
-                    if (findVersionGlobbingEdi != null || responses.Length == 0)
+                    if (findVersionGlobbingEdi != null || responses.IsFindResultsEmpty())
                     {
                         edi = findVersionGlobbingEdi;
                         return packagesHash;
@@ -683,8 +695,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case VersionType.SpecificVersion:
                     string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
-                    string findVersionResponse = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
-                    responses = new string[] { findVersionResponse };
+                    responses = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
                     if (findVersionEdi != null)
                     {
                         edi = findVersionEdi;
@@ -695,8 +706,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 default:
                     // VersionType.NoVersion
-                    string findNameResponse = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
-                    responses = new string[] { findNameResponse };
+                    responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
                     if (findNameEdi != null)
                     {
                         edi = findNameEdi;
@@ -706,7 +716,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
 
-            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).First();
 
             if (!String.IsNullOrEmpty(currentResult.errorMsg))
             {

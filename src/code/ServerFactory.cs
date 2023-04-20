@@ -22,6 +22,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case PSRepositoryInfo.APIVersion.v3:
                     currentServer = new V3ServerAPICalls(repository, networkCredential);
                     break;
+
+                case PSRepositoryInfo.APIVersion.local:
+                    currentServer = new LocalServerAPICalls(repository, networkCredential);
+                    break;
             }
 
             return currentServer;

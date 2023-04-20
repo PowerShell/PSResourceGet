@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -11,6 +12,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Text.Json;
 using System.Xml;
+using Microsoft.PowerShell.Commands;
 
 using Dbg = System.Diagnostics.Debug;
 
@@ -849,6 +851,244 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
         }
 
+        public static bool TryConvertFromHashtableForPsd1(
+            Hashtable pkgMetadata,
+            out PSResourceInfo psGetInfo,
+            out string errorMsg,
+            PSRepositoryInfo repository)
+        {
+            errorMsg = String.Empty;
+            psGetInfo = null;
+
+            try
+            {
+                List<Hashtable> requiredModulesHashList = new List<Hashtable>();
+                if (pkgMetadata.ContainsKey("RequiredModules"))
+                {
+                    var requiredModules = pkgMetadata["RequiredModules"] as Object[];
+                    foreach (Object obj in requiredModules)
+                    {
+                        if (obj != null)
+                        {
+                            if (obj is Hashtable hash)
+                            {
+                                requiredModulesHashList.Add(hash);
+                            }
+                            else if (obj is string modName)
+                            {
+                                Hashtable moduleNameHash = new Hashtable(StringComparer.OrdinalIgnoreCase);
+                                moduleNameHash.Add("ModuleName", modName);
+                                requiredModulesHashList.Add(moduleNameHash);
+                            }
+                        } 
+                    }
+                }
+
+                Hashtable[] requiredModulesHashArray = requiredModulesHashList.ToArray();
+                Dependency[] deps = GetDependenciesForPsd1(requiredModulesHashArray);
+
+                var typeInfo = ParseHttpMetadataType(pkgMetadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+
+                string prereleaseLabel = (string) pkgMetadata["Prerelease"];
+                bool isPrerelease = !String.IsNullOrEmpty(prereleaseLabel);
+
+                Uri iconUri = pkgMetadata["IconUri"] as Uri;
+                Uri licenseUri = pkgMetadata["LicenseUri"] as Uri;
+                Uri projectUri = pkgMetadata["ProjectUri"] as Uri;
+                string releaseNotes = pkgMetadata["ReleaseNotes"] as string;
+                string[] tags = pkgMetadata["Tags"] as string[];
+
+                string version = pkgMetadata["ModuleVersion"] as string;
+                string normalizedVersion = ConcatenateVersionWithPrerelease(version, prereleaseLabel);
+                var additionalMetadataHashtable = new Dictionary<string, string>();
+                additionalMetadataHashtable.Add("NormalizedVersion", normalizedVersion);
+
+                var includes = new ResourceIncludes(resourceHashtable);
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: pkgMetadata["Author"] as String,
+                    companyName: pkgMetadata["CompanyName"] as String,
+                    copyright: pkgMetadata["Copyright"] as String,
+                    dependencies: deps,
+                    description: pkgMetadata["Description"] as String,
+                    iconUri: iconUri,
+                    includes: includes,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: isPrerelease,
+                    licenseUri: licenseUri,
+                    name: pkgMetadata["Id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,   
+                    prerelease: prereleaseLabel,
+                    projectUri: projectUri,
+                    publishedDate: null,
+                    releaseNotes: releaseNotes,
+                    repository: repository.Name,
+                    repositorySourceLocation: repository.Uri.ToString(),
+                    tags: tags,
+                    type: ResourceType.Module,
+                    updatedDate: null,
+                    version: Version.Parse(version));
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromHashtableForPsd1: Could not find expected information from module manifest file hashtable with error: {0}",
+                    ex.Message);
+
+                return false;
+            }
+        }
+
+        public static bool TryConvertFromHashtableForPs1(
+            Hashtable pkgMetadata,
+            out PSResourceInfo psGetInfo,
+            out string errorMsg,
+            PSRepositoryInfo repository)
+        {
+            errorMsg = String.Empty;
+            psGetInfo = null;
+
+            try
+            {
+                string[] tagsEntry = pkgMetadata["Tags"] as string[];
+                var typeInfo = ParseHttpMetadataType(tagsEntry, out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var includes = new ResourceIncludes(resourceHashtable);
+
+                NuGetVersion nugetVersion = pkgMetadata["Version"] as NuGetVersion;
+                bool isPrerelease = nugetVersion.IsPrerelease;
+                Version version = nugetVersion.Version;
+                string prereleaseLabel = isPrerelease ? nugetVersion.ToNormalizedString().Split(new char[]{'-'})[1] : String.Empty;
+
+                var additionalMetadataHashtable = new Dictionary<string, string>();
+                additionalMetadataHashtable.Add("NormalizedVersion", nugetVersion.ToNormalizedString());
+
+                ModuleSpecification[] requiredModules = pkgMetadata["RequiredModules"] as ModuleSpecification[];
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: pkgMetadata["Author"] as String,
+                    companyName: pkgMetadata["CompanyName"] as String,
+                    copyright: pkgMetadata["Copyright"] as String,
+                    dependencies: GetDependenciesForPs1(requiredModules),
+                    description: pkgMetadata["Description"] as String,
+                    iconUri: pkgMetadata["IconUri"] as Uri,
+                    includes: includes,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: isPrerelease,
+                    licenseUri: pkgMetadata["LicenseUri"] as Uri,
+                    name: pkgMetadata["Id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,   
+                    prerelease: prereleaseLabel,
+                    projectUri: pkgMetadata["ProjectUri"] as Uri,
+                    publishedDate: null,
+                    releaseNotes: pkgMetadata["ReleaseNotes"] as String,
+                    repository: repository.Name,
+                    repositorySourceLocation: repository.Uri.ToString(),
+                    tags: tagsEntry,
+                    type: ResourceType.Script,
+                    updatedDate: null,
+                    version: version);
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromHashtableForPs1: Could not find expected information from module manifest file hashtable with error: {0}",
+                    ex.Message);
+
+                return false;
+            }
+        }
+
+        public static bool TryConvertFromHashtableForNuspec(
+            Hashtable pkgMetadata,
+            out PSResourceInfo psGetInfo,
+            out string errorMsg,
+            PSRepositoryInfo repository)
+        {
+            errorMsg = String.Empty;
+            psGetInfo = null;
+
+            try
+            {
+                string tagsEntry = pkgMetadata["tags"] as string;
+                string[] tags = tagsEntry.Split(new char[] { ' ' });
+                var typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable();
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
+                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+
+                var additionalMetadataHashtable = new Dictionary<string, string>();
+                string versionEntry = pkgMetadata["version"] as string;
+                NuGetVersion.TryParse(versionEntry, out NuGetVersion nugetVersion);
+                bool isPrerelease = nugetVersion.IsPrerelease;
+                Version version = nugetVersion.Version;
+                string prereleaseLabel = isPrerelease ? nugetVersion.ToNormalizedString().Split(new char[] { '-' })[1] : String.Empty;
+
+                additionalMetadataHashtable.Add("NormalizedVersion", nugetVersion.ToNormalizedString());
+
+                Uri.TryCreate((string)pkgMetadata["licenseUrl"], UriKind.Absolute, out Uri licenseUri);
+                Uri.TryCreate((string)pkgMetadata["projectUrl"], UriKind.Absolute, out Uri projectUri);
+                Uri.TryCreate((string)pkgMetadata["iconUrl"], UriKind.Absolute, out Uri iconUri);
+
+                var includes = new ResourceIncludes(resourceHashtable);
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: pkgMetadata["authors"] as String,
+                    companyName: String.Empty,
+                    copyright: pkgMetadata["copyright"] as String,
+                    dependencies: new Dependency[] { },
+                    description: pkgMetadata["description"] as String,
+                    iconUri: iconUri,
+                    includes: includes,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrelease: isPrerelease,
+                    licenseUri: licenseUri,
+                    name: pkgMetadata["id"] as String,
+                    packageManagementProvider: null,
+                    powershellGetFormatVersion: null,   
+                    prerelease: prereleaseLabel,
+                    projectUri: projectUri,
+                    publishedDate: null,
+                    releaseNotes: String.Empty,
+                    repository: repository.Name,
+                    repositorySourceLocation: repository.Uri.ToString(),
+                    tags: tags,
+                    type: ResourceType.Module,
+                    updatedDate: null,
+                    version: version);
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromHashtableForPsd1: Could not find expected information from module manifest file hashtable with error: {0}",
+                    ex.Message);
+
+                return false;
+            }
+        }
+
         #endregion
 
         #region Private static methods
@@ -1361,6 +1601,112 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation));
 
             return psObject;
+        }
+
+        private static Dependency[] GetDependenciesForPs1(ModuleSpecification[] requiredModules)
+        {
+            List<Dependency> deps = new List<Dependency>();
+            foreach(ModuleSpecification depModule in requiredModules)
+            {
+                // ModuleSpecification has Version, RequiredVersion, MaximumVersion
+                string depName = depModule.Name;
+                VersionRange depVersionRange = VersionRange.All;
+
+                if (depModule.RequiredVersion != null)
+                {
+                    Utils.TryParseVersionOrVersionRange(depModule.RequiredVersion.ToString(), out depVersionRange);
+                }
+                else if (depModule.MaximumVersion != null && depModule.Version != null)
+                {
+                    NuGetVersion.TryParse(depModule.Version.ToString(), out NuGetVersion minVersion);
+                    NuGetVersion.TryParse(depModule.MaximumVersion.ToString(), out NuGetVersion maxVersion);
+                    depVersionRange = new VersionRange(
+                        minVersion: minVersion,
+                        includeMinVersion: true,
+                        maxVersion: maxVersion,
+                        includeMaxVersion: true);
+                }
+                else if (depModule.Version != null)
+                {
+                    NuGetVersion.TryParse(depModule.Version.ToString(), out NuGetVersion minVersion);
+                    depVersionRange = new VersionRange(
+                        minVersion: minVersion,
+                        includeMinVersion: true,
+                        maxVersion: null,
+                        includeMaxVersion: true);
+                }
+                else if (depModule.MaximumVersion != null)
+                {
+                    NuGetVersion.TryParse(depModule.MaximumVersion.ToString(), out NuGetVersion maxVersion);
+                    depVersionRange = new VersionRange(
+                        minVersion: null,
+                        includeMinVersion: true,
+                        maxVersion: maxVersion,
+                        includeMaxVersion: true);
+                }
+
+                deps.Add(new Dependency(depName, depVersionRange));
+            }
+
+            return deps.ToArray();
+        }
+
+        private static Dependency[] GetDependenciesForPsd1(Hashtable[] requiredModules)
+        {
+            List<Dependency> deps = new List<Dependency>();
+            foreach(Hashtable depModule in requiredModules)
+            {
+
+                VersionRange depVersionRange = VersionRange.All;
+                if (!depModule.ContainsKey("ModuleName"))
+                {
+                    continue;
+                }
+
+                String depName = (string) depModule["ModuleName"];
+                if (depModule.ContainsKey("RequiredVersion"))
+                {
+                    // = 2.5.0
+                    Utils.TryParseVersionOrVersionRange((string) depModule["RequiredVersion"], out depVersionRange);
+                }
+                else if (depModule.ContainsKey("ModuleVersion") || depModule.ContainsKey("MaximumVersion"))
+                {
+                    if (depModule.ContainsKey("ModuleVersion") && depModule.ContainsKey("MaximumVersion"))
+                    {
+                        NuGetVersion.TryParse((string) depModule["ModuleVersion"], out NuGetVersion minVersion);
+                        NuGetVersion.TryParse((string) depModule["MaximumVersion"], out NuGetVersion maxVersion);
+                        depVersionRange = new VersionRange(
+                            minVersion: minVersion,
+                            includeMinVersion: true,
+                            maxVersion: maxVersion,
+                            includeMaxVersion: true);
+                    }
+                    else if (depModule.ContainsKey("ModuleVersion"))
+                    {
+                        NuGetVersion.TryParse((string) depModule["ModuleVersion"], out NuGetVersion minVersion);
+                        depVersionRange = new VersionRange(
+                            minVersion: minVersion,
+                            includeMinVersion: true,
+                            maxVersion: null,
+                            includeMaxVersion: true);
+                    }
+                    else
+                    {
+                        // depModule has "MaximumVersion" key
+                        NuGetVersion.TryParse((string) depModule["MaximumVersion"], out NuGetVersion maxVersion);
+                        depVersionRange = new VersionRange(
+                            minVersion: null,
+                            includeMinVersion: true,
+                            maxVersion: maxVersion,
+                            includeMaxVersion: true);
+                    }
+
+                }
+
+                deps.Add(new Dependency(depName, depVersionRange));
+            }
+
+            return deps.ToArray();
         }
 
         #endregion

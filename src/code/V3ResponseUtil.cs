@@ -28,7 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Overriden Methods
 
-        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(string[] responses)
+        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults)
         {
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
@@ -36,7 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // 
             // v3Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
-
+            string[] responses = responseResults.StringResponse;
             foreach (string response in responses)
             {
                 string parseError = String.Empty;
