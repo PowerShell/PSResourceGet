@@ -45,7 +45,7 @@ function CreateTestModule
 '@ | Out-File -FilePath $moduleSrc
 }
 
-Describe "Test CompatPowerShellGet: Publish-PSResource" -tags 'CI'{
+Describe "Test CompatPowerShellGet: Publish-PSResource" {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
 
