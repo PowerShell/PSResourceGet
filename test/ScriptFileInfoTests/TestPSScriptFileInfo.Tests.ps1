@@ -6,7 +6,7 @@ Import-Module $modPath -Force -Verbose
 
 $testDir = (get-item $psscriptroot).parent.FullName
 
-Describe "Test Test-PSScriptFileInfo" -Tags 'CI' {
+Describe "Test Test-PSScriptFileInfo" -tags 'CI' {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDirPaths = @($tmpDir1Path)

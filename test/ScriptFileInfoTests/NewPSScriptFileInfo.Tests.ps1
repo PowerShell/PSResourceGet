@@ -4,7 +4,7 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe "Test New-PSScriptFileInfo" -Tags 'CI' {
+Describe "Test New-PSScriptFileInfo" -tags 'CI' {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDirPaths = @($tmpDir1Path)

@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test Get-PSResource for Module' -Tags 'CI' {
+Describe 'Test Get-PSResource for Module' -tags 'CI' {
 
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName

@@ -5,7 +5,7 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
 Import-Module $modPath -Force -Verbose
 
-Describe "Test Register-PSResourceRepository" -Tags 'CI' {
+Describe "Test Register-PSResourceRepository" -tags 'CI' {
     BeforeEach {
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryUri = Get-PSGalleryLocation
