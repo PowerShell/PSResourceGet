@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -404,4 +404,4 @@ Describe 'Test Update-ModuleManifest' {
         $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
     }
 }
-#>
+
