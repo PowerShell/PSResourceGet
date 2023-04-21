@@ -14,12 +14,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     public enum FindResponseType
     {
-        none,
-        responseString,
-        responseHashtable
+        None,
+        ResponseString,
+        ResponseHashtable
     }
 
-    public class FindResults
+    public sealed class FindResults
     {
         public string[] StringResponse { get; private set; }
         public Hashtable[] HashtableResponse { get; private set; }
@@ -29,7 +29,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {
             this.StringResponse = Utils.EmptyStrArray;
             this.HashtableResponse = new Hashtable[]{};
-            this.ResponseType = FindResponseType.none;
+            this.ResponseType = FindResponseType.None;
         }
 
         public FindResults(string[] stringResponse, Hashtable[] hashtableResponse, FindResponseType responseType)

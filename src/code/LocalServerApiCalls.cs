@@ -27,7 +27,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public override PSRepositoryInfo repository { get; set; }
         public override HttpClient s_client { get; set; }
-        public FindResponseType localServerFindResponseType = FindResponseType.responseHashtable;
+        public FindResponseType localServerFindResponseType = FindResponseType.ResponseHashtable;
         public readonly string fileTypeKey = "filetype";
 
         #endregion

@@ -33,7 +33,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override PSRepositoryInfo repository { get; set; }
         public override HttpClient s_client { get; set; }
         private static readonly string select = "$select=Id,Version,NormalizedVersion,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
-        public FindResponseType v2FindResponseType = FindResponseType.responseString;
+        public FindResponseType v2FindResponseType = FindResponseType.ResponseString;
 
         #endregion
 

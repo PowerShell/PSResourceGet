@@ -21,7 +21,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
         public override PSRepositoryInfo repository { get; set; }
         public override HttpClient s_client { get; set; }
-        public FindResponseType v3FindResponseType = FindResponseType.responseHashtable;
+        public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
 
         private static readonly string resourcesName = "resources";
         private static readonly string packageBaseAddressName = "PackageBaseAddress/3.0.0";
