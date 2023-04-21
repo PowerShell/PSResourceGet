@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-
+<#
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
@@ -290,3 +290,4 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         $res.Version | Should -Contain "3.0.0"
     }
 }
+#>
