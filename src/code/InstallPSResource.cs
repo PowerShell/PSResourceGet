@@ -148,7 +148,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Installs resources based on input from a .psd1 (hashtable) or .json file.
         /// </summary>
-        [Parameter(ParameterSetName = RequiredResourceFileParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = RequiredResourceFileParameterSet)]
         [ValidateNotNullOrEmpty]
         public String RequiredResourceFile
         {
@@ -198,7 +198,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         ///  Installs resources in a hashtable or JSON string format.
         /// </summary>
-        [Parameter(ParameterSetName = RequiredResourceParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = RequiredResourceParameterSet)]
         public Object RequiredResource  // takes either string (json) or hashtable
         {
             get { return _requiredResourceHash != null ? _requiredResourceHash : (Object)_requiredResourceJson; }
