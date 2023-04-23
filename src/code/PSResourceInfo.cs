@@ -574,7 +574,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static bool TryConvertFromXml(
             XmlNode entry,
             out PSResourceInfo psGetInfo,
-            string repositoryName,
+            PSRepositoryInfo repository,
             out string errorMsg)
         {
             psGetInfo = null;
@@ -672,8 +672,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     projectUri: metadata["ProjectUrl"] as Uri,
                     publishedDate: metadata["Published"] as DateTime?,
                     releaseNotes: metadata["ReleaseNotes"] as String,
-                    repository: repositoryName,
-                    repositorySourceLocation: null,
+                    repository: repository.Name,
+                    repositorySourceLocation: repository.Uri.ToString(),
                     tags: metadata["Tags"] as string[],
                     type: typeInfo,
                     updatedDate: null,
@@ -699,7 +699,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public static bool TryConvertFromJson(
           JsonDocument pkgJson,
           out PSResourceInfo psGetInfo,
-          string repositoryName,
+          PSRepositoryInfo repository,
           out string errorMsg)
         {
             psGetInfo = null;
@@ -831,8 +831,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     projectUri: metadata["ProjectUrl"] as Uri,
                     publishedDate: metadata["PublishedDate"] as DateTime?,
                     releaseNotes: metadata["ReleaseNotes"] as String,
-                    repository: repositoryName,
-                    repositorySourceLocation: null,
+                    repository: repository.Name,
+                    repositorySourceLocation: repository.Uri.ToString(),
                     tags: metadata["Tags"] as string[],
                     type: ResourceType.None,
                     updatedDate: null,
