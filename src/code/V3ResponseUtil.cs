@@ -55,7 +55,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
                 }
 
-                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository, out string errorMsg))
                 {
                     yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                 }

@@ -49,7 +49,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach (var element in elemList)
                 {
-                    if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                    if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository, out string errorMsg))
                     {
                         yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
