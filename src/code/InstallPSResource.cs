@@ -35,6 +35,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version or version range of the package to be installed
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
