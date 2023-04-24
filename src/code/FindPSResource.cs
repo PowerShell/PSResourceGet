@@ -71,14 +71,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a list of command names that searched module packages will provide. Wildcards are supported.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = CommandNameParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = CommandNameParameterSet, HelpMessage = "Command name(s) to search for in packages.")]
         [ValidateNotNullOrEmpty]
         public string[] CommandName { get; set; }
 
         /// <summary>
         /// Specifies a list of dsc resource names that searched module packages will provide.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = DscResourceNameParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = DscResourceNameParameterSet, HelpMessage = "DSC Resource name(s) to search for in packages.")]
         [ValidateNotNullOrEmpty]
         public string[] DscResourceName { get; set; }
 

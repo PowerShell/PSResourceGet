@@ -22,7 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the path and file name of the module manifest.
         /// </summary>
-        [Parameter (Position = 0, Mandatory = true)]
+        [Parameter (Position = 0, Mandatory = true, HelpMessage = "Path (including file name) to the module manifest (.psd1 file) to update.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 

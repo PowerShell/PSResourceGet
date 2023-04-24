@@ -21,7 +21,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The path the .ps1 script info file will be created at.
         /// </summary>
-        [Parameter(Position = 0, Mandatory = true)]
+        [Parameter(Position = 0, Mandatory = true, HelpMessage = "Path (including file name) to the script file (.ps1 file) to create.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -42,7 +42,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The description of the script.
         /// </summary>
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = true, HelpMessage = "Description for the script.")]
         [ValidateNotNullOrEmpty()]
         public string Description { get; set; }
 
