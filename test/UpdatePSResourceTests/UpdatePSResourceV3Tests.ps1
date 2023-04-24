@@ -53,29 +53,25 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -BeTrue
     }
 
-    $testCases2 = @{Version="[3.0.0]";           ExpectedVersions=@("1.0.0", "3.0.0"); Reason="validate version, exact match"},
-                  @{Version="3.0.0";             ExpectedVersions=@("1.0.0", "3.0.0"); Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[3.0.0, 5.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0"); Reason="validate version, exact range inclusive"},
-                  @{Version="(3.0.0, 6.0.0)";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0"); Reason="validate version, exact range exclusive"},
-                  @{Version="(3.0.0,)";          ExpectedVersions=@("1.0.0", "5.0.0"); Reason="validate version, minimum version exclusive"},
-                  @{Version="[3.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0"); Reason="validate version, minimum version inclusive"},
-                  @{Version="(,5.0.0)";          ExpectedVersions=@("1.0.0", "3.0.0"); Reason="validate version, maximum version exclusive"},
-                  @{Version="(,5.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0"); Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0, 5.0.0)";  ExpectedVersions=@("1.0.0", "3.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0, 3.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version="[3.0.0.0]";           UpdatedVersion="3.0.0"; Reason="validate version, exact match"},
+                  @{Version="3.0.0.0";             UpdatedVersion="3.0.0"; Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[3.0.0.0, 5.0.0.0]";  UpdatedVersion="5.0.0"; Reason="validate version, exact range inclusive"},
+                  @{Version="(3.0.0.0, 6.0.0.0)";  UpdatedVersion="5.0.0"; Reason="validate version, exact range exclusive"},
+                  @{Version="(3.0.0.0,)";          UpdatedVersion="5.0.0"; Reason="validate version, minimum version exclusive"},
+                  @{Version="[3.0.0.0,)";          UpdatedVersion="5.0.0"; Reason="validate version, minimum version inclusive"},
+                  @{Version="(,5.0.0.0)";          UpdatedVersion="3.0.0"; Reason="validate version, maximum version exclusive"},
+                  @{Version="(,5.0.0.0]";          UpdatedVersion="5.0.0"; Reason="validate version, maximum version inclusive"},
+                  @{Version="[1.0.0.0, 5.0.0.0)";  UpdatedVersion="3.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(1.0.0.0, 3.0.0.0]";  UpdatedVersion="3.0.0"; Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "Update resource when given Name to <Reason> <Version>" -TestCases $testCases2{
-        param($Version, $ExpectedVersions)
+        param($Version, $UpdatedVersion)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName -TrustRepository
+        $res = Update-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName -TrustRepository -PassThru -SkipDependencyCheck
 
-        $res = Get-PSResource -Name $testModuleName
-
-        foreach ($item in $res) {
-            $item.Name | Should -Be $testModuleName
-            $ExpectedVersions | Should -Contain $item.Version
-        }
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be $UpdatedVersion
     }
 
     $testCases = @(

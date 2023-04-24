@@ -384,7 +384,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // versionRange: [1.8.0, 2.1.0] , repoVersion: 2.0.0, installedVersion: 1.6.0 
                 // versionRange: [, 2.1.0]      , repoVersion: 2.0.0, installedVersion: 1.5.0 (installedVersion satisfies requirement, but there's later version)
                 if (((versionRange == null || versionRange == VersionRange.All) && repoVersion > installedVersion) ||
-                    (versionRange != null && !versionRange.Satisfies(installedVersion)) ||
                     versionRange != null && repoVersion > installedVersion && versionRange.Satisfies(repoVersion))
                 {
                     namesToUpdate.Add(repositoryPackage.Name);
