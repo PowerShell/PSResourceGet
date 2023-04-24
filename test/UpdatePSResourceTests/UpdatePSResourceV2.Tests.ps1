@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -378,4 +378,3 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource" 
     }
 }
-#>
