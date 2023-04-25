@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -28,7 +28,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Update resource installed given Name parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        
+
         Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         $res = Get-PSResource -Name $testModuleName
 
@@ -156,7 +156,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -Be $true
     }
 
-    # Windows only 
+    # Windows only
     It "update resource under CurrentUser scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
@@ -178,7 +178,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
         $isPkgUpdated | Should -Be $true
     }
- 
+
     # Windows only
     It "update resource under AllUsers scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
@@ -331,7 +331,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     # Should update successfully
     It "Update module with catalog file using publisher validation" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository -verbose
-        Update-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository 
+        Update-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
 
         $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
         $res1.Name | Should -Be $PackageManagement
@@ -344,11 +344,11 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     #     Install-PSResource -Name $PackageManagement -Version "1.4.2" -Reinstall -Repository $PSGalleryName -TrustRepository
     #     Update-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
     #     $err.Count | Should -Not -Be 0
-    #     $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource" 
+    #     $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     # }
 
     # Update to module 1.4.7 (is authenticode signed and has NO catalog file)
-    # Should update successfully 
+    # Should update successfully
     It "Install module with no catalog file" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $PackageManagement -Version "1.4.7" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
@@ -359,7 +359,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     # Update script that is signed
-    # Should update successfully 
+    # Should update successfully
     It "Update script that is authenticode signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "Install-VSCode" -Version "1.4.1" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name "Install-VSCode" -Version "1.4.2" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
@@ -375,7 +375,6 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Install-PSResource -Name "TestTestScript" -Version "1.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     }
 }
-#>
