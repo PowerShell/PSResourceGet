@@ -146,12 +146,12 @@ function Invoke-ModuleTests {
     Write-Verbose -Verbose -Message "Running Pester tests with command: $command using pwsh.exe path: $pwshExePath"
 
     try {
-        $output = & $pwshExePath -NoProfile -NoLogo -Command $command
+        & $pwshExePath -NoProfile -NoLogo -Command $command
     }
     catch {
         Write-Error -Message "Error invoking module Pester tests."
     }
-    $output | Foreach-Object { Write-Warning -Message "$_" }
+
     $testResultsFilePath = Join-Path -Path $testPath -ChildPath $testResultFileName
 
     # Note: This is commented out temporarily as code for reporting test results via result.pester.xml is not working
