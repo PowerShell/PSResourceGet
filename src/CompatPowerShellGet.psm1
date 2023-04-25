@@ -2542,6 +2542,199 @@ end
 
 }
 
+
+function Test-ScriptFileInfo {
+[CmdletBinding(HelpUri='https://go.microsoft.com/fwlink/?LinkID=398574')]
+param(
+    [Parameter(ParameterSetName='PathParameterSet', Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    ${Path},
+
+    [Parameter(ParameterSetName='LiteralPathParameterSet', Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+    [ValidateNotNullOrEmpty()]
+    [Alias('PSPath')]
+    [string]
+    ${LiteralPath})
+
+begin
+{
+    Write-Warning -Message "The cmdlet 'Test-ScriptFileInfo' is deprecated, please use 'Test-PSScriptFileInfo'."
+    try {
+        $outBuffer = $null
+        if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
+        {
+            $PSBoundParameters['OutBuffer'] = 1
+        }
+
+    # PARAMETER MAP
+    # Parameter Deletions (unsupported in v3)
+    if ( $PSBoundParameters['LiteralPath'] )      { $null = $PSBoundParameters.Remove('LiteralPath'); $PSBoundParameters['Path'] = $LiteralPath }
+
+    # END PARAMETER MAP
+        $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Test-PSScriptFileInfo', [System.Management.Automation.CommandTypes]::Cmdlet)
+        $scriptCmd = {& $wrappedCmd @PSBoundParameters }
+
+        $steppablePipeline = $scriptCmd.GetSteppablePipeline()
+        $steppablePipeline.Begin($PSCmdlet)
+    } catch {
+        throw
+    }
+}
+
+process
+{
+    try {
+        $steppablePipeline.Process($_)
+    } catch {
+        throw
+    }
+}
+
+end
+{
+    try {
+        $steppablePipeline.End()
+    } catch {
+        throw
+    }
+}
+<#
+
+.ForwardHelpTargetName Test-ScriptFileInfo
+.ForwardHelpCategory Function
+
+#>
+
+}
+
+
+function New-ScriptFileInfo {
+[CmdletBinding(HelpUri='https://go.microsoft.com/fwlink/?LinkID=398574')]
+param(
+    [Parameter(Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    ${Path},
+
+    [ValidateNotNullOrEmpty()]
+    [string]
+    ${Version},
+    
+    [ValidateNotNullOrEmpty()]
+    [string]
+    ${Author},
+    
+    [ValidateNotNullOrEmpty()]
+    [string]
+    ${Description},
+
+    [ValidateNotNullOrEmpty()]
+    [Guid]
+    ${Guid},
+
+    [string]
+    ${CompanyName},
+
+    [string]
+    ${Copyright},
+    
+    [Object[]]
+    ${RequiredModules},
+    
+    [String[]]
+    ${ExternalModuleDependencies},
+
+    [String[]]
+    ${RequiredScripts},
+    
+    [String[]]
+    ${ExternalScriptDependencies},
+
+    [String[]]
+    ${Tags},
+    
+    [Uri]
+    ${ProjectUri},
+ 
+    [Uri]
+    ${LicenseUri},
+ 
+    [Uri]
+    ${IconUri},
+    
+    [String[]]
+    ${ReleaseNotes},
+
+    [string]
+    ${PrivateData},
+
+    [switch]
+    ${PassThru},
+
+    [switch]
+    ${Force},
+
+    [Alias('wi')]
+    [switch]
+    ${WhatIf},
+    
+    [Alias('cf')]
+    [switch]
+    ${Confirm})
+
+begin
+{
+    Write-Warning -Message "The cmdlet 'New-ScriptFileInfo' is deprecated, please use 'New-PSScriptFileInfo'."
+    try {
+        $outBuffer = $null
+        if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
+        {
+            $PSBoundParameters['OutBuffer'] = 1
+        }
+
+    # PARAMETER MAP
+    # Parameter Deletions (unsupported in v3)
+    if ( $PSBoundParameters['LiteralPath'] )      { $null = $PSBoundParameters.Remove('LiteralPath'); $PSBoundParameters['Path'] = $LiteralPath }
+
+    # END PARAMETER MAP
+        $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Test-PSScriptFileInfo', [System.Management.Automation.CommandTypes]::Cmdlet)
+        $scriptCmd = {& $wrappedCmd @PSBoundParameters }
+
+        $steppablePipeline = $scriptCmd.GetSteppablePipeline()
+        $steppablePipeline.Begin($PSCmdlet)
+    } catch {
+        throw
+    }
+}
+
+process
+{
+    try {
+        $steppablePipeline.Process($_)
+    } catch {
+        throw
+    }
+}
+
+end
+{
+    try {
+        $steppablePipeline.End()
+    } catch {
+        throw
+    }
+}
+<#
+
+.ForwardHelpTargetName Test-ScriptFileInfo
+.ForwardHelpCategory Function
+
+#>
+
+}
+
+
 $functionsToExport = @(
     "Find-Command",
     "Find-DscResource",
@@ -2559,6 +2752,7 @@ $functionsToExport = @(
     "Save-Module",
     "Save-Script",
     "Set-PSRepository",
+    "Test-ScriptFileInfo",
     "Uninstall-Module",
     "Uninstall-Script",
     "Unregister-PSRepository",
