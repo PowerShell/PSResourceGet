@@ -22,7 +22,7 @@
         'Register-PSResourceRepository',
         'Save-PSResource',
         'Set-PSResourceRepository',
-        'New-PSScriptFileInfo',
+        'New-PSScriptFile',
         'Test-PSScriptFileInfo',
         'Update-PSScriptFileInfo',
         'Publish-PSResource',

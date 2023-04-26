@@ -16,10 +16,10 @@ Describe "Test Test-PSScriptFileInfo" -Tags 'CI' {
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
     }
 
-    It "determine script file with minimal required fields as valid" {    
+    It "determine script file with minimal required fields as valid" {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $scriptDescription
+        New-PSScriptFile -Path $scriptFilePath -Description $scriptDescription
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
@@ -62,13 +62,13 @@ Describe "Test Test-PSScriptFileInfo" -Tags 'CI' {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true        
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
     It "determine script without empty lines between comment blocks is valid" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true        
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 }

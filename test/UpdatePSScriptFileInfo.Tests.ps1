@@ -22,7 +22,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $script:psScriptInfoName = "test_script"
         $scriptDescription = "this is a test script"
         $script:testScriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "$script:psScriptInfoName.ps1"
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -Description $scriptDescription
+        New-PSScriptFile -Path $script:testScriptFilePath -Description $scriptDescription
     }
 
     AfterEach {
@@ -37,8 +37,8 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "$script:psScriptInfoName.ps1"
         $oldDescription = "Old description for test script"
         $newDescription = "New description for test script"
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $oldDescription
-        
+        New-PSScriptFile -Path $scriptFilePath -Description $oldDescription
+
         Update-PSScriptFileInfo -Path $scriptFilePath -Description $newDescription
         Test-PSScriptFileInfo -Path $scriptFilePath | Should -BeTrue
 
@@ -60,7 +60,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $relativeCurrentPath = Get-Location
         $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "$script:psScriptInfoName.ps1"
 
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $description -Version $version -Author $author -ProjectUri $projectUri
+        New-PSScriptFile -Path $scriptFilePath -Description $description -Version $version -Author $author -ProjectUri $projectUri
         Update-PSScriptFileInfo -Path $scriptFilePath -Author $newAuthor
 
         Test-PSScriptFileInfo -Path $scriptFilePath | Should -BeTrue
@@ -81,7 +81,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         Remove-Item -Path $scriptFilePath -Force
     }
 
-    It "update script file Author property" {    
+    It "update script file Author property" {
         $author = "New Author"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Author $author
         Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
@@ -174,7 +174,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
         $results.Contains($externalModuleDep1) | Should -BeTrue
         $results.Contains($externalModuleDep2) | Should -BeTrue
-        $results -like "*.EXTERNALMODULEDEPENDENCIES*$externalModuleDep1*$externalModuleDep2*" | Should -BeTrue    
+        $results -like "*.EXTERNALMODULEDEPENDENCIES*$externalModuleDep1*$externalModuleDep2*" | Should -BeTrue
     }
 
     It "update script file ExternalScriptDependencies property" {
@@ -250,7 +250,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $hashtable2 = @{ModuleName = "RequiredModule2"; ModuleVersion = "1.0.0.0"}
         $hashtable3 = @{ModuleName = "RequiredModule3"; RequiredVersion = "2.5.0.0"}
         $hashtable4 = @{ModuleName = "RequiredModule4"; ModuleVersion = "1.1.0.0"; MaximumVersion = "2.0.0.0"}
-        $requiredModules = $hashtable1, $hashtable2, $hashtable3, $hashtable4 
+        $requiredModules = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -RequiredModules $requiredModules
         Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
