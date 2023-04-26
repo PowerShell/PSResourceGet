@@ -97,8 +97,8 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
     It "find resource and its dependency resources with IncludeDependencies parameter" {
         # find with dependencies is not yet supported for V3, so this should only install parent package
         $pkg = Find-PSResource -Name "TestModuleWithDependencyE" -IncludeDependencies -Repository $NuGetGalleryName
-        $pkg | Should -HaveCount 1
         $pkg.Name | Should -Be "TestModuleWithDependencyE"
+        $pkg | Should -HaveCount 1
     }
 
     # It "find resources only with Tag parameter" {

@@ -107,8 +107,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     It "find resource and its dependency resources with IncludeDependencies parameter" {
         # FindName() with deps
         $resWithoutDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -Repository $PSGalleryName
-        $resWithoutDependencies | Should -HaveCount 2
         $resWithoutDependencies.Name | Should -Be "TestModuleWithDependencyE"
+        $resWithoutDependencies | Should -HaveCount 1
 
         # TestModuleWithDependencyE has the following dependencies:
         # TestModuleWithDependencyC <= 1.0.0.0
@@ -116,7 +116,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         #    TestModuleWithDependencyD <= 1.0.0.0
 
         $resWithDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -IncludeDependencies -Repository $PSGalleryName
-        $resWithDependencies.Count | Should -BeGreaterThan $resWithoutDependencies.Count
+        $resWithDependencies | Should -HaveCount 4
 
         $foundParentPkgE = $false
         $foundDepB = $false
