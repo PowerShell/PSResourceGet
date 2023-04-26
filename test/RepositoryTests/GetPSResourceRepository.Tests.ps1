@@ -68,7 +68,7 @@ Describe "Test Get-PSResourceRepository" -tags 'CI' {
         $nonRegisteredRepoName = "nonRegisteredRepository"
         $res = Get-PSResourceRepository -Name $nonRegisteredRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
     }
 
@@ -79,7 +79,7 @@ Describe "Test Get-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
 
         $res = Get-PSResourceRepository -Name $TestRepoName1,$nonRegisteredRepoName,$TestRepoName2 -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
 
         # should have successfully got the other valid/registered repositories with no error
@@ -92,7 +92,7 @@ Describe "Test Get-PSResourceRepository" -tags 'CI' {
         Get-NewPSResourceRepositoryFileWithCredentialInfo
 
         $res = Get-PSResourceRepository -Name "localtestrepo*" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
 
         # should have successfully got the other valid/registered repositories with no error

@@ -226,7 +226,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
 
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUriCredentialInfoForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
@@ -250,7 +250,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
 
         $ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 
         $res = Get-PSResourceRepository -Name $TestRepoName2
@@ -275,7 +275,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
 
         $ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 
         $res = Get-PSResourceRepository -Name $TestRepoName2
@@ -300,7 +300,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
 
         $ErrorId = "NullUriForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 
         $res = Get-PSResourceRepository -Name $TestRepoName2
@@ -325,7 +325,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
 
         $ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 
         $res = Get-PSResourceRepository -Name $TestRepoName2

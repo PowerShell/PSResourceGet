@@ -39,7 +39,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
         Install-PSResource -Name $Name -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 
@@ -68,7 +68,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         Install-PSResource -Name "NonExistantModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-PSResource "NonExistantModule"
         $pkg.Name | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
@@ -467,7 +467,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     # Should FAIL to install the  module
     It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
@@ -491,7 +491,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     # Should throw
     It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 }

@@ -36,7 +36,7 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
         $res.Count | Should -BeGreaterThan 1   
         foreach ($pkg in $res)
         {
-            $pkg.Version | Should -BeGreaterOrEqual [System.Version] "0.0.1"
+            $pkg.Version | Should -BeGreaterOrEqual ([System.Version] "0.0.1")
         }
     }
 
@@ -45,20 +45,20 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
         $res.Count | Should -BeGreaterOrEqual 1     
         foreach ($pkg in $res)
         {
-            $pkg.Version | Should -BeGreaterThanEqual [System.Version] "1.0.0"
+            $pkg.Version | Should -BeGreaterThanEqual ([System.Version] "1.0.0")
         }    
     }
 
     It "Get-InstalledModule with MinimumVersion not available" {        
         $res = Get-InstalledModule -Name $testModuleName -MinimumVersion "1.0.0"
-        $res.Count | Should -BeExactly 0    
+        $res | Should -HaveCount 0    
     }
 
     It "Get-InstalledModule with min/max range" {
         $res = Get-InstalledModule -Name $testModuleName -MinimumVersion "0.0.15" -MaximumVersion "0.0.25" 
         foreach ($pkg in $res)
         {
-            $pkg.Version | Should -BeGreaterOrEqual [System.Version] "0.0.2"
+            $pkg.Version | Should -BeGreaterOrEqual ([System.Version] "0.0.2")
         }       
     }
 

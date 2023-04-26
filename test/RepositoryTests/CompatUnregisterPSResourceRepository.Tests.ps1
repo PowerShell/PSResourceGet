@@ -55,7 +55,7 @@ Describe "Test CompatPowerShellGet: Unregister-PSResourceRepository" -tags 'CI' 
         Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
         Register-PSResourceRepository -Name "testRepository2" -Uri $tmpDir2Path
         Unregister-PSRepository -Name "testRepository*" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "nameContainsWildCardError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
@@ -63,7 +63,7 @@ Describe "Test CompatPowerShellGet: Unregister-PSResourceRepository" -tags 'CI' 
         $nonRegisteredRepoName = "nonRegisteredRepository"
         Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
         Unregister-PSRepository -Name $nonRegisteredRepoName,"testRepository" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
@@ -80,7 +80,7 @@ Describe "Test CompatPowerShellGet: Unregister-PSResourceRepository" -tags 'CI' 
 
         $res = Get-PSResourceRepository -Name $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
     }
 }

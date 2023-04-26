@@ -42,7 +42,7 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         Find-DscResource -Name $DscResourceName | Save-Module -Path $SaveDir
 
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
-        $pkgDirs.Count | Should -Be 1
+        $pkgDirs | Should -HaveCount 1
     }
 
     It "Save-Module with Find-Command output" {
@@ -54,7 +54,7 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         Find-Command -Name $cmdName | Save-Module -Path $SaveDir
 
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName }
-        $pkgDirs.Count | Should -Be 1
+        $pkgDirs | Should -HaveCount 1
     }
 
     It "Save-Module with dependencies" {
@@ -75,30 +75,30 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         Find-PSResource -Name $testModuleName2 -Repository PSGallery | Save-Module -Path $SaveDir
 
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $testModuleName2 }
-        $pkgDirs.Count | Should -Be 1
+        $pkgDirs | Should -HaveCount 1
     }
 
     It "Save specific module resource by name" {
         Save-Module -Name $testModuleName2 -Repository $PSGalleryName -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName2
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
+        (Get-ChildItem $pkgDir.FullName).Count | Should -HaveCount 1
     }
 
     It "Save specific script resource by name" {
         Save-Script -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "$testScriptName.ps1"
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
+        (Get-ChildItem $pkgDir.FullName).Count | Should -HaveCount 1
     }
 
     It "Save multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
         Save-Module -Name $pkgNames -Repository $PSGalleryName -Path $SaveDir
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $testModuleName -or $_.Name -eq $testModuleName2 }
-        $pkgDirs.Count | Should -Be 2
-        (Get-ChildItem $pkgDirs[0].FullName).Count | Should -Be 1
-        (Get-ChildItem $pkgDirs[1].FullName).Count | Should -Be 1
+        $pkgDirs | Should -HaveCount 2
+        (Get-ChildItem $pkgDirs[0].FullName) | Should -HaveCount 1
+        (Get-ChildItem $pkgDirs[1].FullName) | Should -HaveCount 1
     }
 
     It "Should not save resource given nonexistant name" {
@@ -109,7 +109,7 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
 
     It "Not Save module with Name containing wildcard" {
         Save-Module -Name "TestModule*" -Repository $PSGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "NameContainsWildcard,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
@@ -142,14 +142,14 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
     It "Save a module with a dependency and skip saving the dependency" {
         Save-Module -Name "TestModuleWithDependencyE" -RequiredVersion "1.0.0.0" -Repository $PSGalleryName -Path $SaveDir
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "TestModuleWithDependencyE"}
-        $pkgDirs.Count | Should -Be 1
-        (Get-ChildItem $pkgDirs[0].FullName).Count | Should -Be 1
+        $pkgDirs | Should -HaveCount 1
+        (Get-ChildItem $pkgDirs[0].FullName) | Should -HaveCount 1
     }
 
     It "Save PSResourceInfo object piped in for prerelease version object" -Pending {
         Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Save-Module -Path $SaveDir
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
+        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1   
     }
 }

@@ -55,7 +55,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module -Name "testmodule9*" -Repository PSGallery -ErrorAction SilentlyContinue
 
         $res = Get-PSResource -Name $testModuleName2
-        $res.Count | Should -BeExactly 0   
+        $res | Should -HaveCount 0   
     }
 
     It "Install-Module with version params" {
@@ -77,17 +77,17 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module "newTestModule", "testmodule99" -RequiredVersion 0.0.1 -Repository PSGallery
 
         $res = Get-PSResource "newTestModule", "testmodule99"
-        $res.Count | Should -BeExactly 2   
+        $res | Should -HaveCount 2   
     }
 
     It "Install-Multiple names with MinimumVersion" {
         Install-Module "TestModuleWithDependencyB", "TestModuleWithDependencyD" -MinimumVersion 1.0 -Repository PSGallery
 
         $res = Get-PSResource "TestModuleWithDependencyB", "TestModuleWithDependencyD"
-        $res.Count | Should -BeExactly 2 
+        $res | Should -HaveCount 2 
         foreach ($pkg in $res)
         {
-            $pkg.Version | Should -BeGreaterOrEqual [System.Version] "1.0"
+            $pkg.Version | Should -BeGreaterOrEqual ([System.Version] "1.0")
         }
     }
 
@@ -95,16 +95,16 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module $testModuleName2 -MinimumVersion 0.0.3 -Repository PSGallery
         
         $res = Get-PSResource $testModuleName2
-        $res.Count | Should -BeExactly 1   
-        $res.Version | Should -BeGreaterOrEqual [System.Version]"0.0.3"
+        $res | Should -HaveCount 1   
+        $res.Version | Should -BeGreaterOrEqual ([System.Version]"0.0.3")
     }
 
     It "Install-Module with RequiredVersion" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.3 -Repository PSGallery
 
         $res = Get-PSResource $testModuleName2
-        $res.Count | Should -BeExactly 1  
-        $res.Version | Should -Be [System.Version]"0.0.3" 
+        $res | Should -HaveCount 1  
+        $res.Version | Should -Be ([System.Version]"0.0.3")
     }
 
     It "Install-Module should fail if RequiredVersion is already installed" {
@@ -124,37 +124,37 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     It "Install-Module with -Force" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Repository PSGallery
         Install-Module $testModuleName2 -RequiredVersion 0.0.93 -Force -Repository PSGallery -WarningVariable wv
-        $wv.Count | Should -Be 1
+        $wv | Should -HaveCount 1
     }
 
     It "Install-Module same version with -Force" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Repository PSGallery
         Install-Module $testModuleName2 -RequiredVersion 0.0.93 -Force -Repository PSGallery -WarningVariable wv
-        $wv.Count | Should -Be 1
+        $wv | Should -HaveCount 1
     }
 
     It "Install-Module with nonexistent module" {
         Install-Module NonExistentModule -Repository PSGallery -ErrorVariable ev -ErrorAction SilentlyContinue
 
-        $ev.Count | Should -Be 1
+        $ev | Should -HaveCount 1
     }
 
     It "Install-Module with PipelineInput" {
         Find-Module $testModuleName2 -Repository PSGallery | Install-Module
         $res = Get-PSResource $testModuleName2
-        $res.Count | Should -BeExactly 1   
+        $res | Should -HaveCount 1   
     }
 
     It "Install-Module with PipelineInput" {
         Find-Module $testModuleName2 -Repository PSGallery | Install-Module
         $res = Get-PSResource $testModuleName2
-        $res.Count | Should -BeExactly 1  
+        $res | Should -HaveCount 1  
     }
 
     It "Install-Module multiple modules with PipelineInput" {
         Find-Module $testModuleName2, "newTestModule" -Repository PSGallery | Install-Module
         $res = Get-PSResource $testModuleName2 , "newTestModule"
-        $res.Count | Should -BeExactly 2   
+        $res | Should -HaveCount 2   
     }
 
     It "Install-Module multiple module using InputObjectParam" -Pending {
@@ -205,7 +205,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
         Install-Module -Name $Name -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 
@@ -234,7 +234,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module -Name "NonExistantModule" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-PSResource "NonExistantModule"
         $pkg.Name | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
@@ -393,7 +393,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     # Should FAIL to install the  module
 #    It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
 #        Install-Module -Name $testModuleName -RequiredVersion "5.0.0" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-#        $err.Count | Should -Not -Be 0
+#        $err | Should -BeGreaterThan 0
 #        $err[0].FullyQualifiedErrorId | Should -Be "InstallDependencyPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
 #    }
 
@@ -418,7 +418,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     # Should throw
     It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
         Install-Script -Name "TestTestScript" -RequiredVersion "1.3.1.1" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
     #>

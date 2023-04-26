@@ -290,7 +290,7 @@ Describe "Test CompatPowerShellGet: Publish-PSResource" -tags 'CI' {
 
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-Script -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingAuthor,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
@@ -302,11 +302,11 @@ Describe "Test CompatPowerShellGet: Publish-PSResource" -tags 'CI' {
 
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-Script -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingVersion,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPkgs = Get-ChildItem -Path $script:repositoryPath -Filter *.nupkg
-        $publishedPkgs.Count | Should -Be 0
+        $publishedPkgs | Should -HaveCount 0
     }
 
 
@@ -316,7 +316,7 @@ Describe "Test CompatPowerShellGet: Publish-PSResource" -tags 'CI' {
 
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-Script -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingGuid,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
@@ -329,7 +329,7 @@ Describe "Test CompatPowerShellGet: Publish-PSResource" -tags 'CI' {
 
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-Script -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptInfoMissingDescription,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
@@ -343,7 +343,7 @@ Describe "Test CompatPowerShellGet: Publish-PSResource" -tags 'CI' {
 
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-Script -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "missingHelpInfoCommentError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
