@@ -194,4 +194,3 @@ Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
         $resModuleType.Replace(",", " ").Split() | Should -Contain "Module"
     }
 }
-    

@@ -404,4 +404,3 @@ Describe 'Test Update-ModuleManifest' {
         $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
     }
 }
-
