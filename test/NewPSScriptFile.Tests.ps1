@@ -33,7 +33,7 @@ Describe "Test New-PSScriptFile" -Tags 'CI' {
         $description = "Test description"
         New-PSScriptFile -Path $scriptFilePath -Description $description
 
-        Test-PSScriptFileInfo -Path $scriptFilePath | Should -BeTrue
+        Test-PSScriptFile -Path $scriptFilePath | Should -BeTrue
         Remove-Item -Path $scriptFilePath
     }
 
