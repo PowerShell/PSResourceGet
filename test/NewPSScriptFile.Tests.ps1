@@ -23,7 +23,7 @@ Describe "Test New-PSScriptFile" -Tags 'CI' {
     It "Create .ps1 file with minimal required fields" {
         $description = "Test description"
         New-PSScriptFile -Path  $script:testScriptFilePath -Description $description
-        Test-PSScriptFileInfo -Path $script:testScriptFilePath | Should -BeTrue
+        Test-PSScriptFile -Path $script:testScriptFilePath | Should -BeTrue
     }
 
     It "Create .ps1 file with relative path" {

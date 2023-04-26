@@ -23,7 +23,7 @@
         'Save-PSResource',
         'Set-PSResourceRepository',
         'New-PSScriptFile',
-        'Test-PSScriptFileInfo',
+        'Test-PSScriptFile',
         'Update-PSScriptFileInfo',
         'Publish-PSResource',
         'Uninstall-PSResource',
