@@ -13,7 +13,7 @@ using Dbg = System.Diagnostics.Debug;
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
     /// <summary>
-    /// Get helper class provides the core functionality for Get-PSResource.
+    /// Get helper class provides the core functionality for Get-InstalledPSResource.
     /// </summary>
     internal class GetHelper
     {
@@ -38,7 +38,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Public methods
 
         /// <summary>
-        /// Retrieves package paths from provided search paths for installed packages 
+        /// Retrieves package paths from provided search paths for installed packages
         /// by name *and* version.
         /// </summary>
         public IEnumerable<PSResourceInfo> GetInstalledPackages(
@@ -134,7 +134,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch, bool selectPrereleaseOnly)
         {
             Dbg.Assert(versionRange != null, "Version Range cannot be null");
-            
+
             // if no version is specified, just get the latest version
             foreach (string pkgPath in dirsToSearch)
             {
@@ -177,7 +177,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         // For Uninstall-PSResource Prerelease parameter equates to selecting prerelease versions only to uninstall.
                         // For other cmdlets (Find-PSResource, Install-PSResource) Prerelease parmater equates to selecting stable and prerelease versions.
-                        // We will not just select prerelase versions. For Get-PSResource, there is no Prerelease parameter.
+                        // We will not just select prerelase versions. For Get-InstalledPSResource, there is no Prerelease parameter.
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
                             if (!selectPrereleaseOnly || pkgNugetVersion.IsPrerelease)
