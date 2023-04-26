@@ -50,7 +50,7 @@ Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
     It "Find-Module with min version" {
         $res = Find-Module TestModule99 -MinimumVersion 0.0.3 -Repository PSGallery
         $res.Name | Should -Contain "TestModule99" 
-        $res | ForEach-Object { $_.Version -ge [Version]"0.0.3" | Should -Be $true }
+        $res | ForEach-Object { $_.Version | Should -BeGreaterOrEqual [Version]"0.0.3" }
     }
 
     It "Find-Module with min version not available" {
@@ -67,25 +67,25 @@ Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
         $res = Find-Module TestModule99 -RequiredVersion 0.0.2 -Repository PSGallery
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be "TestModule99"
-        $res.Version -eq [Version]"0.0.2" | Should -Be $true
+        $res.Version | Should -Be [Version]"0.0.2"
     }
 
     It "Find-Module with multiple module names and required version" {
         $res = Find-Module TestModuleWithDependencyB, TestModuleWithDependencyC -RequiredVersion 3.0 -Repository PSGallery
         $res.Count | Should -BeExactly 2
-        $res | ForEach-Object { $_.Version -eq [Version]"3.0" | Should -Be $true }
+        $res | ForEach-Object { $_.Version | Should -Be [Version]"3.0" }
     }
 
     It "Find-Module with module name and minimum version" {
         $res = Find-Module TestModule99 -MinimumVersion 0.5 -Repository PSGallery
-        $res.Count| Should -BeExactly 0
+        $res.Count | Should -BeExactly 0
     }
 
     It "Find-Module with multiple module names and minimum version" {
         $res = Find-Module TestModule99, TestModuleWithDependencyB -MinimumVersion 0.5 -Repository PSGallery
         $res.Count | Should -BeExactly 2  
         $res.Name | Should -Not -Contain "TestModule99"
-        $res | ForEach-Object { $_.Version -ge [Version]"0.5" | Should -Be $true }
+        $res | ForEach-Object { $_.Version | Should -BeGreaterOrEqual [Version]"0.5" }
     }
     
     It "Find-Module with wildcard name and minimum version" {

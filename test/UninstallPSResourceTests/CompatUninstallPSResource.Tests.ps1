@@ -64,7 +64,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         Uninstall-Module -Name $testModuleName -MinimumVersion $minVersion
 
         $res = Get-PSResource $testModuleName
-        $res.Version -lt $minVersion | Should -Be $true
+        $res.Version | Should -BeLessThan $minVersion
     }
 
     It "Uninstall-Module with -MaximumVersion" {
@@ -90,7 +90,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         Uninstall-Module -Name $testModuleName -MinimumVersion $minVersion
 
         $res = Get-PSResource $testModuleName
-        $res.Version -lt $minVersion | Should -Be $true
+        $res.Version | Should -BeLessThan $minVersion
     }
 
     It "Uninstall-Module with -MaximumVersion" {

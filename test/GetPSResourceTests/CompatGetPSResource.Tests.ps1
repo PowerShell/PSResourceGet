@@ -36,7 +36,7 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
         $res.Count | Should -BeGreaterThan 1   
         foreach ($pkg in $res)
         {
-            $pkg.Version -ge [System.Version] "0.0.1" | Should -Be $true
+            $pkg.Version | Should -BeGreaterOrEqual [System.Version] "0.0.1"
         }
     }
 
@@ -45,7 +45,7 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
         $res.Count | Should -BeGreaterOrEqual 1     
         foreach ($pkg in $res)
         {
-            $pkg.Version -ge [System.Version] "1.0.0" | Should -Be $true
+            $pkg.Version | Should -BeGreaterThanEqual [System.Version] "1.0.0"
         }    
     }
 
@@ -58,7 +58,7 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
         $res = Get-InstalledModule -Name $testModuleName -MinimumVersion "0.0.15" -MaximumVersion "0.0.25" 
         foreach ($pkg in $res)
         {
-            $pkg.Version -ge [System.Version] "0.0.2" | Should -Be $true
+            $pkg.Version | Should -BeGreaterOrEqual [System.Version] "0.0.2"
         }       
     }
 

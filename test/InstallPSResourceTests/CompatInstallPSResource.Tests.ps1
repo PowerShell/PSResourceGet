@@ -87,7 +87,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res.Count | Should -BeExactly 2 
         foreach ($pkg in $res)
         {
-            $pkg.Version -ge [System.Version] "1.0" | Should -Be $true
+            $pkg.Version | Should -BeGreaterOrEqual [System.Version] "1.0"
         }
     }
 
@@ -96,7 +96,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         
         $res = Get-PSResource $testModuleName2
         $res.Count | Should -BeExactly 1   
-        $res.Version -ge [System.Version]"0.0.3" | Should -Be $true
+        $res.Version | Should -BeGreaterOrEqual [System.Version]"0.0.3"
     }
 
     It "Install-Module with RequiredVersion" {
@@ -104,7 +104,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 
         $res = Get-PSResource $testModuleName2
         $res.Count | Should -BeExactly 1  
-        $res.Version -eq [System.Version]"0.0.3" | Should -Be $true
+        $res.Version | Should -Be [System.Version]"0.0.3" 
     }
 
     It "Install-Module should fail if RequiredVersion is already installed" {

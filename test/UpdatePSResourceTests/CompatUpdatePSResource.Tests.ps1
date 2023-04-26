@@ -99,7 +99,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
         $res = Get-PSResource $testModuleName2
         $res.Count | Should -BeGreaterThanEqual 0
-        $res.Version -eq [System.Version]"0.0.2" | Should -Be $true
+        $res.Version | Should -Be [System.Version]"0.0.2" 
     }
 
     It "Update-Module with Dependencies" {

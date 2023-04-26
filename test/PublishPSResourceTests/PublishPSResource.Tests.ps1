@@ -208,7 +208,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Publish-PSResource -Path $script:PublishModuleBase
 
         $nupkg = Get-ChildItem $script:repositoryPath | select-object -Last 1
-        $nupkg.Name | Should Be "$script:PublishModuleName.$version.nupkg"
+        $nupkg.Name | Should -Be "$script:PublishModuleName.$version.nupkg"
     }
 
     It "Publish a module with a dependency that is not published, should throw" {
