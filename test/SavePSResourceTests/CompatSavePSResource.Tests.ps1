@@ -68,7 +68,7 @@ Describe 'Test CompatPowerShellGet: Save-PSResource' -tags 'CI' {
         Save-Module -Name $ModuleName -Repository PSGallery -Path $SaveDir
 
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $ModuleName -or $dependency1 -or $dependency2 -or $dependency3 -or $dependency4 -or $dependency5 }
-        $pkgDirs.Count -ge 6 | Should -Be $true
+        $pkgDirs.Count | Should -BeGreaterOrEqual 6  
     }
 
     It "Save-Module with Find-Module output" {

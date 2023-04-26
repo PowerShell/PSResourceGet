@@ -55,7 +55,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module -Name "testmodule9*" -Repository PSGallery -ErrorAction SilentlyContinue
 
         $res = Get-PSResource -Name $testModuleName2
-        $res.Count -eq 0 | Should -Be $true
+        $res.Count | Should -BeExactly 0   
     }
 
     It "Install-Module with version params" {
@@ -70,21 +70,21 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module "TestModuleWithDependencyB", "testmodule99" -Repository PSGallery
 
         $res = Get-PSResource "TestModuleWithDependencyB", "testmodule99"
-        $res.Count -ge 2 | Should -Be $true
+        $res.Count | Should -BeGreaterOrEqual 2   
     }
 
     It "Install-Module multiple names with RequiredVersion" {
         Install-Module "newTestModule", "testmodule99" -RequiredVersion 0.0.1 -Repository PSGallery
 
         $res = Get-PSResource "newTestModule", "testmodule99"
-        $res.Count -eq 2 | Should -Be $true
+        $res.Count | Should -BeExactly 2   
     }
 
     It "Install-Multiple names with MinimumVersion" {
         Install-Module "TestModuleWithDependencyB", "TestModuleWithDependencyD" -MinimumVersion 1.0 -Repository PSGallery
 
         $res = Get-PSResource "TestModuleWithDependencyB", "TestModuleWithDependencyD"
-        $res.Count -eq 2 | Should -Be $true
+        $res.Count | Should -BeExactly 2 
         foreach ($pkg in $res)
         {
             $pkg.Version -ge [System.Version] "1.0" | Should -Be $true
@@ -95,7 +95,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module $testModuleName2 -MinimumVersion 0.0.3 -Repository PSGallery
         
         $res = Get-PSResource $testModuleName2
-        $res.Count -eq 1 | Should -Be $true  
+        $res.Count | Should -BeExactly 1   
         $res.Version -ge [System.Version]"0.0.3" | Should -Be $true
     }
 
@@ -103,7 +103,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module $testModuleName2 -RequiredVersion 0.0.3 -Repository PSGallery
 
         $res = Get-PSResource $testModuleName2
-        $res.Count -eq 1 | Should -Be $true 
+        $res.Count | Should -BeExactly 1  
         $res.Version -eq [System.Version]"0.0.3" | Should -Be $true
     }
 
@@ -142,26 +142,26 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     It "Install-Module with PipelineInput" {
         Find-Module $testModuleName2 -Repository PSGallery | Install-Module
         $res = Get-PSResource $testModuleName2
-        $res.Count -eq 1 | Should -Be $true   
+        $res.Count | Should -BeExactly 1   
     }
 
     It "Install-Module with PipelineInput" {
         Find-Module $testModuleName2 -Repository PSGallery | Install-Module
         $res = Get-PSResource $testModuleName2
-        $res.Count -eq 1 | Should -Be $true   
+        $res.Count | Should -BeExactly 1  
     }
 
     It "Install-Module multiple modules with PipelineInput" {
         Find-Module $testModuleName2, "newTestModule" -Repository PSGallery | Install-Module
         $res = Get-PSResource $testModuleName2 , "newTestModule"
-        $res.Count -eq 2 | Should -Be $true   
+        $res.Count | Should -BeExactly 2   
     }
 
     It "Install-Module multiple module using InputObjectParam" -Pending {
         $items = Find-Module $testModuleName2 -Repository PSGallery
         Install-Module -InputObject $items
         $res = Get-PSResource $testModuleName2
-        $res.Count -ge 1 | Should -Be $true   
+        $res.Count | Should -BeGreaterOrEqual 1  
     }
 
     It "InstallToCurrentUserScope" {
@@ -195,7 +195,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module $parentModule -Repository PSGallery
 
         $res = Get-PSResource $parentModule, $childModule1, $childModule2, $childModule3
-        $res.Count -ge 4 | Should -Be $true
+        $res.Count | Should -BeGreaterOrEqual 4 
     }
 
     $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},

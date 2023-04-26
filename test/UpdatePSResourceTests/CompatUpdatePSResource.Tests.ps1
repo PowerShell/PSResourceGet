@@ -52,7 +52,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
         Update-Module "TestModuleWithDependencyB", "TestModuleWithDependencyD"
         $res = Get-PSResource "TestModuleWithDependencyB", "TestModuleWithDependencyD" 
-        $res.count -ge 4 | Should -Be $true
+        $res.Count | Should -BeGreaterThanEqual 4
         $res.version | Should -Contain "2.0"
         $res.version | Should -Contain "3.0"
     }
@@ -61,7 +61,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Repository PSGallery
         Update-Module "testModule9*"
         $res = Get-PSResource $testModuleName2
-        $res.count -ge 2 | Should -Be $true
+        $res.Count | Should -BeGreaterThanEqual 2
         $res.version | Should -Contain "0.0.93"
     }
 
@@ -75,7 +75,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-Module $testModuleName2 -Repository PSGallery
         Update-Module $testModuleName2 -RequiredVersion 0.0.3 -ErrorAction SilentlyContinue
         $res = Get-PSResource $testModuleName2
-        $res.Count -eq 1 | Should -Be $true
+        $res.Count | Should -Be 1
         $res.version | Should -Be "0.0.93"
     }
 
@@ -86,7 +86,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
         Update-Module $testModuleName2, "TestModuleWithDependencyB", "TestModuleWithDependencyD"
         $res = Get-PSResource $testModuleName2, "TestModuleWithDependencyB", "TestModuleWithDependencyD" 
-        $res.Count -ge 3 | Should -Be $true
+        $res.Count | Should -BeGreaterThanEqual 3
         $res.version | Should -Contain "0.0.93"
         $res.version | Should -Contain "3.0"
         $res.version | Should -Contain "2.0"
@@ -98,7 +98,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Update-Module $testModuleName2 -RequiredVersion 10.0 -ErrorAction SilentlyContinue -ErrorVariable ev
 
         $res = Get-PSResource $testModuleName2
-        $res.Count -ge 0 | Should -Be $true
+        $res.Count | Should -BeGreaterThanEqual 0
         $res.Version -eq [System.Version]"0.0.2" | Should -Be $true
     }
 
@@ -111,7 +111,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Update-Module $parentModule
 
         $res = Get-PSResource $parentModule, $childModule1, $childModule2, $childModule3
-        $res.Count -ge 4 | Should -Be $true
+        $res.Count | Should -BeGreaterThanEqual 4
         $res.Version | Should -Contain "5.0"
     }
 

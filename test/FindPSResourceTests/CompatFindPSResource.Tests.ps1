@@ -27,7 +27,7 @@ Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
 
     It "Find-Module without any parameter values" {
         $psgetItemInfo = Find-Module -Repository PSGallery
-        $psgetItemInfo.Count -ge 1 | Should -Be $true 
+        $psgetItemInfo.Count | Should -BeGreaterOrEqual 1
     }
 
     It "Find a specific module" {
@@ -72,18 +72,18 @@ Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
 
     It "Find-Module with multiple module names and required version" {
         $res = Find-Module TestModuleWithDependencyB, TestModuleWithDependencyC -RequiredVersion 3.0 -Repository PSGallery
-        $res.Count -eq 2 | Should -Be $true 
+        $res.Count | Should -BeExactly 2
         $res | ForEach-Object { $_.Version -eq [Version]"3.0" | Should -Be $true }
     }
 
     It "Find-Module with module name and minimum version" {
         $res = Find-Module TestModule99 -MinimumVersion 0.5 -Repository PSGallery
-        $res.Count -eq 0 | Should -Be $true
+        $res.Count| Should -BeExactly 0
     }
 
     It "Find-Module with multiple module names and minimum version" {
         $res = Find-Module TestModule99, TestModuleWithDependencyB -MinimumVersion 0.5 -Repository PSGallery
-        $res.Count -eq 2 | Should -Be $true 
+        $res.Count | Should -BeExactly 2  
         $res.Name | Should -Not -Contain "TestModule99"
         $res | ForEach-Object { $_.Version -ge [Version]"0.5" | Should -Be $true }
     }
@@ -96,12 +96,12 @@ Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
 
     It "Find-Module with multinames" {
         $res = Find-Module TestModuleWithDependencyB, TestModuleWithDependencyC, TestModuleWithDependencyD -Repository PSGallery
-        $res.Count -eq 3 | Should -Be $true
+        $res.Count | Should -BeExactly 3
     }
     
     It "Find-Module with all versions" {
         $res = Find-Module TestModule99 -Repository PSGallery -AllVersions
-        $res.Count -gt 1 | Should -Be $true
+        $res.Count | Should -BeGreaterThan 1
     }
 
     It "Find-DscResource with single resource name" {
@@ -129,7 +129,7 @@ Describe 'Test CompatPowerShellGet: Find-PSResource' -tags 'CI' {
         $ModuleName = "TestModuleWithDependencyE"
     
         $res = Find-Module -Name $ModuleName -IncludeDependencies
-        $res.Count -ge 2 | Should -Be $true
+        $res.Count | Should -BeGreaterOrEqual 2
     }
 
     It "find module given specific Name, Version null" {

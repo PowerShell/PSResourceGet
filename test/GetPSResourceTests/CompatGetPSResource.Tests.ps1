@@ -33,7 +33,7 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
 
     It "Get-InstalledModule with MinimumVersion available" {        
         $res = Get-InstalledModule -Name $testModuleName -MinimumVersion "0.0.1"
-        $res.Count -ge 1 | Should -Be $true   
+        $res.Count | Should -BeGreaterThan 1   
         foreach ($pkg in $res)
         {
             $pkg.Version -ge [System.Version] "0.0.1" | Should -Be $true
@@ -42,7 +42,7 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
 
     It "Get-InstalledScript with MinimumVersion available" {        
         $res = Get-InstalledScript -Name $testScriptName -MinimumVersion "1.0.0"
-        $res.Count -ge 1 | Should -Be $true    
+        $res.Count | Should -BeGreaterOrEqual 1     
         foreach ($pkg in $res)
         {
             $pkg.Version -ge [System.Version] "1.0.0" | Should -Be $true
@@ -51,7 +51,7 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
 
     It "Get-InstalledModule with MinimumVersion not available" {        
         $res = Get-InstalledModule -Name $testModuleName -MinimumVersion "1.0.0"
-        $res.Count -eq 0 | Should -Be $true        
+        $res.Count | Should -BeExactly 0    
     }
 
     It "Get-InstalledModule with min/max range" {
@@ -90,12 +90,12 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
 
     It "Get-InstalledModule with Wildcard" {
         $module = Get-InstalledModule -Name "testmodule9*"
-        $module.Count -ge 3 | Should -Be $true
+        $module.Count | Should -BeGreaterOrEqual 3   
     }
 
     It "Get-InstalledModule with Wildcard" {
         $module = Get-InstalledScript -Name "test_scri*"
-        $module.Count -ge 1 | Should -Be $true
+        $module.Count | Should -BeGreaterOrEqual 1
     }
     
     It "Get modules without any parameter values" {
