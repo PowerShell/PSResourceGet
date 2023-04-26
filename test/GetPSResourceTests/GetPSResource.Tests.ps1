@@ -13,7 +13,7 @@ Describe 'Test Get-PSResource for Module' -tags 'CI' {
         $testScriptName = "test_script"
         Get-NewPSResourceRepositoryFile
 
-        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Verbose
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Version "1.0"
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Version "3.0"
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Version "5.0"
