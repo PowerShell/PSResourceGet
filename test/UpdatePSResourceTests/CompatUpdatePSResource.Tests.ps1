@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -118,7 +118,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
     It "Update resource installed given Name and Version (specific) parameters" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        Update-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
         $res = Get-PSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -147,7 +147,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         param($Version, $ExpectedVersions)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -165,7 +165,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         param($Version, $Description)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository 2>$null
+        Update-Module -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository 2>$null
 
         $res = Get-PSResource -Name $testModuleName
         $isPkgUpdated = $false
@@ -182,7 +182,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
     It "Update resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -Prerelease -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -Prerelease -Repository $PSGalleryName -TrustRepository
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
@@ -204,7 +204,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        Update-Module -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -226,7 +226,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name "testmodule99" -Version "0.0.93" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        Update-Module -Name "testmodule99" -Version "0.0.93" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
 
         $res = Get-Module -Name "testmodule99" -ListAvailable
         $res | Should -Not -BeNullOrEmpty
@@ -236,7 +236,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
     # Windows only
     It "Update resource under no specified scope" -skip:(!$IsWindows) {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -260,7 +260,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        Update-Module -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -284,7 +284,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        Update-Module -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -308,7 +308,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -327,7 +327,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
     It "Update module using -WhatIf, should not update the module" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -WhatIf -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -WhatIf -Repository $PSGalleryName -TrustRepository
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -346,9 +346,8 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
     It "Update resource installed given -Name and -PassThru parameters" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        $res = Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -PassThru
+        $res = Update-Module -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -PassThru
         $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Contain "3.0.0.0"
     }
 }
-#>

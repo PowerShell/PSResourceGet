@@ -70,9 +70,9 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
     
     It "Get prerelease version module when version with correct prerelease label is specified" {
         Install-PSResource -Name $testModuleName -Version "1.0.0-beta2" -Repository $PSGalleryName
-        $res = Get-PSResource -Name $testModuleName -Version "1.0.0"
+        $res = Get-InstalledModule -Name $testModuleName -Version "1.0.0"
         $res | Should -BeNullOrEmpty
-        $res = Get-PSResource -Name $testModuleName -Version "1.0.0-beta2"
+        $res = Get-InstalledModule -Name $testModuleName -Version "1.0.0-beta2"
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.0.0"
         $res.Prerelease | Should -Be "beta2"
@@ -80,9 +80,9 @@ Describe 'Test CompatPowerShellGet: Get-PSResource' -tags 'CI' {
 
     It "Get prerelease version script when version with correct prerelease label is specified" {
         Install-PSResource -Name $testScriptName -Version "3.0.0-alpha" -Repository $PSGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testScriptName -Version "3.0.0"
+        $res = Get-InstalledScript -Name $testScriptName -Version "3.0.0"
         $res | Should -BeNullOrEmpty
-        $res = Get-PSResource -Name $testScriptName -Version "3.0.0-alpha"
+        $res = Get-InstalledScript -Name $testScriptName -Version "3.0.0-alpha"
         $res.Name | Should -Be $testScriptName
         $res.Version | Should -Be "3.0.0"
         $res.Prerelease | Should -Be "alpha"

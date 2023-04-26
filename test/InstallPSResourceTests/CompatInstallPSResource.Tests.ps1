@@ -318,7 +318,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     }
 
     It "Install resource that requires accept license with -AcceptLicense flag" -Pending {
-        Install-PSResource -Name "testModuleWithlicense" -Repository $PSGalleryName -AcceptLicense
+        Install-Module -Name "testModuleWithlicense" -Repository $PSGalleryName -AcceptLicense
         $pkg = Get-PSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
         $pkg.Version | Should -Be "0.0.3.0"
@@ -356,7 +356,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res = Get-PSResource "ClobberTestModule1"
         $res.Name | Should -Be "ClobberTestModule1"
 
-        Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue -ErrorVariable ev
+        Install-Module -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue -ErrorVariable ev
         $ev | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 
@@ -445,7 +445,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     It "Install resource should prompt 'trust repository' if repository is not trusted" {
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
-        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -confirm:$false
+        Install-Module -Name "TestModule" -Repository $TestGalleryName -confirm:$false
 
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 

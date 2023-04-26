@@ -119,7 +119,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "3.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "5.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name $testModuleName2
+        Uninstall-Module -Name $testModuleName2
         $pkgs = Get-PSResource $testModuleName2
         $pkgs.Version | Should -Not -Contain "1.0.0"
         $pkgs.Version | Should -Not -Contain "3.0.0"
@@ -131,7 +131,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "3.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "5.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name $testModuleName2 -Version "3.0.0"
+        Uninstall-Module -Name $testModuleName2 -Version "3.0.0"
         $pkgs = Get-PSResource -Name $testModuleName2
         $pkgs.Version | Should -Not -Contain "1.0.0"
     }
@@ -148,12 +148,12 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
 
     It "Uninstall module when given Name to <Reason> <Version>" -TestCases $testCases {
         param($Version, $ExpectedVersion)
-        Uninstall-PSResource -Name $testModuleName2 -Version "*"
+        Uninstall-Module -Name $testModuleName2 -Version "*"
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "1.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "3.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "5.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name $testModuleName2 -Version $Version
+        Uninstall-Module -Name $testModuleName2 -Version $Version
         $pkgs = Get-PSResource $testModuleName2
         $pkgs.Version | Should -Not -Contain $Version
     }
@@ -170,7 +170,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
     It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases $testCases2 {
         param($Version, $Description)
 
-        {Uninstall-PSResource -Name $testModuleName2 -Version $Version} | Should -Throw "Argument for -Version parameter is not in the proper format."
+        {Uninstall-Module -Name $testModuleName2 -Version $Version} | Should -Throw "Argument for -Version parameter is not in the proper format."
     }
 
     $testCases3 =  @{Version='(5.0.0.0)';       Description="exclusive version (1.0.0.0)"},
@@ -180,7 +180,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         param($Version, $Description)
 
         try {
-        Uninstall-PSResource -Name $testModuleName2 -Version $Version -ErrorAction SilentlyContinue
+            Uninstall-Module -Name $testModuleName2 -Version $Version -ErrorAction SilentlyContinue
         }
         catch
         {}
@@ -282,14 +282,14 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
     It "Uninstall PSResourceInfo object piped in" {
         $version = "0.0.93" 
         Install-PSResource -Name $testModuleName -Version $version -Repository $PSGalleryName -TrustRepository
-        Get-PSResource -Name $testModuleName -Version $version | Uninstall-PSResource
+        Get-PSResource -Name $testModuleName -Version $version | Uninstall-Module
         $res = Get-PSResource -Name $testModuleName  -Version $version
         $res | Should -BeNullOrEmpty
     }
 
     It "Uninstall PSResourceInfo object piped in for prerelease version object" {
         Install-PSResource -Name $testModuleName -Version "1.0.0-beta2" -Repository $PSGalleryName -TrustRepository
-        Get-PSResource -Name $testModuleName -Version "1.0.0-beta2" | Uninstall-PSResource
+        Get-PSResource -Name $testModuleName -Version "1.0.0-beta2" | Uninstall-Module
         $res = Get-PSResource -Name $testModuleName -Version "1.0.0-beta2"
         $res | Should -BeNullOrEmpty
     }
