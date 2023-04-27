@@ -1002,15 +1002,7 @@ param(
     ${AcceptLicense},
 
     [switch]
-    ${PassThru},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${PassThru})
 
     begin
     {
@@ -1142,15 +1134,7 @@ param(
     ${AcceptLicense},
 
     [switch]
-    ${PassThru},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${PassThru})
 
     begin
     {
@@ -1280,15 +1264,7 @@ param(
     ${PassThru},
 
     [switch]
-    ${Force},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${Force})
 
     begin
     {
@@ -1302,8 +1278,6 @@ param(
         # PARAMETER MAP
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
-        if ( $PSBoundParameters['WhatIf'] )        { $null = $PSBoundParameters.Remove('WhatIf') }
-        if ( $PSBoundParameters['Confirm'] )       { $null = $PSBoundParameters.Remove('Confirm') }
 
         ### TODO:  do we want to have the '-Tags' parameter translate to 'Tag' (find is tag)
         # END PARAMETER MAP
@@ -1406,15 +1380,7 @@ param(
     ${AllowPrerelease},
 
     [switch]
-    ${SkipAutomaticTags},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${SkipAutomaticTags})
 
     begin
     {
@@ -1505,15 +1471,7 @@ param(
     ${Credential},
 
     [switch]
-    ${Force},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${Force})
 
     begin
     {
@@ -1758,15 +1716,7 @@ param(
     ${AllowPrerelease},
 
     [switch]
-    ${AcceptLicense},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${AcceptLicense})
 
     begin
     {
@@ -1906,15 +1856,7 @@ param(
     ${AllowPrerelease},
 
     [switch]
-    ${AcceptLicense},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${AcceptLicense})
 
     begin
     {
@@ -2195,15 +2137,7 @@ param(
 
     [Parameter(ParameterSetName='NameParameterSet')]
     [switch]
-    ${AllowPrerelease},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${AllowPrerelease})
 
     begin
     {
@@ -2296,15 +2230,7 @@ param(
 
     [Parameter(ParameterSetName='NameParameterSet')]
     [switch]
-    ${AllowPrerelease},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${AllowPrerelease})
 
     begin
     {
@@ -2464,15 +2390,7 @@ param(
     ${AcceptLicense},
 
     [switch]
-    ${PassThru},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${PassThru})
 
     begin
     {
@@ -2665,15 +2583,7 @@ param(
     ${PackageManagementProviders},
 
     [switch]
-    ${RequireLicenseAcceptance},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${RequireLicenseAcceptance})
 
     begin
     {
@@ -2761,15 +2671,7 @@ param(
     ${AllowPrerelease},
 
     [switch]
-    ${AcceptLicense},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${AcceptLicense})
 
     begin
     {
@@ -2902,15 +2804,7 @@ param(
     ${PassThru},
 
     [switch]
-    ${Force},
-
-    [Alias('wi')]
-    [switch]
-    ${WhatIf},
-    
-    [Alias('cf')]
-    [switch]
-    ${Confirm})
+    ${Force})
 
     begin
     {
@@ -2928,8 +2822,6 @@ param(
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
         if ( $PSBoundParameters['Force'] )         { $null = $PSBoundParameters.Remove('Force') }
-        if ( $PSBoundParameters['WhatIf'] )        { $null = $PSBoundParameters.Remove('WhatIf') }
-        if ( $PSBoundParameters['Confirm'] )       { $null = $PSBoundParameters.Remove('Confirm') }
         # END PARAMETER MAP
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Test-PSScriptFileInfo', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
