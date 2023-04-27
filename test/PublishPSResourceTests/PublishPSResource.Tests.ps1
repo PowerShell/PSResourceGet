@@ -497,7 +497,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingVersion,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
 
         $publishedPkgs = Get-ChildItem -Path $script:repositoryPath -Filter *.nupkg
-        $publishedPkgs.Count | Should -BeGreaterThan 0
+        $publishedPkgs | Should -HaveCount 0
     }
 
     It "should write error and not publish script when Guid property is missing" {
