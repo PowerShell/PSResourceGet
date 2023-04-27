@@ -111,7 +111,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Update-Module $parentModule
 
         $res = Get-PSResource $parentModule, $childModule1, $childModule2, $childModule3
-        $res | Should -HaveCount 7
+        $res | Should -HaveCount 8
         $res.Version | Should -Contain "5.0"
     }
 

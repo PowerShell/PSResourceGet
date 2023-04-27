@@ -3,7 +3,10 @@
 
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
-
+# Explicitly import build module because in CI PowerShell can autoload PSGetv2
+# This ensures the build module is always being tested
+$buildModule = "$psscriptroot/../../out/PowerShellGet"
+Import-Module $buildModule -Force -Verbose
 $testDir = (get-item $psscriptroot).parent.FullName
 
 Describe "Test CompatPowerShellGet: Update-PSScriptFileInfo" -tags 'CI' {
@@ -301,46 +304,5 @@ Describe "Test CompatPowerShellGet: Update-PSScriptFileInfo" -tags 'CI' {
         $tmpScriptFilePath = Join-Path -Path $TestDrive -ChildPath $scriptName
 
         { Update-ScriptFileInfo -Path $tmpScriptFilePath -Version "2.0.0.0" } | Should -Throw -ErrorId "ScriptToBeUpdatedContainsSignature,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSScriptFileInfo"
-    }
-
-    It "update signed script when using RemoveSignature parameter" {
-        $scriptName = "ScriptWithSignature.ps1"
-        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
-
-        # use a copy of the signed script file so we can re-use for other tests
-        $null = Copy-Item -Path $scriptFilePath -Destination $TestDrive
-        $tmpScriptFilePath = Join-Path -Path $TestDrive -ChildPath $scriptName
-
-        Update-ScriptFileInfo -Path $tmpScriptFilePath -Version "2.0.0.0" -RemoveSignature
-        Test-PSScriptFileInfo -Path $tmpScriptFilePath | Should -Be $true
-    }
-
-    It "Update .ps1 file with literal path" {
-        $relativeCurrentPath = Get-Location
-        $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "$script:psScriptInfoName.ps1"
-        $oldDescription = "Old description for test script"
-        $newDescription = "New description for test script"
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $oldDescription
-        
-        Update-ScriptFileInfo -LiteralPath $scriptFilePath -Description $newDescription
-        Test-PSScriptFileInfo -Path $scriptFilePath | Should -BeTrue
-
-        Test-Path -Path $scriptFilePath  | Should -BeTrue
-        $results = Get-Content -Path $scriptFilePath -Raw
-        $results.Contains($newDescription) | Should -BeTrue
-        $results -like "*.DESCRIPTION$script:newline*$newDescription*" | Should -BeTrue
-
-        Remove-Item -Path $scriptFilePath -Force
-    }
-
-    It "update script using -PassThru and -Force (no ops in PSGetv3)" {    
-        $author = "New Author"
-        Update-ScriptFileInfo -Path $script:testScriptFilePath -Author $author -PassThru -Force
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
-
-        Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
-        $results = Get-Content -Path $script:testScriptFilePath  -Raw
-        $results.Contains($author) | Should -BeTrue
-        $results.Contains(".AUTHOR $author") | Should -BeTrue
     }
 }

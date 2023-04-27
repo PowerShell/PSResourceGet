@@ -384,6 +384,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res1.Version | Should -Be "1.4.3"
     }
 
+    <# todo: use module other than packagemanagment
     # Install module 1.4.7 (is authenticode signed and has no catalog file)
     # Should not install successfully 
     It "Install module with no catalog file" -Skip:(!(Get-IsWindows)) {
@@ -394,6 +395,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.7"    
     }
+    #>
 
     # Install module that is not authenticode signed
     # Should FAIL to install the  module

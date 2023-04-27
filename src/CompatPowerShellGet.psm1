@@ -217,23 +217,22 @@ param(
                 $PSBoundParameters['OutBuffer'] = 1
             }
 
-        # PARAMETER MAP
-        # add new specifier 
-        if ( $PSBoundParameters['Name'] )               { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['CommandName'] = $Name }
-        # Parameter translations
-        if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
-        # Parameter Deletions (unsupported in v3)
-        if ( $PSBoundParameters['ModuleName'] )          { $null = $PSBoundParameters.Remove('ModuleName') }
-        if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion') }
-        if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion') }
-        if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion') }
-        if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions') }
-        if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag') }
-        if ( $PSBoundParameters['Filter'] )              { $null = $PSBoundParameters.Remove('Filter') }
-        if ( $PSBoundParameters['Proxy'] )               { $null = $PSBoundParameters.Remove('Proxy') }
-        if ( $PSBoundParameters['ProxyCredential'] )     { $null = $PSBoundParameters.Remove('ProxyCredential') }
-
-        # END PARAMETER MAP
+            # PARAMETER MAP
+            # add new specifier 
+            if ( $PSBoundParameters['Name'] )               { $null = $PSBoundParameters.Remove('Name'); $PSBoundParameters['CommandName'] = $Name }
+            # Parameter translations
+            if ( $PSBoundParameters['AllowPrerelease'] )     { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
+            # Parameter Deletions (unsupported in v3)
+            if ( $PSBoundParameters['ModuleName'] )          { $null = $PSBoundParameters.Remove('ModuleName') }
+            if ( $PSBoundParameters['MinimumVersion'] )      { $null = $PSBoundParameters.Remove('MinimumVersion') }
+            if ( $PSBoundParameters['MaximumVersion'] )      { $null = $PSBoundParameters.Remove('MaximumVersion') }
+            if ( $PSBoundParameters['RequiredVersion'] )     { $null = $PSBoundParameters.Remove('RequiredVersion') }
+            if ( $PSBoundParameters['AllVersions'] )         { $null = $PSBoundParameters.Remove('AllVersions') }
+            if ( $PSBoundParameters['Tag'] )                 { $null = $PSBoundParameters.Remove('Tag') }
+            if ( $PSBoundParameters['Filter'] )              { $null = $PSBoundParameters.Remove('Filter') }
+            if ( $PSBoundParameters['Proxy'] )               { $null = $PSBoundParameters.Remove('Proxy') }
+            if ( $PSBoundParameters['ProxyCredential'] )     { $null = $PSBoundParameters.Remove('ProxyCredential') }
+            # END PARAMETER MAP
 
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Find-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
@@ -757,18 +756,18 @@ param(
                 $PSBoundParameters['OutBuffer'] = 1
             }
 
-        # PARAMETER MAP
-        $verArgs = @{}
-        if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
-        if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
-        if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-        $ver = Convert-VersionParamaters @verArgs
-        if ( $ver ) {
-            $PSBoundParameters['Version'] = $ver
-        }
-        if ( $PSBoundParameters['AllVersions'] )        { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
-        if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
-        # END PARAMETER MAP
+            # PARAMETER MAP
+            $verArgs = @{}
+            if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
+            if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
+            if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
+            $ver = Convert-VersionParamaters @verArgs
+            if ( $ver ) {
+                $PSBoundParameters['Version'] = $ver
+            }
+            if ( $PSBoundParameters['AllVersions'] )        { $null = $PSBoundParameters.Remove('AllVersions'); $PSBoundParameters['Version'] = '*' }
+            if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
+            # END PARAMETER MAP
 
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Get-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
@@ -838,17 +837,17 @@ param(
                 $PSBoundParameters['OutBuffer'] = 1
             }
 
-        # PARAMETER MAP
-        $verArgs = @{}
-        if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
-        if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
-        if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-        $ver = Convert-VersionParamaters @verArgs
-        if ( $ver ) {
-            $PSBoundParameters['Version'] = $ver
-        }
-        if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
-        # END PARAMETER MAP
+            # PARAMETER MAP
+            $verArgs = @{}
+            if ( $PSBoundParameters['MinimumVersion'] )     { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MinimumVersion }
+            if ( $PSBoundParameters['MaximumVersion'] )     { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
+            if ( $PSBoundParameters['RequiredVersion'] )    { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
+            $ver = Convert-VersionParamaters @verArgs
+            if ( $ver ) {
+                $PSBoundParameters['Version'] = $ver
+            }
+            if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
+            # END PARAMETER MAP
 
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Get-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
@@ -961,7 +960,7 @@ param(
     [string]
     ${RequiredVersion},
 
-    [Parameter(ParameterSetName='NameParameterSet', ValueFromPipelineByPropertyName=$true)]
+    [Parameter(ParameterSetName='NameParameterSet')] #TODO ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNullOrEmpty()]
     [string[]]
     ${Repository},
@@ -1025,13 +1024,13 @@ param(
         }
         # Parameter translations
         if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
+        ### TODO: should we use -AuthenticodeCheck?
+        if ( $PSBoundParameters['SkipPublisherCheck'] ) { $null = $PSBoundParameters.Remove('SkipPublisherCheck'); $PSBoundParameters['AuthenticodeCheck'] = $SkipPublisherCheck }
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['Proxy'] )              { $null = $PSBoundParameters.Remove('Proxy') }
         if ( $PSBoundParameters['ProxyCredential'] )    { $null = $PSBoundParameters.Remove('ProxyCredential') }
         ### TODO: when clobber is fixed in PSGetV3, translate the compat -AllowClobber param to -NoClobber in V3
         if ( $PSBoundParameters['AllowClobber'] )       { $null = $PSBoundParameters.Remove('AllowClobber') }
-        ### TODO: should we use -AuthenticodeCheck?
-        if ( $PSBoundParameters['SkipPublisherCheck'] ) { $null = $PSBoundParameters.Remove('SkipPublisherCheck') }
         if ( $PSBoundParameters['Force'] )              { $null = $PSBoundParameters.Remove('Force') }
         # END PARAMETER MAP
 
@@ -1201,9 +1200,9 @@ param(
 
 
 function New-ScriptFileInfo {
-[CmdletBinding(HelpUri='https://go.microsoft.com/fwlink/?LinkID=398574')]
+[CmdletBinding(PositionalBinding=$false, SupportsShouldProcess=$true, HelpUri='https://go.microsoft.com/fwlink/?LinkId=619792')]
 param(
-    [Parameter(Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+    [Parameter(Position=0, Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNullOrEmpty()]
     [string]
     ${Path},
@@ -1216,6 +1215,7 @@ param(
     [string]
     ${Author},
     
+    [Parameter(Mandatory=$true)]
     [ValidateNotNullOrEmpty()]
     [string]
     ${Description},
@@ -1224,39 +1224,50 @@ param(
     [Guid]
     ${Guid},
 
+    [ValidateNotNullOrEmpty()]
     [string]
     ${CompanyName},
 
+    [ValidateNotNullOrEmpty()]
     [string]
     ${Copyright},
     
+    [ValidateNotNullOrEmpty()]
     [Object[]]
     ${RequiredModules},
     
+    [ValidateNotNullOrEmpty()]
     [String[]]
     ${ExternalModuleDependencies},
 
+    [ValidateNotNullOrEmpty()]
     [String[]]
     ${RequiredScripts},
     
+    [ValidateNotNullOrEmpty()]
     [String[]]
     ${ExternalScriptDependencies},
 
+    [ValidateNotNullOrEmpty()]
     [String[]]
     ${Tags},
     
+    [ValidateNotNullOrEmpty()]
     [Uri]
     ${ProjectUri},
  
+    [ValidateNotNullOrEmpty()]
     [Uri]
     ${LicenseUri},
  
+    [ValidateNotNullOrEmpty()]
     [Uri]
     ${IconUri},
     
     [String[]]
     ${ReleaseNotes},
 
+    [ValidateNotNullOrEmpty()]
     [string]
     ${PrivateData},
 
@@ -1275,12 +1286,17 @@ param(
                 $PSBoundParameters['OutBuffer'] = 1
             }
 
-        # PARAMETER MAP
-        # Parameter Deletions (unsupported in v3)
-        if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
+            # PARAMETER MAP
+            # translation
+            if ( !$PSBoundParameters['Path'] ) {
+                $RandomScriptPath = Join-Path -Path . -ChildPath "$(Get-Random).ps1";
+                $PSBoundParameters['Path'] = $RandomScriptPath
+            }
+            # Parameter Deletions (unsupported in v3)
+            if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
+            ### TODO:  do we want to have the '-Tags' parameter translate to 'Tag' (find is tag)
+            # END PARAMETER MAP
 
-        ### TODO:  do we want to have the '-Tags' parameter translate to 'Tag' (find is tag)
-        # END PARAMETER MAP
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('New-PSScriptFileInfo', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
 
@@ -1391,23 +1407,23 @@ param(
                 $PSBoundParameters['OutBuffer'] = 1
             }
 
-        # PARAMETER MAP
-        # Parameter translations
-        if ( $PSBoundParameters['NuGetApiKey'] )       { $null = $PSBoundParameters.Remove('NuGetApiKey'); $PSBoundParameters['APIKey'] = $NuGetApiKey }
-        # Parameter Deletions (unsupported in v3)
-        if ( $PSBoundParameters['Name'] )              { $null = $PSBoundParameters.Remove('Name') }
-        if ( $PSBoundParameters['RequiredVersion'] )   { $null = $PSBoundParameters.Remove('RequiredVersion') }
-        if ( $PSBoundParameters['FormatVersion'] )     { $null = $PSBoundParameters.Remove('FormatVersion') }
-        if ( $PSBoundParameters['ReleaseNotes'] )      { $null = $PSBoundParameters.Remove('ReleaseNotes') }
-        if ( $PSBoundParameters['Tags'] )              { $null = $PSBoundParameters.Remove('Tags') }
-        if ( $PSBoundParameters['LicenseUri'] )        { $null = $PSBoundParameters.Remove('LicenseUri') }
-        if ( $PSBoundParameters['IconUri'] )           { $null = $PSBoundParameters.Remove('IconUri') }
-        if ( $PSBoundParameters['ProjectUri'] )        { $null = $PSBoundParameters.Remove('ProjectUri') }
-        if ( $PSBoundParameters['Exclude'] )           { $null = $PSBoundParameters.Remove('Exclude') }
-        if ( $PSBoundParameters['Force'] )             { $null = $PSBoundParameters.Remove('Force') }
-        if ( $PSBoundParameters['AllowPrerelease'] )   { $null = $PSBoundParameters.Remove('AllowPrerelease') }
-        if ( $PSBoundParameters['SkipAutomaticTags'] ) { $null = $PSBoundParameters.Remove('SkipAutomaticTags') }
-        # END PARAMETER MAP
+            # PARAMETER MAP
+            # Parameter translations
+            if ( $PSBoundParameters['NuGetApiKey'] )       { $null = $PSBoundParameters.Remove('NuGetApiKey'); $PSBoundParameters['APIKey'] = $NuGetApiKey }
+            # Parameter Deletions (unsupported in v3)
+            if ( $PSBoundParameters['Name'] )              { $null = $PSBoundParameters.Remove('Name') }
+            if ( $PSBoundParameters['RequiredVersion'] )   { $null = $PSBoundParameters.Remove('RequiredVersion') }
+            if ( $PSBoundParameters['FormatVersion'] )     { $null = $PSBoundParameters.Remove('FormatVersion') }
+            if ( $PSBoundParameters['ReleaseNotes'] )      { $null = $PSBoundParameters.Remove('ReleaseNotes') }
+            if ( $PSBoundParameters['Tags'] )              { $null = $PSBoundParameters.Remove('Tags') }
+            if ( $PSBoundParameters['LicenseUri'] )        { $null = $PSBoundParameters.Remove('LicenseUri') }
+            if ( $PSBoundParameters['IconUri'] )           { $null = $PSBoundParameters.Remove('IconUri') }
+            if ( $PSBoundParameters['ProjectUri'] )        { $null = $PSBoundParameters.Remove('ProjectUri') }
+            if ( $PSBoundParameters['Exclude'] )           { $null = $PSBoundParameters.Remove('Exclude') }
+            if ( $PSBoundParameters['Force'] )             { $null = $PSBoundParameters.Remove('Force') }
+            if ( $PSBoundParameters['AllowPrerelease'] )   { $null = $PSBoundParameters.Remove('AllowPrerelease') }
+            if ( $PSBoundParameters['SkipAutomaticTags'] ) { $null = $PSBoundParameters.Remove('SkipAutomaticTags') }
+            # END PARAMETER MAP
 
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Publish-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
@@ -1482,13 +1498,13 @@ param(
                 $PSBoundParameters['OutBuffer'] = 1
             }
 
-        # PARAMETER MAP
-        # Parameter translations
-        if ( $PSBoundParameters['LiteralPath'] )  { $null = $PSBoundParameters.Remove('LiteralPath'); $PSBoundParameters['Path'] = $LiteralPath }
-        if ( $PSBoundParameters['NuGetApiKey'] )  { $null = $PSBoundParameters.Remove('NuGetApiKey'); $PSBoundParameters['APIKey'] = $NuGetApiKey }
-        # Parameter Deletions (unsupported in v3)
-        if ( $PSBoundParameters['Force'] )        { $null = $PSBoundParameters.Remove('Force') }
-        # END PARAMETER MAP
+            # PARAMETER MAP
+            # Parameter translations
+            if ( $PSBoundParameters['LiteralPath'] )  { $null = $PSBoundParameters.Remove('LiteralPath'); $PSBoundParameters['Path'] = $LiteralPath }
+            if ( $PSBoundParameters['NuGetApiKey'] )  { $null = $PSBoundParameters.Remove('NuGetApiKey'); $PSBoundParameters['APIKey'] = $NuGetApiKey }
+            # Parameter Deletions (unsupported in v3)
+            if ( $PSBoundParameters['Force'] )        { $null = $PSBoundParameters.Remove('Force') }
+            # END PARAMETER MAP
 
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Publish-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
@@ -1533,7 +1549,7 @@ param(
 
     [Parameter(ParameterSetName='NameParameterSet', Mandatory=$true, Position=1)]
     [ValidateNotNullOrEmpty()]
-    [string]
+    [uri]
     ${SourceLocation},
 
     [Parameter(ParameterSetName='NameParameterSet')]
@@ -1588,26 +1604,26 @@ param(
                 $PSBoundParameters['OutBuffer'] = 1
             }
 
-        # PARAMETER MAP
-        # Parameter translations
-        if ( $PSBoundParameters['InstallationPolicy'] ) {
-            $null = $PSBoundParameters.Remove('InstallationPolicy')
-            if  ( $InstallationPolicy -eq "Trusted" ) {
-                $PSBoundParameters['Trusted'] = $true
+            # PARAMETER MAP
+            # Parameter translations
+            if ( $PSBoundParameters['InstallationPolicy'] ) {
+                $null = $PSBoundParameters.Remove('InstallationPolicy')
+                if  ( $InstallationPolicy -eq "Trusted" ) {
+                    $PSBoundParameters['Trusted'] = $true
+                }
             }
-        }
-        if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Uri'] = $SourceLocation }
-        if ( $PSBoundParameters['Default'] )                   { $null = $PSBoundParameters.Remove('Default'); $PSBoundParameters['PSGallery'] = $Default }
-        
-        # Parameter Deletions (unsupported in v3)
-        if ( $PSBoundParameters['PublishLocation'] )           { $null = $PSBoundParameters.Remove('PublishLocation') }
-        if ( $PSBoundParameters['ScriptSourceLocation'] )      { $null = $PSBoundParameters.Remove('ScriptSourceLocation') }
-        if ( $PSBoundParameters['ScriptPublishLocation'] )     { $null = $PSBoundParameters.Remove('ScriptPublishLocation') }
-        if ( $PSBoundParameters['Credential'] )                { $null = $PSBoundParameters.Remove('Credential') }
-        if ( $PSBoundParameters['Proxy'] )                     { $null = $PSBoundParameters.Remove('Proxy') }
-        if ( $PSBoundParameters['ProxyCredential'] )           { $null = $PSBoundParameters.Remove('ProxyCredential') }
-        if ( $PSBoundParameters['PackageManagementProvider'] ) { $null = $PSBoundParameters.Remove('PackageManagementProvider') }
-        # END PARAMETER MAP
+            if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Uri'] = $SourceLocation }
+            if ( $PSBoundParameters['Default'] )                   { $null = $PSBoundParameters.Remove('Default'); $PSBoundParameters['PSGallery'] = $Default }
+            
+            # Parameter Deletions (unsupported in v3)
+            if ( $PSBoundParameters['PublishLocation'] )           { $null = $PSBoundParameters.Remove('PublishLocation') }
+            if ( $PSBoundParameters['ScriptSourceLocation'] )      { $null = $PSBoundParameters.Remove('ScriptSourceLocation') }
+            if ( $PSBoundParameters['ScriptPublishLocation'] )     { $null = $PSBoundParameters.Remove('ScriptPublishLocation') }
+            if ( $PSBoundParameters['Credential'] )                { $null = $PSBoundParameters.Remove('Credential') }
+            if ( $PSBoundParameters['Proxy'] )                     { $null = $PSBoundParameters.Remove('Proxy') }
+            if ( $PSBoundParameters['ProxyCredential'] )           { $null = $PSBoundParameters.Remove('ProxyCredential') }
+            if ( $PSBoundParameters['PackageManagementProvider'] ) { $null = $PSBoundParameters.Remove('PackageManagementProvider') }
+            # END PARAMETER MAP
 
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Register-PSResourceRepository', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
@@ -1867,26 +1883,26 @@ param(
                 $PSBoundParameters['OutBuffer'] = 1
             }
 
-        # PARAMETER MAP
-        # handle version changes
-        $verArgs = @{}
-        if ( $PSBoundParameters['MinimumVersion'] )   { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MaximumVersion }
-        if ( $PSBoundParameters['MaximumVersion'] )   { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
-        if ( $PSBoundParameters['RequiredVersion'] )  { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
-        $ver = Convert-VersionParamaters @verArgs
-        if ( $ver ) {
-            $PSBoundParameters['Version'] = $ver
-        }
+            # PARAMETER MAP
+            # handle version changes
+            $verArgs = @{}
+            if ( $PSBoundParameters['MinimumVersion'] )   { $null = $PSBoundParameters.Remove('MinimumVersion'); $verArgs['MinimumVersion'] = $MaximumVersion }
+            if ( $PSBoundParameters['MaximumVersion'] )   { $null = $PSBoundParameters.Remove('MaximumVersion'); $verArgs['MaximumVersion'] = $MaximumVersion }
+            if ( $PSBoundParameters['RequiredVersion'] )  { $null = $PSBoundParameters.Remove('RequiredVersion'); $verArgs['RequiredVersion'] = $RequiredVersion }
+            $ver = Convert-VersionParamaters @verArgs
+            if ( $ver ) {
+                $PSBoundParameters['Version'] = $ver
+            }
 
-        # Parameter translations
-        if ( $PSBoundParameters['AllowPrerelease'] )  { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
-        if ( $PSBoundParameters['LiteralPath'] )      { $null = $PSBoundParameters.Remove('LiteralPath'); $PSBoundParameters['Path'] = $LiteralPath }
+            # Parameter translations
+            if ( $PSBoundParameters['AllowPrerelease'] )  { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
+            if ( $PSBoundParameters['LiteralPath'] )      { $null = $PSBoundParameters.Remove('LiteralPath'); $PSBoundParameters['Path'] = $LiteralPath }
 
-        # Parameter Deletions (unsupported in v3)
-        if ( $PSBoundParameters['Proxy'] )            { $null = $PSBoundParameters.Remove('Proxy') }
-        if ( $PSBoundParameters['ProxyCredential'] )  { $null = $PSBoundParameters.Remove('ProxyCredential') }
-        if ( $PSBoundParameters['Force'] )            { $null = $PSBoundParameters.Remove('Force') }
-        if ( $PSBoundParameters['AcceptLicense'] )    { $null = $PSBoundParameters.Remove('AcceptLicense') }
+            # Parameter Deletions (unsupported in v3)
+            if ( $PSBoundParameters['Proxy'] )            { $null = $PSBoundParameters.Remove('Proxy') }
+            if ( $PSBoundParameters['ProxyCredential'] )  { $null = $PSBoundParameters.Remove('ProxyCredential') }
+            if ( $PSBoundParameters['Force'] )            { $null = $PSBoundParameters.Remove('Force') }
+            if ( $PSBoundParameters['AcceptLicense'] )    { $null = $PSBoundParameters.Remove('AcceptLicense') }
 
             $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Save-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
@@ -1931,7 +1947,7 @@ param(
 
     [Parameter(Position=1)]
     [ValidateNotNullOrEmpty()]
-    [string]
+    [uri]
     ${SourceLocation},
 
     [ValidateNotNullOrEmpty()]
@@ -1991,13 +2007,12 @@ param(
             }
         }
         if ( $PSBoundParameters['SourceLocation'] )            { $null = $PSBoundParameters.Remove('SourceLocation'); $PSBoundParameters['Uri'] = $SourceLocation }
-        if ( $PSBoundParameters['Default'] )                   { $null = $PSBoundParameters.Remove('Default'); $PSBoundParameters['PSGallery'] = $Default }
         
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['PublishLocation'] )           { $null = $PSBoundParameters.Remove('PublishLocation') }
         if ( $PSBoundParameters['ScriptSourceLocation'] )      { $null = $PSBoundParameters.Remove('ScriptSourceLocation') }
         if ( $PSBoundParameters['ScriptPublishLocation'] )     { $null = $PSBoundParameters.Remove('ScriptPublishLocation') }
-        if ( $PSBoundParameters['Credential'] )     { $null = $PSBoundParameters.Remove('Credential') }
+        if ( $PSBoundParameters['Credential'] )                { $null = $PSBoundParameters.Remove('Credential') }
         if ( $PSBoundParameters['Proxy'] )                     { $null = $PSBoundParameters.Remove('Proxy') }
         if ( $PSBoundParameters['ProxyCredential'] )           { $null = $PSBoundParameters.Remove('ProxyCredential') }
         if ( $PSBoundParameters['PackageManagementProvider'] ) { $null = $PSBoundParameters.Remove('PackageManagementProvider') }
@@ -2039,7 +2054,7 @@ param(
 
 
 function Test-ScriptFileInfo {
-[CmdletBinding(HelpUri='https://go.microsoft.com/fwlink/?LinkID=398574')]
+[CmdletBinding(PositionalBinding = $false, DefaultParameterSetName = 'PathParameterSet', HelpUri = 'https://go.microsoft.com/fwlink/?LinkId=619791')]
 param(
     [Parameter(ParameterSetName='PathParameterSet', Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNullOrEmpty()]
@@ -2417,6 +2432,7 @@ param(
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['Proxy'] )              { $null = $PSBoundParameters.Remove('Proxy') }
         if ( $PSBoundParameters['ProxyCredential'] )    { $null = $PSBoundParameters.Remove('ProxyCredential') }
+        if ( $PSBoundParameters['Force'] )              { $null = $PSBoundParameters.Remove('Force') }
 
         # END PARAMETER MAP
 
@@ -2453,183 +2469,6 @@ param(
     #>
 }
 
-function Update-ModuleManifest {
-[CmdletBinding(HelpUri='https://go.microsoft.com/fwlink/?LinkID=398574')]
-param(
-    [Parameter(Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-    [ValidateNotNullOrEmpty()]
-    [string]
-    ${Path},
-
-    [Object[]]
-    ${NestedModules},
-
-    [ValidateNotNullOrEmpty()]
-    [Guid]
-    ${Guid},
-
-    [ValidateNotNullOrEmpty()]
-    [string]
-    ${Author},
-    
-    [string]
-    ${CompanyName},
-
-    [string]
-    ${Copyright},
-
-    [string]
-    ${RootModule},
-
-    [ValidateNotNullOrEmpty()]
-    [Version]
-    ${ModuleVersion},
-    
-    [ValidateNotNullOrEmpty()]
-    [string]
-    ${Description},
-
-    [ProcessorArchitecture]
-    ${ProcessorArchitecture},
-
-    [String[]]
-    ${CompatiblePSEditions},
-
-    [Version]
-    ${PowerShellVersion},
-
-    [Version]
-    ${ClrVersion},
-
-    [Version]
-    ${DotNetFrameworkVersion},
-
-    [string]
-    ${PowerShellHostName},
-
-    [Version]
-    ${PowerShellHostVersion},
-
-    [Object[]]
-    ${RequiredModules},
-    
-    [String[]]
-    ${TypesToProcess},
-
-    [String[]]
-    ${FormatsToProcess},
-
-    [String[]]
-    ${ScriptsToProcess},
-
-    [String[]]
-    ${RequiredAssemblies},
-
-    [String[]]
-    ${FileList},
-
-    [Object[]]
-    ${ModuleList},
-
-    [String[]]
-    ${FunctionsToExport},
-
-    [String[]]
-    ${AliasesToExport},
-    
-    [String[]]
-    ${VariablesToExport},
-
-    [String[]]
-    ${CmdletsToExport},
-
-    [String[]]
-    ${DscResourcesToExport},
-
-    [Hashtable]
-    ${PrivateData},
-
-    [String[]]
-    ${Tags},
-    
-    [Uri]
-    ${ProjectUri},
- 
-    [Uri]
-    ${LicenseUri},
- 
-    [Uri]
-    ${IconUri},
-    
-    [String[]]
-    ${ReleaseNotes},
-
-    [string]
-    ${Prerelease},
- 
-    [Uri]
-    ${HelpInfoUri},
-
-    [switch]
-    ${PassThru},
-
-    [string]
-    ${DefaultCommandPrefix},
-
-    [String[]]
-    ${ExternalModuleDependencies},
-
-    [String[]]
-    ${PackageManagementProviders},
-
-    [switch]
-    ${RequireLicenseAcceptance})
-
-    begin
-    {
-        try {
-            $outBuffer = $null
-            if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
-            {
-                $PSBoundParameters['OutBuffer'] = 1
-            }
-
-            # PARAMETER MAP
-            # No changes between Update-ModuleManifest and Update-ModuleManifest
-            # END PARAMETER MAP
-
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Update-ModuleManifest', [System.Management.Automation.CommandTypes]::Cmdlet)
-            $scriptCmd = {& $wrappedCmd @PSBoundParameters }
-
-            $steppablePipeline = $scriptCmd.GetSteppablePipeline()
-            $steppablePipeline.Begin($PSCmdlet)
-        } catch {
-            throw
-        }
-    }
-
-    process
-    {
-        try {
-            $steppablePipeline.Process($_)
-        } catch {
-            throw
-        }
-    }
-
-    end
-    {
-        try {
-            $steppablePipeline.End()
-        } catch {
-            throw
-        }
-    }
-    <#
-    .ForwardHelpTargetName Test-ScriptFileInfo
-    .ForwardHelpCategory Function
-    #>
-}
 
 function Update-Script {
 [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='Medium', HelpUri='https://go.microsoft.com/fwlink/?LinkId=619787')]
@@ -2671,7 +2510,10 @@ param(
     ${AllowPrerelease},
 
     [switch]
-    ${AcceptLicense})
+    ${AcceptLicense},
+
+    [switch]
+    ${PassThru})
 
     begin
     {
@@ -2736,14 +2578,15 @@ param(
 
 
 function Update-ScriptFileInfo {
-[CmdletBinding(HelpUri='https://go.microsoft.com/fwlink/?LinkID=398574')]
+[CmdletBinding(PositionalBinding = $false, DefaultParameterSetName = 'PathParameterSet', SupportsShouldProcess = $true, HelpUri = 'https://go.microsoft.com/fwlink/?LinkId=619793')]
 param(
-    [Parameter(Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+    [Parameter(ParameterSetName = 'PathParameterSet', Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNullOrEmpty()]
     [string]
     ${Path},
 
-    [Parameter(Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+    [Parameter(ParameterSetName = 'LiteralPathParameterSet', Position=0, Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+    [Alias('PSPath')]
     [ValidateNotNullOrEmpty()]
     [string]
     ${LiteralPath},
@@ -2764,39 +2607,50 @@ param(
     [Guid]
     ${Guid},
 
+    [ValidateNotNullOrEmpty()]
     [string]
     ${CompanyName},
 
+    [ValidateNotNullOrEmpty()]
     [string]
     ${Copyright},
     
+    [ValidateNotNullOrEmpty()]
     [Object[]]
     ${RequiredModules},
-    
+
+    [ValidateNotNullOrEmpty()]
     [String[]]
     ${ExternalModuleDependencies},
 
+    [ValidateNotNullOrEmpty()]
     [String[]]
     ${RequiredScripts},
     
+    [ValidateNotNullOrEmpty()]
     [String[]]
     ${ExternalScriptDependencies},
 
+    [ValidateNotNullOrEmpty()]
     [String[]]
     ${Tags},
     
+    [ValidateNotNullOrEmpty()]
     [Uri]
     ${ProjectUri},
  
+    [ValidateNotNullOrEmpty()]
     [Uri]
     ${LicenseUri},
  
+    [ValidateNotNullOrEmpty()]
     [Uri]
     ${IconUri},
     
     [String[]]
     ${ReleaseNotes},
 
+    [ValidateNotNullOrEmpty()]
     [string]
     ${PrivateData},
 
@@ -2822,8 +2676,10 @@ param(
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
         if ( $PSBoundParameters['Force'] )         { $null = $PSBoundParameters.Remove('Force') }
+        if ( $PSBoundParameters['WhatIf'] )        { $null = $PSBoundParameters.Remove('WhatIf') }
+        if ( $PSBoundParameters['Confirm'] )       { $null = $PSBoundParameters.Remove('Confirm') }
         # END PARAMETER MAP
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Test-PSScriptFileInfo', [System.Management.Automation.CommandTypes]::Cmdlet)
+            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Update-PSScriptFileInfo', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
 
             $steppablePipeline = $scriptCmd.GetSteppablePipeline()
@@ -2851,12 +2707,10 @@ param(
         }
     }
     <#
-    .ForwardHelpTargetName Test-ScriptFileInfo
+    .ForwardHelpTargetName Update-ScriptFileInfo
     .ForwardHelpCategory Function
     #>
 }
-
-
 
 $functionsToExport = @(
     "Find-Command",
@@ -2881,7 +2735,8 @@ $functionsToExport = @(
     "Uninstall-Script",
     "Unregister-PSRepository",
     "Update-Module",
-    "Update-Script"
+    "Update-Script",
+    "Update-ScriptFileInfo"
 )
 
 export-ModuleMember -Function $functionsToExport

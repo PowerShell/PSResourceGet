@@ -80,7 +80,7 @@ Describe "Test CompatPowerShellGet: Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "not register repository when Name is provided but -SourceLocation is not" {
-        {Register-PSRepository -Name $TestRepoName1 -SourceLocation "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Register-PSRepository"
+        {Register-PSRepository -Name $TestRepoName1 -SourceLocation "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name is empty but -SourceLocation is provided" {

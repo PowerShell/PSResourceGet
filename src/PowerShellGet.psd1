@@ -43,17 +43,20 @@
         'Get-PSRepository',
         'Install-Module',
         'Install-Script',
+        'New -ScriptFileInfo'
         'Publish-Module',
         'Publish-Script',
         'Register-PSRepository',
         'Save-Module',
         'Save-Script',
         'Set-PSRepository',
+        'Test-ScriptFileInfo'
         'Uninstall-Module',
         'Uninstall-Script',
         'Unregister-PSRepository',
         'Update-Module',
-        'Update-Script'
+        'Update-Script',
+        'Update-ScriptFileInfo'
     )
     VariablesToExport = 'PSGetPath'
     AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')

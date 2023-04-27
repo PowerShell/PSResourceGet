@@ -99,7 +99,7 @@ Describe "Test CompatPowerShellGet: Set-PSResourceRepository" -tags 'CI' {
 
     It "should set repository with relative Uri provided" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        Set-PSRepository -Name $TestRepoName1 -SourceLocation $relativeCurrentPath
+        Set-PSRepository -Name $TestRepoName1 -SourceLocation $relativeCurrentPath.ToString()
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.Name | Should -Be $TestRepoName1
         $reformattedPath = ($relativeCurrentPath -replace "\\", "/")
