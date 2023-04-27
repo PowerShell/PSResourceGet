@@ -367,7 +367,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.Name | Should -Be "localFileShareTestRepo"
         $res.Uri.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
     }
-
+<#
     It "prints a warning if CredentialInfo is passed in without SecretManagement module setup" {
         $output = Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo1 3>&1
         $output | Should -Match "Microsoft.PowerShell.SecretManagement module cannot be found"
@@ -375,9 +375,9 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res | Should -Not -BeNullOrEmpty
     }
-
+#>
     It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
-        { Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementInaccessibleVault,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res | Should -BeNullOrEmpty

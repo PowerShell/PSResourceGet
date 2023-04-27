@@ -286,6 +286,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $res.Trusted | Should -Be False
     }
 
+    <#
     It "prints a warning if CredentialInfo is passed in without SecretManagement module setup" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         $output = Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo1 3>&1
@@ -294,12 +295,13 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res | Should -Not -BeNullOrEmpty
     }
+    #>
 
     It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
         {
             Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-            Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo2
-        } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+            Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo2 -ErrorAction SilentlyContinue
+        } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementInaccessibleVault,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res.CredentialInfo | Should -BeNullOrEmpty

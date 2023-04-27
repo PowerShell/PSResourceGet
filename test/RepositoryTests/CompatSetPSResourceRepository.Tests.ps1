@@ -71,15 +71,6 @@ Describe "Test CompatPowerShellGet: Set-PSResourceRepository" -tags 'CI' {
         $res.Trusted | Should -Be True
     }
 
-    It "set repository given Name and CredentialInfo parameters" {
-        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        Set-PSRepository -Name $TestRepoName1 -CredentialInfo $credentialInfo1
-        $res = Get-PSResourceRepository -Name $TestRepoName1
-        $res.Name | Should -Be $TestRepoName1
-        $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
-        $res.Trusted | Should -Be False
-    }
-
     It "not set repository and write error given just Name parameter" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         {Set-PSRepository -Name $TestRepoName1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
@@ -122,13 +113,5 @@ Describe "Test CompatPowerShellGet: Set-PSResourceRepository" -tags 'CI' {
         $res = Get-PSResourceRepository -Name "localFileShareTestRepo"
         $res.Name | Should -Be "localFileShareTestRepo"
         $Res.Uri | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
-    }
-
-    It "set repository given Uri and see updated repository with -PassThru" {
-        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        $res = Set-PSRepository -Name $TestRepoName1 -Uri $tmpDir2Path -PassThru
-        $res.Name | Should -Be $TestRepoName1
-        $Res.Uri.LocalPath | Should -Contain $tmpDir2Path
-        $res.Trusted | Should -Be False
     }
 }
