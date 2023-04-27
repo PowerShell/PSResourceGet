@@ -35,8 +35,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to save from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = AsNupkgParameterSet)]
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = IncludeXmlParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = AsNupkgParameterSet, HelpMessage = "Name of the package(s) to save.")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = IncludeXmlParameterSet, HelpMessage = "Name of the package(s) to save.")]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
@@ -86,7 +86,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = true, HelpMessage = "Path to save the package to.")]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -145,7 +145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo object representing the package to save.")]
         [ValidateNotNullOrEmpty]
         public PSResourceInfo InputObject { get; set; }
 
