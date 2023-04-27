@@ -40,7 +40,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
     It "Update-Module with -RequiredVersion" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Repository PSGallery
         Update-Module $testModuleName2 -RequiredVersion 0.0.93 -WarningVariable wv
-        $wv.Count | Should -Be 2
+        $wv | Should -HaveCount 1
         
         $res = Get-PSResource $testModuleName2
         $res.version | Should -Contain "0.0.93" 
@@ -52,7 +52,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
         Update-Module "TestModuleWithDependencyB", "TestModuleWithDependencyD"
         $res = Get-PSResource "TestModuleWithDependencyB", "TestModuleWithDependencyD" 
-        $res.Count | Should -BeGreaterThanEqual 4
+        $res | Should -HaveCount 4
         $res.version | Should -Contain "2.0"
         $res.version | Should -Contain "3.0"
     }
@@ -61,7 +61,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Repository PSGallery
         Update-Module "testModule9*"
         $res = Get-PSResource $testModuleName2
-        $res.Count | Should -BeGreaterThanEqual 2
+        $res | Should -HaveCount 2
         $res.version | Should -Contain "0.0.93"
     }
 
@@ -86,7 +86,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
         Update-Module $testModuleName2, "TestModuleWithDependencyB", "TestModuleWithDependencyD"
         $res = Get-PSResource $testModuleName2, "TestModuleWithDependencyB", "TestModuleWithDependencyD" 
-        $res.Count | Should -BeGreaterThanEqual 3
+        $res | Should -HaveCount 6
         $res.version | Should -Contain "0.0.93"
         $res.version | Should -Contain "3.0"
         $res.version | Should -Contain "2.0"
@@ -98,8 +98,8 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Update-Module $testModuleName2 -RequiredVersion 10.0 -ErrorAction SilentlyContinue -ErrorVariable ev
 
         $res = Get-PSResource $testModuleName2
-        $res.Count | Should -BeGreaterThanEqual 0
-        $res.Version | Should -Be [System.Version]"0.0.2" 
+        $res | Should -HaveCount 1
+        $res.Version | Should -Be ([System.Version]"0.0.2")
     }
 
     It "Update-Module with Dependencies" {
@@ -111,14 +111,14 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Update-Module $parentModule
 
         $res = Get-PSResource $parentModule, $childModule1, $childModule2, $childModule3
-        $res.Count | Should -BeGreaterThanEqual 4
+        $res | Should -HaveCount 7
         $res.Version | Should -Contain "5.0"
     }
 
     It "Update resource installed given Name and Version (specific) parameters" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        Update-Module -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -RequiredVersion "5.0.0.0"
         $res = Get-PSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -147,7 +147,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         param($Version, $ExpectedVersions)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-Module -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -RequiredVersion $Version
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -165,7 +165,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         param($Version, $Description)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-Module -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository 2>$null
+        Update-Module -Name $testModuleName -RequiredVersion $Version 2>$null
 
         $res = Get-PSResource -Name $testModuleName
         $isPkgUpdated = $false
@@ -182,7 +182,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
     It "Update resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-Module -Name $testModuleName -Prerelease -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -AllowPrerelease
         $res = Get-PSResource -Name $testModuleName
 
         $isPkgUpdated = $false
@@ -204,7 +204,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-Module -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        Update-Module -Name $testModuleName -Version "3.0.0.0" -Scope CurrentUser
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -226,7 +226,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-Module -Name "testmodule99" -Version "0.0.93" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        Update-Module -Name "testmodule99" -Version "0.0.93" -Scope AllUsers
 
         $res = Get-Module -Name "testmodule99" -ListAvailable
         $res | Should -Not -BeNullOrEmpty
@@ -236,7 +236,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
     # Windows only
     It "Update resource under no specified scope" -skip:(!$IsWindows) {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-Module -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -RequiredVersion "3.0.0.0"
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -260,7 +260,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-Module -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        Update-Module -Name $testModuleName -Scope CurrentUser
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -284,7 +284,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-Module -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        Update-Module -Name $testModuleName -Scope AllUsers
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -308,7 +308,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-Module -Name $testModuleName -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -327,7 +327,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
 
     It "Update module using -WhatIf, should not update the module" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-Module -Name $testModuleName -WhatIf -Repository $PSGalleryName -TrustRepository
+        Update-Module -Name $testModuleName -WhatIf 
 
         $res = Get-PSResource -Name $testModuleName
 
@@ -346,7 +346,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
     It "Update resource installed given -Name and -PassThru parameters" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
-        $res = Update-Module -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -PassThru
+        $res = Update-Module -Name $testModuleName -RequiredVersion "3.0.0.0" -PassThru
         $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Contain "3.0.0.0"
     }

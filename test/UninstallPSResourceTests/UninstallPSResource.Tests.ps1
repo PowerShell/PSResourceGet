@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
-<#
+
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -298,4 +298,3 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkg.Path.ToString().Contains("Documents") | Should -Be $true
     }
 }
-#>

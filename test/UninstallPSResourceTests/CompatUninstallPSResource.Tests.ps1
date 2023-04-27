@@ -131,29 +131,21 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "3.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "5.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
 
-        Uninstall-Module -Name $testModuleName2 -Version "3.0.0"
+        Uninstall-Module -Name $testModuleName2 -RequiredVersion "3.0.0"
         $pkgs = Get-PSResource -Name $testModuleName2
         $pkgs.Version | Should -Not -Contain "1.0.0"
     }
 
     $testCases = @{Version="[1.0.0.0]";          ExpectedVersion="1.0.0.0"; Reason="validate version, exact match"},
-    @{Version="1.0.0.0";            ExpectedVersion="1.0.0.0"; Reason="validate version, exact match without bracket syntax"},
-    @{Version="[1.0.0.0, 5.0.0.0]"; ExpectedVersion="5.0.0.0"; Reason="validate version, exact range inclusive"},
-    @{Version="(1.0.0.0, 5.0.0.0)"; ExpectedVersion="3.0.0.0"; Reason="validate version, exact range exclusive"},
-    @{Version="(1.0.0.0,)";         ExpectedVersion="5.0.0.0"; Reason="validate version, minimum version exclusive"},
-    @{Version="[1.0.0.0,)";         ExpectedVersion="5.0.0.0"; Reason="validate version, minimum version inclusive"},
-    @{Version="(,3.0.0.0)";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version exclusive"},
-    @{Version="(,3.0.0.0]";         ExpectedVersion="1.0.0.0"; Reason="validate version, maximum version inclusive"},
-    @{Version="[1.0.0.0, 5.0.0.0)"; ExpectedVersion="3.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-
+                 @{Version="1.0.0.0";            ExpectedVersion="1.0.0.0"; Reason="validate version, exact match without bracket syntax"}
     It "Uninstall module when given Name to <Reason> <Version>" -TestCases $testCases {
         param($Version, $ExpectedVersion)
-        Uninstall-Module -Name $testModuleName2 -Version "*"
+        Uninstall-Module -Name $testModuleName2 -AllVersions
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "1.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "3.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
         $null = Install-PSResource $testModuleName2 -Repository $PSGalleryName -Version "5.0.0" -SkipDependencyCheck -WarningAction SilentlyContinue
 
-        Uninstall-Module -Name $testModuleName2 -Version $Version
+        Uninstall-Module -Name $testModuleName2 -RequiredVersion $Version
         $pkgs = Get-PSResource $testModuleName2
         $pkgs.Version | Should -Not -Contain $Version
     }
@@ -170,7 +162,7 @@ Describe 'Test CompatPowerShellGet: Uninstall-PSResource' -tags 'CI' {
     It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases $testCases2 {
         param($Version, $Description)
 
-        {Uninstall-Module -Name $testModuleName2 -Version $Version} | Should -Throw "Argument for -Version parameter is not in the proper format."
+        {Uninstall-Module -Name $testModuleName2 -RequiredVersion $Version} | Should -Throw "Argument for -Version parameter is not in the proper format."
     }
 
     $testCases3 =  @{Version='(5.0.0.0)';       Description="exclusive version (1.0.0.0)"},

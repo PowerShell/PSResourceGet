@@ -347,6 +347,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     #     $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     # }
 
+    <# TODO: use a module that is not PackageManagement
     # Update to module 1.4.7 (is authenticode signed and has NO catalog file)
     # Should update successfully
     It "Install module with no catalog file" -Skip:(!(Get-IsWindows)) {
@@ -357,7 +358,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.7"
     }
-
+    #>
+    
     # Update script that is signed
     # Should update successfully
     It "Update script that is authenticode signed" -Skip:(!(Get-IsWindows)) {
