@@ -58,6 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version of the resource to be found and returned. Wildcards are supported.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
@@ -92,6 +93,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies one or more repository names to search. If not specified, search will include all currently registered repositories.
         /// </summary>
+        [SupportsWildcards]
         [Parameter()]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
