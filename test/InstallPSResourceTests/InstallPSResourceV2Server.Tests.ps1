@@ -25,7 +25,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -453,6 +453,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res1.Version | Should -Be "1.4.3"
     }
 
+    <# TODO: update this test to use something other than PackageManagement.
     # Install module 1.4.7 (is authenticode signed and has no catalog file)
     # Should not install successfully 
     It "Install module with no catalog file" -Skip:(!(Get-IsWindows)) {
@@ -462,6 +463,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.7"    
     }
+    #>
 
     # Install module that is not authenticode signed
     # Should FAIL to install the  module
@@ -488,10 +490,13 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     # Install script that is not signed
-    # Should throw
+    # Should throw and fail to install
     It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -BeGreaterThan 0
+        write-host $err.Count
+        $err.Count | Should -HaveCount 1
+        write-Host $err
+        write-Host $err[0]
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 }

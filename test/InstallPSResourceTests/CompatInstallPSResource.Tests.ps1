@@ -111,26 +111,32 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module $testModuleName2 -RequiredVersion 0.0.93 -Repository PSGallery
 
         Install-Module $testModuleName2 -RequiredVersion 0.0.93 -WarningVariable wv -Repository PSGallery
-        $wv[1] | Should -Be "Resource 'testmodule99' with version '0.0.93' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter"
+        $wv[0] | Should -Be "Resource 'testmodule99' with version '0.0.93' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter"
     }
 
     It "Install-Module should fail if MinimumVersion is already installed" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.93 -Repository PSGallery
 
         Install-Module $testModuleName2 -MinimumVersion 0.0.2 -WarningVariable wv -Repository PSGallery
-        $wv[1] | Should -Be "Resource 'testmodule99' with version '0.0.93' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter"
+        $wv[0] | Should -Be "Resource 'testmodule99' with version '0.0.93' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter"
     }
 
     It "Install-Module with -Force" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Repository PSGallery
-        Install-Module $testModuleName2 -RequiredVersion 0.0.93 -Force -Repository PSGallery -WarningVariable wv
-        $wv | Should -HaveCount 1
-    }
+        Install-Module $testModuleName2 -RequiredVersion 0.0.93 -Force -Repository PSGallery
+
+        $res = Get-PSResource $testModuleName2
+        $res | Should -HaveCount 2  
+        $res.Version | Should -Contain ([System.Version]"0.0.91")
+        $res.Version | Should -Contain ([System.Version]"0.0.93")    }
 
     It "Install-Module same version with -Force" {
         Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Repository PSGallery
-        Install-Module $testModuleName2 -RequiredVersion 0.0.93 -Force -Repository PSGallery -WarningVariable wv
-        $wv | Should -HaveCount 1
+        Install-Module $testModuleName2 -RequiredVersion 0.0.91 -Force -Repository PSGallery 
+
+        $res = Get-PSResource $testModuleName2
+        $res | Should -HaveCount 1  
+        $res.Version | Should -Contain ([System.Version]"0.0.91")
     }
 
     It "Install-Module with nonexistent module" {
@@ -205,7 +211,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
         Install-Module -Name $Name -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $err | Should -BeGreaterThan 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 
@@ -234,7 +240,7 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         Install-Module -Name "NonExistantModule" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-PSResource "NonExistantModule"
         $pkg.Name | Should -BeNullOrEmpty
-        $err | Should -BeGreaterThan 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 

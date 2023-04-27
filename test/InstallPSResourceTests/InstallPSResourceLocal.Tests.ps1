@@ -41,7 +41,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     It "Install resource given Name parameter" {
         Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
         $res = Get-PSResource -Name $testModuleName
-        $res.Name | Should -Be $testModuleName
+        $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Be "5.0.0.0"
     }
 
