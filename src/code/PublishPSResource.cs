@@ -822,7 +822,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
-                var message =  string.Format("Unexpectd error packing into .nupkg: '{0}'.", e.Message);
+                var message =  string.Format("Unexpected error packing into .nupkg: '{0}'.", e.Message);
                 var ex = new ArgumentException(message);
                 var ErrorPackingIntoNupkg = new ErrorRecord(ex, "ErrorPackingIntoNupkg", ErrorCategory.NotSpecified, null);
 
