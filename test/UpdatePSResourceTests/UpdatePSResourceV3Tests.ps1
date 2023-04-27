@@ -20,9 +20,9 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
     It "Update resource installed given Name parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository
-        
+
         Update-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -40,7 +40,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository
 
         Update-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $NuGetGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -84,7 +84,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName -TrustRepository 2>$null
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -100,7 +100,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
     It "Update resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -Prerelease -Repository $NuGetGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -115,7 +115,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -Be $true
     }
 
-    # Windows only 
+    # Windows only
     It "update resource under CurrentUser scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository -Scope AllUsers
@@ -123,7 +123,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $NuGetGalleryName -TrustRepository -Scope CurrentUser
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -137,7 +137,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
         $isPkgUpdated | Should -Be $true
     }
- 
+
     # Windows only
     It "update resource under AllUsers scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $NuGetGalleryName -TrustRepository -Scope AllUsers
@@ -155,7 +155,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $NuGetGalleryName -TrustRepository -verbose
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -179,7 +179,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -203,7 +203,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -227,7 +227,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -245,7 +245,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
     # It "update resource that requires accept license with -AcceptLicense flag" {
     #     Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
     #     Update-PSResource -Name "TestModuleWithLicense" -Repository $TestGalleryName -AcceptLicense
-    #     $res = Get-PSResource "TestModuleWithLicense"
+    #     $res = Get-InstalledPSResource "TestModuleWithLicense"
 
     #     $isPkgUpdated = $false
     #     foreach ($pkg in $res)
@@ -263,7 +263,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -WhatIf -Repository $NuGetGalleryName -TrustRepository
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)

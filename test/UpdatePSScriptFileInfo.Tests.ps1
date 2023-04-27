@@ -22,7 +22,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $script:psScriptInfoName = "test_script"
         $scriptDescription = "this is a test script"
         $script:testScriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "$script:psScriptInfoName.ps1"
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -Description $scriptDescription
+        New-PSScriptFile -Path $script:testScriptFilePath -Description $scriptDescription
     }
 
     AfterEach {
@@ -37,10 +37,10 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "$script:psScriptInfoName.ps1"
         $oldDescription = "Old description for test script"
         $newDescription = "New description for test script"
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $oldDescription
-        
+        New-PSScriptFile -Path $scriptFilePath -Description $oldDescription
+
         Update-PSScriptFileInfo -Path $scriptFilePath -Description $newDescription
-        Test-PSScriptFileInfo -Path $scriptFilePath | Should -BeTrue
+        Test-PSScriptFile -Path $scriptFilePath | Should -BeTrue
 
         Test-Path -Path $scriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $scriptFilePath -Raw
@@ -60,10 +60,10 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $relativeCurrentPath = Get-Location
         $scriptFilePath = Join-Path -Path $relativeCurrentPath -ChildPath "$script:psScriptInfoName.ps1"
 
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $description -Version $version -Author $author -ProjectUri $projectUri
+        New-PSScriptFile -Path $scriptFilePath -Description $description -Version $version -Author $author -ProjectUri $projectUri
         Update-PSScriptFileInfo -Path $scriptFilePath -Author $newAuthor
 
-        Test-PSScriptFileInfo -Path $scriptFilePath | Should -BeTrue
+        Test-PSScriptFile -Path $scriptFilePath | Should -BeTrue
         $results = Get-Content -Path $scriptFilePath -Raw
         $results.Contains($newAuthor) | Should -BeTrue
         $results.Contains(".AUTHOR $newAuthor") | Should -BeTrue
@@ -81,10 +81,10 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         Remove-Item -Path $scriptFilePath -Force
     }
 
-    It "update script file Author property" {    
+    It "update script file Author property" {
         $author = "New Author"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Author $author
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -95,7 +95,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file Version property" {
         $version = "2.0.0.0"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Version $version
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -106,7 +106,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file Version property with prerelease version" {
         $version = "3.0.0-alpha"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Version $version
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -123,7 +123,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file Description property" {
         $description = "this is an updated test script"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Description $description
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -134,7 +134,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file Guid property" {
         $guid = [Guid]::NewGuid();
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Guid $guid
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -145,7 +145,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file CompanyName property" {
         $companyName = "New Corporation"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -CompanyName $companyName
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -156,7 +156,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file Copyright property" {
         $copyright = "(c) 2022 New Corporation. All rights reserved"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Copyright $copyright
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -168,20 +168,20 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $externalModuleDep1 = "ExternalModuleDep1"
         $externalModuleDep2 = "ExternalModuleDep2"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -ExternalModuleDependencies $externalModuleDep1,$externalModuleDep2
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
         $results.Contains($externalModuleDep1) | Should -BeTrue
         $results.Contains($externalModuleDep2) | Should -BeTrue
-        $results -like "*.EXTERNALMODULEDEPENDENCIES*$externalModuleDep1*$externalModuleDep2*" | Should -BeTrue    
+        $results -like "*.EXTERNALMODULEDEPENDENCIES*$externalModuleDep1*$externalModuleDep2*" | Should -BeTrue
     }
 
     It "update script file ExternalScriptDependencies property" {
         $externalScriptDep1 = "ExternalScriptDep1"
         $externalScriptDep2 = "ExternalScriptDep2"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -ExternalScriptDependencies $externalScriptDep1,$externalScriptDep2
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -193,7 +193,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file IconUri property" {
         $iconUri = "https://testscript.com/icon"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -IconUri $iconUri
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -204,7 +204,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file LicenseUri property" {
         $licenseUri = "https://testscript.com/license"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -LicenseUri $licenseUri
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -215,7 +215,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file ProjectUri property" {
         $projectUri = "https://testscript.com/"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -ProjectUri $projectUri
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -226,7 +226,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file PrivateData property" {
         $privateData = "this is some private data"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -PrivateData $privateData
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath  -Raw
@@ -237,7 +237,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
     It "update script file ReleaseNotes property" {
         $releaseNotes = "Release notes for script."
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -ReleaseNotes $releaseNotes
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -250,10 +250,10 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $hashtable2 = @{ModuleName = "RequiredModule2"; ModuleVersion = "1.0.0.0"}
         $hashtable3 = @{ModuleName = "RequiredModule3"; RequiredVersion = "2.5.0.0"}
         $hashtable4 = @{ModuleName = "RequiredModule4"; ModuleVersion = "1.1.0.0"; MaximumVersion = "2.0.0.0"}
-        $requiredModules = $hashtable1, $hashtable2, $hashtable3, $hashtable4 
+        $requiredModules = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -RequiredModules $requiredModules
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -265,7 +265,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $requiredScript1 = "RequiredScript1"
         $requiredScript2 = "RequiredScript2"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -RequiredScripts $requiredScript1, $requiredScript2
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -278,7 +278,7 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $tag1 = "tag1"
         $tag2 = "tag2"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Tags $tag1, $tag2
-        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -309,6 +309,6 @@ Describe "Test Update-PSScriptFileInfo" -Tags 'CI' {
         $tmpScriptFilePath = Join-Path -Path $TestDrive -ChildPath $scriptName
 
         Update-PSScriptFileInfo -Path $tmpScriptFilePath -Version "2.0.0.0" -RemoveSignature
-        Test-PSScriptFileInfo -Path $tmpScriptFilePath | Should -Be $true
+        Test-PSScriptFile -Path $tmpScriptFilePath | Should -Be $true
     }
 }
