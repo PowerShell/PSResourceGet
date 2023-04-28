@@ -1265,7 +1265,6 @@ param(
     [Uri]
     ${IconUri},
     
-    ### todo translating string[] to string
     [string[]]
     ${ReleaseNotes},
 
@@ -1306,7 +1305,13 @@ param(
                     $reqModules[$index] = ($tempHash)
                     $index += 1
                 }
+                $PSBoundParameters['RequiredModules'] = $reqModules
             }  
+
+            # Translate from string[] to string
+            if ( $PSBoundParameters['ReleaseNotes'] ) {
+                $PSBoundParameters['ReleaseNotes'] = $PSBoundParameters['ReleaseNotes'] -join "; "
+            }
 
             # Parameter Deletions (unsupported in v3)
             if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
@@ -2667,7 +2672,6 @@ param(
     [Uri]
     ${IconUri},
     
-    ### TODO string[] to string
     [string[]]
     ${ReleaseNotes},
 
@@ -2706,7 +2710,13 @@ param(
                 $reqModules[$index] = ($tempHash)
                 $index += 1
             }
+            $PSBoundParameters['RequiredModules'] = $reqModules
         }  
+
+        # Translate from string[] to string
+        if ( $PSBoundParameters['ReleaseNotes'] ) {
+            $PSBoundParameters['ReleaseNotes'] = $PSBoundParameters['ReleaseNotes'] -join "; "
+        }
 
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
