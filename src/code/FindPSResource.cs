@@ -58,6 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version of the resource to be found and returned. Wildcards are supported.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
@@ -71,14 +72,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies a list of command names that searched module packages will provide. Wildcards are supported.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = CommandNameParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = CommandNameParameterSet, HelpMessage = "Command name(s) to search for in packages.")]
         [ValidateNotNullOrEmpty]
         public string[] CommandName { get; set; }
 
         /// <summary>
         /// Specifies a list of dsc resource names that searched module packages will provide.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = DscResourceNameParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = DscResourceNameParameterSet, HelpMessage = "DSC Resource name(s) to search for in packages.")]
         [ValidateNotNullOrEmpty]
         public string[] DscResourceName { get; set; }
 
@@ -92,6 +93,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies one or more repository names to search. If not specified, search will include all currently registered repositories.
         /// </summary>
+        [SupportsWildcards]
         [Parameter()]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]

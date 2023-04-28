@@ -13,9 +13,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// It retrieves a resource that was installed with Install-PSResource
     /// Returns a single resource or multiple resource.
     /// </summary>
-    [Cmdlet(VerbsCommon.Get, "PSResource")]
+    [Cmdlet(VerbsCommon.Get, "InstalledPSResource")]
     [OutputType(typeof(PSResourceInfo))]
-    public sealed class GetPSResource : PSCmdlet
+    public sealed class GetInstalledPSResourceCommand : PSCmdlet
     {
         #region Members
 
@@ -34,7 +34,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string[] Name { get; set; }
 
         /// <summary>
-        /// Specifies the version of the resource to include to look for. 
+        /// Specifies the version of the resource to include to look for.
         /// </summary>
         [SupportsWildcards]
         [Parameter]
@@ -42,12 +42,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public string Version { get; set; }
 
         /// <summary>
-        /// Specifies the path to look in. 
+        /// Specifies the path to look in.
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty()]
         public string Path { get; set; }
-        
+
         /// <summary>
         /// Specifies the scope of installation.
         /// </summary>
@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            // Validate that if a -Version param is passed in that it can be parsed into a NuGet version range. 
+            // Validate that if a -Version param is passed in that it can be parsed into a NuGet version range.
             // an exact version will be formatted into a version range.
             if (Version == null)
             {
@@ -117,7 +117,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            WriteVerbose("Entering GetPSResource");
+            WriteVerbose("Entering GetInstalledPSResource");
 
             var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)

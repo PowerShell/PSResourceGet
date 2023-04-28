@@ -43,27 +43,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies name for the repository to be registered.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ParameterSetName = NameParameterSet, HelpMessage = "Name of the repository that is to be registered.")]
         [ValidateNotNullOrEmpty]
         public string Name { get; set; }
 
         /// <summary>
         /// Specifies the location of the repository to be registered.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 1, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 1, ParameterSetName = NameParameterSet, HelpMessage = "Location of the repository that is to be registered.")]
         [ValidateNotNullOrEmpty]
         public string Uri { get; set; }
 
         /// <summary>
         /// When specified, registers PSGallery repository.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = PSGalleryParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = PSGalleryParameterSet, HelpMessage = "PSGallery switch used to indicate registering PSGallery repository.")]
         public SwitchParameter PSGallery { get; set; }
 
         /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
         /// </summary>
-        [Parameter(Mandatory = true, ParameterSetName = RepositoriesParameterSet)]
+        [Parameter(Mandatory = true, ParameterSetName = RepositoriesParameterSet, HelpMessage = "Hashtable including information on single or multiple repositories to be registered.")]
         [ValidateNotNullOrEmpty]
         public Hashtable[] Repository {get; set;}
 

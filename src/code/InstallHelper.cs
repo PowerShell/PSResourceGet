@@ -1237,7 +1237,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 List<string> duplicateCmdlets = new List<string>();
                 List<string> duplicateCmds = new List<string>();
                 // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed
-                if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Any())
+                if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Length != 0)
                 {
                     duplicateCmdlets = listOfCmdlets.Where(cmdlet => pkg.Includes.Cmdlet.Contains(cmdlet)).ToList();
                 }

@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
         [SupportsWildcards]
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet, HelpMessage = "Name(s) of package(s) to uninstall.")]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo representing package to uninstall.")]
         [ValidateNotNullOrEmpty]
         public PSResourceInfo InputObject { get; set; }
 

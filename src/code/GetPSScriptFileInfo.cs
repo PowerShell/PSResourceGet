@@ -19,7 +19,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The path to the .ps1 file to retrieve.
         /// </summary>
-        [Parameter(Position = 0, Mandatory = true)]
+        [Parameter(Position = 0, Mandatory = true, HelpMessage = "Path (including file name) to the script file (.ps1 file) to retrieve and view.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 

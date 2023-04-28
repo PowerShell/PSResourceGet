@@ -364,6 +364,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
+                string repoNuGetVersionString = Utils.GetNormalizedVersionString(repositoryPackage.Version.ToString(), repositoryPackage.Prerelease);
+                // If the current package is out of range, install it with the correct version.
+                if (!NuGetVersion.TryParse(repoNuGetVersionString, out NuGetVersion repoVersion))
+                {
+                    WriteWarning($"Cannot parse nuget version for repository package '{repositoryPackage.Name}'. Cannot update package.");
+                    continue;
+                }
+
                 // If the current package is out of range, install it with the correct version.
                 if (!NuGetVersion.TryParse(installedPackage.Version.ToString(), out NuGetVersion installedVersion))
                 {
@@ -371,8 +379,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                if (((versionRange == null || versionRange == VersionRange.All) && repositoryPackage.Version > installedPackage.Version) ||
-                    (versionRange != null && !versionRange.Satisfies(installedVersion)))
+                // cases in which to update:
+                // versionRange: null/*,        , repoVersion : 2.0.0-beta, installedVersion: 1.5.0
+                // versionRange: [1.8.0, 2.1.0] , repoVersion: 2.0.0, installedVersion: 1.6.0 
+                // versionRange: [, 2.1.0]      , repoVersion: 2.0.0, installedVersion: 1.5.0 (installedVersion satisfies requirement, but there's later version)
+                if (((versionRange == null || versionRange == VersionRange.All) && repoVersion > installedVersion) ||
+                    versionRange != null && repoVersion > installedVersion && versionRange.Satisfies(repoVersion))
                 {
                     namesToUpdate.Add(repositoryPackage.Name);
                 }

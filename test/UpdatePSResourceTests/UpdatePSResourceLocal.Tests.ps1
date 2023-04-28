@@ -32,9 +32,9 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
     It "Update resource installed given Name parameter" {
         Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -TrustRepository
-        
+
         Update-PSResource -Name $moduleName -Repository $localRepo -TrustRepository
-        $res = Get-PSResource -Name $moduleName
+        $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -53,7 +53,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         Install-PSResource -Name $moduleName2 -Version "1.0.0" -Repository $localRepo -TrustRepository
 
         Update-PSResource -Name "test_local*" -Repository $localRepo -TrustRepository
-        $res = Get-PSResource -Name "test_local*" -Version "5.0.0"
+        $res = Get-InstalledPSResource -Name "test_local*" -Version "5.0.0"
 
         $inputHashtable = @{test_module = "1.0.0"; test_module2 = "1.0.0"}
         $isTest_ModuleUpdated = $false
@@ -81,7 +81,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -TrustRepository
 
         Update-PSResource -Name $moduleName -Version "5.0.0" -Repository $localRepo -TrustRepository
-        $res = Get-PSResource -Name $moduleName
+        $res = Get-InstalledPSResource -Name $moduleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -94,7 +94,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $isPkgUpdated | Should -BeTrue
     }
 
-    # Windows only 
+    # Windows only
     It "update resource under CurrentUser scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too
         Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -Scope AllUsers
@@ -102,7 +102,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
         Update-PSResource -Name $moduleName -Version "3.0.0.0" -Repository $localRepo -TrustRepository -Scope CurrentUser
 
-        $res = Get-PSResource -Name $moduleName
+        $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -116,7 +116,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
         $isPkgUpdated | Should -Be $true
     }
- 
+
     # Windows only
     It "update resource under AllUsers scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -TrustRepository -Scope AllUsers
@@ -145,7 +145,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository
         Update-PSResource -Name $moduleName -Version "5.0.0.0" -Repository $localRepo -TrustRepository
 
-        $res = Get-PSResource -Name $moduleName
+        $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -169,7 +169,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
         Update-PSResource -Name $moduleName -Repository $localRepo -TrustRepository -Scope CurrentUser
 
-        $res = Get-PSResource -Name $moduleName
+        $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -192,7 +192,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
         Update-PSResource -Name $moduleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
 
-        $res = Get-PSResource -Name $moduleName
+        $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -216,7 +216,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
         Update-PSResource -Name $moduleName -Repository $localRepo -TrustRepository
 
-        $res = Get-PSResource -Name $moduleName
+        $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -234,7 +234,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
     # It "update resource that requires accept license with -AcceptLicense flag" {
     #     Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
     #     Update-PSResource -Name "TestModuleWithLicense" -Repository $TestGalleryName -AcceptLicense
-    #     $res = Get-PSResource "TestModuleWithLicense"
+    #     $res = Get-InstalledPSResource "TestModuleWithLicense"
 
     #     $isPkgUpdated = $false
     #     foreach ($pkg in $res)
@@ -252,7 +252,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         Install-PSResource -Name $moduleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository
         Update-PSResource -Name $moduleName -WhatIf -Repository $localRepo -TrustRepository
 
-        $res = Get-PSResource -Name $moduleName
+        $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)

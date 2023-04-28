@@ -84,7 +84,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The path the .ps1 script info file will be created at.
         /// </summary>
-        [Parameter(Position = 0, Mandatory = true)]
+        [Parameter(Position = 0, Mandatory = true, HelpMessage = "Path (including file name) to the script file (.ps1 file) to update.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 

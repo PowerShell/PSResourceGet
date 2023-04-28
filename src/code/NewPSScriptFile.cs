@@ -13,15 +13,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Creates a new .ps1 file with script information required for publishing a script.
     /// </summary>
-    [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
-    public sealed class NewPSScriptFileInfo : PSCmdlet
+    [Cmdlet(VerbsCommon.New, "PSScriptFile")]
+    public sealed class NewPSScriptFile : PSCmdlet
     {
         #region Parameters
 
         /// <summary>
         /// The path the .ps1 script info file will be created at.
         /// </summary>
-        [Parameter(Position = 0, Mandatory = true)]
+        [Parameter(Position = 0, Mandatory = true, HelpMessage = "Path (including file name) to the script file (.ps1 file) to create.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -42,7 +42,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// The description of the script.
         /// </summary>
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = true, HelpMessage = "Description for the script.")]
         [ValidateNotNullOrEmpty()]
         public string Description { get; set; }
 
@@ -182,7 +182,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
                 var ex = new ArgumentException(exMessage);
                 var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathError);   
+                ThrowTerminatingError(InvalidPathError);
             }
 
             var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
@@ -193,7 +193,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(InvalidPathArgumentError);
             }
-            
+
             if (File.Exists(resolvedPath) && !Force)
             {
                 // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
@@ -250,7 +250,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            File.WriteAllLines(resolvedPath, psScriptFileContents);       
+            File.WriteAllLines(resolvedPath, psScriptFileContents);
         }
 
         #endregion

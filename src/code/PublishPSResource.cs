@@ -50,7 +50,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter (Mandatory = true)]
+        [Parameter (Mandatory = true, HelpMessage = "Path to the resource to be published.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -822,7 +822,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
-                var message =  string.Format("Unexpectd error packing into .nupkg: '{0}'.", e.Message);
+                var message =  string.Format("Unexpected error packing into .nupkg: '{0}'.", e.Message);
                 var ex = new ArgumentException(message);
                 var ErrorPackingIntoNupkg = new ErrorRecord(ex, "ErrorPackingIntoNupkg", ErrorCategory.NotSpecified, null);
 

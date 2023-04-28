@@ -23,12 +23,12 @@ Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
     }
 
-    It "should get script file object given script with minimal required fields" {    
+    It "should get script file object given script with minimal required fields" {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $scriptDescription
-        
-        $res = Get-PSScriptFileInfo $scriptFilePath 
+        New-PSScriptFile -Path $scriptFilePath -Description $scriptDescription
+
+        $res = Get-PSScriptFileInfo $scriptFilePath
         $res.Name | Should -Be "testscript"
         $res.ScriptHelpComment.Description | Should -Be $scriptDescription
     }
@@ -63,15 +63,15 @@ Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        $res = Get-PSScriptFileInfo $scriptFilePath  
-        $res.Name | Should -Be "ScriptWithoutEmptyLinesInMetadata"    
+        $res = Get-PSScriptFileInfo $scriptFilePath
+        $res.Name | Should -Be "ScriptWithoutEmptyLinesInMetadata"
     }
 
     It "should get script file object given script without empty lines between comment blocks" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        $res = Get-PSScriptFileInfo $scriptFilePath   
+        $res = Get-PSScriptFileInfo $scriptFilePath
         $res.Name | Should -Be "ScriptWithoutEmptyLinesBetweenCommentBlocks"
     }
 
@@ -79,7 +79,7 @@ Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
         $scriptName = "ScriptWithInvalidProjectUri.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        $res = Get-PSScriptFileInfo $scriptFilePath   
+        $res = Get-PSScriptFileInfo $scriptFilePath
         $res.Name | Should -Be "ScriptWithInvalidProjectUri"
         $res.ScriptMetadataComment.ProjectUri | Should -BeNullOrEmpty
     }

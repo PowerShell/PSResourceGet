@@ -12,16 +12,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// Tests the contents of a .ps1 file to see if it has all properties and is in correct format
     /// for publishing the script with the file.
     /// </summary>
-    [Cmdlet(VerbsDiagnostic.Test, "PSScriptFileInfo")]
+    [Cmdlet(VerbsDiagnostic.Test, "PSScriptFile")]
     [OutputType(typeof(bool))]
-    public sealed class TestPSScriptFileInfo : PSCmdlet
+    public sealed class TestPSScriptFile : PSCmdlet
     {
         #region Parameters
 
         /// <summary>
         /// The path to the .ps1 file to test.
         /// </summary>
-        [Parameter(Position = 0, Mandatory = true)]
+        [Parameter(Position = 0, Mandatory = true, HelpMessage = "Path (including file name) to the script file (.ps1 file) to test.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -36,7 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
                 var ex = new ArgumentException(exMessage);
                 var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathError);   
+                ThrowTerminatingError(InvalidPathError);
             }
 
             var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
@@ -62,7 +62,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo _,
                 errors: out ErrorRecord[] errors,
-                out string[] verboseMsgs);               
+                out string[] verboseMsgs);
 
             if (!isValidScript)
             {
