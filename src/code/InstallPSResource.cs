@@ -28,23 +28,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to install from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-<<<<<<< HEAD
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet, HelpMessage = "Name(s) of the package(s) to install.")]
-=======
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = NameParameterSet)]
->>>>>>> 0f007f0 (fix ValueFromPipelineByPropertyName on Save, Install)
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = NameParameterSet, HelpMessage = "Name(s) of the package(s) to install.")]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
         /// <summary>
         /// Specifies the version or version range of the package to be installed
         /// </summary>
-<<<<<<< HEAD
         [SupportsWildcards]
-        [Parameter(ParameterSetName = NameParameterSet)]
-=======
         [Parameter(ParameterSetName = NameParameterSet, ValueFromPipelineByPropertyName = true)]
->>>>>>> 0f007f0 (fix ValueFromPipelineByPropertyName on Save, Install)
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
         

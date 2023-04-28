@@ -35,13 +35,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to save from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-<<<<<<< HEAD
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = AsNupkgParameterSet, HelpMessage = "Name of the package(s) to save.")]
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = IncludeXmlParameterSet, HelpMessage = "Name of the package(s) to save.")]
-=======
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = AsNupkgParameterSet)]
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = IncludeXmlParameterSet)]
->>>>>>> 0f007f0 (fix ValueFromPipelineByPropertyName on Save, Install)
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = AsNupkgParameterSet, HelpMessage = "Name of the package(s) to save.")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = IncludeXmlParameterSet, HelpMessage = "Name of the package(s) to save.")]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
@@ -152,11 +147,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
-<<<<<<< HEAD
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo object representing the package to save.")]
-=======
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
->>>>>>> 0f007f0 (fix ValueFromPipelineByPropertyName on Save, Install)
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo object representing the package to save.")]
         [ValidateNotNullOrEmpty]
         [Alias("ParentResource")]
         public PSResourceInfo InputObject { get; set; }
