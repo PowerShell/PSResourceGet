@@ -42,7 +42,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public bool IsFindResultsEmpty()
         {
             return StringResponse.Length == 0 && HashtableResponse.Length == 0;
-
         }
     }
 }

@@ -146,13 +146,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
             {
-                // if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.local)
-                // {
-                //     foreach (PSResourceInfo currentPkg in SearchFromLocalRepository(repositoriesToSearch[i]))
-                //     {
-                //         yield return currentPkg;
-                //     }
-                // }
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 SetNetworkCredential(currentRepository);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
@@ -257,7 +250,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
+                foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                 {
                     if (!String.IsNullOrEmpty(currentResult.errorMsg))
                     {
@@ -348,18 +341,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _tagsLeftToFind.Any(); i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-
-                // if (repositoriesToSearch[i].ApiVersion == PSRepositoryInfo.APIVersion.local)
-                // {
-                //     _pkgsLeftToFind = new List<string>() { "*" };
-                //     _tag = tag;
-
-                //     foreach (var package in SearchFromLocalRepository(repositoriesToSearch[i]))
-                //     {
-                //         yield return package;
-                //     }
-                // }
-
                 SetNetworkCredential(currentRepository);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
@@ -373,8 +354,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         this));
                 }
 
-                //foreach (string currentTag in _tag)
-                //{
                 FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ExceptionDispatchInfo edi);
 
                 if (edi != null)
@@ -383,7 +362,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
+                foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                 {
                     if (!String.IsNullOrEmpty(currentResult.errorMsg))
                     {
@@ -394,7 +373,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     yield return currentResult.returnedObject;
                 }
-                //}
             }
         }
 
@@ -460,7 +438,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                         {
                             if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
@@ -498,7 +476,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).First();
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
                         
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
@@ -547,7 +525,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).First();
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
                         
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
@@ -595,7 +573,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                         {
                             if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
@@ -687,7 +665,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).First();
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
 
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))
                         {
@@ -714,7 +692,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (edi != null)
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
-                            // continue;
                             yield return null;
                             continue;
                         }
@@ -722,19 +699,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (responses.IsFindResultsEmpty())
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(new InvalidOrEmptyResponse($"Dependency package with Name {dep.Name} and VersionRange {dep.VersionRange} could not be found in this repository."), "HttpFindDepPackagesFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
-                            // continue;
                             yield return null;
                             continue;
                         }
 
-                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                         {
                             if (!String.IsNullOrEmpty(currentResult.errorMsg))
                             {
                                 _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingForDepResponseConversionFail", ErrorCategory.NotSpecified, this));
                                 yield return null;
                                 continue;
-                                //continue;
                             }
 
                             depPkg = currentResult.returnedObject;
