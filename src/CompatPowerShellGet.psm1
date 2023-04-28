@@ -576,8 +576,7 @@ param(
 
     begin
     {
-        ## TODO:  we do not support role-capability anymore
-        throw
+        # Find-RoleCability is no longer supported
     }
     <#
     .ForwardHelpTargetName Find-RoleCapability
