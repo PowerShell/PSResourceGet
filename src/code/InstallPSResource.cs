@@ -28,7 +28,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to install from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = NameParameterSet, HelpMessage = "Name(s) of the package(s) to install.")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = NameParameterSet, HelpMessage = "Name(s) of the package(s) to install.")]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
@@ -36,21 +36,22 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the version or version range of the package to be installed
         /// </summary>
         [SupportsWildcards]
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
         
         /// <summary>
         /// Specifies to allow installation of prerelease versions
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
+        [Parameter(ParameterSetName = NameParameterSet, ValueFromPipelineByPropertyName = true)]
+        [Alias("IsPrerelease")]
         public SwitchParameter Prerelease { get; set; }
 
         /// <summary>
         /// Specifies the repositories from which to search for the resource to be installed.
         /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        [ArgumentCompleter(typeof(RepositoryNameCompleter))]
+        [Parameter(ParameterSetName = NameParameterSet, ValueFromPipelineByPropertyName = true)]
+        [Parameter(ParameterSetName = InputObjectParameterSet, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
 
@@ -141,7 +142,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo object to install.")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo object to install.")]
+        [Alias("ParentResource")]
         [ValidateNotNullOrEmpty]
         public PSResourceInfo InputObject { get; set; }
 

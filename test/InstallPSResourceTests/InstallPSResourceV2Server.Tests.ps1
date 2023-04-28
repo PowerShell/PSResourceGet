@@ -166,6 +166,13 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0.0"
     }
 
+    It "Save PSResourceInfo object piped in for prerelease version object" {
+        $res = Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Install-PSResource -TrustRepository -SkipDependencyCheck -PassThru
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.2.5"
+        $res.Prerelease | Should -Be "alpha001"
+    }
+
     It "Install resource under specified in PSModulePath" {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
