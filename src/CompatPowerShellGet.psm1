@@ -940,6 +940,7 @@ param(
     [string[]]
     ${Name},
 
+    ### TODO:  v3 accepts PSResourceInfo (not array)
     [Parameter(ParameterSetName='InputObject', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNull()]
     [psobject[]]
@@ -960,7 +961,7 @@ param(
     [string]
     ${RequiredVersion},
 
-    [Parameter(ParameterSetName='NameParameterSet')] #TODO ValueFromPipelineByPropertyName=$true)]
+    [Parameter(ParameterSetName='NameParameterSet')]
     [ValidateNotNullOrEmpty()]
     [string[]]
     ${Repository},
@@ -1024,7 +1025,6 @@ param(
         }
         # Parameter translations
         if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
-        ### TODO: should we use -AuthenticodeCheck?
         if ( $PSBoundParameters['SkipPublisherCheck'] ) { $null = $PSBoundParameters.Remove('SkipPublisherCheck'); $PSBoundParameters['AuthenticodeCheck'] = $SkipPublisherCheck }
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['Proxy'] )              { $null = $PSBoundParameters.Remove('Proxy') }
@@ -1075,6 +1075,7 @@ param(
     [string[]]
     ${Name},
 
+    ### TODO: psobject[] v2 translating to PSResourceInfo (v3)
     [Parameter(ParameterSetName='InputObject', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNull()]
     [psobject[]]
@@ -1237,19 +1238,19 @@ param(
     ${RequiredModules},
     
     [ValidateNotNullOrEmpty()]
-    [String[]]
+    [string[]]
     ${ExternalModuleDependencies},
 
     [ValidateNotNullOrEmpty()]
-    [String[]]
+    [string[]]
     ${RequiredScripts},
     
     [ValidateNotNullOrEmpty()]
-    [String[]]
+    [string[]]
     ${ExternalScriptDependencies},
 
     [ValidateNotNullOrEmpty()]
-    [String[]]
+    [string[]]
     ${Tags},
     
     [ValidateNotNullOrEmpty()]
@@ -1264,7 +1265,8 @@ param(
     [Uri]
     ${IconUri},
     
-    [String[]]
+    ### todo translating string[] to string
+    [string[]]
     ${ReleaseNotes},
 
     [ValidateNotNullOrEmpty()]
@@ -1292,6 +1294,20 @@ param(
                 $RandomScriptPath = Join-Path -Path . -ChildPath "$(Get-Random).ps1";
                 $PSBoundParameters['Path'] = $RandomScriptPath
             }
+            if ( $PSBoundParameters['RequiredModules'] ) {
+
+                $passedInValue = $PSBoundParameters['RequiredModules']
+                $reqModules = new-object hashtable[] $passedInValue.Count
+                $index = 0
+                foreach ($obj in $passedInValue)
+                {
+                    $tempHash = @{}
+                    $obj.psobject.properties | ForEach-Object { $tempHash[$_.Name] = $_.Value }   
+                    $reqModules[$index] = ($tempHash)
+                    $index += 1
+                }
+            }  
+
             # Parameter Deletions (unsupported in v3)
             if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
             ### TODO:  do we want to have the '-Tags' parameter translate to 'Tag' (find is tag)
@@ -1667,6 +1683,7 @@ param(
     [string[]]
     ${Name},
 
+    ### TODO:  psobject[] to psresourceInfo ?
     [Parameter(ParameterSetName='InputObjectAndLiteralPathParameterSet', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [Parameter(ParameterSetName='InputObjectAndPathParameterSet', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNull()]
@@ -1807,6 +1824,7 @@ param(
     [string[]]
     ${Name},
 
+    ### TODO: psobject[] to psresourceinfo ?
     [Parameter(ParameterSetName='InputObjectAndLiteralPathParameterSet', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [Parameter(ParameterSetName='InputObjectAndPathParameterSet', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNull()]
@@ -2123,6 +2141,7 @@ param(
     [string[]]
     ${Name},
 
+    ### TODO psobject[] to psresourceinfo
     [Parameter(ParameterSetName='InputObject', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNull()]
     [psobject[]]
@@ -2220,6 +2239,7 @@ param(
     [string[]]
     ${Name},
 
+    ### TODO:  psobject[] to psresourceinfo
     [Parameter(ParameterSetName='InputObject', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNull()]
     [psobject[]]
@@ -2620,19 +2640,19 @@ param(
     ${RequiredModules},
 
     [ValidateNotNullOrEmpty()]
-    [String[]]
+    [string[]]
     ${ExternalModuleDependencies},
 
     [ValidateNotNullOrEmpty()]
-    [String[]]
+    [string[]]
     ${RequiredScripts},
     
     [ValidateNotNullOrEmpty()]
-    [String[]]
+    [string[]]
     ${ExternalScriptDependencies},
 
     [ValidateNotNullOrEmpty()]
-    [String[]]
+    [string[]]
     ${Tags},
     
     [ValidateNotNullOrEmpty()]
@@ -2642,12 +2662,13 @@ param(
     [ValidateNotNullOrEmpty()]
     [Uri]
     ${LicenseUri},
- 
+
     [ValidateNotNullOrEmpty()]
     [Uri]
     ${IconUri},
     
-    [String[]]
+    ### TODO string[] to string
+    [string[]]
     ${ReleaseNotes},
 
     [ValidateNotNullOrEmpty()]
@@ -2672,6 +2693,20 @@ param(
         # PARAMETER MAP
         # Parameter translations
         if ( $PSBoundParameters['LiteralPath'] )      { $null = $PSBoundParameters.Remove('LiteralPath'); $PSBoundParameters['Path'] = $LiteralPath }
+
+        if ( $PSBoundParameters['RequiredModules'] ) {
+
+            $passedInValue = $PSBoundParameters['RequiredModules']
+            $reqModules = new-object hashtable[] $passedInValue.Count
+            $index = 0
+            foreach ($obj in $passedInValue)
+            {
+                $tempHash = @{}
+                $obj.psobject.properties | ForEach-Object { $tempHash[$_.Name] = $_.Value }   
+                $reqModules[$index] = ($tempHash)
+                $index += 1
+            }
+        }  
 
         # Parameter Deletions (unsupported in v3)
         if ( $PSBoundParameters['PassThru'] )      { $null = $PSBoundParameters.Remove('PassThru') }
