@@ -786,7 +786,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             try { doc.Load(filePath); }
             catch (Exception e)
             {
-                // TODO: catch more specific ones
                 edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(e.Message));
             }
 
@@ -872,6 +871,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             releaseNotes = String.Empty;
             tags = Utils.EmptyStrArray;
 
+            List<string> uriErrors = new List<string>();
             // Look for Prerelease tag and then process any Tags in PrivateData > PSData
             if (pkgMetadata.ContainsKey("PrivateData"))
             {
@@ -889,6 +889,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             if (!Uri.TryCreate(licenseUriString, UriKind.Absolute, out licenseUri))
                             {
+                                uriErrors.Add($"LicenseUri {licenseUriString} is not a valid Uri and will be");
                                 // todo error handle?
                             }
                         }
@@ -952,6 +953,5 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         #endregion
-
     }
 }

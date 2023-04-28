@@ -619,8 +619,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 tagFilterPart += $" and substringof('{tagPrefix}{tag}', Tags) eq true";
             }
-            
-            //var requestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}&searchTerm='tag:{tagFilter}{tag}'{prereleaseFilter}{paginationParam}&{select}";
+
             var requestUrlV2 = $"{repository.Uri}/Search()?{prereleaseFilter}{tagFilterPart}&{select}{paginationParam}";
 
             return HttpRequestCall(requestUrlV2, out edi);

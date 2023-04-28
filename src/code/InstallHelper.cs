@@ -591,8 +591,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable packagesHash,
             out ExceptionDispatchInfo edi)
         {
-            //List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
-            FindResults responses = new FindResults();
+            FindResults responses = null;
             edi = null;
 
             switch (searchVersionType)
