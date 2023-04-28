@@ -768,7 +768,7 @@ param(
             if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
             # END PARAMETER MAP
 
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Get-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
+            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Get-InstalledPSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
 
             $steppablePipeline = $scriptCmd.GetSteppablePipeline()
@@ -848,7 +848,7 @@ param(
             if ( $PSBoundParameters['AllowPrerelease'] )    { $null = $PSBoundParameters.Remove('AllowPrerelease'); $PSBoundParameters['Prerelease'] = $AllowPrerelease }
             # END PARAMETER MAP
 
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Get-PSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
+            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Get-InstalledPSResource', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
 
             $steppablePipeline = $scriptCmd.GetSteppablePipeline()
@@ -942,6 +942,7 @@ param(
     ### TODO:  v3 accepts PSResourceInfo (not array)
     [Parameter(ParameterSetName='InputObject', Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
     [ValidateNotNull()]
+    ## TODO:  change type to fully qualified name for PSResourceInfo
     [psobject[]]
     ${InputObject},
 
