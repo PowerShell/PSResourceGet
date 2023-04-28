@@ -1318,7 +1318,7 @@ param(
             ### TODO:  do we want to have the '-Tags' parameter translate to 'Tag' (find is tag)
             # END PARAMETER MAP
 
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('New-PSScriptFileInfo', [System.Management.Automation.CommandTypes]::Cmdlet)
+            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('New-PSScriptFile', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
 
             $steppablePipeline = $scriptCmd.GetSteppablePipeline()
@@ -2104,7 +2104,7 @@ param(
         if ( $PSBoundParameters['LiteralPath'] )      { $null = $PSBoundParameters.Remove('LiteralPath'); $PSBoundParameters['Path'] = $LiteralPath }
 
         # END PARAMETER MAP
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Test-PSScriptFileInfo', [System.Management.Automation.CommandTypes]::Cmdlet)
+            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Test-PSScriptFile', [System.Management.Automation.CommandTypes]::Cmdlet)
             $scriptCmd = {& $wrappedCmd @PSBoundParameters }
 
             $steppablePipeline = $scriptCmd.GetSteppablePipeline()
