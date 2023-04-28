@@ -35,32 +35,32 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the exact names of resources to save from a repository.
         /// A comma-separated list of module names is accepted. The resource name must match the resource name in the repository.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = AsNupkgParameterSet)]
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = IncludeXmlParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = AsNupkgParameterSet, HelpMessage = "Name of the package(s) to save.")]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = IncludeXmlParameterSet, HelpMessage = "Name of the package(s) to save.")]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
 
         /// <summary>
         /// Specifies the version or version range of the package to be saved
         /// </summary>
-        [Parameter(ParameterSetName = AsNupkgParameterSet)]
-        [Parameter(ParameterSetName = IncludeXmlParameterSet)]
+        [Parameter(ParameterSetName = AsNupkgParameterSet, ValueFromPipelineByPropertyName = true)]
+        [Parameter(ParameterSetName = IncludeXmlParameterSet, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
 
         /// <summary>
         /// Specifies to allow saving of prerelease versions
         /// </summary>
-        [Parameter(ParameterSetName = AsNupkgParameterSet)]
-        [Parameter(ParameterSetName = IncludeXmlParameterSet)]
+        [Parameter(ParameterSetName = AsNupkgParameterSet, ValueFromPipelineByPropertyName = true)]
+        [Parameter(ParameterSetName = IncludeXmlParameterSet, ValueFromPipelineByPropertyName = true)]
+        [Alias("IsPrerelease")]
         public SwitchParameter Prerelease { get; set; }
 
         /// <summary>
         /// Specifies the specific repositories to search within.
         /// </summary>
         [SupportsWildcards]
-        [Parameter(ParameterSetName = AsNupkgParameterSet)]
-        [Parameter(ParameterSetName = IncludeXmlParameterSet)]
+        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
@@ -75,18 +75,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Saves the resource as a .nupkg
         /// </summary>
         [Parameter(ParameterSetName = AsNupkgParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter AsNupkg { get; set; }
 
         /// <summary>
         /// Saves the metadata XML file with the resource
         /// </summary>
         [Parameter(ParameterSetName = IncludeXmlParameterSet)]
+        [Parameter(ParameterSetName = InputObjectParameterSet)]
         public SwitchParameter IncludeXml { get; set; }
 
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = true, HelpMessage = "Path to save the package to.")]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -145,8 +147,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Used for pipeline input.
         /// </summary>
-        [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet)]
+        [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo object representing the package to save.")]
         [ValidateNotNullOrEmpty]
+        [Alias("ParentResource")]
         public PSResourceInfo InputObject { get; set; }
 
         /// <summary>
@@ -256,6 +259,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 var ex = new ArgumentException(versionParseError);
                 var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
                 ThrowTerminatingError(IncorrectVersionFormat);
+            }
+
+            // figure out if version is a prerelease or not.
+            // if condition is not met, prerelease is the value passed in via the parameter.
+            if (!string.IsNullOrEmpty(pkgVersion) && pkgVersion.Contains('-')) {
+                pkgPrerelease = true;
             }
 
             if (!ShouldProcess(string.Format("Resources to save: '{0}'", namesToSave)))

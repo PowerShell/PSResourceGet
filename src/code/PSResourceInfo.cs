@@ -282,7 +282,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             ResourceIncludes includes,
             DateTime? installedDate,
             string installedLocation,
-            bool isPrelease,
+            bool isPrerelease,
             Uri licenseUri,
             string name,
             string packageManagementProvider,
@@ -308,7 +308,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             Includes = includes ?? new ResourceIncludes();
             InstalledDate = installedDate;
             InstalledLocation = installedLocation ?? string.Empty;
-            IsPrerelease = isPrelease;
+            IsPrerelease = isPrerelease;
             LicenseUri = licenseUri;
             Name = name ?? string.Empty;
             PackageManagementProvider = packageManagementProvider ?? string.Empty;
@@ -414,7 +414,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     includes: new ResourceIncludes(GetProperty<Hashtable>(nameof(PSResourceInfo.Includes), psObjectInfo)),
                     installedDate: GetProperty<DateTime>(nameof(PSResourceInfo.InstalledDate), psObjectInfo),
                     installedLocation: GetStringProperty(nameof(PSResourceInfo.InstalledLocation), psObjectInfo),
-                    isPrelease: GetProperty<bool>(nameof(PSResourceInfo.IsPrerelease), psObjectInfo),
+                    isPrerelease: GetProperty<bool>(nameof(PSResourceInfo.IsPrerelease), psObjectInfo),
                     licenseUri: GetProperty<Uri>(nameof(PSResourceInfo.LicenseUri), psObjectInfo),
                     name: GetStringProperty(nameof(PSResourceInfo.Name), psObjectInfo),
                     packageManagementProvider: GetStringProperty(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
@@ -538,7 +538,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     includes: includes,
                     installedDate: null,
                     installedLocation: null,
-                    isPrelease: ParseMetadataIsPrerelease(metadataToParse),
+                    isPrerelease: ParseMetadataIsPrerelease(metadataToParse),
                     licenseUri: ParseMetadataLicenseUri(metadataToParse),
                     name: ParseMetadataName(metadataToParse),
                     packageManagementProvider: null,
@@ -663,7 +663,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     includes: includes,
                     installedDate: null,
                     installedLocation: null,
-                    isPrelease: (bool) metadata["IsPrerelease"],
+                    isPrerelease: (bool) metadata["IsPrerelease"],
                     licenseUri: metadata["LicenseUrl"] as Uri,
                     name: metadata["Id"] as String,
                     packageManagementProvider: null,
@@ -822,7 +822,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     includes: null,
                     installedDate: null,
                     installedLocation: null,
-                    isPrelease: (bool)metadata["IsPrerelease"],
+                    isPrerelease: (bool)metadata["IsPrerelease"],
                     licenseUri: metadata["LicenseUrl"] as Uri,
                     name: metadata["Id"] as String,
                     packageManagementProvider: null,

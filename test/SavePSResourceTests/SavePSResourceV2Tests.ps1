@@ -134,10 +134,22 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     It "Save PSResourceInfo object piped in for prerelease version object" {
-        Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Save-PSResource -Path $SaveDir -TrustRepository
+        $res = Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Save-PSResource -Path $SaveDir -TrustRepository -SkipDependencyCheck -PassThru
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.2.5"
+        $res.Prerelease | Should -Be "alpha001"
+    }
+
+    It "Save PSResourceInfo object piped in with IncludeXML" {
+        $res = Find-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName | Save-PSResource -Path $SaveDir -TrustRepository -IncludeXml -SkipDependencyCheck -PassThru
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "1.0.0.0"
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
+        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+        $pkgDirVersion.Name | Should -Be "1.0.0.0"
+        $xmlFile = Get-ChildItem -Path $pkgDirVersion.FullName | Where-Object Name -eq "PSGetModuleInfo.xml"
+        $xmlFile | Should -Not -BeNullOrEmpty
     }
 
     It "Save module as a nupkg" {

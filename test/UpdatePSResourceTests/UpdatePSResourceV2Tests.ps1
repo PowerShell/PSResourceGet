@@ -27,9 +27,9 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Update resource installed given Name parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        
+
         Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -48,7 +48,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName2 -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
         Update-PSResource -Name "test_mod*" -Repository $PSGalleryName -TrustRepository
-        $res = Get-PSResource -Name "test_mod*" -Version "5.0.0.0"
+        $res = Get-InstalledPSResource -Name "test_mod*" -Version "5.0.0.0"
 
         $inputHashtable = @{test_module = "1.0.0.0"; test_module2 = "1.0.0.0"}
         $isTest_ModuleUpdated = $false
@@ -76,7 +76,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
         Update-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -89,29 +89,25 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -BeTrue
     }
 
-    $testCases2 = @{Version="[3.0.0.0]";           ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, exact match"},
-                  @{Version="3.0.0.0";             ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[3.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason="validate version, exact range inclusive"},
-                  @{Version="(3.0.0.0, 6.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason="validate version, exact range exclusive"},
-                  @{Version="(3.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "5.0.0.0"); Reason="validate version, minimum version exclusive"},
-                  @{Version="[3.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason="validate version, minimum version inclusive"},
-                  @{Version="(,5.0.0.0)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, maximum version exclusive"},
-                  @{Version="(,5.0.0.0]";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 3.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0"); Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version="[3.0.0.0]";           UpdatedVersion="3.0.0.0"; Reason="validate version, exact match"},
+                  @{Version="3.0.0.0";             UpdatedVersion="3.0.0.0"; Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[3.0.0.0, 5.0.0.0]";  UpdatedVersion="5.0.0.0"; Reason="validate version, exact range inclusive"},
+                  @{Version="(3.0.0.0, 6.0.0.0)";  UpdatedVersion="5.0.0.0"; Reason="validate version, exact range exclusive"},
+                  @{Version="(3.0.0.0,)";          UpdatedVersion="5.0.0.0"; Reason="validate version, minimum version exclusive"},
+                  @{Version="[3.0.0.0,)";          UpdatedVersion="5.0.0.0"; Reason="validate version, minimum version inclusive"},
+                  @{Version="(,5.0.0.0)";          UpdatedVersion="3.0.0.0"; Reason="validate version, maximum version exclusive"},
+                  @{Version="(,5.0.0.0]";          UpdatedVersion="5.0.0.0"; Reason="validate version, maximum version inclusive"},
+                  @{Version="[1.0.0.0, 5.0.0.0)";  UpdatedVersion="3.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(1.0.0.0, 3.0.0.0]";  UpdatedVersion="3.0.0.0"; Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "Update resource when given Name to <Reason> <Version>" -TestCases $testCases2{
-        param($Version, $ExpectedVersions)
+        param($Version, $UpdatedVersion)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository
+        $res = Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository -PassThru -SkipDependencyCheck
 
-        $res = Get-PSResource -Name $testModuleName
-
-        foreach ($item in $res) {
-            $item.Name | Should -Be $testModuleName
-            $ExpectedVersions | Should -Contain $item.Version
-        }
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be $UpdatedVersion
     }
 
     $testCases = @(
@@ -124,7 +120,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository 2>$null
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -140,7 +136,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     It "Update resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -Prerelease -Repository $PSGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -155,7 +151,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -Be $true
     }
 
-    # Windows only 
+    # Windows only
     It "update resource under CurrentUser scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
@@ -163,7 +159,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -177,7 +173,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
         $isPkgUpdated | Should -Be $true
     }
- 
+
     # Windows only
     It "update resource under AllUsers scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
@@ -195,7 +191,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $PSGalleryName -TrustRepository -verbose
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -219,7 +215,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -243,7 +239,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -267,7 +263,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -285,7 +281,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     # It "update resource that requires accept license with -AcceptLicense flag" {
     #     Install-PSResource -Name "TestModuleWithLicense" -Version "0.0.1.0" -Repository $TestGalleryName -AcceptLicense
     #     Update-PSResource -Name "TestModuleWithLicense" -Repository $TestGalleryName -AcceptLicense
-    #     $res = Get-PSResource "TestModuleWithLicense"
+    #     $res = Get-InstalledPSResource "TestModuleWithLicense"
 
     #     $isPkgUpdated = $false
     #     foreach ($pkg in $res)
@@ -303,7 +299,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -WhatIf -Repository $PSGalleryName -TrustRepository
 
-        $res = Get-PSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName
 
         $isPkgUpdated = $false
         foreach ($pkg in $res)
@@ -330,9 +326,9 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     # Should update successfully
     It "Update module with catalog file using publisher validation" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository -verbose
-        Update-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository 
+        Update-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
 
-        $res1 = Get-PSResource $PackageManagement -Version "1.4.3"
+        $res1 = Get-InstalledPSResource $PackageManagement -Version "1.4.3"
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.3"
     }
@@ -343,27 +339,27 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     #     Install-PSResource -Name $PackageManagement -Version "1.4.2" -Reinstall -Repository $PSGalleryName -TrustRepository
     #     Update-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
     #     $err.Count | Should -Not -Be 0
-    #     $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource" 
+    #     $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     # }
 
     # Update to module 1.4.7 (is authenticode signed and has NO catalog file)
-    # Should update successfully 
+    # Should update successfully
     It "Install module with no catalog file" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $PackageManagement -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $PackageManagement -Version "1.4.7" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
 
-        $res1 = Get-PSResource $PackageManagement -Version "1.4.7"
+        $res1 = Get-InstalledPSResource $PackageManagement -Version "1.4.7"
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.7"
     }
 
     # Update script that is signed
-    # Should update successfully 
+    # Should update successfully
     It "Update script that is authenticode signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "Install-VSCode" -Version "1.4.1" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name "Install-VSCode" -Version "1.4.2" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
 
-        $res1 = Get-PSResource "Install-VSCode" -Version "1.4.2"
+        $res1 = Get-InstalledPSResource "Install-VSCode" -Version "1.4.2"
         $res1.Name | Should -Be "Install-VSCode"
         $res1.Version | Should -Be "1.4.2"
     }
@@ -374,6 +370,6 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Install-PSResource -Name "TestTestScript" -Version "1.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSResource"
     }
 }

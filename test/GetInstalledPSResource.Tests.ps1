@@ -4,7 +4,7 @@
 $ProgressPreference = "SilentlyContinue"
 Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 
-Describe 'Test Get-PSResource for Module' -Tags 'CI' {
+Describe 'Test Get-InstalledPSResource for Module' -Tags 'CI' {
 
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName
@@ -26,17 +26,17 @@ Describe 'Test Get-PSResource for Module' -Tags 'CI' {
     }
 
     It "Get resources without any parameter values" {
-        $pkgs = Get-PSResource
+        $pkgs = Get-InstalledPSResource
         $pkgs.Count | Should -BeGreaterThan 1
     }
 
     It "Get specific module resource by name" {
-        $pkg = Get-PSResource -Name $testModuleName
+        $pkg = Get-InstalledPSResource -Name $testModuleName
         $pkg.Name | Should -Contain $testModuleName
     }
 
     It "Get specific script resource by name" {
-        $pkg = Get-PSResource -Name $testScriptName
+        $pkg = Get-InstalledPSResource -Name $testScriptName
         $pkg.Name | Should -Be $testScriptName
     }
 
@@ -47,11 +47,11 @@ Describe 'Test Get-PSResource for Module' -Tags 'CI' {
         @{Name="tes*ule";        ExpectedName=$testModuleName; Reason="validate name, with wildcard in middle of name: tes*ule"}
     ) {
         param($Version, $ExpectedVersion)
-        $pkgs = Get-PSResource -Name $Name
+        $pkgs = Get-InstalledPSResource -Name $Name
         $pkgs.Name | Should -Contain $testModuleName
     }
 
-$testCases =  
+$testCases =
     @{Version="[1.0.0.0]";          ExpectedVersion="1.0.0.0";                           Reason="validate version, exact match"},
     @{Version="1.0.0.0";            ExpectedVersion="1.0.0.0";                           Reason="validate version, exact match without bracket syntax"},
     @{Version="[1.0.0.0, 5.0.0.0]"; ExpectedVersion=@("5.0.0.0", "3.0.0.0", "1.0.0.0");  Reason="validate version, exact range inclusive"},
@@ -64,7 +64,7 @@ $testCases =
 
     It "Get resource when given Name to <Reason> <Version>" -TestCases $testCases {
         param($Version, $ExpectedVersion)
-        $pkgs = Get-PSResource -Name $testModuleName -Version $Version
+        $pkgs = Get-InstalledPSResource -Name $testModuleName -Version $Version
         $pkgs.Name | Should -Contain $testModuleName
         $pkgs.Version | Should -Be $ExpectedVersion
     }
@@ -86,7 +86,7 @@ $testCases =
             $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -ErrorAction Ignore
         }
         catch {}
-        
+
         $res | Should -BeNullOrEmpty
     }
 
@@ -103,20 +103,20 @@ $testCases =
             $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -ErrorAction Ignore
         }
         catch {}
-        
+
         $res | Should -BeNullOrEmpty
     }
 
     It "Get resources when given Name, and Version is '*'" {
-        $pkgs = Get-PSResource -Name $testModuleName -Version "*"
+        $pkgs = Get-InstalledPSResource -Name $testModuleName -Version "*"
         $pkgs.Count | Should -BeGreaterOrEqual 2
     }
 
     It "Get prerelease version module when version with correct prerelease label is specified" {
         Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testModuleName -Version "5.2.5"
+        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5"
         $res | Should -BeNullOrEmpty
-        $res = Get-PSResource -Name $testModuleName -Version "5.2.5-alpha001"
+        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5-alpha001"
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.2.5"
         $res.Prerelease | Should -Be "alpha001"
@@ -124,9 +124,9 @@ $testCases =
 
     It "Get prerelease version script when version with correct prerelease label is specified" {
         Install-PSResource -Name $testScriptName -Version "3.0.0-alpha" -Repository $PSGalleryName -TrustRepository
-        $res = Get-PSResource -Name $testScriptName -Version "3.0.0"
+        $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0"
         $res | Should -BeNullOrEmpty
-        $res = Get-PSResource -Name $testScriptName -Version "3.0.0-alpha"
+        $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0-alpha"
         $res.Name | Should -Be $testScriptName
         $res.Version | Should -Be "3.0.0"
         $res.Prerelease | Should -Be "alpha"
@@ -134,21 +134,21 @@ $testCases =
 
      # Windows only
      It "Get resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
-        $pkg = Get-PSResource -Name $testModuleName -Scope CurrentUser
+        $pkg = Get-InstalledPSResource -Name $testModuleName -Scope CurrentUser
         $pkg[0].Name | Should -Be $testModuleName
         $pkg[0].InstalledLocation.ToString().Contains("Documents") | Should -Be $true
     }
 
     # Windows only
     It "Get resource under AllUsers scope when module is installed under CurrentUser - Windows only" -Skip:(!(Get-IsWindows)) {
-        $pkg = Get-PSResource -Name $testModuleName -Scope AllUsers
+        $pkg = Get-InstalledPSResource -Name $testModuleName -Scope AllUsers
         $pkg | Should -BeNullOrEmpty
     }
 
     # Windows only
     It "Get resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
-        $pkg = Get-PSResource -Name $testModuleName -Scope AllUsers
+        $pkg = Get-InstalledPSResource -Name $testModuleName -Scope AllUsers
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
     }
@@ -157,7 +157,7 @@ $testCases =
     It "Get resource under CurrentUser scope when module is installed under AllUsers - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Uninstall-PSResource -Name $testModuleName -Version "*"
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
-        $pkg = Get-PSResource -Name $testModuleName -Scope CurrentUser
+        $pkg = Get-InstalledPSResource -Name $testModuleName -Scope CurrentUser
         $pkg | Should -BeNullOrEmpty
     }
 
@@ -165,7 +165,7 @@ $testCases =
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
     It "Get resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name "testmodule99" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
-        $pkg = Get-PSResource "testmodule99" -Scope CurrentUser
+        $pkg = Get-InstalledPSResource "testmodule99" -Scope CurrentUser
         $pkg.Name | Should -contain "testmodule99"
         $pkg.InstalledLocation.ToString().Contains("/.local") | Should -Be $true
     }
