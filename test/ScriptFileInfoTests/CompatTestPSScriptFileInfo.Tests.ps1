@@ -9,7 +9,7 @@ $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
 $testDir = (get-item $psscriptroot).parent.FullName
 
-Describe "Test CompatPowerShellGet: Test-PSScriptFileInfo" -tags 'CI' {
+Describe "Test CompatPowerShellGet: Test-PSScriptFile" -tags 'CI' {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDirPaths = @($tmpDir1Path)
@@ -28,7 +28,7 @@ Describe "Test CompatPowerShellGet: Test-PSScriptFileInfo" -tags 'CI' {
         $guid = [guid]::NewGuid()
         $author = "Script Author"
         $version = "1.0.0"
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $scriptDescription -Guid $guid -Author $author -Version $version
+        New-PSScriptFile -Path $scriptFilePath -Description $scriptDescription -Guid $guid -Author $author -Version $version
         Test-ScriptFileInfo $scriptFilePath | Should -Be $true
     }
 

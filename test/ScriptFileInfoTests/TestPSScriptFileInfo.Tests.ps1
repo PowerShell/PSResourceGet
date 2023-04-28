@@ -25,7 +25,7 @@ Describe "Test Test-PSScriptFile" -tags 'CI' {
     It "determine script file with minimal required fields as valid" {    
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
-        New-PSScriptFileInfo -Path $scriptFilePath -Description $scriptDescription
+        New-PSScriptFile -Path $scriptFilePath -Description $scriptDescription
         Test-PSScriptFile $scriptFilePath | Should -Be $true
     }
 
