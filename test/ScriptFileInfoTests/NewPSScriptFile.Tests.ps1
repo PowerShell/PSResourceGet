@@ -28,7 +28,7 @@ Describe "Test New-PSScriptFile" -tags 'CI' {
     It "Create .ps1 file with minimal required fields" {    
         $description = "Test description"
         New-PSScriptFile -Path  $script:testScriptFilePath -Description $description
-        New-PSScriptFile -Path $script:testScriptFilePath | Should -BeTrue
+        Test-PSScriptFile -Path $script:testScriptFilePath | Should -BeTrue
     }
 
     It "Create .ps1 file with relative path" {
@@ -38,7 +38,7 @@ Describe "Test New-PSScriptFile" -tags 'CI' {
         $description = "Test description"
         New-PSScriptFile -Path $scriptFilePath -Description $description
 
-        New-PSScriptFile -Path $scriptFilePath | Should -BeTrue
+        Test-PSScriptFile -Path $scriptFilePath | Should -BeTrue
         Remove-Item -Path $scriptFilePath
     }
 

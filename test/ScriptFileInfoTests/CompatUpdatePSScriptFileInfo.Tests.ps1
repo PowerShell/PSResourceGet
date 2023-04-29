@@ -256,13 +256,14 @@ Describe "Test CompatPowerShellGet: Update-PSScriptFileInfo" -tags 'CI' {
         $hashtable2 = @{ModuleName = "RequiredModule2"; ModuleVersion = "1.0.0.0"}
         $hashtable3 = @{ModuleName = "RequiredModule3"; RequiredVersion = "2.5.0.0"}
         $hashtable4 = @{ModuleName = "RequiredModule4"; ModuleVersion = "1.1.0.0"; MaximumVersion = "2.0.0.0"}
-        $requiredModules = $hashtable1, $hashtable2, $hashtable3, $hashtable4 
+        $requiredModules = @($hashtable1, $hashtable2, $hashtable3, $hashtable4)
 
         Update-ScriptFileInfo -Path $script:testScriptFilePath -RequiredModules $requiredModules
         Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
+        
         $results.Contains("#Requires -Module RequiredModule1") | Should -BeTrue
         $results -like "*#Requires*ModuleName*Version*" | Should -BeTrue
     }

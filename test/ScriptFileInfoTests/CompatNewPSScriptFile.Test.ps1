@@ -114,7 +114,7 @@ Describe "Test CompatPowerShellGet: New-PSScriptFile" -tags 'CI' {
     }
 
     It "Create new .ps1 given RequiredModules parameter" {
-        $requiredModuleName = 'PackageManagement'
+        $requiredModuleName = 'TestModuleName'
         $requiredModuleVersion = '1.0.0.0'
         $RequiredModules =  @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
 
@@ -126,7 +126,7 @@ Describe "Test CompatPowerShellGet: New-PSScriptFile" -tags 'CI' {
         $results = Get-Content -Path $script:testScriptFilePath -Raw
         $results.Contains($requiredModuleName) | Should -BeTrue
         $results.Contains($requiredModuleVersion) | Should -BeTrue
-        $results -like "*#Requires*$requiredModuleName*$requiredModuleVersion*" | Should -BeTrue
+        $results -like "*#Requires -Module @{ModuleVersion = '$requiredModuleVersion'; ModuleName = '$requiredModuleName'}*" | Should -BeTrue
     }
 
     It "Create new .ps1 given ReleaseNotes parameter" {
