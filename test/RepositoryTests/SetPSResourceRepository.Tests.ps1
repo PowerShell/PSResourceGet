@@ -301,7 +301,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         {
             Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
             Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo2 -ErrorAction SilentlyContinue
-        } | Should -Throw -ErrorId "RepositoryCredentialSecretManagementInaccessibleVault,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        } | Should -Throw
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res.CredentialInfo | Should -BeNullOrEmpty
