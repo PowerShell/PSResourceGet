@@ -204,7 +204,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-Module -Name $testModuleName -Version "3.0.0.0" -Scope CurrentUser
+        Update-Module -Name $testModuleName -RequiredVersion "3.0.0.0" -Scope CurrentUser
 
         $res = Get-InstalledPSResource -Name $testModuleName
 
@@ -226,7 +226,7 @@ Describe 'Test CompatPowerShellGet: Update-PSResource' -tags 'CI' {
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         Install-PSResource -Name "testmodule99" -Version "0.0.91" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-Module -Name "testmodule99" -Version "0.0.93" -Scope AllUsers
+        Update-Module -Name "testmodule99" -RequiredVersion "0.0.93" -Scope AllUsers
 
         $res = Get-Module -Name "testmodule99" -ListAvailable
         $res | Should -Not -BeNullOrEmpty
