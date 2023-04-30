@@ -21,8 +21,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
     public sealed class FindResults
     {
-        public string[] StringResponse { get; private set; }
-        public Hashtable[] HashtableResponse { get; private set; }
+        public string[] StringResponse { get; private set; } = Utils.EmptyStrArray;
+        public Hashtable[] HashtableResponse { get; private set; } = new Hashtable[]{};
         public FindResponseType ResponseType { get; set; }
 
         public FindResults()

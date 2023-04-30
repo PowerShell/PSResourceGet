@@ -31,9 +31,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Overriden Methods
         public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults)
         {
-            Hashtable[] responses = responseResults.HashtableResponse;
-
-            foreach (Hashtable response in responses)
+            foreach (Hashtable response in responseResults.HashtableResponse)
             {
                 if (!response.ContainsKey(fileTypeKey) || fileTypeKey.Equals(Utils.MetadataFileType.None))
                 {

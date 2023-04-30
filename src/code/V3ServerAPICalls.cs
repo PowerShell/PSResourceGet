@@ -22,7 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override PSRepositoryInfo repository { get; set; }
         public override HttpClient s_client { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
-
+        private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string resourcesName = "resources";
         private static readonly string packageBaseAddressName = "PackageBaseAddress/3.0.0";
         private static readonly string searchQueryServiceName = "SearchQueryService/3.0.0-beta";
@@ -63,7 +63,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string errMsg = $"Find all is not supported for the repository {repository.Uri}";
             edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
@@ -97,7 +97,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             List<string> matchingResponses = new List<string>();
@@ -111,7 +111,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         string errMsg = $"FindTag(): Id or Version element could not be found in response.";
                         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
 
                     id = idItem.ToString();
@@ -121,7 +121,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     string errMsg = $"FindTag(): Id or Version element could not be parsed from response due to exception {e.Message}.";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                 }
 
                 // determine if id matches our wildcard criteria
@@ -130,7 +130,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
                     if (edi != null)
                     {
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
 
                     matchingResponses.Add(response);
@@ -142,7 +142,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         {
                             string errMsg = $"FindTag(): Tag element could not be found in response.";
                             edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
 
                         string[] pkgTags = GetTagsFromJsonElement(tagsItem);
@@ -161,7 +161,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
                             if (edi != null)
                             {
-                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                             }
 
                             matchingResponses.Add(response);
@@ -171,12 +171,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         string errMsg = $"FindTag(): Tags element could not be parsed from response due to exception {e.Message}.";
                         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
                 }
             }
 
-            FindResults tagsFoundResult = new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: null, responseType: v3FindResponseType);
+            FindResults tagsFoundResult = new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             return tagsFoundResult;
         }
 
@@ -189,7 +189,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string errMsg = $"Find by CommandName or DSCResource is not supported for {repository.Name} as it uses the V3 server protocol";
             edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -209,7 +209,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
@@ -219,7 +219,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, isNuGetRepo, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string response = string.Empty;
@@ -239,7 +239,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
                         if (edi != null)
                         {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
 
                         break;
@@ -252,7 +252,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindName() with {packageName} returned empty response."));
             }
 
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -265,7 +265,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
@@ -275,7 +275,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, isNuGetRepo, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string response = string.Empty;
@@ -295,7 +295,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
                         if (edi != null)
                         {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
 
                         bool isTagMatch = DetermineTagsPresent(response: response, tags: tags, out edi);
@@ -308,7 +308,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                 edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException(errMsg));
                             }
 
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
 
                         break;
@@ -321,7 +321,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindNameWithTag() with {packageName} and tags {String.Join(",", tags)} returned empty response."));
             }
 
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -346,7 +346,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (names.Length == 0)
             {
                 edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
             if (names.Length == 1)
             {
@@ -363,7 +363,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // *pow*get
 
                 edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
@@ -371,7 +371,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
@@ -383,7 +383,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             List<string> matchingResponses = new List<string>();
@@ -398,7 +398,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
                         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
 
                     id = idItem.ToString();
@@ -420,14 +420,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (edi != null)
                     {
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
 
                     matchingResponses.Add(response);
                 }
             }
 
-            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -443,7 +443,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (names.Length == 0)
             {
                 edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
             if (names.Length == 1)
             {
@@ -460,7 +460,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // *pow*get
 
                 edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
@@ -468,7 +468,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
@@ -480,7 +480,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             List<string> matchingResponses = new List<string>();
@@ -496,14 +496,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
                         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
 
                     if (!pkgId.TryGetProperty(tagsName, out JsonElement tagsItem))
                     {
                         string errMsg = $"FindNameGlobbing(): Tags element could not be found in response.";
                         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
 
                     id = idItem.ToString();
@@ -540,7 +540,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -569,7 +569,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
@@ -579,7 +579,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, isNuGetRepo, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             List<string> responses = new List<string>();
@@ -596,7 +596,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         string response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
                         if (edi != null)
                         {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
 
                         responses.Add(response);
@@ -604,7 +604,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -632,7 +632,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
@@ -640,7 +640,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string response = FindVersionHelper(registrationsBaseUrl, packageName, version, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             if (String.IsNullOrEmpty(response))
@@ -648,7 +648,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindVersion() with {packageName} and version {version} returned empty response."));
             }
 
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -676,7 +676,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
@@ -684,7 +684,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string response = FindVersionHelper(registrationsBaseUrl, packageName, version, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             bool isTagMatch = DetermineTagsPresent(response: response, tags: tags, out edi);
@@ -697,7 +697,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException(errMsg));
                 }
 
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: null, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             if (String.IsNullOrEmpty(response))
@@ -705,7 +705,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindVersion() with {packageName}, tags {String.Join(", ", tags)} and version {version} returned empty response."));
             }
 
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: null, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /**  INSTALL APIS **/
