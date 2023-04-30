@@ -61,12 +61,10 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $localRepo -TrustRepository
-        $res = Get-InstalledPSResource "NonExistantModule"
-        $res.Name | Should -BeNullOrEmpty
+        $res = Install-PSResource -Name "NonExistantModule" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
-        $res | Should -BeNullOrEmpty
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
@@ -122,7 +120,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         Find-PSResource -Name $testModuleName -Repository $localRepo | Install-PSResource -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "5.0.0.0"
+        $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install resource under location specified in PSModulePath" {
