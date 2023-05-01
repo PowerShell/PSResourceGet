@@ -10,7 +10,7 @@ jobs:
   pool:
     vmImage: ${{ parameters.imageName }}
   displayName: ${{ parameters.displayName }}
-  timeoutInMinutes: 90
+  timeoutInMinutes: 100
   steps:
   - task: DownloadBuildArtifacts@0
     displayName: 'Download artifacts'
