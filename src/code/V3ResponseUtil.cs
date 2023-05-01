@@ -13,7 +13,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
-        public override PSRepositoryInfo repository { get; set; }
+        internal override PSRepositoryInfo Repository { get; set; }
 
         #endregion
 
@@ -21,7 +21,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public V3ResponseUtil(PSRepositoryInfo repository) : base(repository)
         {
-            this.repository = repository;
+            this.Repository = repository;
         }
 
         #endregion
@@ -55,7 +55,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
                 }
 
-                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository, out string errorMsg))
+                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
                 {
                     yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                 }

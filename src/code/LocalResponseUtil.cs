@@ -14,8 +14,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
-        public override PSRepositoryInfo repository { get; set; }
-        public readonly string fileTypeKey = "filetype";
+        internal override PSRepositoryInfo Repository { get; set; }
+        private readonly string _fileTypeKey = "filetype";
 
         #endregion
 
@@ -23,7 +23,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public LocalResponseUtil(PSRepositoryInfo repository) : base(repository)
         {
-            this.repository = repository;
+            this.Repository = repository;
         }
 
         #endregion
@@ -33,18 +33,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             foreach (Hashtable response in responseResults.HashtableResponse)
             {
-                if (!response.ContainsKey(fileTypeKey) || fileTypeKey.Equals(Utils.MetadataFileType.None))
+                if (!response.ContainsKey(_fileTypeKey) || _fileTypeKey.Equals(Utils.MetadataFileType.None))
                 {
                     yield return new PSResourceResult(returnedObject: null, errorMsg: "Package response did not contain metadata file type key so will be skipped.", isTerminatingError: false);
                     continue;
                 }
 
-                if (! Utils.MetadataFileType.TryParse(fileTypeKey, out Utils.MetadataFileType fileType))
+                if (! Utils.MetadataFileType.TryParse(_fileTypeKey, out Utils.MetadataFileType fileType))
                 {
                     yield return new PSResourceResult(returnedObject: null, errorMsg: "MetadataFileType key in package metadata could not be parsed successfully.", isTerminatingError: false);
                 }
 
-                response.Remove(fileTypeKey);
+                response.Remove(_fileTypeKey);
                 PSResourceResult pkgInfo = null;
 
                 switch (fileType)
@@ -54,7 +54,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkgMetadata: response,
                             psGetInfo: out PSResourceInfo pkgWithPsd1,
                             out string psd1ErrorMsg,
-                            repository: repository))
+                            repository: Repository))
                         {
                             yield return new PSResourceResult(returnedObject: null, errorMsg: psd1ErrorMsg, isTerminatingError: false);
                         }
@@ -67,7 +67,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkgMetadata: response,
                             psGetInfo: out PSResourceInfo pkgWithPs1,
                             out string ps1ErrorMsg,
-                            repository: repository))
+                            repository: Repository))
                         {
                             yield return new PSResourceResult(returnedObject: null, errorMsg: ps1ErrorMsg, isTerminatingError: false);
                         }
@@ -80,7 +80,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkgMetadata: response,
                             psGetInfo: out PSResourceInfo pkgWithNuspec,
                             out string nuspecErrorMsg,
-                            repository: repository))
+                            repository: Repository))
                         {
                             yield return new PSResourceResult(returnedObject: null, errorMsg: nuspecErrorMsg, isTerminatingError: false);
                         }

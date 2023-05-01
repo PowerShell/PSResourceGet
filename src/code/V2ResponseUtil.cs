@@ -13,7 +13,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
-        public override PSRepositoryInfo repository { get; set; }
+        internal override PSRepositoryInfo Repository { get; set; }
 
         #endregion
 
@@ -21,7 +21,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public V2ResponseUtil(PSRepositoryInfo repository) : base(repository)
         {
-            this.repository = repository;
+            this.Repository = repository;
         }
 
         #endregion
@@ -49,7 +49,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach (var element in elemList)
                 {
-                    if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository, out string errorMsg))
+                    if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
                     {
                         yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }

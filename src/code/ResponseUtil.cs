@@ -10,7 +10,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
-        public abstract PSRepositoryInfo repository { get; set; }
+        internal abstract PSRepositoryInfo Repository { get; set; }
 
         #endregion
 
@@ -18,7 +18,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public ResponseUtil(PSRepositoryInfo repository)
         {
-            this.repository = repository;
+            this.Repository = repository;
         }
 
         #endregion
