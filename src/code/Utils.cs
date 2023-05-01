@@ -680,11 +680,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             List<string> resourcePaths = new List<string>();
 
             // Path search order is PSModulePath paths first, then default paths.
-            if (scope is null)
-            {
-                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                resourcePaths.AddRange(psModulePath.Split(Path.PathSeparator).ToList());
-            }
+            string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
+            resourcePaths.AddRange(psModulePath.Split(Path.PathSeparator).ToList());
 
             if (scope is null || scope.Value is ScopeType.CurrentUser)
             {
