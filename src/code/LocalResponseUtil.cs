@@ -39,7 +39,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                if (! Utils.MetadataFileType.TryParse(_fileTypeKey, out Utils.MetadataFileType fileType))
+                string fileTypeString = response[_fileTypeKey].ToString();
+                if (!Enum.TryParse(fileTypeString, out Utils.MetadataFileType fileType))
                 {
                     yield return new PSResourceResult(returnedObject: null, errorMsg: "MetadataFileType key in package metadata could not be parsed successfully.", isTerminatingError: false);
                 }
