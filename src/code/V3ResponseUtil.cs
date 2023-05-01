@@ -65,6 +65,5 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         #endregion
-    
     }
 }

@@ -420,7 +420,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Example: Find-PSResource -Name "Az*"
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
                         string tagMsg = String.Empty;
-                        FindResults responses = new FindResults();
+                        FindResults responses = null;
                         if (_tag.Length == 0)
                         {
                             responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out edi);
@@ -458,7 +458,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Example: Find-PSResource -Name "Az"
                         // Example: Find-PSResource -Name "Az" -Tag "Storage"
                         string tagMsg = String.Empty;
-                        FindResults responses = new FindResults();
+                        FindResults responses = null;
                         if (_tag.Length == 0)
                         {
                             responses = currentServer.FindName(pkgName, _prerelease, _type, out edi);
@@ -506,7 +506,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0"
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0" -Tag "Windows"
-                        FindResults responses = new FindResults();
+                        FindResults responses = null;
                         string tagMsg = String.Empty;
                         if (_tag.Length == 0)
                         {
@@ -553,7 +553,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     else
                     {
                         // Example: Find-PSResource -Name "Az" -Version "[1.0.0.0, 3.0.0.0]"
-                        FindResults responses = new FindResults();
+                        FindResults responses = null;
                         if (_tag.Length == 0)
                         {
                             responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out edi);
