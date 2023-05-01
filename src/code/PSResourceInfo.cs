@@ -250,8 +250,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public bool IsPrerelease { get; set; }
         public Uri LicenseUri { get; set; }
         public string Name { get; set; }
-        public string PackageManagementProvider { get; }
-        public string PowerShellGetFormatVersion { get; }
+        private string PowerShellGetFormatVersion { get; }
         public string Prerelease { get; }
         public Uri ProjectUri { get; set; }
         public DateTime? PublishedDate { get; set; }
