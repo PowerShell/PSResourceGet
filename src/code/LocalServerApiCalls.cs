@@ -21,10 +21,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
-        public override PSRepositoryInfo repository { get; set; }
-        public override HttpClient s_client { get; set; }
-        public FindResponseType localServerFindResponseType = FindResponseType.ResponseHashtable;
-        public readonly string fileTypeKey = "filetype";
+        public override PSRepositoryInfo Repository { get; set; }
+        private FindResponseType _localServerFindResponseType = FindResponseType.ResponseHashtable;
+        private readonly string _fileTypeKey = "filetype";
 
         #endregion
 
@@ -32,13 +31,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public LocalServerAPICalls (PSRepositoryInfo repository, NetworkCredential networkCredential) : base (repository, networkCredential)
         {
-            this.repository = repository;
-            HttpClientHandler handler = new HttpClientHandler()
-            {
-                Credentials = networkCredential
-            };
-
-            s_client = new HttpClient(handler);
+            this.Repository = repository;
         }
 
         #endregion
@@ -75,7 +68,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pkgsFound.Add(pkgMetadata);
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
 
             return findResponse;
         }
@@ -110,7 +103,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pkgsFound.Add(pkgMetadata);
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
 
             return findResponse;
         }
@@ -143,7 +136,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pkgsFound.Add(pkgMetadata);
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
 
             return findResponse;
         }
@@ -166,7 +159,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
 
-            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -178,7 +171,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return findResponse;
                     }
 
-                    if (!nugetVersion.IsPrerelease || includePrerelease)
+                    if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
                     {
                         if (nugetVersion > latestVersion)
                         {
@@ -202,7 +195,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return findResponse;
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
             return findResponse;
         }
 
@@ -220,7 +213,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
 
-            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -232,13 +225,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return findResponse;
                     }
 
-                    if (!nugetVersion.IsPrerelease || includePrerelease)
+                    if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
                     {
-                        if (nugetVersion > latestVersion)
-                        {
-                            latestVersion = nugetVersion;
-                            latestVersionPath = path;
-                        }
+                        latestVersion = nugetVersion;
+                        latestVersionPath = path;   
                     }
                 }
             }
@@ -261,7 +251,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, and tags {String.Join(", ", tags)} could not be found."));
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
             return findResponse;
         }
 
@@ -296,7 +286,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pkgsFound.Add(pkgMetadata);
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
 
             return findResponse;
         }
@@ -330,7 +320,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 pkgsFound.Add(pkgMetadata);
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
 
             return findResponse;
         }
@@ -370,7 +360,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 foundPkgs.Add(pkgMetadata);
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: foundPkgs.ToArray(), responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: foundPkgs.ToArray(), responseType: _localServerFindResponseType);
 
             return findResponse;
         }
@@ -387,7 +377,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FindResults findResponse = new FindResults();
 
             string packageFullName = $"{packageName}.{version}.nupkg";
-            string packagePath = Path.Combine(repository.Uri.AbsolutePath, packageFullName);
+            string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
 
             if (!File.Exists(packagePath))
             {
@@ -406,7 +396,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, version {version} could not be found."));
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
             return findResponse;
         }
 
@@ -421,7 +411,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             FindResults findResponse = new FindResults();
 
             string packageFullName = $"{packageName}.{version}.nupkg";
-            string packagePath = Path.Combine(repository.Uri.AbsolutePath, packageFullName);
+            string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
 
             if (!File.Exists(packagePath))
             {
@@ -440,7 +430,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, version {version} and tags {String.Join(", ", tags)} could not be found."));
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
             return findResponse;
         }
 
@@ -461,7 +451,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
 
-            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -473,13 +463,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string version = packageVersionAndExtension.Substring(0, extensionDot);
                     NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
 
-                    if (!nugetVersion.IsPrerelease || includePrerelease)
+                    if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
                     {
-                        if (nugetVersion > latestVersion)
-                        {
-                            latestVersion = nugetVersion;
-                            latestVersionPath = path;
-                        }
+                        latestVersion = nugetVersion;
+                        latestVersionPath = path;
                     }
                 }
             }
@@ -523,7 +510,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             
             string packageFullName = $"{packageName.ToLower()}.{version}.nupkg";
-            string packagePath = Path.Combine(repository.Uri.AbsolutePath, packageFullName);
+            string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
             if (!File.Exists(packagePath))
             {
                 edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {version} does not exist in this repository"));
@@ -595,7 +582,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     pkgMetadata.Add("IconUri", iconUri);
                     pkgMetadata.Add("ReleaseNotes", releaseNotes);
                     pkgMetadata.Add("Id", packageName);
-                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ModuleManifest);
+                    pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.ModuleManifest);
 
                     pkgTags.AddRange(pkgHashTags);
                 }
@@ -609,7 +596,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     pkgMetadata = parsedScript.ToHashtable();
                     pkgMetadata.Add("Id", packageName);
-                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.ScriptFile);
+                    pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.ScriptFile);
                     pkgTags.AddRange(pkgMetadata["Tags"] as string[]);
 
                 }
@@ -621,7 +608,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         return pkgMetadata;
                     }
 
-                    pkgMetadata.Add(fileTypeKey, Utils.MetadataFileType.Nuspec);
+                    pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.Nuspec);
                     pkgTags.AddRange(pkgMetadata["tags"] as string[]);
                 }
                 else
@@ -665,7 +652,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
             edi = null;
 
-            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -705,7 +692,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Regex rx = new Regex(@"\.\d+\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
-            foreach (string path in Directory.GetFiles(repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
             {
                 string packageFullName = Path.GetFileName(path);
                 MatchCollection matches = rx.Matches(packageFullName);

@@ -39,7 +39,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     continue;
                 }
 
-                Utils.MetadataFileType fileType = (Utils.MetadataFileType) response[fileTypeKey];
+                if (! Utils.MetadataFileType.TryParse(fileTypeKey, out Utils.MetadataFileType fileType))
+                {
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: "MetadataFileType key in package metadata could not be parsed successfully.", isTerminatingError: false);
+                }
+
                 response.Remove(fileTypeKey);
                 PSResourceResult pkgInfo = null;
 
@@ -63,8 +67,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             pkgMetadata: response,
                             psGetInfo: out PSResourceInfo pkgWithPs1,
                             out string ps1ErrorMsg,
-                            repository: repository
-                        ))
+                            repository: repository))
                         {
                             yield return new PSResourceResult(returnedObject: null, errorMsg: ps1ErrorMsg, isTerminatingError: false);
                         }

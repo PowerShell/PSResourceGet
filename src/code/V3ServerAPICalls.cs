@@ -19,8 +19,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     internal class V3ServerAPICalls : ServerApiCall
     {
         #region Members
-        public override PSRepositoryInfo repository { get; set; }
-        public override HttpClient s_client { get; set; }
+        public override PSRepositoryInfo Repository { get; set; }
+        private HttpClient _sessionClient { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string resourcesName = "resources";
@@ -39,7 +39,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public V3ServerAPICalls(PSRepositoryInfo repository, NetworkCredential networkCredential) : base(repository, networkCredential)
         {
-            this.repository = repository;
+            this.Repository = repository;
 
             HttpClientHandler handler = new HttpClientHandler()
             {
@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 Credentials = networkCredential
             };
 
-            s_client = new HttpClient(handler);
+            _sessionClient = new HttpClient(handler);
         }
 
         #endregion
@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            string errMsg = $"Find all is not supported for the repository {repository.Uri}";
+            string errMsg = $"Find all is not supported for the repository {Repository.Uri}";
             edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -186,7 +186,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
-            string errMsg = $"Find by CommandName or DSCResource is not supported for {repository.Name} as it uses the V3 server protocol";
+            string errMsg = $"Find by CommandName or DSCResource is not supported for {Repository.Name} as it uses the V3 server protocol";
             edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -810,7 +810,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
-                response = SendV3RequestAsync(request, s_client).GetAwaiter().GetResult();
+                response = SendV3RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
             {
@@ -844,7 +844,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
-                content = SendV3RequestForContentAsync(request, s_client).GetAwaiter().GetResult();
+                content = SendV3RequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
             {
@@ -868,7 +868,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Hashtable FindResourceType(string[] resourceTypeName, out ExceptionDispatchInfo edi)
         {
             Hashtable resourceHash = new Hashtable();
-            JsonElement[] resources = GetJsonElementArr($"{repository.Uri}", resourcesName, out edi);
+            JsonElement[] resources = GetJsonElementArr($"{Repository.Uri}", resourcesName, out edi);
             if (edi != null)
             {
                 return resourceHash;
@@ -890,7 +890,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             }
                             else
                             {
-                                string errMsg = $"@type element was found but @id element not found in service index '{repository.Uri}' for {resourceTypeName}.";
+                                string errMsg = $"@type element was found but @id element not found in service index '{Repository.Uri}' for {resourceTypeName}.";
                                 edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException(errMsg));
                                 return resourceHash;
                             }
@@ -899,7 +899,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    string errMsg = $"Exception parsing JSON for respository {repository.Uri} with error: {e.Message}";
+                    string errMsg = $"Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                     return resourceHash;
                 }
@@ -953,7 +953,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
-                string errMsg = $"FindVersionHelper(): Exception parsing JSON for respository {repository.Uri} with error: {e.Message}";
+                string errMsg = $"FindVersionHelper(): Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
                 edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                 return String.Empty;
             }
@@ -991,7 +991,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
-                string errMsg = $"DetermineTagsPresent(): Exception parsing JSON for respository {repository.Uri} with error: {e.Message}";
+                string errMsg = $"DetermineTagsPresent(): Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
                 edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                 return false;
             }
@@ -1078,7 +1078,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             catch (Exception e)
             {
-                string errMsg = $"Exception parsing JSON for respository {repository.Uri} with error: {e.Message}";
+                string errMsg = $"Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
                 edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
             }
 

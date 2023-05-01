@@ -16,8 +16,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
-        public abstract PSRepositoryInfo repository { get; set; }
-        public abstract HttpClient s_client { get; set; }
+        public abstract PSRepositoryInfo Repository { get; set; }
+        private HttpClient _sessionClient { get; set; }
 
         #endregion
 
@@ -25,13 +25,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public ServerApiCall(PSRepositoryInfo repository, NetworkCredential networkCredential)
         {
-            this.repository = repository;
+            this.Repository = repository;
             HttpClientHandler handler = new HttpClientHandler()
             {
                 Credentials = networkCredential
             };
 
-            s_client = new HttpClient(handler);
+            _sessionClient = new HttpClient(handler);
         }
 
         #endregion
