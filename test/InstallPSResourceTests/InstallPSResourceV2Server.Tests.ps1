@@ -499,30 +499,10 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         write-Host $err[0]
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
-}
-
-<# Temporarily commented until -Tag is implemented for this Describe block
-Describe 'Test Install-PSResource for interactive and root user scenarios' {
-
-    BeforeAll{
-        $TestGalleryName = Get-PoshTestGalleryName
-        $PSGalleryName = Get-PSGalleryName
-        $NuGetGalleryName = Get-NuGetGalleryName
-        Get-NewPSResourceRepositoryFile
-        Register-LocalRepos
-    }
-
-    AfterEach {
-        Uninstall-PSResource "TestModule", "testModuleWithlicense" -SkipDependencyCheck -ErrorAction SilentlyContinue
-    }
-
-    AfterAll {
-        Get-RevertPSResourceRepositoryFile
-    }
 
     # Unix only manual test
     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
-    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
+    It "Install resource under AllUsers scope - Unix only" -Tag "ManualValidationOnly" -Skip:(Get-IsWindows) {
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module "TestModule" -ListAvailable
         $pkg.Name | Should -Be "TestModule" 
@@ -530,7 +510,7 @@ Describe 'Test Install-PSResource for interactive and root user scenarios' {
     }
 
     # This needs to be manually tested due to prompt
-    It "Install resource that requires accept license without -AcceptLicense flag" {
+    It "Install resource that requires accept license without -AcceptLicense flag" -Tag "ManualValidationOnly" {
         Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName
         $pkg = Get-InstalledPSResource "testModuleWithlicense"
         $pkg.Name | Should -Be "testModuleWithlicense" 
@@ -538,7 +518,7 @@ Describe 'Test Install-PSResource for interactive and root user scenarios' {
     }
 
     # This needs to be manually tested due to prompt
-    It "Install resource should prompt 'trust repository' if repository is not trusted" {
+    It "Install resource should prompt 'trust repository' if repository is not trusted" -Tag "ManualValidationOnly" {
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
         Install-PSResource -Name "TestModule" -Repository $TestGalleryName -confirm:$false
@@ -549,4 +529,3 @@ Describe 'Test Install-PSResource for interactive and root user scenarios' {
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
 }
-#>

@@ -137,10 +137,11 @@ function Invoke-ModuleTests {
     # Run module Pester tests.
     $config = Get-BuildConfiguration
     $tags = 'CI'
+    $skip = 'ManualValidationOnly'
     $testResultFileName = 'result.pester.xml'
     $testPath = $config.TestPath
     $moduleToTest = Join-Path -Path $config.BuildOutputPath -ChildPath $config.ModuleName
-    $command = "Import-Module -Name ${moduleToTest} -Force -Verbose; Set-Location -Path ${testPath}; Invoke-Pester -Path . -OutputFile ${testResultFileName} -Tags '${tags}'"
+    $command = "Import-Module -Name ${moduleToTest} -Force -Verbose; Set-Location -Path ${testPath}; Invoke-Pester -Path . -OutputFile ${testResultFileName} -Tags '${tags}' -Skip '${skip}'"
     $pwshExePath = (Get-Process -Id $pid).Path
 
     Write-Verbose -Verbose -Message "Running Pester tests with command: $command using pwsh.exe path: $pwshExePath"
