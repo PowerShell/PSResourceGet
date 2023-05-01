@@ -33,14 +33,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             foreach (Hashtable response in responseResults.HashtableResponse)
             {
-                if (!response.ContainsKey(_fileTypeKey) || _fileTypeKey.Equals(Utils.MetadataFileType.None))
+                if (!response.ContainsKey(_fileTypeKey))
                 {
                     yield return new PSResourceResult(returnedObject: null, errorMsg: "Package response did not contain metadata file type key so will be skipped.", isTerminatingError: false);
                     continue;
                 }
 
                 string fileTypeString = response[_fileTypeKey].ToString();
-                if (!Enum.TryParse(fileTypeString, out Utils.MetadataFileType fileType))
+                if (!Enum.TryParse(fileTypeString, out Utils.MetadataFileType fileType) || _fileTypeKey.Equals(Utils.MetadataFileType.None))
                 {
                     yield return new PSResourceResult(returnedObject: null, errorMsg: "MetadataFileType key in package metadata could not be parsed successfully.", isTerminatingError: false);
                 }
