@@ -8,7 +8,7 @@ Import-Module $modPath -Force -Verbose
 # This ensures the build module is always being tested
 $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
-
+Write-Host "PowerShellGet version currently loaded: $($(Get-Module powershellget).Version)"
 
 Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
 
@@ -384,27 +384,6 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res1.Version | Should -Be "1.4.3"
     }
 
-    <# todo: use module other than packagemanagment
-    # Install module 1.4.7 (is authenticode signed and has no catalog file)
-    # Should not install successfully 
-    It "Install module with no catalog file" -Skip:(!(Get-IsWindows)) {
-        $PackageManagement = "PackageManagement"
-        Install-Module -Name $PackageManagement -RequiredVersion "1.4.7" -Repository $PSGalleryName
-
-        $res1 = Get-InstalledPSResource $PackageManagement -Version "1.4.7"
-        $res1.Name | Should -Be $PackageManagement
-        $res1.Version | Should -Be "1.4.7"    
-    }
-    #>
-
-    # Install module that is not authenticode signed
-    # Should FAIL to install the  module
-#    It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
-#        Install-Module -Name $testModuleName -RequiredVersion "5.0.0" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-#        $err | Should -BeGreaterThan 0
-#        $err[0].FullyQualifiedErrorId | Should -Be "InstallDependencyPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
-#    }
-
     # Install 1.4.4.1 (with incorrect catalog file)
     # Should FAIL to install the  module
     It "Install module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
@@ -420,44 +399,12 @@ Describe 'Test CompatPowerShellGet: Install-PSResource' -tags 'CI' {
         $res1.Name | Should -Be "Install-VSCode"
         $res1.Version | Should -Be "1.4.2"
     }
+}
 
-    <#
-    # Install script that is not signed
-    # Should throw
-    It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
-        Install-Script -Name "TestTestScript" -RequiredVersion "1.3.1.1" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $err | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
-    }
-    #>
-        
-    # Unix only manual test
-    # Expected path should be similar to: '/usr/local/share/powershell/Modules'
-    #It "Install module under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
-    #    Install-Module -Name "TestModule99" -Repository $PSGalleryName -Scope AllUsers
-    #    $pkg = Get-Module "TestModule99" -ListAvailable
-    #    $pkg.Name | Should -Be "TestModule99" 
-    #    $pkg.Path.Contains("/usr/") | Should -Be $true
-    #}
-
-<#
-    # This needs to be manually tested due to prompt
-    It "Install module that requires accept license without -AcceptLicense flag" {
-        Install-Module -Name "testModuleWithlicense" -Repository $TestGalleryName
-        $pkg = Get-InstalledPSResource "testModuleWithlicense"
-        $pkg.Name | Should -Be "testModuleWithlicense" 
-        $pkg.Version | Should -Be "0.0.1.0"
-    }
-
-    # This needs to be manually tested due to prompt
-    It "Install resource should prompt 'trust repository' if repository is not trusted" {
-        Set-PSResourceRepository PoshTestGallery -Trusted:$false
-
-        Install-Module -Name "TestModule" -Repository $TestGalleryName -confirm:$false
-
-        $pkg = Get-Module "TestModule" -ListAvailable
-        $pkg.Name | Should -Be "TestModule" 
-
-    }
-#>
+# Ensure that PSGet v2 was not loaded during the test via command discovery
+$PSGetVersionsLoaded = (Get-Module powershellget).Version
+Write-Host "PowerShellGet versions currently loaded: $PSGetVersionsLoaded"
+if ($PSGetVersionsLoaded.Count -gt 1) {
+    throw  "There was more than one version of PowerShellGet imported into the current session. `
+        Imported versions include: $PSGetVersionsLoaded"
 }

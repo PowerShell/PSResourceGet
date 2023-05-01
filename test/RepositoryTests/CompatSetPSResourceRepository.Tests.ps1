@@ -7,6 +7,7 @@ Import-Module $modPath -Force -Verbose
 # This ensures the build module is always being tested
 $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
+Write-Host "PowerShellGet version currently loaded: $($(Get-Module powershellget).Version)"
 
 Describe "Test CompatPowerShellGet: Set-PSResourceRepository" -tags 'CI' {
     BeforeEach {
@@ -114,4 +115,12 @@ Describe "Test CompatPowerShellGet: Set-PSResourceRepository" -tags 'CI' {
         $res.Name | Should -Be "localFileShareTestRepo"
         $Res.Uri | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
     }
+}
+
+# Ensure that PSGet v2 was not loaded during the test via command discovery
+$PSGetVersionsLoaded = (Get-Module powershellget).Version
+Write-Host "PowerShellGet versions currently loaded: $PSGetVersionsLoaded"
+if ($PSGetVersionsLoaded.Count -gt 1) {
+    throw  "There was more than one version of PowerShellGet imported into the current session. `
+        Imported versions include: $PSGetVersionsLoaded"
 }
