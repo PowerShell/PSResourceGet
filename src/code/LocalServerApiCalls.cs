@@ -47,31 +47,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             return FindTagsHelper(tags: Utils.EmptyStrArray, includePrerelease, out edi);
-            // edi = null;
-            // FindResults findResponse = new FindResults();
-            // List<Hashtable> pkgsFound = new List<Hashtable>();
-
-            // Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
-
-            // List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
-            // foreach(string pkgFound in pkgNamesList)
-            // {
-            //     Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
-            //     NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
-            //     string pkgPath = pkgInfo["path"] as string;
-
-            //     Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: Utils.EmptyStrArray, edi: out edi);
-            //     if (edi != null || pkgMetadata.Count == 0)
-            //     {
-            //         return findResponse;
-            //     }
-
-            //     pkgsFound.Add(pkgMetadata);
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
-
-            // return findResponse;
         }
 
         /// <summary>
@@ -83,31 +58,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
         {
             return FindTagsHelper(tags, includePrerelease, out edi);
-            // FindResults findResponse = new FindResults();
-            // List<Hashtable> pkgsFound = new List<Hashtable>();
-            // edi = null;
-
-            // Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
-
-            // List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
-            // foreach(string pkgFound in pkgNamesList)
-            // {
-            //     Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
-            //     NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
-            //     string pkgPath = pkgInfo["path"] as string;
-
-            //     Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, edi: out edi);
-            //     if (edi != null)
-            //     {
-            //         return findResponse;
-            //     }
-
-            //     pkgsFound.Add(pkgMetadata);
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
-
-            // return findResponse;
         }
 
         /// <summary>
@@ -117,32 +67,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             string[] cmdsOrDSCs = GetCmdsOrDSCTags(tags: tags, isSearchingForCommands: isSearchingForCommands);
             return FindTagsHelper(cmdsOrDSCs, includePrerelease, out edi);
-            // FindResults findResponse = new FindResults();
-            // List<Hashtable> pkgsFound = new List<Hashtable>();
-            // edi = null;
-
-            // Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
-
-            // List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
-            // string[] cmdsOrDSCs = GetCmdsOrDSCTags(tags: tags, isSearchingForCommands: isSearchingForCommands);
-            // foreach(string pkgFound in pkgNamesList)
-            // {
-            //     Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
-            //     NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
-            //     string pkgPath = pkgInfo["path"] as string;
-
-            //     Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: cmdsOrDSCs, edi: out edi);
-            //     if (edi != null || pkgMetadata.Count == 0)
-            //     {
-            //         return findResponse;
-            //     }
-
-            //     pkgsFound.Add(pkgMetadata);
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
-
-            // return findResponse;
         }
 
         /// <summary>
@@ -157,52 +81,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             return FindNameHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out edi);
-
-            // FindResults findResponse = new FindResults();
-            // edi = null;
-
-            // WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
-            // NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
-            // String latestVersionPath = String.Empty;
-
-            // foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
-            // {
-            //     string packageFullName = Path.GetFileName(path);
-
-            //     if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
-            //     {
-            //         NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, out edi);
-            //         if (edi != null)
-            //         {
-            //             return findResponse;
-            //         }
-
-            //         if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
-            //         {
-            //             if (nugetVersion > latestVersion)
-            //             {
-            //                 latestVersion = nugetVersion;
-            //                 latestVersionPath = path;
-            //             }
-            //         }
-            //     }
-            // }
-
-            // if (String.IsNullOrEmpty(latestVersionPath))
-            // {
-            //     // means no package was found with this name
-            //     edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in this repository."));
-            //     return findResponse;
-            // }
-
-            // Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: packageName, packagePath: latestVersionPath, requiredTags: Utils.EmptyStrArray, edi: out edi);
-            // if (edi != null)
-            // {
-            //     return findResponse;
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
-            // return findResponse;
         }
 
         /// <summary>
@@ -214,52 +92,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             return FindNameHelper(packageName, tags, includePrerelease, type, out edi);
-            // FindResults findResponse = new FindResults();
-            // edi = null;
-            // WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
-            // NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
-            // String latestVersionPath = String.Empty;
-
-            // foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
-            // {
-            //     string packageFullName = Path.GetFileName(path);
-
-            //     if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
-            //     {
-            //         NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, out edi);
-            //         if (edi != null)
-            //         {
-            //             return findResponse;
-            //         }
-
-            //         if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
-            //         {
-            //             latestVersion = nugetVersion;
-            //             latestVersionPath = path;   
-            //         }
-            //     }
-            // }
-
-            // if (String.IsNullOrEmpty(latestVersionPath))
-            // {
-            //     // means no package was found with this name
-            //     edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with name {packageName} and tags {String.Join(", ", tags)} could not be found in this repository."));
-            //     return findResponse;
-            // }
-
-            // Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: packageName, packagePath: latestVersionPath, requiredTags: tags, edi: out edi);
-            // if (edi != null)
-            // {
-            //     return findResponse;
-            // }
-
-            // if (pkgMetadata.Count == 0)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, and tags {String.Join(", ", tags)} could not be found."));
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
-            // return findResponse;
         }
 
         /// <summary>
@@ -273,30 +105,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             return FindNameGlobbingHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out edi);
-            // FindResults findResponse = new FindResults();
-            // List<Hashtable> pkgsFound = new List<Hashtable>();
-            // edi = null;
-
-            // Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
-
-            // List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
-            // foreach(string pkgFound in pkgNamesList)
-            // {
-            //     Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
-            //     string pkgPath = pkgInfo["path"] as string;
-
-            //     Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: Utils.EmptyStrArray, edi: out edi);
-            //     if (edi != null || pkgMetadata.Count == 0)
-            //     {
-            //         continue;
-            //     }
-
-            //     pkgsFound.Add(pkgMetadata);
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
-
-            // return findResponse;
         }
 
         /// <summary>
@@ -384,30 +192,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi) 
         {
             return FindVersionHelper(packageName, version, Utils.EmptyStrArray, type, out edi);
-            // FindResults findResponse = new FindResults();
-
-            // string packageFullName = $"{packageName}.{version}.nupkg";
-            // string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
-
-            // if (!File.Exists(packagePath))
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {version} does not exist in this repository"));
-            //     return findResponse;
-            // }
-
-            // Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: packageName, packagePath: packagePath, requiredTags: Utils.EmptyStrArray, out edi);
-            // if (edi != null)
-            // {
-            //     return findResponse;
-            // }
-
-            // if (pkgMetadata.Count == 0)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, version {version} could not be found."));
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
-            // return findResponse;
         }
 
         /// <summary>
@@ -419,30 +203,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
         {
             return FindVersionHelper(packageName, version, tags, type, out edi);
-            // FindResults findResponse = new FindResults();
-
-            // string packageFullName = $"{packageName}.{version}.nupkg";
-            // string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
-
-            // if (!File.Exists(packagePath))
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {version} does not exist in this repository"));
-            //     return findResponse;
-            // }
-
-            // Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: packageName, packagePath: packagePath, requiredTags: tags, edi: out edi);
-            // if (edi != null)
-            // {
-            //     return findResponse;
-            // }
-
-            // if (pkgMetadata.Count == 0)
-            // {
-            //     edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, version {version} and tags {String.Join(", ", tags)} could not be found."));
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
-            // return findResponse;
         }
 
         /**  INSTALL APIS **/
