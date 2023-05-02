@@ -353,9 +353,22 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }
-    It "find resource given CommandName" -Tag "ManualValidationOnly" {
-        $res = Find-PSResource -Name "MicrosoftPowerBIMgmt" -Repository $PSGalleryName -Type Module
+}
 
-        $res.Name | Should -Be "MicrosoftPowerBIMgmt"
+Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
+
+    BeforeAll{
+        $PSGalleryName = Get-PSGalleryName
+        $testModuleName = "MicrosoftPowerBIMgmt"
+        Get-NewPSResourceRepositoryFile
+    }
+
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+    It "find resource given CommandName" {
+        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
+
+        $res.Name | Should -Be $testModuleName
     }
 }
