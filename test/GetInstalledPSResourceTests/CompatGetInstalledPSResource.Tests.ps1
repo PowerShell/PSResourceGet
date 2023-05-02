@@ -8,7 +8,7 @@ Import-Module $modPath -Force -Verbose
 # This ensures the build module is always being tested
 $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
-Write-Host "PowerShellGet version currently loaded: $($(Get-Module powershellget).Version)"
+Write-Verbose -Verbose -Message "PowerShellGet version currently loaded: $($(Get-Module powershellget).Version)"
 
 Describe 'Test CompatPowerShellGet: Get-InstalledPSResource' -tags 'CI' {
 
