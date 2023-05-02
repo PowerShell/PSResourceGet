@@ -616,14 +616,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
 
             var tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
-            string tagFilterPart = String.Empty;
+            string tagSearchTermPart = String.Empty;
             foreach (string tag in tags)
             {
-                tagFilterPart += $" and substringof('{tagPrefix}{tag}', Tags) eq true";
+                if (!String.IsNullOrEmpty(tagSearchTermPart))
+                {
+                    tagSearchTermPart += " ";
+                }
+
+                tagSearchTermPart += $"tag:{tagPrefix}{tag}";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/Search()?{prereleaseFilter}{tagFilterPart}&{select}{paginationParam}";
-
+            var requestUrlV2 = $"{Repository.Uri}/Search()?{prereleaseFilter}&searchTerm='{tagSearchTermPart}'{paginationParam}&{select}";
             return HttpRequestCall(requestUrlV2, out edi);
         }
 

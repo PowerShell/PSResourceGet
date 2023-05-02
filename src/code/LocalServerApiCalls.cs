@@ -116,30 +116,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             return FindNameGlobbingHelper(packageName, tags, includePrerelease, type, out edi);
-            // FindResults findResponse = new FindResults();
-            // List<Hashtable> pkgsFound = new List<Hashtable>();
-            // edi = null;
-
-            // Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
-
-            // List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
-            // foreach(string pkgFound in pkgNamesList)
-            // {
-            //     Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
-            //     string pkgPath = pkgInfo["path"] as string;
-
-            //     Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, edi: out edi);
-            //     if (edi != null || pkgMetadata.Count == 0)
-            //     {
-            //         continue;
-            //     }
-
-            //     pkgsFound.Add(pkgMetadata);
-            // }
-
-            // findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
-
-            // return findResponse;
         }
 
         /// <summary>
@@ -155,8 +131,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             FindResults findResponse = new FindResults();
             edi = null;
+            string actualPkgName = packageName;
 
-            Hashtable pkgVersionsFound = GetMatchingFilesGivenSpecificName(packageName: packageName, includePrerelease: includePrerelease, versionRange: versionRange, edi: out edi);
+            Hashtable pkgVersionsFound = GetMatchingFilesGivenSpecificName(packageName: packageName, includePrerelease: includePrerelease, versionRange: versionRange, actualName: out actualPkgName, edi: out edi);
 
             List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
             pkgVersionsList.Sort();
@@ -168,7 +145,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 string packagePath = (string) pkgVersionsFound[satisfyingVersion];
 
-                Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: packageName, packagePath: packagePath, requiredTags: Utils.EmptyStrArray, edi: out edi);
+                Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: packagePath, requiredTags: Utils.EmptyStrArray, edi: out edi);
                 if (edi != null || pkgMetadata.Count == 0)
                 {
                     continue;
@@ -313,6 +290,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
+            string actualPkgName = packageName;
 
             foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
             {
@@ -320,7 +298,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, out edi);
+                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out edi);
                     if (edi != null)
                     {
                         return findResponse;
@@ -344,7 +322,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return findResponse;
             }
 
-            Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: packageName, packagePath: latestVersionPath, requiredTags: tags, edi: out edi);
+            Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: latestVersionPath, requiredTags: tags, edi: out edi);
             if (edi != null)
             {
                 return findResponse;
@@ -369,7 +347,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<Hashtable> pkgsFound = new List<Hashtable>();
             edi = null;
 
-            Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
+            Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: packageName, includePrerelease: includePrerelease);
 
             List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
             foreach(string pkgFound in pkgNamesList)
@@ -569,8 +547,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// hashtable with those that matches the exact name and prerelease requirements provided.
         /// This helper method is called for FindVersionGlobbing()
         /// </summary>
-        private Hashtable GetMatchingFilesGivenSpecificName(string packageName, bool includePrerelease, VersionRange versionRange, out ExceptionDispatchInfo edi)
+        private Hashtable GetMatchingFilesGivenSpecificName(string packageName, bool includePrerelease, VersionRange versionRange, out string actualName, out ExceptionDispatchInfo edi)
         {
+            actualName = packageName;
             // used for FindVersionGlobbing where we know exact non-wildcard name of the package
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
@@ -582,7 +561,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, edi: out edi);
+                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, out actualName, edi: out edi);
                     if (edi != null)
                     {
                         continue;
@@ -668,13 +647,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Takes .nupkg package file name (i.e like mypackage.1.0.0.nupkg) and parses out version from it.
         /// </summary>
-        private NuGetVersion GetInfoFromFileName(string packageFullName, string packageName, out ExceptionDispatchInfo edi)
+        private NuGetVersion GetInfoFromFileName(string packageFullName, string packageName, out string actualName, out ExceptionDispatchInfo edi)
         {
             // packageFullName will look like package.1.0.0.nupkg
             edi = null;
 
             string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
             string packageVersionAndExtension = packageWithoutName[0];
+            string[] originalFileNameParts = packageFullName.Split(new string[]{ $".{packageVersionAndExtension}" }, StringSplitOptions.RemoveEmptyEntries);
+            actualName = String.IsNullOrEmpty(originalFileNameParts[0]) ? packageName : originalFileNameParts[0];
             int extensionDot = packageVersionAndExtension.LastIndexOf('.');
             string version = packageVersionAndExtension.Substring(0, extensionDot);
             if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))

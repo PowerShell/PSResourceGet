@@ -341,6 +341,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "find resource given CommandName" {
         $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Names | Should -Be $commandName    
             $item.ParentResource.Includes.Command | Should -Contain $commandName
@@ -349,6 +350,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "find resource given DscResourceName" {
         $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Names | Should -Be $dscResourceName    
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
