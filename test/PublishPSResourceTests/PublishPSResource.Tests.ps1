@@ -445,7 +445,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
             }
         
         $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
-        New-ScriptFile @params -Path $scriptPath
+        New-PSScriptFile @params -Path $scriptPath
 
         Publish-PSResource -Path $scriptPath
 
