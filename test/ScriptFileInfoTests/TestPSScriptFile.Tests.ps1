@@ -7,7 +7,7 @@ Import-Module $modPath -Force -Verbose
 # This ensures the build module is always being tested
 $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
-Get-Module PowerShellGet
+Write-Verbose -Verbose -Message "PowerShellGet version currently loaded: $($(Get-Module powershellget).Version)"
 $testDir = (get-item $psscriptroot).parent.FullName
 
 Describe "Test Test-PSScriptFile" -tags 'CI' {
