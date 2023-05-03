@@ -36,4 +36,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         {   
         }
     }
+
+    public class LocalResourceEmpty : Exception
+    {
+        public LocalResourceEmpty(string message)
+            : base (message)
+        {
+        }
+    }
+
+    public class LocalResourceNotFoundException : Exception
+    {
+        public LocalResourceNotFoundException(string message)
+            : base (message)
+        {
+        }
+    }
 }

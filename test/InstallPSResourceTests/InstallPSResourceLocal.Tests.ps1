@@ -41,15 +41,15 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     It "Install resource given Name parameter" {
         Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
-        $res.Name | Should -Contain $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0"
     }
 
     It "Install resource given Name and Version (specific) parameters" {
         Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $localRepo -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "3.0.0.0"
+        $res.Version | Should -Be "3.0.0"
     }
 
     It "Install multiple resources by name" {
@@ -60,30 +60,31 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $localRepo -TrustRepository
-        $res = Get-InstalledPSResource "NonExistantModule"
-        $res.Name | Should -BeNullOrEmpty
+        $res = Install-PSResource -Name "NonExistantModule" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
         Install-PSResource -Name $testModuleName -Version "[1.0.0.0]" -Repository $localRepo -TrustRepository  
         $res = Get-InstalledPSResource $testModuleName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "1.0.0.0"
+        $res.Version | Should -Be "1.0.0"
     }
 
     It "Should install resource given name and exact range inclusive [1.0.0.0, 5.0.0.0]" {
         Install-PSResource -Name $testModuleName -Version "[1.0.0.0, 5.0.0.0]" -Repository $localRepo -TrustRepository
         $res = Get-InstalledPSResource $testModuleName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
     }
 
     It "Should install resource given name and exact range exclusive (1.0.0.0, 5.0.0.0)" {
         Install-PSResource -Name $testModuleName -Version "(1.0.0.0, 5.0.0.0)" -Repository $localRepo -TrustRepository  
         $res = Get-InstalledPSResource $testModuleName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "3.0.0.0"
+        $res.Version | Should -Be "3.0.0"
     }
 
     It "Should not install resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
@@ -103,7 +104,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "*" -Repository $localRepo -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "5.0.0.0"
+        $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
@@ -117,8 +118,8 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     It "Install resource via InputObject by piping from Find-PSresource" {
         Find-PSResource -Name $testModuleName -Repository $localRepo | Install-PSResource -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName 
-        $pkg.Version | Should -Be "5.0.0.0"
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install resource under location specified in PSModulePath" {
@@ -182,11 +183,11 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "5.0.0.0"
+        $pkg.Version | Should -Be "5.0.0"
         Install-PSResource -Name $testModuleName -Repository $localRepo -Reinstall -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "5.0.0.0"
+        $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install module using -WhatIf, should not install the module" {
@@ -198,6 +199,6 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     It "Install resource given -Name and -PassThru parameters" {
         $res = Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -PassThru
         $res.Name | Should -Contain $testModuleName
-        $res.Version | Should -Be "1.0.0.0"
+        $res.Version | Should -Be "1.0.0"
     }
 }

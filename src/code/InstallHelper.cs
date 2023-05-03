@@ -223,125 +223,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
 
-                if (repo.ApiVersion == PSRepositoryInfo.APIVersion.v2 || repo.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                if (repo.ApiVersion == PSRepositoryInfo.APIVersion.unknown)
                 {
-                    if (repo.Trusted == false && !trustRepository && !_force)
-                    {
-                        _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
-
-                        if (!(yesToAll || noToAll))
-                        {
-                            // Prompt for installation of package from untrusted repository
-                            var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
-                            sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
-                        }
-                    }
-
-                    if (!sourceTrusted && !yesToAll)
-                    {
-                        continue;
-                    }
-
-                    if ((repo.ApiVersion == PSRepositoryInfo.APIVersion.v3) && (!installDepsForRepo))
-                    {
-                        _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
-                        installDepsForRepo = true;
-                    }
-
-                    return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
-                }
-                else
-                {
-                    // Source is only trusted if it's set at the repository level to be trusted, -TrustRepository flag is true, -Force flag is true
-                    // OR the user issues trust interactively via console.
-                    if (repo.Trusted == false && !trustRepository && !_force)
-                    {
-                        _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
-
-                        if (!(yesToAll || noToAll))
-                        {
-                            // Prompt for installation of package from untrusted repository
-                            var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
-                            sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
-                        }
-                    }
-
-                    if (!sourceTrusted && !yesToAll)
-                    {
-                        continue;
-                    }
-
-                    _cmdletPassedIn.WriteVerbose("Untrusted repository accepted as trusted source.");
-
-                    // If it can't find the pkg in one repository, it'll look for it in the next repo in the list
-                    var isLocalRepo = repo.Uri.AbsoluteUri.StartsWith(Uri.UriSchemeFile + Uri.SchemeDelimiter, StringComparison.OrdinalIgnoreCase);
-
-                    // Finds parent packages and dependencies
-                    List<PSResourceInfo> pkgsFromRepoToInstall = findHelper.FindByResourceName(
-                        name: _pkgNamesToInstall.ToArray(),
-                        type: ResourceType.None,
-                        versionRange: _versionRange,
-                        nugetVersion: _nugetVersion,
-                        versionType: _versionType,
-                        version: _versionRange?.OriginalString,
-                        prerelease: _prerelease,
-                        tag: null,
-                        repository: new string[] { repoName },
-                        includeDependencies: !installDepsForRepo).ToList();
-
-                    if (pkgsFromRepoToInstall.Count == 0)
-                    {
-                        _cmdletPassedIn.WriteVerbose(string.Format("None of the specified resources were found in the '{0}' repository.", repoName));
-                        continue;
-                    }
-
-                    // Select the first package from each name group, which is guaranteed to be the latest version.
-                    // We should only have one version returned for each package name
-                    // e.g.:
-                    // PackageA (version 1.0)
-                    // PackageB (version 2.0)
-                    // PackageC (version 1.0)
-                    pkgsFromRepoToInstall = pkgsFromRepoToInstall.GroupBy(
-                         m => new { m.Name }).Select(
-                             group => group.First()).ToList();
-
-                    // Check to see if the pkgs (including dependencies) are already installed (ie the pkg is installed and the version satisfies the version range provided via param)
-                    if (!_reinstall)
-                    {
-                        pkgsFromRepoToInstall = FilterByInstalledPkgs(pkgsFromRepoToInstall);
-                    }
-
-                    if (pkgsFromRepoToInstall.Count is 0)
-                    {
-                        continue;
-                    }
-
-                    List<PSResourceInfo> pkgsInstalled = InstallPackage(
-                        pkgsFromRepoToInstall,
-                        repoName,
-                        repo.Uri.AbsoluteUri,
-                        repo.CredentialInfo,
-                        isLocalRepo,
-                        scope: scope);
-
-                    foreach (PSResourceInfo pkg in pkgsInstalled)
-                    {
-                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                    }
-
-                    allPkgsInstalled.AddRange(pkgsInstalled);
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException($"Repository {repoName} has unknown API Version."),
+                        "RepositoryAPIVersionUnknownError",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
 
-                // At this only package names left were those which could not be found in registered repositories
-                foreach (string pkgName in _pkgNamesToInstall)
+                if (repo.Trusted == false && !trustRepository && !_force)
                 {
-                    string message = !sourceTrusted ? $"Package '{pkgName}' with requested version range '{_versionRange.ToString()}' could not be found in any trusted repositories" :
-                                                        $"Package '{pkgName}' with requested version range '{_versionRange.ToString()}' could not be installed as it was not found in any registered repositories";
+                    _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
 
-                    var ex = new ArgumentException(message);
-                    var ResourceNotFoundError = new ErrorRecord(ex, "ResourceNotFoundError", ErrorCategory.ObjectNotFound, null);
-                    _cmdletPassedIn.WriteError(ResourceNotFoundError);
+                    if (!(yesToAll || noToAll))
+                    {
+                        // Prompt for installation of package from untrusted repository
+                        var message = string.Format(CultureInfo.InvariantCulture, MsgInstallUntrustedPackage, repoName);
+                        sourceTrusted = _cmdletPassedIn.ShouldContinue(message, MsgRepositoryNotTrusted, true, ref yesToAll, ref noToAll);
+                    }
                 }
+
+                if (!sourceTrusted && !yesToAll)
+                {
+                    continue;
+                }
+
+                if ((repo.ApiVersion == PSRepositoryInfo.APIVersion.v3) && (!installDepsForRepo))
+                {
+                    _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
+                    installDepsForRepo = true;
+                }
+
+                return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
             }
 
             return allPkgsInstalled;
@@ -577,7 +491,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (!skipDependencyCheck)
                     {
-                        if (currentServer.repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                        if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
                         {
                             _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                         }
@@ -586,8 +500,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         // Get the dependencies from the installed package.
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
+                            bool depFindFailed = false;
                             foreach (PSResourceInfo depPkg in findHelper.HttpFindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, myHash))
                             {
+                                if (depPkg == null)
+                                {
+                                    depFindFailed = true;
+                                    continue;
+                                }
+                                
                                 if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
                                 {
                                     continue;
@@ -619,6 +540,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     _cmdletPassedIn.WriteError(new ErrorRecord(installPackageEdi.SourceException, "InstallDependencyPackageFailure", ErrorCategory.InvalidOperation, this));
                                     continue;
                                 }
+                            }
+
+                            if (depFindFailed)
+                            {
+                                continue;
                             }
                         }
                     }
@@ -665,8 +591,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable packagesHash,
             out ExceptionDispatchInfo edi)
         {
-            //List<PSResourceInfo> packagesToInstall = new List<PSResourceInfo>();
-            string[] responses = Utils.EmptyStrArray;
+            FindResults responses = null;
             edi = null;
 
             switch (searchVersionType)
@@ -674,7 +599,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case VersionType.VersionRange:
                     responses = currentServer.FindVersionGlobbing(pkgNameToInstall, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo findVersionGlobbingEdi);
                     // Server level globbing API will not populate edi for empty response, so must check for empty response and early out
-                    if (findVersionGlobbingEdi != null || responses.Length == 0)
+                    if (findVersionGlobbingEdi != null || responses.IsFindResultsEmpty())
                     {
                         edi = findVersionGlobbingEdi;
                         return packagesHash;
@@ -685,8 +610,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case VersionType.SpecificVersion:
                     string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
-                    string findVersionResponse = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
-                    responses = new string[] { findVersionResponse };
+                    responses = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
                     if (findVersionEdi != null)
                     {
                         edi = findVersionEdi;
@@ -697,8 +621,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 default:
                     // VersionType.NoVersion
-                    string findNameResponse = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
-                    responses = new string[] { findNameResponse };
+                    responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
                     if (findNameEdi != null)
                     {
                         edi = findNameEdi;
@@ -708,7 +631,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
             }
 
-            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses: responses).First();
+            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).First();
 
             if (!String.IsNullOrEmpty(currentResult.errorMsg))
             {
