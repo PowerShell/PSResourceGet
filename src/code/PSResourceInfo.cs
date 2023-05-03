@@ -310,7 +310,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             IsPrerelease = isPrerelease;
             LicenseUri = licenseUri;
             Name = name ?? string.Empty;
-            PackageManagementProvider = packageManagementProvider ?? string.Empty;
             PowerShellGetFormatVersion = powershellGetFormatVersion ?? string.Empty;
             Prerelease = prerelease ?? string.Empty;
             ProjectUri = projectUri;
@@ -416,7 +415,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     isPrerelease: GetProperty<bool>(nameof(PSResourceInfo.IsPrerelease), psObjectInfo),
                     licenseUri: GetProperty<Uri>(nameof(PSResourceInfo.LicenseUri), psObjectInfo),
                     name: GetStringProperty(nameof(PSResourceInfo.Name), psObjectInfo),
-                    packageManagementProvider: GetStringProperty(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
                     powershellGetFormatVersion: GetStringProperty(nameof(PSResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
                     prerelease: prerelease,
                     projectUri: GetProperty<Uri>(nameof(PSResourceInfo.ProjectUri), psObjectInfo),
@@ -1595,7 +1593,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));
             psObject.Properties.Add(new PSNoteProperty(nameof(RepositorySourceLocation), RepositorySourceLocation));
             psObject.Properties.Add(new PSNoteProperty(nameof(Repository), Repository));
-            psObject.Properties.Add(new PSNoteProperty(nameof(PackageManagementProvider), PackageManagementProvider));
             psObject.Properties.Add(new PSNoteProperty(nameof(AdditionalMetadata), additionalMetadata));
             psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation));
 
