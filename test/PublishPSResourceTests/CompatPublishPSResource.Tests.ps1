@@ -197,7 +197,7 @@ Describe "Test CompatPowerShellGet: Publish-PSResource" -tags 'CI' {
         $dependencyVersion = "2.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '1.4.4' })
 
-        {Publish-Module -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "DependencyNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        {Publish-Module -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "FindVersionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a module and preserve file structure" {
