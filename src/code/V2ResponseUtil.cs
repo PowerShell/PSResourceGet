@@ -13,7 +13,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
-        public override PSRepositoryInfo repository { get; set; }
+        internal override PSRepositoryInfo Repository { get; set; }
 
         #endregion
 
@@ -21,13 +21,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public V2ResponseUtil(PSRepositoryInfo repository) : base(repository)
         {
-            this.repository = repository;
+            this.Repository = repository;
         }
 
         #endregion
 
         #region Overriden Methods
-        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(string[] responses)
+        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults)
         {
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
@@ -35,6 +35,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // 
             // v2Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
+            string[] responses = responseResults.StringResponse;
 
             foreach (string response in responses)
             {
@@ -48,7 +49,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 foreach (var element in elemList)
                 {
-                    if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                    if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
                     {
                         yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }

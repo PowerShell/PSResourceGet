@@ -13,7 +13,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     {
         #region Members
 
-        public override PSRepositoryInfo repository { get; set; }
+        internal override PSRepositoryInfo Repository { get; set; }
 
         #endregion
 
@@ -21,14 +21,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         public V3ResponseUtil(PSRepositoryInfo repository) : base(repository)
         {
-            this.repository = repository;
+            this.Repository = repository;
         }
 
         #endregion
 
         #region Overriden Methods
 
-        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(string[] responses)
+        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults)
         {
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
@@ -36,7 +36,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // 
             // v3Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
-
+            string[] responses = responseResults.StringResponse;
             foreach (string response in responses)
             {
                 string parseError = String.Empty;
@@ -55,7 +55,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
                 }
 
-                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, repository.Name, out string errorMsg))
+                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
                 {
                     yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                 }
@@ -65,6 +65,5 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         #endregion
-    
     }
 }
