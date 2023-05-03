@@ -43,8 +43,7 @@
         'Get-PSRepository',
         'Install-Module',
         'Install-Script',
-        'New-ScriptFileInfo'
-
+        'New-ScriptFileInfo',
         'Publish-Module',
         'Publish-Script',
         'Register-PSRepository',
