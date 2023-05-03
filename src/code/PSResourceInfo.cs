@@ -1,14 +1,11 @@
-using System.Security.Cryptography;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using NuGet.Versioning;
-using NuGet.Protocol.Core.Types;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Management.Automation;
 using System.Text.Json;
 using System.Xml;
@@ -34,39 +31,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         VersionRange
     }
 
-    // public enum VersionType
-    // {
-    //     Unknown,
-    //     MinimumVersion,
-    //     RequiredVersion,
-    //     MaximumVersion
-    // }
-
     public enum ScopeType
     {
         CurrentUser,
         AllUsers
     }
-
-    #endregion
-
-    #region VersionInfo
-
-    // public sealed class VersionInfo
-    // {
-    //     public VersionInfo(
-    //         VersionType versionType,
-    //         Version versionNum)
-    //     {
-    //         VersionType = versionType;
-    //         VersionNum = versionNum;
-    //     }
-
-    //     public VersionType VersionType { get; }
-    //     public Version VersionNum { get; }
-
-    //     public override string ToString() => $"{VersionType}: {VersionNum}";
-    // }
 
     #endregion
 
@@ -502,71 +471,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo);
         }
 
-        public static bool TryConvert(
-            IPackageSearchMetadata metadataToParse,
-            out PSResourceInfo psGetInfo,
-            string repositoryName,
-            ResourceType? type,
-            out string errorMsg)
-        {
-            psGetInfo = null;
-            errorMsg = String.Empty;
-
-            if (metadataToParse == null)
-            {
-                errorMsg = "TryConvertPSResourceInfo: Invalid IPackageSearchMetadata object. Object cannot be null.";
-                return false;
-            }
-
-            try
-            {
-                var typeInfo = ParseMetadataType(metadataToParse, repositoryName, type, out ArrayList commandNames, out ArrayList dscResourceNames);
-                var resourceHashtable = new Hashtable();
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
-                var includes = new ResourceIncludes(resourceHashtable);
-
-
-                psGetInfo = new PSResourceInfo(
-                    additionalMetadata: null,
-                    author: ParseMetadataAuthor(metadataToParse),
-                    companyName: null,
-                    copyright: null,
-                    dependencies: ParseMetadataDependencies(metadataToParse),
-                    description: ParseMetadataDescription(metadataToParse),
-                    iconUri: ParseMetadataIconUri(metadataToParse),
-                    includes: includes,
-                    installedDate: null,
-                    installedLocation: null,
-                    isPrerelease: ParseMetadataIsPrerelease(metadataToParse),
-                    licenseUri: ParseMetadataLicenseUri(metadataToParse),
-                    name: ParseMetadataName(metadataToParse),
-                    packageManagementProvider: null,
-                    powershellGetFormatVersion: null,   
-                    prerelease: ParsePrerelease(metadataToParse),
-                    projectUri: ParseMetadataProjectUri(metadataToParse),
-                    publishedDate: ParseMetadataPublishedDate(metadataToParse),
-                    releaseNotes: null,
-                    repository: repositoryName,
-                    repositorySourceLocation: null,
-                    tags: ParseMetadataTags(metadataToParse),
-                    // type: ParseMetadataType(metadataToParse, repositoryName, type),
-                    type: typeInfo,
-                    updatedDate: null,
-                    version: ParseMetadataVersion(metadataToParse));
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                errorMsg = string.Format(
-                    CultureInfo.InvariantCulture,
-                    @"TryReadPSGetInfo: Cannot parse PSResourceInfo from IPackageSearchMetadata with error: {0}",
-                    ex.Message);
-                return false;
-            }
-        }
-
         /// <summary>
         /// Converts XML entry to PSResourceInfo instance
         /// used for V2 Server API call find response conversion to PSResourceInfo object
@@ -690,7 +594,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
         }
-
 
         /// <summary>
         /// Converts JsonDocument entry to PSResourceInfo instance
@@ -1255,156 +1158,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #endregion
 
         #region Parse Metadata private static methods
-
-        private static string ParseMetadataAuthor(IPackageSearchMetadata pkg)
-        {
-            return pkg.Authors;
-        }
-
-        private static Dependency[] ParseMetadataDependencies(IPackageSearchMetadata pkg)
-        {
-            List<Dependency> dependencies = new List<Dependency>();
-            foreach(var pkgDependencyGroup in pkg.DependencySets)
-            {
-                foreach(var pkgDependencyItem in pkgDependencyGroup.Packages)
-                {
-                    // check if version range is not null. In case we have package with dependency but no version specified
-                    VersionRange depVersionRange;
-                    if (pkgDependencyItem.VersionRange == null)
-                    {
-                        depVersionRange = VersionRange.All;
-                    }
-                    else
-                    {
-                        depVersionRange = pkgDependencyItem.VersionRange;
-                    }
-
-                    dependencies.Add(
-                        new Dependency(pkgDependencyItem.Id, depVersionRange));
-                }
-            }
-
-            return dependencies.ToArray();
-        }
-
-        private static string ParseMetadataDescription(IPackageSearchMetadata pkg)
-        {
-            return pkg.Description;
-        }
-
-        private static Uri ParseMetadataIconUri(IPackageSearchMetadata pkg)
-        {
-            return pkg.IconUrl;
-        }
-
-        private static bool ParseMetadataIsPrerelease(IPackageSearchMetadata pkg)
-        {
-            return pkg.Identity?.Version?.IsPrerelease ?? false;
-        }
-
-        private static Uri ParseMetadataLicenseUri(IPackageSearchMetadata pkg)
-        {
-            return pkg.LicenseUrl;
-        }
-
-        private static string ParseMetadataName(IPackageSearchMetadata pkg)
-        {
-            return pkg.Identity?.Id ?? string.Empty;
-        }
-
-        private static string ParsePrerelease(IPackageSearchMetadata pkg)
-        {
-            return pkg.Identity.Version.ReleaseLabels.Count() > 0 ?
-                pkg.Identity.Version.ReleaseLabels.FirstOrDefault() :
-                String.Empty;
-        }
-
-        private static Uri ParseMetadataProjectUri(IPackageSearchMetadata pkg)
-        {
-            return pkg.ProjectUrl;
-        }
-
-        private static DateTime? ParseMetadataPublishedDate(IPackageSearchMetadata pkg)
-        {
-            if (pkg.Published.HasValue)
-            {
-                return pkg.Published.Value.DateTime;
-            }
-
-            return null;
-        }
-
-        private static string[] ParseMetadataTags(IPackageSearchMetadata pkg)
-        {
-            return pkg.Tags.Split(Delimeter, StringSplitOptions.RemoveEmptyEntries);
-        }
-
-        private static ResourceType ParseMetadataType(
-            IPackageSearchMetadata pkg,
-            string repoName,
-            ResourceType? pkgType,
-            out ArrayList commandNames,
-            out ArrayList dscResourceNames)
-        {
-            // possible type combinations:
-            // M, C
-            // M, D
-            // M
-            // S
-
-            commandNames = new ArrayList();
-            dscResourceNames = new ArrayList();
-            string[] tags = ParseMetadataTags(pkg);
-            ResourceType currentPkgType = ResourceType.Module;
-
-            // Check if package came from PSGalleryScripts repo- this indicates that it should have a PSScript tag
-            // (however some packages that had a wildcard in their name are missing PSScript or PSModule tags)
-            // but we were able to get the packages by using SearchAsync() with the appropriate Script or Module repository endpoint
-            // and can check repository endpoint to determine Type.
-            // Module packages missing tags are accounted for as the default case, and we account for scripts with the following check:
-            if ((pkgType == null && String.Equals("PSGalleryScripts", repoName, StringComparison.InvariantCultureIgnoreCase)) ||
-                (pkgType != null && pkgType == ResourceType.Script))
-            {
-                // it's a Script resource, so clear default Module tag because a Script resource cannot also be a Module resource
-                currentPkgType &= ~ResourceType.Module;
-                currentPkgType |= ResourceType.Script;
-            }
-
-            // if Name contains wildcard, currently Script and Module tags should be set properly, but need to account for Command and DscResource types too
-            // if Name does not contain wildcard, GetMetadataAsync() was used, PSGallery only is searched (and pkg will successfully be found
-            // and returned from there) before PSGalleryScripts can be searched
-            foreach (string tag in tags)
-            {
-                if(String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    // clear default Module tag, because a Script resource cannot be a Module resource also
-                    currentPkgType &= ~ResourceType.Module;
-                    currentPkgType |= ResourceType.Script;
-                }
-
-                if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    commandNames.Add(tag.Split('_')[1]);
-                }
-
-                if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    dscResourceNames.Add(tag.Split('_')[1]);
-                }
-            }
-
-            return currentPkgType;
-        }
-
-        private static Version ParseMetadataVersion(IPackageSearchMetadata pkg)
-        {
-            if (pkg.Identity != null)
-            {
-                return pkg.Identity.Version.Version;
-            }
-
-            return null;
-        }
 
         private static Version ParseHttpVersion(string versionString, out string prereleaseLabel)
         {

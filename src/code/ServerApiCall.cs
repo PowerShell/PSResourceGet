@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using NuGet.Versioning;
