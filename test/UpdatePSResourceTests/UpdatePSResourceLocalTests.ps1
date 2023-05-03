@@ -84,7 +84,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -eq [System.Version]"5.0.0.0")
+            if ([System.Version]$pkg.Version -eq [System.Version]"5.0.0")
             {
                 $isPkgUpdated = $true
             }
@@ -270,6 +270,6 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
         $res = Update-PSResource -Name $moduleName -Version "5.0.0.0" -Repository $localRepo -TrustRepository -PassThru
         $res.Name | Should -Contain $moduleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
     }
 }
