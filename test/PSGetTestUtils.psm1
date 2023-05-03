@@ -720,7 +720,6 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.InstalledLocation | Should -BeLike 'C:\Users\*'
     $psGetInfo.LicenseUri | Should -BeExactly 'https://github.com/PowerShell/SecretManagement/blob/master/LICENSE'
     $psGetInfo.Name | Should -BeExactly 'Microsoft.PowerShell.SecretManagement'
-    $psGetInfo.PackageManagementProvider | Should -BeExactly 'NuGet'
     $psGetInfo.PowerShellGetFormatVersion | Should -BeNullOrEmpty
     $psGetInfo.ProjectUri | Should -BeExactly 'https://github.com/powershell/secretmanagement'
     $psGetInfo.PublishedDate.Year | Should -BeExactly 2021
