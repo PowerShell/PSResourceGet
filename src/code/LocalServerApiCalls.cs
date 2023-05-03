@@ -375,26 +375,54 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
         {
             FindResults findResponse = new FindResults();
+            edi = null;
 
-            string packageFullName = $"{packageName}.{version}.nupkg";
-            string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
-
-            if (!File.Exists(packagePath))
+            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
-                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {version} does not exist in this repository"));
+                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException($"Version {version} could not be parsed into a valid NuGetVersion"));
                 return findResponse;
             }
 
-            Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: packageName, packagePath: packagePath, requiredTags: tags, edi: out edi);
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
+            string pkgPath = String.Empty;
+            string actualPkgName = String.Empty;
+            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            {
+                string packageFullName = Path.GetFileName(path);
+                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                {
+                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out edi);
+                    if (edi != null)
+                    {
+                        return findResponse;
+                    }
+
+                    if (nugetVersion == requiredVersion)
+                    {
+                        string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";           
+                        pkgPath = Path.Combine(Repository.Uri.AbsolutePath, pkgFullName);
+                        break;
+                    }
+                }
+            }
+
+            if (String.IsNullOrEmpty(pkgPath))
+            {
+                // means no package was found with this name, version (and possibly tags).
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with Name {packageName}, Version {version} and Tags {String.Join(", ", tags)} could not be found in this repository."));
+                return findResponse;
+            }
+
+            Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: pkgPath, requiredTags: tags, edi: out edi);
             if (edi != null)
             {
                 return findResponse;
             }
 
-            // this condition will only be met for FindVersionWithTags() caller method
+            // this condition will be true, for FindVersionWithTags() when package satisfying that criteria is not met
             if (pkgMetadata.Count == 0)
             {
-                edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, version {version} and tags {String.Join(", ", tags)} could not be found."));
+                edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, and tags {String.Join(", ", tags)} could not be found."));
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
