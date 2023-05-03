@@ -83,7 +83,6 @@ function DoBuild
                 'NuGet.Commands'
                 'NuGet.Common'
                 'NuGet.Configuration'
-                'NuGet.Frameworks'
                 'NuGet.Packaging'
                 'NuGet.Versioning'
                 'Newtonsoft.Json'
