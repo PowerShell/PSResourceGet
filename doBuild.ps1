@@ -87,7 +87,6 @@ function DoBuild
                 'NuGet.Packaging'
                 'NuGet.ProjectModel' 
                 'NuGet.Protocol'
-                'NuGet.Repositories'
                 'NuGet.Versioning'
                 'Newtonsoft.Json'
                 'System.Text.Json'
