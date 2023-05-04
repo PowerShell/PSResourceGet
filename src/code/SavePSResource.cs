@@ -5,7 +5,6 @@ using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
@@ -273,7 +272,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            var installedPkgs = _installHelper.InstallPackages(
+            var installedPkgs = _installHelper.BeginInstallPackages(
                 names: namesToSave, 
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,

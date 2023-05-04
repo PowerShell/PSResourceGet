@@ -9,7 +9,6 @@ using System.Linq;
 using System.Management.Automation;
 using System.Xml;
 using System.Xml.Linq;
-using System.Xml.XPath;
 
 namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 {

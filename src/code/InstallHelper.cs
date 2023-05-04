@@ -2,12 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
-using NuGet.Common;
-using NuGet.Packaging;
-using NuGet.Packaging.Core;
-using NuGet.Packaging.PackageExtraction;
-using NuGet.Protocol;
-using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -17,7 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
-using System.Net.Http;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -75,7 +68,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// This method calls is the starting point for install processes and is called by Install, Update and Save cmdlets.
         /// </summary>
-        public IEnumerable<PSResourceInfo> InstallPackages(
+        public IEnumerable<PSResourceInfo> BeginInstallPackages(
             string[] names,
             VersionRange versionRange,
             NuGetVersion nugetVersion,
@@ -255,7 +248,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     installDepsForRepo = true;
                 }
 
-                return HttpInstall(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                return InstallPackages(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
             }
 
             return allPkgsInstalled;
@@ -431,14 +424,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
         }
 
-        #endregion
-
-        #region Private HTTP Methods
 
         /// <summary>
         /// Iterates through package names passed in and calls method to install each package and their dependencies.
         /// </summary>
-        private List<PSResourceInfo> HttpInstall(
+        private List<PSResourceInfo> InstallPackages(
             string[] pkgNamesToInstall,
             PSRepositoryInfo repository,
             ServerApiCall currentServer,
@@ -463,7 +453,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     // and value as a Hashtable of specific package info:
                     //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. }
                     // Install parent package to the temp directory.
-                    Hashtable packagesHash = HttpInstallPackage(
+                    Hashtable packagesHash = InstallPackage(
                                                         searchVersionType: _versionType,
                                                         specificVersion: _nugetVersion,
                                                         versionRange: _versionRange,
@@ -501,7 +491,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
                             bool depFindFailed = false;
-                            foreach (PSResourceInfo depPkg in findHelper.HttpFindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, myHash))
+                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, myHash))
                             {
                                 if (depPkg == null)
                                 {
@@ -523,7 +513,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                                     }
                                 }
 
-                                packagesHash = HttpInstallPackage(
+                                packagesHash = InstallPackage(
                                             searchVersionType: VersionType.SpecificVersion,
                                             specificVersion: depVersion,
                                             versionRange: null,
@@ -579,7 +569,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Installs a single package to the temporary path.
         /// </summary>
-        private Hashtable HttpInstallPackage(
+        private Hashtable InstallPackage(
             VersionType searchVersionType,
             NuGetVersion specificVersion,
             VersionRange versionRange,
@@ -1237,378 +1227,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));
                 File.Delete(nuspecToDelete);
-            }
-            if (File.Exists(contentTypesToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", contentTypesToDelete));
-                File.Delete(contentTypesToDelete);
-            }
-            if (Directory.Exists(relsDirToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", relsDirToDelete));
-                Utils.DeleteDirectory(relsDirToDelete);
-            }
-            if (Directory.Exists(packageDirToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
-                Utils.DeleteDirectory(packageDirToDelete);
-            }
-        }
-
-        #endregion
-
-        #region Private NuGet API Methods
-
-        /// <summary>
-        /// Install provided list of packages, which include Dependent packages if requested (used for Local repositories)
-        /// </summary>
-        private List<PSResourceInfo> InstallPackage(
-            List<PSResourceInfo> pkgsToInstall,
-            string repoName,
-            string repoUri,
-            PSCredentialInfo repoCredentialInfo,
-            bool isLocalRepo,
-            ScopeType scope)
-        {
-            List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
-            int totalPkgs = pkgsToInstall.Count;
-
-            // Counters for tracking current package out of total
-            int currentInstalledPkgCount = 0;
-            foreach (PSResourceInfo pkg in pkgsToInstall)
-            {
-                currentInstalledPkgCount++;
-                var tempInstallPath = Path.Combine(_tmpPath, Guid.NewGuid().ToString());
-                try
-                {
-                    // Create a temp directory to install to
-                    var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
-                                                                           // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                           // with a mask (bitwise complement of desired attributes combination).
-                                                                           // TODO: check the attributes and if it's read only then set it
-                                                                           // attribute may be inherited from the parent
-                                                                           // TODO:  are there Linux accommodations we need to consider here?
-                    dir.Attributes &= ~FileAttributes.ReadOnly;
-
-                    _cmdletPassedIn.WriteVerbose(string.Format("Begin installing package: '{0}'", pkg.Name));
-
-                    if (!_quiet)
-                    {
-                        int activityId = 0;
-                        string activity = string.Format("Installing {0}...", pkg.Name);
-                        string statusDescription = string.Format("{0}/{1} package installing...", currentInstalledPkgCount, totalPkgs);
-                        _cmdletPassedIn.WriteProgress(new ProgressRecord(activityId, activity, statusDescription));
-                    }
-
-                    // Create PackageIdentity in order to download
-                    string createFullVersion = pkg.Version.ToString();
-                    if (pkg.IsPrerelease)
-                    {
-                        createFullVersion = pkg.Version.ToString() + "-" + pkg.Prerelease;
-                    }
-
-                    if (!NuGetVersion.TryParse(createFullVersion, out NuGetVersion pkgVersion))
-                    {
-                        var message = String.Format("{0} package could not be installed with error: could not parse package '{0}' version '{1} into a NuGetVersion",
-                            pkg.Name,
-                            pkg.Version.ToString());
-                        var ex = new ArgumentException(message);
-                        var packageIdentityVersionParseError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
-                        _cmdletPassedIn.WriteError(packageIdentityVersionParseError);
-                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                        continue;
-                    }
-
-                    var pkgIdentity = new PackageIdentity(pkg.Name, pkgVersion);
-                    var cacheContext = new SourceCacheContext();
-
-                    if (isLocalRepo)
-                    {
-                        /* Download from a local repository -- this is slightly different process than from a server */
-                        var localResource = new FindLocalPackagesResourceV2(repoUri);
-                        var resource = new LocalDownloadResource(repoUri, localResource);
-
-                        // Actually downloading the .nupkg from a local repo
-                        var result = resource.GetDownloadResourceResultAsync(
-                             identity: pkgIdentity,
-                             downloadContext: new PackageDownloadContext(cacheContext),
-                             globalPackagesFolder: tempInstallPath,
-                             logger: NullLogger.Instance,
-                             token: _cancellationToken).GetAwaiter().GetResult();
-
-                        // Create the package extraction context
-                        PackageExtractionContext packageExtractionContext = new PackageExtractionContext(
-                            packageSaveMode: PackageSaveMode.Nupkg,
-                            xmlDocFileSaveMode: PackageExtractionBehavior.XmlDocFileSaveMode,
-                            clientPolicyContext: null,
-                            logger: NullLogger.Instance);
-
-                        if (_asNupkg)
-                        {
-                            _cmdletPassedIn.WriteWarning("Saving resource from local/file based repository with -AsNupkg is not yet implemented feature.");
-                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                            continue;
-                        }
-                        else
-                        {
-                            // Extracting from .nupkg and placing files into tempInstallPath
-                            result.PackageReader.CopyFiles(
-                                destination: tempInstallPath,
-                                packageFiles: result.PackageReader.GetFiles(),
-                                extractFile: new PackageFileExtractor(
-                                    result.PackageReader.GetFiles(),
-                                    packageExtractionContext.XmlDocFileSaveMode).ExtractPackageFile,
-                                logger: NullLogger.Instance,
-                                token: _cancellationToken);
-                        }
-                        result.Dispose();
-                    }
-
-
-                    _cmdletPassedIn.WriteVerbose(string.Format("Successfully able to download package from source to: '{0}'", tempInstallPath));
-
-                    // pkgIdentity.Version.Version gets the version without metadata or release labels.
-                    string newVersion = pkgIdentity.Version.ToNormalizedString();
-                    string normalizedVersionNoPrerelease = newVersion; // 3.0.17-beta or 2.2.5
-                    if (pkgIdentity.Version.IsPrerelease)
-                    {
-                        // eg: 2.0.2
-                        normalizedVersionNoPrerelease = pkgIdentity.Version.ToNormalizedString().Substring(0, pkgIdentity.Version.ToNormalizedString().IndexOf('-'));
-                    }
-
-                    string tempDirNameVersion = isLocalRepo ? tempInstallPath : Path.Combine(tempInstallPath, pkgIdentity.Id.ToLower(), newVersion);
-                    var version4digitNoPrerelease = pkgIdentity.Version.Version.ToString();
-                    string moduleManifestVersion = string.Empty;
-                    var scriptPath = Path.Combine(tempDirNameVersion, pkg.Name + PSScriptFileExt);
-                    var modulePath = Path.Combine(tempDirNameVersion, pkg.Name + PSDataFileExt);
-                    // Check if the package is a module or a script
-                    var isModule = File.Exists(modulePath);
-
-                    string installPath;
-                    if (_savePkg)
-                    {
-                        // For save the installation path is what is passed in via -Path
-                        installPath = _pathsToInstallPkg.FirstOrDefault();
-
-                        // If saving as nupkg simply copy the nupkg and move onto next iteration of loop
-                        // asNupkg functionality only applies to Save-PSResource
-                        if (_asNupkg)
-                        {
-                            var nupkgFile = pkgIdentity.ToString().ToLower() + ".nupkg";
-                            File.Copy(Path.Combine(tempDirNameVersion, nupkgFile), Path.Combine(installPath, nupkgFile));
-
-                            _cmdletPassedIn.WriteVerbose(string.Format("'{0}' moved into file path '{1}'", nupkgFile, installPath));
-                            pkgsSuccessfullyInstalled.Add(pkg);
-
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        // PSModules:
-                        /// ./Modules
-                        /// ./Scripts
-                        /// _pathsToInstallPkg is sorted by desirability, Find will pick the pick the first Script or Modules path found in the list
-                        installPath = isModule ? _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase))
-                                : _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
-                    }
-
-                    if (_authenticodeCheck && !AuthenticodeSignature.CheckAuthenticodeSignature(
-                        pkg.Name,
-                        tempDirNameVersion,
-                        _cmdletPassedIn,
-                        out ErrorRecord errorRecord))
-                    {
-                        _cmdletPassedIn.ThrowTerminatingError(errorRecord);
-                    }
-
-                    if (isModule)
-                    {
-                        var moduleManifest = Path.Combine(tempDirNameVersion, pkgIdentity.Id + PSDataFileExt);
-                        if (!File.Exists(moduleManifest))
-                        {
-                            var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgIdentity.Id, moduleManifest);
-
-                            var ex = new ArgumentException(message);
-                            var psdataFileDoesNotExistError = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
-                            _cmdletPassedIn.WriteError(psdataFileDoesNotExistError);
-                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                            continue;
-                        }
-
-                        if (!Utils.TryReadManifestFile(
-                            manifestFilePath: moduleManifest,
-                            manifestInfo: out Hashtable parsedMetadataHashtable,
-                            error: out Exception manifestReadError))
-                        {
-                            _cmdletPassedIn.WriteError(
-                                new ErrorRecord(
-                                    exception: manifestReadError,
-                                    errorId: "ManifestFileReadParseError",
-                                    errorCategory: ErrorCategory.ReadError,
-                                    this));
-
-                            continue;
-                        }
-
-                        moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
-                        pkg.CompanyName = parsedMetadataHashtable.ContainsKey("CompanyName") ? parsedMetadataHashtable["CompanyName"] as string : String.Empty;
-                        pkg.Copyright = parsedMetadataHashtable.ContainsKey("Copyright") ? parsedMetadataHashtable["Copyright"] as string : String.Empty;
-                        pkg.ReleaseNotes = parsedMetadataHashtable.ContainsKey("ReleaseNotes") ? parsedMetadataHashtable["ReleaseNotes"] as string : String.Empty;
-                        pkg.RepositorySourceLocation = repoUri;
-
-                        // Accept License verification
-                        if (!_savePkg && !CallAcceptLicense(pkg, moduleManifest, tempInstallPath, newVersion, out ErrorRecord licenseError))
-                        {
-                            _cmdletPassedIn.WriteError(licenseError);
-                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                            continue;
-                        }
-
-                        // If NoClobber is specified, ensure command clobbering does not happen
-                        if (_noClobber && DetectClobber(pkg.Name, parsedMetadataHashtable, out ErrorRecord clobberError))
-                        {
-                            _cmdletPassedIn.WriteError(clobberError);
-                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        // is script
-                        if (!PSScriptFileInfo.TryTestPSScriptFile(
-                            scriptFileInfoPath: scriptPath,
-                            parsedScript: out PSScriptFileInfo scriptToInstall,
-                            out ErrorRecord[] errors,
-                            out string[] _
-                        ))
-                        {
-                            foreach (ErrorRecord error in errors)
-                            {
-                                _cmdletPassedIn.WriteError(error);
-                            }
-
-                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                            continue;
-                        }
-
-                        Hashtable parsedMetadataHashtable = scriptToInstall.ToHashtable();
-
-                        moduleManifestVersion = parsedMetadataHashtable["ModuleVersion"] as string;
-                        pkg.CompanyName = parsedMetadataHashtable.ContainsKey("CompanyName") ? parsedMetadataHashtable["CompanyName"] as string : String.Empty;
-                        pkg.Copyright = parsedMetadataHashtable.ContainsKey("Copyright") ? parsedMetadataHashtable["Copyright"] as string : String.Empty;
-                        pkg.ReleaseNotes = parsedMetadataHashtable.ContainsKey("ReleaseNotes") ? parsedMetadataHashtable["ReleaseNotes"] as string : String.Empty;
-                        pkg.RepositorySourceLocation = repoUri;
-                    }
-
-                    // Delete the extra nupkg related files that are not needed and not part of the module/script
-                    DeleteExtraneousFiles(pkgIdentity, tempDirNameVersion);
-
-                    if (_includeXml)
-                    {
-                        if (!CreateMetadataXMLFile(tempDirNameVersion, installPath, pkg, isModule, out ErrorRecord createMetadataError))
-                        {
-                            _cmdletPassedIn.WriteError(createMetadataError);
-                            _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                            continue;
-                        }
-                    }
-
-                    MoveFilesIntoInstallPath(
-                        pkg,
-                        isModule,
-                        isLocalRepo,
-                        tempDirNameVersion,
-                        tempInstallPath,
-                        installPath,
-                        newVersion,
-                        moduleManifestVersion,
-                        scriptPath);
-
-                    _cmdletPassedIn.WriteVerbose(String.Format("Successfully installed package '{0}' to location '{1}'", pkg.Name, installPath));
-                    pkgsSuccessfullyInstalled.Add(pkg);
-
-                    if (!_savePkg && !isModule)
-                    {
-                        string installPathwithBackSlash = installPath + "\\";
-                        string envPATHVarValue = Environment.GetEnvironmentVariable("PATH",
-                            scope == ScopeType.CurrentUser ? EnvironmentVariableTarget.User : EnvironmentVariableTarget.Machine);
-
-                        if (!envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
-                        {
-                            _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    _cmdletPassedIn.WriteError(
-                        new ErrorRecord(
-                            new PSInvalidOperationException(
-                                message: $"Unable to successfully install package '{pkg.Name}': '{e.Message}'",
-                                innerException: e),
-                            "InstallPackageFailed",
-                            ErrorCategory.InvalidOperation,
-                            _cmdletPassedIn));
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                }
-                finally
-                {
-                    // Delete the temp directory and all its contents
-                    _cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete '{0}'", tempInstallPath));
-
-                    if (Directory.Exists(tempInstallPath))
-                    {
-                        if (!TryDeleteDirectory(tempInstallPath, out ErrorRecord errorMsg))
-                        {
-                            _cmdletPassedIn.WriteError(errorMsg);
-                        }
-                        else
-                        {
-                            _cmdletPassedIn.WriteVerbose(String.Format("Successfully deleted '{0}'", tempInstallPath));
-                        }
-                    }
-                }
-            }
-
-            return pkgsSuccessfullyInstalled;
-        }
-
-        /// <summary>
-        /// Clean up and delete extraneous files found from the package during install (used for Local repositories).
-        /// </summary>
-        private void DeleteExtraneousFiles(PackageIdentity pkgIdentity, string dirNameVersion)
-        {
-            // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
-            var pkgIdString = pkgIdentity.ToString();
-            var nupkgSHAToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.sha512");
-            var nuspecToDelete = Path.Combine(dirNameVersion, pkgIdentity.Id + ".nuspec");
-            var nupkgToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg");
-            var nupkgMetadataToDelete =  Path.Combine(dirNameVersion, ".nupkg.metadata");
-            var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
-            var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
-            var packageDirToDelete = Path.Combine(dirNameVersion, "package");
-
-            // Unforunately have to check if each file exists because it may or may not be there
-            if (File.Exists(nupkgSHAToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgSHAToDelete));
-                File.Delete(nupkgSHAToDelete);
-            }
-            if (File.Exists(nuspecToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));
-                File.Delete(nuspecToDelete);
-            }
-            if (File.Exists(nupkgToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgToDelete));
-                File.Delete(nupkgToDelete);
-            }
-            if (File.Exists(nupkgMetadataToDelete))
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Deleting '{0}'", nupkgMetadataToDelete));
-                File.Delete(nupkgMetadataToDelete);
             }
             if (File.Exists(contentTypesToDelete))
             {

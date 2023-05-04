@@ -4,7 +4,6 @@
 using Microsoft.PowerShell.PowerShellGet.UtilClasses;
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Text.Json;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
