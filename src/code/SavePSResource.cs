@@ -272,7 +272,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return;
             }
 
-            var installedPkgs = _installHelper.BeginInstallingPackages(
+            var installedPkgs = _installHelper.BeginInstallPackages(
                 names: namesToSave, 
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,

@@ -68,7 +68,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// This method calls is the starting point for install processes and is called by Install, Update and Save cmdlets.
         /// </summary>
-        public IEnumerable<PSResourceInfo> BeginInstallingPackages(
+        public IEnumerable<PSResourceInfo> BeginInstallPackages(
             string[] names,
             VersionRange versionRange,
             NuGetVersion nugetVersion,
