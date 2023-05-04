@@ -221,8 +221,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         public bool IsPrerelease { get; set; }
         public Uri LicenseUri { get; set; }
         public string Name { get; set; }
-        public string PackageManagementProvider { get; }
-        public string PowerShellGetFormatVersion { get; }
+        private string PowerShellGetFormatVersion { get; }
         public string Prerelease { get; }
         public Uri ProjectUri { get; set; }
         public DateTime? PublishedDate { get; set; }
@@ -254,7 +253,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             bool isPrerelease,
             Uri licenseUri,
             string name,
-            string packageManagementProvider,
             string powershellGetFormatVersion,
             string prerelease,
             Uri projectUri,
@@ -280,7 +278,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             IsPrerelease = isPrerelease;
             LicenseUri = licenseUri;
             Name = name ?? string.Empty;
-            PackageManagementProvider = packageManagementProvider ?? string.Empty;
             PowerShellGetFormatVersion = powershellGetFormatVersion ?? string.Empty;
             Prerelease = prerelease ?? string.Empty;
             ProjectUri = projectUri;
@@ -386,7 +383,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     isPrerelease: GetProperty<bool>(nameof(PSResourceInfo.IsPrerelease), psObjectInfo),
                     licenseUri: GetProperty<Uri>(nameof(PSResourceInfo.LicenseUri), psObjectInfo),
                     name: GetStringProperty(nameof(PSResourceInfo.Name), psObjectInfo),
-                    packageManagementProvider: GetStringProperty(nameof(PSResourceInfo.PackageManagementProvider), psObjectInfo),
                     powershellGetFormatVersion: GetStringProperty(nameof(PSResourceInfo.PowerShellGetFormatVersion), psObjectInfo),
                     prerelease: prerelease,
                     projectUri: GetProperty<Uri>(nameof(PSResourceInfo.ProjectUri), psObjectInfo),
@@ -570,7 +566,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     isPrerelease: (bool) metadata["IsPrerelease"],
                     licenseUri: metadata["LicenseUrl"] as Uri,
                     name: metadata["Id"] as String,
-                    packageManagementProvider: null,
                     powershellGetFormatVersion: null,   
                     prerelease: metadata["Prerelease"] as String,
                     projectUri: metadata["ProjectUrl"] as Uri,
@@ -728,7 +723,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     isPrerelease: (bool)metadata["IsPrerelease"],
                     licenseUri: metadata["LicenseUrl"] as Uri,
                     name: metadata["Id"] as String,
-                    packageManagementProvider: null,
                     powershellGetFormatVersion: null,
                     prerelease: metadata["Prerelease"] as String,
                     projectUri: metadata["ProjectUrl"] as Uri,
@@ -825,7 +819,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     isPrerelease: isPrerelease,
                     licenseUri: licenseUri,
                     name: pkgMetadata["Id"] as String,
-                    packageManagementProvider: null,
                     powershellGetFormatVersion: null,   
                     prerelease: prereleaseLabel,
                     projectUri: projectUri,
@@ -893,7 +886,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     isPrerelease: isPrerelease,
                     licenseUri: pkgMetadata["LicenseUri"] as Uri,
                     name: pkgMetadata["Id"] as String,
-                    packageManagementProvider: null,
                     powershellGetFormatVersion: null,   
                     prerelease: prereleaseLabel,
                     projectUri: pkgMetadata["ProjectUri"] as Uri,
@@ -966,7 +958,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     isPrerelease: isPrerelease,
                     licenseUri: licenseUri,
                     name: pkgMetadata["id"] as String,
-                    packageManagementProvider: null,
                     powershellGetFormatVersion: null,   
                     prerelease: prereleaseLabel,
                     projectUri: projectUri,
@@ -1349,7 +1340,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             psObject.Properties.Add(new PSNoteProperty(nameof(Dependencies), Dependencies));
             psObject.Properties.Add(new PSNoteProperty(nameof(RepositorySourceLocation), RepositorySourceLocation));
             psObject.Properties.Add(new PSNoteProperty(nameof(Repository), Repository));
-            psObject.Properties.Add(new PSNoteProperty(nameof(PackageManagementProvider), PackageManagementProvider));
             psObject.Properties.Add(new PSNoteProperty(nameof(AdditionalMetadata), additionalMetadata));
             psObject.Properties.Add(new PSNoteProperty(nameof(InstalledLocation), InstalledLocation));
 
