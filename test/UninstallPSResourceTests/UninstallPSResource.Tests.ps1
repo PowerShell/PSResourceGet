@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 $ProgressPreference = "SilentlyContinue"
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
 
 Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
 

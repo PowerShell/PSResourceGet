@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
-Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
 Import-Module $modPath -Force -Verbose
 
 $psmodulePaths = $env:PSModulePath -split ';'
@@ -30,7 +29,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
     It "should not find resource given nonexistant Name" {
         $res = Find-PSResource -Name NonExistantModule -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
@@ -98,8 +97,8 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
     It "find resource and its dependency resources with IncludeDependencies parameter" {
         # find with dependencies is not yet supported for V3, so this should only install parent package
         $pkg = Find-PSResource -Name "TestModuleWithDependencyE" -IncludeDependencies -Repository $NuGetGalleryName
-        $pkg.Count | Should -Be 1
         $pkg.Name | Should -Be "TestModuleWithDependencyE"
+        $pkg | Should -HaveCount 1
     }
 
     # It "find resources only with Tag parameter" {
@@ -123,7 +122,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $requiredTag = "Windows" # tag "windows" is not present for test_module package
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
@@ -141,7 +140,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $requiredTags = @("test", "Windows") # tag "windows" is not present for test_module package
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
@@ -200,7 +199,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $requiredTag = "windows" # tag "windows" is not present for test_module package
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
@@ -220,7 +219,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $requiredTags = @("test", "windows")
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
@@ -251,22 +250,21 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
     It "should not find resource given CommandName" {
         $res = Find-PSResource -CommandName "command" -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDSCResourceFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
     It "should not find resource given DscResourceName" {
         $res = Find-PSResource -DscResourceName "dscResource" -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDSCResourceFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
     }
 
     It "should not find all resources given Name '*'" {
         $res = Find-PSResource -Name "*" -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.FindPSResource"
-
     }
 }

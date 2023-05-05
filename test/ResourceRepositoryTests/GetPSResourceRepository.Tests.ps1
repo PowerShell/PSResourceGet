@@ -1,9 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
+Import-Module $modPath -Force -Verbose
 
-Describe "Test Get-PSResourceRepository" -Tags 'CI' {
+Describe "Test Get-PSResourceRepository" -tags 'CI' {
     BeforeEach {
         $TestRepoName1 = "testRepository"
         $TestRepoName2 = "testRepository2"
@@ -66,7 +68,7 @@ Describe "Test Get-PSResourceRepository" -Tags 'CI' {
         $nonRegisteredRepoName = "nonRegisteredRepository"
         $res = Get-PSResourceRepository -Name $nonRegisteredRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
     }
 
@@ -77,7 +79,7 @@ Describe "Test Get-PSResourceRepository" -Tags 'CI' {
         Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
 
         $res = Get-PSResourceRepository -Name $TestRepoName1,$nonRegisteredRepoName,$TestRepoName2 -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
 
         # should have successfully got the other valid/registered repositories with no error
@@ -90,7 +92,7 @@ Describe "Test Get-PSResourceRepository" -Tags 'CI' {
         Get-NewPSResourceRepositoryFileWithCredentialInfo
 
         $res = Get-PSResourceRepository -Name "localtestrepo*" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
 
         # should have successfully got the other valid/registered repositories with no error

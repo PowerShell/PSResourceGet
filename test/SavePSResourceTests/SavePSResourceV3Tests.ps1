@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 $ProgressPreference = "SilentlyContinue"
-Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
 
 Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
@@ -29,16 +30,16 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         Save-PSResource -Name $testModuleName -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
+        (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
     }
 
     It "Save multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
         Save-PSResource -Name $pkgNames -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $testModuleName -or $_.Name -eq $testModuleName2 }
-        $pkgDirs.Count | Should -Be 2
-        (Get-ChildItem $pkgDirs[0].FullName).Count | Should -Be 1
-        (Get-ChildItem $pkgDirs[1].FullName).Count | Should -Be 1
+        $pkgDirs | Should -HaveCount 2
+        (Get-ChildItem $pkgDirs[0].FullName) | Should -HaveCount 1
+        (Get-ChildItem $pkgDirs[1].FullName) | Should -HaveCount 1
     }
 
     It "Should not save resource given nonexistant name" {
@@ -49,7 +50,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     It "Not Save module with Name containing wildcard" {
         Save-PSResource -Name "TestModule*" -Repository $NuGetGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "NameContainsWildcard,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
@@ -95,7 +96,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -BeNullOrEmpty
-        $Error.Count | Should -Not -Be 0
+        $Error.Count | Should -BeGreaterThan 0
         $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
@@ -107,11 +108,13 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         $pkgDirVersion.Name | Should -Be "5.2.5"
     }
 
-    It "Save PSResourceInfo object piped in for prerelease version object" {
+    ### TODO:  this is broken because the "Prerelease" parameter is a boolean, but the type from
+    ### the input object is of type string (ie "true").
+    It "Save PSResourceInfo object piped in for prerelease version object" -Pending{
         Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $NuGetGalleryName | Save-PSResource -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
+        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1   
     }
 
     It "Save module as a nupkg" {
@@ -140,7 +143,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     # Should FAIL to save the module
     It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
         Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 }

@@ -3,7 +3,6 @@
 
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
-Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
 Import-Module $modPath -Force -Verbose
 
 $psmodulePaths = $env:PSModulePath -split ';'
@@ -55,7 +54,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
-        Install-PSResource -Name $pkgNames -Repository $localRepo -TrustRepository
+        Install-PSResource -Name $pkgNames -Repository $localRepo -TrustRepository  
         $pkg = Get-InstalledPSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
@@ -68,7 +67,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0.0]" -Repository $localRepo -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "[1.0.0.0]" -Repository $localRepo -TrustRepository  
         $res = Get-InstalledPSResource $testModuleName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.0.0"
@@ -82,7 +81,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Should install resource given name and exact range exclusive (1.0.0.0, 5.0.0.0)" {
-        Install-PSResource -Name $testModuleName -Version "(1.0.0.0, 5.0.0.0)" -Repository $localRepo -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "(1.0.0.0, 5.0.0.0)" -Repository $localRepo -TrustRepository  
         $res = Get-InstalledPSResource $testModuleName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "3.0.0"
@@ -109,7 +108,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        Install-PSResource -Name $testModuleName -Prerelease -Repository $localRepo -TrustRepository
+        Install-PSResource -Name $testModuleName -Prerelease -Repository $localRepo -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.2.5"
@@ -117,7 +116,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {
-        Find-PSResource -Name $testModuleName -Repository $localRepo | Install-PSResource -TrustRepository
+        Find-PSResource -Name $testModuleName -Repository $localRepo | Install-PSResource -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
@@ -126,7 +125,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     It "Install resource under location specified in PSModulePath" {
         Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
+        $pkg.Name | Should -Be $testModuleName 
         ($env:PSModulePath).Contains($pkg.InstalledLocation)
     }
 
@@ -148,7 +147,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     # Windows only
     It "Install resource under no specified scope - Windows only" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true

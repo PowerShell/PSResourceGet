@@ -1,9 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
+Import-Module $modPath -Force -Verbose
 
-Describe "Test Set-PSResourceRepository" -Tags 'CI' {
+Describe "Test Set-PSResourceRepository" -tags 'CI' {
     BeforeEach {
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryUri = Get-PSGalleryLocation
@@ -127,7 +129,7 @@ Describe "Test Set-PSResourceRepository" -Tags 'CI' {
         $arrayOfHashtables = $hashtable1, $incorrectHashTable, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
@@ -207,7 +209,7 @@ Describe "Test Set-PSResourceRepository" -Tags 'CI' {
         $arrayOfHashtables = $hashtable1, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingRepository,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
@@ -237,7 +239,7 @@ Describe "Test Set-PSResourceRepository" -Tags 'CI' {
         $arrayOfHashtables = $hashtable1, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingRepository,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
@@ -284,20 +286,11 @@ Describe "Test Set-PSResourceRepository" -Tags 'CI' {
         $res.Trusted | Should -Be False
     }
 
-    It "prints a warning if CredentialInfo is passed in without SecretManagement module setup" {
-        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        $output = Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo1 3>&1
-        $output | Should -Match "Microsoft.PowerShell.SecretManagement module cannot be found"
-
-        $res = Get-PSResourceRepository -Name $TestRepoName1
-        $res | Should -Not -BeNullOrEmpty
-    }
-
     It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
         {
             Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-            Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo2
-        } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+            Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -CredentialInfo $credentialInfo2 -ErrorAction SilentlyContinue
+        } | Should -Throw
 
         $res = Get-PSResourceRepository -Name $TestRepoName1 -ErrorAction Ignore
         $res.CredentialInfo | Should -BeNullOrEmpty

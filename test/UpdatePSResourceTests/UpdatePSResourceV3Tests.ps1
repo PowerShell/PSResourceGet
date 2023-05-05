@@ -1,7 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
 
 Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
@@ -175,9 +176,9 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
     It "Update resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
         # this line is commented out because AllUsers scope requires sudo and that isn't supported in CI yet
         # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        Update-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository -Scope CurrentUser
 
         $res = Get-InstalledPSResource -Name $testModuleName
 
@@ -198,10 +199,10 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
     # this test is skipped because it requires sudo to run and has yet to be resolved in CI
     It "Update resource under AllUsers scope - Unix only" -Skip:($true) {
-        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope AllUsers
-        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository -Scope AllUsers
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
+        Update-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository -Scope AllUsers
 
         $res = Get-InstalledPSResource -Name $testModuleName
 
@@ -223,9 +224,9 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
     It "Update resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
         # this is commented out because it requires sudo to run with AllUsers scope and this hasn't been resolved in CI yet
         # Install-PSResource -Name "TestModule" -Version "1.1.0.0" -Repository $TestGalleryName -Scope AllUsers
-        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository -Scope CurrentUser
 
-        Update-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository
 
         $res = Get-InstalledPSResource -Name $testModuleName
 

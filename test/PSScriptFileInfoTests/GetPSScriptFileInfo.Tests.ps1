@@ -1,16 +1,23 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$PSScriptRoot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
+# Explicitly import build module because in CI PowerShell can autoload PSGetv2
+# This ensures the build module is always being tested
+$buildModule = "$psscriptroot/../../out/PowerShellGet"
+Import-Module $buildModule -Force -Verbose
 
-Describe "Test Get-PSScriptFileInfo" -Tags 'CI' {
+$testDir = (get-item $psscriptroot).parent.FullName
+
+Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDirPaths = @($tmpDir1Path)
         Get-NewTestDirs($tmpDirPaths)
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
-        $script:testFilesFolderPath = Join-Path $PSScriptRoot -ChildPath "testFiles"
+        $script:testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
