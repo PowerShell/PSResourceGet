@@ -969,7 +969,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
               key,
               networkCred.UserName,
               networkCred.Password,
-              true, ""));
+              isPasswordClearText: true,
+              String.Empty));
         }
 
     #endregion
