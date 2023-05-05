@@ -963,7 +963,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
               key = packageSource.Name;
           }
 
-
           settings.AddOrUpdate(
             ConfigurationConstants.CredentialsSectionName,
             new CredentialsItem(
