@@ -849,7 +849,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var sourceProvider = new PackageSourceProvider(settings);
             if (Credential != null)
-              InjectCredentialsToSettings(settings, sourceProvider, publishLocation);
+            {
+                 InjectCredentialsToSettings(settings, sourceProvider, publishLocation);
+            }
+
 
             try
             {
