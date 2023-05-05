@@ -954,7 +954,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
               new SourceItem(key, source));
           }
           else
-            key = packageSource.Name;
+          {
+              key = packageSource.Name;
+          }
+
 
           settings.AddOrUpdate(
             ConfigurationConstants.CredentialsSectionName,
