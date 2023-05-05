@@ -929,7 +929,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source)
         {
-          if (Credential == null) return;
+          if (Credential == null)
+          {
+               return;
+          }
+
           var packageSource = sourceProvider.LoadPackageSources().FirstOrDefault(s => s.Source == source);
           if (packageSource != null)
             if (!packageSource.IsEnabled) packageSource.IsEnabled = true;
