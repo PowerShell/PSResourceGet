@@ -936,7 +936,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
           var packageSource = sourceProvider.LoadPackageSources().FirstOrDefault(s => s.Source == source);
           if (packageSource != null)
-            if (!packageSource.IsEnabled) packageSource.IsEnabled = true;
+          {
+                if (!packageSource.IsEnabled)
+                {
+                    packageSource.IsEnabled = true;
+                }
+           }
+
 
           var networkCred = Credential.GetNetworkCredential();
           string key;
