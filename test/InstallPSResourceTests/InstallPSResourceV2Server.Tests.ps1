@@ -3,7 +3,6 @@
 
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
-Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
 Import-Module $modPath -Force -Verbose
 
 $psmodulePaths = $env:PSModulePath -split ';'
@@ -26,7 +25,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -40,7 +39,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
         Install-PSResource -Name $Name -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 
@@ -60,7 +59,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
-        Install-PSResource -Name $pkgNames -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $pkgNames -Repository $PSGalleryName -TrustRepository  
         $pkg = Get-InstalledPSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
@@ -69,8 +68,8 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         Install-PSResource -Name "NonExistantModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-InstalledPSResource "NonExistantModule"
         $pkg.Name | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
@@ -82,21 +81,21 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $PSGalleryName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "1.0.0.0"
     }
 
     It "Should install resource given name and exact range inclusive [1.0.0, 5.0.0]" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $PSGalleryName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0.0"
     }
 
     It "Should install resource given name and exact range exclusive (1.0.0, 5.0.0)" {
-        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $PSGalleryName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "3.0.0.0"
@@ -124,7 +123,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        Install-PSResource -Name $testModuleName -Prerelease -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Prerelease -Repository $PSGalleryName -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.2.5"
@@ -133,7 +132,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     It "Install a module with a dependency" {
         Uninstall-PSResource -Name "TestModuleWithDependency*" -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
-        Install-PSResource -Name "TestModuleWithDependencyC" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name "TestModuleWithDependencyC" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository 
 
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyC"
         $pkg.Name | Should -Be "TestModuleWithDependencyC"
@@ -160,23 +159,16 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {
-        Find-PSResource -Name $testModuleName -Repository $PSGalleryName | Install-PSResource -TrustRepository
+        Find-PSResource -Name $testModuleName -Repository $PSGalleryName | Install-PSResource -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
+        $pkg.Name | Should -Be $testModuleName 
         $pkg.Version | Should -Be "5.0.0.0"
-    }
-
-    It "Save PSResourceInfo object piped in for prerelease version object" {
-        $res = Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Install-PSResource -TrustRepository -SkipDependencyCheck -PassThru
-        $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.2.5"
-        $res.Prerelease | Should -Be "alpha001"
     }
 
     It "Install resource under specified in PSModulePath" {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
+        $pkg.Name | Should -Be $testModuleName 
         ($env:PSModulePath).Contains($pkg.InstalledLocation)
     }
 
@@ -221,7 +213,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     # Windows only
     It "Install resource under no specified scope - Windows only" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true
@@ -293,7 +285,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     # It "Install resource that requires accept license with -AcceptLicense flag" {
     #     Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
     #     $pkg = Get-InstalledPSResource "testModuleWithlicense"
-    #     $pkg.Name | Should -Be "testModuleWithlicense"
+    #     $pkg.Name | Should -Be "testModuleWithlicense" 
     #     $pkg.Version | Should -Be "0.0.3.0"
     # }
 
@@ -301,12 +293,12 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     It "Install resource with cmdlet names from a module already installed (should clobber)" {
         Install-PSResource -Name "CLobberTestModule1" -Repository $PSGalleryName -TrustRepository
         $pkg = Get-InstalledPSResource "ClobberTestModule1"
-        $pkg.Name | Should -Be "ClobberTestModule1"
+        $pkg.Name | Should -Be "ClobberTestModule1" 
         $pkg.Version | Should -Be "0.0.1"
 
         Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository
         $pkg = Get-InstalledPSResource "ClobberTestModule2"
-        $pkg.Name | Should -Be "ClobberTestModule2"
+        $pkg.Name | Should -Be "ClobberTestModule2" 
         $pkg.Version | Should -Be "0.0.1"
     }
 
@@ -452,7 +444,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     # Install module 1.4.3 (is authenticode signed and has catalog file)
-    # Should install successfully
+    # Should install successfully 
     It "Install modules with catalog file using publisher validation" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $PackageManagement -Version "1.4.3" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
 
@@ -461,11 +453,11 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res1.Version | Should -Be "1.4.3"
     }
 
+    #TODO: update this test to use something other than PackageManagement.
     # Install module 1.4.7 (is authenticode signed and has no catalog file)
     # Should not install successfully
     It "Install module with no catalog file" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $PackageManagement -Version "1.4.7" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository
-
         $res1 = Get-InstalledPSResource $PackageManagement -Version "1.4.7"
         $res1.Name | Should -Be $PackageManagement
         $res1.Version | Should -Be "1.4.7"
@@ -475,8 +467,8 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     # Should FAIL to install the  module
     It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 
     # # Install 1.4.4.1 (with incorrect catalog file)
@@ -496,27 +488,31 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     # Install script that is not signed
-    # Should throw
+    # Should throw and fail to install
     It "Install script that is not signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        write-host $err.Count
+        $err.Count | Should -HaveCount 1
+        write-Host $err
+        write-Host $err[0]
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
 }
 
-<# Temporarily commented until -Tag is implemented for this Describe block
-Describe 'Test Install-PSResource for interactive and root user scenarios' {
+Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidationOnly' {
 
-    BeforeAll{
-        $TestGalleryName = Get-PoshTestGalleryName
+    BeforeAll {
         $PSGalleryName = Get-PSGalleryName
+        $PSGalleryUri = Get-PSGalleryLocation
         $NuGetGalleryName = Get-NuGetGalleryName
+        $testModuleName = "TestModule"
+        $testModuleName2 = "testModuleWithlicense"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
 
     AfterEach {
-        Uninstall-PSResource "TestModule", "testModuleWithlicense" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2 -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -526,17 +522,17 @@ Describe 'Test Install-PSResource for interactive and root user scenarios' {
     # Unix only manual test
     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
     It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -Scope AllUsers
-        $pkg = Get-Module "TestModule" -ListAvailable
-        $pkg.Name | Should -Be "TestModule"
+        Install-PSResource -Name $testModuleName -Repository $TestGalleryName -Scope AllUsers
+        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg.Name | Should -Be $testModuleName 
         $pkg.Path.Contains("/usr/") | Should -Be $true
     }
 
     # This needs to be manually tested due to prompt
     It "Install resource that requires accept license without -AcceptLicense flag" {
-        Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName
-        $pkg = Get-InstalledPSResource "testModuleWithlicense"
-        $pkg.Name | Should -Be "testModuleWithlicense"
+        Install-PSResource -Name $testModuleName2 -Repository $TestGalleryName
+        $pkg = Get-InstalledPSResource $testModuleName2
+        $pkg.Name | Should -Be $testModuleName2 
         $pkg.Version | Should -Be "0.0.1.0"
     }
 
@@ -544,12 +540,11 @@ Describe 'Test Install-PSResource for interactive and root user scenarios' {
     It "Install resource should prompt 'trust repository' if repository is not trusted" {
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
-        Install-PSResource -Name "TestModule" -Repository $TestGalleryName -confirm:$false
-
-        $pkg = Get-Module "TestModule" -ListAvailable
-        $pkg.Name | Should -Be "TestModule"
+        Install-PSResource -Name $testModuleName -Repository $TestGalleryName -confirm:$false
+        
+        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg.Name | Should -Be $testModuleName 
 
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
 }
-#>

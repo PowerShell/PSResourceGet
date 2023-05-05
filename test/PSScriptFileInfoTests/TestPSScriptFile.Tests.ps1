@@ -1,22 +1,24 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
+$testDir = (get-item $psscriptroot).parent.FullName
 
-Describe "Test Test-PSScriptFile" -Tags 'CI' {
+Describe "Test Test-PSScriptFile" -tags 'CI' {
     BeforeAll {
         $tmpDir1Path = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         $tmpDirPaths = @($tmpDir1Path)
         Get-NewTestDirs($tmpDirPaths)
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
-        $script:testFilesFolderPath = Join-Path $psscriptroot -ChildPath "testFiles"
+        $script:testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
     }
 
-    It "determine script file with minimal required fields as valid" {
+    It "determine script file with minimal required fields as valid" {    
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
         New-PSScriptFile -Path $scriptFilePath -Description $scriptDescription
@@ -62,13 +64,13 @@ Describe "Test Test-PSScriptFile" -Tags 'CI' {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        Test-PSScriptFile $scriptFilePath | Should -Be $true
+        Test-PSScriptFile $scriptFilePath | Should -Be $true        
     }
 
     It "determine script without empty lines between comment blocks is valid" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        Test-PSScriptFile $scriptFilePath | Should -Be $true
+        Test-PSScriptFile $scriptFilePath | Should -Be $true        
     }
 }

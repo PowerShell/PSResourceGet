@@ -1,9 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Write-Verbose -Verbose -Message "PSGetTestUtils path: $modPath"
+Import-Module $modPath -Force -Verbose
 
-Describe "Test Unregister-PSResourceRepository" -Tags 'CI' {
+Describe "Test Unregister-PSResourceRepository" -tags 'CI' {
     BeforeEach {
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryUri = Get-PSGalleryLocation
@@ -50,7 +52,7 @@ Describe "Test Unregister-PSResourceRepository" -Tags 'CI' {
         Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
         Register-PSResourceRepository -Name "testRepository2" -Uri $tmpDir2Path
         Unregister-PSResourceRepository -Name "testRepository*" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "nameContainsWildCardError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
@@ -58,7 +60,7 @@ Describe "Test Unregister-PSResourceRepository" -Tags 'CI' {
         $nonRegisteredRepoName = "nonRegisteredRepository"
         Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
         Unregister-PSResourceRepository -Name $nonRegisteredRepoName,"testRepository" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
@@ -76,7 +78,7 @@ Describe "Test Unregister-PSResourceRepository" -Tags 'CI' {
         $Res.Uri | Should -Be $PSGalleryUri
         $res = Get-PSResourceRepository -Name $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
     }
 }

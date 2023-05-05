@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 $ProgressPreference = "SilentlyContinue"
-Import-Module "$((Get-Item $psscriptroot).parent)\PSGetTestUtils.psm1" -Force
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
 
 Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
 
@@ -36,16 +37,16 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         Save-PSResource -Name $moduleName -Repository $localRepo -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem $pkgDir.FullName).Count | Should -Be 1
+        (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
     }
 
     It "Save multiple resources by name" {
         $pkgNames = @($moduleName, $moduleName2)
         Save-PSResource -Name $pkgNames -Repository $localRepo -Path $SaveDir -TrustRepository
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq $moduleName -or $_.Name -eq $moduleName2 }
-        $pkgDirs.Count | Should -Be 2
-        (Get-ChildItem $pkgDirs[0].FullName).Count | Should -Be 1
-        (Get-ChildItem $pkgDirs[1].FullName).Count | Should -Be 1
+        $pkgDirs | Should -HaveCount 2
+        (Get-ChildItem $pkgDirs[0].FullName) | Should -HaveCount 1
+        (Get-ChildItem $pkgDirs[1].FullName) | Should -HaveCount 1
     }
 
     It "Should not save resource given nonexistant name" {
@@ -96,7 +97,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
         $pkgDir | Should -BeNullOrEmpty
-        $Error.Count | Should -Not -Be 0
+        $Error.Count | Should -BeGreaterThan 0
         $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
     }
 
@@ -104,7 +105,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         Find-PSResource -Name $moduleName -Version "5.0.0" -Repository $localRepo | Save-PSResource -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem -Path $pkgDir.FullName).Count | Should -Be 1   
+        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1   
     }
 
     It "Save module as a nupkg" {
