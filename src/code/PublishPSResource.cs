@@ -946,7 +946,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
           var networkCred = Credential.GetNetworkCredential();
           string key;
+          
           if (packageSource == null)
+
           {
             key = "_" + Guid.NewGuid().ToString().Replace("-", "");
             settings.AddOrUpdate(
