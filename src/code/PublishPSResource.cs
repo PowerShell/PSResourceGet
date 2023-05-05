@@ -846,11 +846,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
             var success = false;
+
+            var sourceProvider = new PackageSourceProvider(settings);
+            if (Credential != null)
+            {
+                 InjectCredentialsToSettings(settings, sourceProvider, publishLocation);
+            }
+
+
             try
             {
                 PushRunner.Run(
                         settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
-                        sourceProvider: new PackageSourceProvider(settings),
+                        sourceProvider: sourceProvider,
                         packagePaths: new List<string> { fullNupkgFile },
                         source: publishLocation,
                         apiKey: ApiKey,
@@ -922,6 +930,49 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         }
 
-        #endregion
-    }
+        private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source)
+        {
+          if (Credential == null)
+          {
+               return;
+          }
+
+          var packageSource = sourceProvider.LoadPackageSources().FirstOrDefault(s => s.Source == source);
+          if (packageSource != null)
+          {
+                if (!packageSource.IsEnabled)
+                {
+                    packageSource.IsEnabled = true;
+                }
+           }
+
+
+          var networkCred = Credential.GetNetworkCredential();
+          string key;
+          
+          if (packageSource == null)
+
+          {
+            key = "_" + Guid.NewGuid().ToString().Replace("-", "");
+            settings.AddOrUpdate(
+              ConfigurationConstants.PackageSources,
+              new SourceItem(key, source));
+          }
+          else
+          {
+              key = packageSource.Name;
+          }
+
+          settings.AddOrUpdate(
+            ConfigurationConstants.CredentialsSectionName,
+            new CredentialsItem(
+              key,
+              networkCred.UserName,
+              networkCred.Password,
+              isPasswordClearText: true,
+              String.Empty));
+        }
+
+    #endregion
+  }
 }
