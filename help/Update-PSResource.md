@@ -39,7 +39,7 @@ In this example, the user already has the **TestModule** package installed and t
 package.
 
 ```powershell
-Get-PSResource -Name "TestModule"
+Get-InstalledPSResource -Name "TestModule"
 ```
 
 ```Output

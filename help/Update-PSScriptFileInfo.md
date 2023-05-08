@@ -42,7 +42,7 @@ $parameters = @{
     Version = "1.0.0.0"
     Description = "this is a test script"
 }
-New-PSScriptFileInfo @parameters
+New-PSScriptFile @parameters
 $parameters.Version = "2.0.0.0"
 Update-PSScriptFileInfo @parameters
 Get-Content $parameters.FilePath
