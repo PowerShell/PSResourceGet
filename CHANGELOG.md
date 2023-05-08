@@ -3,10 +3,7 @@
 ## 3.0.21-beta21
 
 ### New Features
-- add local API code and tests (#1065)
-- Add Get-PSScriptFileInfo cmdlet (#839)
-- Allow CredentialInfo parameter to accept a hashtable  (#836)
-- Automate updating `CHANGELOG.md` file (#817)
+- Move off of NuGet client APIs for local repositories (#1065)
 
 ### Bug Fixes
 - Update properties on PSResourceInfo object (#1077)
@@ -17,11 +14,6 @@
 - Fix attribute bugfixes for Find and Install params (#1066)
 - Correct Unexpected spelling of Unexpected (#1059)
 - Resolve bug with Find-PSResource -Type Module not returning modules (#1050)
-- fix verbose message for untrusted repos gaining trust (#841)
-- Bugfix for Update cmdlet attempting to reinstall latest preview version (#834)
-- Add SupportsWildcards() attribute to parameters accepting wildcards (#833)
-- Perform Repository Trust Check at Install, not Search, Time (#831)
-- Fix casing of `PSResource` in `Install-PSResource` (#820)
 
 ## 3.0.20-beta20
 
