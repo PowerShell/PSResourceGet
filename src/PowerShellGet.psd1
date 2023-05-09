@@ -167,5 +167,5 @@ See change log (CHANGELOG.md) at https://github.com/PowerShell/PowerShellGet
         }
     }
 
-    HelpInfoUri       = 'http://go.microsoft.com/fwlink/?linkid=855963'
+    HelpInfoUri       = 'https://aka.ms/powershellget-3.x'
 }
