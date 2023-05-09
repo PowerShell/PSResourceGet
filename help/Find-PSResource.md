@@ -18,23 +18,22 @@ properties.
 ### NameParameterSet (Default)
 
 ```
-Find-PSResource [[-Name] <string[]>] [-Type <ResourceType>] [-Version <string>] [-Prerelease]
- [-Tag <string[]>] [-Repository <string[]>] [-Credential <pscredential>] [-IncludeDependencies]
- [<CommonParameters>]
+Find-PSResource [[-Name] <String[]>] [-Type <ResourceType>] [-Version <String>] [-Prerelease] [-Tag <String[]>]
+ [-Repository <String[]>] [-Credential <PSCredential>] [-IncludeDependencies] [<CommonParameters>]
 ```
 
 ### CommandNameParameterSet
 
 ```
-Find-PSResource -CommandName <string[]> [-Prerelease] [-Repository <string[]>]
- [-Credential <pscredential>] [<CommonParameters>]
+Find-PSResource [-Prerelease] -CommandName <String[]> [-Repository <String[]>] [-Credential <PSCredential>]
+ [<CommonParameters>]
 ```
 
 ### DscResourceNameParameterSet
 
 ```
-Find-PSResource -DscResourceName <string[]> [-Prerelease] [-Repository <string[]>]
- [-Credential <pscredential>] [<CommonParameters>]
+Find-PSResource [-Prerelease] -DscResourceName <String[]> [-Repository <String[]>] [-Credential <PSCredential>]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -254,7 +253,7 @@ deduplicated.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
-Parameter Sets: (All)
+Parameter Sets: NameParameterSet
 Aliases:
 
 Required: False
@@ -383,10 +382,7 @@ Accept wildcard characters: True
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

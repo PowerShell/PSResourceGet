@@ -17,37 +17,35 @@ Installs resources from a registered repository.
 ### NameParameterSet (Default)
 
 ```
-Install-PSResource [-Name] <string[]> [-Version <string>] [-Prerelease] [-Repository <string[]>]
- [-Credential <pscredential>] [-Scope <ScopeType>] [-TemporaryPath <string>] [-TrustRepository]
- [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck]
- [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Install-PSResource [-Name] <String[]> [-Version <String>] [-Prerelease] [-Repository <String[]>]
+ [-Credential <PSCredential>] [-Scope <ScopeType>] [-TemporaryPath <String>] [-TrustRepository] [-Reinstall]
+ [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-WhatIf]
+ [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectParameterSet
 
 ```
-Install-PSResource [-InputObject] <PSResourceInfo> [-Credential <pscredential>]
- [-Scope <ScopeType>] [-TemporaryPath <string>] [-TrustRepository] [-Reinstall] [-Quiet]
- [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] [-WhatIf]
- [-Confirm] [<CommonParameters>]
+Install-PSResource [-Repository <String[]>] [-Credential <PSCredential>] [-Scope <ScopeType>]
+ [-TemporaryPath <String>] [-TrustRepository] [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber]
+ [-SkipDependencyCheck] [-AuthenticodeCheck] [-PassThru] -InputObject <PSResourceInfo> [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ### RequiredResourceFileParameterSet
 
 ```
-Install-PSResource [-Credential <pscredential>] [-Scope <ScopeType>] [-TemporaryPath <string>]
+Install-PSResource [-Credential <PSCredential>] [-Scope <ScopeType>] [-TemporaryPath <String>]
  [-TrustRepository] [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck]
- [-AuthenticodeCheck] [-PassThru] [-RequiredResourceFile <string>] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+ [-AuthenticodeCheck] [-PassThru] [-RequiredResourceFile] <String> [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### RequiredResourceParameterSet
 
 ```
-Install-PSResource [-Credential <pscredential>] [-Scope <ScopeType>] [-TemporaryPath <string>]
+Install-PSResource [-Credential <PSCredential>] [-Scope <ScopeType>] [-TemporaryPath <String>]
  [-TrustRepository] [-Reinstall] [-Quiet] [-AcceptLicense] [-NoClobber] [-SkipDependencyCheck]
- [-AuthenticodeCheck] [-PassThru] [-RequiredResource <Object>] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+ [-AuthenticodeCheck] [-PassThru] [-RequiredResource] <Object> [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -171,12 +169,12 @@ Used for pipeline input.
 ```yaml
 Type: Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo
 Parameter Sets: InputObjectParameterSet
-Aliases:
+Aliases: ParentResource
 
 Required: True
 Position: Named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
@@ -192,7 +190,7 @@ Aliases:
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
@@ -252,12 +250,12 @@ When specified, includes prerelease versions in search results returned.
 ```yaml
 Type: System.Management.Automation.SwitchParameter
 Parameter Sets: NameParameterSet
-Aliases:
+Aliases: IsPrerelease
 
 Required: False
 Position: Named
 Default value: False
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -308,13 +306,13 @@ Lower **Priority** values have a higher precedence.
 
 ```yaml
 Type: System.String[]
-Parameter Sets: NameParameterSet
+Parameter Sets: NameParameterSet, InputObjectParameterSet
 Aliases:
 
 Required: False
 Position: Named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -328,7 +326,7 @@ Type: System.Object
 Parameter Sets: RequiredResourceParameterSet
 Aliases:
 
-Required: False
+Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False
@@ -345,8 +343,8 @@ Type: System.String
 Parameter Sets: RequiredResourceFileParameterSet
 Aliases:
 
-Required: False
-Position: Named
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -456,7 +454,7 @@ Aliases:
 Required: False
 Position: Named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: True
 ```
 
@@ -494,10 +492,7 @@ Accept wildcard characters: False
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
