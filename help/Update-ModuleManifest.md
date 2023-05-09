@@ -15,20 +15,18 @@ Updates a module manifest file.
 ## SYNTAX
 
 ```
-Update-ModuleManifest [-Path] <string> [-NestedModules <Object[]>] [-Guid <guid>]
- [-Author <string>] [-CompanyName <string>] [-Copyright <string>] [-RootModule <string>]
- [-ModuleVersion <version>] [-Description <string>]
- [-ProcessorArchitecture <ProcessorArchitecture>] [-CompatiblePSEditions <string[]>]
- [-PowerShellVersion <version>] [-ClrVersion <version>] [-DotNetFrameworkVersion <version>]
- [-PowerShellHostName <string>] [-PowerShellHostVersion <version>] [-RequiredModules <Object[]>]
- [-TypesToProcess <string[]>] [-FormatsToProcess <string[]>] [-ScriptsToProcess <string[]>]
- [-RequiredAssemblies <string[]>] [-FileList <string[]>] [-ModuleList <Object[]>]
- [-FunctionsToExport <string[]>] [-AliasesToExport <string[]>] [-VariablesToExport <string[]>]
- [-CmdletsToExport <string[]>] [-DscResourcesToExport <string[]>] [-Tags <string[]>]
- [-ProjectUri <uri>] [-LicenseUri <uri>] [-IconUri <uri>] [-ReleaseNotes <string>]
- [-Prerelease <string>] [-HelpInfoUri <uri>] [-DefaultCommandPrefix <string>]
- [-ExternalModuleDependencies <string[]>] [-RequireLicenseAcceptance] [-PrivateData <hashtable>]
- [<CommonParameters>]
+Update-ModuleManifest [-Path] <String> [-NestedModules <Object[]>] [-Guid <Guid>] [-Author <String>]
+ [-CompanyName <String>] [-Copyright <String>] [-RootModule <String>] [-ModuleVersion <Version>]
+ [-Description <String>] [-ProcessorArchitecture <ProcessorArchitecture>] [-CompatiblePSEditions <String[]>]
+ [-PowerShellVersion <Version>] [-ClrVersion <Version>] [-DotNetFrameworkVersion <Version>]
+ [-PowerShellHostName <String>] [-PowerShellHostVersion <Version>] [-RequiredModules <Object[]>]
+ [-TypesToProcess <String[]>] [-FormatsToProcess <String[]>] [-ScriptsToProcess <String[]>]
+ [-RequiredAssemblies <String[]>] [-FileList <String[]>] [-ModuleList <Object[]>]
+ [-FunctionsToExport <String[]>] [-AliasesToExport <String[]>] [-VariablesToExport <String[]>]
+ [-CmdletsToExport <String[]>] [-DscResourcesToExport <String[]>] [-Tags <String[]>] [-ProjectUri <Uri>]
+ [-LicenseUri <Uri>] [-IconUri <Uri>] [-ReleaseNotes <String>] [-Prerelease <String>] [-HelpInfoUri <Uri>]
+ [-DefaultCommandPrefix <String>] [-ExternalModuleDependencies <String[]>] [-RequireLicenseAcceptance]
+ [-PrivateData <Hashtable>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -777,10 +775,7 @@ Accept wildcard characters: True
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

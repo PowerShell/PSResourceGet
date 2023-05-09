@@ -15,7 +15,7 @@ Returns modules and scripts installed on the machine via **PowerShellGet**.
 ## SYNTAX
 
 ```
-Get-InstalledPSResource [[-Name] <string[]>] [-Version <string>] [-Path <string>] [-Scope <ScopeType>]
+Get-InstalledPSResource [[-Name] <String[]>] [-Version <String>] [-Path <String>] [-Scope <ScopeType>]
  [<CommonParameters>]
 ```
 
@@ -208,10 +208,7 @@ Accept wildcard characters: True
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 

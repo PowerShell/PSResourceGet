@@ -15,12 +15,11 @@ The cmdlet creates a new script file, including metadata about the script.
 ## SYNTAX
 
 ```
-New-PSScriptFile [-Path] <string> -Description <string> [-Version <string>] [-Author <string>]
- [-Guid <guid>] [-CompanyName <string>] [-Copyright <string>] [-RequiredModules <hashtable[]>]
- [-ExternalModuleDependencies <string[]>] [-RequiredScripts <string[]>]
- [-ExternalScriptDependencies <string[]>] [-Tags <string[]>] [-ProjectUri <string>]
- [-LicenseUri <string>] [-IconUri <string>] [-ReleaseNotes <string>] [-PrivateData <string>]
- [-Force] [<CommonParameters>]
+New-PSScriptFile [-Path] <String> [-Version <String>] [-Author <String>] -Description <String> [-Guid <Guid>]
+ [-CompanyName <String>] [-Copyright <String>] [-RequiredModules <Hashtable[]>]
+ [-ExternalModuleDependencies <String[]>] [-RequiredScripts <String[]>]
+ [-ExternalScriptDependencies <String[]>] [-Tags <String[]>] [-ProjectUri <String>] [-LicenseUri <String>]
+ [-IconUri <String>] [-ReleaseNotes <String>] [-PrivateData <String>] [-Force] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -456,10 +455,7 @@ Accept wildcard characters: False
 
 ### CommonParameters
 
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
--InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
--WarningAction, and -WarningVariable. For more information, see
-[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
