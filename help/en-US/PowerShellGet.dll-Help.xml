@@ -40,30 +40,6 @@
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>IncludeDependencies</maml:name>
-          <maml:description>
-            <maml:para>When specified, search returns all matching resources their dependencies. Dependencies are deduplicated.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
-          <maml:name>ModuleName</maml:name>
-          <maml:description>
-            <maml:para>Specifies a module resource package name type to search for. Wildcards are supported.</maml:para>
-            <maml:para>Not yet implemented.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Prerelease</maml:name>
           <maml:description>
             <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
@@ -84,32 +60,6 @@
           <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
           <dev:type>
             <maml:name>System.String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Tag</maml:name>
-          <maml:description>
-            <maml:para>Filters search results for resources that include one or more of the specified tags.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Version</maml:name>
-          <maml:description>
-            <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
-            <maml:para>Wildcards are supported but NuGet only accepts wildcard character `*`. For more information about NuGet version ranges, see Package versioning (/nuget/concepts/package-versioning#version-ranges).</maml:para>
-            <maml:para>PowerShellGet supports all but the minimum inclusive version listed in the NuGet version range documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum inclusive range). Instead, the value is considered to be the required version. To search for a minimum inclusive range, use `[1.0.0.0, ]` as the version range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -142,30 +92,6 @@
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>IncludeDependencies</maml:name>
-          <maml:description>
-            <maml:para>When specified, search returns all matching resources their dependencies. Dependencies are deduplicated.</maml:para>
-          </maml:description>
-          <dev:type>
-            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>False</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
-          <maml:name>ModuleName</maml:name>
-          <maml:description>
-            <maml:para>Specifies a module resource package name type to search for. Wildcards are supported.</maml:para>
-            <maml:para>Not yet implemented.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Prerelease</maml:name>
           <maml:description>
             <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
@@ -190,39 +116,13 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Tag</maml:name>
-          <maml:description>
-            <maml:para>Filters search results for resources that include one or more of the specified tags.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
-          <maml:name>Version</maml:name>
-          <maml:description>
-            <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
-            <maml:para>Wildcards are supported but NuGet only accepts wildcard character `*`. For more information about NuGet version ranges, see Package versioning (/nuget/concepts/package-versioning#version-ranges).</maml:para>
-            <maml:para>PowerShellGet supports all but the minimum inclusive version listed in the NuGet version range documentation. Using `1.0.0.0` as the version doesn't yield versions 1.0.0.0 and higher (minimum inclusive range). Instead, the value is considered to be the required version. To search for a minimum inclusive range, use `[1.0.0.0, ]` as the version range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
-          <dev:type>
-            <maml:name>System.String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
       </command:syntaxItem>
       <command:syntaxItem>
         <maml:name>Find-PSResource</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet does not support wildcard searches of local (file-based) repositories.</maml:para>
+            <maml:para>Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet doesn't support wildcard searches of local (file-based) repositories.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
           <dev:type>
@@ -378,23 +278,10 @@
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
-        <maml:name>ModuleName</maml:name>
-        <maml:description>
-          <maml:para>Specifies a module resource package name type to search for. Wildcards are supported.</maml:para>
-          <maml:para>Not yet implemented.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
-        <dev:type>
-          <maml:name>System.String[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet does not support wildcard searches of local (file-based) repositories.</maml:para>
+          <maml:para>Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet doesn't support wildcard searches of local (file-based) repositories.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
         <dev:type>
@@ -491,6 +378,14 @@
           <maml:para></maml:para>
         </maml:description>
       </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCommandResourceInfo</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:returnValue>
     </command:returnValues>
     <maml:alertSet>
       <maml:alert>
@@ -504,7 +399,7 @@
 
 Name          Version Prerelease Repository Description
 ----          ------- ---------- ---------- -----------
-PowerShellGet 2.2.5.0            PSGallery  PowerShell module with commands for discovering, installing, updating and …</dev:code>
+PowerShellGet 2.2.5              PSGallery  PowerShell module with commands for discovering, installing, updating and p…</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -513,110 +408,111 @@ PowerShellGet 2.2.5.0            PSGallery  PowerShell module with commands for 
         <maml:title>-------------------------- Example 2 --------------------------</maml:title>
         <dev:code>Find-PSResource -Name PowerShellGet -Repository PSGallery -Prerelease
 
-Name          Version  Prerelease Repository Description
-----          -------  ---------- ---------- -----------
-PowerShellGet 3.0.14.0 beta14     PSGallery  PowerShell module with commands for discovering, installing, updating and…</dev:code>
+Name          Version Prerelease Repository Description
+----          ------- ---------- ---------- -----------
+PowerShellGet 3.0.20  beta20     PSGallery  PowerShell module with commands for discovering, installing, updating and p…</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 3 --------------------------</maml:title>
-        <dev:code>Find-PSResource -Name "Microsoft.PowerShell.SecretManagement" -Version "(0.9.0.0, 1.2.0.0]" -Repository PSGallery -Prerelease
+        <dev:code>$parameters = @{
+    Name = 'Microsoft.PowerShell.SecretManagement'
+    Version = '(0.9.0.0, 1.2.0.0]'
+    Repository = 'PSGallery'
+    Prerelease = $true
+}
+Find-PSResource @parameters
 
 Name                                  Version Prerelease Repository Description
 ----                                  ------- ---------- ---------- -----------
-Microsoft.PowerShell.SecretManagement 1.1.2.0            PSGallery  …
-Microsoft.PowerShell.SecretManagement 1.1.1.0            PSGallery  …
-Microsoft.PowerShell.SecretManagement 1.1.0.0            PSGallery  …
-Microsoft.PowerShell.SecretManagement 1.0.0.0            PSGallery  …
-Microsoft.PowerShell.SecretManagement 0.9.1.0            PSGallery  …</dev:code>
+Microsoft.PowerShell.SecretManagement 1.1.2              PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.1.1              PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.1.0   preview2   PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.1.0   preview    PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.1.0              PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.0.1              PSGallery  …
+Microsoft.PowerShell.SecretManagement 1.0.0              PSGallery  …
+Microsoft.PowerShell.SecretManagement 0.9.1              PSGallery  …</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 4 --------------------------</maml:title>
-        <dev:code>Find-PSResource -CommandName Get-TargetResource -Repository PSGallery |
-    Select-Object -ExpandProperty ParentResource
+        <dev:code>Find-PSResource -CommandName Get-TargetResource -Repository PSGallery
 
-Name                       Version    Prerelease Repository Description
-----                       -------    ---------- ---------- -----------
-xPowerShellExecutionPolicy 3.1.0.0               PSGallery  This DSC resource can change the user preference for the W…
-WindowsDefender            1.0.0.4               PSGallery  Windows Defender module allows you to configure Windows De…
-SystemLocaleDsc            1.2.0.0               PSGallery  This DSC Resource allows configuration of the Windows Syst…
-xInternetExplorerHomePage  1.0.0.0               PSGallery  This DSC Resources can easily set an URL for the home page…
-OctopusDSC                 4.0.1127.0            PSGallery  Module with DSC resource to install and configure an Octop…
-cRegFile                   1.2.0.0               PSGallery  DSC resource which is designed to manage large numbers of …
-cWindowsErrorReporting     1.1.0.0               PSGallery  DSC Resource to enable or disable Windows Error Reporting
-cVNIC                      1.0.0.0               PSGallery  DSC Module to create and configuring virutal network adapt…
-supVsts                    1.1.17.0              PSGallery  Dsc module for interfacing with VSTS.</dev:code>
+Name                 Package Name               Version
+----                 ------------               -------
+{Get-TargetResource} cRegFile                   1.2
+{Get-TargetResource} cVNIC                      1.0.0.0
+{Get-TargetResource} cWindowsErrorReporting     1.1
+{Get-TargetResource} OctopusDSC                 4.0.1131
+{Get-TargetResource} supVsts                    1.1.17.0
+{Get-TargetResource} SystemLocaleDsc            1.2.0.0
+{Get-TargetResource} WindowsDefender            1.0.0.4
+{Get-TargetResource} xInternetExplorerHomePage  1.0.0
+{Get-TargetResource} xPowerShellExecutionPolicy 3.1.0.0</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 5 --------------------------</maml:title>
-        <dev:code>Find-PSResource -CommandName Get-TargetResource -ModuleName SystemLocaleDsc -Repository PSGallery |
-    Select-Object -ExpandProperty ParentResource
+        <dev:code>Find-PSResource -DscResourceName SystemLocale -Repository PSGallery
 
-Name            Version Prerelease Repository Description
-----            ------- ---------- ---------- -----------
-SystemLocaleDsc 1.2.0.0            PSGallery  This DSC Resource allows configuration of the Windows System Locale.</dev:code>
+Name           Package Name          Version
+----           ------------          -------
+{SystemLocale} ComputerManagementDsc 9.0.0
+{SystemLocale} SystemLocaleDsc       1.2.0.0</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 6 --------------------------</maml:title>
-        <dev:code>Find-PSResource -DscResourceName SystemLocale -Repository PSGallery |
-    Select-Object -ExpandProperty ParentResource
+        <dev:code>Find-PSResource -Name Computer*
 
-Name                  Version Prerelease Repository Description
-----                  ------- ---------- ---------- -----------
-ComputerManagementDsc 8.5.0.0            PSGallery  DSC resources for configuration of a Windows computer. These DSC r…
-SystemLocaleDsc       1.2.0.0            PSGallery  This DSC Resource allows configuration of the Windows System Local…</dev:code>
+Name                                              Version Prerelease Repository Description
+----                                              ------- ---------- ---------- -----------
+ComputerManagementDsc                             9.0.0              PSGallery  DSC resources for configuration of a Wi…
+ComputerManagement                                1.1.2.3            PSGallery  A PowerShell module for working with th…
+ComputerCleanup                                   1.2.0              PSGallery  Module for freeing up disk space / remo…
+Computer_UnjoinDomainAndJoinWorkgroup_Config      1.0.0              PSGallery  This example switches the computer 'Ser…
+Computer_SetComputerDescriptionInWorkgroup_Config 1.0.0              PSGallery  This example will set the computer desc…
+Computer_RenameComputerInWorkgroup_Config         1.0.0              PSGallery  This example will set the machine name …
+Computer_RenameComputerInDomain_Config            1.0.0              PSGallery  This example will change the machines n…
+Computer_RenameComputerAndSetWorkgroup_Config     1.0.0              PSGallery  This configuration will set the compute…
+Computer_JoinDomainSpecifyingDC_Config            1.0.0              PSGallery  This configuration sets the machine nam…
+Computer_JoinDomain_Config                        1.0.0              PSGallery  This configuration sets the machine nam…</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 7 --------------------------</maml:title>
-        <dev:code>Find-PSResource -Name Computer*
-
-Name                                              Version Prerelease Repository       Description
-----                                              ------- ---------- ----------       -----------
-ComputerManagementDsc                             8.5.0.0            PSGallery        DSC resources for configuration …
-ComputerManagement                                1.1.2.3            PSGallery        A PowerShell module for working …
-Computer_JoinDomain_Config                        1.0.0.0            PSGalleryScripts This configuration sets the mach…
-Computer_UnjoinDomainAndJoinWorkgroup_Config      1.0.0.0            PSGalleryScripts This example switches the comput…
-Computer_SetComputerDescriptionInWorkgroup_Config 1.0.0.0            PSGalleryScripts This example will set the comput…
-Computer_JoinDomainSpecifyingDC_Config            1.0.0.0            PSGalleryScripts This configuration sets the mach…
-Computer_RenameComputerAndSetWorkgroup_Config     1.0.0.0            PSGalleryScripts This configuration will set the …
-Computer_RenameComputerInDomain_Config            1.0.0.0            PSGalleryScripts This example will change the mac…
-Computer_RenameComputerInWorkgroup_Config         1.0.0.0            PSGalleryScripts This example will set the machin…</dev:code>
-        <dev:remarks>
-          <maml:para></maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>-------------------------- Example 8 --------------------------</maml:title>
         <dev:code>Find-PSResource -Tag CrescendoBuilt
 
 Name            Version Prerelease Repository Description
 ----            ------- ---------- ---------- -----------
-Foil            0.1.0.0            PSGallery  A PowerShell Crescendo wrapper for Chocolatey
-Cobalt          0.3.1.0            PSGallery  A PowerShell Crescendo wrapper for WinGet
-SysInternals    1.1.0.0            PSGallery  PowerShell cmdlets for SysInternal tools
-Croze           0.0.4.0            PSGallery  A PowerShell Crescendo wrapper for Homebrew
-AptPackage      0.0.2.0            PSGallery  PowerShell Crescendo-generated Module to query APT-Package Information
-RoboCopy        1.0.1.0            PSGallery  PowerShell cmdlet for the official RoboCopy.exe
-TShark          1.0.2.0            PSGallery  PowerShell cmdlet for tshark.exe
-Image2Text      1.0.2.0            PSGallery  PowerShell Images into ASCII art
-SpeedTestCLI    1.0.0.0            PSGallery  PowerShell cmdlets speedtest-cli
-SpeedTest-CLI   1.0.0.0            PSGallery  PowerShell cmdlets for Internet Speed Test
-Quser.Crescendo 0.1.1.0            PSGallery  This module displays session information of users logged onto a local or…
-Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of takeown.exe</dev:code>
+AptPackage      0.0.2              PSGallery  PowerShell Crescendo-generated Module to query APT-Package Information
+Cobalt          0.4.0              PSGallery  A PowerShell Crescendo wrapper for WinGet
+Croze           0.0.5              PSGallery  A PowerShell Crescendo wrapper for Homebrew
+Foil            0.3.0              PSGallery  A PowerShell Crescendo wrapper for Chocolatey
+Image2Text      1.0.2              PSGallery  PowerShell Images into ASCII art
+pastel          1.0.1              PSGallery  PowerShell commands for pastel
+PSDupes         0.0.1              PSGallery  A crescendo module to locate duplicate files. Very fast and easy to use, …
+psFilesCli      0.0.3              PSGallery  A PowerShell wrapper for files-cli.exe
+PSLogParser     0.0.2              PSGallery  Crescendo Powershell module for Log Parser 2.2
+Quser.Crescendo 0.1.3              PSGallery  This module displays session information of users logged onto a local or …
+RoboCopy        1.0.1              PSGallery  PowerShell cmdlet for the official RoboCopy.exe
+SpeedTest-CLI   1.0.1              PSGallery  PowerShell cmdlets for Internet Speed Test
+SpeedTestCLI    1.0.0              PSGallery  PowerShell cmdlets speedtest-cli
+SysInternals    1.1.0              PSGallery  PowerShell cmdlets for SysInternal tools
+Takeown         1.0.2              PSGallery  Crescendo Powershell wrapper of takeown.exe
+TShark          1.0.2              PSGallery  PowerShell cmdlet for tshark.exe
+VssAdmin        0.8.0              PSGallery  This is a Crescendo module to wrap the Windows `vssadmin.exe` command-lin…</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -626,9 +522,9 @@ Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of ta
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
     <command:details>
-      <command:name>Get-PSResource</command:name>
+      <command:name>Get-InstalledPSResource</command:name>
       <command:verb>Get</command:verb>
-      <command:noun>PSResource</command:noun>
+      <command:noun>InstalledPSResource</command:noun>
       <maml:description>
         <maml:para>Returns modules and scripts installed on the machine via PowerShellGet .</maml:para>
       </maml:description>
@@ -638,11 +534,11 @@ Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of ta
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
-        <maml:name>Get-PSResource</maml:name>
+        <maml:name>Get-InstalledPSResource</maml:name>
         <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet does not support wildcard searches of local (file-based) repositories.</maml:para>
+            <maml:para>Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet doesn't support wildcard searches of local (file-based) repositories.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
           <dev:type>
@@ -699,7 +595,7 @@ Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of ta
       <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet does not support wildcard searches of local (file-based) repositories.</maml:para>
+          <maml:para>Name of a resource to find. Wildcards are supported but NuGet only accepts the `*` character. NuGet doesn't support wildcard searches of local (file-based) repositories.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
         <dev:type>
@@ -747,8 +643,26 @@ Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of ta
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
     </command:parameters>
-    <command:inputTypes />
-    <command:returnValues />
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para></maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
     <maml:alertSet>
       <maml:alert>
         <maml:para></maml:para>
@@ -757,72 +671,74 @@ Takeown         1.0.2.0            PSGallery  Crescendo Powershell wrapper of ta
     <command:examples>
       <command:example>
         <maml:title>-------------------------- Example 1 --------------------------</maml:title>
-        <dev:code>Get-PSResource</dev:code>
+        <dev:code>Get-InstalledPSResource</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 2 --------------------------</maml:title>
-        <dev:code>Get-PSResource Az</dev:code>
+        <dev:code>Get-InstalledPSResource Az</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 3 --------------------------</maml:title>
-        <dev:code>Get-PSResource Az -Path .</dev:code>
+        <dev:code>Get-InstalledPSResource Az -Path .</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 4 --------------------------</maml:title>
-        <dev:code>Get-PSResource Az -Version 1.0.0</dev:code>
+        <dev:code>Get-InstalledPSResource Az -Version 9.4.0</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 5 --------------------------</maml:title>
-        <dev:code>Get-PSResource Az -Version "(1.0.0, 3.0.0)"</dev:code>
+        <dev:code>Get-InstalledPSResource Az -Version "(1.0.0, 3.0.0)"</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 6 --------------------------</maml:title>
-        <dev:code>Get-PSResource PowerShellGet -Version 3.0.14-beta14
+        <dev:code>Get-InstalledPSResource PowerShellGet -Version 3.0.19-beta19
 
 Name          Version Prerelease Repository Description
 ----          ------- ---------- ---------- -----------
-PowerShellGet 3.0.14  beta14     PSGallery  PowerShell module with commands for discovering, installing, updating and …</dev:code>
+PowerShellGet 3.0.19  beta19     PSGallery  PowerShell module with commands for discovering, installing, updating and p…</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 6 --------------------------</maml:title>
-        <dev:code>Get-PSResource PowerShellGet -Version 3.0.14</dev:code>
+        <dev:code>Get-InstalledPSResource PowerShellGet -Version 3.0.19</dev:code>
         <dev:remarks>
           <maml:para>There is no output from this command.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 7 --------------------------</maml:title>
-        <dev:code>Get-PSResource PSReadLine
+        <dev:code>Get-InstalledPSResource PSReadLine
 
 Name       Version Prerelease Repository Description
 ----       ------- ---------- ---------- -----------
+PSReadLine 2.3.0   beta0      PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.6              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.5              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.2              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.0   beta4      PSGallery  Great command line editing in the PowerShell console host
 
-Get-PSResource PSReadLine -Version '[2.2.0, 2.3.0]'
+Get-InstalledPSResource PSReadLine -Version '[2.2.0, 2.3.0]'
 
 Name       Version Prerelease Repository Description
 ----       ------- ---------- ---------- -----------
+PSReadLine 2.3.0   beta0      PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.6              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.5              PSGallery  Great command line editing in the PowerShell console host
 PSReadLine 2.2.2              PSGallery  Great command line editing in the PowerShell console host</dev:code>
@@ -968,9 +884,34 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Get-PSScriptFileInfo</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to the resource.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
-    <command:parameters />
+    <command:parameters>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Specifies the path to the resource.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
@@ -999,24 +940,11 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
     <command:examples>
       <command:example>
         <maml:title>-------------------------- Example 1 --------------------------</maml:title>
-        <dev:code>Get-PSScriptFileInfo -Path ".\Scripts\MyScript.ps1"
+        <dev:code>Get-PSScriptFileInfo -Path '.\Scripts\MyScript.ps1'
 
-Name               Version Author                 Description
-----               ------- ------                 -----------
-MyScript           1.0.0.0 dev@microsoft.com      This script is a test script for PowerShellGet…
-
-## PARAMETERS
-
-### -Path
-Specifies the path to the resource.</dev:code>
-        <dev:remarks>
-          <maml:para>yaml Type: String Parameter Sets: (All) Aliases:</maml:para>
-          <maml:para>Required: True Position: 0 Default value: None Accept pipeline input: False Accept wildcard characters: False ```</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>----------------------- CommonParameters -----------------------</maml:title>
-        <dev:code></dev:code>
+Name      Version Author              Description
+----      ------- ------              -----------
+MyScript  1.0.0.0 dev@microsoft.com   This script is a test script for PowerShellGet…</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -1074,7 +1002,7 @@ Specifies the path to the resource.</dev:code>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName, ByValue)" position="named" aliases="ParentResource">
           <maml:name>InputObject</maml:name>
           <maml:description>
             <maml:para>Used for pipeline input.</maml:para>
@@ -1143,6 +1071,20 @@ Specifies the path to the resource.</dev:code>
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+          <maml:name>Repository</maml:name>
+          <maml:description>
+            <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
+            <maml:para>If not specified, search includes all registered repositories, in priority order (highest first), until a repository is found that contains the package.</maml:para>
+            <maml:para>Lower Priority values have a higher precedence.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Scope</maml:name>
           <maml:description>
@@ -1177,6 +1119,18 @@ Specifies the path to the resource.</dev:code>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TemporaryPath</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>TrustRepository</maml:name>
@@ -1214,7 +1168,7 @@ Specifies the path to the resource.</dev:code>
       </command:syntaxItem>
       <command:syntaxItem>
         <maml:name>Install-PSResource</maml:name>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName, ByValue)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
             <maml:para>The name of one or more resources to install.</maml:para>
@@ -1294,7 +1248,7 @@ Specifies the path to the resource.</dev:code>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="IsPrerelease">
           <maml:name>Prerelease</maml:name>
           <maml:description>
             <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
@@ -1328,7 +1282,7 @@ Specifies the path to the resource.</dev:code>
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
           <maml:name>Repository</maml:name>
           <maml:description>
             <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
@@ -1378,6 +1332,18 @@ Specifies the path to the resource.</dev:code>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TemporaryPath</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>TrustRepository</maml:name>
           <maml:description>
             <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
@@ -1388,7 +1354,7 @@ Specifies the path to the resource.</dev:code>
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
           <maml:name>Version</maml:name>
           <maml:description>
             <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -1427,7 +1393,7 @@ Specifies the path to the resource.</dev:code>
       </command:syntaxItem>
       <command:syntaxItem>
         <maml:name>Install-PSResource</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
           <maml:name>RequiredResource</maml:name>
           <maml:description>
             <maml:para>A hashtable or JSON string that specifies resources to install. Wildcard characters aren't allowed. See the NOTES (#notes)section for a description of the file formats.</maml:para>
@@ -1566,6 +1532,18 @@ Specifies the path to the resource.</dev:code>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TemporaryPath</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>TrustRepository</maml:name>
           <maml:description>
             <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
@@ -1601,7 +1579,7 @@ Specifies the path to the resource.</dev:code>
       </command:syntaxItem>
       <command:syntaxItem>
         <maml:name>Install-PSResource</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
           <maml:name>RequiredResourceFile</maml:name>
           <maml:description>
             <maml:para>Path to a `.psd1` or `.json` that specifies resources to install. Wildcard characters aren't allowed. See the NOTES (#notes)section for a description of the file formats.</maml:para>
@@ -1740,6 +1718,18 @@ Specifies the path to the resource.</dev:code>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TemporaryPath</maml:name>
+          <maml:description>
+            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>TrustRepository</maml:name>
           <maml:description>
             <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
@@ -1811,7 +1801,7 @@ Specifies the path to the resource.</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName, ByValue)" position="named" aliases="ParentResource">
         <maml:name>InputObject</maml:name>
         <maml:description>
           <maml:para>Used for pipeline input.</maml:para>
@@ -1823,7 +1813,7 @@ Specifies the path to the resource.</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName, ByValue)" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
           <maml:para>The name of one or more resources to install.</maml:para>
@@ -1871,7 +1861,7 @@ Specifies the path to the resource.</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="IsPrerelease">
         <maml:name>Prerelease</maml:name>
         <maml:description>
           <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
@@ -1908,7 +1898,7 @@ Specifies the path to the resource.</dev:code>
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
         <maml:name>Repository</maml:name>
         <maml:description>
           <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
@@ -1922,7 +1912,7 @@ Specifies the path to the resource.</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
         <maml:name>RequiredResource</maml:name>
         <maml:description>
           <maml:para>A hashtable or JSON string that specifies resources to install. Wildcard characters aren't allowed. See the NOTES (#notes)section for a description of the file formats.</maml:para>
@@ -1934,7 +1924,7 @@ Specifies the path to the resource.</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
         <maml:name>RequiredResourceFile</maml:name>
         <maml:description>
           <maml:para>Path to a `.psd1` or `.json` that specifies resources to install. Wildcard characters aren't allowed. See the NOTES (#notes)section for a description of the file formats.</maml:para>
@@ -1979,6 +1969,18 @@ Specifies the path to the resource.</dev:code>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>TemporaryPath</maml:name>
+        <maml:description>
+          <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>TrustRepository</maml:name>
         <maml:description>
           <maml:para>Suppress prompts to trust repository. The prompt to trust repository only occurs if the repository isn't configured as trusted.</maml:para>
@@ -1990,7 +1992,7 @@ Specifies the path to the resource.</dev:code>
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
         <maml:name>Version</maml:name>
         <maml:description>
           <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -2041,12 +2043,7 @@ Specifies the path to the resource.</dev:code>
       </command:returnValue>
     </command:returnValues>
     <maml:alertSet>
-      <maml:alert>
-        <maml:para>The RequiredResource and RequiredResourceFile parameters are used to match PSResources matching specific criteria. You can specify the criteria using a hashtable or a JSON object. For the RequiredResourceFile parameter, the hashtable is stored in a `.psd1` file and the JSON object is stored in a `.json` file.</maml:para>
-        <maml:para>The hashtable can contain attributes for multiple modules. The following example show the structure of the module specification:</maml:para>
-        <maml:para>This example contains specifications for three modules. As you can, the module attributes are optional.</maml:para>
-        <maml:para>The next example shows the same specification in JSON format.</maml:para>
-      </maml:alert>
+      <maml:alert />
     </maml:alertSet>
     <command:examples>
       <command:example>
@@ -2081,13 +2078,13 @@ Specifies the path to the resource.</dev:code>
         <maml:title>-------------------------- Example 5 --------------------------</maml:title>
         <dev:code>Install-PSResource -RequiredResource  @{
     TestModule = @{
-        version = "[0.0.1,1.3.0]"
-        repository = "PSGallery"
+        version = '[0.0.1,1.3.0]'
+        repository = 'PSGallery'
       }
     TestModulePrerelease = @{
-        version = "[0.0.0,0.0.5]"
-        repository = "PSGallery"
-        prerelease = "true"
+        version = '[0.0.0,0.0.5]'
+        repository = 'PSGallery'
+        prerelease = 'true'
     }
     TestModule99 = @{}
 }</dev:code>
@@ -2109,9 +2106,9 @@ Specifies the path to the resource.</dev:code>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
     <command:details>
-      <command:name>New-PSScriptFileInfo</command:name>
+      <command:name>New-PSScriptFile</command:name>
       <command:verb>New</command:verb>
-      <command:noun>PSScriptFileInfo</command:noun>
+      <command:noun>PSScriptFile</command:noun>
       <maml:description>
         <maml:para>The cmdlet creates a new script file, including metadata about the script.</maml:para>
       </maml:description>
@@ -2121,7 +2118,7 @@ Specifies the path to the resource.</dev:code>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
-        <maml:name>New-PSScriptFileInfo</maml:name>
+        <maml:name>New-PSScriptFile</maml:name>
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
           <maml:name>Path</maml:name>
           <maml:description>
@@ -2317,7 +2314,7 @@ Specifies the path to the resource.</dev:code>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Tags</maml:name>
           <maml:description>
-            <maml:para>The tags associated with the script. Tag values are strings that should not contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
+            <maml:para>The tags associated with the script. Tag values are strings that shouldn't contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
           <dev:type>
@@ -2537,7 +2534,7 @@ Specifies the path to the resource.</dev:code>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Tags</maml:name>
         <maml:description>
-          <maml:para>The tags associated with the script. Tag values are strings that should not contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
+          <maml:para>The tags associated with the script. Tag values are strings that shouldn't contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
         <dev:type>
@@ -2587,7 +2584,7 @@ Specifies the path to the resource.</dev:code>
     <command:examples>
       <command:example>
         <maml:title>- Example 1: Creating an empty script with minimal information -</maml:title>
-        <dev:code>New-PSScriptFileInfo -Path ./test_script.ps1 -Description "This is a test script."
+        <dev:code>New-PSScriptFile -Path ./test_script.ps1 -Description 'This is a test script.'
 Get-Content ./test_script.ps1
 
 &lt;#PSScriptInfo
@@ -2643,11 +2640,11 @@ This is a test script.
     Version = '2.0.0.0'
     Author = 'janedoe'
     RequiredModules =  @(
-        @{ModuleName = "PackageManagement"; ModuleVersion = "1.0.0.0" },
-        @{ModuleName = "PSReadLine"}
+        @{ModuleName = 'PackageManagement'; ModuleVersion = '1.0.0.0' },
+        @{ModuleName = 'PSReadLine'}
     )
 }
-New-PSScriptFileInfo @parameters
+New-PSScriptFile @parameters
 Get-Content ./test_script2.ps1
 
 &lt;#PSScriptInfo
@@ -3060,7 +3057,7 @@ This is a test script.
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>CredentialInfo</maml:name>
           <maml:description>
-            <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that is stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
+            <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that's stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo</command:parameterValue>
           <dev:type>
@@ -3284,7 +3281,7 @@ This is a test script.
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>CredentialInfo</maml:name>
         <maml:description>
-          <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that is stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
+          <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that's stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo</command:parameterValue>
         <dev:type>
@@ -3447,7 +3444,7 @@ This is a test script.
     <command:examples>
       <command:example>
         <maml:title>-------------------------- Example 1 --------------------------</maml:title>
-        <dev:code>Register-PSResourceRepository -Name PoshTestGallery -Uri "https://www.powershellgallery.com/api/v2"
+        <dev:code>Register-PSResourceRepository -Name PoshTestGallery -Uri 'https://www.poshtestgallery.com/api/v2'
 Get-PSResourceRepository -Name PoshTestGallery
 
 Name             Uri                                          Trusted   Priority
@@ -3460,7 +3457,7 @@ PoshTestGallery  https://www.poshtestgallery.com/api/v2         False         50
       <command:example>
         <maml:title>-------------------------- Example 2 --------------------------</maml:title>
         <dev:code>Register-PSResourceRepository -PSGallery
-Get-PSResourceRepository -Name "PSGallery"
+Get-PSResourceRepository -Name 'PSGallery'
 
 Name             Uri                                          Trusted   Priority
 ----             ---                                          -------   --------
@@ -3471,16 +3468,31 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 3 --------------------------</maml:title>
-        <dev:code>$arrayOfHashtables = @{Name = "Local"; Uri = "D:/PSRepoLocal/"; Trusted = $true; Priority = 20 },
-                     @{Name = "PSGv3"; Uri = "https://www.powershellgallery.com/api/v3"; Trusted = $true; Priority = 50 },
-                     @{PSGallery = $true;  Trusted = $true; Priority = 10 }
+        <dev:code>$arrayOfHashtables = @{
+        Name = 'Local'
+        Uri = 'D:/PSRepoLocal/'
+        Trusted = $true
+        Priority = 20
+    },
+    @{
+        Name = 'PSGv3'
+        Uri = 'https://www.powershellgallery.com/api/v3'
+        Trusted = $true
+        Priority = 50
+    },
+    @{
+        PSGallery = $true
+        Trusted = $true
+        Priority = 10
+    }
 Register-PSResourceRepository -Repository $arrayOfHashtables
 Get-PSResourceRepository
 
-Name             Uri                                          Trusted   Priority
-----             ---                                          -------   --------
-PSGallery        https://www.powershellgallery.com/api/v2       False         50
-psgettestlocal   file:///c:/code/testdir                        False         50</dev:code>
+Name      Uri                                      Trusted Priority
+----      ---                                      ------- --------
+PSGallery https://www.powershellgallery.com/api/v2 True    10
+Local     file:///D:/PSRepoLocal/                  True    20
+PSGv3     https://www.powershellgallery.com/api/v3 True    50</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -3488,11 +3500,11 @@ psgettestlocal   file:///c:/code/testdir                        False         50
       <command:example>
         <maml:title>-------------------------- Example 4 --------------------------</maml:title>
         <dev:code>$parameters = @{
-    Name = "PSGv3"
-    Uri = "https://www.powershellgallery.com/api/v3"
+    Name = 'PSGv3'
+    Uri = 'https://www.powershellgallery.com/api/v3'
     Trusted = $true
     Priority = 50
-    CredentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ('SecretStore', 'TestSecret')
+    CredentialInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo]::new('SecretStore', 'TestSecret')
 }
 Register-PSResourceRepository @parameters
 Get-PSResourceRepository | Select-Object * -ExpandProperty CredentialInfo
@@ -3532,7 +3544,7 @@ Credential     :</dev:code>
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Save-PSResource</maml:name>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
             <maml:para>The name of one or more resources to install.</maml:para>
@@ -3613,7 +3625,7 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="IsPrerelease">
           <maml:name>Prerelease</maml:name>
           <maml:description>
             <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
@@ -3624,7 +3636,7 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
           <maml:name>Repository</maml:name>
           <maml:description>
             <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
@@ -3660,7 +3672,7 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
           <maml:name>Version</maml:name>
           <maml:description>
             <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -3700,6 +3712,17 @@ Credential     :</dev:code>
       <command:syntaxItem>
         <maml:name>Save-PSResource</maml:name>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AsNupkg</maml:name>
+          <maml:description>
+            <maml:para>Saves the resource as a `.nupkg` file.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>AuthenticodeCheck</maml:name>
           <maml:description>
             <maml:para>Validates the resource's signed files and catalog files on Windows.</maml:para>
@@ -3722,7 +3745,7 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName, ByValue)" position="named" aliases="ParentResource">
           <maml:name>InputObject</maml:name>
           <maml:description>
             <maml:para>Used for pipeline input.</maml:para>
@@ -3769,6 +3792,20 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+          <maml:name>Repository</maml:name>
+          <maml:description>
+            <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
+            <maml:para>If not specified, search includes all registered repositories, in priority order (highest first), until a repository is found that contains the package.</maml:para>
+            <maml:para>Lower Priority values have a higher precedence.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SkipDependencyCheck</maml:name>
           <maml:description>
@@ -3813,10 +3850,21 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IncludeXml</maml:name>
+          <maml:description>
+            <maml:para>Includes the PowerShellGet metadata XML used to verify that PowerShellGet has installed a module.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
       <command:syntaxItem>
         <maml:name>Save-PSResource</maml:name>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
             <maml:para>The name of one or more resources to install.</maml:para>
@@ -3886,7 +3934,7 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="IsPrerelease">
           <maml:name>Prerelease</maml:name>
           <maml:description>
             <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
@@ -3897,7 +3945,7 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
           <maml:name>Repository</maml:name>
           <maml:description>
             <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
@@ -3933,7 +3981,7 @@ Credential     :</dev:code>
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
           <maml:name>Version</maml:name>
           <maml:description>
             <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -4019,7 +4067,7 @@ Credential     :</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName, ByValue)" position="named" aliases="ParentResource">
         <maml:name>InputObject</maml:name>
         <maml:description>
           <maml:para>Used for pipeline input.</maml:para>
@@ -4031,7 +4079,7 @@ Credential     :</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
           <maml:para>The name of one or more resources to install.</maml:para>
@@ -4079,7 +4127,7 @@ Credential     :</dev:code>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="IsPrerelease">
         <maml:name>Prerelease</maml:name>
         <maml:description>
           <maml:para>When specified, includes prerelease versions in search results returned.</maml:para>
@@ -4091,7 +4139,7 @@ Credential     :</dev:code>
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
         <maml:name>Repository</maml:name>
         <maml:description>
           <maml:para>Specifies one or more repository names to search. Wildcards are supported.</maml:para>
@@ -4129,7 +4177,7 @@ Credential     :</dev:code>
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
         <maml:name>Version</maml:name>
         <maml:description>
           <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -4259,7 +4307,7 @@ Credential     :</dev:code>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>CredentialInfo</maml:name>
           <maml:description>
-            <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that is stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
+            <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that's stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo</command:parameterValue>
           <dev:type>
@@ -4395,7 +4443,7 @@ Credential     :</dev:code>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>CredentialInfo</maml:name>
         <maml:description>
-          <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that is stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
+          <maml:para>A PSCredentialInfo object that includes the name of a vault and a secret that's stored in a Microsoft.PowerShell.SecretManagement store.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo</command:parameterValue>
         <dev:type>
@@ -4516,14 +4564,6 @@ Credential     :</dev:code>
           <maml:para></maml:para>
         </maml:description>
       </command:inputType>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.Collections.Hashtable[]</maml:name>
-        </dev:type>
-        <maml:description>
-          <maml:para></maml:para>
-        </maml:description>
-      </command:inputType>
     </command:inputTypes>
     <command:returnValues>
       <command:returnValue>
@@ -4601,9 +4641,10 @@ PoshTestGallery  file:///c:/code/testdir                        False         50
         <dev:code>$parameters = @{
     Name = "PoshTestGallery"
     Uri = "c:/code/testdir"
-    CredentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ('SecretStore', 'TestSecret')
+    CredentialInfo = [Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo]::new('SecretStore', 'TestSecret')
 }
-Set-PSResourceRepository @parameters -PassThru | Select-Object * -ExpandProperty CredentialInfo
+Set-PSResourceRepository @parameters -PassThru |
+    Select-Object * -ExpandProperty CredentialInfo
 
 Name           : PoshTestGallery
 Uri            : file:///c:/code/testdir
@@ -4627,9 +4668,9 @@ Credential     :</dev:code>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp">
     <command:details>
-      <command:name>Test-PSScriptFileInfo</command:name>
+      <command:name>Test-PSScriptFile</command:name>
       <command:verb>Test</command:verb>
-      <command:noun>PSScriptFileInfo</command:noun>
+      <command:noun>PSScriptFile</command:noun>
       <maml:description>
         <maml:para>Tests the comment-based metadata in a `.ps1` file to ensure it's valid for publication.</maml:para>
       </maml:description>
@@ -4639,7 +4680,7 @@ Credential     :</dev:code>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
-        <maml:name>Test-PSScriptFileInfo</maml:name>
+        <maml:name>Test-PSScriptFile</maml:name>
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
           <maml:name>Path</maml:name>
           <maml:description>
@@ -4696,8 +4737,8 @@ Credential     :</dev:code>
     <command:examples>
       <command:example>
         <maml:title>---------------- Example 1: Test a valid script ----------------</maml:title>
-        <dev:code>New-PSScriptFileInfo -Path "C:\MyScripts\test_script.ps1" -Description "this is a test script"
-Test-PSScriptFileInfo -Path "C:\MyScripts\test_script.ps1"
+        <dev:code>New-PSScriptFile -Path "C:\MyScripts\test_script.ps1" -Description "this is a test script"
+Test-PSScriptFile -Path "C:\MyScripts\test_script.ps1"
 True</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
@@ -4705,10 +4746,10 @@ True</dev:code>
       </command:example>
       <command:example>
         <maml:title>------ Example 2: Test an invalid script (missing Author) ------</maml:title>
-        <dev:code>Test-PSScriptFileInfo -Path "C:\MyScripts\invalid_test_script.ps1"
+        <dev:code>Test-PSScriptFile -Path "C:\MyScripts\invalid_test_script.ps1"
 Get-Content "C:\MyScripts\invalid_test_script.ps1"
 
-WARNING: The .ps1 script file passed in was not valid due to: PSScript file is missing the required
+WARNING: The .ps1 script file passed in wasn't valid due to: PSScript file is missing the required
 Author property
 False
 &lt;#PSScriptInfo
@@ -4756,7 +4797,7 @@ this is a test script
     </command:examples>
     <command:relatedLinks>
       <maml:navigationLink>
-        <maml:linkText>New-PSScriptFileInfo</maml:linkText>
+        <maml:linkText>New-PSScriptFile</maml:linkText>
         <maml:uri></maml:uri>
       </maml:navigationLink>
     </command:relatedLinks>
@@ -4777,7 +4818,7 @@ this is a test script
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Uninstall-PSResource</maml:name>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
           <maml:name>InputObject</maml:name>
           <maml:description>
             <maml:para>Used for pipeline input.</maml:para>
@@ -4902,7 +4943,7 @@ this is a test script
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
           <maml:name>Version</maml:name>
           <maml:description>
             <maml:para>Specifies the version of the resource to be removed. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -4941,7 +4982,7 @@ this is a test script
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="none">
         <maml:name>InputObject</maml:name>
         <maml:description>
           <maml:para>Used for pipeline input.</maml:para>
@@ -5001,7 +5042,7 @@ this is a test script
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
         <maml:name>Version</maml:name>
         <maml:description>
           <maml:para>Specifies the version of the resource to be removed. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -5125,7 +5166,7 @@ this is a test script
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>When specified, outputs a PSRepositoryInfo object for each repository that is removed.</maml:para>
+            <maml:para>When specified, outputs a PSRepositoryInfo object for each repository that's removed.</maml:para>
           </maml:description>
           <dev:type>
             <maml:name>System.Management.Automation.SwitchParameter</maml:name>
@@ -5173,7 +5214,7 @@ this is a test script
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>When specified, outputs a PSRepositoryInfo object for each repository that is removed.</maml:para>
+          <maml:para>When specified, outputs a PSRepositoryInfo object for each repository that's removed.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
         <dev:type>
@@ -5223,7 +5264,7 @@ this is a test script
           <maml:name>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>By default, the cmdlet doesn't return any objects. When the PassThru parameter is used, the cmdlet outputs a PSRepositoryInfo object for each repository that is removed.</maml:para>
+          <maml:para>By default, the cmdlet doesn't return any objects. When the PassThru parameter is used, the cmdlet outputs a PSRepositoryInfo object for each repository that's removed.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -5623,7 +5664,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Prerelease</maml:name>
           <maml:description>
-            <maml:para>Specifies the prerelease value that is appended to the module version. For example, if Prerelease is `preview` and the ModuleVersion is `1.0.0`, the version of the module is `1.0.0-preview`.</maml:para>
+            <maml:para>Specifies the prerelease value that's appended to the module version. For example, if Prerelease is `preview` and the ModuleVersion is `1.0.0`, the version of the module is `1.0.0-preview`.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
           <dev:type>
@@ -5635,7 +5676,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PrivateData</maml:name>
           <maml:description>
-            <maml:para>Specifies data that is passed to the module when it's imported. This can be any arbitrary values stored in a hashtable.</maml:para>
+            <maml:para>Specifies data that's passed to the module when it's imported. This can be any arbitrary values stored in a hashtable.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.Collections.Hashtable</command:parameterValue>
           <dev:type>
@@ -5728,7 +5769,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>RootModule</maml:name>
           <maml:description>
-            <maml:para>Specifies the primary or root file of the module. Enter the file name of a script (`.ps1`), a script module (`.psm1`), a module manifest (`.psd1`), an assembly (`.dll`), or a cmdlet definition XML file (`.cdxml`). When the module is imported, the members exported from the root module are imported into the caller's session state.</maml:para>
+            <maml:para>Specifies the primary or root file of the module. Enter the filename of a script (`.ps1`), a script module (`.psm1`), a module manifest (`.psd1`), an assembly (`.dll`), or a cmdlet definition XML file (`.cdxml`). When the module is imported, the members exported from the root module are imported into the caller's session state.</maml:para>
             <maml:para>If a module has a manifest file and no file is specified in the RootModule key, the manifest becomes the primary file for the module. The module is known as a manifest module ( ModuleType = `Manifest`).</maml:para>
             <maml:para>To export members from `.psm1` or `.dll` files, the names of those files must be specified in the values of the RootModule or NestedModules keys in the manifest.</maml:para>
           </maml:description>
@@ -6114,7 +6155,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Prerelease</maml:name>
         <maml:description>
-          <maml:para>Specifies the prerelease value that is appended to the module version. For example, if Prerelease is `preview` and the ModuleVersion is `1.0.0`, the version of the module is `1.0.0-preview`.</maml:para>
+          <maml:para>Specifies the prerelease value that's appended to the module version. For example, if Prerelease is `preview` and the ModuleVersion is `1.0.0`, the version of the module is `1.0.0-preview`.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
         <dev:type>
@@ -6126,7 +6167,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PrivateData</maml:name>
         <maml:description>
-          <maml:para>Specifies data that is passed to the module when it's imported. This can be any arbitrary values stored in a hashtable.</maml:para>
+          <maml:para>Specifies data that's passed to the module when it's imported. This can be any arbitrary values stored in a hashtable.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.Collections.Hashtable</command:parameterValue>
         <dev:type>
@@ -6220,7 +6261,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>RootModule</maml:name>
         <maml:description>
-          <maml:para>Specifies the primary or root file of the module. Enter the file name of a script (`.ps1`), a script module (`.psm1`), a module manifest (`.psd1`), an assembly (`.dll`), or a cmdlet definition XML file (`.cdxml`). When the module is imported, the members exported from the root module are imported into the caller's session state.</maml:para>
+          <maml:para>Specifies the primary or root file of the module. Enter the filename of a script (`.ps1`), a script module (`.psm1`), a module manifest (`.psd1`), an assembly (`.dll`), or a cmdlet definition XML file (`.cdxml`). When the module is imported, the members exported from the root module are imported into the caller's session state.</maml:para>
           <maml:para>If a module has a manifest file and no file is specified in the RootModule key, the manifest becomes the primary file for the module. The module is known as a manifest module ( ModuleType = `Manifest`).</maml:para>
           <maml:para>To export members from `.psm1` or `.dll` files, the names of those files must be specified in the values of the RootModule or NestedModules keys in the manifest.</maml:para>
         </maml:description>
@@ -6302,21 +6343,26 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
     <command:examples>
       <command:example>
         <maml:title>-------------------------- Example 1 --------------------------</maml:title>
-        <dev:code>Update-ModuleManifest -Path "C:\MyModules\TestModule" -Author "New Author"</dev:code>
+        <dev:code>Update-ModuleManifest -Path 'C:\MyModules\TestModule' -Author 'New Author'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 2 --------------------------</maml:title>
-        <dev:code>Update-ModuleManifest -Path "C:\MyModules\TestModule" -Prerelease "beta2"</dev:code>
+        <dev:code>Update-ModuleManifest -Path 'C:\MyModules\TestModule' -Prerelease 'beta2'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
         <maml:title>-------------------------- Example 3 --------------------------</maml:title>
-        <dev:code>Update-ModuleManifest -Path "C:\MyModules\TestModule" -Tags "Windows", "Linux" -Description "A module for managing packages."</dev:code>
+        <dev:code>$parameters = @{
+    Path = 'C:\MyModules\TestModule'
+    Tags = 'Windows', 'Linux'
+    Description = 'A module for managing packages.'
+}
+Update-ModuleManifest</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -6348,7 +6394,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName, ByValue)" position="0" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Specifies the name of one or more resources to update. Wildcards are supported but NuGet only accepts the `*` character. NuGet does not support wildcard searches of local (file-based) repositories.</maml:para>
+            <maml:para>Specifies the name of one or more resources to update. Wildcards are supported but NuGet only accepts the `*` character. NuGet doesn't support wildcard searches of local (file-based) repositories.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
           <dev:type>
@@ -6416,7 +6462,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>TemporaryPath</maml:name>
           <maml:description>
-            <maml:para>Specifies the path to temporarily install the resource before actual installatoin. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+            <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
           <dev:type>
@@ -6439,7 +6485,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Quiet</maml:name>
           <maml:description>
-            <maml:para>Supresses progress information.</maml:para>
+            <maml:para>Suppresses progress information.</maml:para>
           </maml:description>
           <dev:type>
             <maml:name>System.Management.Automation.SwitchParameter</maml:name>
@@ -6503,7 +6549,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
           </dev:type>
           <dev:defaultValue>False</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
           <maml:name>Version</maml:name>
           <maml:description>
             <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -6593,7 +6639,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
       <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="True (ByPropertyName, ByValue)" position="0" aliases="none">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>Specifies the name of one or more resources to update. Wildcards are supported but NuGet only accepts the `*` character. NuGet does not support wildcard searches of local (file-based) repositories.</maml:para>
+          <maml:para>Specifies the name of one or more resources to update. Wildcards are supported but NuGet only accepts the `*` character. NuGet doesn't support wildcard searches of local (file-based) repositories.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
         <dev:type>
@@ -6617,7 +6663,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>TemporaryPath</maml:name>
         <maml:description>
-          <maml:para>Specifies the path to temporarily install the resource before actual installatoin. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
+          <maml:para>Specifies the path to temporarily install the resource before actual installation. If no temporary path is provided, the resource is temporarily installed in the current user's temporary folder.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.String</command:parameterValue>
         <dev:type>
@@ -6641,7 +6687,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Quiet</maml:name>
         <maml:description>
-          <maml:para>Supresses progress information.</maml:para>
+          <maml:para>Suppresses progress information.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.Management.Automation.SwitchParameter</command:parameterValue>
         <dev:type>
@@ -6704,7 +6750,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
         </dev:type>
         <dev:defaultValue>False</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="none">
         <maml:name>Version</maml:name>
         <maml:description>
           <maml:para>Specifies the version of the resource to be returned. The value can be an exact version or a version range using the NuGet versioning syntax.</maml:para>
@@ -6771,7 +6817,7 @@ PSGallery        https://www.powershellgallery.com/api/v2       False         50
     <command:examples>
       <command:example>
         <maml:title>-------------------------- Example 1 --------------------------</maml:title>
-        <dev:code>Get-PSResource -Name "TestModule"
+        <dev:code>Get-InstalledPSResource -Name "TestModule"
 
 Name                                    Version                         Prerelease   Description
 ----                                    -------                         ----------   -----------
@@ -7005,7 +7051,7 @@ TestModule                              1.2.0                                   
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Tags</maml:name>
           <maml:description>
-            <maml:para>The tags associated with the script. Tag values are strings that should not contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
+            <maml:para>The tags associated with the script. Tag values are strings that shouldn't contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
           <dev:type>
@@ -7225,7 +7271,7 @@ TestModule                              1.2.0                                   
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Tags</maml:name>
         <maml:description>
-          <maml:para>The tags associated with the script. Tag values are strings that should not contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
+          <maml:para>The tags associated with the script. Tag values are strings that shouldn't contain spaces. For more information, see Tag details (/powershell/scripting/gallery/concepts/package-manifest-affecting-ui#tag-details).</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">System.String[]</command:parameterValue>
         <dev:type>
@@ -7280,7 +7326,7 @@ TestModule                              1.2.0                                   
     Version = "1.0.0.0"
     Description = "this is a test script"
 }
-New-PSScriptFileInfo @parameters
+New-PSScriptFile @parameters
 $parameters.Version = "2.0.0.0"
 Update-PSScriptFileInfo @parameters
 Get-Content $parameters.FilePath
