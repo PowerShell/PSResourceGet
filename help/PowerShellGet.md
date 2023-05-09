@@ -22,7 +22,7 @@ covers the latest preview version PowerShellGet v3.
 Searches for packages from a repository (local or remote), based on a name or other package
 properties.
 
-### [Get-PSResource](Get-PSResource.md)
+### [Get-InstalledPSResource](Get-InstalledPSResource.md)
 Returns modules and scripts installed on the machine via **PowerShellGet**.
 
 ### [Get-PSResourceRepository](Get-PSResourceRepository.md)
@@ -34,7 +34,7 @@ The cmdlet creates a new script file, including metadata about the script.
 ### [Install-PSResource](Install-PSResource.md)
 Installs resources from a registered repository.
 
-### [New-PSScriptFileInfo](New-PSScriptFileInfo.md)
+### [New-PSScriptFile](New-PSScriptFile.md)
 The cmdlet creates a new script file, including metadata about the script.
 
 ### [Publish-PSResource](Publish-PSResource.md)
@@ -49,7 +49,7 @@ Saves resources (modules and scripts) from a registered repository onto the mach
 ### [Set-PSResourceRepository](Set-PSResourceRepository.md)
 Sets information for a registered repository.
 
-### [Test-PSScriptFileInfo](Test-PSScriptFileInfo.md)
+### [Test-PSScriptFile](Test-PSScriptFile.md)
 Tests the comment-based metadata in a `.ps1` file to ensure it's valid for publication.
 
 ### [Uninstall-PSResource](Uninstall-PSResource.md)

@@ -59,6 +59,7 @@
 - Fix attribute bugfixes for Find and Install params (#1066)
 - Correct Unexpected spelling of Unexpected (#1059)
 - Resolve bug with Find-PSResource -Type Module not returning modules (#1050)
+- Inject credentials to ISettings to pass them into PushRunner (#993)
 
 ## 3.0.20-beta20
 

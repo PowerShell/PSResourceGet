@@ -6,7 +6,7 @@ ms.date: 04/03/2023
 schema: 2.0.0
 ---
 
-# Test-PSScriptFileInfo
+# Test-PSScriptFile
 
 ## SYNOPSIS
 
@@ -15,7 +15,7 @@ Tests the comment-based metadata in a `.ps1` file to ensure it's valid for publi
 ## SYNTAX
 
 ```
-Test-PSScriptFileInfo [-Path] <string> [<CommonParameters>]
+Test-PSScriptFile [-Path] <string> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -27,23 +27,23 @@ to a repository.
 
 ### Example 1: Test a valid script
 
-This example creates a new script file then runs `Test-PSScriptFileInfo` to validate the metadata
+This example creates a new script file then runs `Test-PSScriptFile` to validate the metadata
 in the script.
 
 ```powershell
-New-PSScriptFileInfo -Path "C:\MyScripts\test_script.ps1" -Description "this is a test script"
-Test-PSScriptFileInfo -Path "C:\MyScripts\test_script.ps1"
+New-PSScriptFile -Path "C:\MyScripts\test_script.ps1" -Description "this is a test script"
+Test-PSScriptFile -Path "C:\MyScripts\test_script.ps1"
 True
 ```
 
 ### Example 2: Test an invalid script (missing Author)
 
-This example runs the `Test-PSScriptFileInfo` cmdlet against a script file. The script is missing
+This example runs the `Test-PSScriptFile` cmdlet against a script file. The script is missing
 the required **Author** metadata. The cmdlet writes a warning message and returns `$false`.
 `Get-Content` is used to view the contents of the script file.
 
 ```powershell
-Test-PSScriptFileInfo -Path "C:\MyScripts\invalid_test_script.ps1"
+Test-PSScriptFile -Path "C:\MyScripts\invalid_test_script.ps1"
 Get-Content "C:\MyScripts\invalid_test_script.ps1"
 ```
 
@@ -128,4 +128,4 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[New-PSScriptFileInfo](New-PSScriptFileInfo.md)
+[New-PSScriptFile](New-PSScriptFile.md)
