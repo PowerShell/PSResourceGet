@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 3.0.21-beta21
+
+### New Features
+- Move off of NuGet client APIs for local repositories (#1065)
+
+### Bug Fixes
+- Update properties on PSResourceInfo object (#1077)
+- Rename PSScriptFileInfo and Get-PSResource cmdlets (#1071)
+- fix ValueFromPipelineByPropertyName on Save, Install (#1070)
+- add Help message for mandatory params across cmdlets (#1068)
+- fix version range bug for Update-PSResource (#1067)
+- Fix attribute bugfixes for Find and Install params (#1066)
+- Correct Unexpected spelling of Unexpected (#1059)
+- Resolve bug with Find-PSResource -Type Module not returning modules (#1050)
+
 ## 3.0.20-beta20
 
 - Move off of NuGet client APIs and use direct REST API calls for remote repositories (#1023)
