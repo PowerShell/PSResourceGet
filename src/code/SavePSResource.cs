@@ -42,6 +42,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version or version range of the package to be saved
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = AsNupkgParameterSet, ValueFromPipelineByPropertyName = true)]
         [Parameter(ParameterSetName = IncludeXmlParameterSet, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
