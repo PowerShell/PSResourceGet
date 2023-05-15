@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Sometimes the requesting assembly can be one of the NuGet.* dlls, in such case, we check if the
             // requesting assembly is part of our pre-defined dependencies list.
             return requestingAssembly is not null
-                ? (requestingAssembly == s_self || (s_dependencies.Contains(assemblyName.FullName))) && s_dependencies.Contains(assemblyName.FullName)
+                ? (requestingAssembly == s_self || (s_dependencies.Contains(requestingAssembly.FullName))) && s_dependencies.Contains(assemblyName.FullName)
                 : s_dependencies.Contains(assemblyName.FullName);
         }
 
