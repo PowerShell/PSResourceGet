@@ -40,7 +40,6 @@ $script:TestPath = $config.TestPath
 
 $script:ModuleRoot = $PSScriptRoot
 $script:Culture = $config.Culture
-$script:HelpPath = $config.HelpPath
 
 $script:BuildConfiguration = $BuildConfiguration
 $script:BuildFramework = $BuildFramework
