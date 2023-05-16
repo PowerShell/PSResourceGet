@@ -1305,16 +1305,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             out ArrayList cmdletNames,
             out ArrayList dscResourceNames)
         {
-            commandNames = new ArrayList();
-            var commandNamesObj = pkgMetadata["CommandsToExport"] as object[];
-            if (commandNamesObj != null)
-            {
-                foreach (var cmd in commandNamesObj)
-                {
-                    commandNames.Add(cmd as string);
-                }
-            }
-
             cmdletNames = new ArrayList();
             var cmdletNamesObj = pkgMetadata["CmdletsToExport"] as object[];
             if (cmdletNamesObj != null)
@@ -1324,6 +1314,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     cmdletNames.Add(cmdlet as string);
                 }
             }
+            // Because there is no "CommandsToExport" propertly in a module manifest, we use CmdletsToExport to find command names
+            commandNames = cmdletNames;
 
             dscResourceNames = new ArrayList();
             var dscResourceNamesObj = pkgMetadata["DscResourceToExport"] as object[];
