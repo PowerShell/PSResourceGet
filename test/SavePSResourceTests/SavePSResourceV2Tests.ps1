@@ -71,6 +71,14 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $pkgDirVersion.Name | Should -Be "1.0.0.0"
     }
 
+    It "Should save resource given name and version '3.*'" {
+        Save-PSResource -Name $testModuleName -Version "3.*" -Repository $PSGalleryName -Path $SaveDir -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+        $pkgDirVersion.Name | Should -Be "3.0.0.0"
+    }
+
     It "Should save resource given name and exact version with bracket syntax" {
         Save-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $PSGalleryName -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName

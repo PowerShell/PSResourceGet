@@ -134,6 +134,23 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -Be $false
     }
 
+    It "Update resource installed given Name and Version '3.*' parameters" {
+        Install-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -TrustRepository
+
+        Update-PSResource -Name $testModuleName -Version "3.*" -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -eq [System.Version]"3.0.0")
+            {
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -BeTrue
+    }
+
     It "Update resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -Prerelease -Repository $PSGalleryName -TrustRepository

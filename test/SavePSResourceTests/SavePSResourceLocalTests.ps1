@@ -62,6 +62,14 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $pkgDirVersion = Get-ChildItem $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "1.0.0"
     }
+    
+    It "Should save resource given name and version '3.*'" {
+        Save-PSResource -Name $moduleName -Version "3.*" -Repository $localRepo -Path $SaveDir -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+        $pkgDirVersion.Name | Should -Be "3.0.0"
+    }
 
     It "Should save resource given name and exact version with bracket syntax" {
         Save-PSResource -Name $moduleName -Version "[1.0.0]" -Repository $localRepo -Path $SaveDir -TrustRepository

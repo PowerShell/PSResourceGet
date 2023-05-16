@@ -79,6 +79,13 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "1.0.0.0"
     }
+    
+    It "Should install resource given name and exact version with bracket syntax" {
+        Install-PSResource -Name $testModuleName -Version "3.*" -Repository $PSGalleryName -TrustRepository  
+        $pkg = Get-InstalledPSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "3.0.0.0"
+    }
 
     It "Should install resource given name and exact version with bracket syntax" {
         Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $PSGalleryName -TrustRepository  
