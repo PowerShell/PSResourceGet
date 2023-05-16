@@ -138,6 +138,16 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
+    It "Publish a module using -Path positional parameter" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource $script:PublishModuleBase
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
     It "Publish a module with -Path and -Repository" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
