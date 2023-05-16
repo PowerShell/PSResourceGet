@@ -538,7 +538,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.Nuspec);
-                    pkgTags.AddRange(pkgMetadata["tags"] as string[]);
+                    string nuspecTags = pkgMetadata["tags"] as string;
+                    string[] nuspecTagsArray = nuspecTags.Split(new char[]{' '});
+                    pkgTags.AddRange(nuspecTagsArray);
                 }
                 else
                 {
