@@ -107,6 +107,13 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
+    It "Install resource when given Name, Version '3.*', should install the appropriate version" {
+        Install-PSResource -Name $testModuleName -Version "3.*" -Repository $localRepo -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "3.0.0"
+    }
+
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Prerelease -Repository $localRepo -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
