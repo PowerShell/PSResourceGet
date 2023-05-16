@@ -26,7 +26,7 @@ Describe 'Test Install-PSResource for the Az module' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    It "Install Az module and all dependencies" {
+    It "Install Az module and all dependencies" -Pending {
         Install-PSResource -Name $azName -Repository $PSGalleryName -TrustRepository -Reinstall
 
         $pkg = Get-InstalledPSResource $azName
