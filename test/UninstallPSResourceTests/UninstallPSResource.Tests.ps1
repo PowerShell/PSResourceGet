@@ -234,9 +234,19 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     }
 
     It "Uninstall module using -WhatIf, should not uninstall the module" {
+        Start-Transcript .\testUninstallWhatIf.txt
         Uninstall-PSResource -Name $testModuleName -WhatIf
+        Stop-Transcript
+
         $pkg = Get-InstalledPSResource $testModuleName -Version "5.0.0.0"
         $pkg.Version | Should -Be "5.0.0.0"
+
+        $match = Get-Content .\testUninstallWhatIf.txt | 
+            select-string -pattern "What if: Performing the operation ""Uninstall-PSResource"" on target ""Uninstall resource 'test_module2', version '5.0.0.0', from path '" -SimpleMatch
+
+        $match -ne $null
+
+        RemoveItem -path .\testUninstallWhatIf.txt
     }
 
     It "Do not Uninstall module that is a dependency for another module" {
