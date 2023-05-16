@@ -189,13 +189,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 currentUninstalledDirCount++;
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
 
-                if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
-                {
-                    WriteVerbose("ShouldProcess is set to false.");
-                    successfullyUninstalled = true;
-                    continue;
-                }
-
                 // show uninstall progress info
                 int activityId = 0;
                 string activity = string.Format("Uninstalling {0}...", pkgName);
@@ -249,6 +242,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             DirectoryInfo dir = new DirectoryInfo(pkgPath);
+            Uri uri = new Uri(dir.FullName);
+            string version = uri.Segments.Last();
+            if (!ShouldProcess(string.Format("Uninstall resource '{0}', version '{1}', from path '{2}'", pkgName, version, dir.FullName)))
+            {
+                WriteVerbose("ShouldProcess is set to false.");
+                return true;
+            }
+
             dir.Attributes &= ~FileAttributes.ReadOnly;
 
             try
@@ -292,6 +293,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             errRecord = null;
             var successfullyUninstalledPkg = false;
+
+            if (!ShouldProcess(string.Format("Uninstall resource '{0}' from path '{1}'", pkgName, pkgPath)))
+            {
+                WriteVerbose("ShouldProcess is set to false.");
+                return true;
+            }
 
             // delete the appropriate file
             try
