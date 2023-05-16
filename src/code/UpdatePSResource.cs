@@ -44,6 +44,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version the resource is to be updated to.
         /// </summary>
+        [SupportsWildcards]
         [Parameter]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
