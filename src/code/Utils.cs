@@ -243,6 +243,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     error = "Argument for -Version parameter is not in the proper format";
                     return false;
                 }
+
                 VersionRange.TryParse(modifiedVersion, out versionRange);
                 versionType = VersionType.VersionRange;
 
