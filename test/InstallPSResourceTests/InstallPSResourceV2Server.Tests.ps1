@@ -18,6 +18,8 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $testModuleName2 = "TestModule99"
         $testScriptName = "test_script"
         $PackageManagement = "PackageManagement"
+        $clobberTestModule = "ClobberTestModule1"
+        $clobberTestModule2 = "ClobberTestModule2"
         $RequiredResourceJSONFileName = "TestRequiredResourceFile.json"
         $RequiredResourcePSD1FileName = "TestRequiredResourceFile.psd1"
         Get-NewPSResourceRepositoryFile
@@ -289,16 +291,35 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     #     $pkg.Version | Should -Be "0.0.3.0"
     # }
 
-
-    It "Install resource with cmdlet names from a module already installed (should clobber)" {
-        Install-PSResource -Name "CLobberTestModule1" -Repository $PSGalleryName -TrustRepository
-        $pkg = Get-InstalledPSResource "ClobberTestModule1"
-        $pkg.Name | Should -Be "ClobberTestModule1" 
+    It "Install resource with cmdlet names from a module already installed with -NoClobber (should not clobber)" {
+        Install-PSResource -Name $clobberTestModule -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-InstalledPSResource $clobberTestModule
+        $pkg.Name | Should -Be $clobberTestModule
         $pkg.Version | Should -Be "0.0.1"
 
-        Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository
-        $pkg = Get-InstalledPSResource "ClobberTestModule2"
-        $pkg.Name | Should -Be "ClobberTestModule2" 
+        Install-PSResource -Name $clobberTestModule2 -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource $clobberTestModule2
+        $pkg | Should -BeNullOrEmpty
+        $ev.Count | Should -Be 1
+        $ev[0] | Should -Be "ClobberTestModule2 package could not be installed with error: The following commands are already available on this system: 'Test-Command2, Test-Command2'. This module 'ClobberTestModule2' may override the existing commands. If you still want to install this module 'ClobberTestModule2', remove the -NoClobber parameter."
+    }
+
+    It "Install resource with cmdlet names from a module already installed (should clobber)" {
+        Install-PSResource -Name $clobberTestModule -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-InstalledPSResource $clobberTestModule
+        $pkg.Name | Should -Be $clobberTestModule
+        $pkg.Version | Should -Be "0.0.1"
+
+        Install-PSResource -Name $clobberTestModule2 -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-InstalledPSResource $clobberTestModule2
+        $pkg.Name | Should -Be $clobberTestModule2
+        $pkg.Version | Should -Be "0.0.1"
+    }
+
+    It "Install resource with -NoClobber (should install)" {
+        Install-PSResource -Name $clobberTestModule -Repository $PSGalleryName -TrustRepository -NoClobber
+        $pkg = Get-InstalledPSResource $clobberTestModule
+        $pkg.Name | Should -Be $clobberTestModule
         $pkg.Version | Should -Be "0.0.1"
     }
 
