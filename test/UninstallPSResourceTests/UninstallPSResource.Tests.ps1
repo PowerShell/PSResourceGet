@@ -274,13 +274,14 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     }
 
     It "Install resource via InputObject by piping from Find-PSResource" {
-        $modules = Install-PSResource -Name $testModuleName, $testScriptName -Repository $PSGalleryName 
-        $modules.Count | Should -BeGreaterThan 1
-
-        Uninstall-PSResource -TrustRepository -InputObject $modules
-
-        $pkg = Get-InstalledPSResource $modules.Name
+        Install-PSResource -Name $testModuleName, $testScriptName -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName, $testScriptName
         $pkg.Count | Should -BeGreaterThan 1
+
+        Uninstall-PSResource -InputObject $pkg
+
+        $foundPkgs = Get-InstalledPSResource $pkg.Name
+        $foundPkgs.Count | Should -Be 0
     }
 
     It "Uninstall module that is not installed should throw error" {

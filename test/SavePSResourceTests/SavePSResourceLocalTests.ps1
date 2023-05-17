@@ -142,10 +142,11 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $modules = Find-PSResource -Name "*" -Repository $localRepo 
         $modules.Count | Should -BeGreaterThan 1
 
-        Save-PSResource -TrustRepository -InputObject $modules
-
-        $pkg = Get-InstalledPSResource $modules.Name
-        $pkg.Count | Should -BeGreaterThan 1
+        Save-PSResource -Path $SaveDir -TrustRepository -InputObject $modules
+        
+        $pkgDir = Get-ChildItem -Path $SaveDir
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgDir.Count | Should -BeGreaterThan 1
     }
 
     # Save module that is not authenticode signed
