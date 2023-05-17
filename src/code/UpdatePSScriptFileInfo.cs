@@ -134,6 +134,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// The tags associated with the script.
         /// </summary>
         [Parameter]
+        [Alias("Tag")]
         [ValidateNotNullOrEmpty()]
         public string[] Tags { get; set; }
 
