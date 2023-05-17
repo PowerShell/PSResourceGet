@@ -811,6 +811,11 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             }
             else if (repoUri.AbsoluteUri.EndsWith("v3/index.json", StringComparison.OrdinalIgnoreCase))
             {
+                if (repoUri.AbsoluteUri.Contains("pkgs.dev.azure.com"))
+                {
+                    return PSRepositoryInfo.APIVersion.azureDevOpsFeed;
+                }
+
                 return PSRepositoryInfo.APIVersion.v3;
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase))

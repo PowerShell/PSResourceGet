@@ -629,6 +629,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 
                         parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
                     }
+
                     metadata["NormalizedVersion"] = parsedNormalizedVersion;
                 }
 
@@ -667,6 +668,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // IsPrerelease
                 if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
                 {
+                    Console.WriteLine("this package has isPrerelease");
                     metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
                 }
 
@@ -747,6 +749,164 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return false;
             }
         }
+
+        /// <summary>
+        /// Converts JsonDocument entry to PSResourceInfo instance
+        /// used for ADO Server API call find response conversion to PSResourceInfo object
+        /// </summary>
+        public static bool TryConvertFromJson(
+          JsonElement metadataElement,
+          out PSResourceInfo psGetInfo,
+          PSRepositoryInfo repository,
+          out string errorMsg)
+        {
+            psGetInfo = null;
+            errorMsg = String.Empty;
+
+            try
+            {
+                Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+                // Version
+                if (metadataElement.TryGetProperty("version", out JsonElement versionElement))
+                {
+                    string versionValue = versionElement.ToString();
+                    metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
+                    metadata["Prerelease"] = prereleaseLabel;
+                    metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
+
+                    if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
+                    {
+                        errorMsg = string.Format(
+                            CultureInfo.InvariantCulture,
+                            @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+
+                        parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                    }
+                    metadata["NormalizedVersion"] = parsedNormalizedVersion;
+                }
+
+                // License Url
+                if (metadataElement.TryGetProperty("licenseUrl", out JsonElement licenseUrlElement))
+                {
+                    metadata["LicenseUrl"] = ParseHttpUrl(licenseUrlElement.ToString()) as Uri;
+                }
+
+                // Project Url
+                if (metadataElement.TryGetProperty("projectUrl", out JsonElement projectUrlElement))
+                {
+                    metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
+                }
+
+                // Icon Url
+                if (metadataElement.TryGetProperty("iconUrl", out JsonElement iconUrlElement))
+                {
+                    metadata["IconUrl"] = ParseHttpUrl(iconUrlElement.ToString()) as Uri;
+                }
+
+                // Tags
+                if (metadataElement.TryGetProperty("tags", out JsonElement tagsElement))
+                {
+                    List<string> tags = new List<string>();
+                    foreach (var tag in tagsElement.EnumerateArray())
+                    {
+                        tags.Add(tag.ToString());
+                    }
+                    metadata["Tags"] = tags.ToArray();
+                }
+
+                // PublishedDate
+                if (metadataElement.TryGetProperty("published", out JsonElement publishedElement))
+                {
+                    metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
+                }
+
+                // Dependencies 
+                // TODO 3.0.0-beta21, a little complicated 
+
+                // IsPrerelease
+                if (metadataElement.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
+                {
+                    metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
+                }
+
+                // Author
+                if (metadataElement.TryGetProperty("authors", out JsonElement authorsElement))
+                {
+                    metadata["Authors"] = authorsElement.ToString();
+
+                    // CompanyName
+                    // CompanyName is not provided in v3 pkg metadata response, so we've just set it to the author,
+                    // which is often the company
+                    metadata["CompanyName"] = authorsElement.ToString();
+                }
+
+                // Copyright
+                if (metadataElement.TryGetProperty("copyright", out JsonElement copyrightElement))
+                {
+                    metadata["Copyright"] = copyrightElement.ToString();
+                }
+
+                // Description
+                if (metadataElement.TryGetProperty("description", out JsonElement descriptiontElement))
+                {
+                    metadata["Description"] = descriptiontElement.ToString();
+                }
+
+                // Id
+                if (metadataElement.TryGetProperty("id", out JsonElement idElement))
+                {
+                    metadata["Id"] = idElement.ToString();
+                }
+                
+                // ReleaseNotes
+                if (metadataElement.TryGetProperty("releaseNotes", out JsonElement releaseNotesElement)) {
+                    metadata["ReleaseNotes"] = releaseNotesElement.ToString();
+                }
+
+                var additionalMetadataHashtable = new Dictionary<string, string>
+                {
+                    { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
+                };
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: metadata["Authors"] as String,
+                    companyName: metadata["CompanyName"] as String,
+                    copyright: metadata["Copyright"] as String,
+                    dependencies: metadata["Dependencies"] as Dependency[],
+                    description: metadata["Description"] as String,
+                    iconUri: metadata["IconUrl"] as Uri,
+                    includes: null,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrerelease: (bool)metadata["IsPrerelease"],
+                    licenseUri: metadata["LicenseUrl"] as Uri,
+                    name: metadata["Id"] as String,
+                    powershellGetFormatVersion: null,
+                    prerelease: metadata["Prerelease"] as String,
+                    projectUri: metadata["ProjectUrl"] as Uri,
+                    publishedDate: metadata["PublishedDate"] as DateTime?,
+                    releaseNotes: metadata["ReleaseNotes"] as String,
+                    repository: repository.Name,
+                    repositorySourceLocation: repository.Uri.ToString(),
+                    tags: metadata["Tags"] as string[],
+                    type: ResourceType.None,
+                    updatedDate: null,
+                    version: metadata["Version"] as Version);
+                    
+                return true;   
+            }
+            catch (Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromJson: Cannot parse PSResourceInfo from json object with error: {0}",
+                    ex.Message);
+                return false;
+            }
+        }
+
 
         public static bool TryConvertFromHashtableForPsd1(
             Hashtable pkgMetadata,

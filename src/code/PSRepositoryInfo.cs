@@ -18,7 +18,8 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             unknown,
             v2,
             v3,
-            local
+            local,
+            azureDevOpsFeed
         }
 
         #endregion

@@ -93,6 +93,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string query = isNuGetRepo ? $"{searchQueryServiceUrl}?q=tags:{firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0" :
                           $"{searchQueryServiceUrl}?q={firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
 
+            Console.WriteLine($"query is:  {query}");
             // 2) call query with tags. (for Azure artifacts) get unique names, see which ones truly match
             JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out edi);
             if (edi != null)
