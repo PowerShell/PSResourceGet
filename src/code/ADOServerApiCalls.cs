@@ -566,16 +566,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
         {
-            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
-            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
-            bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");
             JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, out edi);
             if (edi != null)
             {
@@ -583,7 +582,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             List<string> responses = new List<string>();
-            foreach (var version in pkgVersionsArr) {
+            foreach (var version in pkgVersionsArr)
+            {
                 if (NuGetVersion.TryParse(version.ToString(), out NuGetVersion nugetVersion) && versionRange.Satisfies(nugetVersion))
                 {
                     /* 
@@ -629,14 +629,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            // Note: same issue as FindName()
-            Hashtable resourceUrls = FindResourceType(new string[] { registrationsBaseUrlName }, out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-
-            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
             string response = FindVersionHelper(registrationsBaseUrl, packageName, version, out edi);
             if (edi != null)
@@ -1010,14 +1007,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 JsonDocument pkgMappingDom = JsonDocument.Parse(pkgMappingResponse);
                 JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
 
-                if (!rootPkgMappingDom.TryGetProperty("registration", out JsonElement catalogEntryUrlElement))
+                if (!rootPkgMappingDom.TryGetProperty("registration", out JsonElement registrationsUrlElement))
                 {
                     string errMsg = $"FindVersionHelper(): registration element could not be found in response or was empty.";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                     return String.Empty;
                 }
 
-                registrationsEntryUrl = catalogEntryUrlElement.ToString();
+                registrationsEntryUrl = registrationsUrlElement.ToString();
             }
             catch (Exception e)
             {

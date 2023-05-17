@@ -57,15 +57,30 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 JsonElement rootDom = pkgVersionEntry.RootElement;
                 rootDom.TryGetProperty("items", out JsonElement itemsElement);
-                JsonElement innerItemsElement = itemsElement[0].GetProperty("items")[0];
-                metadataElement = innerItemsElement.GetProperty("catalogEntry");
+                JsonElement firstItem = itemsElement[0]; // we will only need 1st element for this
 
-                if (!PSResourceInfo.TryConvertFromJson(metadataElement, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
+                JsonElement innerItemsElements = firstItem.GetProperty("items"); // this is the item for each version of the package
+                JsonElement countElement = firstItem.GetProperty("count");
+                bool parsedCount = countElement.TryGetInt32(out int count);
+                if (!parsedCount)
                 {
-                    yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
+                    // TODO: some error?
+                    count = 0;
                 }
 
-                yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                for (int i= 0; i < count; i++)
+                {
+                    JsonElement versionedItem = innerItemsElements[i];
+                    metadataElement = versionedItem.GetProperty("catalogEntry");
+                    if (!PSResourceInfo.TryConvertFromJson(metadataElement, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
+                    {
+                        yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
+                    }
+
+                    yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                }
+
+                // metadataElement = innerItemsElement.GetProperty("catalogEntry");
             }
         }
 
