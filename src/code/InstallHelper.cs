@@ -248,7 +248,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     installDepsForRepo = true;
                 }
 
-                return InstallPackages(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                var installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                foreach (var pkg in installedPkgs)
+                {
+                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                }
+
+                allPkgsInstalled.AddRange(installedPkgs);
             }
 
             return allPkgsInstalled;
@@ -601,7 +607,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
                     responses = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
-                    if (findVersionEdi != null)
+                    if (findVersionEdi != null || responses.IsFindResultsEmpty())
                     {
                         edi = findVersionEdi;
                         return packagesHash;
@@ -612,7 +618,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 default:
                     // VersionType.NoVersion
                     responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
-                    if (findNameEdi != null)
+                    if (findNameEdi != null || responses.IsFindResultsEmpty())
                     {
                         edi = findNameEdi;
                         return packagesHash;

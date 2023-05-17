@@ -11,6 +11,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $localRepo = "psgettestlocal"
         $moduleName = "test_local_mod"
         $moduleName2 = "test_local_mod2"
+        $moduleName3 = "testModule99"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
@@ -119,6 +120,13 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     It "Save module as a nupkg" {
         Save-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -Path $SaveDir -AsNupkg -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "$moduleName.1.0.0.nupkg"
+        $pkgDir | Should -Not -BeNullOrEmpty
+    }
+
+    It "Save module, should search through all repositories and only install from the first repo containing the package" {
+        Save-PSResource -Name $moduleName3 -Version "0.0.93" -Path $SaveDir -TrustRepository -ErrorVariable ev 
+        $ev | Should -BeNullOrEmpty
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "$moduleName3"
         $pkgDir | Should -Not -BeNullOrEmpty
     }
 
