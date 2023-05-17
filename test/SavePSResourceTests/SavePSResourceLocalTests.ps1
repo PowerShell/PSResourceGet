@@ -138,6 +138,16 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "1.0.0"
     }
 
+    It "Save module via InputObject by piping from Find-PSResource" {
+        $modules = Find-PSResource -Name "*" -Repository $localRepo 
+        $modules.Count | Should -BeGreaterThan 1
+
+        Save-PSResource -TrustRepository -InputObject $modules
+
+        $pkg = Get-InstalledPSResource $modules.Name
+        $pkg.Count | Should -BeGreaterThan 1
+    }
+
     # Save module that is not authenticode signed
     # Should FAIL to save the module
     It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {

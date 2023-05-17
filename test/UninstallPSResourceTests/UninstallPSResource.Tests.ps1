@@ -273,6 +273,16 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $res | Should -BeNullOrEmpty
     }
 
+    It "Install resource via InputObject by piping from Find-PSResource" {
+        $modules = Install-PSResource -Name $testModuleName, $testScriptName -Repository $PSGalleryName 
+        $modules.Count | Should -BeGreaterThan 1
+
+        Uninstall-PSResource -TrustRepository -InputObject $modules
+
+        $pkg = Get-InstalledPSResource $modules.Name
+        $pkg.Count | Should -BeGreaterThan 1
+    }
+
     It "Uninstall module that is not installed should throw error" {
         Uninstall-PSResource -Name "NonInstalledModule" -ErrorVariable ev -ErrorAction SilentlyContinue
         $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
