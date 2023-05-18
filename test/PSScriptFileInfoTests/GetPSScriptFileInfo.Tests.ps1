@@ -26,7 +26,7 @@ Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
     It "should get script file object given script with minimal required fields" {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
-        New-PSScriptFile -Path $scriptFilePath -Description $scriptDescription
+        New-PSScriptFileInfo -Path $scriptFilePath -Description $scriptDescription
 
         $res = Get-PSScriptFileInfo $scriptFilePath
         $res.Name | Should -Be "testscript"
