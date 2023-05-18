@@ -461,6 +461,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                             continue;
                         }
 
+/*
+                        if (edi != null || responses.IsFindResultsEmpty())
+                        {
+                            string errMsg = $"Package '{pkgName}' could not be found.";
+                            Exception ex = edi == null ? new Exception(errMsg) : edi.SourceException;
+                            _cmdletPassedIn.WriteError(new ErrorRecord(ex, "FindNameFail", ErrorCategory.InvalidOperation, this));
+                            continue;
+                        }
+*/
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
                         
                         if (!String.IsNullOrEmpty(currentResult.errorMsg))

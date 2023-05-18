@@ -317,7 +317,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (String.IsNullOrEmpty(latestVersionPath))
             {
                 // means no package was found with this name
-                // TODO: Add verbose message here: "Package with name {packageName} could not be found in this repository."
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in this repository."));
                 return findResponse;
             }
 
@@ -408,7 +408,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             if (String.IsNullOrEmpty(pkgPath))
             {
                 // means no package was found with this name, version (and possibly tags).
-                // TODO: Add verbose statement: "Package with Name '{packageName}', Version '{version}' and Tags '{String.Join(", ", tags)}' could not be found in this repository."
+                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with Name {packageName}, Version {version} and Tags {String.Join(", ", tags)} could not be found in this repository."));
                 return findResponse;
             }
 
