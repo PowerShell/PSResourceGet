@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Reflection.Emit;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
@@ -77,110 +78,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
         {
-            // Note: this fails for ADO as described on L99 below. Also since edi is never populated, no error is thrown (and we never detect later) so silently fails
-            List<string> responses = new List<string>();
-            string firstTag = tags[0]; // TODO: better err handle
+            string errMsg = $"Find by Tags is not supported for the repository {Repository.Uri}";
+            edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
-            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
-            if (edi != null)
-            {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
-            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
-
-            bool isNuGetRepo = searchQueryServiceUrl.Contains("nuget.org");
-
-            string query = isNuGetRepo ? $"{searchQueryServiceUrl}?q=tags:{firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0" :
-                          $"{searchQueryServiceUrl}?q={firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
-
-            // 2) call query with tags. (for Azure artifacts) get unique names, see which ones truly match
-            JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out edi);
-            // TODO: this returns nothing, edi == null and tagsPkgs.Length == 0, ensure we populate the edi!
-            if (edi != null)
-            {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            List<string> matchingResponses = new List<string>();
-            string id;
-            string latestVersion;
-            foreach (var pkgId in tagPkgs)
-            { 
-                try
-                {
-                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
-                    {
-                        string errMsg = $"FindTag(): Id or Version element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    id = idItem.ToString();
-                    latestVersion = versionItem.ToString();
-                }
-                catch (Exception e)
-                {
-                    string errMsg = $"FindTag(): Id or Version element could not be parsed from response due to exception {e.Message}.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                }
-
-                // determine if id matches our wildcard criteria
-                if (isNuGetRepo)
-                {
-                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-                    if (edi != null)
-                    {
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    matchingResponses.Add(response);
-                }
-                else
-                {
-                    try {
-                        if (!pkgId.TryGetProperty("tags", out JsonElement tagsItem))
-                        {
-                            string errMsg = $"FindTag(): Tag element could not be found in response.";
-                            edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                        }
-
-                        string[] pkgTags = GetTagsFromJsonElement(tagsItem);
-                        bool isTagMatch = true;
-                        foreach (string rqTag in tags)
-                        {
-                            if (!pkgTags.Contains(rqTag, StringComparer.OrdinalIgnoreCase))
-                            {
-                                isTagMatch = false;
-                                break;
-                            }
-                        }
-
-                        if (isTagMatch)
-                        {
-                            string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-                            if (edi != null)
-                            {
-                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                            }
-
-                            matchingResponses.Add(response);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        string errMsg = $"FindTag(): Tags element could not be parsed from response due to exception {e.Message}.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-                }
-            }
-
-            FindResults tagsFoundResult = new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            return tagsFoundResult;
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -207,53 +108,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// This type points to the url to use (ex above)
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
+        
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
+            edi = null;
+
             string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
-            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
-            JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, out edi);
+            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string response = string.Empty;
-            foreach (JsonElement version in pkgVersionsArr)
+            string latestVersionResponse = String.Empty;
+            foreach (string response in versionedResponses)
             {
-                // parse as NuGetVersion
-                if (NuGetVersion.TryParse(version.ToString(), out NuGetVersion nugetVersion))
+                // this assumes latest versions are reported first i.e 5.0.0, 3.0.0, 1.0.0
+                JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
+                JsonElement rootDom = pkgVersionEntry.RootElement;
+                rootDom.TryGetProperty("version", out JsonElement pkgVersionElement);
+                NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion);
+                if (!pkgVersion.IsPrerelease || includePrerelease)
                 {
-                    /* 
-                     * pkgVersion == !prerelease   &&   includePrerelease == true   -->   keep pkg   
-                     * pkgVersion == !prerelease   &&   includePrerelease == false  -->   keep pkg 
-                     * pkgVersion == prerelease    &&   includePrerelease == true   -->   keep pkg   
-                     * pkgVersion == prerelease    &&   includePrerelease == false  -->   throw away pkg 
-                     */
-                    if (!nugetVersion.IsPrerelease || includePrerelease)
-                    {
-                        response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
-                        if (edi != null)
-                        {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                        }
-
-                        break;
-                    }
-                }
+                    latestVersionResponse = response;
+                    break;
+                }   
             }
 
-            if (String.IsNullOrEmpty(response))
-            {
-                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindName() with {packageName} returned empty response."));
-            }
-
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -277,7 +164,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string response = string.Empty;
+            string[] metadataResponse = Utils.EmptyStrArray;
             foreach (JsonElement version in pkgVersionsArr)
             {
                 // parse as NuGetVersion
@@ -291,14 +178,19 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                      */
                     if (!nugetVersion.IsPrerelease || includePrerelease)
                     {
-                        response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
+                        string response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
+                        if (edi != null)
+                        {
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        }
+
+                        metadataResponse = GetMetadataFromResponse(response, out edi);
                         if (edi != null)
                         {
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
 
                         bool isTagMatch = DetermineTagsPresent(response: response, tags: tags, out edi);
-
                         if (!isTagMatch)
                         {
                             if (edi == null)
@@ -315,12 +207,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            if (String.IsNullOrEmpty(response))
+            if (metadataResponse.Length == 0)
             {
                 edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindNameWithTag() with {packageName} and tags {String.Join(",", tags)} returned empty response."));
             }
 
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: metadataResponse, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -339,94 +231,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
-            string querySearchTerm;
+            string errMsg = $"Find with Name containing wildcards is not supported for the repository {Repository.Uri}";
+            edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
-            if (names.Length == 0)
-            {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-            if (names.Length == 1)
-            {
-                // packageName: *get*       -> q: get
-                // packageName: PowerShell* -> q: PowerShell
-                // packageName: *ShellGet   -> q: ShellGet
-                querySearchTerm = names[0];
-            }
-            else
-            {
-                // *pow*get*
-                // pow*get -> only support this (V2)
-                // pow*get*
-                // *pow*get
-
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
-            // https://azuresearch-usnc.nuget.org/query?q=Newtonsoft&prerelease=false&semVerLevel=1.0.0 (NuGet) (supports * at end of searchterm q but equivalent to q = text w/o *)
-            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
-            if (edi != null)
-            {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
-            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
-
-            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
-
-            // 2) call query with search term, get unique names, see which ones truly match
-            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
-            if (edi != null)
-            {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            List<string> matchingResponses = new List<string>();
-            foreach (var pkgId in matchingPkgIds)
-            {
-                string id = string.Empty;
-                string latestVersion = string.Empty;
-
-                try
-                {
-                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || ! pkgId.TryGetProperty(versionName, out JsonElement versionItem))
-                    {
-                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    id = idItem.ToString();
-                    latestVersion = versionItem.ToString();
-                }
-                catch (Exception e)
-                {
-                    string errMsg = $"FindNameGlobbing(): Name or Version element could not be parsed from response due to exception {e.Message}.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    break;
-                }
-
-                // determine if id matches our wildcard criteria
-                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
-                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
-                {
-                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-
-                    if (edi != null)
-                    {
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    matchingResponses.Add(response);
-                }
-            }
-
-            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -436,110 +244,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
-            string querySearchTerm;
+            string errMsg = $"Find with Name containing wildcards is not supported for the repository {Repository.Uri}";
+            edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
 
-            if (names.Length == 0)
-            {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-            if (names.Length == 1)
-            {
-                // packageName: *get*       -> q: get
-                // packageName: PowerShell* -> q: PowerShell
-                // packageName: *ShellGet   -> q: ShellGet
-                querySearchTerm = names[0];
-            }
-            else
-            {
-                // *pow*get*
-                // pow*get -> only support this (V2)
-                // pow*get*
-                // *pow*get
-
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
-            // https://azuresearch-usnc.nuget.org/query?q=Newtonsoft&prerelease=false&semVerLevel=1.0.0 (NuGet) (supports * at end of searchterm q but equivalent to q = text w/o *)
-            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
-            if (edi != null)
-            {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
-            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
-
-            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
-
-            // 2) call query with search term, get unique names, see which ones truly match
-            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
-            if (edi != null)
-            {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            List<string> matchingResponses = new List<string>();
-            foreach (var pkgId in matchingPkgIds)
-            {
-                string id = string.Empty;
-                string latestVersion = string.Empty;
-                string[] pkgTags = Utils.EmptyStrArray;
-
-                try
-                {
-                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
-                    {
-                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    if (!pkgId.TryGetProperty(tagsName, out JsonElement tagsItem))
-                    {
-                        string errMsg = $"FindNameGlobbing(): Tags element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    id = idItem.ToString();
-                    latestVersion = versionItem.ToString();
-
-                    pkgTags = GetTagsFromJsonElement(tagsElement: tagsItem);
-                }
-                catch (Exception e)
-                {
-                    string errMsg = $"FindNameGlobbingWithTag(): Name or Version or Tags element could not be parsed from response due to exception {e.Message}.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    break;
-                }
-
-                // determine if id matches our wildcard criteria
-                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
-                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
-                {
-                    bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags, requiredTags: tags);
-                    if (!isTagMatch)
-                    {
-                        continue;
-                    }
-
-                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-
-                    if (edi != null)
-                    {
-                        continue;
-                    }
-
-                    matchingResponses.Add(response);
-                }
-            }
-
-            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -565,45 +273,35 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
         {
+            edi = null;
+
             string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
-            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
-
-            JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, out edi);
+            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            List<string> responses = new List<string>();
-            foreach (var version in pkgVersionsArr)
+            List<string> satisfyingVersions = new List<string>();
+            foreach (string response in versionedResponses)
             {
-                if (NuGetVersion.TryParse(version.ToString(), out NuGetVersion nugetVersion) && versionRange.Satisfies(nugetVersion))
+                // this assumes latest versions are reported first i.e 5.0.0, 3.0.0, 1.0.0
+                JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
+                JsonElement rootDom = pkgVersionEntry.RootElement;
+                rootDom.TryGetProperty("version", out JsonElement pkgVersionElement);
+                NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion);
+                if (!pkgVersion.IsPrerelease || includePrerelease)
                 {
-                    /* 
-                     * pkgVersion == !prerelease   &&   includePrerelease == true   -->   keep pkg   
-                     * pkgVersion == !prerelease   &&   includePrerelease == false  -->   keep pkg 
-                     * pkgVersion == prerelease    &&   includePrerelease == true   -->   keep pkg   
-                     * pkgVersion == prerelease    &&   includePrerelease == false  -->   throw away pkg 
-                     */
-                    if (!nugetVersion.IsPrerelease || includePrerelease) {
-                        string response = FindVersionHelper(registrationsBaseUrl, packageName, version.ToString(), out edi);
-                        if (edi != null)
-                        {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                        }
-
-                        responses.Add(response);
-                    }
-                }
+                    satisfyingVersions.Add(response);
+                }   
             }
 
-            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: satisfyingVersions.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -626,26 +324,47 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///     https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/registrations2/newtonsoft.json/13.0.2.json 
         ///     
         /// </summary>
+        
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi)
         {
+            edi = null;
+
+            NuGetVersion.TryParse(version, out NuGetVersion requiredVersion);
+
             string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string response = FindVersionHelper(registrationsBaseUrl, packageName, version, out edi);
+            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            if (String.IsNullOrEmpty(response))
+            string latestVersionResponse = String.Empty;
+            foreach (string response in versionedResponses)
             {
-                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindVersion() with {packageName} and version {version} returned empty response."));
+                // this assumes latest versions are reported first i.e 5.0.0, 3.0.0, 1.0.0
+                JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
+                JsonElement rootDom = pkgVersionEntry.RootElement;
+                rootDom.TryGetProperty("version", out JsonElement pkgVersionElement);
+                NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion);
+                if (pkgVersion == requiredVersion)
+                {
+                    latestVersionResponse = response;
+                    break;
+                }   
             }
 
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            if (String.IsNullOrEmpty(latestVersionResponse))
+            {
+                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindVersion() with {packageName} and version {version} returned empty response."));
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);   
+            }
+
+            return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -670,13 +389,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>        
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            Hashtable resourceUrls = FindResourceType(new string[] { registrationsBaseUrlName }, out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-
-            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
             string response = FindVersionHelper(registrationsBaseUrl, packageName, version, out edi);
             if (edi != null)
@@ -684,7 +401,18 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            bool isTagMatch = DetermineTagsPresent(response: response, tags: tags, out edi);
+            string[] metadataResponse = GetMetadataFromResponse(response, out edi);
+            if (edi != null)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            }
+
+            if (metadataResponse.Length == 0)
+            {
+                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindVersion() with {packageName}, tags {String.Join(", ", tags)} and version {version} returned empty response."));
+            }
+
+            bool isTagMatch = DetermineTagsPresent(response: metadataResponse[0], tags: tags, out edi);
 
             if (!isTagMatch)
             {
@@ -697,12 +425,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            if (String.IsNullOrEmpty(response))
-            {
-                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"FindVersion() with {packageName}, tags {String.Join(", ", tags)} and version {version} returned empty response."));
-            }
-
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: metadataResponse, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /**  INSTALL APIS **/
@@ -990,6 +713,43 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method finds package with name and specified version
         /// <summary>
+        
+        private string[] GetVersionedResponses(string registrationsBaseUrl, string packageName, out ExceptionDispatchInfo edi)
+        {
+            List<string> versionedResponses = new List<string>();
+
+            // https://pkgs.dev.azure.com/powershell-rel/8abad6f9-c150-4f52-8adb-5438eaafd645/_packaging/d7ed2d91-9949-4cad-8b55-f46e225426dd/nuget/v3/registrations2/test_local_mod/index.json
+            var requestPkgMapping = $"{registrationsBaseUrl}{packageName.ToLower()}/index.json";
+            string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out edi);
+            if (edi != null)
+            {
+                return Utils.EmptyStrArray;
+            }
+
+            // parse out JSON response we get from RegistrationsUrl
+            JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgMappingResponse);
+
+            // The response has a "items" array element, which only has useful 1st element
+            JsonElement rootDom = pkgVersionEntry.RootElement;
+            rootDom.TryGetProperty("items", out JsonElement itemsElement);
+            JsonElement firstItem = itemsElement[0];
+
+            // The "items" property has a "items" element as well as a "count" element
+            JsonElement innerItemsElements = firstItem.GetProperty("items"); // this is the item for each version of the package
+            JsonElement countElement = firstItem.GetProperty("count"); // this is the count representing how many versions are present for that package.
+            bool parsedCount = countElement.TryGetInt32(out int count);
+            Console.WriteLine($"Count: {count}");
+
+            for (int i = 0; i < count; i++)
+            {
+                JsonElement versionedItem = innerItemsElements[i]; // the specific entry for a package version
+                JsonElement metadataElement = versionedItem.GetProperty("catalogEntry");
+                versionedResponses.Add(metadataElement.ToString());
+            }
+
+            return versionedResponses.ToArray();
+        }
+
         private string FindVersionHelper(string registrationsBaseUrl, string packageName, string version, out ExceptionDispatchInfo edi)
         {
             // https://pkgs.dev.azure.com/powershell-rel/8abad6f9-c150-4f52-8adb-5438eaafd645/_packaging/d7ed2d91-9949-4cad-8b55-f46e225426dd/nuget/v3/registrations2/test_local_mod/index.json
@@ -1030,6 +790,41 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return response;
+        }
+
+        private string[] GetMetadataFromResponse(string response, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            List<string> versionedResponses = new List<string>();
+            try
+            {
+                // parse out JSON response we get from RegistrationsUrl
+                JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
+
+                // The response has a "items" array element, which only has useful 1st element
+                JsonElement rootDom = pkgVersionEntry.RootElement;
+                rootDom.TryGetProperty("items", out JsonElement itemsElement);
+                JsonElement firstItem = itemsElement[0];
+
+                // The "items" property has a "items" element as well as a "count" element
+                JsonElement innerItemsElements = firstItem.GetProperty("items"); // this is the item for each version of the package
+                JsonElement countElement = rootDom.GetProperty("count"); // this is the count representing how many versions are present for that package.
+                bool parsedCount = countElement.TryGetInt32(out int count);
+                Console.WriteLine($"Count: {count}");
+
+                for (int i = 0; i < count; i++)
+                {
+                    JsonElement versionedItem = innerItemsElements[i]; // the specific entry for a package version
+                    JsonElement metadataElement = versionedItem.GetProperty("catalogEntry");
+                    versionedResponses.Add(metadataElement.ToString());
+                }
+            }
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+
+            return versionedResponses.ToArray();
         }
 
         private string GetItemsPropertyFromResponse(string response, out ExceptionDispatchInfo edi)

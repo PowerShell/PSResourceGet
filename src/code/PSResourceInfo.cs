@@ -620,6 +620,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     string versionValue = versionElement.ToString();
                     metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
                     metadata["Prerelease"] = prereleaseLabel;
+                    metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
 
                     if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
                     {
@@ -645,6 +646,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
                 }
 
+                // Icon Url
+                if (rootDom.TryGetProperty("iconUrl", out JsonElement iconUrlElement))
+                {
+                    metadata["IconUrl"] = ParseHttpUrl(iconUrlElement.ToString()) as Uri;
+                }
+
                 // Tags
                 if (rootDom.TryGetProperty("tags", out JsonElement tagsElement))
                 {
@@ -668,7 +675,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 // IsPrerelease
                 if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
                 {
-                    Console.WriteLine("this package has isPrerelease");
                     metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
                 }
 
