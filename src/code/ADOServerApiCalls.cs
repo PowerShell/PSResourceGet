@@ -1,3 +1,4 @@
+using System.Reflection.Emit;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -262,16 +263,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName }, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             string packageBaseAddressUrl = resourceUrls[packageBaseAddressName] as string;
-            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
-
-            bool isNuGetRepo = packageBaseAddressUrl.Contains("v3-flatcontainer");
             JsonElement[] pkgVersionsArr = GetPackageVersions(packageBaseAddressUrl, packageName, out edi);
             if (edi != null)
             {
@@ -1033,6 +1032,93 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return response;
         }
 
+        private string GetItemsPropertyFromResponse(string response, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            
+            try
+            {
+                JsonDocument pkgVersionEntry = null;
+                pkgVersionEntry = JsonDocument.Parse(response);
+
+                JsonElement rootDom = pkgVersionEntry.RootElement;
+                rootDom.TryGetProperty("items", out JsonElement itemsElement);
+                JsonElement firstItem = itemsElement[0]; // we will only need 1st element for this
+
+                return firstItem.ToString();
+
+                // // separate method
+                // JsonElement innerItemsElements = firstItem.GetProperty("items"); // this is the item for each version of the package
+                // JsonElement countElement = firstItem.GetProperty("count");
+                // bool parsedCount = countElement.TryGetInt32(out int count);
+            }
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+
+            // if (!String.IsNullOrEmpty(parseError))
+            // {
+            //     yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
+            // }
+
+            // // JsonElement rootDom = pkgVersionEntry.RootElement;
+            // // rootDom.TryGetProperty("items", out JsonElement itemsElement);
+            // // JsonElement firstItem = itemsElement[0]; // we will only need 1st element for this
+
+            // // JsonElement innerItemsElements = firstItem.GetProperty("items"); // this is the item for each version of the package
+            // // JsonElement countElement = firstItem.GetProperty("count");
+            // // bool parsedCount = countElement.TryGetInt32(out int count);
+            // if (!parsedCount)
+            // {
+            //     // TODO: some error?
+            //     count = 0;
+            // }
+
+            // for (int i= 0; i < count; i++)
+            // {
+            //     JsonElement versionedItem = innerItemsElements[i];
+            //     metadataElement = versionedItem.GetProperty("catalogEntry");
+            //     if (!PSResourceInfo.TryConvertFromJson(metadataElement, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
+            //     {
+            //         yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
+            //     }
+
+            //     yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+            // }
+
+            return String.Empty;
+        }
+        
+
+        private string[] GetInnerItemPropertyFromResponse(string itemsElementString, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            List<string> versionedResponses = new List<string>();
+            try
+            {
+                JsonDocument itemsEntry = JsonDocument.Parse(itemsElementString);
+                JsonElement rootDom = itemsEntry.RootElement;
+
+                // // separate method
+                JsonElement innerItemsElements = rootDom.GetProperty("items"); // this is the item for each version of the package
+                JsonElement countElement = rootDom.GetProperty("count");
+                bool parsedCount = countElement.TryGetInt32(out int count);
+
+                for (int i=0; i<count; i++)
+                {
+                    JsonElement versionedItem = innerItemsElements[i];
+                    JsonElement metadataElement = versionedItem.GetProperty("catalogEntry");
+                    versionedResponses.Add(metadataElement.ToString());
+                }
+            }
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+
+            return versionedResponses.ToArray();
+        }
         /// <summary>
         /// Helper method that determines if specified tags are present in response representing package(s).
         /// </summary>
