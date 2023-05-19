@@ -198,6 +198,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies an array of tags.
         /// </summary>
         [Parameter]
+        [Alias("Tag")]
         public string[] Tags { get; set; }
 
         /// <summary>

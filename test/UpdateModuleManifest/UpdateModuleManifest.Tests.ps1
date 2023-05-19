@@ -118,6 +118,17 @@ Describe 'Test Update-PSModuleManifest' {
         $results.PrivateData.PSData.Tags | Should -Be @($Tag1, $Tag2) 
     }
 
+    It "Update module manifest given Tag parameter" {
+        $Description = "Test Description"
+        $Tag1 = "tag1"
+        $Tag2 = "tag2"
+        New-ModuleManifest -Path $script:testManifestPath -Description $Description
+        Update-ModuleManifest -Path $script:testManifestPath -Tag $Tag1, $Tag2
+
+        $results = Test-ModuleManifest -Path $script:testManifestPath
+        $results.PrivateData.PSData.Tags | Should -Be @($Tag1, $Tag2) 
+    }
+
     It "Update module manifest given ProjectUri parameter" {
         $Description = "Test Description"
         $ProjectUri = "https://www.testprojecturi.com/"
