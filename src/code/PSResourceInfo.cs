@@ -620,6 +620,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     string versionValue = versionElement.ToString();
                     metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
                     metadata["Prerelease"] = prereleaseLabel;
+                    // ADO server response does not contain "isPrerelease" element, so we set it here.
                     metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
 
                     if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
@@ -670,9 +671,10 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 }
 
                 // Dependencies 
-                // TODO 3.0.0-beta21, a little complicated 
+                // TODO vNext, a little complicated 
 
                 // IsPrerelease
+                // V3 server response does contain 'isPrerelease' element so it can be accquired and set here.
                 if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
                 {
                     metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
