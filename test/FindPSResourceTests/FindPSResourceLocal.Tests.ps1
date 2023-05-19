@@ -201,6 +201,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
     It "find resource given CommandName" {
         $res = Find-PSResource -CommandName $commandName -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Names | Should -Be $commandName
             $item.ParentResource.Includes.Command | Should -Contain $commandName
@@ -209,6 +210,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
     It "find resource given DscResourceName" {
         $res = Find-PSResource -DscResourceName $dscResourceName -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Names | Should -Be $dscResourceName    
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
