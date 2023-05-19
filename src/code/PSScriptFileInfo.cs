@@ -286,7 +286,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Tests .ps1 file for validity
         /// </summary>
-        internal static bool TryTestPSScriptFile(
+        internal static bool TryTestPSScriptFileInfo(
             string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
             out ErrorRecord[] errors,
