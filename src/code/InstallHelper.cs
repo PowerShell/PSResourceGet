@@ -607,7 +607,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
                     responses = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
-                    if (findVersionEdi != null || responses.IsFindResultsEmpty())
+                    if (findVersionEdi != null)
                     {
                         edi = findVersionEdi;
                         return packagesHash;
@@ -618,7 +618,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 default:
                     // VersionType.NoVersion
                     responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
-                    if (findNameEdi != null || responses.IsFindResultsEmpty())
+                    if (findNameEdi != null)
                     {
                         edi = findNameEdi;
                         return packagesHash;
