@@ -13,6 +13,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
+using System.Xml;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -340,94 +341,39 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
-            string querySearchTerm;
+            List<string> responses = new List<string>();
+            int skip = 0;
 
-            if (names.Length == 0)
-            {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-            if (names.Length == 1)
-            {
-                // packageName: *get*       -> q: get
-                // packageName: PowerShell* -> q: PowerShell
-                // packageName: *ShellGet   -> q: ShellGet
-                querySearchTerm = names[0];
-            }
-            else
-            {
-                // *pow*get*
-                // pow*get -> only support this (V2)
-                // pow*get*
-                // *pow*get
-
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            }
-
-            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
-            // https://azuresearch-usnc.nuget.org/query?q=Newtonsoft&prerelease=false&semVerLevel=1.0.0 (NuGet) (supports * at end of searchterm q but equivalent to q = text w/o *)
-            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
+            var initialResponse = FindNameGlobbing(packageName, includePrerelease, type, skip, out edi);
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
-            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
+            responses.Add(initialResponse);
 
-            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
-
-            // 2) call query with search term, get unique names, see which ones truly match
-            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
+            // check count (ie "totalHits")  425 ==> count/20  ~~> 22 calls 
+            int initalCount = GetCountFromResponse(initialResponse, out edi);  // count = 4
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-
-            List<string> matchingResponses = new List<string>();
-            foreach (var pkgId in matchingPkgIds)
+            int count = initalCount / 20;
+            // if more than 20 count, loop and add response to list
+            while (count > 0)
             {
-                string id = string.Empty;
-                string latestVersion = string.Empty;
-
-                try
+                // skip 20
+                skip += 20;
+                var tmpResponse = FindNameGlobbing(packageName, includePrerelease, type, skip, out edi);
+                if (edi != null)
                 {
-                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || ! pkgId.TryGetProperty(versionName, out JsonElement versionItem))
-                    {
-                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    id = idItem.ToString();
-                    latestVersion = versionItem.ToString();
+                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                 }
-                catch (Exception e)
-                {
-                    string errMsg = $"FindNameGlobbing(): Name or Version element could not be parsed from response due to exception {e.Message}.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    break;
-                }
-
-                // determine if id matches our wildcard criteria
-                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
-                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
-                {
-                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-
-                    if (edi != null)
-                    {
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    matchingResponses.Add(response);
-                }
+                responses.Add(tmpResponse);
+                count--;
             }
 
-            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -797,6 +743,135 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Private Methods
+
+        private string FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, int skip, out ExceptionDispatchInfo edi)
+        {
+            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+            string querySearchTerm;
+
+            if (names.Length == 0)
+            {
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
+                return string.Empty;
+            }
+            if (names.Length == 1)
+            {
+                // packageName: *get*       -> q: get
+                // packageName: PowerShell* -> q: PowerShell
+                // packageName: *ShellGet   -> q: ShellGet
+                querySearchTerm = names[0];
+            }
+            else
+            {
+                // *pow*get*
+                // pow*get -> only support this (V2)
+                // pow*get*
+                // *pow*get
+
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
+                return string.Empty;
+            }
+
+            // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
+            // https://azuresearch-usnc.nuget.org/query?q=Newtonsoft&prerelease=false&semVerLevel=1.0.0 (NuGet) (supports * at end of searchterm q but equivalent to q = text w/o *)
+            Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
+            if (edi != null)
+            {
+                return string.Empty;
+            }
+
+            string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
+            string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
+
+            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}";
+
+            // 2) call query with search term, get unique names, see which ones truly match
+            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
+            if (edi != null)
+            {
+                return string.Empty;
+            }
+
+            List<string> matchingResponses = new List<string>();
+            foreach (var pkgId in matchingPkgIds)
+            {
+                string id = string.Empty;
+                string latestVersion = string.Empty;
+
+                try
+                {
+                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
+                    {
+                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
+                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                        return string.Empty;
+                    }
+
+                    id = idItem.ToString();
+                    latestVersion = versionItem.ToString();
+                }
+                catch (Exception e)
+                {
+                    string errMsg = $"FindNameGlobbing(): Name or Version element could not be parsed from response due to exception {e.Message}.";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    break;
+                }
+
+                // determine if id matches our wildcard criteria
+                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
+                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
+                {
+                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
+
+                    if (edi != null)
+                    {
+                        return string.Empty;
+                    }
+
+                    return response;
+                }
+            }
+
+            return string.Empty; 
+        }
+
+        /// <summary>
+        /// Helper method that makes gets 'totalHits' property from http response string.
+        /// The total hits property is used to determine the number of total results found (for pagination).
+        /// </summary>
+        public int GetCountFromResponse(string httpResponse, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            int count = 0;
+            
+            try
+            {
+                JsonDocument responseDom = JsonDocument.Parse(httpResponse);
+                JsonElement rootReponseDom = responseDom.RootElement;
+
+                if (!rootReponseDom.TryGetProperty("totalHits", out JsonElement totalHitsElement))
+                {
+                    string errMsg = $"GetCountFromResponse(): CatalogEntry element could not be found in response or was empty.";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    return count;
+                }
+
+                if (!int.TryParse(totalHitsElement.ToString(), out count)) {
+                    string errMsg = $"GetCountFromResponse(): Error parsing totalHits.";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    return count;
+                }
+            }
+            catch (Exception e)
+            {
+                string errMsg = $"GetCountFromResponse(): Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
+                edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                return count;
+            }
+
+            return count;
+        }
 
         /// <summary>
         /// Helper method that makes the HTTP request for the V3 server protocol url passed in for find APIs.
