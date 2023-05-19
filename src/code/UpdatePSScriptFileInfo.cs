@@ -134,6 +134,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// The tags associated with the script.
         /// </summary>
         [Parameter]
+        [Alias("Tag")]
         [ValidateNotNullOrEmpty()]
         public string[] Tags { get; set; }
 
@@ -221,7 +222,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            if (!PSScriptFileInfo.TryTestPSScriptFile(
+            if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
                 scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo parsedScriptInfo,
                 errors: out ErrorRecord[] errors,

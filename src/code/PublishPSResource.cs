@@ -225,7 +225,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable parsedMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             if (resourceType == ResourceType.Script)
             {
-                if (!PSScriptFileInfo.TryTestPSScriptFile(
+                if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
                     scriptFileInfoPath: pathToScriptFileToPublish,
                     parsedScript: out PSScriptFileInfo scriptToPublish,
                     out ErrorRecord[] errors,

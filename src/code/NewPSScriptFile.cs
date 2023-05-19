@@ -13,7 +13,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Creates a new .ps1 file with script information required for publishing a script.
     /// </summary>
-    [Cmdlet(VerbsCommon.New, "PSScriptFile")]
+    [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
     public sealed class NewPSScriptFile : PSCmdlet
     {
         #region Parameters
@@ -99,6 +99,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// The tags associated with the script.
         /// </summary>
         [Parameter]
+        [Alias("Tag")]
         [ValidateNotNullOrEmpty()]
         public string[] Tags { get; set; }
 

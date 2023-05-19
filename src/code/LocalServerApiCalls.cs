@@ -517,7 +517,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 else if (File.Exists(ps1FilePath))
                 {
-                    if (!PSScriptFileInfo.TryTestPSScriptFile(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
+                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
                     {
                         edi = ExceptionDispatchInfo.Capture(new InvalidDataException($"PSScriptFile could not be read properly")); // TODO: how to handle multiple? maybe just write a error of our own
                         return pkgMetadata;

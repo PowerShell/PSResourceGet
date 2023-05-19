@@ -234,9 +234,19 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     }
 
     It "Uninstall module using -WhatIf, should not uninstall the module" {
+        Start-Transcript .\testUninstallWhatIf.txt
         Uninstall-PSResource -Name $testModuleName -WhatIf
+        Stop-Transcript
+
         $pkg = Get-InstalledPSResource $testModuleName -Version "5.0.0.0"
         $pkg.Version | Should -Be "5.0.0.0"
+
+        $match = Get-Content .\testUninstallWhatIf.txt | 
+            select-string -pattern "What if: Performing the operation ""Uninstall-PSResource"" on target ""Uninstall resource 'test_module2', version '5.0.0.0', from path '" -SimpleMatch
+
+        $match -ne $null
+
+        RemoveItem -path .\testUninstallWhatIf.txt
     }
 
     It "Do not Uninstall module that is a dependency for another module" {
@@ -271,6 +281,17 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         Get-InstalledPSResource -Name $testModuleName -Version "2.5.0-beta" | Uninstall-PSResource
         $res = Get-InstalledPSResource -Name $testModuleName -Version "2.5.0-beta"
         $res | Should -BeNullOrEmpty
+    }
+
+    It "Install resource via InputObject by piping from Find-PSResource" {
+        Install-PSResource -Name $testModuleName, $testScriptName -Repository $PSGalleryName -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName, $testScriptName
+        $pkg.Count | Should -BeGreaterThan 1
+
+        Uninstall-PSResource -InputObject $pkg
+
+        $foundPkgs = Get-InstalledPSResource $pkg.Name
+        $foundPkgs.Count | Should -Be 0
     }
 
     It "Uninstall module that is not installed should throw error" {

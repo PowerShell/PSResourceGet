@@ -845,7 +845,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
 
                     // is script
-                    if (!PSScriptFileInfo.TryTestPSScriptFile(
+                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
                         scriptFileInfoPath: scriptPath,
                         parsedScript: out PSScriptFileInfo scriptToInstall,
                         out ErrorRecord[] parseScriptFileErrors,

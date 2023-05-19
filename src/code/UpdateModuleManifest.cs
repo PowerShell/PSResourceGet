@@ -14,7 +14,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
     /// <summary>
     /// Updates the module manifest (.psd1) for a resource.
     /// </summary>
-    [Cmdlet(VerbsData.Update, "ModuleManifest")]
+    [Cmdlet(VerbsData.Update, "PSModuleManifest")]
     public sealed class UpdateModuleManifest : PSCmdlet
     {
         #region Parameters
@@ -198,6 +198,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies an array of tags.
         /// </summary>
         [Parameter]
+        [Alias("Tag")]
         public string[] Tags { get; set; }
 
         /// <summary>

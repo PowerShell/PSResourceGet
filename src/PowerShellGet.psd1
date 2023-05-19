@@ -23,13 +23,13 @@
         'Register-PSResourceRepository',
         'Save-PSResource',
         'Set-PSResourceRepository',
-        'New-PSScriptFile',
-        'Test-PSScriptFile',
+        'New-PSScriptFileInfo',
+        'Test-PSScriptFileInfo',
         'Update-PSScriptFileInfo',
         'Publish-PSResource',
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
-        'Update-ModuleManifest',
+        'Update-PSModuleManifest',
         'Update-PSResource')
 
     VariablesToExport = 'PSGetPath'
