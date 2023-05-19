@@ -129,6 +129,16 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
+    It "Install resource via InputObject by piping from Find-PSResource" {
+        $modules = Find-PSResource -Name "*" -Repository $localRepo 
+        $modules.Count | Should -BeGreaterThan 1
+
+        Install-PSResource -TrustRepository -InputObject $modules
+
+        $pkg = Get-InstalledPSResource $modules.Name
+        $pkg.Count | Should -BeGreaterThan 1
+    }
+
     It "Install resource under location specified in PSModulePath" {
         Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName

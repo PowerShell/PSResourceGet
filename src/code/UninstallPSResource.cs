@@ -48,7 +48,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo representing package to uninstall.")]
         [ValidateNotNullOrEmpty]
-        public PSResourceInfo InputObject { get; set; }
+        public PSResourceInfo[] InputObject { get; set; }
 
         /// <summary>
         /// Skips check to see if other resources are dependent on the resource being uninstalled.
@@ -131,28 +131,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    string inputObjectPrerelease = InputObject.Prerelease;
-                    string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? InputObject.Version.ToString() : Utils.GetNormalizedVersionString(versionString: InputObject.Version.ToString(), prerelease: inputObjectPrerelease);
-                    if (!Utils.TryParseVersionOrVersionRange(
-                        version: inputObjectVersion,
-                        versionRange: out _versionRange))
-                    {
-                        var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", InputObject.Version.ToString(), InputObject.Name);
-                        var ex = new ArgumentException(exMessage);
-                        var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
-                        WriteError(ErrorParsingVersion);
-                    }
+                    foreach (var inputObj in InputObject) {
+                        string inputObjectPrerelease = inputObj.Prerelease;
+                        string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? inputObj.Version.ToString() : Utils.GetNormalizedVersionString(versionString: inputObj.Version.ToString(), prerelease: inputObjectPrerelease);
+                        if (!Utils.TryParseVersionOrVersionRange(
+                            version: inputObjectVersion,
+                            versionRange: out _versionRange))
+                        {
+                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", inputObj.Version.ToString(), inputObj.Name);
+                            var ex = new ArgumentException(exMessage);
+                            var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
+                            WriteError(ErrorParsingVersion);
+                        }
 
-                    Name = new string[] { InputObject.Name };
-                    if (!String.IsNullOrWhiteSpace(InputObject.Name) && !UninstallPkgHelper())
-                    {
-                        // specific errors will be displayed lower in the stack
-                        var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", InputObject.Name));
-                        var ex = new ArgumentException(exMessage);
-                        var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
-                            WriteError(UninstallResourceError);
+                        Name = new string[] { inputObj.Name };
+                        if (!String.IsNullOrWhiteSpace(inputObj.Name) && !UninstallPkgHelper())
+                        {
+                            // specific errors will be displayed lower in the stack
+                            var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", inputObj.Name));
+                            var ex = new ArgumentException(exMessage);
+                            var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
+                                WriteError(UninstallResourceError);
+                        }
                     }
-                
                     break;
 
                 default:

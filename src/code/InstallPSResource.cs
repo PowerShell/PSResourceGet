@@ -146,7 +146,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo object to install.")]
         [Alias("ParentResource")]
         [ValidateNotNullOrEmpty]
-        public PSResourceInfo InputObject { get; set; }
+        public PSResourceInfo[] InputObject { get; set; }
 
         /// <summary>
         /// Installs resources based on input from a .psd1 (hashtable) or .json file.
@@ -285,14 +285,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
                     
                 case InputObjectParameterSet:
-                    string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.Prerelease);
-                    ProcessInstallHelper(
-                        pkgNames: new string[] { InputObject.Name },
-                        pkgVersion: normalizedVersionString,
-                        pkgPrerelease: InputObject.IsPrerelease,
-                        pkgRepository: new string[]{ InputObject.Repository },
-                        pkgCredential: Credential,
-                        reqResourceParams: null);
+                    foreach (var inputObj in InputObject) {
+                        string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
+                        ProcessInstallHelper(
+                            pkgNames: new string[] { inputObj.Name },
+                            pkgVersion: normalizedVersionString,
+                            pkgPrerelease: inputObj.IsPrerelease,
+                            pkgRepository: new string[]{ inputObj.Repository },
+                            pkgCredential: Credential,
+                            reqResourceParams: null);
+                    }
                     break;
 
                 case RequiredResourceFileParameterSet:
