@@ -294,7 +294,7 @@ Describe "Test Update-PSScriptFileInfo" -tags 'CI' {
         $tag1 = "tag1"
         $tag2 = "tag2"
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Tag $tag1, $tag2
-        Test-PSScriptFile $script:testScriptFilePath | Should -Be $true
+        Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw

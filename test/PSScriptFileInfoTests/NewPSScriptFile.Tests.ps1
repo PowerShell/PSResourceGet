@@ -156,7 +156,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
         $tag1 = "tag1"
         $tag2 = "tag2"
 
-        New-PSScriptFile -Path $script:testScriptFilePath -Tag $tag1, $tag2 -Description $description 
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -Tag $tag1, $tag2 -Description $description 
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
