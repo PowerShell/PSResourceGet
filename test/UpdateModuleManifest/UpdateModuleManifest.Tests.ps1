@@ -8,7 +8,7 @@ Import-Module $modPath -Force -Verbose
 $buildModule = "$psscriptroot/../../out/PowerShellGet"
 Import-Module $buildModule -Force -Verbose
 
-Describe 'Test Update-ModuleManifest' {
+Describe 'Test Update-PSModuleManifest' {
 
     BeforeEach {
         # Create temp module manifest to be updated
@@ -29,7 +29,7 @@ Describe 'Test Update-ModuleManifest' {
     It "Update module manifest given Path parameter" {
         $description = "This is a PowerShellGet test"
         New-ModuleManifest -Path $script:testManifestPath
-        Update-ModuleManifest -Path $script:testManifestPath -Description $description
+        Update-PSModuleManifest -Path $script:testManifestPath -Description $description
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Description | Should -Be $description
@@ -38,7 +38,7 @@ Describe 'Test Update-ModuleManifest' {
     It "Update module manifest given Guid parameter" {
         $Guid = [guid]::NewGuid()
         New-ModuleManifest -Path $script:testManifestPath
-        Update-ModuleManifest -Path $script:testManifestPath -Guid $Guid 
+        Update-PSModuleManifest -Path $script:testManifestPath -Guid $Guid 
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Guid | Should -Be $Guid 
@@ -47,7 +47,7 @@ Describe 'Test Update-ModuleManifest' {
     It "Update module manifest given Author parameter" {
         $Author = "Test Author" 
         New-ModuleManifest -Path $script:testManifestPath
-        Update-ModuleManifest -Path $script:testManifestPath -Author $Author 
+        Update-PSModuleManifest -Path $script:testManifestPath -Author $Author 
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Author | Should -Be $Author 
@@ -56,7 +56,7 @@ Describe 'Test Update-ModuleManifest' {
     It "Update module manifest given Description parameter" {
         $Description = "PowerShellGet test description"
         New-ModuleManifest -Path $script:testManifestPath
-        Update-ModuleManifest -Path $script:testManifestPath -Description $Description 
+        Update-PSModuleManifest -Path $script:testManifestPath -Description $Description 
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Description | Should -Be $Description 
@@ -65,7 +65,7 @@ Describe 'Test Update-ModuleManifest' {
     It "Update module manifest given ModuleVersion parameter" {
         $ModuleVersion =  "7.0.0.0"
         New-ModuleManifest -Path $script:testManifestPath
-        Update-ModuleManifest -Path $script:testManifestPath -ModuleVersion $ModuleVersion 
+        Update-PSModuleManifest -Path $script:testManifestPath -ModuleVersion $ModuleVersion 
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Version.ToString() | Should -Be $ModuleVersion 
@@ -76,7 +76,7 @@ Describe 'Test Update-ModuleManifest' {
         $requiredModuleVersion = '1.0.0.0'
         $RequiredModules =  @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
         New-ModuleManifest -Path $script:testManifestPath
-        Update-ModuleManifest -Path $script:testManifestPath -RequiredModules $RequiredModules -Description "test"
+        Update-PSModuleManifest -Path $script:testManifestPath -RequiredModules $RequiredModules -Description "test"
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         foreach ($module in $results.RequiredModules)
@@ -91,7 +91,7 @@ Describe 'Test Update-ModuleManifest' {
         $ModuleVersion = "1.0.0"
         $Prerelease = "preview"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion
-        Update-ModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease
+        Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
@@ -101,7 +101,7 @@ Describe 'Test Update-ModuleManifest' {
         $Description = "Test Description"
         $ReleaseNotes = "Release notes for module."
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -ReleaseNotes $ReleaseNotes
+        Update-PSModuleManifest -Path $script:testManifestPath -ReleaseNotes $ReleaseNotes
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.ReleaseNotes | Should -Be $ReleaseNotes
@@ -112,7 +112,7 @@ Describe 'Test Update-ModuleManifest' {
         $Tag1 = "tag1"
         $Tag2 = "tag2"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -Tags $Tag1, $Tag2
+        Update-PSModuleManifest -Path $script:testManifestPath -Tags $Tag1, $Tag2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.Tags | Should -Be @($Tag1, $Tag2) 
@@ -122,7 +122,7 @@ Describe 'Test Update-ModuleManifest' {
         $Description = "Test Description"
         $ProjectUri = "https://www.testprojecturi.com/"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -ProjectUri $ProjectUri
+        Update-PSModuleManifest -Path $script:testManifestPath -ProjectUri $ProjectUri
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.ProjectUri | Should -Be $ProjectUri
@@ -132,7 +132,7 @@ Describe 'Test Update-ModuleManifest' {
         $Description = "Test Description"
         $LicenseUri = "https://www.testlicenseuri.com/"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -LicenseUri $LicenseUri
+        Update-PSModuleManifest -Path $script:testManifestPath -LicenseUri $LicenseUri
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.LicenseUri | Should -Be $LicenseUri
@@ -142,7 +142,7 @@ Describe 'Test Update-ModuleManifest' {
         $Description = "Test Description"
         $IconUri = "https://www.testiconuri.com/"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -IconUri $IconUri
+        Update-PSModuleManifest -Path $script:testManifestPath -IconUri $IconUri
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.IconUri | Should -Be $IconUri
@@ -151,7 +151,7 @@ Describe 'Test Update-ModuleManifest' {
     It "Update module manifest given RequireLicenseAcceptance parameter" {
         $Description = "PowerShellGet test description"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -RequireLicenseAcceptance
+        Update-PSModuleManifest -Path $script:testManifestPath -RequireLicenseAcceptance
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.RequireLicenseAcceptance | Should -Be $true
@@ -173,7 +173,7 @@ Describe 'Test Update-ModuleManifest' {
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.ExternalModuleDependencies | Should -Be $null
 
-        Update-ModuleManifest -Path $script:testManifestPath -ExternalModuleDependencies $ExternalModuleDep1, $ExternalModuleDep2
+        Update-PSModuleManifest -Path $script:testManifestPath -ExternalModuleDependencies $ExternalModuleDep1, $ExternalModuleDep2
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.PrivateData.PSData.ExternalModuleDependencies | Should -Be @($ExternalModuleDep1, $ExternalModuleDep2)
     }
@@ -182,7 +182,7 @@ Describe 'Test Update-ModuleManifest' {
         $Description = "PowerShellGet test description"
         $PowerShellHostName = $Host.Name
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -PowerShellHostName $PowerShellHostName
+        Update-PSModuleManifest -Path $script:testManifestPath -PowerShellHostName $PowerShellHostName
 
         $results = Test-ModuleManifest -Path $script:testManifestPath -ErrorAction SilentlyContinue
         $results.PowerShellHostName | Should -Be $PowerShellHostName
@@ -192,7 +192,7 @@ Describe 'Test Update-ModuleManifest' {
         $Description = "PowerShellGet test description"
         $DefaultCommandPrefix = "testprefix"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -DefaultCommandPrefix $DefaultCommandPrefix
+        Update-PSModuleManifest -Path $script:testManifestPath -DefaultCommandPrefix $DefaultCommandPrefix
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Prefix | Should -Be $DefaultCommandPrefix
@@ -205,7 +205,7 @@ Describe 'Test Update-ModuleManifest' {
         $null = New-Item -Path $RootModulePath -ItemType File -Force
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -RootModule $RootModuleName
+        Update-PSModuleManifest -Path $script:testManifestPath -RootModule $RootModuleName
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.RootModule | Should -Be $RootModuleName 
@@ -222,7 +222,7 @@ Describe 'Test Update-ModuleManifest' {
         $null = New-Item -Path $RequiredAssemblyPath2 -ItemType File -Force
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -RequiredAssemblies $RequiredAssembly1, $RequiredAssembly2
+        Update-PSModuleManifest -Path $script:testManifestPath -RequiredAssemblies $RequiredAssembly1, $RequiredAssembly2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.RequiredAssemblies | Should -Be @($RequiredAssembly1, $RequiredAssembly2) 
@@ -241,7 +241,7 @@ Describe 'Test Update-ModuleManifest' {
         $null = New-Item -Path $NestedModulePath2 -ItemType File -Force
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -NestedModules $NestedModule1, $NestedModule2
+        Update-PSModuleManifest -Path $script:testManifestPath -NestedModules $NestedModule1, $NestedModule2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.NestedModules | Should -Be @($NestedModule1, $NestedModule2) 
@@ -258,7 +258,7 @@ Describe 'Test Update-ModuleManifest' {
         $null = New-Item -Path $FileListPath2 -ItemType File -Force
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -FileList $FileList1, $FileList2
+        Update-PSModuleManifest -Path $script:testManifestPath -FileList $FileList1, $FileList2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.FileList | Should -Be @($FileListPath1, $FileListPath2) 
@@ -272,7 +272,7 @@ Describe 'Test Update-ModuleManifest' {
         $null = New-Item -Path $TypeFilePath -ItemType File -Force
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -TypesToProcess $TypeFile
+        Update-PSModuleManifest -Path $script:testManifestPath -TypesToProcess $TypeFile
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.ExportedTypeFiles | Should -Be $TypeFilePath
@@ -286,7 +286,7 @@ Describe 'Test Update-ModuleManifest' {
         $null = New-Item -Path $FormatFilePath -ItemType File -Force
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -FormatsToProcess $FormatFile
+        Update-PSModuleManifest -Path $script:testManifestPath -FormatsToProcess $FormatFile
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.ExportedFormatFiles | Should -Be $FormatFilePath
@@ -303,7 +303,7 @@ Describe 'Test Update-ModuleManifest' {
         $null = New-Item -Path $ScriptPath2 -ItemType File -Force
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -ScriptsToProcess $Script1, $Script2
+        Update-PSModuleManifest -Path $script:testManifestPath -ScriptsToProcess $Script1, $Script2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Scripts | Should -Be @($ScriptPath1, $ScriptPath2) 
@@ -313,7 +313,7 @@ Describe 'Test Update-ModuleManifest' {
         $Description = "Test Description"
         $ProcessorArchitecture = [System.Reflection.ProcessorArchitecture]::Amd64
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -ProcessorArchitecture $ProcessorArchitecture
+        Update-PSModuleManifest -Path $script:testManifestPath -ProcessorArchitecture $ProcessorArchitecture
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.ProcessorArchitecture | Should -Be $ProcessorArchitecture 
@@ -323,7 +323,7 @@ Describe 'Test Update-ModuleManifest' {
         $Description = "Test Description"
         $ModuleList1 = "PowerShellGet"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -ModuleList $ModuleList1
+        Update-PSModuleManifest -Path $script:testManifestPath -ModuleList $ModuleList1
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.ModuleList | Should -Be $ModuleList1
@@ -341,7 +341,7 @@ Describe 'Test Update-ModuleManifest' {
         $CompatiblePSEditions = @("Desktop", "Core")
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath `
+        Update-PSModuleManifest -Path $script:testManifestPath `
                               -CompanyName $CompanyName `
                               -Copyright $Copyright `
                               -PowerShellVersion $PowerShellVersion `
@@ -368,7 +368,7 @@ Describe 'Test Update-ModuleManifest' {
         $ExportedAliases = "AliasToExport1", "AliasToExport2"
         $ExportedVariables = "VariablesToExport1", "Variables2Export2"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath `
+        Update-PSModuleManifest -Path $script:testManifestPath `
                               -FunctionsToExport $ExportedFunctions `
                               -AliasesToExport $ExportedAliases `
                               -VariablesToExport $ExportedVariables 
@@ -385,7 +385,7 @@ Describe 'Test Update-ModuleManifest' {
         $CmdletToExport2 = "CmdletToExport2"
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
-        Update-ModuleManifest -Path $script:testManifestPath -CmdletsToExport $CmdletToExport1, $CmdletToExport2
+        Update-PSModuleManifest -Path $script:testManifestPath -CmdletsToExport $CmdletToExport1, $CmdletToExport2
 
         $results = Get-Content -Path $script:testManifestPath -Raw
         $results.Contains($CmdletToExport1) | Should -Be $true
@@ -399,7 +399,7 @@ Describe 'Test Update-ModuleManifest' {
         $ProjectUri = "https://www.arrakis.gov/"
         $Prerelease = "Preview"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion -Author $Author -ProjectUri $ProjectUri
-        Update-ModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease
+        Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Author | Should -Be $Author
