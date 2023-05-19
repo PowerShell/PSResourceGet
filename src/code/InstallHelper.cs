@@ -248,7 +248,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     installDepsForRepo = true;
                 }
 
-                return InstallPackages(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                var installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                foreach (var pkg in installedPkgs)
+                {
+                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                }
+
+                allPkgsInstalled.AddRange(installedPkgs);
             }
 
             return allPkgsInstalled;
