@@ -26,14 +26,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string resourcesName = "resources";
-        // private static readonly string packageBaseAddressName = "PackageBaseAddress/3.0.0";
-        // private static readonly string searchQueryServiceName = "SearchQueryService/3.0.0-beta";
-        // private static readonly string registrationsBaseUrlName = "RegistrationsBaseUrl/Versioned";
-        // private static readonly string dataName = "data";
-        // private static readonly string idName = "id";
-        // private static readonly string versionName = "version";
+        private static readonly string registrationsBaseUrlName = "RegistrationsBaseUrl";
+        private static readonly string itemsName = "items";
+        private static readonly string versionName = "version";
         private static readonly string tagsName = "tags";
-        // private static readonly string versionsName = "versions";
         private static readonly string catalogEntryProperty = "catalogEntry";
         private static readonly string packageContentProperty = "packageContent";
 
@@ -60,7 +56,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
-        /// Not supported
+        /// Not supported for ADO repository.
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
@@ -71,12 +67,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
-        /// Examples: Search -Tag "Redis" -Repository PSGallery
-        /// API call: 
-        /// https://azuresearch-ussc.nuget.org/query?q=tags:redis&prerelease=False&semVerLevel=2.0.0
-        /// 
-        /// Azure Artifacts does not support querying on tags, so if support this scenario we need to search on the term and then filter
+        /// Find method which allows for searching for packages with tag(s) from a repository and returns latest version for each.
+        /// Not supported for ADO repository.
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
         {
@@ -87,8 +79,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// This functionality is not supported for V3 protocol server.
         /// Find method which allows for searching for packages with specified Command or DSCResource name.
+        /// Not supported for ADO repository.
         /// </summary>
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
@@ -102,13 +94,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Find method which allows for searching for single name and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "Newtonsoft.Json"
-        /// API call: 
-        ///               https://api.nuget.org/v3/registration5-gz-semver2/nuget.server/index.json
-        ///               https://msazure.pkgs.visualstudio.com/One/_packaging/testfeed/nuget/v3/registrations2-semver2/newtonsoft.json/index.json
-        ///               https://msazure.pkgs.visualstudio.com/999aa88e-7ed7-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/registrations2-semver2/newtonsoft.json/index.json
-        /// The RegistrationBaseUrl that we're using is "RegistrationBaseUrl/Versioned"
-        /// This type points to the url to use (ex above)
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// We use the latest RegistrationBaseUrl version resource we can find and check if contains an entry with the package name.
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
@@ -116,9 +102,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Find method which allows for searching for single name and tag and returns latest version.
+        /// Find method which allows for searching for single name and specified tag(s) and returns latest version.
         /// Name: no wildcard support
-        /// Examples: Search "Newtonsoft.Json" - Tag "json"
+        /// Examples: Search "Newtonsoft.Json" -Tag "json"
+        /// We use the latest RegistrationBaseUrl version resource we can find and check if contains an entry with the package name.
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
@@ -127,17 +114,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and returns latest version.
-        /// Name: supports wildcards
-        /// Examples: Search "Nuget.Server*"
-        /// API call: 
-        /// - No prerelease: https://api-v2v3search-0.nuget.org/autocomplete?q=storage&prerelease=false
-        /// - Prerelease:  https://api-v2v3search-0.nuget.org/autocomplete?q=storage&prerelease=true  
-        /// 
-        /// https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/query2?q=Newtonsoft&prerelease=false&semVerLevel=2.0.0
-        ///         
-        ///        Note:  response only returns names
-        ///        
-        ///        Make another query to get the latest version of each package  (ie call "FindVersionGlobbing")
+        /// This is not supported for ADO repository.
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
@@ -149,8 +126,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and tag and returns latest version.
-        /// Name: supports wildcards
-        /// Examples: Search "Nuget.Server*" -Tag "nuget"
+        /// This is not supported for ADO repository.
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
@@ -166,20 +142,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Version: supports wildcards
         /// Examples: Search "NuGet.Server.Core" "[1.0.0.0, 5.0.0.0]"
         ///           Search "NuGet.Server.Core" "3.*"
-        /// API Call: 
-        ///           then, find all versions for a pkg
-        ///           for nuget:
-        ///               this contains all pkg version info: https://api.nuget.org/v3/registration5-gz-semver2/nuget.server/index.json
-        ///               However, we will use the flattened version list: https://api.nuget.org/v3-flatcontainer/newtonsoft.json/index.json
-        ///           for Azure Artifacts:
-        ///               https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/flat2/newtonsoft.json/index.json
-        ///            (azure artifacts)
-        ///            
-        ///             Note:  very different responses for nuget vs azure artifacts
-        ///            
-        ///            After we figure out what version we want, call "FindVersion" (or some helper method)
-        /// need to filter client side
-        /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
+        /// We use the latest RegistrationBaseUrl version resource we can find and check if contains an entry with the package name, then get all versions and match to satisfying versions.
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
         {
@@ -232,47 +195,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Name: no wildcard support
         /// Version: no wildcard support
         /// Examples: Search "NuGet.Server.Core" "3.0.0-beta"
-        /// API call: 
-        ///     first find the RegistrationBaseUrl
-        ///     https://api.nuget.org/v3/registration5-gz-semver2/nuget.server/index.json
-        ///     
-        ///     https://msazure.pkgs.visualstudio.com/One/_packaging/testfeed/nuget/v3/registrations2-semver2/newtonsoft.json/index.json
-        ///     https://msazure.pkgs.visualstudio.com/999aa88e-7ed7-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/registrations2-semver2/newtonsoft.json/index.json
-        ///         The RegistrationBaseUrl that we're using is "RegistrationBaseUrl/Versioned"
-        ///         This type points to the url to use (ex above)
-        ///         
-        ///     then we can make a call for the specific version  
-        ///     https://api.nuget.org/v3/registration5-gz-semver2/nuget.server.core/3.0.0-beta
-        ///     (alternative url for nuget gallery):  https://api.nuget.org/v3/registration5-gz-semver2/nuget.server.core/index.json#page/3.0.0-beta/3.0.0-beta
-        ///     https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/registrations2/newtonsoft.json/13.0.2.json 
-        ///     
+        /// We use the latest RegistrationBaseUrl version resource we can find and check if contains an entry with the package name, then match to the specified version.
         /// </summary>
-        
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi)
         {
             return FindVersionHelper(packageName, version, tags: Utils.EmptyStrArray, type, out edi);
         }
 
         /// <summary>
-        /// Find method which allows for searching for single name with specific version and tag.
+        /// Find method which allows for searching for single name with specific version and tag(s).
         /// Name: no wildcard support
         /// Version: no wildcard support
-        /// Examples: Search "NuGet.Server.Core" -Version "3.0.0-beta" -Tag "nuget"
-        /// API call: 
-        ///     first find the RegistrationBaseUrl
-        ///     https://api.nuget.org/v3/registration5-gz-semver2/nuget.server/index.json
-        ///     
-        ///     https://msazure.pkgs.visualstudio.com/One/_packaging/testfeed/nuget/v3/registrations2-semver2/newtonsoft.json/index.json
-        ///     https://msazure.pkgs.visualstudio.com/999aa88e-7ed7-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/registrations2-semver2/newtonsoft.json/index.json
-        ///         The RegistrationBaseUrl that we're using is "RegistrationBaseUrl/Versioned"
-        ///         This type points to the url to use (ex above)
-        ///         
-        ///     then we can make a call for the specific version  
-        ///     https://api.nuget.org/v3/registration5-gz-semver2/nuget.server.core/3.0.0-beta
-        ///     (alternative url for nuget gallery):  https://api.nuget.org/v3/registration5-gz-semver2/nuget.server.core/index.json#page/3.0.0-beta/3.0.0-beta
-        ///     https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/registrations2/newtonsoft.json/13.0.2.json 
-        ///     
-        /// </summary>        
+        /// Examples: Search "NuGet.Server.Core" "3.0.0-beta" -Tag "core"
+        /// We use the latest RegistrationBaseUrl version resource we can find and check if contains an entry with the package name, then match to the specified version.
+        /// </summary>     
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
         {
             return FindVersionHelper(packageName, version, tags: tags, type, out edi);
@@ -283,10 +219,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Installs specific package.
         /// Name: no wildcard support.
-        /// Examples: Install "PowerShellGet"
-        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
-        ///                             then find the exact version to install, then call into install version
+        /// Examples: Install "Newtonsoft.json"
         /// </summary>
         public override Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
         {
@@ -328,11 +261,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Installs package with specific name and version.
         /// Name: no wildcard support.
         /// Version: no wildcard support.
-        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
-        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        ///           
-        ///  https://api.nuget.org/v3-flatcontainer/newtonsoft.json/9.0.1/newtonsoft.json.9.0.1.nupkg
-        /// API Call: 
+        /// Examples: Install "Newtonsoft.json" -Version "1.0.0.0"
+        ///           Install "Newtonsoft.json" -Version "2.5.0-beta"
         /// </summary>    
         public override Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
         {
@@ -426,9 +356,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
                     JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty("version", out pkgVersionElement))
+                    if (!rootDom.TryGetProperty(versionName, out pkgVersionElement))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain 'version' element."));
+                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element."));
                         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
                 }
@@ -496,9 +426,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
                     JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty("version", out pkgVersionElement))
+                    if (!rootDom.TryGetProperty(versionName, out pkgVersionElement))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain 'version' element."));
+                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element."));
                         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
                 }
@@ -604,66 +534,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Helper method that makes finds the specified V3 server protocol resources from the service index.
+        /// Gets the registrationsBaseUrl resource from the service index
+        /// With ADO, older versions can support different versions of this resource, so that's why we find the latest version of this resource
         /// </summary>
-        private Hashtable FindResourceType(string[] resourceTypeName, out ExceptionDispatchInfo edi)
-        {
-            Hashtable resourceHash = new Hashtable();
-            JsonElement[] resources = GetJsonElementArr($"{Repository.Uri}", resourcesName, out edi);
-            if (edi != null)
-            {
-                return resourceHash;
-            }
-
-            foreach (JsonElement resource in resources)
-            {
-                try
-                {
-                    if (resource.TryGetProperty("@type", out JsonElement typeElement) && resourceTypeName.Contains(typeElement.ToString()))
-                    {
-                        // check if key already present in hastable, as there can be resources with same type but primary/secondary instances
-                        if (!resourceHash.ContainsKey(typeElement.ToString()))
-                        {
-                            if (resource.TryGetProperty("@id", out JsonElement idElement))
-                            {
-                                // add name of the resource and its url
-                                resourceHash.Add(typeElement.ToString(), idElement.ToString());
-                            }
-                            else
-                            {
-                                string errMsg = $"@type element was found but @id element not found in service index '{Repository.Uri}' for {resourceTypeName}.";
-                                edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException(errMsg));
-                                return resourceHash;
-                            }
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    string errMsg = $"Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return resourceHash;
-                }
-
-                if (resourceHash.Count == resourceTypeName.Length)
-                {
-                    break;
-                }
-            }
-
-            foreach (string resourceType in resourceTypeName)
-            {
-                if (!resourceHash.ContainsKey(resourceType))
-                {
-                    string errMsg = $"FindResourceType(): Could not find resource type {resourceType} from the service index.";
-                    edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException(errMsg));
-                    break;
-                }
-            }
-
-            return resourceHash;
-        }
-
         private string FindRegistrationsBaseUrl(out ExceptionDispatchInfo edi)
         {
             edi = null;
@@ -680,7 +553,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 try
                 {
-                    if (resource.TryGetProperty("@type", out JsonElement typeElement) && typeElement.ToString().Contains("RegistrationsBaseUrl"))
+                    if (resource.TryGetProperty("@type", out JsonElement typeElement) && typeElement.ToString().Contains(registrationsBaseUrlName))
                     {
                         // Get Version and keep if it's latest
                         string resourceType = typeElement.ToString();
@@ -729,13 +602,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Helper method finds package with name and specified version
+        /// Helper method iterates through the entries in the registrationsUrl for a specific package and all its versions.
+        /// This contains an inner items element (containing the package metadata) and the packageContent element (containing URI through which the .nupkg can be downloaded)
         /// <summary>
         private string[] GetVersionedResponses(string registrationsBaseUrl, string packageName, string property, out ExceptionDispatchInfo edi)
         {
             List<string> versionedResponses = new List<string>();
-
-            // https://pkgs.dev.azure.com/powershell-rel/8abad6f9-c150-4f52-8adb-5438eaafd645/_packaging/d7ed2d91-9949-4cad-8b55-f46e225426dd/nuget/v3/registrations2/test_local_mod/index.json
             var requestPkgMapping = $"{registrationsBaseUrl}{packageName.ToLower()}/index.json";
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out edi);
             if (edi != null)
@@ -748,18 +620,31 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             // The response has a "items" array element, which only has useful 1st element
             JsonElement rootDom = pkgVersionEntry.RootElement;
-            rootDom.TryGetProperty("items", out JsonElement itemsElement);
+            rootDom.TryGetProperty(itemsName, out JsonElement itemsElement);
+            if (itemsElement.GetArrayLength() == 0)
+            {
+                // TODO: error handle
+            }
+
             JsonElement firstItem = itemsElement[0];
 
             // The "items" property has a "items" element as well as a "count" element
-            JsonElement innerItemsElements = firstItem.GetProperty("items"); // this is the item for each version of the package
+            JsonElement innerItemsElements = firstItem.GetProperty(itemsName); // this is the item for each version of the package
             JsonElement countElement = firstItem.GetProperty("count"); // this is the count representing how many versions are present for that package.
-            bool parsedCount = countElement.TryGetInt32(out int count);
+            if (!countElement.TryGetInt32(out int count))
+            {
+                // TODO: error handle
+            }
 
             for (int i = 0; i < count; i++)
             {
                 JsonElement versionedItem = innerItemsElements[i]; // the specific entry for a package version
-                JsonElement metadataElement = versionedItem.GetProperty(property);
+                if (!versionedItem.TryGetProperty(property, out JsonElement metadataElement))
+                {
+                    // TODO: error handle and return or continue?
+                }
+
+                
                 versionedResponses.Add(metadataElement.ToString());
             }
 
