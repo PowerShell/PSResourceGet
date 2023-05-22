@@ -14,6 +14,8 @@ using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
 using System.Xml;
+using System.Drawing;
+using System.Security.Cryptography.Pkcs;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -91,93 +93,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             bool isNuGetRepo = searchQueryServiceUrl.Contains("nuget.org");
 
-            string query = isNuGetRepo ? $"{searchQueryServiceUrl}?q=tags:{firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0" :
-                          $"{searchQueryServiceUrl}?q={firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+            // 1) get initial response 
+            int skip = 0;
+            // TODO add paging here
+            responses.AddRange(FindTags(tags, firstTag, includePrerelease, isNuGetRepo, searchQueryServiceUrl, registrationsBaseUrl, skip, out int initialCount, out edi));
 
-            // 2) call query with tags. (for Azure artifacts) get unique names, see which ones truly match
-            JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out edi);
+            // check count (ie "totalHits")  425 ==> count/100  ~~> 5 calls 
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            List<string> matchingResponses = new List<string>();
-            string id;
-            string latestVersion;
-            foreach (var pkgId in tagPkgs)
-            { 
-                try
+            int count = initialCount / 100; 
+            // if more than 100 count, loop and add response to list
+            while (count > 0)
+            {
+                // skip 100
+                skip += 100;
+
+                var tmpResponse = FindTags(tags, firstTag, includePrerelease, isNuGetRepo, searchQueryServiceUrl, registrationsBaseUrl, skip, out initialCount, out edi);
+                if (edi != null)
                 {
-                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
-                    {
-                        string errMsg = $"FindTag(): Id or Version element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    id = idItem.ToString();
-                    latestVersion = versionItem.ToString();
+                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                 }
-                catch (Exception e)
-                {
-                    string errMsg = $"FindTag(): Id or Version element could not be parsed from response due to exception {e.Message}.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                }
-
-                // determine if id matches our wildcard criteria
-                if (isNuGetRepo)
-                {
-                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-                    if (edi != null)
-                    {
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    matchingResponses.Add(response);
-                }
-                else
-                {
-                    try {
-                        if (!pkgId.TryGetProperty("tags", out JsonElement tagsItem))
-                        {
-                            string errMsg = $"FindTag(): Tag element could not be found in response.";
-                            edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                        }
-
-                        string[] pkgTags = GetTagsFromJsonElement(tagsItem);
-                        bool isTagMatch = true;
-                        foreach (string rqTag in tags)
-                        {
-                            if (!pkgTags.Contains(rqTag, StringComparer.OrdinalIgnoreCase))
-                            {
-                                isTagMatch = false;
-                                break;
-                            }
-                        }
-
-                        if (isTagMatch)
-                        {
-                            string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-                            if (edi != null)
-                            {
-                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                            }
-
-                            matchingResponses.Add(response);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        string errMsg = $"FindTag(): Tags element could not be parsed from response due to exception {e.Message}.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-                }
+                responses.AddRange(tmpResponse);
+                count--;
             }
 
-            FindResults tagsFoundResult = new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            FindResults tagsFoundResult = new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             return tagsFoundResult;
         }
 
@@ -344,7 +287,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindNameGlobbing(packageName, includePrerelease, type, skip, out edi);
+            var initialResponse = FindNameGlobbing(packageName, includePrerelease, type, skip, out int initalCount, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -353,18 +296,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (ie "totalHits")  425 ==> count/20  ~~> 22 calls 
-            int initalCount = GetCountFromResponse(initialResponse, out edi);  // count = 4
             if (edi != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-            int count = initalCount / 20;
-            // if more than 20 count, loop and add response to list
+            int count = initalCount / 100;
+            // if more than 100 count, loop and add response to list
             while (count > 0)
             {
-                // skip 20
-                skip += 20;
-                var tmpResponse = FindNameGlobbing(packageName, includePrerelease, type, skip, out edi);
+                // skip 100
+                skip += 100;
+                var tmpResponse = FindNameGlobbing(packageName, includePrerelease, type, skip, out initalCount, out edi);
                 if (edi != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -420,73 +362,34 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
-            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
-
-            // 2) call query with search term, get unique names, see which ones truly match
-            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
+            // 1) get initial response 
+            int skip = 0;
+            List<string> responses = new List<string>();
+            responses.AddRange(FindNameGlobbingWithTag(packageName, tags, includePrerelease, searchQueryServiceUrl, registrationsBaseUrl, querySearchTerm, out int initialCount, out edi));
             if (edi != null)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            List<string> matchingResponses = new List<string>();
-            foreach (var pkgId in matchingPkgIds)
+            // check count (ie "totalHits")  425 ==> count/100  ~~> 5 calls 
+            int count = initialCount / 100;
+            // if more than 100 count, loop and add response to list
+            while (count > 0)
             {
-                string id = string.Empty;
-                string latestVersion = string.Empty;
-                string[] pkgTags = Utils.EmptyStrArray;
+                // skip 100
+                skip += 100;
 
-                try
+                var tmpResponse = FindNameGlobbingWithTag(packageName, tags, includePrerelease, searchQueryServiceUrl, registrationsBaseUrl, querySearchTerm, out initialCount, out edi);
+                if (edi != null)
                 {
-                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
-                    {
-                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    if (!pkgId.TryGetProperty(tagsName, out JsonElement tagsItem))
-                    {
-                        string errMsg = $"FindNameGlobbing(): Tags element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    id = idItem.ToString();
-                    latestVersion = versionItem.ToString();
-
-                    pkgTags = GetTagsFromJsonElement(tagsElement: tagsItem);
+                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                 }
-                catch (Exception e)
-                {
-                    string errMsg = $"FindNameGlobbingWithTag(): Name or Version or Tags element could not be parsed from response due to exception {e.Message}.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    break;
-                }
-
-                // determine if id matches our wildcard criteria
-                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
-                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
-                {
-                    bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags, requiredTags: tags);
-                    if (!isTagMatch)
-                    {
-                        continue;
-                    }
-
-                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
-
-                    if (edi != null)
-                    {
-                        continue;
-                    }
-
-                    matchingResponses.Add(response);
-                }
+                responses.AddRange(tmpResponse);
+                count--;
             }
 
-            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            FindResults tagsFoundResult = new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return tagsFoundResult;
         }
 
         /// <summary>
@@ -743,11 +646,112 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Private Methods
+        private List<string> FindTags(
+                string[] tags, 
+                string firstTag,
+                bool includePrerelease, 
+                bool isNuGetRepo, 
+                string searchQueryServiceUrl, 
+                string registrationsBaseUrl,
+                int skip,
+                out int totalHits,
+                out ExceptionDispatchInfo edi)
+        {
+            string query = isNuGetRepo ? $"{searchQueryServiceUrl}?q=tags:{firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0" :
+              $"{searchQueryServiceUrl}?q={firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
 
-        private string FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, int skip, out ExceptionDispatchInfo edi)
+            // Call query with tags. (for Azure artifacts) get unique names, see which ones truly match
+            JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out totalHits, out edi);
+            if (edi != null)
+            {
+                return Utils.EmptyStrArray.ToList();
+            }
+
+            List<string> matchingResponses = new List<string>();
+            string id;
+            string latestVersion;
+            foreach (var pkgId in tagPkgs)
+            {
+                try
+                {
+                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
+                    {
+                        string errMsg = $"FindTag(): Id or Version element could not be found in response.";
+                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                        return Utils.EmptyStrArray.ToList();
+                    }
+
+                    id = idItem.ToString();
+                    latestVersion = versionItem.ToString();
+                }
+                catch (Exception e)
+                {
+                    string errMsg = $"FindTag(): Id or Version element could not be parsed from response due to exception {e.Message}.";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    return Utils.EmptyStrArray.ToList();
+                }
+
+                // determine if id matches our wildcard criteria
+                if (isNuGetRepo)
+                {
+                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
+                    if (edi != null)
+                    {
+                        return Utils.EmptyStrArray.ToList();
+                    }
+
+                    matchingResponses.Add(response);
+                }
+                else
+                {
+                    try
+                    {
+                        if (!pkgId.TryGetProperty("tags", out JsonElement tagsItem))
+                        {
+                            string errMsg = $"FindTag(): Tag element could not be found in response.";
+                            edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                            return Utils.EmptyStrArray.ToList();
+                        }
+
+                        string[] pkgTags = GetTagsFromJsonElement(tagsItem);
+                        bool isTagMatch = true;
+                        foreach (string rqTag in tags)
+                        {
+                            if (!pkgTags.Contains(rqTag, StringComparer.OrdinalIgnoreCase))
+                            {
+                                isTagMatch = false;
+                                break;
+                            }
+                        }
+
+                        if (isTagMatch)
+                        {
+                            string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
+                            if (edi != null)
+                            {
+                                return Utils.EmptyStrArray.ToList();
+                            }
+
+                            matchingResponses.Add(response);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        string errMsg = $"FindTag(): Tags element could not be parsed from response due to exception {e.Message}.";
+                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                        return Utils.EmptyStrArray.ToList();
+                    }
+                }
+            }
+
+            return matchingResponses;
+        }
+
+        private string FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, int skip, out int totalHits, out ExceptionDispatchInfo edi)
         {
             var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
             string querySearchTerm;
+            totalHits = 0;
 
             if (names.Length == 0)
             {
@@ -783,10 +787,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
-            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}";
+            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
 
             // 2) call query with search term, get unique names, see which ones truly match
-            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out edi);
+            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out totalHits, out edi);
             if (edi != null)
             {
                 return string.Empty;
@@ -836,41 +840,83 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return string.Empty; 
         }
 
-        /// <summary>
-        /// Helper method that makes gets 'totalHits' property from http response string.
-        /// The total hits property is used to determine the number of total results found (for pagination).
-        /// </summary>
-        public int GetCountFromResponse(string httpResponse, out ExceptionDispatchInfo edi)
+        private List<string> FindNameGlobbingWithTag(
+            string packageName, 
+            string[] tags, 
+            bool includePrerelease, 
+            string searchQueryServiceUrl, 
+            string registrationsBaseUrl,
+            string querySearchTerm,
+            out int totalHits, 
+            out ExceptionDispatchInfo edi)
         {
-            edi = null;
-            int count = 0;
-            
-            try
-            {
-                JsonDocument responseDom = JsonDocument.Parse(httpResponse);
-                JsonElement rootReponseDom = responseDom.RootElement;
+            string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+            List<string> matchingResponses = new List<string>();
 
-                if (!rootReponseDom.TryGetProperty("totalHits", out JsonElement totalHitsElement))
+            // 2) call query with search term, get unique names, see which ones truly match
+            JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out totalHits, out edi);
+            if (edi != null)
+            {
+                return matchingResponses;
+            }
+
+            foreach (var pkgId in matchingPkgIds)
+            {
+                string id = string.Empty;
+                string latestVersion = string.Empty;
+                string[] pkgTags = Utils.EmptyStrArray;
+
+                try
                 {
-                    string errMsg = $"GetCountFromResponse(): CatalogEntry element could not be found in response or was empty.";
+                    if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
+                    {
+                        string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
+                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                        return matchingResponses;
+                    }
+
+                    if (!pkgId.TryGetProperty(tagsName, out JsonElement tagsItem))
+                    {
+                        string errMsg = $"FindNameGlobbing(): Tags element could not be found in response.";
+                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                        return matchingResponses;
+                    }
+
+                    id = idItem.ToString();
+                    latestVersion = versionItem.ToString();
+
+                    pkgTags = GetTagsFromJsonElement(tagsElement: tagsItem);
+                }
+                catch (Exception e)
+                {
+                    string errMsg = $"FindNameGlobbingWithTag(): Name or Version or Tags element could not be parsed from response due to exception {e.Message}.";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return count;
+                    break;
                 }
 
-                if (!int.TryParse(totalHitsElement.ToString(), out count)) {
-                    string errMsg = $"GetCountFromResponse(): Error parsing totalHits.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return count;
+                // determine if id matches our wildcard criteria
+                if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
+                    (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
+                {
+                    bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags, requiredTags: tags);
+                    if (!isTagMatch)
+                    {
+                        continue;
+                    }
+
+                    string response = FindVersionHelper(registrationsBaseUrl, id, latestVersion, out edi);
+
+                    if (edi != null)
+                    {
+                        continue;
+                    }
+
+                    matchingResponses.Add(response);
                 }
             }
-            catch (Exception e)
-            {
-                string errMsg = $"GetCountFromResponse(): Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
-                edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                return count;
-            }
 
-            return count;
+            return matchingResponses;
         }
 
         /// <summary>
@@ -943,7 +989,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private Hashtable FindResourceType(string[] resourceTypeName, out ExceptionDispatchInfo edi)
         {
             Hashtable resourceHash = new Hashtable();
-            JsonElement[] resources = GetJsonElementArr($"{Repository.Uri}", resourcesName, out edi);
+            JsonElement[] resources = GetJsonElementArr($"{Repository.Uri}", resourcesName, out int totalHits, out edi);
             if (edi != null)
             {
                 return resourceHash;
@@ -1122,7 +1168,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new JsonElement[]{};
             }
 
-            JsonElement[] pkgVersionsElement = GetJsonElementArr($"{packageBaseAddressUrl}{packageName.ToLower()}/index.json", versionsName, out edi);
+            JsonElement[] pkgVersionsElement = GetJsonElementArr($"{packageBaseAddressUrl}{packageName.ToLower()}/index.json", versionsName, out int totalHits, out edi);
             if (edi != null)
             {
                 return new JsonElement[]{};
@@ -1134,9 +1180,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method that parses response for given property and returns result for that property as a JsonElement array.
         /// </summary>
-        private JsonElement[] GetJsonElementArr(string request, string propertyName, out ExceptionDispatchInfo edi)
+        private JsonElement[] GetJsonElementArr(string request, string propertyName, out int totalHits, out ExceptionDispatchInfo edi)
         {
             JsonElement[] pkgsArr = new JsonElement[0];
+            totalHits = 0;
             try
             { 
                 string response = HttpRequestCall(request, out edi);
@@ -1146,10 +1193,26 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
 
                 JsonDocument pkgsDom = JsonDocument.Parse(response);
-
-                pkgsDom.RootElement.TryGetProperty(propertyName, out JsonElement pkgs);
-
+                JsonElement rootPkgsDom = pkgsDom.RootElement;
+                rootPkgsDom.TryGetProperty(propertyName, out JsonElement pkgs);
                 pkgsArr = pkgs.EnumerateArray().ToArray();
+
+                if (!rootPkgsDom.TryGetProperty("totalHits", out JsonElement totalHitsElement))
+                {
+                    string errMsg = $"GetCountFromResponse(): CatalogEntry element could not be found in response or was empty.";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    totalHits = 0;
+
+                    return pkgsArr;
+                }
+
+                if (!int.TryParse(totalHitsElement.ToString(), out totalHits))
+                {
+                    string errMsg = $"GetCountFromResponse(): Error parsing totalHits.";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    totalHits = 0;
+                    return pkgsArr;
+                }
             }
             catch (Exception e)
             {
