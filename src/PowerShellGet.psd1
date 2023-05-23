@@ -33,7 +33,7 @@
         'Update-PSResource')
 
     VariablesToExport = 'PSGetPath'
-    AliasesToExport = @('inmo', 'fimo', 'upmo', 'pumo')
+    AliasesToExport = @()
     PrivateData = @{
         PSData = @{
             Prerelease = 'beta21'
