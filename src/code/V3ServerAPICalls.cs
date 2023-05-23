@@ -13,9 +13,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
-using System.Xml;
-using System.Drawing;
-using System.Security.Cryptography.Pkcs;
 
 namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 {
@@ -77,7 +74,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// 
         /// Azure Artifacts does not support querying on tags, so if support this scenario we need to search on the term and then filter
         /// </summary>
-        public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
+        public override FindResults FindTags(
+            string[] tags, 
+            bool includePrerelease, 
+            ResourceType _type, 
+            out ExceptionDispatchInfo edi)
         {
             List<string> responses = new List<string>();
             string firstTag = tags[0]; // TODO: better err handle
@@ -93,16 +94,25 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             bool isNuGetRepo = searchQueryServiceUrl.Contains("nuget.org");
 
-            // 1) get initial response 
+            // Get initial response 
             int skip = 0;
-            // TODO add paging here
-            responses.AddRange(FindTags(tags, firstTag, includePrerelease, isNuGetRepo, searchQueryServiceUrl, registrationsBaseUrl, skip, out int initialCount, out edi));
+            var initialResponse = FindTags(
+                                    tags: tags, 
+                                    firstTag: firstTag, 
+                                    includePrerelease: includePrerelease, 
+                                    isNuGetRepo: isNuGetRepo, 
+                                    searchQueryServiceUrl: searchQueryServiceUrl, 
+                                    registrationsBaseUrl: registrationsBaseUrl, 
+                                    skip: skip, 
+                                    totalHits: out int initialCount, 
+                                    edi: out edi);
 
             // check count (ie "totalHits")  425 ==> count/100  ~~> 5 calls 
             if (edi != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
+            responses.AddRange(initialResponse);
 
             int count = initialCount / 100; 
             // if more than 100 count, loop and add response to list
@@ -111,7 +121,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // skip 100
                 skip += 100;
 
-                var tmpResponse = FindTags(tags, firstTag, includePrerelease, isNuGetRepo, searchQueryServiceUrl, registrationsBaseUrl, skip, out initialCount, out edi);
+                var tmpResponse = FindTags(
+                                    tags: tags, 
+                                    firstTag: firstTag, 
+                                    includePrerelease: includePrerelease, 
+                                    isNuGetRepo: isNuGetRepo, 
+                                    searchQueryServiceUrl: searchQueryServiceUrl, 
+                                    registrationsBaseUrl: registrationsBaseUrl, 
+                                    skip: skip, 
+                                    totalHits: out initialCount, 
+                                    edi: out edi);
                 if (edi != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -128,7 +147,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// This functionality is not supported for V3 protocol server.
         /// Find method which allows for searching for packages with specified Command or DSCResource name.
         /// </summary>
-        public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
+        public override FindResults FindCommandOrDscResource(
+            string[] tags, 
+            bool includePrerelease, 
+            bool isSearchingForCommands, 
+            out ExceptionDispatchInfo edi)
         {
             string errMsg = $"Find by CommandName or DSCResource is not supported for {Repository.Name} as it uses the V3 server protocol";
             edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
@@ -148,7 +171,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// This type points to the url to use (ex above)
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindName(
+            string packageName, 
+            bool includePrerelease, 
+            ResourceType type, 
+            out ExceptionDispatchInfo edi)
         {
             Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
             if (edi != null)
@@ -204,7 +231,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Name: no wildcard support
         /// Examples: Search "Newtonsoft.Json" - Tag "json"
         /// </summary>
-        public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameWithTag(
+            string packageName, 
+            string[] tags, 
+            bool includePrerelease, 
+            ResourceType type, 
+            out ExceptionDispatchInfo edi)
         {
             Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
             if (edi != null)
@@ -287,7 +319,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindNameGlobbing(packageName, includePrerelease, type, skip, out int initalCount, out edi);
+            var initialResponse = FindNameGlobbing(packageName, includePrerelease, skip, out int initalCount, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -306,7 +338,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 // skip 100
                 skip += 100;
-                var tmpResponse = FindNameGlobbing(packageName, includePrerelease, type, skip, out initalCount, out edi);
+                var tmpResponse = FindNameGlobbing(packageName, includePrerelease, skip, out initalCount, out edi);
                 if (edi != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -323,7 +355,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Name: supports wildcards
         /// Examples: Search "Nuget.Server*" -Tag "nuget"
         /// </summary>
-        public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameGlobbingWithTag(
+            string packageName, 
+            string[] tags, 
+            bool includePrerelease, 
+            ResourceType type, 
+            out ExceptionDispatchInfo edi)
         {
             var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
             string querySearchTerm;
@@ -362,14 +399,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
             string registrationsBaseUrl = resourceUrls[registrationsBaseUrlName] as string;
 
-            // 1) get initial response 
+            // Get initial response 
             int skip = 0;
             List<string> responses = new List<string>();
-            responses.AddRange(FindNameGlobbingWithTag(packageName, tags, includePrerelease, searchQueryServiceUrl, registrationsBaseUrl, querySearchTerm, out int initialCount, out edi));
+            var initialResponse = FindNameGlobbingWithTag(packageName, tags, includePrerelease, searchQueryServiceUrl, registrationsBaseUrl, querySearchTerm, out int initialCount, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
+            responses.AddRange(initialResponse);
 
             // check count (ie "totalHits")  425 ==> count/100  ~~> 5 calls 
             int count = initialCount / 100;
@@ -413,7 +451,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// need to filter client side
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
+        public override FindResults FindVersionGlobbing(
+            string packageName, 
+            VersionRange versionRange, 
+            bool includePrerelease, 
+            ResourceType type, 
+            bool getOnlyLatest, 
+            out ExceptionDispatchInfo edi)
         {
             Hashtable resourceUrls = FindResourceType(new string[] { packageBaseAddressName, registrationsBaseUrlName }, out edi);
             if (edi != null)
@@ -520,7 +564,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///     https://msazure.pkgs.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_packaging/0d5429e2-c871-4347-bdc9-d1cbbac5eb3b/nuget/v3/registrations2/newtonsoft.json/13.0.2.json 
         ///     
         /// </summary>        
-        public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindVersionWithTag(
+            string packageName, 
+            string version, 
+            string[] tags, 
+            ResourceType type, 
+            out ExceptionDispatchInfo edi)
         {
             Hashtable resourceUrls = FindResourceType(new string[] { registrationsBaseUrlName }, out edi);
             if (edi != null)
@@ -646,6 +695,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #endregion
 
         #region Private Methods
+
         private List<string> FindTags(
                 string[] tags, 
                 string firstTag,
@@ -660,7 +710,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string query = isNuGetRepo ? $"{searchQueryServiceUrl}?q=tags:{firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0" :
               $"{searchQueryServiceUrl}?q={firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
 
-            // Call query with tags. (for Azure artifacts) get unique names, see which ones truly match
+            // Call query with tags. (or Azure artifacts) get unique names, see which ones truly match
             JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out totalHits, out edi);
             if (edi != null)
             {
@@ -747,7 +797,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return matchingResponses;
         }
 
-        private List<string> FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, int skip, out int totalHits, out ExceptionDispatchInfo edi)
+        private List<string> FindNameGlobbing(
+            string packageName, 
+            bool includePrerelease, 
+            int skip, 
+            out int totalHits, 
+            out ExceptionDispatchInfo edi)
         {
             var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
             string querySearchTerm;
@@ -790,7 +845,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
             string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
 
-            // 2) call query with search term, get unique names, see which ones truly match
+            // Call query with search term, get unique names, see which ones truly match
             JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out totalHits, out edi);
             if (edi != null)
             {
@@ -852,7 +907,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string query = $"{searchQueryServiceUrl}?q={querySearchTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
             List<string> matchingResponses = new List<string>();
 
-            // 2) call query with search term, get unique names, see which ones truly match
+            // Call query with search term, get unique names, see which ones truly match
             JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out totalHits, out edi);
             if (edi != null)
             {
@@ -1046,7 +1101,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method finds package with name and specified version
         /// <summary>
-        private string FindVersionHelper(string registrationsBaseUrl, string packageName, string version, out ExceptionDispatchInfo edi)
+        private string FindVersionHelper(
+            string registrationsBaseUrl, 
+            string packageName, 
+            string version, 
+            out ExceptionDispatchInfo edi)
         {
             // https://api.nuget.org/v3/registration5-gz-semver2/newtonsoft.json/13.0.2.json
             var requestPkgMapping = $"{registrationsBaseUrl}{packageName.ToLower()}/{version}.json";
@@ -1159,7 +1218,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Helper method that returns a flattened list of all versions present for a package.
         /// Implementation note: NuGet server and Azure Artifacts server return this flattened version list in opposite orders so we reverse array accordingly.
         /// </summary>
-        private JsonElement[] GetPackageVersions(string packageBaseAddressUrl, string packageName, bool isNuGetRepo, out ExceptionDispatchInfo edi)
+        private JsonElement[] GetPackageVersions(
+            string packageBaseAddressUrl, 
+            string packageName, 
+            bool isNuGetRepo, 
+            out ExceptionDispatchInfo edi)
         {
             if (String.IsNullOrEmpty(packageBaseAddressUrl))
             {
@@ -1179,7 +1242,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method that parses response for given property and returns result for that property as a JsonElement array.
         /// </summary>
-        private JsonElement[] GetJsonElementArr(string request, string propertyName, out int totalHits, out ExceptionDispatchInfo edi)
+        private JsonElement[] GetJsonElementArr(
+            string request, 
+            string propertyName, 
+            out int totalHits, 
+            out ExceptionDispatchInfo edi)
         {
             JsonElement[] pkgsArr = new JsonElement[0];
             totalHits = 0;
