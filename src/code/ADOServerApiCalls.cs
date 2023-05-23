@@ -558,17 +558,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         // Get Version and keep if it's latest
                         string resourceType = typeElement.ToString();
+                        // example: RegistrationsBaseUrl/3.6.0
                         string[] resourceTypeParts = resourceType.Split(new char[]{'/'}, StringSplitOptions.RemoveEmptyEntries);
                         if (resourceTypeParts.Length < 2)
                         {
-                            // TODO: write error?
                             continue;
                         }
 
                         string resourceVersion = resourceTypeParts[1];
                         if (resourceVersion.Equals("Versioned", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            continue; // TODO: skip right?
+                            continue;
                         }
 
                         if (!NuGetVersion.TryParse(resourceVersion, out NuGetVersion registrationsVersion))
@@ -660,7 +660,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     JsonElement versionedItem = innerItemsElements[i];
                     if (!versionedItem.TryGetProperty(property, out JsonElement metadataElement))
                     {
-                        // TODO: return or parse through rest of the version entries?
                         edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{property}' element, for package with Name {packageName}."));
                         return Utils.EmptyStrArray;
                     }

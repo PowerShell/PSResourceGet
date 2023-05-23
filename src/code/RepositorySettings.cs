@@ -803,20 +803,20 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             return XDocument.Load(xmlReader);
         }
 
-        private static PSRepositoryInfo.APIVersion GetRepoAPIVersion(Uri repoUri) {
-
+        private static PSRepositoryInfo.APIVersion GetRepoAPIVersion(Uri repoUri)
+        {
             if (repoUri.AbsoluteUri.EndsWith("api/v2", StringComparison.OrdinalIgnoreCase))
             {
                 return PSRepositoryInfo.APIVersion.v2;
             }
-            else if (repoUri.AbsoluteUri.EndsWith("v3/index.json", StringComparison.OrdinalIgnoreCase))
+            else if (repoUri.AbsoluteUri.EndsWith("index.json", StringComparison.OrdinalIgnoreCase))
             {
-                if (repoUri.AbsoluteUri.Contains("pkgs.dev.azure.com"))
+                if (repoUri.AbsoluteUri.Contains("nuget.org"))
                 {
-                    return PSRepositoryInfo.APIVersion.azureDevOpsFeed;
+                    return PSRepositoryInfo.APIVersion.v3;
                 }
 
-                return PSRepositoryInfo.APIVersion.v3;
+                return PSRepositoryInfo.APIVersion.azureDevOpsFeed;
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase))
             {
