@@ -293,7 +293,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            responses.Add(initialResponse);
+            responses.AddRange(initialResponse);
 
             // check count (ie "totalHits")  425 ==> count/20  ~~> 22 calls 
             if (edi != null)
@@ -311,7 +311,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                 }
-                responses.Add(tmpResponse);
+                responses.AddRange(tmpResponse);
                 count--;
             }
 
@@ -747,16 +747,17 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return matchingResponses;
         }
 
-        private string FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, int skip, out int totalHits, out ExceptionDispatchInfo edi)
+        private List<string> FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, int skip, out int totalHits, out ExceptionDispatchInfo edi)
         {
             var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
             string querySearchTerm;
             totalHits = 0;
+            List<string> matchingResponses = new List<string>();
 
             if (names.Length == 0)
             {
                 edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"));
-                return string.Empty;
+                return matchingResponses;
             }
             if (names.Length == 1)
             {
@@ -773,7 +774,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // *pow*get
 
                 edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
-                return string.Empty;
+                return matchingResponses;
             }
 
             // https://msazure.pkgs.visualstudio.com/.../_packaging/.../nuget/v3/query2 (no support for * in search term, but matches like NuGet)
@@ -781,7 +782,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable resourceUrls = FindResourceType(new string[] { searchQueryServiceName, registrationsBaseUrlName }, out edi);
             if (edi != null)
             {
-                return string.Empty;
+                return matchingResponses;
             }
 
             string searchQueryServiceUrl = resourceUrls[searchQueryServiceName] as string;
@@ -793,10 +794,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             JsonElement[] matchingPkgIds = GetJsonElementArr(query, dataName, out totalHits, out edi);
             if (edi != null)
             {
-                return string.Empty;
+                return matchingResponses;
             }
 
-            List<string> matchingResponses = new List<string>();
             foreach (var pkgId in matchingPkgIds)
             {
                 string id = string.Empty;
@@ -808,7 +808,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     {
                         string errMsg = $"FindNameGlobbing(): Name or Version element could not be found in response.";
                         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return string.Empty;
+                        return matchingResponses;
                     }
 
                     id = idItem.ToString();
@@ -830,14 +830,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                     if (edi != null)
                     {
-                        return string.Empty;
+                        return matchingResponses;
                     }
-
-                    return response;
+                    matchingResponses.Add(response);
                 }
             }
 
-            return string.Empty; 
+            return matchingResponses;
         }
 
         private List<string> FindNameGlobbingWithTag(
@@ -1199,10 +1198,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 if (!rootPkgsDom.TryGetProperty("totalHits", out JsonElement totalHitsElement))
                 {
-                    string errMsg = $"GetCountFromResponse(): CatalogEntry element could not be found in response or was empty.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                     totalHits = 0;
-
                     return pkgsArr;
                 }
 
@@ -1210,8 +1206,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     string errMsg = $"GetCountFromResponse(): Error parsing totalHits.";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    totalHits = 0;
-                    return pkgsArr;
                 }
             }
             catch (Exception e)
