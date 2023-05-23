@@ -1,5 +1,4 @@
-using System.Security.Cryptography;
-using System.Reflection.Emit;
+
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -28,6 +27,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private static readonly string resourcesName = "resources";
         private static readonly string registrationsBaseUrlName = "RegistrationsBaseUrl";
         private static readonly string itemsName = "items";
+        private static readonly string countName = "count";
         private static readonly string versionName = "version";
         private static readonly string tagsName = "tags";
         private static readonly string catalogEntryProperty = "catalogEntry";
@@ -240,7 +240,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 string errorMsg = $"Package with Name {packageName} could not be found in repository {Repository.Name}";
                 edi = ExceptionDispatchInfo.Capture(new Exception(errorMsg));
-                return null;
+                return pkgStream;
             }
 
             // get the Url for the latest version only
@@ -266,14 +266,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>    
         public override Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
         {
-            NuGetVersion.TryParse(version, out NuGetVersion requiredVersion);
-
-            // {registrationUrl} (minus last "/X") + "/flat2/" + {name}/{version}/{name}.{version}.nupkg
-            // https://pkgs.dev.azure.com/powershell-rel/8abad6f9-c150-4f52-8adb-5438eaafd645/_packaging/d7ed2d91-9949-4cad-8b55-f46e225426dd/nuget/v3/registrations2-semver2/
-            // https://pkgs.dev.azure.com/powershell-rel/8abad6f9-c150-4f52-8adb-5438eaafd645/_packaging/d7ed2d91-9949-4cad-8b55-f46e225426dd/nuget/v3/flat2/test_local_mod/5.0.0/test_local_mod.5.0.0.nupkg
-            // https://pkgs.dev.azure.com/powershell-rel/_packaging/fae8154e-72fd-4f73-86aa-795f6620404c@bf3de586-7353-4d8e-aa07-30fe2569ce2d/nuget/v3/flat2/
-
             Stream pkgStream = null;
+            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
+            {
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Version {version} to be installed is not a valid NuGet version."));
+                return pkgStream;
+            }
+
             string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
             if (edi != null)
             {
@@ -296,21 +295,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string pkgContentUrl = String.Empty;
             foreach (string response in versionedResponses)
             {
-                // JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
-                // JsonElement rootDom = pkgVersionEntry.RootElement;
-                // rootDom.TryGetProperty("version", out JsonElement versionElement);
+                // Response will be "packageContent" element value that looks like: "{packageBaseAddress}/{packageName}/{normalizedVersion}/{packageName}.{normalizedVersion}.nupkg"
                 if (response.Contains(requiredVersion.ToNormalizedString()))
                 {
                     pkgContentUrl = response;
                     break;
                 }
-                // if (NuGetVersion.TryParse(versionElement.ToString(), out NuGetVersion pkgNuGetVersion))
-                // {
-                //     if (pkgNuGetVersion == requiredVersion)
-                //     {
-                        
-                //     }
-                // }
             }
 
             if (String.IsNullOrEmpty(pkgContentUrl))
@@ -334,6 +324,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         #region Private Methods
 
+        /// <summary>
+        /// Helper method called by FindName() and FindNameWithTag()
+        /// <summary>
         private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
             string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
@@ -401,9 +394,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
         
+        /// <summary>
+        /// Helper method called by FindVersion() and FindVersionWithTag()
+        /// </summary>
         private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            NuGetVersion.TryParse(version, out NuGetVersion requiredVersion);
+            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
+            {
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Version {version} to be found is not a valid NuGet version."));
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            }
 
             string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
             if (edi != null)
@@ -428,7 +428,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     JsonElement rootDom = pkgVersionEntry.RootElement;
                     if (!rootDom.TryGetProperty(versionName, out pkgVersionElement))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element."));
+                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element for search with Name {packageName} and Version {version}."));
                         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     }
                 }
@@ -539,10 +539,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         private string FindRegistrationsBaseUrl(out ExceptionDispatchInfo edi)
         {
-            edi = null;
             Hashtable resourceHash = new Hashtable();
             NuGetVersion latestRegistrationsVersion = new NuGetVersion("0.0.0.0");
             string latestRegistrationsUrl = String.Empty;
+
+            // Get all the resources for the service index
             JsonElement[] resources = GetJsonElementArr($"{Repository.Uri}", resourcesName, out edi);
             if (edi != null)
             {
@@ -560,18 +561,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         string[] resourceTypeParts = resourceType.Split(new char[]{'/'}, StringSplitOptions.RemoveEmptyEntries);
                         if (resourceTypeParts.Length < 2)
                         {
-                            // TODO: some error
+                            // TODO: write error?
+                            continue;
                         }
 
                         string resourceVersion = resourceTypeParts[1];
                         if (resourceVersion.Equals("Versioned", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            continue; // skip right?
+                            continue; // TODO: skip right?
                         }
 
                         if (!NuGetVersion.TryParse(resourceVersion, out NuGetVersion registrationsVersion))
                         {
-                            // TODO: some error
+                            edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Version {resourceVersion} is not a valid NuGet version."));
+                            return String.Empty;
                         }
 
                         if (registrationsVersion > latestRegistrationsVersion)
@@ -592,7 +595,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    string errMsg = $"Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
+                    string errMsg = $"Exception parsing JSON for respository {Repository.Name} with error: {e.Message}";
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                     return String.Empty;
                 }
@@ -604,6 +607,10 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method iterates through the entries in the registrationsUrl for a specific package and all its versions.
         /// This contains an inner items element (containing the package metadata) and the packageContent element (containing URI through which the .nupkg can be downloaded)
+        /// <param name="property"> This can be the "catalogEntry" or "packageContent" property.
+        ///     The "catalogEntry" property is used for search, and the value is package metadata.
+        ///     The "packageContent" property is used for download, and the value is a URI for the .nupkg file.
+        /// </param>
         /// <summary>
         private string[] GetVersionedResponses(string registrationsBaseUrl, string packageName, string property, out ExceptionDispatchInfo edi)
         {
@@ -615,37 +622,56 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return Utils.EmptyStrArray;
             }
 
-            // parse out JSON response we get from RegistrationsUrl
-            JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgMappingResponse);
-
-            // The response has a "items" array element, which only has useful 1st element
-            JsonElement rootDom = pkgVersionEntry.RootElement;
-            rootDom.TryGetProperty(itemsName, out JsonElement itemsElement);
-            if (itemsElement.GetArrayLength() == 0)
+            try
             {
-                // TODO: error handle
-            }
+                // parse out JSON response we get from RegistrationsUrl
+                JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgMappingResponse);
 
-            JsonElement firstItem = itemsElement[0];
-
-            // The "items" property has a "items" element as well as a "count" element
-            JsonElement innerItemsElements = firstItem.GetProperty(itemsName); // this is the item for each version of the package
-            JsonElement countElement = firstItem.GetProperty("count"); // this is the count representing how many versions are present for that package.
-            if (!countElement.TryGetInt32(out int count))
-            {
-                // TODO: error handle
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                JsonElement versionedItem = innerItemsElements[i]; // the specific entry for a package version
-                if (!versionedItem.TryGetProperty(property, out JsonElement metadataElement))
+                // The response has a "items" array element, which only has useful 1st element
+                JsonElement rootDom = pkgVersionEntry.RootElement;
+                rootDom.TryGetProperty(itemsName, out JsonElement itemsElement);
+                if (itemsElement.GetArrayLength() == 0)
                 {
-                    // TODO: error handle and return or continue?
+                    edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain '{itemsName}' element, for package with Name {packageName}."));
+                    return Utils.EmptyStrArray;
                 }
 
+                JsonElement firstItem = itemsElement[0];
+
+                // The "items" property contains an inner "items" element and a "count" element
+                // The inner "items" property is the metadata array for each version of the package.
+                // The "count" property represents how many versions are present for that package, (i.e how many elements are in the inner "items" array)
+                // JsonElement innerItemsElements = firstItem.GetProperty(itemsName);
+                if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElements))
+                {
+                    edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{itemsName}' element, for package with Name {packageName}."));
+                    return Utils.EmptyStrArray;
+                }
                 
-                versionedResponses.Add(metadataElement.ToString());
+                if (!firstItem.TryGetProperty(countName, out JsonElement countElement) || !countElement.TryGetInt32(out int count))
+                {
+                    edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{countName}' element or it is not a valid integer, for package with Name {packageName}."));
+                    return Utils.EmptyStrArray;
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    // Get the specific entry for each package version
+                    JsonElement versionedItem = innerItemsElements[i];
+                    if (!versionedItem.TryGetProperty(property, out JsonElement metadataElement))
+                    {
+                        // TODO: return or parse through rest of the version entries?
+                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{property}' element, for package with Name {packageName}."));
+                        return Utils.EmptyStrArray;
+                    }
+                    
+                    versionedResponses.Add(metadataElement.ToString());
+                }
+            }
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+                return Utils.EmptyStrArray;
             }
 
             return versionedResponses.ToArray();

@@ -74,31 +74,6 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
-    # It "find resource with latest (including prerelease) version given Prerelease parameter" {
-    #     # FindName()
-    #     # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
-    #     $res = Find-PSResource -Name $testModuleName -Repository $ADORepoName
-    #     $res.Version | Should -Be "5.0.0"
-
-    #     $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $ADORepoName
-    #     $resPrerelease.Version | Should -Be "5.2.5"
-    #     $resPrerelease.Prerelease | Should -Be "alpha001"
-    # }
-
-    # It "find resources, including Prerelease version resources, when given Prerelease parameter" {
-    #     # FindVersionGlobbing()
-    #     $resWithoutPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $ADORepoName
-    #     $resWithPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $ADORepoName
-    #     $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
-    # }
-
-    # It "find resource and its dependency resources with IncludeDependencies parameter" {
-    #     # find with dependencies is not yet supported for V3, so this should only install parent package
-    #     $pkg = Find-PSResource -Name "TestModuleWithDependencyE" -IncludeDependencies -Repository $ADORepoName
-    #     $pkg.Name | Should -Be "TestModuleWithDependencyE"
-    #     $pkg | Should -HaveCount 1
-    # }
-
     It "find resource given Name and Tag property (single)" {
         # FindNameWithTag()
         $requiredTag = "Entity"
