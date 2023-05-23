@@ -721,21 +721,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                out string programFilesPath);
 
             List<string> resourcePaths = new List<string>();
-
-            // Path search order is PSModulePath paths first, then default paths.
-            if (scope is null)
-            {
-                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                resourcePaths.AddRange(psModulePath.Split(Path.PathSeparator).ToList());
-            }
-
             if (scope is null || scope.Value is ScopeType.CurrentUser)
             {
                 resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
                 resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
 
-            if (scope is null || scope.Value is ScopeType.AllUsers)
+            if (scope.Value is ScopeType.AllUsers)
             {
                 resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
                 resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
