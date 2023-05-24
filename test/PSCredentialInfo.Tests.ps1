@@ -41,6 +41,17 @@ Describe "Create PSCredentialInfo with VaultName, SecretName, and Credential" -t
         $credentialInfo.VaultName | Should -Be "testvault"
         $credentialInfo.SecretName | Should -Be $randomSecret
     }
+
+    It "Creates PSCredentialInfo successfully from hashtable" {
+        $randomSecret = [System.IO.Path]::GetRandomFileName()
+        $randomPassword = [System.IO.Path]::GetRandomFileName()
+        $credential = New-Object System.Management.Automation.PSCredential ("username", (ConvertTo-SecureString $randomPassword -AsPlainText -Force))
+        $hash = @{ "VaultName" = "testvault" ; "SecretName" = $randomSecret ; "Credential" = $credential }
+        $credentialInfo = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ($hash)
+        
+        $credentialInfo.VaultName | Should -Be "testvault"
+        $credentialInfo.SecretName | Should -Be $randomSecret
+    }
 }
 
 Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
