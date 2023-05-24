@@ -360,6 +360,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name "testmodule99"
         $res.Name | Should -Be "testmodule99"
         $res.Count | Should -Be 1
+        $res.Repository | Should -Be $PSGalleryName
     }
 }
 
