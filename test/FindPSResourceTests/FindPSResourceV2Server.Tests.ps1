@@ -355,6 +355,15 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }
+
+    It "find resource, but only show listed versions" {
+        # testmodule99 version 1.0.0-beta1 is unlisted
+        $res = Find-PSResource -Name "testmodule99" -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        foreach ($item in $res) {
+            $item.Version.ToString() + $item.Prerelease | Should -Not -Be "1.0.0-beta1"
+        }
+    }
 }
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
