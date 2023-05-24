@@ -1,4 +1,5 @@
 
+using System.Security.Cryptography;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -22,6 +23,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         #region Members
         public override PSRepositoryInfo Repository { get; set; }
         private HttpClient _sessionClient { get; set; }
+        private bool _isNuGetRepo { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string resourcesName = "resources";
@@ -48,6 +50,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             };
 
             _sessionClient = new HttpClient(handler);
+
+            _isNuGetRepo = String.Equals(Repository.Uri.AbsoluteUri, "https://api.nuget.org/v3/index.json", StringComparison.InvariantCultureIgnoreCase);
         }
 
         #endregion
@@ -146,7 +150,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
         {
-            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            // string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrlForAllV3(out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -224,7 +229,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
         {
             Stream pkgStream = null;
-            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            // string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrlForAllV3(out edi);
             if (edi != null)
             {
                 return pkgStream;
@@ -273,7 +279,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return pkgStream;
             }
 
-            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            // string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrlForAllV3(out edi);
             if (edi != null)
             {
                 return pkgStream;
@@ -329,7 +336,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            // string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrlForAllV3(out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -405,7 +413,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            // string registrationsBaseUrl = FindRegistrationsBaseUrl(out edi);
+            string registrationsBaseUrl = FindRegistrationsBaseUrlForAllV3(out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -604,6 +613,171 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return latestRegistrationsUrl;
         }
 
+        private Dictionary<string, string> GetResourcesFromServiceIndex(out ExceptionDispatchInfo edi)
+        {
+            Dictionary<string, string> resources = new Dictionary<string, string>();
+            JsonElement[] resourcesArray = GetJsonElementArr($"{Repository.Uri}", resourcesName, out edi);
+            if (edi != null)
+            {
+                return resources;
+            }
+
+            foreach (JsonElement resource in resourcesArray)
+            {
+                try
+                {
+                    if (!resource.TryGetProperty("@type", out JsonElement typeElement))
+                    {
+                        // TODO: some error
+                    }
+
+                    if (!resource.TryGetProperty("@id", out JsonElement idElement))
+                    {
+                        // TODO: some error
+                    }
+
+                    if (!resources.ContainsKey(typeElement.ToString()))
+                    {
+                        // Some resources have a primary and secondary entry. The @id value is the same, so we only choose the primary entry.
+                        resources.Add(typeElement.ToString(), idElement.ToString());
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    string errMsg = $"Exception parsing service index JSON for respository {Repository.Name} with error: {e.Message}";
+                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    return new Dictionary<string, string>();
+                }
+            }
+
+            return resources;
+
+            //             // Get Version and keep if it's latest
+            //             string resourceType = typeElement.ToString();
+            //             // example: RegistrationsBaseUrl/3.6.0
+            //             string[] resourceTypeParts = resourceType.Split(new char[]{'/'}, StringSplitOptions.RemoveEmptyEntries);
+            //             if (resourceTypeParts.Length < 2)
+            //             {
+            //                 continue;
+            //             }
+
+            //             string resourceVersion = resourceTypeParts[1];
+            //             if (resourceVersion.Equals("Versioned", StringComparison.InvariantCultureIgnoreCase))
+            //             {
+            //                 continue;
+            //             }
+
+            //             if (!NuGetVersion.TryParse(resourceVersion, out NuGetVersion registrationsVersion))
+            //             {
+            //                 edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Version {resourceVersion} is not a valid NuGet version."));
+            //                 return String.Empty;
+            //             }
+
+            //             if (registrationsVersion > latestRegistrationsVersion)
+            //             {
+            //                 latestRegistrationsVersion = registrationsVersion;
+            //                 if (resource.TryGetProperty("@id", out JsonElement idElement))
+            //                 {
+            //                     latestRegistrationsUrl = idElement.ToString();
+            //                 }
+            //                 else
+            //                 {
+            //                     string errMsg = $"@type element was found but @id element not found in service index '{Repository.Uri}' for {resourceType}.";
+            //                     edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException(errMsg));
+            //                     return String.Empty;
+            //                 }
+            //             }
+            //         }
+                
+            //     catch (Exception e)
+            //     {
+            //         string errMsg = $"Exception parsing JSON for respository {Repository.Name} with error: {e.Message}";
+            //         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+            //         return String.Empty;
+            //     }
+            // }
+        }
+        
+        private string FindRegistrationsBaseUrlForAllV3(out ExceptionDispatchInfo edi)
+        {
+            string registrationsBaseUrl = String.Empty;
+
+            // Get all the resources for the service index
+            Dictionary<string, string> resources = GetResourcesFromServiceIndex(out edi);
+            if (edi != null)
+            {
+                return String.Empty;
+            }
+
+            /**
+            If RegistrationsBaseUrl/3.6.0 exists, use RegistrationsBaseUrl/3.6.0
+            Otherwise, if RegistrationsBaseUrl/3.4.0 exists, use RegistrationsBaseUrl/3.4.0
+            Otherwise, if RegistrationsBaseUrl/3.0.0-rc exists, use RegistrationsBaseUrl/3.0.0-rc
+            Otherwise, if RegistrationsBaseUrl/3.0.0-beta exists, use RegistrationsBaseUrl/3.0.0-beta
+            Otherwise, if RegistrationsBaseUrl exists, use RegistrationsBaseUrl
+            Otherwise, report an error
+            */
+
+            if (resources.ContainsKey("RegistrationsBaseUrl/3.6.0"))
+            {
+                registrationsBaseUrl = resources["RegistrationsBaseUrl/3.6.0"];
+            }
+            else if (resources.ContainsKey("RegistrationsBaseUrl/3.4.0"))
+            {
+                registrationsBaseUrl = resources["RegistrationsBaseUrl/3.4.0"];
+            }
+            else if (resources.ContainsKey("RegistrationsBaseUrl/3.0.0-rc"))
+            {
+                registrationsBaseUrl = resources["RegistrationsBaseUrl/3.0.0-rc"];
+            }
+            else if (resources.ContainsKey("RegistrationsBaseUrl/3.0.0-beta"))
+            {
+                registrationsBaseUrl = resources["RegistrationsBaseUrl/3.0.0-beta"];
+            }
+            else if (resources.ContainsKey("RegistrationsBaseUrl"))
+            {
+                registrationsBaseUrl = resources["RegistrationsBaseUrl"];
+            }
+            else
+            {
+                edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException($"RegistrationBaseUrl resource could not be found for Repository '{Repository.Name}'"));
+            }
+
+            return registrationsBaseUrl;
+        }
+
+        private bool IsLatestVersionFirst(string[] versionedResponses, string upperVersion, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            bool latestVersionFirst = true;
+            // We don't need to perform this check if no responses, or single response
+            if (versionedResponses.Length < 2)
+            {
+                return latestVersionFirst;
+            }
+
+            string firstResponse = versionedResponses[0];
+            JsonDocument firstResponseJson = JsonDocument.Parse(firstResponse);
+            JsonElement firstResponseDom = firstResponseJson.RootElement;
+            if (!firstResponseDom.TryGetProperty(versionName, out JsonElement firstVersionElement))
+            {
+                edi = ExceptionDispatchInfo.Capture(new JsonParsingException("Response did not contain 'version' element"));
+                return latestVersionFirst;
+            }
+
+            string firstVersion = firstVersionElement.ToString();
+            if (NuGetVersion.TryParse(upperVersion, out NuGetVersion upperPkgVersion) && NuGetVersion.TryParse(firstVersion, out NuGetVersion firstPkgVersion))
+            {
+                if (firstPkgVersion != upperPkgVersion)
+                {
+                    latestVersionFirst = false;
+                }
+            }
+
+            return latestVersionFirst;
+        }
+
         /// <summary>
         /// Helper method iterates through the entries in the registrationsUrl for a specific package and all its versions.
         /// This contains an inner items element (containing the package metadata) and the packageContent element (containing URI through which the .nupkg can be downloaded)
@@ -615,6 +789,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         private string[] GetVersionedResponses(string registrationsBaseUrl, string packageName, string property, out ExceptionDispatchInfo edi)
         {
             List<string> versionedResponses = new List<string>();
+            string[] versionedResponseArr;
             var requestPkgMapping = $"{registrationsBaseUrl}{packageName.ToLower()}/index.json";
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out edi);
             if (edi != null)
@@ -654,6 +829,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     return Utils.EmptyStrArray;
                 }
 
+                if (!firstItem.TryGetProperty("upper", out JsonElement upperVersionElement))
+                {
+                    edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner 'upper' element, for package with Name {packageName}."));
+                    return Utils.EmptyStrArray;
+                }
+
                 for (int i = 0; i < count; i++)
                 {
                     // Get the specific entry for each package version
@@ -666,6 +847,15 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     
                     versionedResponses.Add(metadataElement.ToString());
                 }
+
+                // Reverse array of versioned responses, if needed, so that version entries are in descending order.
+                string upperVersion = upperVersionElement.ToString();
+                versionedResponseArr = versionedResponses.ToArray();
+                if (!IsLatestVersionFirst(versionedResponseArr, upperVersion, out edi))
+                {
+                    Array.Reverse(versionedResponseArr);
+                }
+
             }
             catch (Exception e)
             {
@@ -673,7 +863,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return Utils.EmptyStrArray;
             }
 
-            return versionedResponses.ToArray();
+            return versionedResponseArr;
         }
 
         /// <summary>
@@ -776,7 +966,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method called by HttpRequestCall() that makes the HTTP request for string response.
         /// </summary>
-        public static async Task<string> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
+        private static async Task<string> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
             string errMsg = "SendV3RequestAsync(): Error occured while trying to retrieve response: ";
 
@@ -806,7 +996,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Helper method called by HttpRequestCallForContent() that makes the HTTP request for string response.
         /// </summary>
-        public static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
+        private static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
             string errMsg = "SendV3RequestForContentAsync(): Error occured while trying to retrieve response for content: ";
 
