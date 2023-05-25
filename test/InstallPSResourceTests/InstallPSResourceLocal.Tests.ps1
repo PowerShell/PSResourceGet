@@ -142,7 +142,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository -Scope AllUsers -Verbose
         $pkg = Get-InstalledPSResource $testModuleName -Scope AllUsers
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Path.ToString().Contains("Program Files")
+        $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
     }
 
     # Windows only
