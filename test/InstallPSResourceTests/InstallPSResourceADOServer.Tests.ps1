@@ -21,7 +21,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2, $testScriptName -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
