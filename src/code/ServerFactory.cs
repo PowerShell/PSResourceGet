@@ -27,9 +27,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     currentServer = new LocalServerAPICalls(repository, networkCredential);
                     break;
 
-                case PSRepositoryInfo.APIVersion.azureDevOpsFeed:
-                    currentServer = new ADOServerApiCalls(repository, networkCredential);
-                    break;
+                // case PSRepositoryInfo.APIVersion.azureDevOpsFeed:
+                //     currentServer = new ADOServerApiCalls(repository, networkCredential);
+                //     break;
             }
 
             return currentServer;

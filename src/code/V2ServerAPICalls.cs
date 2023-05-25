@@ -628,7 +628,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             var requestUrlV2 = $"{Repository.Uri}/Search()?{prereleaseFilter}&searchTerm='{tagSearchTermPart}'{paginationParam}&{select}";
-            Console.WriteLine($"query: {requestUrlV2}");
             return HttpRequestCall(requestUrlV2, out edi);
         }
 
