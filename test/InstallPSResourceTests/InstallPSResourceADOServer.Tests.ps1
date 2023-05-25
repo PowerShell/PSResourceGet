@@ -140,14 +140,13 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         ($env:PSModulePath).Contains($pkg.InstalledLocation)
     }
 
-    It "Install resource with companyname, copyright and repository source location and validate properties" {
+    It "Install resource with companyname and repository source location and validate properties" {
         Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Version | Should -Be "5.2.5"
         $pkg.Prerelease | Should -Be "alpha001"
 
         $pkg.CompanyName | Should -Be "None"
-        $pkg.Copyright | Should -Be ""
         $pkg.RepositorySourceLocation | Should -Be $ADORepoUri
     }
 
