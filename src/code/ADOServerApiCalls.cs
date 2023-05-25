@@ -28,7 +28,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string resourcesName = "resources";
-        private static readonly string registrationsBaseUrlName = "RegistrationsBaseUrl";
         private static readonly string itemsName = "items";
         private static readonly string countName = "count";
         private static readonly string versionName = "version";
@@ -476,9 +475,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         
         private FindResults FindTagsFromNuGetRepo(string[] tags, bool includePrerelease, out ExceptionDispatchInfo edi)
         {
-            List<string> responses = new List<string>();
-            string firstTag = tags[0]; // TODO: better err handle
-
             Dictionary<string, string> resources = GetResourcesFromServiceIndex(out edi);
             if (edi != null)
             {
@@ -491,7 +487,9 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string query = $"{searchQueryServiceUrl}?q=tags:{firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+            string tagsQueryTerm = String.Join(" ", tags);
+
+            string query = $"{searchQueryServiceUrl}?q=tags:{tagsQueryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
             Console.WriteLine($"tag query: {query}");
 
             // Get responses for all packages (only their latest, prerelease satisfying version) that includes the tag (somewhere in the metadata)
@@ -517,28 +515,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     //     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                     // }
 
-                    if (!pkgEntry.TryGetProperty("tags", out JsonElement tagsItem))
-                    {
-                        string errMsg = $"FindTag(): Tag element could not be found in response.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
+                    // RECENT
+                    // if (!pkgEntry.TryGetProperty("tags", out JsonElement tagsItem))
+                    // {
+                    //     string errMsg = $"FindTag(): Tag element could not be found in response.";
+                    //     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                    //     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                    // }
 
-                    string[] pkgTags = GetTagsFromJsonElement(tagsItem);
-                    bool isTagMatch = true;
-                    foreach (string rqTag in tags)
-                    {
-                        if (!pkgTags.Contains(rqTag, StringComparer.OrdinalIgnoreCase))
-                        {
-                            isTagMatch = false;
-                            break;
-                        }
-                    }
+                    // string[] pkgTags = GetTagsFromJsonElement(tagsItem);
+                    // bool isTagMatch = true;
+                    // foreach (string rqTag in tags)
+                    // {
+                    //     if (!pkgTags.Contains(rqTag, StringComparer.OrdinalIgnoreCase))
+                    //     {
+                    //         isTagMatch = false;
+                    //         break;
+                    //     }
+                    // }
 
-                    if (!isTagMatch)
-                    {
-                        continue;
-                    }
+                    // if (!isTagMatch)
+                    // {
+                    //     continue;
+                    // }
 
                     matchingResponses.Add(pkgEntry.ToString());
                 }
@@ -550,103 +549,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 }
             }
 
-            FindResults tagsFoundResult = new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-            return tagsFoundResult;
+            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
-
-        // private FindResults FindTagsHelperForNuGet(string[] tags, bool includePrerelease, out ExceptionDispatchInfo edi)
-        // {
-        //     List<string> responses = new List<string>();
-        //     string firstTag = tags[0]; // TODO: better err handle
-
-        //     Dictionary<string, string> resources = GetResourcesFromServiceIndex(out edi);
-        //     if (edi != null)
-        //     {
-        //         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //     }
-
-        //     string searchQueryServiceUrl = FindSearchQueryService(resources, out edi);
-        //     if (edi != null)
-        //     {
-        //         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //     }
-
-        //     // string registrationsBaseUrl = FindRegistrationsBaseUrlForAllV3(resources, out edi);
-        //     // if (edi != null)
-        //     // {
-        //     //     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //     // }
-
-        //     string query = $"{searchQueryServiceUrl}?q=tags:{firstTag.ToLower()}&prerelease={includePrerelease}&semVerLevel=2.0.0";
-
-        //     // 2) call query with tags. (for Azure artifacts) get unique names, see which ones truly match
-        //     JsonElement[] tagPkgs = GetJsonElementArr(query, dataName, out edi);
-        //     if (edi != null)
-        //     {
-        //         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //     }
-
-        //     // loop through responses returned
-        //     // get tags really, and if it satisfies it all, add to list and return. ResponseUtil should handle rest
-
-        //     List<string> matchingResponses = new List<string>();
-        //     string id;
-        //     string latestVersion;
-        //     foreach (var pkgId in tagPkgs)
-        //     { 
-        //         try
-        //         {
-        //             if (!pkgId.TryGetProperty(idName, out JsonElement idItem) || !pkgId.TryGetProperty(versionName, out JsonElement versionItem))
-        //             {
-        //                 string errMsg = $"FindTag(): Id or Version element could not be found in response.";
-        //                 edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-        //                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //             }
-
-        //             if (!pkgId.TryGetProperty("tags", out JsonElement tagsItem))
-        //             {
-        //                 string errMsg = $"FindTag(): Tag element could not be found in response.";
-        //                 edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-        //                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //             }
-
-        //             string[] pkgTags = GetTagsFromJsonElement(tagsItem);
-        //             bool isTagMatch = true;
-        //             foreach (string rqTag in tags)
-        //             {
-        //                 if (!pkgTags.Contains(rqTag, StringComparer.OrdinalIgnoreCase))
-        //                 {
-        //                     isTagMatch = false;
-        //                     break;
-        //                 }
-        //             }
-
-        //             if (!isTagMatch)
-        //             {
-        //                 continue;
-        //             }
-
-        //             id = idItem.ToString();
-        //             latestVersion = versionItem.ToString();
-        //             string response = FindVersionHelper(id, latestVersion, out edi);
-        //             if (edi != null)
-        //             {
-        //                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //             }
-
-        //             matchingResponses.Add(response);
-        //         }
-        //         catch (Exception e)
-        //         {
-        //             string errMsg = $"FindTag(): Id or Version element could not be parsed from response due to exception {e.Message}.";
-        //             edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-        //             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //         }
-        //     }
-
-        //     FindResults tagsFoundResult = new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        //     return tagsFoundResult;
-        // }
 
         /// <summary>
         /// Helper method called by FindName() and FindNameWithTag()
@@ -870,77 +774,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             return content;
         }
 
-        /// <summary>
-        /// Gets the registrationsBaseUrl resource from the service index
-        /// With ADO, older versions can support different versions of this resource, so that's why we find the latest version of this resource
-        /// </summary>
-        private string FindRegistrationsBaseUrl(out ExceptionDispatchInfo edi)
-        {
-            Hashtable resourceHash = new Hashtable();
-            NuGetVersion latestRegistrationsVersion = new NuGetVersion("0.0.0.0");
-            string latestRegistrationsUrl = String.Empty;
-
-            // Get all the resources for the service index
-            JsonElement[] resources = GetJsonElementArr($"{Repository.Uri}", resourcesName, out edi);
-            if (edi != null)
-            {
-                return String.Empty;
-            }
-
-            foreach (JsonElement resource in resources)
-            {
-                try
-                {
-                    if (resource.TryGetProperty("@type", out JsonElement typeElement) && typeElement.ToString().Contains(registrationsBaseUrlName))
-                    {
-                        // Get Version and keep if it's latest
-                        string resourceType = typeElement.ToString();
-                        // example: RegistrationsBaseUrl/3.6.0
-                        string[] resourceTypeParts = resourceType.Split(new char[]{'/'}, StringSplitOptions.RemoveEmptyEntries);
-                        if (resourceTypeParts.Length < 2)
-                        {
-                            continue;
-                        }
-
-                        string resourceVersion = resourceTypeParts[1];
-                        if (resourceVersion.Equals("Versioned", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            continue;
-                        }
-
-                        if (!NuGetVersion.TryParse(resourceVersion, out NuGetVersion registrationsVersion))
-                        {
-                            edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Version {resourceVersion} is not a valid NuGet version."));
-                            return String.Empty;
-                        }
-
-                        if (registrationsVersion > latestRegistrationsVersion)
-                        {
-                            latestRegistrationsVersion = registrationsVersion;
-                            if (resource.TryGetProperty("@id", out JsonElement idElement))
-                            {
-                                latestRegistrationsUrl = idElement.ToString();
-                            }
-                            else
-                            {
-                                string errMsg = $"@type element was found but @id element not found in service index '{Repository.Uri}' for {resourceType}.";
-                                edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException(errMsg));
-                                return String.Empty;
-                            }
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    string errMsg = $"Exception parsing JSON for respository {Repository.Name} with error: {e.Message}";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return String.Empty;
-                }
-            }
-
-            return latestRegistrationsUrl;
-        }
-
         private Dictionary<string, string> GetResourcesFromServiceIndex(out ExceptionDispatchInfo edi)
         {
             Dictionary<string, string> resources = new Dictionary<string, string>();
@@ -980,51 +813,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             return resources;
-
-            //             // Get Version and keep if it's latest
-            //             string resourceType = typeElement.ToString();
-            //             // example: RegistrationsBaseUrl/3.6.0
-            //             string[] resourceTypeParts = resourceType.Split(new char[]{'/'}, StringSplitOptions.RemoveEmptyEntries);
-            //             if (resourceTypeParts.Length < 2)
-            //             {
-            //                 continue;
-            //             }
-
-            //             string resourceVersion = resourceTypeParts[1];
-            //             if (resourceVersion.Equals("Versioned", StringComparison.InvariantCultureIgnoreCase))
-            //             {
-            //                 continue;
-            //             }
-
-            //             if (!NuGetVersion.TryParse(resourceVersion, out NuGetVersion registrationsVersion))
-            //             {
-            //                 edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Version {resourceVersion} is not a valid NuGet version."));
-            //                 return String.Empty;
-            //             }
-
-            //             if (registrationsVersion > latestRegistrationsVersion)
-            //             {
-            //                 latestRegistrationsVersion = registrationsVersion;
-            //                 if (resource.TryGetProperty("@id", out JsonElement idElement))
-            //                 {
-            //                     latestRegistrationsUrl = idElement.ToString();
-            //                 }
-            //                 else
-            //                 {
-            //                     string errMsg = $"@type element was found but @id element not found in service index '{Repository.Uri}' for {resourceType}.";
-            //                     edi = ExceptionDispatchInfo.Capture(new V3ResourceNotFoundException(errMsg));
-            //                     return String.Empty;
-            //                 }
-            //             }
-            //         }
-                
-            //     catch (Exception e)
-            //     {
-            //         string errMsg = $"Exception parsing JSON for respository {Repository.Name} with error: {e.Message}";
-            //         edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-            //         return String.Empty;
-            //     }
-            // }
         }
         
         private string FindRegistrationsBaseUrlForAllV3(Dictionary<string, string> resources, out ExceptionDispatchInfo edi)
@@ -1290,6 +1078,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         private JsonElement[] GetJsonElementArr(string request, string propertyName, out ExceptionDispatchInfo edi)
         {
+            // TODO: for "data" propertyName, basically SearchQueryService, if "totalHits" == 0 no matches were found, so populate edi and caller and early out.
             JsonElement[] pkgsArr = new JsonElement[0];
             try
             { 
