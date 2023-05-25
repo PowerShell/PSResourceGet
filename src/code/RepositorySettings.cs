@@ -812,12 +812,6 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             else if (repoUri.AbsoluteUri.EndsWith("index.json", StringComparison.OrdinalIgnoreCase))
             {
                 return PSRepositoryInfo.APIVersion.v3;
-                // if (repoUri.AbsoluteUri.Contains("nuget.org"))
-                // {
-                //     return PSRepositoryInfo.APIVersion.v3;
-                // }
-
-                // return PSRepositoryInfo.APIVersion.azureDevOpsFeed;
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase))
             {

@@ -23,9 +23,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case PSRepositoryInfo.APIVersion.local:
                     currentResponseUtil = new LocalResponseUtil(repository);
                     break;
-                // case PSRepositoryInfo.APIVersion.azureDevOpsFeed:
-                //     currentResponseUtil = new ADOResponseUtil(repository);
-                //     break;
             }
 
             return currentResponseUtil;
