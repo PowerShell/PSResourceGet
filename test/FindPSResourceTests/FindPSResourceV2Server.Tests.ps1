@@ -355,6 +355,13 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }
+
+    It "find resource from highest priority repo only" {
+        $res = Find-PSResource -Name "testmodule99"
+        $res.Name | Should -Be "testmodule99"
+        $res.Count | Should -Be 1
+        $res.Repository | Should -Be $PSGalleryName
+    }
 }
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
