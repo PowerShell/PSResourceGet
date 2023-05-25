@@ -186,7 +186,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, catalogEntryProperty, out edi);
+            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, catalogEntryProperty, isSearch: true, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -271,7 +271,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return pkgStream;
             }
 
-            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, packageContentProperty, out edi);
+            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, packageContentProperty, isSearch: false, out edi);
             if (edi != null)
             {
                 return pkgStream;
@@ -327,7 +327,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return pkgStream;
             }
 
-            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, packageContentProperty, out edi);
+            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, packageContentProperty, isSearch: false, out edi);
             if (edi != null)
             {
                 return pkgStream;
@@ -539,7 +539,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, catalogEntryProperty, out edi);
+            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, catalogEntryProperty, isSearch: true, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -624,7 +624,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, catalogEntryProperty, out edi);
+            string[] versionedResponses = GetVersionedResponses(registrationsBaseUrl, packageName, catalogEntryProperty,isSearch: true, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -880,7 +880,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         ///     The "packageContent" property is used for download, and the value is a URI for the .nupkg file.
         /// </param>
         /// <summary>
-        private string[] GetVersionedResponses(string registrationsBaseUrl, string packageName, string property, out ExceptionDispatchInfo edi)
+        private string[] GetVersionedResponses(string registrationsBaseUrl, string packageName, string property, bool isSearch, out ExceptionDispatchInfo edi)
         {
             List<string> versionedResponses = new List<string>();
             string[] versionedResponseArr;
@@ -945,11 +945,20 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 // Reverse array of versioned responses, if needed, so that version entries are in descending order.
                 string upperVersion = upperVersionElement.ToString();
                 versionedResponseArr = versionedResponses.ToArray();
-                if (!IsLatestVersionFirst(versionedResponseArr, upperVersion, out edi))
+                if (isSearch)
                 {
-                    Array.Reverse(versionedResponseArr);
+                    if (!IsLatestVersionFirstForSearch(versionedResponseArr, upperVersion, out edi))
+                    {
+                        Array.Reverse(versionedResponseArr);
+                    }
                 }
-
+                else
+                {
+                    if (!IsLatestVersionFirstForInstall(versionedResponseArr, upperVersion, out edi))
+                    {
+                        Array.Reverse(versionedResponseArr);
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -964,7 +973,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Returns true if the metadata entries are arranged in descending order with respect to the package's version.
         /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
         /// </summary>
-        private bool IsLatestVersionFirst(string[] versionedResponses, string upperVersion, out ExceptionDispatchInfo edi)
+        private bool IsLatestVersionFirstForSearch(string[] versionedResponses, string upperVersion, out ExceptionDispatchInfo edi)
         {
             edi = null;
             bool latestVersionFirst = true;
@@ -991,6 +1000,27 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 {
                     latestVersionFirst = false;
                 }
+            }
+
+            return latestVersionFirst;
+        }
+
+        private bool IsLatestVersionFirstForInstall(string[] versionedResponses, string upperVersion, out ExceptionDispatchInfo edi)
+        {
+            edi = null;
+            bool latestVersionFirst = true;
+
+            // We don't need to perform this check if no responses, or single response
+            if (versionedResponses.Length < 2)
+            {
+                return latestVersionFirst;
+            }
+
+            string firstResponse = versionedResponses[0];
+            // for Install, response will be a URI value for the package .nupkg, not JSON
+            if (!firstResponse.Contains(upperVersion))
+            {
+                latestVersionFirst = false;
             }
 
             return latestVersionFirst;

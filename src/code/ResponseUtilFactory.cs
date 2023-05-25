@@ -17,9 +17,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 case PSRepositoryInfo.APIVersion.v2:
                     currentResponseUtil = new V2ResponseUtil(repository);
                     break;
+
                 case PSRepositoryInfo.APIVersion.v3:
                     currentResponseUtil = new V3ResponseUtil(repository);
                     break;
+
                 case PSRepositoryInfo.APIVersion.local:
                     currentResponseUtil = new LocalResponseUtil(repository);
                     break;

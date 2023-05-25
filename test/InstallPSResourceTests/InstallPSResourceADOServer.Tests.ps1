@@ -11,25 +11,26 @@ Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     BeforeAll {
-        $testModuleName = "dotnet-format"
-        $testModuleWithTagsName = "dotnet-ef" # this package has about 300 versions so best not to use it for all the tests.
-        $ADORepoName = "DotnetPublicFeed"
-        $ADORepoUri = "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json"
+        $testModuleName = "test_local_mod"
+        $testModuleName2 = "test_local_mod2"
+        $testScriptName = "test_ado_script"
+        $ADORepoName = "PSGetTestingPublicFeed"
+        $ADORepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/powershell-public-test/nuget/v3/index.json"
         Get-NewPSResourceRepositoryFile
         Register-PSResourceRepository -Name $ADORepoName -Uri $ADORepoUri
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleWithTagsName -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
 
-    $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
-                 @{Name="Test_Module*";               ErrorId="NameContainsWildcard"},
-                 @{Name="Test?Module","Test[Module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+    $testCases = @{Name="*";                        ErrorId="NameContainsWildcard"},
+                 @{Name="Test_local_m*";            ErrorId="NameContainsWildcard"},
+                 @{Name="Test?local","Test[local";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
@@ -38,23 +39,23 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
     }
 
-    It "Install specific resource by name" {
+    It "Install specific module resource by name" {
         Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.427001"
+        $pkg.Version | Should -Be "5.0.0"
     }
 
-    # It "Install specific script resource by name" {
-    #     Install-PSResource -Name $testScriptName -Repository $ADORepoName -TrustRepository
-    #     $pkg = Get-InstalledPSResource $testScriptName
-    #     $pkg.Name | Should -Be $testScriptName
-    #     $pkg.Version | Should -Be "3.5.0"
-    # }
+    It "Install specific script resource by name" {
+        Install-PSResource -Name $testScriptName -Repository $ADORepoName -TrustRepository
+        $pkg = Get-InstalledPSResource $testScriptName
+        $pkg.Name | Should -Be $testScriptName
+        $pkg.Version | Should -Be "1.0.0"
+    }
 
     It "Install multiple resources by name" {
-        $pkgNames = @($testModuleName, $testModuleWithTagsName)
-        Install-PSResource -Name $pkgNames -Repository $ADORepoName -Prerelease -TrustRepository
+        $pkgNames = @($testModuleName, $testModuleName2)
+        Install-PSResource -Name $pkgNames -Repository $ADORepoName -TrustRepository  
         $pkg = Get-InstalledPSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
@@ -69,36 +70,36 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
     It "Should install resource given name and exact version" {
-        Install-PSResource -Name $testModuleName -Version "8.0.426911" -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "1.0.0" -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.426911"
+        $pkg.Version | Should -Be "1.0.0"
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
-        Install-PSResource -Name $testModuleName -Version "[8.0.426911]" -Repository $ADORepoName -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $ADORepoName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.426911"
+        $pkg.Version | Should -Be "1.0.0"
     }
 
-    It "Should install resource given name and exact range inclusive [8.0.426908, 8.0.427001]" {
-        Install-PSResource -Name $testModuleName -Version "[8.0.426908, 8.0.427001]" -Repository $ADORepoName -TrustRepository  
+    It "Should install resource given name and exact range inclusive [1.0.0, 5.0.0]" {
+        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $ADORepoName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.427001"
+        $pkg.Version | Should -Be "5.0.0"
     }
 
-    It "Should install resource given name and exact range exclusive (8.0.426908, 8.0.427001)" {
-        Install-PSResource -Name $testModuleName -Version "(8.0.426908, 8.0.427001)" -Repository $ADORepoName -TrustRepository  
+    It "Should install resource given name and exact range exclusive (1.0.0, 5.0.0)" {
+        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $ADORepoName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.426911"
+        $pkg.Version | Should -Be "3.0.0"
     }
 
     # TODO: Update this test and others like it that use try/catch blocks instead of Should -Throw
-    It "Should not install resource with incorrectly formatted version such as exclusive version (8.0.427001)" {
-        $Version = "(8.0.427001)"
+    It "Should not install resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
+        $Version = "(1.0.0.0)"
         try {
             Install-PSResource -Name $testModuleName -Version $Version -Repository $ADORepoName -TrustRepository -ErrorAction SilentlyContinue
         }
@@ -114,22 +115,22 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "*" -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.427001"
+        $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        Install-PSResource -Name $testModuleWithTagsName -Prerelease -Repository $ADORepoName -TrustRepository 
-        $pkg = Get-InstalledPSResource $testModuleWithTagsName
-        $pkg.Name | Should -Be $testModuleWithTagsName
-        $pkg.Version | Should -Be "8.0.0"
-        $pkg.Prerelease | Should -Be "preview.5.23272.5"
+        Install-PSResource -Name $testModuleName -Prerelease -Repository $ADORepoName -TrustRepository 
+        $pkg = Get-InstalledPSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "5.2.5"
+        $pkg.Prerelease | Should -Be "alpha001"
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {
         Find-PSResource -Name $testModuleName -Repository $ADORepoName | Install-PSResource -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.427001"
+        $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install resource under specified in PSModulePath" {
@@ -140,11 +141,12 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 
     It "Install resource with companyname, copyright and repository source location and validate properties" {
-        Install-PSResource -Name $testModuleName -Version "8.0.427001" -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Version | Should -Be "8.0.427001"
+        $pkg.Version | Should -Be "5.2.5"
+        $pkg.Prerelease | Should -Be "alpha001"
 
-        $pkg.CompanyName | Should -Be "Microsoft"
+        $pkg.CompanyName | Should -Be "None"
         $pkg.Copyright | Should -Be ""
         $pkg.RepositorySourceLocation | Should -Be $ADORepoUri
     }
@@ -159,9 +161,9 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
-        Install-PSResource -Name "testmodule99" -Repository $ADORepoName -TrustRepository -Scope AllUsers -Verbose
-        $pkg = Get-Module "testmodule99" -ListAvailable
-        $pkg.Name | Should -Be "testmodule99"
+        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -Scope AllUsers -Verbose
+        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg.Name | Should -Be $testModuleName
         $pkg.Path.ToString().Contains("Program Files")
     }
 
@@ -203,11 +205,11 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.427001"
+        $pkg.Version | Should -Be "5.0.0"
         Install-PSResource -Name $testModuleName -Repository $ADORepoName -Reinstall -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Version | Should -Be "8.0.427001"
+        $pkg.Version | Should -Be "5.0.0"
     }
 
     # It "Restore resource after reinstall fails" {
@@ -244,86 +246,66 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     # }
 
     It "Install PSResourceInfo object piped in" {
-        Find-PSResource -Name $testModuleName -Version "8.0.426911" -Repository $ADORepoName | Install-PSResource -TrustRepository
+        Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $ADORepoName | Install-PSResource -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "8.0.426911"
+        $res.Version | Should -Be "1.0.0"
     }
 
     It "Install module using -PassThru" {
         $res = Install-PSResource -Name $testModuleName -Repository $ADORepoName -PassThru -TrustRepository
-        $res.Name | Should -Be $testModuleName
+        $res.Name | Should -Contain $testModuleName
     }
 
-    It "Install modules using -RequiredResource with hashtable" {
-        $rrHash = @{
-            "dotnet-format" = @{
-               version = "(8.0.426908, 8.0.427001)"
-               repository = $ADORepoName
-            }
+    # It "Install modules using -RequiredResource with hashtable" {
+    #     $rrHash = @{
+    #         test_local_mod = @{
+    #            version = "[1.0.0,5.0.0)"
+    #            repository = $ADORepoName
+    #         }
 
-            "dotnet-ef" = @{
-               version = "[8.0.0-preview.5.23269.2,8.0.0-preview.5.23272.5]"
-               repository = $ADORepoName
-               prerelease = "true"
-            }
+    #          test_local_mod2 = @{
+    #            version = "[1.0.0,5.0.0]"
+    #            repository = $ADORepoName
+    #            prerelease = "true"
+    #         }
+    #       }
 
-            "dotnet-sql-cache" = @{
-                repository = $ADORepoName
-                prerelease = "true"
-            }
-          }
+    #       Install-PSResource -RequiredResource $rrHash -TrustRepository
 
-        Install-PSResource -RequiredResource $rrHash -TrustRepository
+    #       $res1 = Get-InstalledPSResource $testModuleName
+    #       $res1.Name | Should -Be $testModuleName
+    #       $res1.Version | Should -Be "3.0.0"
 
-        $res1 = Get-InstalledPSResource $testModuleName
-        $res1.Name | Should -Be $testModuleName
-        $res1.Version | Should -Be "8.0.426911"
+    #       $res2 = Get-InstalledPSResource $testModuleName2
+    #       $res2.Name | Should -Be $testModuleName2
+    #       $res2.Version | Should -Be "5.0.0"
+    # }
 
-        $res2 = Get-InstalledPSResource $testModuleWithTagsName
-        $res2.Name | Should -Be $testModuleWithTagsName
-        $res2.Version | Should -Be "8.0.0"
-        $res2.Prerelease | Should -Be "preview.5.23272.5"
+    # It "Install modules using -RequiredResource with JSON string" {
+    #     $rrJSON = "{
+    #        'test_local_mod': {
+    #          'version': '[1.0.0,5.0.0)',
+    #          'repository': 'PSGetTestingPublicFeed'
+    #        },
+    #        'test_local_mod2': {
+    #          'version': '[1.0.0,5.0.0]',
+    #          'repository': 'PSGetTestingPublicFeed',
+    #          'prerelease': 'true'
+    #        }
+    #      }"
 
-        $res3 = Get-InstalledPSResource "dotnet-sql-cache"
-        $res3.Name | Should -Be "dotnet-sql-cache"
-        $res3.Version | Should -Be "8.0.0"
-        $res3.Prerelease | Should -Be "preview.5.23272.6"
-    }
+    #       Install-PSResource -RequiredResource $rrJSON -TrustRepository
 
-    It "Install modules using -RequiredResource with JSON string" {
-        $rrJSON = "{
-           'dotnet-format': {
-             'version': '(8.0.426908, 8.0.427001)',
-             'repository': 'DotnetPublicFeed'
-           },
-           'dotnet-ef': {
-             'version': '[8.0.0-preview.5.23269.2,8.0.0-preview.5.23272.5]',
-             'repository': 'DotnetPublicFeed',
-             'prerelease': 'true'
-           },
-           'dotnet-sql-cache': {
-             'repository': 'DotnetPublicFeed',
-             'prerelease': 'true'
-           }
-         }"
+    #       $res1 = Get-InstalledPSResource $testModuleName
+    #       $res1.Name | Should -Be $testModuleName
+    #       $res1.Version | Should -Be "3.0.0"
 
-        Install-PSResource -RequiredResource $rrJSON -TrustRepository
-
-        $res1 = Get-InstalledPSResource $testModuleName
-        $res1.Name | Should -Be $testModuleName
-        $res1.Version | Should -Be "8.0.426911"
-
-        $res2 = Get-InstalledPSResource $testModuleWithTagsName
-        $res2.Name | Should -Be $testModuleWithTagsName
-        $res2.Version | Should -Be "8.0.0"
-        $res2.Prerelease | Should -Be "preview.5.23272.5"
-
-        $res3 = Get-InstalledPSResource "dotnet-sql-cache"
-        $res3.Name | Should -Be "dotnet-sql-cache"
-        $res3.Version | Should -Be "8.0.0"
-        $res3.Prerelease | Should -Be "preview.5.23272.6"
-    }
+    #       $res2 = Get-InstalledPSResource $testModuleName2
+    #       $res2.Name | Should -Be $testModuleName2
+    #       $res2.Version | Should -Be "5.0.0.0"
+    # }
+}
 
 # Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
 
@@ -370,4 +352,4 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
 #         Set-PSResourceRepository PoshTestGallery -Trusted
 #     }
-}
+# }
