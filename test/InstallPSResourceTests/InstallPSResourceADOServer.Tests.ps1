@@ -161,7 +161,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -Scope AllUsers -Verbose
-        $pkg = Get-InstalledPSResource $testModuleName
+        $pkg = Get-InstalledPSResource $testModuleName -Scope AllUsers
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
     }
