@@ -542,10 +542,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     }
                 }
 
-                var typeInfo = ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
-                var resourceHashtable = new Hashtable();
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var typeInfo = ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable {
+                    { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
+                    { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
+                    { nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
+                };
 
                 var additionalMetadataHashtable = new Dictionary<string, string>();
                 additionalMetadataHashtable.Add("NormalizedVersion", metadata["NormalizedVersion"].ToString());
@@ -784,10 +786,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 Hashtable[] requiredModulesHashArray = requiredModulesHashList.ToArray();
                 Dependency[] deps = GetDependenciesForPsd1(requiredModulesHashArray);
 
-                var typeInfo = ParseHttpMetadataType(pkgMetadata["Tags"] as string[], out ArrayList commandNames, out ArrayList dscResourceNames);
-                var resourceHashtable = new Hashtable();
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var typeInfo = ParseHttpMetadataTypeForLocalRepo(pkgMetadata, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable {
+                    { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
+                    { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
+                    { nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
+                };
 
                 string prereleaseLabel = (string) pkgMetadata["Prerelease"];
                 bool isPrerelease = !String.IsNullOrEmpty(prereleaseLabel);
@@ -856,10 +860,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             try
             {
                 string[] tagsEntry = pkgMetadata["Tags"] as string[];
-                var typeInfo = ParseHttpMetadataType(tagsEntry, out ArrayList commandNames, out ArrayList dscResourceNames);
-                var resourceHashtable = new Hashtable();
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var typeInfo = ParseHttpMetadataTypeForLocalRepo(pkgMetadata, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable {
+                    { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
+                    {  nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
+                    {  nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
+                };
+
                 var includes = new ResourceIncludes(resourceHashtable);
 
                 NuGetVersion nugetVersion = pkgMetadata["Version"] as NuGetVersion;
@@ -867,8 +874,9 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 Version version = nugetVersion.Version;
                 string prereleaseLabel = isPrerelease ? nugetVersion.ToNormalizedString().Split(new char[]{'-'})[1] : String.Empty;
 
-                var additionalMetadataHashtable = new Dictionary<string, string>();
-                additionalMetadataHashtable.Add("NormalizedVersion", nugetVersion.ToNormalizedString());
+                var additionalMetadataHashtable = new Dictionary<string, string> {
+                    { "NormalizedVersion", nugetVersion.ToNormalizedString() }
+                };
 
                 ModuleSpecification[] requiredModules = pkgMetadata["RequiredModules"] as ModuleSpecification[];
 
@@ -924,10 +932,12 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 string tagsEntry = pkgMetadata["tags"] as string;
                 string[] tags = tagsEntry.Split(new char[] { ' ' });
-                var typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList dscResourceNames);
-                var resourceHashtable = new Hashtable();
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames));
-                resourceHashtable.Add(nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames));
+                var typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable {
+                    { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
+                    { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
+                    { nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
+                };
 
                 var additionalMetadataHashtable = new Dictionary<string, string>();
                 string versionEntry = pkgMetadata["version"] as string;
@@ -1247,6 +1257,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         private static ResourceType ParseHttpMetadataType(
             string[] tags,
             out ArrayList commandNames,
+            out ArrayList cmdletNames,
             out ArrayList dscResourceNames)
         {
             // possible type combinations:
@@ -1256,6 +1267,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             // S
 
             commandNames = new ArrayList();
+            cmdletNames = new ArrayList();
             dscResourceNames = new ArrayList();
 
             ResourceType pkgType = ResourceType.Module;
@@ -1273,9 +1285,62 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                     commandNames.Add(tag.Split('_')[1]);
                 }
 
+                if (tag.StartsWith("PSCmdlet_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    cmdletNames.Add(tag.Split('_')[1]);
+                }
+
                 if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
                 {
                     dscResourceNames.Add(tag.Split('_')[1]);
+                }
+            }
+
+            return pkgType;
+        }
+
+        private static ResourceType ParseHttpMetadataTypeForLocalRepo(
+            Hashtable pkgMetadata,
+            out ArrayList commandNames,
+            out ArrayList cmdletNames,
+            out ArrayList dscResourceNames)
+        {
+            cmdletNames = new ArrayList();
+            var cmdletNamesObj = pkgMetadata["CmdletsToExport"] as object[];
+            if (cmdletNamesObj != null)
+            {
+                foreach (var cmdlet in cmdletNamesObj)
+                {
+                    cmdletNames.Add(cmdlet as string);
+                }
+            }
+            // Because there is no "CommandsToExport" propertly in a module manifest, we use CmdletsToExport to find command names
+            commandNames = cmdletNames;
+
+            dscResourceNames = new ArrayList();
+            var dscResourceNamesObj = pkgMetadata["DscResourceToExport"] as object[];
+            if (dscResourceNamesObj != null)
+            {
+                foreach (var dsc in dscResourceNamesObj)
+                {
+                    dscResourceNames.Add(dsc as string);
+                }
+            }
+
+            ResourceType pkgType = ResourceType.None;
+            var tags = pkgMetadata["Tags"] as string[];
+            foreach (string tag in tags)
+            {
+                if (String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    // clear default None tag
+                    pkgType = ResourceType.Script;
+                    pkgType &= ~ResourceType.None;
+                }
+                else if (String.Equals(tag, "PSModule", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    pkgType = ResourceType.Module;
+                    pkgType &= ~ResourceType.None;
                 }
             }
 
