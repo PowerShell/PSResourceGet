@@ -15,6 +15,8 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $localRepo = "psgettestlocal"
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
+        $testModuleClobber = "testModuleClobber"
+        $testModuleClobber2 = "testModuleClobber2"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
@@ -28,10 +30,13 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags $tags
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tags
+
+        New-TestModule -moduleName $testModuleClobber -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -cmdletToExport 'Test-Cmdlet1' -cmdletToExport2 'Test-Cmdlet2'
+        New-TestModule -moduleName $testModuleClobber2 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -cmdletToExport 'Test-Cmdlet1'
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleName2, "RequiredModule*" -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2, "RequiredModule*", $testModuleClobber, $testModuleClobber2 -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -120,6 +125,38 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.2.5"
         $pkg.Prerelease | Should -Be "alpha001"
+    }
+
+    It "Install resource with cmdlet names from a module already installed with -NoClobber (should not clobber)" {
+        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleClobber
+        $pkg.Name | Should -Be $testModuleClobber
+        $pkg.Version | Should -Be "1.0.0"
+
+        Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource $testModuleClobber2
+        $pkg | Should -BeNullOrEmpty
+        $ev.Count | Should -Be 1
+        $ev[0] | Should -Be "testModuleClobber2 package could not be installed with error: The following commands are already available on this system: 'Test-Cmdlet1, Test-Cmdlet1'. This module 'testModuleClobber2' may override the existing commands. If you still want to install this module 'testModuleClobber2', remove the -NoClobber parameter."
+    }
+
+    It "Install resource with cmdlet names from a module already installed (should clobber)" {
+        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleClobber
+        $pkg.Name | Should -Be $testModuleClobber
+        $pkg.Version | Should -Be "1.0.0"
+
+        Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleClobber2
+        $pkg.Name | Should -Be $testModuleClobber2
+        $pkg.Version | Should -Be "1.0.0"
+    }
+
+    It "Install resource with -NoClobber (should install)" {
+        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository -NoClobber
+        $pkg = Get-InstalledPSResource $testModuleClobber
+        $pkg.Name | Should -Be $testModuleClobber
+        $pkg.Version | Should -Be "1.0.0"
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {

@@ -427,6 +427,15 @@ function New-TestModule
         [string]
         $prereleaseLabel,
 
+        [string]
+        $cmdletToExport = "Test-ModuleCmdlet",
+
+        [string]
+        $cmdletToExport2 = "Test-ModuleCmdlet2",
+
+        [string]
+        $dscResourceToExport = "Test-ModuleDSCResource",
+
         [string[]]
         $tags
     )
@@ -452,16 +461,18 @@ function New-TestModule
         Author            = 'None'
         Description       = 'None'
         GUID              = '0c2829fc-b165-4d72-9038-ae3a71a755c1'
+        CmdletsToExport = @('{1}', '{2}')
+        DscResourcesToExport = @('{3}')
         FunctionsToExport = @()
         RequiredModules   = @()
         PrivateData = @{{
             PSData = @{{
-                {1}
-                {2}
+                {4}
+                {5}
             }}
         }}
     }}
-'@ -f $packageVersion, $prereleaseEntry, $tagsEntry | Out-File -FilePath $moduleMan
+'@ -f $packageVersion, $cmdletToExport, $cmdletToExport2, $dscResourceToExport, $prereleaseEntry, $tagsEntry | Out-File -FilePath $moduleMan
 
     Publish-PSResource -Path $modulePath -Repository $repoName
 }

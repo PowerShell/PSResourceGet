@@ -60,6 +60,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName
+        $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Name | Should -Be $testModuleName
             $ExpectedVersions | Should -Contain $item.Version

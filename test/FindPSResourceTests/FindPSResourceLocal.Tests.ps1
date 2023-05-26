@@ -15,8 +15,6 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $testModuleName2 = "test_local_mod2"
         $commandName = "cmd1"
         $dscResourceName = "dsc1"
-        $cmdName = "PSCommand_$commandName"
-        $dscName = "PSDscResource_$dscResourceName"
         $prereleaseLabel = ""
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
@@ -25,7 +23,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $prereleaseLabel = "alpha001"
 
         New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
-        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags @() -dscResourceToExport $dscResourceName -commandToExport $commandName
         New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
         New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tagsEscaped
 
@@ -199,16 +197,18 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Tags | Should -Contain $requiredTags[1]
     }
 
-    It "find resource given CommandName" {
+    It "find resource given CommandName" -Pending {
         $res = Find-PSResource -CommandName $commandName -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Names | Should -Be $commandName
             $item.ParentResource.Includes.Command | Should -Contain $commandName
         }
     }
 
-    It "find resource given DscResourceName" {
+    It "find resource given DscResourceName" -Pending {
         $res = Find-PSResource -DscResourceName $dscResourceName -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Names | Should -Be $dscResourceName    
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName

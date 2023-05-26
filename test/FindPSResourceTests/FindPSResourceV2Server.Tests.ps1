@@ -70,6 +70,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Name | Should -Be $testModuleName
             $ExpectedVersions | Should -Contain $item.Version
@@ -355,7 +356,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }
-
+    
     It "find resource, but only show listed versions" {
         # testmodule99 version 1.0.0-beta1 is unlisted
         $res = Find-PSResource -Name "testmodule99" -Repository $PSGalleryName
@@ -363,6 +364,13 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         foreach ($item in $res) {
             $item.Version.ToString() + $item.Prerelease | Should -Not -Be "1.0.0-beta1"
         }
+    }
+    
+    It "find resource from highest priority repo only" {
+        $res = Find-PSResource -Name "testmodule99"
+        $res.Name | Should -Be "testmodule99"
+        $res.Count | Should -Be 1
+        $res.Repository | Should -Be $PSGalleryName
     }
 }
 

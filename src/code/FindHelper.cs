@@ -22,7 +22,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
-        private List<string> _pkgsLeftToFind;
+        private HashSet<string> _pkgsLeftToFind;
         private List<string> _tagsLeftToFind;
         private ResourceType _type;
         private string _version;
@@ -78,7 +78,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
 
-            _pkgsLeftToFind = new List<string>(name);
+            _pkgsLeftToFind = new HashSet<string>(name, StringComparer.InvariantCultureIgnoreCase);
             _tagsLeftToFind = tag == null ? new List<string>() : new List<string>(tag);
 
             // Error out if repository array of names to be searched contains wildcards.
@@ -129,7 +129,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 yield break;
             }
 
-            for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Any(); i++)
+            for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 SetNetworkCredential(currentRepository);
@@ -396,6 +396,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
+                            _pkgsLeftToFind.Remove(foundPkg.Name);
                             pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;
                         }
@@ -434,6 +435,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
+                            _pkgsLeftToFind.Remove(foundPkg.Name);
                             pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;
                         }
@@ -472,6 +474,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
+                        _pkgsLeftToFind.Remove(foundPkg.Name);
                         pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
@@ -521,6 +524,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
+                        _pkgsLeftToFind.Remove(foundPkg.Name);
                         pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
@@ -569,6 +573,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
+                            _pkgsLeftToFind.Remove(foundPkg.Name);
                             pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;
                         }

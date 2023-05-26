@@ -34,7 +34,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         public override PSRepositoryInfo Repository { get; set; }
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
-        private static readonly string select = "$select=Id,Version,NormalizedVersion,Authors,Copyright,Dependencies,Description,IconUrl,IsPrerelease,Published,ProjectUrl,ReleaseNotes,Tags,LicenseUrl,CompanyName";
         public FindResponseType v2FindResponseType = FindResponseType.ResponseString;
 
         #endregion
@@ -254,7 +253,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}&{select}";
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}";
 
             string response = HttpRequestCall(requestUrlV2, out edi);  
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -282,7 +281,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tagFilterPart += $" and substringof('{tag}', Tags) eq true";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}{tagFilterPart}&{select}";
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}{tagFilterPart}";
 
             string response = HttpRequestCall(requestUrlV2, out edi);
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -437,7 +436,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}&{select}";
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}";
             
             string response = HttpRequestCall(requestUrlV2, out edi);  
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -460,7 +459,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tagFilterPart += $" and substringof('{tag}', Tags) eq true";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}{tagFilterPart}&{select}";
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}{tagFilterPart}";
             
             string response = HttpRequestCall(requestUrlV2, out edi);
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -601,7 +600,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tagFilterPart += $" and substringof('{tag}', Tags) eq true";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}{typeFilterPart}{tagFilterPart}&{select}{paginationParam}";
+            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}{typeFilterPart}{tagFilterPart}{paginationParam}";
 
             return HttpRequestCall(requestUrlV2: requestUrlV2, out edi);  
         }
@@ -627,7 +626,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 tagSearchTermPart += $"tag:{tagPrefix}{tag}";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/Search()?{prereleaseFilter}&searchTerm='{tagSearchTermPart}'{paginationParam}&{select}";
+            var requestUrlV2 = $"{Repository.Uri}/Search()?{prereleaseFilter}&searchTerm='{tagSearchTermPart}'{paginationParam}";
             return HttpRequestCall(requestUrlV2, out edi);
         }
 
@@ -683,7 +682,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             string typeFilterPart = GetTypeFilterForRequest(type);
-            var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{typeFilterPart} and {prerelease}&{select}{extraParam}";
+            var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{typeFilterPart} and {prerelease}{extraParam}";
             
             return HttpRequestCall(requestUrlV2, out edi);  
         }
@@ -746,7 +745,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
             
             string typeFilterPart = GetTypeFilterForRequest(type);
-            var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart}{typeFilterPart} and {prerelease}&{select}{extraParam}";
+            var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart}{typeFilterPart} and {prerelease}{extraParam}";
             
             return HttpRequestCall(requestUrlV2, out edi);  
         }
@@ -834,7 +833,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             string paginationParam = $"$inlinecount=allpages&$skip={skip}&{topParam}";
 
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}&{select}{filterQuery}";
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
 
             return HttpRequestCall(requestUrlV2, out edi);  
         }
