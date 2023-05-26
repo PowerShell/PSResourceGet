@@ -885,8 +885,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> versionedResponses = new List<string>();
             string[] versionedResponseArr;
             var requestPkgMapping = registrationsBaseUrl.EndsWith("/") ? $"{registrationsBaseUrl}{packageName.ToLower()}/index.json" : $"{registrationsBaseUrl}/{packageName.ToLower()}/index.json";
-            
-            Console.WriteLine(requestPkgMapping);
+
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out edi);
             if (edi != null)
             {
