@@ -49,7 +49,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 			else
 				SecretName = hashtable["Name"] as string;
 
-			if (hashtable.ContainsKey("Credential") && hashtable["PSCredential"] is PSCredential psCred)
+			if (hashtable.ContainsKey("Credential") && hashtable["Credential"] is PSCredential psCred)
 			{
 				Credential = psCred;
 			}
