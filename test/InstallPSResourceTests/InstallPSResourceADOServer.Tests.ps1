@@ -255,100 +255,51 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $res = Install-PSResource -Name $testModuleName -Repository $ADORepoName -PassThru -TrustRepository
         $res.Name | Should -Contain $testModuleName
     }
-
-    # It "Install modules using -RequiredResource with hashtable" {
-    #     $rrHash = @{
-    #         test_local_mod = @{
-    #            version = "[1.0.0,5.0.0)"
-    #            repository = $ADORepoName
-    #         }
-
-    #          test_local_mod2 = @{
-    #            version = "[1.0.0,5.0.0]"
-    #            repository = $ADORepoName
-    #            prerelease = "true"
-    #         }
-    #       }
-
-    #       Install-PSResource -RequiredResource $rrHash -TrustRepository
-
-    #       $res1 = Get-InstalledPSResource $testModuleName
-    #       $res1.Name | Should -Be $testModuleName
-    #       $res1.Version | Should -Be "3.0.0"
-
-    #       $res2 = Get-InstalledPSResource $testModuleName2
-    #       $res2.Name | Should -Be $testModuleName2
-    #       $res2.Version | Should -Be "5.0.0"
-    # }
-
-    # It "Install modules using -RequiredResource with JSON string" {
-    #     $rrJSON = "{
-    #        'test_local_mod': {
-    #          'version': '[1.0.0,5.0.0)',
-    #          'repository': 'PSGetTestingPublicFeed'
-    #        },
-    #        'test_local_mod2': {
-    #          'version': '[1.0.0,5.0.0]',
-    #          'repository': 'PSGetTestingPublicFeed',
-    #          'prerelease': 'true'
-    #        }
-    #      }"
-
-    #       Install-PSResource -RequiredResource $rrJSON -TrustRepository
-
-    #       $res1 = Get-InstalledPSResource $testModuleName
-    #       $res1.Name | Should -Be $testModuleName
-    #       $res1.Version | Should -Be "3.0.0"
-
-    #       $res2 = Get-InstalledPSResource $testModuleName2
-    #       $res2.Name | Should -Be $testModuleName2
-    #       $res2.Version | Should -Be "5.0.0.0"
-    # }
 }
 
-# Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
+Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
 
-#     BeforeAll {
-#         $testModuleName = "TestModule"
-#         $testModuleName2 = "testModuleWithlicense"
-#         Get-NewPSResourceRepositoryFile
-#         Register-LocalRepos
-#     }
+    BeforeAll {
+        $testModuleName = "TestModule"
+        $testModuleName2 = "testModuleWithlicense"
+        Get-NewPSResourceRepositoryFile
+        Register-LocalRepos
+    }
 
-#     AfterEach {
-#         Uninstall-PSResource $testModuleName, $testModuleName2 -SkipDependencyCheck -ErrorAction SilentlyContinue
-#     }
+    AfterEach {
+        Uninstall-PSResource $testModuleName, $testModuleName2 -SkipDependencyCheck -ErrorAction SilentlyContinue
+    }
 
-#     AfterAll {
-#         Get-RevertPSResourceRepositoryFile
-#     }
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
 
-#     # Unix only manual test
-#     # Expected path should be similar to: '/usr/local/share/powershell/Modules'
-#     It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
-#         Install-PSResource -Name $testModuleName -Repository $TestGalleryName -Scope AllUsers
-#         $pkg = Get-Module $testModuleName -ListAvailable
-#         $pkg.Name | Should -Be $testModuleName 
-#         $pkg.Path.Contains("/usr/") | Should -Be $true
-#     }
+    # Unix only manual test
+    # Expected path should be similar to: '/usr/local/share/powershell/Modules'
+    It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name $testModuleName -Repository $TestGalleryName -Scope AllUsers
+        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg.Name | Should -Be $testModuleName 
+        $pkg.Path.Contains("/usr/") | Should -Be $true
+    }
 
-#     # This needs to be manually tested due to prompt
-#     It "Install resource that requires accept license without -AcceptLicense flag" {
-#         Install-PSResource -Name $testModuleName2  -Repository $TestGalleryName
-#         $pkg = Get-InstalledPSResource $testModuleName2 
-#         $pkg.Name | Should -Be $testModuleName2 
-#         $pkg.Version | Should -Be "0.0.1.0"
-#     }
+    # This needs to be manually tested due to prompt
+    It "Install resource that requires accept license without -AcceptLicense flag" {
+        Install-PSResource -Name $testModuleName2  -Repository $TestGalleryName
+        $pkg = Get-InstalledPSResource $testModuleName2 
+        $pkg.Name | Should -Be $testModuleName2 
+        $pkg.Version | Should -Be "0.0.1.0"
+    }
 
-#     # This needs to be manually tested due to prompt
-#     It "Install resource should prompt 'trust repository' if repository is not trusted" {
-#         Set-PSResourceRepository PoshTestGallery -Trusted:$false
+    # This needs to be manually tested due to prompt
+    It "Install resource should prompt 'trust repository' if repository is not trusted" {
+        Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
-#         Install-PSResource -Name $testModuleName -Repository $TestGalleryName -confirm:$false
+        Install-PSResource -Name $testModuleName -Repository $TestGalleryName -confirm:$false
     
-#         $pkg = Get-Module $testModuleName -ListAvailable
-#         $pkg.Name | Should -Be $testModuleName
+        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg.Name | Should -Be $testModuleName
 
-#         Set-PSResourceRepository PoshTestGallery -Trusted
-#     }
-# }
+        Set-PSResourceRepository PoshTestGallery -Trusted
+    }
+}

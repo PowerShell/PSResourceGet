@@ -344,6 +344,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             foreach (string response in versionedResponses)
             {
                 // Response will be "packageContent" element value that looks like: "{packageBaseAddress}/{packageName}/{normalizedVersion}/{packageName}.{normalizedVersion}.nupkg"
+                // Ex: https://api.nuget.org/v3-flatcontainer/test_module/1.0.0/test_module.1.0.0.nupkg
                 if (response.Contains(requiredVersion.ToNormalizedString()))
                 {
                     pkgContentUrl = response;
@@ -470,7 +471,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                     break;
                 }
-                
             }
 
             return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -507,16 +507,16 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> matchingResponses = new List<string>();
             foreach (var pkgEntry in tagPkgs)
             {
-                try
-                {
+                //try
+                //{
                     matchingResponses.Add(pkgEntry.ToString());
-                }
-                catch (Exception e)
-                {
-                    string errMsg = $"FindTag(): Id or Version element could not be parsed from response due to exception {e.Message}.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                }
+                //}
+                // catch (Exception e)
+                // {
+                //     string errMsg = $"FindTag(): Id or Version element could not be parsed from response due to exception {e.Message}.";
+                //     edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                //     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                // }
             }
 
             return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -885,6 +885,8 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             List<string> versionedResponses = new List<string>();
             string[] versionedResponseArr;
             var requestPkgMapping = registrationsBaseUrl.EndsWith("/") ? $"{registrationsBaseUrl}{packageName.ToLower()}/index.json" : $"{registrationsBaseUrl}/{packageName.ToLower()}/index.json";
+            
+            Console.WriteLine(requestPkgMapping);
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out edi);
             if (edi != null)
             {
@@ -907,10 +909,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
                 JsonElement firstItem = itemsElement[0];
 
+                // For search:
+                // https://api.nuget.org/v3/registration5-gz-semver2/test_module/index.json
                 // The "items" property contains an inner "items" element and a "count" element
                 // The inner "items" property is the metadata array for each version of the package.
                 // The "count" property represents how many versions are present for that package, (i.e how many elements are in the inner "items" array)
-                // JsonElement innerItemsElements = firstItem.GetProperty(itemsName);
+                
+                // For download:
+                // The inner "packageContent" property returns the .nupkg URI for each version of the package.
                 if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElements))
                 {
                     edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{itemsName}' element, for package with Name {packageName}."));
