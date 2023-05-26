@@ -53,7 +53,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
 
-                    yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                    // Unlisted versions will have a published year as 1900 or earlier.
+                    if (!psGetInfo.PublishedDate.HasValue || psGetInfo.PublishedDate.Value.Year > 1900)
+                    {
+                        yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                    }
                 }
             }
         }
