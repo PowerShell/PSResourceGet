@@ -48,8 +48,8 @@ stages:
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         Write-Verbose -Verbose "Install PSResourceGet to temp module path"
-        Save-Module -Name PSResourceGet -Path $modulePath -AllowPrerelease -Force
-      displayName: Install PSResourceGet
+        Save-Module -Name PowerShellGet -MinimumVersion 3.0.18-beta18 -Path $modulePath -AllowPrerelease -Force
+      displayName: Install PowerShellGet v3
 
     - pwsh: |
         Get-ChildItem -Path $(Build.SourcesDirectory)/src/code -Recurse
