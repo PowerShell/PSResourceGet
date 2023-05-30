@@ -4,17 +4,17 @@
 using System;
 using System.IO;
 using System.Management.Automation;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Tests the contents of a .ps1 file to see if it has all properties and is in correct format
     /// for publishing the script with the file.
     /// </summary>
-    [Cmdlet(VerbsDiagnostic.Test, "PSScriptFile")]
+    [Cmdlet(VerbsDiagnostic.Test, "PSScriptFileInfo")]
     [OutputType(typeof(bool))]
-    public sealed class TestPSScriptFile : PSCmdlet
+    public sealed class TestPSScriptFileInfo : PSCmdlet
     {
         #region Parameters
 
@@ -58,7 +58,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 ThrowTerminatingError(FileDoesNotExistError);
             }
 
-            bool isValidScript = PSScriptFileInfo.TryTestPSScriptFile(
+            bool isValidScript = PSScriptFileInfo.TryTestPSScriptFileInfo(
                 scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo _,
                 errors: out ErrorRecord[] errors,

@@ -9,7 +9,7 @@ using System.Management.Automation;
 using System.Linq;
 using Microsoft.PowerShell.Commands;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     /// <summary>
     /// This class contains information for a PSScriptFileInfo (representing a .ps1 file contents).
@@ -286,7 +286,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Tests .ps1 file for validity
         /// </summary>
-        internal static bool TryTestPSScriptFile(
+        internal static bool TryTestPSScriptFileInfo(
             string scriptFileInfoPath,
             out PSScriptFileInfo parsedScript,
             out ErrorRecord[] errors,

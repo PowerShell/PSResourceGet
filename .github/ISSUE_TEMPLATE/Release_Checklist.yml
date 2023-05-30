@@ -13,11 +13,11 @@ body:
     options:
     - label: If necessary, update help docs using PlatyPS module (in a separate PR).
       required: true
-    - label: Use release tool to update CHANGELOG.md and PowerShellGet.psd1.  
-             Run 'Import-Module PowerShellGet\tool\releaseTools.psm1'.  
+    - label: Use release tool to update CHANGELOG.md and PSResourceGet.psd1.  
+             Run 'Import-Module PSResourceGet\tool\releaseTools.psm1'.  
              Run 'Update-Changelog' and 'Update-PSDFile'.
       required: true
-    - label: Manually update PowerShellGet version in the PowerShellGet.csproj.
+    - label: Manually update PSResourceGet version in the PSResourceGet.csproj.
       required: true
 - type: checkboxes
   attributes:

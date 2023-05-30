@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ using System.Management.Automation;
 using System.Net;
 using Dbg = System.Diagnostics.Debug;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// The Save-PSResource cmdlet saves a resource to a machine.
@@ -42,6 +42,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version or version range of the package to be saved
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = AsNupkgParameterSet, ValueFromPipelineByPropertyName = true)]
         [Parameter(ParameterSetName = IncludeXmlParameterSet, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
@@ -149,7 +150,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo object representing the package to save.")]
         [ValidateNotNullOrEmpty]
         [Alias("ParentResource")]
-        public PSResourceInfo InputObject { get; set; }
+        public PSResourceInfo[] InputObject { get; set; }
 
         /// <summary>
         /// Skips the check for resource dependencies, so that only found resources are saved,
@@ -199,13 +200,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    string normalizedVersionString = Utils.GetNormalizedVersionString(InputObject.Version.ToString(), InputObject.Prerelease);
-                    ProcessSaveHelper(
-                        pkgNames: new string[] { InputObject.Name },
-                        pkgVersion: normalizedVersionString,
-                        pkgPrerelease: InputObject.IsPrerelease,
-                        pkgRepository: new string[] { InputObject.Repository });
-
+                    foreach (var inputObj in InputObject) {
+                        string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
+                        ProcessSaveHelper(
+                            pkgNames: new string[] { inputObj.Name },
+                            pkgVersion: normalizedVersionString,
+                            pkgPrerelease: inputObj.IsPrerelease,
+                            pkgRepository: new string[] { inputObj.Repository });
+                    }
                     break;
 
                 default:

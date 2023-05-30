@@ -34,7 +34,6 @@ function Get-BuildConfiguration {
     $projectRoot = Split-Path $fileNamePath
     $configObj.SourcePath = Join-Path $projectRoot -ChildPath $configObj.SourcePath
     $configObj.TestPath = Join-Path $projectRoot -ChildPath $configObj.TestPath
-    $configObj.HelpPath = Join-Path $projectRoot -ChildPath $configObj.HelpPath
     $configObj.BuildOutputPath = Join-Path $projectRoot -ChildPath $configObj.BuildOutputPath
     if ($configObj.SignedOutputPath) {
         $configObj.SignedOutputPath = Join-Path $projectRoot -ChildPath $configObj.SignedOutputPath

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using NuGet.Versioning;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,7 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
@@ -32,6 +32,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// <summary>
         /// Specifies the version or version range of the package to be uninstalled.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
@@ -47,7 +48,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = InputObjectParameterSet, HelpMessage = "PSResourceInfo representing package to uninstall.")]
         [ValidateNotNullOrEmpty]
-        public PSResourceInfo InputObject { get; set; }
+        public PSResourceInfo[] InputObject { get; set; }
 
         /// <summary>
         /// Skips check to see if other resources are dependent on the resource being uninstalled.
@@ -130,28 +131,29 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    string inputObjectPrerelease = InputObject.Prerelease;
-                    string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? InputObject.Version.ToString() : Utils.GetNormalizedVersionString(versionString: InputObject.Version.ToString(), prerelease: inputObjectPrerelease);
-                    if (!Utils.TryParseVersionOrVersionRange(
-                        version: inputObjectVersion,
-                        versionRange: out _versionRange))
-                    {
-                        var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", InputObject.Version.ToString(), InputObject.Name);
-                        var ex = new ArgumentException(exMessage);
-                        var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
-                        WriteError(ErrorParsingVersion);
-                    }
+                    foreach (var inputObj in InputObject) {
+                        string inputObjectPrerelease = inputObj.Prerelease;
+                        string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? inputObj.Version.ToString() : Utils.GetNormalizedVersionString(versionString: inputObj.Version.ToString(), prerelease: inputObjectPrerelease);
+                        if (!Utils.TryParseVersionOrVersionRange(
+                            version: inputObjectVersion,
+                            versionRange: out _versionRange))
+                        {
+                            var exMessage = String.Format("Version '{0}' for resource '{1}' cannot be parsed.", inputObj.Version.ToString(), inputObj.Name);
+                            var ex = new ArgumentException(exMessage);
+                            var ErrorParsingVersion = new ErrorRecord(ex, "ErrorParsingVersion", ErrorCategory.ParserError, null);
+                            WriteError(ErrorParsingVersion);
+                        }
 
-                    Name = new string[] { InputObject.Name };
-                    if (!String.IsNullOrWhiteSpace(InputObject.Name) && !UninstallPkgHelper())
-                    {
-                        // specific errors will be displayed lower in the stack
-                        var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", InputObject.Name));
-                        var ex = new ArgumentException(exMessage);
-                        var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
-                            WriteError(UninstallResourceError);
+                        Name = new string[] { inputObj.Name };
+                        if (!String.IsNullOrWhiteSpace(inputObj.Name) && !UninstallPkgHelper())
+                        {
+                            // specific errors will be displayed lower in the stack
+                            var exMessage = String.Format(string.Format("Did not successfully uninstall package {0}", inputObj.Name));
+                            var ex = new ArgumentException(exMessage);
+                            var UninstallResourceError = new ErrorRecord(ex, "UninstallResourceError", ErrorCategory.InvalidOperation, null);
+                                WriteError(UninstallResourceError);
+                        }
                     }
-                
                     break;
 
                 default:
@@ -188,13 +190,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             {
                 currentUninstalledDirCount++;
                 pkgName = Utils.GetInstalledPackageName(pkgPath);
-
-                if (!ShouldProcess(string.Format("Uninstall resource '{0}' from the machine.", pkgName)))
-                {
-                    WriteVerbose("ShouldProcess is set to false.");
-                    successfullyUninstalled = true;
-                    continue;
-                }
 
                 // show uninstall progress info
                 int activityId = 0;
@@ -249,6 +244,14 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             DirectoryInfo dir = new DirectoryInfo(pkgPath);
+            Uri uri = new Uri(dir.FullName);
+            string version = uri.Segments.Last();
+            if (!ShouldProcess(string.Format("Uninstall resource '{0}', version '{1}', from path '{2}'", pkgName, version, dir.FullName)))
+            {
+                WriteVerbose("ShouldProcess is set to false.");
+                return true;
+            }
+
             dir.Attributes &= ~FileAttributes.ReadOnly;
 
             try
@@ -292,6 +295,12 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         {
             errRecord = null;
             var successfullyUninstalledPkg = false;
+
+            if (!ShouldProcess(string.Format("Uninstall resource '{0}' from path '{1}'", pkgName, pkgPath)))
+            {
+                WriteVerbose("ShouldProcess is set to false.");
+                return true;
+            }
 
             // delete the appropriate file
             try

@@ -138,6 +138,16 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
+    It "Publish a module using -Path positional parameter" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource $script:PublishModuleBase
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
     It "Publish a module with -Path and -Repository" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
@@ -216,7 +226,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $dependencyVersion = "2.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '1.4.4' })
 
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "FindVersionFail,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "FindVersionFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
 
@@ -356,7 +366,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -ErrorAction SilentlyContinue
 
-        $Error[0].FullyQualifiedErrorId | Should -be "APIKeyError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "APIKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a module to PSGallery using incorrect API key, should throw" {
@@ -365,7 +375,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -APIKey "123456789" -ErrorAction SilentlyContinue
 
-        $Error[0].FullyQualifiedErrorId | Should -be "403Error,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "403Error,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a module with -Path -Repository and -DestinationPath" {
@@ -416,7 +426,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
             }
 
         $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
-        New-PSScriptFile @params -Path $scriptPath
+        New-PSScriptFileInfo @params -Path $scriptPath
 
         Publish-PSResource -Path $scriptPath
 
@@ -453,7 +463,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingAuthor,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingAuthor,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
@@ -465,7 +475,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingVersion,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingVersion,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
 
         $publishedPkgs = Get-ChildItem -Path $script:repositoryPath -Filter *.nupkg
         $publishedPkgs | Should -HaveCount 0
@@ -478,7 +488,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingGuid,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "psScriptMissingGuid,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
@@ -491,7 +501,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptInfoMissingDescription,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PSScriptInfoMissingDescription,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
@@ -505,7 +515,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
         Publish-PSResource -Path $scriptFilePath -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "missingHelpInfoCommentError,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "missingHelpInfoCommentError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
 
         $publishedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         Test-Path -Path $publishedPath | Should -Be $false
@@ -515,13 +525,13 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $moduleName = "incorrectmoduleversion"
         $incorrectmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
 
-        {Publish-PSResource -Path $incorrectmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        {Publish-PSResource -Path $incorrectmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a module with a dependency that has an invalid version format, should throw" {
         $moduleName = "incorrectdepmoduleversion"
         $incorrectdepmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
 
-        {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PowerShellGet.Cmdlets.PublishPSResource"
+        {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }

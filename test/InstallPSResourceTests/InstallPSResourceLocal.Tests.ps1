@@ -15,6 +15,8 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $localRepo = "psgettestlocal"
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
+        $testModuleClobber = "testModuleClobber"
+        $testModuleClobber2 = "testModuleClobber2"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
@@ -28,10 +30,13 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags $tags
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tags
+
+        New-TestModule -moduleName $testModuleClobber -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -cmdletToExport 'Test-Cmdlet1' -cmdletToExport2 'Test-Cmdlet2'
+        New-TestModule -moduleName $testModuleClobber2 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -cmdletToExport 'Test-Cmdlet1'
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleName2, "RequiredModule*" -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2, "RequiredModule*", $testModuleClobber, $testModuleClobber2 -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -63,7 +68,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $res = Install-PSResource -Name "NonExistantModule" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
@@ -94,7 +99,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         }
         catch
         {}
-        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
         $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty
@@ -107,6 +112,13 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
+    It "Install resource when given Name, Version '3.*', should install the appropriate version" {
+        Install-PSResource -Name $testModuleName -Version "3.*" -Repository $localRepo -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "3.0.0"
+    }
+
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Prerelease -Repository $localRepo -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
@@ -115,11 +127,53 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Prerelease | Should -Be "alpha001"
     }
 
+    It "Install resource with cmdlet names from a module already installed with -NoClobber (should not clobber)" {
+        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleClobber
+        $pkg.Name | Should -Be $testModuleClobber
+        $pkg.Version | Should -Be "1.0.0"
+
+        Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource $testModuleClobber2
+        $pkg | Should -BeNullOrEmpty
+        $ev.Count | Should -Be 1
+        $ev[0] | Should -Be "testModuleClobber2 package could not be installed with error: The following commands are already available on this system: 'Test-Cmdlet1, Test-Cmdlet1'. This module 'testModuleClobber2' may override the existing commands. If you still want to install this module 'testModuleClobber2', remove the -NoClobber parameter."
+    }
+
+    It "Install resource with cmdlet names from a module already installed (should clobber)" {
+        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleClobber
+        $pkg.Name | Should -Be $testModuleClobber
+        $pkg.Version | Should -Be "1.0.0"
+
+        Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleClobber2
+        $pkg.Name | Should -Be $testModuleClobber2
+        $pkg.Version | Should -Be "1.0.0"
+    }
+
+    It "Install resource with -NoClobber (should install)" {
+        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository -NoClobber
+        $pkg = Get-InstalledPSResource $testModuleClobber
+        $pkg.Name | Should -Be $testModuleClobber
+        $pkg.Version | Should -Be "1.0.0"
+    }
+
     It "Install resource via InputObject by piping from Find-PSresource" {
         Find-PSResource -Name $testModuleName -Repository $localRepo | Install-PSResource -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
+    }
+
+    It "Install resource via InputObject by piping from Find-PSResource" {
+        $modules = Find-PSResource -Name "*" -Repository $localRepo 
+        $modules.Count | Should -BeGreaterThan 1
+
+        Install-PSResource -TrustRepository -InputObject $modules
+
+        $pkg = Get-InstalledPSResource $modules.Name
+        $pkg.Count | Should -BeGreaterThan 1
     }
 
     It "Install resource under location specified in PSModulePath" {

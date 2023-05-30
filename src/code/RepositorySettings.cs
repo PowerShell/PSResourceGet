@@ -10,7 +10,7 @@ using System.Management.Automation;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     /// <summary>
     /// The class contains basic information of a repository path settings as well as methods to
@@ -21,14 +21,14 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         #region Members
 
         // File name for a user's repository store file is 'PSResourceRepository.xml'
-        // The repository store file's location is currently only at '%LOCALAPPDATA%\PowerShellGet' for the user account.
+        // The repository store file's location is currently only at '%LOCALAPPDATA%\PSResourceGet' for the user account.
         private const string PSGalleryRepoName = "PSGallery";
         private const string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
         private const int DefaultPriority = 50;
         private const bool DefaultTrusted = false;
         private const string RepositoryFileName = "PSResourceRepository.xml";
         private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(
-            Environment.SpecialFolder.LocalApplicationData), "PowerShellGet");
+            Environment.SpecialFolder.LocalApplicationData), "PSResourceGet");
         private static readonly string FullRepositoryPath = Path.Combine(RepositoryPath, RepositoryFileName);
 
         #endregion

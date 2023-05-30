@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -15,7 +15,7 @@ using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Install helper class
@@ -248,7 +248,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     installDepsForRepo = true;
                 }
 
-                return InstallPackages(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                var installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                foreach (var pkg in installedPkgs)
+                {
+                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
+                }
+
+                allPkgsInstalled.AddRange(installedPkgs);
             }
 
             return allPkgsInstalled;
@@ -839,7 +845,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
 
                     // is script
-                    if (!PSScriptFileInfo.TryTestPSScriptFile(
+                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
                         scriptFileInfoPath: scriptPath,
                         parsedScript: out PSScriptFileInfo scriptToInstall,
                         out ErrorRecord[] parseScriptFileErrors,

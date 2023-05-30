@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections.Generic;
 using System.Xml;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     internal class V2ResponseUtil : ResponseUtil
     {
@@ -53,7 +53,11 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                         yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
                     }
 
-                    yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                    // Unlisted versions will have a published year as 1900 or earlier.
+                    if (!psGetInfo.PublishedDate.HasValue || psGetInfo.PublishedDate.Value.Year > 1900)
+                    {
+                        yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                    }
                 }
             }
         }

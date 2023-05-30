@@ -1,6 +1,6 @@
 parameters:
   jobName: release
-  displayName: 'Release PowerShellGet to PSGallery'
+  displayName: 'Release PSResourceGet to PSGallery'
 
 jobs:
 - job: ${{ parameters.jobName }}
@@ -13,22 +13,22 @@ jobs:
   steps:
   
   - task: DownloadPipelineArtifact@2
-    displayName: 'Download PowerShellGet module artifacts'
+    displayName: 'Download PSResourceGet module artifacts'
     inputs:
       artifact: nupkg
       patterns: '**/*.nupkg'
       downloadPath: '$(Pipeline.Workspace)/nuget'
 
   - powershell: |
-      $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/PowerShellGet.*.nupkg').FullName
+      $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/PSResourceGet.*.nupkg').FullName
       $package
       $vstsCommandString = "vso[task.setvariable variable=NugetPkgPath]${package}"
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
-    displayName: 'Capture PowerShellGet module NuGet package path and set environment variable'
+    displayName: 'Capture PSResourceGet module NuGet package path and set environment variable'
 
   - task: NuGetCommand@2
-    displayName: 'Push PowerShellGet module artifacts to PSGallery feed'
+    displayName: 'Push PSResourceGet module artifacts to PSGallery feed'
     inputs:
       command: push
       packagesToPush: '$(NugetPkgPath)'
