@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     public class V3ResourceNotFoundException : Exception
     {

@@ -1,6 +1,6 @@
 ## Micro Benchmarks
 
-This folder contains micro benchmarks that test the performance of PowerShellGet.
+This folder contains micro benchmarks that test the performance of PSResourceGet.
 
 ### Quick Start
 

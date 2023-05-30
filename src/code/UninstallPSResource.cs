@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using NuGet.Versioning;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,7 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.

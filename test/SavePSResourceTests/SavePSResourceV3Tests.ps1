@@ -51,7 +51,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     It "Not Save module with Name containing wildcard" {
         Save-PSResource -Name "TestModule*" -Repository $NuGetGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "NameContainsWildcard,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "NameContainsWildcard,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     It "Should save resource given name and exact version" {
@@ -97,7 +97,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -BeNullOrEmpty
         $Error.Count | Should -BeGreaterThan 0
-        $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     It "Save resource with latest (including prerelease) version given Prerelease parameter" {
@@ -144,6 +144,6 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
         Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 }

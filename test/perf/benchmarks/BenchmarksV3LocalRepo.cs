@@ -23,7 +23,7 @@ namespace Benchmarks
             pwsh = System.Management.Automation.PowerShell.Create(defaultSS);
 
             // Import the PSGet module version we want to test, register a local repo, and save the Az modules and its dependencies
-            pwsh.AddScript("Import-Module PowerShellGet -RequiredVersion 3.0.14 -Force");
+            pwsh.AddScript("Import-Module PSResourceGet -Force");
             pwsh.AddScript("New-Item TestRepo -ItemType Directory");
             pwsh.AddScript("Register-PSResourceRepository -Name LocalRepo -Uri .\\TestRepo");
             pwsh.AddScript("Save-PSResource -Name Az -Repository PSGallery -AsNupkg -TrustRepository -Path .\\TestRepo");

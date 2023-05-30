@@ -19,7 +19,7 @@ resources:
 
 stages:
 - stage: Build
-  displayName: Build PowerShellGet Module Package
+  displayName: Build PSResourceGet Module Package
   jobs:
   - job: BuildPkg
     displayName: Build Package
@@ -47,9 +47,9 @@ stages:
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        Write-Verbose -Verbose "Install PowerShellGet V3 to temp module path"
-        Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.18-beta18 -AllowPrerelease -Force
-      displayName: Install PowerShellGetV3
+        Write-Verbose -Verbose "Install PSResourceGet to temp module path"
+        Save-Module -Name PSResourceGet -Path $modulePath -AllowPrerelease -Force
+      displayName: Install PSResourceGet
 
     - pwsh: |
         Get-ChildItem -Path $(Build.SourcesDirectory)/src/code -Recurse
@@ -100,7 +100,7 @@ stages:
     - checkout: ComplianceRepo
       clean: true
     - download: current
-      artifact: 'PowerShellGet'
+      artifact: 'PSResourceGet'
     - template: ci-compliance.yml@ComplianceRepo
       parameters:
         # credscan

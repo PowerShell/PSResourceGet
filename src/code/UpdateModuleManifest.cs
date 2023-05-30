@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections;
 using System.IO;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Updates the module manifest (.psd1) for a resource.

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     public sealed class PSResourceResult
     {

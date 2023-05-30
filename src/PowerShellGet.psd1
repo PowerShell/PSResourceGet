@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 @{
-    RootModule        = './net472/PowerShellGet.dll'
+    RootModule        = './net472/PSResourceGet.dll'
     ModuleVersion     = '3.0.21'
     CompatiblePSEditions = @('Core', 'Desktop')
     GUID              = '1d73a601-4a6c-43c5-ba3f-619b18bbb404'
@@ -163,7 +163,7 @@
 - Rename PSResourceInfo's PrereleaseLabel property to match Prerelease column displayed (#591)
 - Renaming of parameters -Url to -Uri (#551 Thanks @fsackur!)
 
-See change log (CHANGELOG.md) at https://github.com/PowerShell/PowerShellGet
+See change log (CHANGELOG.md) at https://github.com/PowerShell/PSResourceGet
 '@
         }
     }

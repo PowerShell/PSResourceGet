@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -15,7 +15,7 @@ using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Install helper class

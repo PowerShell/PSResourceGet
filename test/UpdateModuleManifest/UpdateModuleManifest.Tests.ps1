@@ -5,7 +5,7 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 # Explicitly import build module because in CI PowerShell can autoload PSGetv2
 # This ensures the build module is always being tested
-$buildModule = "$psscriptroot/../../out/PowerShellGet"
+$buildModule = "$psscriptroot/../../out/PSResourceGet"
 Import-Module $buildModule -Force -Verbose
 
 Describe 'Test Update-PSModuleManifest' {
@@ -27,7 +27,7 @@ Describe 'Test Update-PSModuleManifest' {
     }
 
     It "Update module manifest given Path parameter" {
-        $description = "This is a PowerShellGet test"
+        $description = "This is a PSResourceGet test"
         New-ModuleManifest -Path $script:testManifestPath
         Update-PSModuleManifest -Path $script:testManifestPath -Description $description
 
@@ -54,7 +54,7 @@ Describe 'Test Update-PSModuleManifest' {
     }
 
     It "Update module manifest given Description parameter" {
-        $Description = "PowerShellGet test description"
+        $Description = "PSResourceGet test description"
         New-ModuleManifest -Path $script:testManifestPath
         Update-PSModuleManifest -Path $script:testManifestPath -Description $Description 
 
@@ -160,7 +160,7 @@ Describe 'Test Update-PSModuleManifest' {
     }
 
     It "Update module manifest given RequireLicenseAcceptance parameter" {
-        $Description = "PowerShellGet test description"
+        $Description = "PSResourceGet test description"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath -RequireLicenseAcceptance
 
@@ -190,7 +190,7 @@ Describe 'Test Update-PSModuleManifest' {
     }
 
     It "Update module manifest given PowerShellHostName parameter" {
-        $Description = "PowerShellGet test description"
+        $Description = "PSResourceGet test description"
         $PowerShellHostName = $Host.Name
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath -PowerShellHostName $PowerShellHostName
@@ -200,7 +200,7 @@ Describe 'Test Update-PSModuleManifest' {
     }
 
     It "Update module manifest given DefaultCommandPrefix parameter" {
-        $Description = "PowerShellGet test description"
+        $Description = "PSResourceGet test description"
         $DefaultCommandPrefix = "testprefix"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath -DefaultCommandPrefix $DefaultCommandPrefix
@@ -332,7 +332,7 @@ Describe 'Test Update-PSModuleManifest' {
 
     It "Update module manifest given ModuleList parameter" {
         $Description = "Test Description"
-        $ModuleList1 = "PowerShellGet"
+        $ModuleList1 = "PSResourceGet"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath -ModuleList $ModuleList1
 

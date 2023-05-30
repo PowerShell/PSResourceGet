@@ -68,7 +68,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $res = Install-PSResource -Name "NonExistantModule" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
@@ -99,7 +99,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         }
         catch
         {}
-        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
         $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty

@@ -26,10 +26,10 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $randomSecret = [System.IO.Path]::GetRandomFileName()
         $randomPassword = [System.IO.Path]::GetRandomFileName()
 
-        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)
+        $credentialInfo1 = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)
         $secureString = ConvertTo-SecureString $randomPassword -AsPlainText -Force
         $credential = New-Object pscredential ("testusername", $secureString)
-        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret, $credential)
+        $credentialInfo2 = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret, $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -100,7 +100,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
     It "not set repository and write error given just Name parameter" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        {Set-PSResourceRepository -Name $TestRepoName1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $TestRepoName1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     $testCases = @{Type = "contains *";     Name = "test*Repository"; ErrorId = "ErrorInNameParameterSet"},
@@ -111,7 +111,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         param($Type, $Name)
 
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        {Set-PSResourceRepository -Name $Name -Priority 25 -ErrorAction Stop} | Should -Throw -ErrorId "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $Name -Priority 25 -ErrorAction Stop} | Should -Throw -ErrorId "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     $testCases2 = @{Type = "contains *";     Name = "test*Repository2";  ErrorId = "ErrorSettingRepository"},
@@ -130,7 +130,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir3Path
@@ -189,13 +189,13 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
     It "not set and throw error for trying to set PSGallery Uri (NameParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -PSGallery
-        {Set-PSResourceRepository -Name $PSGalleryName -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $PSGalleryName -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     It "not set and throw error for trying to set PSGallery CredentialInfo (NameParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -PSGallery
-        {Set-PSResourceRepository -Name $PSGalleryName -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $PSGalleryName -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     It "not set repository and throw error for trying to set PSGallery Uri (RepositoriesParameterSet)" {
@@ -210,7 +210,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingRepository,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingRepository,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
@@ -240,7 +240,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingRepository,Microsoft.PowerShell.PowerShellGet.Cmdlets.SetPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorSettingRepository,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir1Path

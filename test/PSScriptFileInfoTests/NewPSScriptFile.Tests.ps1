@@ -75,7 +75,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
     }
 
     It "Create new .ps1 given Description parameter" {
-        $description = "PowerShellGet test description"
+        $description = "PSResourceGet test description"
 
         New-PSScriptFileInfo -Path $script:testScriptFilePath -Description $description
 

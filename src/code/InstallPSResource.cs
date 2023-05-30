@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -12,7 +12,7 @@ using System.Management.Automation;
 using System.Net;
 using Dbg = System.Diagnostics.Debug;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// The Install-PSResource cmdlet installs a resource.
