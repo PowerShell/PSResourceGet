@@ -3,7 +3,7 @@
 
 @{
     RootModule        = './net472/PSResourceGet.dll'
-    ModuleVersion     = '0.0.1'
+    ModuleVersion     = '0.1.0'
     CompatiblePSEditions = @('Core', 'Desktop')
     GUID              = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author            = 'Microsoft Corporation'
