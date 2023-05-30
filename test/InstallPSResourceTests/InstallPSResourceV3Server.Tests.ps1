@@ -24,7 +24,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule", "PackageManagement" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "test_module_with_license", "TestFindModule", "PackageManagement" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -242,12 +242,12 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     #     (Get-ChildItem -Path $resourcePath -Recurse).Count | Should -BeExactly $resourceFiles.Count
     # }
 
-    # It "Install resource that requires accept license with -AcceptLicense flag" {
-    #     Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
-    #     $pkg = Get-InstalledPSResource "testModuleWithlicense"
-    #     $pkg.Name | Should -Be "testModuleWithlicense"
-    #     $pkg.Version | Should -Be "0.0.3.0"
-    # }
+    It "Install resource that requires accept license with -AcceptLicense flag" {
+        Install-PSResource -Name "test_module_with_license" -Repository $NuGetGalleryName -AcceptLicense
+        $pkg = Get-InstalledPSResource "test_module_with_license"
+        $pkg.Name | Should -Be "test_module_with_license"
+        $pkg.Version | Should -Be "1.0.0"
+    }
 
     It "Install PSResourceInfo object piped in" {
         Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName | Install-PSResource -TrustRepository
@@ -395,7 +395,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
         Install-PSResource -Name $testModuleName2  -Repository $TestGalleryName
         $pkg = Get-InstalledPSResource $testModuleName2 
         $pkg.Name | Should -Be $testModuleName2 
-        $pkg.Version | Should -Be "0.0.1.0"
+        $pkg.Version | Should -Be "2.0.0"
     }
 
     # This needs to be manually tested due to prompt

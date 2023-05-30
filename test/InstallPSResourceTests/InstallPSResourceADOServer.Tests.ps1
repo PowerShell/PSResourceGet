@@ -203,13 +203,6 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
-    # It "Install resource that requires accept license with -AcceptLicense flag" {
-    #     Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
-    #     $pkg = Get-InstalledPSResource "testModuleWithlicense"
-    #     $pkg.Name | Should -Be "testModuleWithlicense"
-    #     $pkg.Version | Should -Be "0.0.3.0"
-    # }
-
     It "Install PSResourceInfo object piped in" {
         Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $ADORepoName | Install-PSResource -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
