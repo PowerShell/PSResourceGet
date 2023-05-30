@@ -34,7 +34,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $ADORepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $Name
+        $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty
     }
 
@@ -187,7 +187,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     It "Should not install resource that is already installed" {
         Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
-        $pkg | Should -Be $testModuleName
+        $pkg.Name | Should -Be $testModuleName
         Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -WarningVariable WarningVar -warningaction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
     }

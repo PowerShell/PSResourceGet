@@ -40,6 +40,8 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $res = Get-InstalledPSResource $testModuleName
+        $res | Should -BeNullOrEmpty
     }
 
     It "Install specific module resource by name" {
