@@ -56,14 +56,6 @@ PS C:\> cd c:\Repos\PSResourceGet
 PS C:\Repos\PSResourceGet>
 ```
 
-* Install PSPackageProject module if needed
-
-```powershell
-if ((Get-Module -Name PSPackageProject -ListAvailable).Count -eq 0) {
-    Install-Module -Name PSPackageProject -Repository PSGallery
-}
-```
-
 * Build the project
 
 ```powershell
@@ -95,8 +87,3 @@ C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet
 # If running Windows PowerShell
 C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet\PSResourceGet.psd1
 ```
-
-**Note**
-PSResourceGet consists of .NET binaries and so can be imported into a PowerShell session only once.
-Since the PSPackageProject module, used to build the module, has a dependency on earlier versions of PowerShellGet, the newly built module cannot be imported into that session.
-The new module can only be imported into a new session that has no prior imported PowerShellGet module. You will recieve warning messages in the console if you encounter this issue.
